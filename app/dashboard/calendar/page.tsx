@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
+import { useActiveChild } from "@/context/active-child-context"
 import {
   format,
   startOfToday,
@@ -86,10 +87,10 @@ interface Child {
 export default function CalendarPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const { activeChildId } = useActiveChild()
   const [date, setDate] = useState<Date>(new Date())
   const [view, setView] = useState<"day" | "week" | "month">("month")
   const [isLoading, setIsLoading] = useState(true)
-  const [children, setChildren] = useState<Child[]>([])
   const [allEvents, setAllEvents] = useState<Event[]>([])
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -98,45 +99,37 @@ export default function CalendarPage() {
   const [editedEvent, setEditedEvent] = useState<Partial<Event>>({})
 
   useEffect(() => {
-    // Cargar los niños y sus eventos
+    // Cargar los eventos del niño activo
     const fetchData = async () => {
+      // Si no hay niño seleccionado, limpiar eventos y parar
+      if (!activeChildId) {
+        setAllEvents([]);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true)
+      setAllEvents([]); // Limpiar eventos anteriores
       try {
-        // Obtener la lista de niños
-        const childrenResponse = await fetch('/api/children')
-        if (!childrenResponse.ok) {
-          throw new Error('Error al cargar los niños')
+        // Obtener eventos solo del niño activo
+        const eventsResponse = await fetch(`/api/children/events?childId=${activeChildId}`)
+        if (!eventsResponse.ok) {
+            // Podríamos intentar obtener el nombre del niño aquí si fuera necesario,
+            // pero como solo mostramos eventos de un niño, el nombre no es crucial
+            // en cada evento individual dentro del array.
+            // Si necesitamos el nombre del niño en algún lugar, podríamos obtenerlo
+            // con una llamada separada a /api/children/[activeChildId]
+            throw new Error('Error al cargar los eventos del niño')
         }
-        const childrenData = await childrenResponse.json()
-        setChildren(childrenData)
-
-        // Inicializar array para todos los eventos
-        const eventsArray: Event[] = []
-
-        // Para cada niño, obtener sus eventos
-        for (const child of childrenData) {
-          const eventsResponse = await fetch(`/api/children/events?childId=${child._id}`)
-          if (eventsResponse.ok) {
-            const eventsData = await eventsResponse.json()
-            
-            // Si hay eventos, agregarlos al array con el nombre del niño
-            if (eventsData.events && eventsData.events.length > 0) {
-              const childEvents = eventsData.events.map((event: Event) => ({
-                ...event,
-                childId: child._id,
-                childName: `${child.firstName} ${child.lastName}`
-              }))
-              eventsArray.push(...childEvents)
-            }
-          }
-        }
-
-        setAllEvents(eventsArray)
+        const eventsData = await eventsResponse.json()
+        setAllEvents(eventsData.events || [])
+        
       } catch (error) {
         console.error('Error:', error)
+        setAllEvents([]) // Limpiar en caso de error
         toast({
           title: "Error",
-          description: "No se pudieron cargar los eventos. Inténtalo de nuevo.",
+          description: "No se pudieron cargar los eventos del niño seleccionado. Inténtalo de nuevo.",
           variant: "destructive",
         })
       } finally {
@@ -145,7 +138,7 @@ export default function CalendarPage() {
     }
 
     fetchData()
-  }, [toast])
+  }, [activeChildId, toast])
 
   // Función para obtener nombre de tipo de evento
   const getEventTypeName = (type: string) => {
@@ -253,8 +246,6 @@ export default function CalendarPage() {
             ? { 
                 ...event, 
                 ...editedEvent,
-                childName: children.find(c => c._id === editedEvent.childId)?.firstName + ' ' + 
-                          children.find(c => c._id === editedEvent.childId)?.lastName
               } 
             : event
         )
@@ -514,13 +505,29 @@ export default function CalendarPage() {
     setDate(new Date())
   }
 
-  if (isLoading) {
+  if (isLoading && activeChildId) {
     return (
       <div className="flex justify-center items-center h-[calc(100vh-12rem)]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Cargando eventos...</span>
+        <span className="ml-2">Cargando calendario...</span>
       </div>
     )
+  }
+
+  if (!activeChildId) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Calendario</CardTitle>
+          <CardDescription>Vista de los eventos registrados</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-10">
+            <p>Por favor, selecciona un niño en la parte superior para ver su calendario de eventos.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   const eventTypes = [
@@ -544,222 +551,205 @@ export default function CalendarPage() {
   ]
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <Card>
+      <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Calendario</h1>
-          <p className="text-muted-foreground">Visualiza y gestiona los eventos de tus niños</p>
+          <CardTitle>Calendario</CardTitle>
+          <CardDescription>Vista de los eventos registrados para el niño seleccionado</CardDescription>
         </div>
-        <Link href="/dashboard/event">
-          <Button className="gap-2">
-            <PlusCircle className="h-4 w-4" />
-            Registrar evento
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Controles de navegación */}
+          <Button variant="outline" size="icon" onClick={goToPrevious}>
+            <ChevronLeft className="h-4 w-4" />
+            <span className="sr-only">Anterior</span>
           </Button>
-        </Link>
-      </div>
-
-        <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" onClick={goToPrevious}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-            <Button variant="outline" size="sm" onClick={goToToday}>
-              Hoy
-            </Button>
-            <Button variant="outline" size="sm" onClick={goToNext}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-            <h2 className="font-semibold text-lg">
-              {view === 'month' && format(date, 'MMMM yyyy', { locale: es })}
-              {view === 'week' && `${format(startOfWeek(date, { weekStartsOn: 1 }), 'd MMM', { locale: es })} - ${format(endOfWeek(date, { weekStartsOn: 1 }), 'd MMM yyyy', { locale: es })}`}
-              {view === 'day' && format(date, 'd MMMM yyyy', { locale: es })}
-            </h2>
-              </div>
-          <Tabs
-            value={view}
-            onValueChange={(newView) => setView(newView as 'day' | 'week' | 'month')}
-          >
+          <Button variant="outline" onClick={goToToday} className="hidden sm:inline-flex">
+            Hoy
+          </Button>
+          <span className="font-semibold text-center min-w-[150px]">
+            {format(date, view === 'month' ? 'MMMM yyyy' : (view === 'week' ? 'dd MMM' : 'dd MMMM yyyy'), { locale: es })}
+            {view === 'week' && ` - ${format(addDays(date, 6), 'dd MMM yyyy', { locale: es })}`}
+          </span>
+          <Button variant="outline" size="icon" onClick={goToNext}>
+            <ChevronRight className="h-4 w-4" />
+            <span className="sr-only">Siguiente</span>
+          </Button>
+          <Tabs value={view} onValueChange={(v) => setView(v as "day" | "week" | "month")} className="ml-auto md:ml-0">
             <TabsList>
               <TabsTrigger value="day">Día</TabsTrigger>
               <TabsTrigger value="week">Semana</TabsTrigger>
               <TabsTrigger value="month">Mes</TabsTrigger>
             </TabsList>
           </Tabs>
-        </CardHeader>
-        <CardContent>
-          {view === 'month' && renderMonthView()}
-          {view === 'week' && renderWeekView()}
-          {view === 'day' && renderDayView()}
-                  </CardContent>
-                </Card>
-
-      {/* Diálogo para mostrar/editar detalles del evento */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          {selectedEvent && (
-            <>
-              <DialogHeader>
-                <DialogTitle>{isEditing ? "Editar evento" : getEventTypeName(selectedEvent.eventType)}</DialogTitle>
-                <DialogDescription>
-                  {isEditing ? "Modifica los detalles del evento" : "Detalles del evento"}
-                </DialogDescription>
-              </DialogHeader>
-              
-              {!isEditing ? (
-                // Modo visualización
-                <div className="space-y-4 py-4">
-                  <div className="grid gap-2">
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span className="text-sm">
-                        {format(new Date(selectedEvent.startTime), 'PPpp', { locale: es })}
-                        {selectedEvent.endTime && (
-                          <> hasta {format(new Date(selectedEvent.endTime), 'p', { locale: es })}</>
-                        )}
-                          </span>
-                        </div>
-                    <div className="flex items-center">
-                      <span className="font-medium mr-2">Niño:</span>
-                      <span>{selectedEvent.childName}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="font-medium mr-2">Estado emocional:</span>
-                      <span>{getEmotionalStateName(selectedEvent.emotionalState)}</span>
-                    </div>
-                    {selectedEvent.notes && (
-                      <div className="mt-2">
-                        <span className="font-medium">Notas:</span>
-                        <p className="text-sm mt-1">{selectedEvent.notes}</p>
-                </div>
-              )}
-                  </div>
-                </div>
-              ) : (
-                // Modo edición
-                <div className="py-4">
-                  <div className="grid gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="child">Niño</Label>
-                      <Select 
-                        value={editedEvent.childId}
-                        onValueChange={(value) => setEditedEvent({...editedEvent, childId: value})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un niño" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {children.map((child) => (
-                            <SelectItem key={child._id} value={child._id}>
-                              {child.firstName} {child.lastName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="grid gap-2">
-                      <Label htmlFor="eventType">Tipo de evento</Label>
-                      <Select 
-                        value={editedEvent.eventType}
-                        onValueChange={(value) => setEditedEvent({...editedEvent, eventType: value})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {eventTypes.map((type) => (
-                            <SelectItem key={type.id} value={type.id}>
-                              {type.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="grid gap-2">
-                      <Label htmlFor="emotionalState">Estado emocional</Label>
-                      <Select 
-                        value={editedEvent.emotionalState}
-                        onValueChange={(value) => setEditedEvent({...editedEvent, emotionalState: value})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un estado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {emotionalStates.map((state) => (
-                            <SelectItem key={state.id} value={state.id}>
-                              {state.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="startTime">Hora de inicio</Label>
-                        <Input 
-                          type="datetime-local" 
-                          value={editedEvent.startTime?.replace('Z', '')}
-                          onChange={(e) => setEditedEvent({...editedEvent, startTime: e.target.value})}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="endTime">Hora de finalización</Label>
-                        <Input 
-                          type="datetime-local" 
-                          value={editedEvent.endTime?.replace('Z', '')}
-                          onChange={(e) => setEditedEvent({...editedEvent, endTime: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid gap-2">
-                      <Label htmlFor="notes">Notas</Label>
-                      <Textarea 
-                        value={editedEvent.notes} 
-                        onChange={(e) => setEditedEvent({...editedEvent, notes: e.target.value})}
-                        placeholder="Notas adicionales sobre el evento..."
-                      />
-                    </div>
-                  </div>
+          <Button size="sm" className="gap-1" asChild>
+            {/* Asegurarse que el link para añadir evento incluya el childId activo */}
+            <Link href={`/dashboard/children/${activeChildId}/events/new`}>
+              <PlusCircle className="h-4 w-4" />
+              <span>Añadir evento</span>
+            </Link>
+          </Button>
         </div>
-              )}
-              
-              <DialogFooter className="flex justify-between">
-                {isEditing ? (
-                  <>
-                    <Button variant="destructive" onClick={deleteEvent} disabled={isSaving}>
-                      <Trash className="h-4 w-4 mr-2" />
-                      Eliminar
-                    </Button>
-                    <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
-                        Cancelar
-                      </Button>
-                      <Button onClick={updateEvent} disabled={isSaving}>
-                        {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                        Guardar cambios
-                      </Button>
-      </div>
-                  </>
+      </CardHeader>
+      <CardContent>
+        {view === 'month' && renderMonthView()}
+        {view === 'week' && renderWeekView()}
+        {view === 'day' && renderDayView()}
+        {allEvents.length === 0 && !isLoading && (
+           <div className="text-center py-10">
+             <p>No hay eventos registrados para este niño en la vista actual.</p>
+           </div>
+        )}
+      </CardContent>
+
+      {/* Dialogo para ver/editar/eliminar evento */}
+      {selectedEvent && (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            {selectedEvent && (
+              <>
+                <DialogHeader>
+                  <DialogTitle>{isEditing ? "Editar evento" : getEventTypeName(selectedEvent.eventType)}</DialogTitle>
+                  <DialogDescription>
+                    {isEditing ? "Modifica los detalles del evento" : "Detalles del evento"}
+                  </DialogDescription>
+                </DialogHeader>
+                
+                {!isEditing ? (
+                  // Modo visualización
+                  <div className="space-y-4 py-4">
+                    <div className="grid gap-2">
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <span className="text-sm">
+                          {format(new Date(selectedEvent.startTime), 'PPpp', { locale: es })}
+                          {selectedEvent.endTime && (
+                            <> hasta {format(new Date(selectedEvent.endTime), 'p', { locale: es })}</>
+                          )}
+                            </span>
+                          </div>
+                      <div className="flex items-center">
+                        <span className="font-medium mr-2">Niño:</span>
+                        <span>{selectedEvent.childName}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="font-medium mr-2">Estado emocional:</span>
+                        <span>{getEmotionalStateName(selectedEvent.emotionalState)}</span>
+                      </div>
+                      {selectedEvent.notes && (
+                        <div className="mt-2">
+                          <span className="font-medium">Notas:</span>
+                          <p className="text-sm mt-1">{selectedEvent.notes}</p>
+                    </div>
+                  )}
+                    </div>
+                  </div>
                 ) : (
-                  <>
-                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                      Cerrar
-                    </Button>
-                    <Button onClick={() => setIsEditing(true)}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Editar evento
-                    </Button>
-                  </>
+                  // Modo edición
+                  <div className="py-4">
+                    <div className="grid gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="eventType">Tipo de evento</Label>
+                        <Select 
+                          value={editedEvent.eventType}
+                          onValueChange={(value) => setEditedEvent({...editedEvent, eventType: value})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {eventTypes.map((type) => (
+                              <SelectItem key={type.id} value={type.id}>
+                                {type.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <Label htmlFor="emotionalState">Estado emocional</Label>
+                        <Select 
+                          value={editedEvent.emotionalState}
+                          onValueChange={(value) => setEditedEvent({...editedEvent, emotionalState: value})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un estado" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {emotionalStates.map((state) => (
+                              <SelectItem key={state.id} value={state.id}>
+                                {state.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="startTime">Hora de inicio</Label>
+                          <Input 
+                            type="datetime-local" 
+                            value={editedEvent.startTime?.replace('Z', '')}
+                            onChange={(e) => setEditedEvent({...editedEvent, startTime: e.target.value})}
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="endTime">Hora de finalización</Label>
+                          <Input 
+                            type="datetime-local" 
+                            value={editedEvent.endTime?.replace('Z', '')}
+                            onChange={(e) => setEditedEvent({...editedEvent, endTime: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <Label htmlFor="notes">Notas</Label>
+                        <Textarea 
+                          value={editedEvent.notes} 
+                          onChange={(e) => setEditedEvent({...editedEvent, notes: e.target.value})}
+                          placeholder="Notas adicionales sobre el evento..."
+                        />
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
+                
+                <DialogFooter className="flex justify-between">
+                  {isEditing ? (
+                    <>
+                      <Button variant="destructive" onClick={deleteEvent} disabled={isSaving}>
+                        <Trash className="h-4 w-4 mr-2" />
+                        Eliminar
+                      </Button>
+                      <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
+                          Cancelar
+                        </Button>
+                        <Button onClick={updateEvent} disabled={isSaving}>
+                          {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                          Guardar cambios
+                        </Button>
+        </div>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                        Cerrar
+                      </Button>
+                      <Button onClick={() => setIsEditing(true)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar evento
+                      </Button>
+                    </>
+                  )}
+                </DialogFooter>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
+    </Card>
   )
 }

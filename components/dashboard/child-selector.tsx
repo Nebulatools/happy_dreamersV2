@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { PlusCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { useActiveChild } from "@/context/active-child-context"
 
 type Child = {
   _id: string
@@ -18,7 +19,7 @@ type Child = {
 
 export function ChildSelector() {
   const [children, setChildren] = useState<Child[]>([])
-  const [selectedChild, setSelectedChild] = useState<string>("")
+  const { activeChildId, setActiveChildId } = useActiveChild()
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const { toast } = useToast()
@@ -37,9 +38,14 @@ export function ChildSelector() {
         const data = await response.json()
         setChildren(data)
 
-        // Si hay niños, seleccionamos el primero por defecto
-        if (data.length > 0) {
-          setSelectedChild(data[0]._id)
+        // Si hay niños y no hay uno activo seleccionado, seleccionamos el primero por defecto
+        if (data.length > 0 && !activeChildId) {
+          setActiveChildId(data[0]._id)
+        }
+        // Si ya había un niño activo, pero ya no existe en la lista (p.ej. fue eliminado),
+        // y aún quedan niños, seleccionamos el primero. Si no quedan niños, ponemos null.
+        else if (activeChildId && !data.some((child: Child) => child._id === activeChildId)) {
+          setActiveChildId(data.length > 0 ? data[0]._id : null)
         }
 
         setLoading(false)
@@ -51,20 +57,19 @@ export function ChildSelector() {
           variant: "destructive",
         })
         setLoading(false)
+        setActiveChildId(null)
       }
     }
 
     fetchChildren()
-  }, [toast])
+  }, [toast, setActiveChildId, activeChildId])
 
   const handleAddChild = () => {
     router.push("/dashboard/children/new")
   }
 
   const handleSelectChange = (value: string) => {
-    setSelectedChild(value)
-    // Si quisiéramos actualizar un contexto global o hacer una redirección
-    // router.push(`/dashboard?childId=${value}`)
+    setActiveChildId(value)
   }
 
   if (loading) {
@@ -90,7 +95,7 @@ export function ChildSelector() {
 
   return (
     <div className="flex items-center gap-2">
-      <Select value={selectedChild} onValueChange={handleSelectChange}>
+      <Select value={activeChildId ?? ""} onValueChange={handleSelectChange}>
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Seleccionar niño" />
         </SelectTrigger>

@@ -5,6 +5,7 @@ import type { ReactNode } from "react"
 import { getServerSession } from "next-auth/next"
 import { redirect } from "next/navigation"
 import { authOptions } from "@/lib/auth"
+import { ActiveChildProvider } from "@/context/active-child-context"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { Header } from "@/components/dashboard/header"
 
@@ -20,12 +21,16 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <div className="flex flex-1">
+    <ActiveChildProvider>
+      <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
         <Sidebar />
-        <main className="flex-1 p-6 md:p-8">{children}</main>
+        <div className="flex flex-col">
+          <Header />
+          <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </ActiveChildProvider>
   )
 }

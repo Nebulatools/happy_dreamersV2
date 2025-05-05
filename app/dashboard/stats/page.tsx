@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useActiveChild } from "@/context/active-child-context"
 import {
   BarChart,
   Bar,
@@ -61,10 +62,9 @@ interface Event {
 
 export default function StatsPage() {
   const { toast } = useToast()
+  const { activeChildId } = useActiveChild()
   const [period, setPeriod] = useState("week")
   const [isLoading, setIsLoading] = useState(true)
-  const [children, setChildren] = useState<Child[]>([])
-  const [selectedChildId, setSelectedChildId] = useState<string>("")
   const [events, setEvents] = useState<Event[]>([])
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
 
@@ -101,42 +101,19 @@ export default function StatsPage() {
     }
   }
 
-  // Cargar los niños al iniciar
-  useEffect(() => {
-    const fetchChildren = async () => {
-      try {
-        const response = await fetch('/api/children')
-        if (!response.ok) {
-          throw new Error('Error al cargar los niños')
-        }
-        const data = await response.json()
-        setChildren(data)
-        
-        // Seleccionar el primer niño por defecto si hay niños
-        if (data.length > 0 && !selectedChildId) {
-          setSelectedChildId(data[0]._id)
-        }
-      } catch (error) {
-        console.error('Error:', error)
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los niños. Inténtalo de nuevo.",
-          variant: "destructive",
-        })
-      }
-    }
-
-    fetchChildren()
-  }, [toast, selectedChildId])
-
-  // Cargar los eventos cuando se selecciona un niño
+  // Cargar los eventos cuando cambia el niño activo del contexto
   useEffect(() => {
     const fetchEvents = async () => {
-      if (!selectedChildId) return
-      
+      if (!activeChildId) {
+        setEvents([]);
+        setFilteredEvents([]);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true)
       try {
-        const response = await fetch(`/api/children/events?childId=${selectedChildId}`)
+        const response = await fetch(`/api/children/events?childId=${activeChildId}`)
         if (!response.ok) {
           throw new Error('Error al cargar los eventos')
         }
@@ -144,6 +121,7 @@ export default function StatsPage() {
         setEvents(data.events || [])
       } catch (error) {
         console.error('Error:', error)
+        setEvents([])
         toast({
           title: "Error",
           description: "No se pudieron cargar los eventos. Inténtalo de nuevo.",
@@ -155,7 +133,7 @@ export default function StatsPage() {
     }
 
     fetchEvents()
-  }, [selectedChildId, toast])
+  }, [activeChildId, toast])
 
   // Filtrar eventos por período seleccionado
   useEffect(() => {
@@ -279,13 +257,33 @@ export default function StatsPage() {
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658'];
 
   // Renderizar
-  if (isLoading) {
+  if (isLoading && activeChildId) {
     return (
       <div className="flex justify-center items-center h-[calc(100vh-12rem)]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-2">Cargando estadísticas...</span>
       </div>
     )
+  }
+
+  if (!activeChildId) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Estadísticas</h1>
+            <p className="text-muted-foreground">Análisis detallado de patrones de sueño, actividad y estado emocional</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="py-10">
+            <div className="text-center">
+              <p>Por favor, selecciona un niño en la parte superior para ver sus estadísticas.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -296,28 +294,6 @@ export default function StatsPage() {
           <p className="text-muted-foreground">Análisis detallado de patrones de sueño, actividad y estado emocional</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <Select 
-            value={selectedChildId} 
-            onValueChange={(newChildId) => {
-              // Limpiar eventos del niño anterior antes de cambiar
-              setEvents([]);
-              setFilteredEvents([]);
-              
-              // Luego actualizar el ID del niño seleccionado
-              setSelectedChildId(newChildId);
-            }}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Seleccionar niño" />
-            </SelectTrigger>
-            <SelectContent>
-              {children.map(child => (
-                <SelectItem key={child._id} value={child._id}>
-                  {child.firstName} {child.lastName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Seleccionar período" />
@@ -332,19 +308,11 @@ export default function StatsPage() {
         </div>
       </div>
 
-      {children.length === 0 ? (
+      {filteredEvents.length === 0 && !isLoading ? (
         <Card>
           <CardContent className="py-10">
             <div className="text-center">
-              <p>No hay niños registrados para mostrar estadísticas.</p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : filteredEvents.length === 0 ? (
-        <Card>
-          <CardContent className="py-10">
-            <div className="text-center">
-              <p>No hay eventos registrados en el período seleccionado.</p>
+              <p>No hay eventos registrados para este niño en el período seleccionado.</p>
             </div>
           </CardContent>
         </Card>

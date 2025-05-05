@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { useActiveChild } from "@/context/active-child-context"
 
 interface Event {
   _id: string;
@@ -47,12 +48,13 @@ interface Child {
 }
 
 export default function ChildEventsPage() {
-  // Usar useParams para obtener el ID del niño - forma correcta en componentes cliente
   const params = useParams();
-  const childId = params.id as string;
+  const childIdFromUrl = params.id as string;
   
   const router = useRouter()
   const { toast } = useToast()
+  const { activeChildId, setActiveChildId } = useActiveChild();
+  
   const [isLoading, setIsLoading] = useState(true)
   const [child, setChild] = useState<Child | null>(null)
   const [events, setEvents] = useState<Event[]>([])
@@ -64,13 +66,44 @@ export default function ChildEventsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [editedEvent, setEditedEvent] = useState<Partial<Event>>({})
 
+  // Efecto 1: Sincronizar URL con Contexto al cargar o si cambia la URL
+  useEffect(() => {
+    if (childIdFromUrl && childIdFromUrl !== activeChildId) {
+      setActiveChildId(childIdFromUrl);
+    }
+    // Queremos que esto se ejecute solo si la URL cambia o al montar,
+    // No si activeChildId cambia (eso lo maneja el efecto 3)
+  }, [childIdFromUrl, setActiveChildId]);
+
+  // Efecto 2: Cargar datos cuando el niño activo del contexto cambia
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true)
+      // Solo cargar si tenemos un niño activo en el contexto
+      if (!activeChildId) {
+        setEvents([]);
+        setChild(null);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Asegurarse de que estamos mostrando el estado de carga correcto
+      // si el activeChildId acaba de cambiar
+      if (!isLoading) setIsLoading(true); 
+      
       try {
-        // Obtener datos del niño y sus eventos
-        const response = await fetch(`/api/children/events?childId=${childId}`)
+        // Obtener datos del niño y sus eventos usando el ID del contexto
+        const response = await fetch(`/api/children/events?childId=${activeChildId}`)
         if (!response.ok) {
+          // Si falla (ej: niño no encontrado), limpiar estado y redirigir o mostrar error
+          setEvents([]);
+          setChild(null);
+          toast({
+            title: "Error",
+            description: "No se pudieron cargar los eventos del niño seleccionado.",
+            variant: "destructive",
+          });
+          // Podríamos redirigir a /dashboard si el niño no existe
+          // router.push('/dashboard');
           throw new Error('Error al cargar los eventos')
         }
         const data = await response.json()
@@ -82,18 +115,31 @@ export default function ChildEventsPage() {
         setEvents(data.events || [])
       } catch (error) {
         console.error('Error:', error)
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los eventos. Inténtalo de nuevo.",
-          variant: "destructive",
-        })
+        // No mostramos el toast aquí si ya lo hicimos en el if (!response.ok)
+        if (error instanceof Error && error.message !== 'Error al cargar los eventos') {
+           toast({
+            title: "Error",
+            description: "Ocurrió un problema al cargar los datos.",
+            variant: "destructive",
+          })
+        }
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchData()
-  }, [childId, toast])
+  // }, [childId, toast]) // <-- Depender de activeChildId
+  }, [activeChildId, toast]) // <-- Depender de activeChildId y toast
+
+  // Efecto 3: Sincronizar Contexto con URL si cambia el contexto
+  useEffect(() => {
+    // Si el contexto tiene un ID, y es diferente de la URL actual,
+    // navegar a la URL correcta.
+    if (activeChildId && activeChildId !== childIdFromUrl) {
+      router.push(`/dashboard/children/${activeChildId}/events`);
+    }
+  }, [activeChildId, childIdFromUrl, router]);
 
   // Función para obtener nombre de tipo de evento
   const getEventTypeName = (type: string) => {
@@ -160,7 +206,7 @@ export default function ChildEventsPage() {
     try {
       // Datos a enviar - asegurar que childId siempre esté presente
       const updateData = {
-        childId: childId, // Usar el ID del niño de los parámetros de la ruta
+        childId: activeChildId,
         eventType: editedEvent.eventType,
         emotionalState: editedEvent.emotionalState,
         startTime: editedEvent.startTime,
@@ -305,7 +351,7 @@ export default function ChildEventsPage() {
             Lista de todos los eventos registrados para este niño
           </p>
         </div>
-        <Link href={`/dashboard/event?childId=${childId}`}>
+        <Link href={`/dashboard/event?childId=${activeChildId}`}>
           <Button className="gap-2">
             <PlusCircle className="h-4 w-4" />
             Registrar evento
@@ -318,7 +364,7 @@ export default function ChildEventsPage() {
           <CardContent className="py-10">
             <div className="text-center">
               <p>No hay eventos registrados para este niño.</p>
-              <Link href={`/dashboard/event?childId=${childId}`}>
+              <Link href={`/dashboard/event?childId=${activeChildId}`}>
                 <Button className="mt-4">
                   <PlusCircle className="h-4 w-4 mr-2" />
                   Registrar el primer evento
