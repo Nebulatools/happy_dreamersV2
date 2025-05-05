@@ -3,7 +3,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -14,50 +14,61 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { PlusCircle, X } from "lucide-react"
 
+const siblingsSchema = z.array(
+  z.object({
+    id: z.string(),
+    first_name: z.string().min(1, "El nombre es requerido"),
+    last_name: z.string().min(1, "El apellido es requerido"),
+    date_of_birth: z.string().optional(),
+  }),
+)
+
 const familyDynamicsSchema = z.object({
-  siblings: z
-    .array(
-      z.object({
-        id: z.string(),
-        first_name: z.string().min(1, "El nombre es requerido"),
-        last_name: z.string().min(1, "El apellido es requerido"),
-        date_of_birth: z.string(),
-      }),
-    )
-    .optional(),
   primary_caregiver: z.string(),
   night_caregiver: z.string(),
   night_wakings_caregiver: z.string(),
-  other_household_members: z.string().optional(),
   parent_participation: z.string(),
   separation_anxiety: z.string(),
   alone_reaction: z.string(),
   parent_dark_fear: z.string(),
+  siblings: siblingsSchema.optional(),
+  other_household_members: z.string().optional(),
 })
 
 type FamilyDynamicsFormValues = z.infer<typeof familyDynamicsSchema>
 
 interface FamilyDynamicsFormProps {
   onSubmit: (data: FamilyDynamicsFormValues) => void
+  initialData?: Partial<FamilyDynamicsFormValues>
 }
 
-export function FamilyDynamicsForm({ onSubmit }: FamilyDynamicsFormProps) {
+export function FamilyDynamicsForm({ onSubmit, initialData = {} }: FamilyDynamicsFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const form = useForm<FamilyDynamicsFormValues>({
     resolver: zodResolver(familyDynamicsSchema),
     defaultValues: {
-      siblings: [],
-      primary_caregiver: "",
-      night_caregiver: "",
-      night_wakings_caregiver: "",
-      other_household_members: "",
-      parent_participation: "",
-      separation_anxiety: "",
-      alone_reaction: "",
-      parent_dark_fear: "",
+      primary_caregiver: initialData.primary_caregiver || "",
+      night_caregiver: initialData.night_caregiver || "",
+      night_wakings_caregiver: initialData.night_wakings_caregiver || "",
+      parent_participation: initialData.parent_participation || "",
+      separation_anxiety: initialData.separation_anxiety || "",
+      alone_reaction: initialData.alone_reaction || "",
+      parent_dark_fear: initialData.parent_dark_fear || "",
+      siblings: initialData.siblings || [],
+      other_household_members: initialData.other_household_members || "",
     },
   })
+
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) {
+      Object.entries(initialData).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          form.setValue(key as any, value as any)
+        }
+      })
+    }
+  }, [initialData, form])
 
   const caregiverOptions = [
     { id: "mother", label: "Madre" },
@@ -71,7 +82,6 @@ export function FamilyDynamicsForm({ onSubmit }: FamilyDynamicsFormProps) {
 
   const handleSubmit = (data: FamilyDynamicsFormValues) => {
     setIsSubmitting(true)
-    // Simulamos un pequeño retraso para mostrar el estado de carga
     setTimeout(() => {
       onSubmit(data)
       setIsSubmitting(false)
@@ -347,7 +357,7 @@ export function FamilyDynamicsForm({ onSubmit }: FamilyDynamicsFormProps) {
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Guardando..." : "Continuar"}
+            {isSubmitting ? "Guardando..." : "Guardar y continuar"}
           </Button>
         </div>
       </form>

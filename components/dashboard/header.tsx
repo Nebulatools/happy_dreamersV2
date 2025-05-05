@@ -89,7 +89,7 @@ export function Header() {
                 <Link href="/dashboard/profile">Perfil</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/settings">Configuración</Link>
+                <Link href="/dashboard/configuracion">Configuración</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>Cerrar sesión</DropdownMenuItem>

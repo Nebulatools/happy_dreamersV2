@@ -32,7 +32,8 @@ if (process.env.NODE_ENV === "development") {
 
 export async function connectToDatabase() {
   const client = await clientPromise
-  const db = client.db(process.env.MONGODB_DB || "happy-dreamers")
+  // Usar la base de datos especificada en la URI
+  const db = client.db()
   return { client, db }
 }
 

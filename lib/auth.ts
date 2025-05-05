@@ -4,12 +4,31 @@
 import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { connectToDatabase } from "@/lib/mongodb"
+import clientPromise from "@/lib/mongodb"
 import { compare } from "bcryptjs"
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
 import type { Adapter } from "next-auth/adapters"
 
+// Extender el tipo User para incluir id y role
+declare module "next-auth" {
+  interface User {
+    id: string
+    role: string
+  }
+  
+  interface Session {
+    user: {
+      id: string
+      name?: string | null
+      email?: string | null
+      image?: string | null
+      role: string
+    }
+  }
+}
+
 export const authOptions: NextAuthOptions = {
-  adapter: MongoDBAdapter(connectToDatabase()) as Adapter,
+  adapter: MongoDBAdapter(clientPromise) as Adapter,
   session: {
     strategy: "jwt",
   },

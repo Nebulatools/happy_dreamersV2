@@ -3,8 +3,8 @@
 
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -16,6 +16,8 @@ import { SleepRoutineForm } from "@/components/survey/sleep-routine-form"
 
 export default function SurveyPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const childId = searchParams.get('childId')
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("parent-info")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -28,23 +30,62 @@ export default function SurveyPage() {
     sleepRoutine: {},
   })
 
+  // Al cargar la página, intentar recuperar datos guardados previamente
+  useEffect(() => {
+    const savedData = localStorage.getItem(`survey_${childId}`)
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData)
+        setFormData(parsedData)
+        
+        // También podríamos restaurar la pestaña activa
+        const lastTab = localStorage.getItem(`survey_tab_${childId}`)
+        if (lastTab) {
+          setActiveTab(lastTab)
+        }
+        
+        toast({
+          title: "Datos recuperados",
+          description: "Se han cargado tus respuestas anteriores",
+        })
+      } catch (error) {
+        console.error("Error al cargar datos guardados:", error)
+      }
+    }
+  }, [childId, toast])
+
   const handleTabChange = (value: string) => {
+    // Guardar la pestaña actual en localStorage antes de cambiar
+    localStorage.setItem(`survey_tab_${childId}`, value)
     setActiveTab(value)
   }
 
   const handleSectionSubmit = (section: string, data: any) => {
     // Actualizar el estado con los datos de la sección
-    setFormData((prev) => ({
-      ...prev,
+    const updatedFormData = {
+      ...formData,
       [section]: data,
-    }))
+    }
+    
+    // Guardar los datos actualizados en localStorage
+    localStorage.setItem(`survey_${childId}`, JSON.stringify(updatedFormData))
+    
+    setFormData(updatedFormData)
+
+    // Mostrar mensaje de guardado exitoso
+    toast({
+      title: "Sección guardada",
+      description: "Tus respuestas han sido guardadas",
+    })
 
     // Avanzar a la siguiente pestaña
     const tabs = ["parent-info", "child-history", "family-dynamics", "sleep-routine"]
     const currentIndex = tabs.indexOf(section)
 
     if (currentIndex < tabs.length - 1) {
-      setActiveTab(tabs[currentIndex + 1])
+      const nextTab = tabs[currentIndex + 1]
+      localStorage.setItem(`survey_tab_${childId}`, nextTab)
+      setActiveTab(nextTab)
     } else {
       // Si es la última sección, enviar todo el formulario
       handleSubmitSurvey()
@@ -54,23 +95,40 @@ export default function SurveyPage() {
   const handleSubmitSurvey = async () => {
     setIsSubmitting(true)
     try {
-      // Aquí enviaríamos los datos a la API
-      console.log("Datos completos de la encuesta:", formData)
+      // Enviar datos a la API
+      const response = await fetch('/api/survey', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          childId,
+          surveyData: formData
+        }),
+      })
+      
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Error al enviar la encuesta');
+      }
 
-      // Simulamos una llamada a la API
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      // Limpiar los datos guardados en localStorage
+      localStorage.removeItem(`survey_${childId}`)
+      localStorage.removeItem(`survey_tab_${childId}`)
 
       toast({
         title: "Encuesta completada",
-        description: "La información ha sido guardada correctamente.",
+        description: responseData.message || "La información ha sido guardada correctamente.",
       })
 
       // Redirigir al dashboard
       router.push("/dashboard")
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error:", error)
       toast({
         title: "Error",
-        description: "No se pudo guardar la encuesta. Inténtalo de nuevo.",
+        description: error?.message || "No se pudo guardar la encuesta. Inténtalo de nuevo.",
         variant: "destructive",
       })
     } finally {
@@ -100,20 +158,30 @@ export default function SurveyPage() {
             </TabsList>
 
             <TabsContent value="parent-info">
-              <ParentInfoForm onSubmit={(data) => handleSectionSubmit("parentInfo", data)} />
+              <ParentInfoForm 
+                onSubmit={(data) => handleSectionSubmit("parentInfo", data)} 
+                initialData={formData.parentInfo}
+              />
             </TabsContent>
 
             <TabsContent value="child-history">
-              <ChildHistoryForm onSubmit={(data) => handleSectionSubmit("childHistory", data)} />
+              <ChildHistoryForm 
+                onSubmit={(data) => handleSectionSubmit("childHistory", data)} 
+                initialData={formData.childHistory}
+              />
             </TabsContent>
 
             <TabsContent value="family-dynamics">
-              <FamilyDynamicsForm onSubmit={(data) => handleSectionSubmit("familyDynamics", data)} />
+              <FamilyDynamicsForm 
+                onSubmit={(data) => handleSectionSubmit("familyDynamics", data)} 
+                initialData={formData.familyDynamics}
+              />
             </TabsContent>
 
             <TabsContent value="sleep-routine">
               <SleepRoutineForm
                 onSubmit={(data) => handleSectionSubmit("sleepRoutine", data)}
+                initialData={formData.sleepRoutine}
                 isSubmitting={isSubmitting}
               />
             </TabsContent>
@@ -126,7 +194,9 @@ export default function SurveyPage() {
               const tabs = ["parent-info", "child-history", "family-dynamics", "sleep-routine"]
               const currentIndex = tabs.indexOf(activeTab)
               if (currentIndex > 0) {
-                setActiveTab(tabs[currentIndex - 1])
+                const prevTab = tabs[currentIndex - 1]
+                localStorage.setItem(`survey_tab_${childId}`, prevTab)
+                setActiveTab(prevTab)
               }
             }}
             disabled={activeTab === "parent-info" || isSubmitting}
@@ -138,7 +208,9 @@ export default function SurveyPage() {
               const tabs = ["parent-info", "child-history", "family-dynamics", "sleep-routine"]
               const currentIndex = tabs.indexOf(activeTab)
               if (currentIndex < tabs.length - 1) {
-                setActiveTab(tabs[currentIndex + 1])
+                const nextTab = tabs[currentIndex + 1]
+                localStorage.setItem(`survey_tab_${childId}`, nextTab)
+                setActiveTab(nextTab)
               }
             }}
             disabled={activeTab === "sleep-routine" || isSubmitting}

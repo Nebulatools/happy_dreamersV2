@@ -9,17 +9,32 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PlusCircle, Clock, Moon, Sun, Activity } from "lucide-react"
 import Link from "next/link"
+import { connectToDatabase } from "@/lib/mongodb"
+import { ObjectId } from "mongodb"
+
+interface Child {
+  _id: ObjectId;
+  firstName: string;
+  lastName: string;
+  birthDate?: string;
+  parentId: string;
+  createdAt: Date;
+}
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
 
-  if (!session) {
+  if (!session || !session.user) {
     redirect("/auth/login")
   }
 
-  // Aquí normalmente cargaríamos los datos del niño seleccionado
-  // Por ahora, usamos datos de ejemplo
-  const hasChildren = true // Esto vendría de la base de datos
+  // Consultar si el usuario tiene niños registrados
+  const { db } = await connectToDatabase()
+  const children = await db.collection("children")
+    .find({ parentId: session.user.id })
+    .toArray() as Child[]
+  
+  const hasChildren = children.length > 0
 
   if (!hasChildren) {
     return (
@@ -38,12 +53,15 @@ export default async function DashboardPage() {
     )
   }
 
+  // Si tiene niños, mostrar el dashboard con el primer niño
+  const selectedChild = children[0]
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Resumen del sueño y actividades de Ana García</p>
+          <p className="text-muted-foreground">Resumen del sueño y actividades de {selectedChild.firstName} {selectedChild.lastName}</p>
         </div>
         <Link href="/dashboard/event">
           <Button className="gap-2">

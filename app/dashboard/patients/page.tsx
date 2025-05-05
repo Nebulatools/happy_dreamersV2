@@ -3,7 +3,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,62 +11,64 @@ import { Button } from "@/components/ui/button"
 import { Search, Eye } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { useSession } from "next-auth/react"
+import { useToast } from "@/hooks/use-toast"
 
-// Datos de ejemplo para los pacientes
-const mockPatients = [
-  {
-    id: "1",
-    name: "Ana García",
-    parentName: "María García",
-    age: "3 años",
-    lastVisit: "2025-04-25",
-    status: "Activo",
-  },
-  {
-    id: "2",
-    name: "Luis Pérez",
-    parentName: "Carlos Pérez",
-    age: "2 años",
-    lastVisit: "2025-04-20",
-    status: "Activo",
-  },
-  {
-    id: "3",
-    name: "Sofía Rodríguez",
-    parentName: "Laura Rodríguez",
-    age: "4 años",
-    lastVisit: "2025-04-15",
-    status: "Activo",
-  },
-  {
-    id: "4",
-    name: "Diego Martínez",
-    parentName: "José Martínez",
-    age: "1 año",
-    lastVisit: "2025-04-10",
-    status: "Inactivo",
-  },
-  {
-    id: "5",
-    name: "Valentina López",
-    parentName: "Ana López",
-    age: "5 años",
-    lastVisit: "2025-04-05",
-    status: "Activo",
-  },
-]
+// Definir una interfaz para el tipo de paciente
+interface Patient {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  birthDate?: string;
+  parentName?: string;
+  lastVisit?: string;
+  status?: string;
+}
 
 export default function PatientsPage() {
   const router = useRouter()
+  const { data: session } = useSession()
+  const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
+  const [isLoading, setIsLoading] = useState(true)
+  const [patients, setPatients] = useState<Patient[]>([])
   const patientsPerPage = 10
 
+  useEffect(() => {
+    // Cargar los niños desde la base de datos
+    async function loadChildren() {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/children')
+        
+        if (!response.ok) {
+          throw new Error('Error al cargar los niños')
+        }
+        
+        const data = await response.json()
+        setPatients(data)
+      } catch (error) {
+        console.error('Error:', error)
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los pacientes",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    loadChildren()
+  }, [toast])
+
   // Filtrar pacientes según el término de búsqueda
-  const filteredPatients = mockPatients.filter(
+  const filteredPatients = patients.filter(
     (patient) =>
-      patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.parentName.toLowerCase().includes(searchTerm.toLowerCase()),
+      patient.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (patient.parentName && patient.parentName.toLowerCase().includes(searchTerm.toLowerCase())),
   )
 
   // Calcular el total de páginas
@@ -120,24 +122,33 @@ export default function PatientsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentPatients.map((patient) => (
-                  <TableRow key={patient.id}>
-                    <TableCell className="font-medium">{patient.name}</TableCell>
-                    <TableCell>{patient.parentName}</TableCell>
-                    <TableCell>{patient.age}</TableCell>
-                    <TableCell>{new Date(patient.lastVisit).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <Badge variant={patient.status === "Activo" ? "default" : "secondary"}>{patient.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => handleViewPatient(patient.id)}>
-                        <Eye className="h-4 w-4" />
-                        <span className="sr-only">Ver paciente</span>
-                      </Button>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center">
+                      Cargando pacientes...
                     </TableCell>
                   </TableRow>
-                ))}
-                {currentPatients.length === 0 && (
+                ) : currentPatients.length > 0 ? (
+                  currentPatients.map((patient) => (
+                    <TableRow key={patient._id}>
+                      <TableCell className="font-medium">{patient.firstName} {patient.lastName}</TableCell>
+                      <TableCell>{patient.parentName || "-"}</TableCell>
+                      <TableCell>{calculateAge(patient.birthDate)}</TableCell>
+                      <TableCell>{patient.lastVisit ? new Date(patient.lastVisit).toLocaleDateString() : "Sin visitas"}</TableCell>
+                      <TableCell>
+                        <Badge variant={patient.status === "Activo" ? "default" : "secondary"}>
+                          {patient.status || "Activo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => handleViewPatient(patient._id)}>
+                          <Eye className="h-4 w-4" />
+                          <span className="sr-only">Ver paciente</span>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center">
                       No se encontraron pacientes
@@ -175,4 +186,30 @@ export default function PatientsPage() {
       </Card>
     </div>
   )
+}
+
+// Función para calcular la edad basada en la fecha de nacimiento
+function calculateAge(birthDate?: string): string {
+  if (!birthDate) return "-";
+  
+  const birth = new Date(birthDate);
+  const now = new Date();
+  
+  let years = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
+    years--;
+  }
+  
+  // Para niños menores de 1 año, mostrar meses
+  if (years < 1) {
+    let months = (now.getMonth() + 12 - birth.getMonth()) % 12;
+    if (now.getDate() < birth.getDate()) {
+      months--;
+    }
+    return `${months} ${months === 1 ? 'mes' : 'meses'}`;
+  }
+  
+  return `${years} ${years === 1 ? 'año' : 'años'}`;
 }

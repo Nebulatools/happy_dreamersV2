@@ -3,7 +3,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -33,34 +33,46 @@ const childHistorySchema = z.object({
 type ChildHistoryFormValues = z.infer<typeof childHistorySchema>
 
 interface ChildHistoryFormProps {
-  onSubmit: (data: ChildHistoryFormValues) => void
+  onSubmit: (data: ChildHistoryFormValues) => void;
+  initialData?: Partial<ChildHistoryFormValues>;
 }
 
-export function ChildHistoryForm({ onSubmit }: ChildHistoryFormProps) {
+export function ChildHistoryForm({ onSubmit, initialData = {} }: ChildHistoryFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const form = useForm<ChildHistoryFormValues>({
     resolver: zodResolver(childHistorySchema),
     defaultValues: {
-      child_name: "",
-      child_last_name: "",
-      birth_date: "",
-      weight: "",
-      weight_percentile: "",
-      full_term: "",
-      birth_problems: "",
-      child_temperament: "",
-      daycare: "",
-      feeding_type: "",
-      eats_solids: "",
-      uses_cup: [],
-      additional_info: "",
+      child_name: initialData.child_name || "",
+      child_last_name: initialData.child_last_name || "",
+      birth_date: initialData.birth_date || "",
+      weight: initialData.weight || "",
+      weight_percentile: initialData.weight_percentile || "",
+      full_term: initialData.full_term || "",
+      birth_problems: initialData.birth_problems || "",
+      child_temperament: initialData.child_temperament || "",
+      daycare: initialData.daycare || "",
+      feeding_type: initialData.feeding_type || "",
+      eats_solids: initialData.eats_solids || "",
+      uses_cup: initialData.uses_cup || [],
+      additional_info: initialData.additional_info || "",
     },
   })
+  
+  // Actualizar el formulario si cambian los initialData
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) {
+      Object.entries(initialData).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          form.setValue(key as any, value as any);
+        }
+      });
+    }
+  }, [initialData, form]);
 
   const handleSubmit = (data: ChildHistoryFormValues) => {
     setIsSubmitting(true)
-    // Simulamos un pequeño retraso para mostrar el estado de carga
+    // Enviar los datos
     setTimeout(() => {
       onSubmit(data)
       setIsSubmitting(false)
@@ -320,7 +332,7 @@ export function ChildHistoryForm({ onSubmit }: ChildHistoryFormProps) {
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Guardando..." : "Continuar"}
+            {isSubmitting ? "Guardando..." : "Guardar y continuar"}
           </Button>
         </div>
       </form>

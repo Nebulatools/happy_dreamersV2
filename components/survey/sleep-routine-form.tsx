@@ -2,6 +2,7 @@
 // Cuarta sección de la encuesta
 
 "use client"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -53,47 +54,58 @@ type SleepRoutineFormValues = z.infer<typeof sleepRoutineSchema>
 interface SleepRoutineFormProps {
   onSubmit: (data: SleepRoutineFormValues) => void
   isSubmitting?: boolean
+  initialData?: Partial<SleepRoutineFormValues>
 }
 
-export function SleepRoutineForm({ onSubmit, isSubmitting = false }: SleepRoutineFormProps) {
+export function SleepRoutineForm({ onSubmit, isSubmitting = false, initialData = {} }: SleepRoutineFormProps) {
   const form = useForm<SleepRoutineFormValues>({
     resolver: zodResolver(sleepRoutineSchema),
     defaultValues: {
-      daily_routine: "",
-      daycare: "",
-      primary_caregiver: "",
-      night_caregiver: "",
-      night_sleep_location_when_out: "",
-      room_darkness: [],
-      white_noise: "",
-      room_temperature: "",
-      pajama_type: "",
-      sleep_sack: "",
-      bedtime_routine: "",
-      bedtime: "",
-      self_soothing: "",
-      parent_present: "",
-      sleep_location: [],
-      room_sharing: "",
-      crib_escape: "",
-      night_moving: "",
-      separation_anxiety: "",
-      body_rocking: "",
-      night_wakings: "",
-      dark_fear: "",
-      parent_dark_fear: "",
-      child_temperament: "",
-      alone_reaction: "",
-      self_soothing_method: "",
-      naps: "",
-      siblings_sleep_issues: "",
-      travel_sleep_location: "",
-      travel_sleep_quality: "",
-      parent_participation: "",
-      sleep_goals: "",
-      additional_info: "",
+      daily_routine: initialData.daily_routine || "",
+      daycare: initialData.daycare || "",
+      primary_caregiver: initialData.primary_caregiver || "",
+      night_caregiver: initialData.night_caregiver || "",
+      night_sleep_location_when_out: initialData.night_sleep_location_when_out || "",
+      room_darkness: initialData.room_darkness || [],
+      white_noise: initialData.white_noise || "",
+      room_temperature: initialData.room_temperature || "",
+      pajama_type: initialData.pajama_type || "",
+      sleep_sack: initialData.sleep_sack || "",
+      bedtime_routine: initialData.bedtime_routine || "",
+      bedtime: initialData.bedtime || "",
+      self_soothing: initialData.self_soothing || "",
+      parent_present: initialData.parent_present || "",
+      sleep_location: initialData.sleep_location || [],
+      room_sharing: initialData.room_sharing || "",
+      crib_escape: initialData.crib_escape || "",
+      night_moving: initialData.night_moving || "",
+      separation_anxiety: initialData.separation_anxiety || "",
+      body_rocking: initialData.body_rocking || "",
+      night_wakings: initialData.night_wakings || "",
+      dark_fear: initialData.dark_fear || "",
+      parent_dark_fear: initialData.parent_dark_fear || "",
+      child_temperament: initialData.child_temperament || "",
+      alone_reaction: initialData.alone_reaction || "",
+      self_soothing_method: initialData.self_soothing_method || "",
+      naps: initialData.naps || "",
+      siblings_sleep_issues: initialData.siblings_sleep_issues || "",
+      travel_sleep_location: initialData.travel_sleep_location || "",
+      travel_sleep_quality: initialData.travel_sleep_quality || "",
+      parent_participation: initialData.parent_participation || "",
+      sleep_goals: initialData.sleep_goals || "",
+      additional_info: initialData.additional_info || "",
     },
   })
+
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) {
+      Object.entries(initialData).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          form.setValue(key as any, value as any)
+        }
+      })
+    }
+  }, [initialData, form])
 
   const caregiverOptions = [
     { id: "mother", label: "Madre" },

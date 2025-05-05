@@ -3,7 +3,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -34,36 +34,48 @@ const parentInfoSchema = z.object({
 type ParentInfoFormValues = z.infer<typeof parentInfoSchema>
 
 interface ParentInfoFormProps {
-  onSubmit: (data: ParentInfoFormValues) => void
+  onSubmit: (data: ParentInfoFormValues) => void;
+  initialData?: Partial<ParentInfoFormValues>;
 }
 
-export function ParentInfoForm({ onSubmit }: ParentInfoFormProps) {
+export function ParentInfoForm({ onSubmit, initialData = {} }: ParentInfoFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const form = useForm<ParentInfoFormValues>({
     resolver: zodResolver(parentInfoSchema),
     defaultValues: {
-      mother_name: "",
-      mother_age: "",
-      mother_occupation: "",
-      mother_same_address: "",
-      mother_city: "",
-      mother_phone: "",
-      mother_email: "",
-      father_name: "",
-      father_age: "",
-      father_occupation: "",
-      father_address: "",
-      father_city: "",
-      father_phone: "",
-      father_email: "",
-      referral_source: "",
+      mother_name: initialData.mother_name || "",
+      mother_age: initialData.mother_age || "",
+      mother_occupation: initialData.mother_occupation || "",
+      mother_same_address: initialData.mother_same_address || "",
+      mother_city: initialData.mother_city || "",
+      mother_phone: initialData.mother_phone || "",
+      mother_email: initialData.mother_email || "",
+      father_name: initialData.father_name || "",
+      father_age: initialData.father_age || "",
+      father_occupation: initialData.father_occupation || "",
+      father_address: initialData.father_address || "",
+      father_city: initialData.father_city || "",
+      father_phone: initialData.father_phone || "",
+      father_email: initialData.father_email || "",
+      referral_source: initialData.referral_source || "",
     },
   })
 
+  // Actualizar el formulario si cambian los initialData
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) {
+      Object.entries(initialData).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          form.setValue(key as any, value as any);
+        }
+      });
+    }
+  }, [initialData, form]);
+
   const handleSubmit = (data: ParentInfoFormValues) => {
     setIsSubmitting(true)
-    // Simulamos un pequeño retraso para mostrar el estado de carga
+    // Enviar los datos
     setTimeout(() => {
       onSubmit(data)
       setIsSubmitting(false)
@@ -291,7 +303,7 @@ export function ParentInfoForm({ onSubmit }: ParentInfoFormProps) {
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Guardando..." : "Continuar"}
+            {isSubmitting ? "Guardando..." : "Guardar y continuar"}
           </Button>
         </div>
       </form>

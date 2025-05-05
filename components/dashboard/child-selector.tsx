@@ -11,8 +11,8 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
 type Child = {
-  id: string
-  name: string
+  _id: string
+  firstName: string
   lastName: string
 }
 
@@ -24,26 +24,27 @@ export function ChildSelector() {
   const { toast } = useToast()
 
   useEffect(() => {
-    // Aquí cargaríamos los hijos del usuario desde la API
-    // Por ahora, usamos datos de ejemplo
+    // Cargar los niños desde la API
     const fetchChildren = async () => {
       try {
-        // Simulamos una llamada a la API
-        setTimeout(() => {
-          const mockChildren = [
-            { id: "1", name: "Ana", lastName: "García" },
-            { id: "2", name: "Luis", lastName: "Pérez" },
-          ]
-          setChildren(mockChildren)
+        setLoading(true)
+        const response = await fetch('/api/children')
+        
+        if (!response.ok) {
+          throw new Error('Error al cargar los niños')
+        }
+        
+        const data = await response.json()
+        setChildren(data)
 
-          // Si hay niños, seleccionamos el primero por defecto
-          if (mockChildren.length > 0) {
-            setSelectedChild(mockChildren[0].id)
-          }
+        // Si hay niños, seleccionamos el primero por defecto
+        if (data.length > 0) {
+          setSelectedChild(data[0]._id)
+        }
 
-          setLoading(false)
-        }, 500)
+        setLoading(false)
       } catch (error) {
+        console.error('Error:', error)
         toast({
           title: "Error",
           description: "No se pudieron cargar los niños",
@@ -62,7 +63,8 @@ export function ChildSelector() {
 
   const handleSelectChange = (value: string) => {
     setSelectedChild(value)
-    // Aquí podríamos actualizar el contexto global o hacer una llamada a la API
+    // Si quisiéramos actualizar un contexto global o hacer una redirección
+    // router.push(`/dashboard?childId=${value}`)
   }
 
   if (loading) {
@@ -94,8 +96,8 @@ export function ChildSelector() {
         </SelectTrigger>
         <SelectContent>
           {children.map((child) => (
-            <SelectItem key={child.id} value={child.id}>
-              {child.name} {child.lastName}
+            <SelectItem key={child._id} value={child._id}>
+              {child.firstName} {child.lastName}
             </SelectItem>
           ))}
         </SelectContent>

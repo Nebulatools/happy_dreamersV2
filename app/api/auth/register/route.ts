@@ -32,6 +32,7 @@ export async function POST(req: Request) {
       email,
       password: hashedPassword,
       role: role || "parent", // Por defecto, los usuarios son padres
+      children: [], // Inicializar el array de hijos vacío
       createdAt: new Date(),
     })
 

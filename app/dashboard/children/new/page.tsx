@@ -12,8 +12,15 @@ import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { useSession } from "next-auth/react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ParentInfoForm } from "@/components/survey/parent-info-form"
+import { ChildHistoryForm } from "@/components/survey/child-history-form"
+import { FamilyDynamicsForm } from "@/components/survey/family-dynamics-form"
+import { SleepRoutineForm } from "@/components/survey/sleep-routine-form"
 
+// Formulario básico del niño
 const childFormSchema = z.object({
   firstName: z.string().min(2, {
     message: "El nombre debe tener al menos 2 caracteres.",
@@ -21,9 +28,7 @@ const childFormSchema = z.object({
   lastName: z.string().min(2, {
     message: "El apellido debe tener al menos 2 caracteres.",
   }),
-  birthDate: z.string({
-    required_error: "La fecha de nacimiento es requerida.",
-  }),
+  birthDate: z.string().optional(),
 })
 
 type ChildFormValues = z.infer<typeof childFormSchema>
@@ -31,8 +36,22 @@ type ChildFormValues = z.infer<typeof childFormSchema>
 export default function NewChildPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const { data: session } = useSession()
   const [isLoading, setIsLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState("basic-info")
+  
+  // Estado para almacenar datos básicos
+  const [basicInfo, setBasicInfo] = useState<ChildFormValues | null>(null)
+  
+  // Estado para almacenar las respuestas de cada sección de la encuesta
+  const [surveyData, setSurveyData] = useState({
+    parentInfo: {},
+    childHistory: {},
+    familyDynamics: {},
+    sleepRoutine: {},
+  })
 
+  // Formulario de información básica
   const form = useForm<ChildFormValues>({
     resolver: zodResolver(childFormSchema),
     defaultValues: {
@@ -42,102 +61,333 @@ export default function NewChildPage() {
     },
   })
 
-  async function onSubmit(data: ChildFormValues) {
-    setIsLoading(true)
-    try {
-      // Aquí enviaríamos los datos a la API
-      console.log(data)
+  // Guardar información básica y avanzar a la encuesta
+  const handleBasicInfoSubmit = (data: ChildFormValues) => {
+    setBasicInfo(data)
+    setActiveTab("parent-info")
+  }
 
-      // Simulamos una llamada a la API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+  // Manejar envío de cada sección de la encuesta
+  const handleSectionSubmit = (section: string, data: any) => {
+    // Actualizar el estado con los datos de la sección
+    setSurveyData(prev => ({
+      ...prev,
+      [section]: data,
+    }))
 
-      toast({
-        title: "Niño registrado",
-        description: "El niño ha sido registrado correctamente. Ahora completa la encuesta.",
-      })
+    console.log(`Sección ${section} guardada:`, data);
+    
+    // Avanzar a la siguiente pestaña
+    const tabs = ["basic-info", "parent-info", "child-history", "family-dynamics", "sleep-routine"]
+    const currentIndex = tabs.indexOf(section)
 
-      // Redirigir a la encuesta
-      router.push("/dashboard/survey")
-    } catch (error) {
+    if (currentIndex < tabs.length - 1) {
+      const nextTab = tabs[currentIndex + 1]
+      setActiveTab(nextTab)
+    }
+  }
+
+  // Enviar todo el formulario completo (datos básicos + encuesta)
+  const handleSubmitComplete = async () => {
+    if (!basicInfo || !session?.user?.id) {
+      console.error("Error: Información básica o sesión no disponible", { basicInfo, sessionUserId: session?.user?.id });
       toast({
         title: "Error",
-        description: "No se pudo registrar al niño. Inténtalo de nuevo.",
+        description: "No se puede guardar la información sin los datos básicos o sesión",
         variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
+      });
+      return;
     }
+    
+    // Solo verificamos nombre y apellido para pruebas
+    if (!basicInfo.firstName || !basicInfo.lastName) {
+      console.error("Error: Faltan datos básicos", { 
+        firstName: basicInfo.firstName,
+        lastName: basicInfo.lastName
+      });
+      toast({
+        title: "Datos incompletos",
+        description: "Por favor completa el nombre y apellido del niño",
+        variant: "destructive",
+      });
+      setActiveTab("basic-info");
+      return;
+    }
+    
+    setIsLoading(true);
+    console.log("Datos básicos a enviar:", basicInfo);
+    console.log("Datos de encuesta a enviar:", surveyData);
+    
+    try {
+      // Crear el niño con toda la información (datos básicos + encuesta) en un solo paso
+      const requestData = {
+        firstName: basicInfo.firstName,
+        lastName: basicInfo.lastName,
+        birthDate: basicInfo.birthDate || "",
+        parentId: session.user.id,
+        surveyData
+      };
+      
+      console.log("Enviando datos a /api/children:", JSON.stringify(requestData));
+      
+      const response = await fetch('/api/children', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+      
+      console.log("Respuesta del servidor:", response.status, response.statusText);
+      const responseData = await response.json();
+      console.log("Datos de respuesta:", responseData);
+      
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Error al registrar el niño con la encuesta');
+      }
+
+      toast({
+        title: "Registro completado",
+        description: `El niño ${basicInfo.firstName} ha sido registrado correctamente y vinculado a tu perfil. ID: ${responseData.id}`,
+      });
+
+      // Redirigir al dashboard
+      router.push("/dashboard");
+    } catch (error: any) {
+      console.error("Error en handleSubmitComplete:", error);
+      toast({
+        title: "Error al registrar",
+        description: error?.message || "No se pudo completar el registro. Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Botones de navegación entre pestañas
+  const renderTabNavigation = () => {
+    const tabs = ["basic-info", "parent-info", "child-history", "family-dynamics", "sleep-routine"]
+    const currentIndex = tabs.indexOf(activeTab)
+    
+    return (
+      <div className="flex justify-between border-t p-4">
+        <Button
+          variant="outline"
+          onClick={() => {
+            if (currentIndex > 0) {
+              const prevTab = tabs[currentIndex - 1]
+              setActiveTab(prevTab)
+            }
+          }}
+          disabled={currentIndex === 0 || isLoading}
+        >
+          Anterior
+        </Button>
+        
+        {activeTab === "sleep-routine" ? (
+          <Button onClick={handleSubmitComplete} disabled={isLoading}>
+            {isLoading ? "Guardando..." : "Registrar niño"}
+          </Button>
+        ) : (
+          <Button
+            onClick={() => {
+              if (currentIndex < tabs.length - 1) {
+                const nextTab = tabs[currentIndex + 1]
+                setActiveTab(nextTab)
+              }
+            }}
+            disabled={isLoading || (activeTab === "basic-info" && !basicInfo)}
+          >
+            Siguiente
+          </Button>
+        )}
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Agregar Niño</h1>
-        <p className="text-muted-foreground">Registra un nuevo niño para comenzar a monitorear su sueño</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Registrar Nuevo Niño</h1>
+            <p className="text-muted-foreground">Completa la información y la encuesta inicial</p>
+          </div>
+          {process.env.NODE_ENV === 'development' && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/test-db');
+                  const data = await response.json();
+                  console.log("Prueba de conexión a MongoDB:", data);
+                  toast({
+                    title: data.status === "success" ? "Conexión exitosa" : "Error de conexión",
+                    description: data.status === "success" 
+                      ? `Conectado a MongoDB. Niños: ${data.childrenCount}`
+                      : `Error: ${data.error}`,
+                    variant: data.status === "success" ? "default" : "destructive",
+                  });
+                } catch (error) {
+                  console.error("Error en prueba de conexión:", error);
+                  toast({
+                    title: "Error de conexión",
+                    description: "No se pudo conectar a MongoDB. Revisa la consola para más detalles.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+            >
+              Probar Conexión MongoDB
+            </Button>
+          )}
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Información básica</CardTitle>
-          <CardDescription>Ingresa los datos básicos de tu hijo</CardDescription>
+      <Card className="pt-6">
+        <CardHeader className="px-8">
+          <CardTitle>Formulario de registro</CardTitle>
+          <CardDescription>Por favor completa todos los campos para crear un perfil completo</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombre</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nombre del niño" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 px-8">
+            <TabsTrigger value="basic-info" disabled={isLoading}>Datos Básicos</TabsTrigger>
+            <TabsTrigger value="parent-info" disabled={!basicInfo || isLoading}>Información Padres</TabsTrigger>
+            <TabsTrigger value="child-history" disabled={!basicInfo || isLoading}>Historia Niño</TabsTrigger>
+            <TabsTrigger value="family-dynamics" disabled={!basicInfo || isLoading}>Dinámica Familiar</TabsTrigger>
+            <TabsTrigger value="sleep-routine" disabled={!basicInfo || isLoading}>Rutinas de Sueño</TabsTrigger>
+          </TabsList>
+          
+          <CardContent className="px-8 pt-6">
+            <TabsContent value="basic-info">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleBasicInfoSubmit)} className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nombre del niño" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Apellido</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Apellido del niño" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Apellido</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Apellido del niño" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="birthDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fecha de nacimiento</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormDescription>Esta información nos ayudará a personalizar las recomendaciones</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="birthDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Fecha de nacimiento <span className="text-red-500">*</span></FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="date" 
+                            required
+                            {...field} 
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              console.log("Fecha seleccionada:", value);
+                              if (value) {
+                                field.onChange(value);
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <FormDescription>Esta información nos ayudará a personalizar las recomendaciones</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <div className="flex justify-end gap-4">
-                <Button type="button" variant="outline" onClick={() => router.back()}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Guardando..." : "Continuar a la encuesta"}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
+                  <div className="flex justify-end">
+                    <Button type="submit">
+                      Continuar a la encuesta
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </TabsContent>
+
+            <TabsContent value="parent-info">
+              {basicInfo && (
+                <ParentInfoForm 
+                  onSubmit={(data) => handleSectionSubmit("parentInfo", data)} 
+                  initialData={surveyData.parentInfo}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="child-history">
+              {basicInfo && (
+                <ChildHistoryForm 
+                  onSubmit={(data) => handleSectionSubmit("childHistory", data)} 
+                  initialData={{
+                    ...surveyData.childHistory,
+                    // Pasar automáticamente los datos básicos a la historia del niño
+                    child_name: basicInfo.firstName,
+                    child_last_name: basicInfo.lastName,
+                    birth_date: basicInfo.birthDate,
+                  }}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="family-dynamics">
+              {basicInfo && (
+                <FamilyDynamicsForm 
+                  onSubmit={(data) => handleSectionSubmit("familyDynamics", data)} 
+                  initialData={surveyData.familyDynamics}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="sleep-routine">
+              {basicInfo && (
+                <SleepRoutineForm
+                  onSubmit={(data) => {
+                    console.log("SleepRoutineForm - datos recibidos:", data);
+                    // Actualizar el estado con los datos de la rutina de sueño
+                    setSurveyData(prev => ({
+                      ...prev,
+                      sleepRoutine: data,
+                    }));
+                    
+                    // Llamar a handleSubmitComplete después de actualizar los datos
+                    setTimeout(() => {
+                      handleSubmitComplete();
+                    }, 0);
+                  }}
+                  initialData={surveyData.sleepRoutine}
+                  isSubmitting={isLoading}
+                />
+              )}
+            </TabsContent>
+          </CardContent>
+
+          <CardFooter>
+            {renderTabNavigation()}
+          </CardFooter>
+        </Tabs>
       </Card>
     </div>
   )
