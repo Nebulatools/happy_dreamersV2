@@ -65,7 +65,7 @@ export function Sidebar({ className }: { className?: string }) {
     },
     {
       title: "Configuración",
-      href: "/dashboard/settings",
+      href: "/dashboard/configuracion",
       icon: <Settings className="h-5 w-5" />,
     },
   ]

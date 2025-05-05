@@ -7,10 +7,18 @@ import { redirect } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { PlusCircle, Clock, Moon, Sun, Activity } from "lucide-react"
+import { PlusCircle, Clock, Moon, Sun, Activity, User, Calendar } from "lucide-react"
 import Link from "next/link"
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface Child {
   _id: ObjectId;
@@ -60,15 +68,51 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            {children.length > 1 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="ml-2">
+                    Cambiar niño
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuLabel>Seleccionar niño</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {children.map((child) => (
+                    <Link href={`/dashboard?childId=${child._id}`} key={child._id.toString()}>
+                      <DropdownMenuItem>
+                        {child.firstName} {child.lastName}
+                      </DropdownMenuItem>
+                    </Link>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
           <p className="text-muted-foreground">Resumen del sueño y actividades de {selectedChild.firstName} {selectedChild.lastName}</p>
         </div>
-        <Link href="/dashboard/event">
-          <Button className="gap-2">
-            <PlusCircle className="h-4 w-4" />
-            Registrar evento
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href={`/dashboard/children/${selectedChild._id}`}>
+            <Button variant="outline" className="gap-2">
+              <User className="h-4 w-4" />
+              Ver perfil
+            </Button>
+          </Link>
+          <Link href={`/dashboard/children/${selectedChild._id}/events`}>
+            <Button variant="outline" className="gap-2">
+              <Calendar className="h-4 w-4" />
+              Ver eventos
+            </Button>
+          </Link>
+          <Link href="/dashboard/event">
+            <Button className="gap-2">
+              <PlusCircle className="h-4 w-4" />
+              Registrar evento
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Tabs defaultValue="day" className="space-y-4">

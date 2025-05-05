@@ -8,21 +8,45 @@ import clientPromise from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
 // GET /api/children - obtener todos los niños del usuario autenticado
-export async function GET() {
+// GET /api/children?id=123 - obtener un niño específico
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session || !session.user) {
+      console.error("Error: No hay sesión o usuario autorizado");
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get("id")
+    
     const client = await clientPromise
     const db = client.db()
 
-    // Obtener los niños del usuario actual
+    // Si se proporciona un ID, obtener solo ese niño
+    if (id) {
+      console.log(`Buscando niño con ID: ${id} para el usuario ${session.user.id}`);
+      const child = await db.collection("children").findOne({
+        _id: new ObjectId(id),
+        parentId: session.user.id,
+      })
+
+      if (!child) {
+        console.error(`Niño con ID ${id} no encontrado o no pertenece al usuario ${session.user.id}`);
+        return NextResponse.json({ error: "Niño no encontrado o no tienes permiso para verlo" }, { status: 404 })
+      }
+
+      console.log(`Niño encontrado: ${child.firstName} ${child.lastName}`);
+      return NextResponse.json(child)
+    }
+
+    // Obtener todos los niños del usuario actual
+    console.log(`Obteniendo todos los niños del usuario ${session.user.id}`);
     const children = await db.collection("children")
       .find({ parentId: session.user.id })
       .toArray()
 
+    console.log(`Se encontraron ${children.length} niños para el usuario ${session.user.id}`);
     return NextResponse.json(children)
   } catch (error) {
     console.error("Error al obtener niños:", error)

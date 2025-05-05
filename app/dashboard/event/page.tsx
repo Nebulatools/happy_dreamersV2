@@ -3,7 +3,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Loader2 } from "lucide-react"
 
 const eventFormSchema = z.object({
   childId: z.string({
@@ -35,16 +36,43 @@ const eventFormSchema = z.object({
 
 type EventFormValues = z.infer<typeof eventFormSchema>
 
+interface Child {
+  _id: string;
+  firstName: string;
+  lastName: string;
+}
+
 export default function EventPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingChildren, setIsLoadingChildren] = useState(true)
+  const [children, setChildren] = useState<Child[]>([])
 
-  // Datos de ejemplo para los selectores
-  const children = [
-    { id: "1", name: "Ana García" },
-    { id: "2", name: "Luis Pérez" },
-  ]
+  // Cargar los niños del usuario actual
+  useEffect(() => {
+    const fetchChildren = async () => {
+      try {
+        const response = await fetch('/api/children')
+        if (!response.ok) {
+          throw new Error('Error al cargar los niños')
+        }
+        const data = await response.json()
+        setChildren(data)
+      } catch (error) {
+        console.error('Error:', error)
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los niños. Inténtalo de nuevo.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoadingChildren(false)
+      }
+    }
+
+    fetchChildren()
+  }, [toast])
 
   const eventTypes = [
     { id: "sleep", label: "Dormir" },
@@ -76,27 +104,62 @@ export default function EventPage() {
   async function onSubmit(data: EventFormValues) {
     setIsLoading(true)
     try {
-      // Aquí enviaríamos los datos a la API
-      console.log(data)
-
-      // Simulamos una llamada a la API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Enviar los datos a la API
+      console.log("Enviando evento:", data)
+      
+      const response = await fetch('/api/children/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+      
+      const responseData = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Error al registrar el evento')
+      }
 
       toast({
         title: "Evento registrado",
-        description: "El evento ha sido registrado correctamente.",
+        description: "El evento ha sido registrado correctamente para el niño.",
       })
 
       router.push("/dashboard")
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error:", error)
       toast({
         title: "Error",
-        description: "No se pudo registrar el evento. Inténtalo de nuevo.",
+        description: error?.message || "No se pudo registrar el evento. Inténtalo de nuevo.",
         variant: "destructive",
       })
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (isLoadingChildren) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Cargando niños...</span>
+      </div>
+    )
+  }
+
+  if (children.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Registrar Evento</h1>
+          <p className="text-muted-foreground">No hay niños registrados para agregar eventos</p>
+        </div>
+        <Button onClick={() => router.push('/dashboard/children/new')}>
+          Registrar un niño
+        </Button>
+      </div>
+    )
   }
 
   return (
@@ -128,8 +191,8 @@ export default function EventPage() {
                       </FormControl>
                       <SelectContent>
                         {children.map((child) => (
-                          <SelectItem key={child.id} value={child.id}>
-                            {child.name}
+                          <SelectItem key={child._id} value={child._id}>
+                            {child.firstName} {child.lastName}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -189,7 +252,7 @@ export default function EventPage() {
                 )}
               />
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="startTime"
@@ -199,6 +262,9 @@ export default function EventPage() {
                       <FormControl>
                         <Input type="datetime-local" {...field} />
                       </FormControl>
+                      <FormDescription>
+                        Selecciona cuándo inició el evento
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -209,11 +275,13 @@ export default function EventPage() {
                   name="endTime"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Hora de fin (opcional)</FormLabel>
+                      <FormLabel>Hora de finalización (opcional)</FormLabel>
                       <FormControl>
                         <Input type="datetime-local" {...field} />
                       </FormControl>
-                      <FormDescription>Solo para eventos con duración</FormDescription>
+                      <FormDescription>
+                        Selecciona cuándo terminó el evento
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -225,14 +293,16 @@ export default function EventPage() {
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Notas</FormLabel>
+                    <FormLabel>Notas adicionales (opcional)</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Escribe cualquier observación relevante sobre el evento"
-                        className="resize-none"
+                        placeholder="Escribe cualquier observación relevante sobre el evento..."
                         {...field}
                       />
                     </FormControl>
+                    <FormDescription>
+                      Puedes incluir detalles sobre cómo se comportó el niño, circunstancias especiales, etc.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -243,7 +313,14 @@ export default function EventPage() {
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Guardando..." : "Guardar evento"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    "Registrar evento"
+                  )}
                 </Button>
               </div>
             </form>
