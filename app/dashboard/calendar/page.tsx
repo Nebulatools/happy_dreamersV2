@@ -558,24 +558,24 @@ export default function CalendarPage() {
         </Link>
       </div>
 
-      <Card>
+        <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div className="flex items-center space-x-2">
             <Button variant="outline" size="sm" onClick={goToPrevious}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
             <Button variant="outline" size="sm" onClick={goToToday}>
               Hoy
             </Button>
             <Button variant="outline" size="sm" onClick={goToNext}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
             <h2 className="font-semibold text-lg">
               {view === 'month' && format(date, 'MMMM yyyy', { locale: es })}
               {view === 'week' && `${format(startOfWeek(date, { weekStartsOn: 1 }), 'd MMM', { locale: es })} - ${format(endOfWeek(date, { weekStartsOn: 1 }), 'd MMM yyyy', { locale: es })}`}
               {view === 'day' && format(date, 'd MMMM yyyy', { locale: es })}
             </h2>
-          </div>
+              </div>
           <Tabs
             value={view}
             onValueChange={(newView) => setView(newView as 'day' | 'week' | 'month')}
@@ -591,8 +591,8 @@ export default function CalendarPage() {
           {view === 'month' && renderMonthView()}
           {view === 'week' && renderWeekView()}
           {view === 'day' && renderDayView()}
-        </CardContent>
-      </Card>
+                  </CardContent>
+                </Card>
 
       {/* Diálogo para mostrar/editar detalles del evento */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -617,8 +617,8 @@ export default function CalendarPage() {
                         {selectedEvent.endTime && (
                           <> hasta {format(new Date(selectedEvent.endTime), 'p', { locale: es })}</>
                         )}
-                      </span>
-                    </div>
+                          </span>
+                        </div>
                     <div className="flex items-center">
                       <span className="font-medium mr-2">Niño:</span>
                       <span>{selectedEvent.childName}</span>
@@ -631,8 +631,8 @@ export default function CalendarPage() {
                       <div className="mt-2">
                         <span className="font-medium">Notas:</span>
                         <p className="text-sm mt-1">{selectedEvent.notes}</p>
-                      </div>
-                    )}
+                </div>
+              )}
                   </div>
                 </div>
               ) : (
@@ -724,7 +724,7 @@ export default function CalendarPage() {
                       />
                     </div>
                   </div>
-                </div>
+        </div>
               )}
               
               <DialogFooter className="flex justify-between">
@@ -742,7 +742,7 @@ export default function CalendarPage() {
                         {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                         Guardar cambios
                       </Button>
-                    </div>
+      </div>
                   </>
                 ) : (
                   <>
