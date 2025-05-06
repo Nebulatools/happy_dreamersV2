@@ -192,8 +192,10 @@ export default function CalendarPage() {
 
   // Función para manejar el clic en un evento
   const handleEventClick = (event: Event) => {
+    console.log("Evento seleccionado:", event);
     setSelectedEvent(event)
     setEditedEvent({
+      _id: event._id,
       childId: event.childId,
       eventType: event.eventType,
       emotionalState: event.emotionalState,
@@ -211,17 +213,30 @@ export default function CalendarPage() {
     
     setIsSaving(true)
     try {
-      // Datos a enviar - solo necesitamos el childId y los detalles del evento
+      // Datos a enviar - usar activeChildId directamente
       const updateData = {
-        childId: editedEvent.childId,
+        childId: activeChildId, // <--- Usar el ID del niño activo
         eventType: editedEvent.eventType,
         emotionalState: editedEvent.emotionalState,
         startTime: editedEvent.startTime,
         endTime: editedEvent.endTime || null,
         notes: editedEvent.notes || "",
-        createdAt: selectedEvent.createdAt
+        createdAt: selectedEvent.createdAt // Mantener la fecha de creación original
       }
       
+      // Verificar que tenemos los datos necesarios antes de enviar
+      if (!updateData.childId || !updateData.eventType) {
+         console.error("Error: Falta childId o eventType antes de enviar la actualización.", updateData);
+         toast({
+           title: "Error",
+           description: "Faltan datos necesarios (ID de niño o tipo de evento) para guardar.",
+           variant: "destructive",
+         });
+         setIsSaving(false);
+         return; 
+      }
+
+      console.log("ID del evento a actualizar:", selectedEvent._id);
       console.log("Enviando datos para actualización:", updateData);
       
       // Usar la URL con el ID en la ruta
@@ -581,13 +596,6 @@ export default function CalendarPage() {
               <TabsTrigger value="month">Mes</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button size="sm" className="gap-1" asChild>
-            {/* Asegurarse que el link para añadir evento incluya el childId activo */}
-            <Link href={`/dashboard/children/${activeChildId}/events/new`}>
-              <PlusCircle className="h-4 w-4" />
-              <span>Añadir evento</span>
-            </Link>
-          </Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -690,16 +698,22 @@ export default function CalendarPage() {
                           <Label htmlFor="startTime">Hora de inicio</Label>
                           <Input 
                             type="datetime-local" 
-                            value={editedEvent.startTime?.replace('Z', '')}
-                            onChange={(e) => setEditedEvent({...editedEvent, startTime: e.target.value})}
+                            value={String(editedEvent.startTime || "").replace("Z", "")}
+                            onChange={(e) => {
+                              const newValue = e.target.value || "";
+                              setEditedEvent({...editedEvent, startTime: newValue});
+                            }}
                           />
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="endTime">Hora de finalización</Label>
                           <Input 
                             type="datetime-local" 
-                            value={editedEvent.endTime?.replace('Z', '')}
-                            onChange={(e) => setEditedEvent({...editedEvent, endTime: e.target.value})}
+                            value={String(editedEvent.endTime || "").replace("Z", "")}
+                            onChange={(e) => {
+                              const newValue = e.target.value || "";
+                              setEditedEvent({...editedEvent, endTime: newValue});
+                            }}
                           />
                         </div>
                       </div>

@@ -4,6 +4,14 @@ import { cn } from "@/lib/utils"
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, ...props }, ref) => {
+    // Para inputs datetime-local, asegurarse que value siempre sea string
+    const inputProps = {...props};
+    
+    // Si es un datetime-local y value es undefined/null, usar string vacío
+    if (type === "datetime-local" && inputProps.value === undefined) {
+      inputProps.value = "";
+    }
+    
     return (
       <input
         type={type}
@@ -12,7 +20,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className
         )}
         ref={ref}
-        {...props}
+        {...inputProps}
       />
     )
   }
