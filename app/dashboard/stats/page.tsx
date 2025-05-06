@@ -7,26 +7,11 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2 } from "lucide-react"
+import { Loader2, Clock, Moon, Sun, Activity } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useActiveChild } from "@/context/active-child-context"
 import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
   ResponsiveContainer,
-  ScatterChart,
-  Scatter,
-  ZAxis
 } from "recharts"
 import {
   startOfWeek,
@@ -50,6 +35,22 @@ import {
   addDays
 } from "date-fns"
 import { es } from "date-fns/locale"
+
+// Importar componentes de estadísticas
+import {
+  SleepPatternChart,
+  NapChart,
+  SleepHoursChart,
+  SleepEventsChart,
+  SleepTypesChart,
+  ActivityDistributionChart,
+  ActivityDurationChart,
+  MoodDistributionChart,
+  MoodByActivityChart,
+  ProgressSummaryCard,
+  EventTrendChart,
+  StatsCard
+} from "@/components/stats"
 
 // Interfaces para los datos
 interface Child {
@@ -415,6 +416,63 @@ export default function StatsPage() {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
   };
 
+  // Preparar datos para estados emocionales por tipo de actividad
+  const prepareMoodByActivityData = () => {
+    return [
+      {
+        name: 'Sueño',
+        feliz: filteredEvents.filter(e => e.eventType === 'sleep' && e.emotionalState === 'happy').length,
+        tranquilo: filteredEvents.filter(e => e.eventType === 'sleep' && e.emotionalState === 'calm').length,
+        cansado: filteredEvents.filter(e => e.eventType === 'sleep' && e.emotionalState === 'tired').length,
+        irritable: filteredEvents.filter(e => e.eventType === 'sleep' && e.emotionalState === 'irritable').length
+      },
+      {
+        name: 'Siesta',
+        feliz: filteredEvents.filter(e => e.eventType === 'nap' && e.emotionalState === 'happy').length,
+        tranquilo: filteredEvents.filter(e => e.eventType === 'nap' && e.emotionalState === 'calm').length,
+        cansado: filteredEvents.filter(e => e.eventType === 'nap' && e.emotionalState === 'tired').length,
+        irritable: filteredEvents.filter(e => e.eventType === 'nap' && e.emotionalState === 'irritable').length
+      },
+      {
+        name: 'Actividad',
+        feliz: filteredEvents.filter(e => e.eventType === 'activity' && e.emotionalState === 'happy').length,
+        tranquilo: filteredEvents.filter(e => e.eventType === 'activity' && e.emotionalState === 'calm').length,
+        cansado: filteredEvents.filter(e => e.eventType === 'activity' && e.emotionalState === 'tired').length,
+        irritable: filteredEvents.filter(e => e.eventType === 'activity' && e.emotionalState === 'irritable').length
+      },
+      {
+        name: 'Juego',
+        feliz: filteredEvents.filter(e => e.eventType === 'play' && e.emotionalState === 'happy').length,
+        tranquilo: filteredEvents.filter(e => e.eventType === 'play' && e.emotionalState === 'calm').length,
+        cansado: filteredEvents.filter(e => e.eventType === 'play' && e.emotionalState === 'tired').length,
+        irritable: filteredEvents.filter(e => e.eventType === 'play' && e.emotionalState === 'irritable').length
+      },
+      {
+        name: 'Comida',
+        feliz: filteredEvents.filter(e => e.eventType === 'meal' && e.emotionalState === 'happy').length,
+        tranquilo: filteredEvents.filter(e => e.eventType === 'meal' && e.emotionalState === 'calm').length,
+        cansado: filteredEvents.filter(e => e.eventType === 'meal' && e.emotionalState === 'tired').length,
+        irritable: filteredEvents.filter(e => e.eventType === 'meal' && e.emotionalState === 'irritable').length
+      }
+    ];
+  };
+
+  // Preparar datos para distribución de tipos de sueño
+  const prepareSleepTypesData = () => {
+    return [
+      { name: 'Sueño nocturno', value: filteredEvents.filter(e => e.eventType === "sleep").length },
+      { name: 'Siestas', value: filteredEvents.filter(e => e.eventType === "nap").length }
+    ];
+  };
+
+  // Preparar datos para distribución de actividades
+  const prepareActivityDistributionData = () => {
+    return [
+      { name: 'Actividad física', value: filteredEvents.filter(e => e.eventType === "activity").length },
+      { name: 'Juego', value: filteredEvents.filter(e => e.eventType === "play").length }
+    ];
+  };
+
   // Renderizar
   if (isLoading && activeChildId) {
     return (
@@ -486,739 +544,188 @@ export default function StatsPage() {
 
           <TabsContent value="sleep" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Promedio de horas de sueño</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {filteredEvents.filter(e => e.eventType === "sleep" || e.eventType === "nap").length > 0 
-                      ? (filteredEvents
+              <StatsCard 
+                title="Promedio de horas de sueño" 
+                value={filteredEvents.filter(e => e.eventType === "sleep" || e.eventType === "nap").length > 0 
+                  ? (filteredEvents
+                      .filter(e => e.eventType === "sleep" || e.eventType === "nap")
+                      .reduce((acc, evt) => acc + calculateEventDuration(evt), 0) / 
+                      (filteredEvents.filter(e => (e.eventType === "sleep" || e.eventType === "nap") && e.endTime).length || 1)
+                    ).toFixed(1) + 'h'
+                  : 'N/A'
+                }
+                description={`Basado en ${filteredEvents.filter(e => (e.eventType === "sleep" || e.eventType === "nap") && e.endTime).length} eventos con duración`}
+              />
+              
+              <StatsCard 
+                title="Total de siestas" 
+                value={filteredEvents.filter(e => e.eventType === "nap").length}
+                description="Durante el período seleccionado"
+              />
+              
+              <StatsCard 
+                title="Períodos de sueño nocturno" 
+                value={filteredEvents.filter(e => e.eventType === "sleep").length}
+                description="Durante el período seleccionado"
+              />
+              
+              <StatsCard 
+                title="Estado emocional (sueño)" 
+                value={filteredEvents.filter(e => e.eventType === "sleep" || e.eventType === "nap").length > 0 
+                  ? getMoodName(
+                      Object.entries(
+                        filteredEvents
                           .filter(e => e.eventType === "sleep" || e.eventType === "nap")
-                          .reduce((acc, evt) => acc + calculateEventDuration(evt), 0) / 
-                          // Asegurar que no dividimos por cero si no hay eventos con endTime
-                          (filteredEvents.filter(e => (e.eventType === "sleep" || e.eventType === "nap") && e.endTime).length || 1)
-                        ).toFixed(1) + 'h'
-                      : 'N/A'
-                    }
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Basado en {filteredEvents.filter(e => (e.eventType === "sleep" || e.eventType === "nap") && e.endTime).length} eventos con duración
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total de siestas</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {filteredEvents.filter(e => e.eventType === "nap").length}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Durante el período seleccionado
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Períodos de sueño nocturno</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {filteredEvents.filter(e => e.eventType === "sleep").length}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Durante el período seleccionado
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Estado emocional (sueño)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {filteredEvents.filter(e => e.eventType === "sleep" || e.eventType === "nap").length > 0 
-                      ? getMoodName(
-                          Object.entries(
-                            filteredEvents
-                              .filter(e => e.eventType === "sleep" || e.eventType === "nap")
-                              .reduce((acc, evt) => {
-                                if (!acc[evt.emotionalState]) acc[evt.emotionalState] = 0;
-                                acc[evt.emotionalState]++;
-                                return acc;
-                              }, {} as Record<string, number>)
-                          )
-                          .sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A' // Evitar error si no hay datos
-                        )
-                      : 'N/A'
-                    }
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Estado más común durante el sueño
-                  </p>
-                </CardContent>
-              </Card>
+                          .reduce((acc, evt) => {
+                            if (!acc[evt.emotionalState]) acc[evt.emotionalState] = 0;
+                            acc[evt.emotionalState]++;
+                            return acc;
+                          }, {} as Record<string, number>)
+                      )
+                      .sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A' // Evitar error si no hay datos
+                    )
+                  : 'N/A'
+                }
+                description="Estado más común durante el sueño"
+              />
             </div>
 
             {/* NUEVOS GRÁFICOS */}
-            <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2"> {/* Ajustar grid para 2 gráficos */}
-              <Card className="col-span-1">
-                <CardHeader>
-                  <CardTitle>Patrón de Sueño Nocturno</CardTitle>
-                  <CardDescription>Hora de acostarse y despertarse</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[350px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={bedWakeChartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis 
-                        domain={[0, 1440]} 
-                        tickFormatter={formatTimeTick} 
-                        label={{ value: 'Hora del día', angle: -90, position: 'insideLeft' }}
-                        ticks={[0, 180, 360, 540, 720, 900, 1080, 1260, 1440]} // Cada 3 horas
-                      />
-                      <Tooltip formatter={(value: number) => formatTimeTick(value)} />
-                      <Legend />
-                      <Line type="monotone" dataKey="bedTime" name="Hora de Acostarse" stroke="#8884d8" connectNulls />
-                      <Line type="monotone" dataKey="wakeUpTime" name="Hora de Despertar" stroke="#82ca9d" connectNulls />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+            <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
+              <SleepPatternChart 
+                bedWakeChartData={bedWakeChartData} 
+                formatTimeTick={formatTimeTick} 
+              />
 
-              <Card className="col-span-1">
-                <CardHeader>
-                  <CardTitle>Registro de Siestas</CardTitle>
-                  <CardDescription>Hora de inicio y duración de las siestas</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[350px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ScatterChart>
-                      <CartesianGrid />
-                      <XAxis 
-                        type="number" 
-                        dataKey="startTimeMinutes" 
-                        name="Hora de Inicio" 
-                        domain={[0, 1440]} 
-                        tickFormatter={formatTimeTick}
-                        ticks={[0, 180, 360, 540, 720, 900, 1080, 1260, 1440]}
-                      />
-                      <YAxis type="category" dataKey="date" name="Fecha" reversed={true} />
-                      <Tooltip cursor={{ strokeDasharray: '3 3' }} formatter={(value, name, props) => {
-                        if (name === "startTimeMinutes") return formatTimeTick(value as number);
-                        if (name === "duration") return `${value} min`;
-                        return value;
-                      }} />
-                      <Legend />
-                      <Scatter name="Siestas" data={napChartData} fill="#ffc658">
-                        {/* Podríamos usar ZAxis para la duración si quisiéramos variar el tamaño del punto, 
-                            pero el tooltip ya muestra la duración.
-                            <ZAxis dataKey="duration" range={[20, 200]} name="Duración (min)" /> 
-                        */}
-                      </Scatter>
-                    </ScatterChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              <NapChart 
+                napChartData={napChartData} 
+                formatTimeTick={formatTimeTick} 
+              />
             </div>
             
             {/* Gráficos existentes que se quedan */}
             <div className="grid gap-4 md:grid-cols-2">
-              <Card className="col-span-1">
-                <CardHeader>
-                  <CardTitle>Horas de sueño por día</CardTitle>
-                  <CardDescription>Distribución de las horas de sueño durante el período seleccionado</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={prepareSleepData()}
-                      margin={{
-                        top: 5,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="horas" name="Horas de sueño" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              <SleepHoursChart sleepData={prepareSleepData()} />
               
-              <Card className="col-span-1">
-                <CardHeader>
-                  <CardTitle>Eventos de sueño</CardTitle>
-                  <CardDescription>Número de eventos de sueño registrados</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={prepareSleepData()}
-                      margin={{
-                        top: 5,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="eventos" name="Número de eventos" fill="#82ca9d" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              <SleepEventsChart sleepData={prepareSleepData()} />
               
-              <Card className="col-span-2">
-                <CardHeader>
-                  <CardTitle>Distribución de tipos de sueño</CardTitle>
-                  <CardDescription>Comparación entre sueño nocturno y siestas</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: 'Sueño nocturno', value: filteredEvents.filter(e => e.eventType === "sleep").length },
-                          { name: 'Siestas', value: filteredEvents.filter(e => e.eventType === "nap").length }
-                        ]}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {[
-                          { name: 'Sueño nocturno', value: filteredEvents.filter(e => e.eventType === "sleep").length },
-                          { name: 'Siestas', value: filteredEvents.filter(e => e.eventType === "nap").length }
-                        ].map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              <SleepTypesChart 
+                sleepData={prepareSleepTypesData()} 
+                colors={COLORS}
+              />
             </div>
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total actividades</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {filteredEvents.filter(e => e.eventType === "activity" || e.eventType === "play").length}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Durante el período seleccionado
-                  </p>
-                </CardContent>
-              </Card>
+              <StatsCard 
+                title="Total actividades" 
+                value={filteredEvents.filter(e => e.eventType === "activity" || e.eventType === "play").length}
+                description="Durante el período seleccionado"
+              />
               
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Actividad física</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {filteredEvents.filter(e => e.eventType === "activity").length}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Eventos de actividad física
-                  </p>
-                </CardContent>
-              </Card>
+              <StatsCard 
+                title="Actividad física" 
+                value={filteredEvents.filter(e => e.eventType === "activity").length}
+                description="Eventos de actividad física"
+              />
               
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Juego</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {filteredEvents.filter(e => e.eventType === "play").length}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Eventos de juego
-                  </p>
-                </CardContent>
-              </Card>
+              <StatsCard 
+                title="Juego" 
+                value={filteredEvents.filter(e => e.eventType === "play").length}
+                description="Eventos de juego"
+              />
               
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Estado emocional</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {filteredEvents.filter(e => e.eventType === "activity" || e.eventType === "play").length > 0 
-                      ? getMoodName(
-                          Object.entries(
-                            filteredEvents
-                              .filter(e => e.eventType === "activity" || e.eventType === "play")
-                              .reduce((acc, evt) => {
-                                if (!acc[evt.emotionalState]) acc[evt.emotionalState] = 0;
-                                acc[evt.emotionalState]++;
-                                return acc;
-                              }, {} as Record<string, number>)
-                          )
-                          .sort((a, b) => b[1] - a[1])[0][0]
-                        )
-                      : 'N/A'
-                    }
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Estado más común durante actividades
-                  </p>
-                </CardContent>
-              </Card>
+              <StatsCard 
+                title="Estado emocional" 
+                value={filteredEvents.filter(e => e.eventType === "activity" || e.eventType === "play").length > 0 
+                  ? getMoodName(
+                      Object.entries(
+                        filteredEvents
+                          .filter(e => e.eventType === "activity" || e.eventType === "play")
+                          .reduce((acc, evt) => {
+                            if (!acc[evt.emotionalState]) acc[evt.emotionalState] = 0;
+                            acc[evt.emotionalState]++;
+                            return acc;
+                          }, {} as Record<string, number>)
+                      )
+                      .sort((a, b) => b[1] - a[1])[0][0]
+                    )
+                  : 'N/A'
+                }
+                description="Estado más común durante actividades"
+              />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <Card className="col-span-1">
-                <CardHeader>
-                  <CardTitle>Distribución de actividades</CardTitle>
-                  <CardDescription>Proporción entre actividad física y juego</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: 'Actividad física', value: filteredEvents.filter(e => e.eventType === "activity").length },
-                          { name: 'Juego', value: filteredEvents.filter(e => e.eventType === "play").length }
-                        ]}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {[
-                          { name: 'Actividad física', value: filteredEvents.filter(e => e.eventType === "activity").length },
-                          { name: 'Juego', value: filteredEvents.filter(e => e.eventType === "play").length }
-                        ].map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              <ActivityDistributionChart 
+                activityData={prepareActivityDistributionData()} 
+                colors={COLORS}
+              />
               
-              <Card className="col-span-1">
-                <CardHeader>
-                  <CardTitle>Duración de actividades</CardTitle>
-                  <CardDescription>Tiempo total dedicado a cada tipo de actividad</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={prepareActivityData()}
-                      margin={{
-                        top: 5,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="type" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="totalHours" name="Horas" fill="#82ca9d" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              <ActivityDurationChart activityData={prepareActivityData()} />
             </div>
           </TabsContent>
 
           <TabsContent value="mood" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Estado predominante</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {filteredEvents.length > 0 
-                      ? getMoodName(
-                          Object.entries(
-                            filteredEvents
-                              .reduce((acc, evt) => {
-                                if (!acc[evt.emotionalState]) acc[evt.emotionalState] = 0;
-                                acc[evt.emotionalState]++;
-                                return acc;
-                              }, {} as Record<string, number>)
-                          )
-                          .sort((a, b) => b[1] - a[1])[0][0]
-                        )
-                      : 'N/A'
-                    }
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Estado emocional más frecuente
-                  </p>
-                </CardContent>
-              </Card>
+              <StatsCard 
+                title="Estado predominante" 
+                value={filteredEvents.length > 0 
+                  ? getMoodName(
+                      Object.entries(
+                        filteredEvents
+                          .reduce((acc, evt) => {
+                            if (!acc[evt.emotionalState]) acc[evt.emotionalState] = 0;
+                            acc[evt.emotionalState]++;
+                            return acc;
+                          }, {} as Record<string, number>)
+                      )
+                      .sort((a, b) => b[1] - a[1])[0][0]
+                    )
+                  : 'N/A'
+                }
+                description="Estado emocional más frecuente"
+              />
               
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Estados positivos</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {filteredEvents.filter(e => ['happy', 'calm', 'excited'].includes(e.emotionalState)).length}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {((filteredEvents.filter(e => ['happy', 'calm', 'excited'].includes(e.emotionalState)).length / 
-                      (filteredEvents.length || 1)) * 100).toFixed(0)}% del total
-                  </p>
-                </CardContent>
-              </Card>
+              <StatsCard 
+                title="Estados positivos" 
+                value={filteredEvents.filter(e => ['happy', 'calm', 'excited'].includes(e.emotionalState)).length}
+                description={`${((filteredEvents.filter(e => ['happy', 'calm', 'excited'].includes(e.emotionalState)).length / 
+                  (filteredEvents.length || 1)) * 100).toFixed(0)}% del total`}
+              />
               
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Estados negativos</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {filteredEvents.filter(e => ['tired', 'irritable', 'sad', 'anxious'].includes(e.emotionalState)).length}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {((filteredEvents.filter(e => ['tired', 'irritable', 'sad', 'anxious'].includes(e.emotionalState)).length / 
-                      (filteredEvents.length || 1)) * 100).toFixed(0)}% del total
-                  </p>
-                </CardContent>
-              </Card>
+              <StatsCard 
+                title="Estados negativos" 
+                value={filteredEvents.filter(e => ['tired', 'irritable', 'sad', 'anxious'].includes(e.emotionalState)).length}
+                description={`${((filteredEvents.filter(e => ['tired', 'irritable', 'sad', 'anxious'].includes(e.emotionalState)).length / 
+                  (filteredEvents.length || 1)) * 100).toFixed(0)}% del total`}
+              />
               
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total eventos</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {filteredEvents.length}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Durante el período seleccionado
-                  </p>
-                </CardContent>
-              </Card>
+              <StatsCard 
+                title="Total eventos" 
+                value={filteredEvents.length}
+                description="Durante el período seleccionado"
+              />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <Card className="col-span-1">
-                <CardHeader>
-                  <CardTitle>Distribución de estados emocionales</CardTitle>
-                  <CardDescription>Proporción de cada estado emocional registrado</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={prepareMoodData()}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {prepareMoodData().map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              <MoodDistributionChart 
+                moodData={prepareMoodData()} 
+                colors={COLORS}
+              />
               
-              <Card className="col-span-1">
-                <CardHeader>
-                  <CardTitle>Estados emocionales por tipo de evento</CardTitle>
-                  <CardDescription>Análisis de estados emocionales según la actividad</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={[
-                        {
-                          name: 'Sueño',
-                          feliz: filteredEvents.filter(e => e.eventType === 'sleep' && e.emotionalState === 'happy').length,
-                          tranquilo: filteredEvents.filter(e => e.eventType === 'sleep' && e.emotionalState === 'calm').length,
-                          cansado: filteredEvents.filter(e => e.eventType === 'sleep' && e.emotionalState === 'tired').length,
-                          irritable: filteredEvents.filter(e => e.eventType === 'sleep' && e.emotionalState === 'irritable').length
-                        },
-                        {
-                          name: 'Siesta',
-                          feliz: filteredEvents.filter(e => e.eventType === 'nap' && e.emotionalState === 'happy').length,
-                          tranquilo: filteredEvents.filter(e => e.eventType === 'nap' && e.emotionalState === 'calm').length,
-                          cansado: filteredEvents.filter(e => e.eventType === 'nap' && e.emotionalState === 'tired').length,
-                          irritable: filteredEvents.filter(e => e.eventType === 'nap' && e.emotionalState === 'irritable').length
-                        },
-                        {
-                          name: 'Actividad',
-                          feliz: filteredEvents.filter(e => e.eventType === 'activity' && e.emotionalState === 'happy').length,
-                          tranquilo: filteredEvents.filter(e => e.eventType === 'activity' && e.emotionalState === 'calm').length,
-                          cansado: filteredEvents.filter(e => e.eventType === 'activity' && e.emotionalState === 'tired').length,
-                          irritable: filteredEvents.filter(e => e.eventType === 'activity' && e.emotionalState === 'irritable').length
-                        },
-                        {
-                          name: 'Juego',
-                          feliz: filteredEvents.filter(e => e.eventType === 'play' && e.emotionalState === 'happy').length,
-                          tranquilo: filteredEvents.filter(e => e.eventType === 'play' && e.emotionalState === 'calm').length,
-                          cansado: filteredEvents.filter(e => e.eventType === 'play' && e.emotionalState === 'tired').length,
-                          irritable: filteredEvents.filter(e => e.eventType === 'play' && e.emotionalState === 'irritable').length
-                        },
-                        {
-                          name: 'Comida',
-                          feliz: filteredEvents.filter(e => e.eventType === 'meal' && e.emotionalState === 'happy').length,
-                          tranquilo: filteredEvents.filter(e => e.eventType === 'meal' && e.emotionalState === 'calm').length,
-                          cansado: filteredEvents.filter(e => e.eventType === 'meal' && e.emotionalState === 'tired').length,
-                          irritable: filteredEvents.filter(e => e.eventType === 'meal' && e.emotionalState === 'irritable').length
-                        }
-                      ]}
-                      margin={{
-                        top: 20,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="feliz" name="Feliz" stackId="a" fill="#FFBB28" />
-                      <Bar dataKey="tranquilo" name="Tranquilo" stackId="a" fill="#00C49F" />
-                      <Bar dataKey="cansado" name="Cansado" stackId="a" fill="#0088FE" />
-                      <Bar dataKey="irritable" name="Irritable" stackId="a" fill="#FF8042" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              <MoodByActivityChart 
+                moodByActivityData={prepareMoodByActivityData()}
+              />
             </div>
           </TabsContent>
 
           <TabsContent value="progress" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <Card className="col-span-1 lg:col-span-3">
-                <CardHeader>
-                  <CardTitle>Resumen de Progreso</CardTitle>
-                  <CardDescription>Vista general del desarrollo en todas las áreas</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="font-medium mb-2">Sueño:</h3>
-                      <div className="bg-muted h-2 rounded-full mb-1">
-                        <div
-                          className="bg-primary h-full rounded-full"
-                          style={{
-                            width: `${Math.min(
-                              100,
-                              Math.max(
-                                0,
-                                filteredEvents.filter(e => e.eventType === "sleep" || e.eventType === "nap").length > 0
-                                  ? 70 + (Math.random() * 30)
-                                  : 50
-                              )
-                            )}%`
-                          }}
-                        />
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {filteredEvents.filter(e => e.eventType === "sleep" || e.eventType === "nap").length > 0
-                          ? "Buena consistencia en patrones de sueño."
-                          : "No hay suficientes datos para evaluar."}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <h3 className="font-medium mb-2">Actividad Física:</h3>
-                      <div className="bg-muted h-2 rounded-full mb-1">
-                        <div
-                          className="bg-primary h-full rounded-full"
-                          style={{
-                            width: `${Math.min(
-                              100,
-                              Math.max(
-                                0,
-                                filteredEvents.filter(e => e.eventType === "activity").length > 0
-                                  ? 65 + (Math.random() * 35)
-                                  : 50
-                              )
-                            )}%`
-                          }}
-                        />
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {filteredEvents.filter(e => e.eventType === "activity").length > 5
-                          ? "Buen nivel de actividad física."
-                          : filteredEvents.filter(e => e.eventType === "activity").length > 0
-                            ? "Nivel moderado de actividad física."
-                            : "No hay suficientes datos para evaluar."}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <h3 className="font-medium mb-2">Estado Emocional:</h3>
-                      <div className="bg-muted h-2 rounded-full mb-1">
-                        <div
-                          className="bg-primary h-full rounded-full"
-                          style={{
-                            width: `${Math.min(
-                              100,
-                              Math.max(
-                                0,
-                                filteredEvents.length > 0
-                                  ? (filteredEvents.filter(e => ['happy', 'calm', 'excited'].includes(e.emotionalState)).length / 
-                                     filteredEvents.length) * 100
-                                  : 50
-                              )
-                            )}%`
-                          }}
-                        />
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {filteredEvents.length > 0
-                          ? filteredEvents.filter(e => ['happy', 'calm', 'excited'].includes(e.emotionalState)).length > 
-                            filteredEvents.filter(e => ['tired', 'irritable', 'sad', 'anxious'].includes(e.emotionalState)).length
-                            ? "Predominan los estados emocionales positivos."
-                            : "Predominan los estados emocionales negativos."
-                          : "No hay suficientes datos para evaluar."}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <h3 className="font-medium mb-2">Balance de Actividades:</h3>
-                      <div className="bg-muted h-2 rounded-full mb-1">
-                        <div
-                          className="bg-primary h-full rounded-full"
-                          style={{
-                            width: `${Math.min(
-                              100,
-                              Math.max(
-                                0,
-                                filteredEvents.length > 10
-                                  ? 80
-                                  : filteredEvents.length > 5
-                                    ? 65
-                                    : filteredEvents.length > 0
-                                      ? 50
-                                      : 0
-                              )
-                            )}%`
-                          }}
-                        />
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {filteredEvents.length > 10
-                          ? "Buena diversidad de actividades registradas."
-                          : filteredEvents.length > 5
-                            ? "Variedad moderada de actividades registradas."
-                            : filteredEvents.length > 0
-                              ? "Pocas actividades registradas."
-                              : "No hay suficientes datos para evaluar."}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <ProgressSummaryCard filteredEvents={filteredEvents} />
               
-              <Card className="col-span-1 lg:col-span-3">
-                <CardHeader>
-                  <CardTitle>Tendencia de eventos registrados</CardTitle>
-                  <CardDescription>Evolución del registro de eventos en el tiempo</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={
-                        (() => {
-                          // Agrupar eventos por día
-                          const eventsByDay = filteredEvents.reduce((acc, event) => {
-                            const day = format(parseISO(event.startTime), 'yyyy-MM-dd')
-                            
-                            if (!acc[day]) {
-                              acc[day] = {
-                                date: day,
-                                sleep: 0,
-                                nap: 0,
-                                activity: 0,
-                                play: 0,
-                                meal: 0,
-                                total: 0
-                              }
-                            }
-                            
-                            acc[day][event.eventType] = (acc[day][event.eventType] || 0) + 1
-                            acc[day].total++
-                            
-                            return acc
-                          }, {} as Record<string, any>)
-                          
-                          // Convertir a array y ordenar por fecha
-                          return Object.values(eventsByDay)
-                            .map(day => ({
-                              ...day,
-                              name: format(parseISO(day.date), 'dd/MM')
-                            }))
-                            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                        })()
-                      }
-                      margin={{
-                        top: 5,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="sleep" name="Sueño" stroke="#8884d8" activeDot={{ r: 8 }} />
-                      <Line type="monotone" dataKey="nap" name="Siesta" stroke="#82ca9d" />
-                      <Line type="monotone" dataKey="activity" name="Actividad" stroke="#ffc658" />
-                      <Line type="monotone" dataKey="play" name="Juego" stroke="#ff7300" />
-                      <Line type="monotone" dataKey="meal" name="Comida" stroke="#0088FE" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              <EventTrendChart filteredEvents={filteredEvents} />
             </div>
           </TabsContent>
         </Tabs>
