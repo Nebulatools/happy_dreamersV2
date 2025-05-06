@@ -3,7 +3,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -44,7 +44,7 @@ export default function NewChildPage() {
   const [basicInfo, setBasicInfo] = useState<ChildFormValues | null>(null)
   
   // Estado para almacenar las respuestas de cada sección de la encuesta
-  const [surveyData, setSurveyData] = useState({
+  const [surveyData, setSurveyData] = useState<Record<string, any>>({
     parentInfo: {},
     childHistory: {},
     familyDynamics: {},
@@ -61,30 +61,24 @@ export default function NewChildPage() {
     },
   })
 
-  // Guardar información básica y avanzar a la encuesta
-  const handleBasicInfoSubmit = (data: ChildFormValues) => {
-    setBasicInfo(data)
-    setActiveTab("parent-info")
-  }
+  // Actualizar estado basicInfo automáticamente
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      childFormSchema.safeParseAsync(value).then(result => {
+        if (result.success) {
+          setBasicInfo(result.data);
+        }
+      });
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
-  // Manejar envío de cada sección de la encuesta
-  const handleSectionSubmit = (section: string, data: any) => {
-    // Actualizar el estado con los datos de la sección
+  // Función para actualizar el estado de la encuesta
+  const handleSurveyDataChange = (section: string, data: any) => {
     setSurveyData(prev => ({
       ...prev,
       [section]: data,
     }))
-
-    console.log(`Sección ${section} guardada:`, data);
-    
-    // Avanzar a la siguiente pestaña
-    const tabs = ["basic-info", "parent-info", "child-history", "family-dynamics", "sleep-routine"]
-    const currentIndex = tabs.indexOf(section)
-
-    if (currentIndex < tabs.length - 1) {
-      const nextTab = tabs[currentIndex + 1]
-      setActiveTab(nextTab)
-    }
   }
 
   // Enviar todo el formulario completo (datos básicos + encuesta)
@@ -99,7 +93,6 @@ export default function NewChildPage() {
       return;
     }
     
-    // Solo verificamos nombre y apellido para pruebas
     if (!basicInfo.firstName || !basicInfo.lastName) {
       console.error("Error: Faltan datos básicos", { 
         firstName: basicInfo.firstName,
@@ -119,13 +112,13 @@ export default function NewChildPage() {
     console.log("Datos de encuesta a enviar:", surveyData);
     
     try {
-      // Crear el niño con toda la información (datos básicos + encuesta) en un solo paso
+      // Crear el niño con toda la información
       const requestData = {
         firstName: basicInfo.firstName,
         lastName: basicInfo.lastName,
         birthDate: basicInfo.birthDate || "",
         parentId: session.user.id,
-        surveyData
+        surveyData: surveyData // Usar el estado completo
       };
       
       console.log("Enviando datos a /api/children:", JSON.stringify(requestData));
@@ -153,6 +146,7 @@ export default function NewChildPage() {
 
       // Redirigir al dashboard
       router.push("/dashboard");
+
     } catch (error: any) {
       console.error("Error en handleSubmitComplete:", error);
       toast({
@@ -185,23 +179,35 @@ export default function NewChildPage() {
           Anterior
         </Button>
         
-        {activeTab === "sleep-routine" ? (
-          <Button onClick={handleSubmitComplete} disabled={isLoading}>
-            {isLoading ? "Guardando..." : "Registrar niño"}
-          </Button>
-        ) : (
-          <Button
-            onClick={() => {
-              if (currentIndex < tabs.length - 1) {
-                const nextTab = tabs[currentIndex + 1]
-                setActiveTab(nextTab)
-              }
-            }}
-            disabled={isLoading || (activeTab === "basic-info" && !basicInfo)}
-          >
-            Siguiente
-          </Button>
-        )}
+        <div className="space-x-2">
+          {/* Botón Guardar (Registrar) siempre visible en la última pestaña */} 
+          {activeTab === "sleep-routine" && (
+            <Button 
+              onClick={handleSubmitComplete} 
+              disabled={isLoading}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isLoading ? "Guardando..." : "Registrar niño"}
+            </Button>
+          )}
+
+          {/* Botón Siguiente (excepto en la última pestaña) */} 
+          {activeTab !== "sleep-routine" && (
+            <Button
+              onClick={() => {
+                // Ya no necesitamos guardar explícitamente aquí
+                if (currentIndex < tabs.length - 1) {
+                  const nextTab = tabs[currentIndex + 1]
+                  setActiveTab(nextTab)
+                }
+              }}
+              // Habilitar siguiente solo si la info básica está completa
+              disabled={isLoading || !basicInfo || !basicInfo.firstName || !basicInfo.lastName}
+            >
+              Siguiente
+            </Button>
+          )}
+        </div>
       </div>
     )
   }
@@ -264,7 +270,7 @@ export default function NewChildPage() {
           <CardContent className="px-8 pt-6">
             <TabsContent value="basic-info">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleBasicInfoSubmit)} className="space-y-6">
+                <div className="space-y-6">
                   <FormField
                     control={form.control}
                     name="firstName"
@@ -318,20 +324,14 @@ export default function NewChildPage() {
                       </FormItem>
                     )}
                   />
-
-                  <div className="flex justify-end">
-                    <Button type="submit">
-                      Continuar a la encuesta
-                    </Button>
-                  </div>
-                </form>
+                </div>
               </Form>
             </TabsContent>
 
             <TabsContent value="parent-info">
               {basicInfo && (
                 <ParentInfoForm 
-                  onSubmit={(data) => handleSectionSubmit("parentInfo", data)} 
+                  onDataChange={(data) => handleSurveyDataChange("parentInfo", data)}
                   initialData={surveyData.parentInfo}
                 />
               )}
@@ -340,7 +340,7 @@ export default function NewChildPage() {
             <TabsContent value="child-history">
               {basicInfo && (
                 <ChildHistoryForm 
-                  onSubmit={(data) => handleSectionSubmit("childHistory", data)} 
+                  onDataChange={(data) => handleSurveyDataChange("childHistory", data)}
                   initialData={{
                     ...surveyData.childHistory,
                     // Pasar automáticamente los datos básicos a la historia del niño
@@ -355,7 +355,7 @@ export default function NewChildPage() {
             <TabsContent value="family-dynamics">
               {basicInfo && (
                 <FamilyDynamicsForm 
-                  onSubmit={(data) => handleSectionSubmit("familyDynamics", data)} 
+                  onDataChange={(data) => handleSurveyDataChange("familyDynamics", data)}
                   initialData={surveyData.familyDynamics}
                 />
               )}
@@ -364,19 +364,7 @@ export default function NewChildPage() {
             <TabsContent value="sleep-routine">
               {basicInfo && (
                 <SleepRoutineForm
-                  onSubmit={(data) => {
-                    console.log("SleepRoutineForm - datos recibidos:", data);
-                    // Actualizar el estado con los datos de la rutina de sueño
-                    setSurveyData(prev => ({
-                      ...prev,
-                      sleepRoutine: data,
-                    }));
-                    
-                    // Llamar a handleSubmitComplete después de actualizar los datos
-                    setTimeout(() => {
-                      handleSubmitComplete();
-                    }, 0);
-                  }}
+                  onDataChange={(data) => handleSurveyDataChange("sleepRoutine", data)}
                   initialData={surveyData.sleepRoutine}
                   isSubmitting={isLoading}
                 />

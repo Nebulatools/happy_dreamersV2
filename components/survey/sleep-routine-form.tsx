@@ -52,12 +52,15 @@ const sleepRoutineSchema = z.object({
 type SleepRoutineFormValues = z.infer<typeof sleepRoutineSchema>
 
 interface SleepRoutineFormProps {
-  onSubmit: (data: SleepRoutineFormValues) => void
+  onDataChange: (data: SleepRoutineFormValues) => void
   isSubmitting?: boolean
   initialData?: Partial<SleepRoutineFormValues>
 }
 
-export function SleepRoutineForm({ onSubmit, isSubmitting = false, initialData = {} }: SleepRoutineFormProps) {
+export function SleepRoutineForm({ onDataChange, isSubmitting = false, initialData = {} }: SleepRoutineFormProps) {
+  const [isSaving, setIsSaving] = useState(false)
+  const [showSaved, setShowSaved] = useState(false)
+  
   const form = useForm<SleepRoutineFormValues>({
     resolver: zodResolver(sleepRoutineSchema),
     defaultValues: {
@@ -101,11 +104,29 @@ export function SleepRoutineForm({ onSubmit, isSubmitting = false, initialData =
     if (initialData && Object.keys(initialData).length > 0) {
       Object.entries(initialData).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          form.setValue(key as any, value as any)
+          form.setValue(key as keyof SleepRoutineFormValues, value as any)
         }
       })
     }
   }, [initialData, form])
+
+  // Nuevo manejador de envío con feedback visual
+  const onSubmit = (data: SleepRoutineFormValues) => {
+    // No iniciar guardado si isSubmitting es true (se está enviando toda la encuesta)
+    if (isSubmitting) return;
+    
+    setIsSaving(true);
+    
+    // Simulamos un pequeño delay para mostrar el estado "guardando"
+    setTimeout(() => {
+      onDataChange(data);
+      setIsSaving(false);
+      
+      // Mostrar mensaje de guardado durante 2 segundos
+      setShowSaved(true);
+      setTimeout(() => setShowSaved(false), 2000);
+    }, 500);
+  };
 
   const caregiverOptions = [
     { id: "mother", label: "Madre" },
@@ -137,338 +158,357 @@ export function SleepRoutineForm({ onSubmit, isSubmitting = false, initialData =
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Rutina diaria y ambiente de sueño</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="daily_routine"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Rutina diaria</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Describe la rutina diaria del niño" className="resize-none" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="bedtime_routine"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Rutina antes de dormir</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Describe la rutina antes de dormir" className="resize-none" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="bedtime"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Hora de acostarse</FormLabel>
-                  <FormControl>
-                    <Input type="time" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="room_temperature"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Temperatura de la habitación (°C)</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="Temperatura" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="white_noise"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>¿Usa ruido blanco?</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Rutina diaria y ambiente de sueño</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="daily_routine"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Rutina diaria</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar" />
-                      </SelectTrigger>
+                      <Textarea placeholder="Describe la rutina diaria del niño" className="resize-none" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="yes">Sí</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="pajama_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tipo de pijama</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Describe el tipo de pijama" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="bedtime_routine"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Rutina antes de dormir</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Describe la rutina antes de dormir" className="resize-none" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="bedtime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hora de acostarse</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="room_temperature"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Temperatura de la habitación (°C)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="Temperatura" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="white_noise"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>¿Usa ruido blanco?</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="yes">Sí</SelectItem>
+                        <SelectItem value="no">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="pajama_type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de pijama</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Describe el tipo de pijama" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
-        </div>
 
-        <FormField
-          control={form.control}
-          name="room_darkness"
-          render={() => (
-            <FormItem>
-              <div className="mb-4">
-                <FormLabel>Oscuridad de la habitación</FormLabel>
-                <FormDescription>Selecciona todas las opciones que apliquen</FormDescription>
-              </div>
-              <div className="space-y-2">
-                {roomDarknessOptions.map((option) => (
-                  <FormField
-                    key={option.id}
-                    control={form.control}
-                    name="room_darkness"
-                    render={({ field }) => {
-                      return (
-                        <FormItem key={option.id} className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(option.id)}
-                              onCheckedChange={(checked) => {
-                                return checked
-                                  ? field.onChange([...(field.value || []), option.id])
-                                  : field.onChange(field.value?.filter((value) => value !== option.id))
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">{option.label}</FormLabel>
-                        </FormItem>
-                      )
-                    }}
-                  />
-                ))}
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="room_darkness"
+            render={() => (
+              <FormItem>
+                <div className="mb-4">
+                  <FormLabel>Oscuridad de la habitación</FormLabel>
+                  <FormDescription>Selecciona todas las opciones que apliquen</FormDescription>
+                </div>
+                <div className="space-y-2">
+                  {roomDarknessOptions.map((option) => (
+                    <FormField
+                      key={option.id}
+                      control={form.control}
+                      name="room_darkness"
+                      render={({ field }) => {
+                        return (
+                          <FormItem key={option.id} className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(option.id)}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...(field.value || []), option.id])
+                                    : field.onChange(field.value?.filter((value) => value !== option.id))
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal">{option.label}</FormLabel>
+                          </FormItem>
+                        )
+                      }}
+                    />
+                  ))}
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Hábitos de sueño</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="self_soothing"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>¿Se calma solo?</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Hábitos de sueño</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="self_soothing"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>¿Se calma solo?</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="yes">Sí</SelectItem>
+                        <SelectItem value="no">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="parent_present"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>¿Padre presente hasta que se duerme?</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="yes">Sí</SelectItem>
+                        <SelectItem value="no">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="night_wakings"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>¿Despertares nocturnos?</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="yes">Sí</SelectItem>
+                        <SelectItem value="no">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="naps"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>¿Toma siestas?</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="yes">Sí</SelectItem>
+                        <SelectItem value="no">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="parent_participation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>¿Participación de ambos padres?</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="yes">Sí</SelectItem>
+                        <SelectItem value="no">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="self_soothing_method"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Método para calmarse solo</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar" />
-                      </SelectTrigger>
+                      <Input placeholder="Describe el método" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="yes">Sí</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="parent_present"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>¿Padre presente hasta que se duerme?</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="yes">Sí</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="night_wakings"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>¿Despertares nocturnos?</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="yes">Sí</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="naps"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>¿Toma siestas?</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="yes">Sí</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="parent_participation"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>¿Participación de ambos padres?</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="yes">Sí</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="self_soothing_method"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Método para calmarse solo</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Describe el método" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
-        </div>
 
-        <FormField
-          control={form.control}
-          name="sleep_location"
-          render={() => (
-            <FormItem>
-              <div className="mb-4">
-                <FormLabel>Ubicación para dormir</FormLabel>
-                <FormDescription>Selecciona todas las opciones que apliquen</FormDescription>
-              </div>
-              <div className="space-y-2">
-                {sleepLocationOptions.map((option) => (
-                  <FormField
-                    key={option.id}
-                    control={form.control}
-                    name="sleep_location"
-                    render={({ field }) => {
-                      return (
-                        <FormItem key={option.id} className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(option.id)}
-                              onCheckedChange={(checked) => {
-                                return checked
-                                  ? field.onChange([...(field.value || []), option.id])
-                                  : field.onChange(field.value?.filter((value) => value !== option.id))
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">{option.label}</FormLabel>
-                        </FormItem>
-                      )
-                    }}
+          <FormField
+            control={form.control}
+            name="sleep_location"
+            render={() => (
+              <FormItem>
+                <div className="mb-4">
+                  <FormLabel>Ubicación para dormir</FormLabel>
+                  <FormDescription>Selecciona todas las opciones que apliquen</FormDescription>
+                </div>
+                <div className="space-y-2">
+                  {sleepLocationOptions.map((option) => (
+                    <FormField
+                      key={option.id}
+                      control={form.control}
+                      name="sleep_location"
+                      render={({ field }) => {
+                        return (
+                          <FormItem key={option.id} className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(option.id)}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...(field.value || []), option.id])
+                                    : field.onChange(field.value?.filter((value) => value !== option.id))
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal">{option.label}</FormLabel>
+                          </FormItem>
+                        )
+                      }}
+                    />
+                  ))}
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="sleep_goals"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Metas de sueño</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="¿Qué metas tienes para mejorar el sueño de tu hijo?"
+                    className="resize-none"
+                    {...field}
                   />
-                ))}
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="sleep_goals"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Metas de sueño</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="¿Qué metas tienes para mejorar el sueño de tu hijo?"
-                  className="resize-none"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="additional_info"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Información adicional</FormLabel>
+                <FormControl>
+                  <Textarea placeholder="Cualquier información adicional relevante" className="resize-none" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="additional_info"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Información adicional</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Cualquier información adicional relevante" className="resize-none" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Guardando..." : "Finalizar encuesta"}
-          </Button>
+          <div className="flex justify-end relative">
+            <Button 
+              type="submit" 
+              disabled={isSaving || isSubmitting}
+              className="bg-green-600 hover:bg-green-700 transition-all relative"
+            >
+              {isSubmitting ? (
+                <span className="animate-pulse">Enviando encuesta...</span>
+              ) : isSaving ? (
+                <>
+                  <span className="animate-pulse">Guardando...</span>
+                  <span className="absolute inset-0 bg-green-500/20 rounded animate-pulse"></span>
+                </>
+              ) : showSaved ? (
+                <>
+                  ✓ Guardado
+                </>
+              ) : (
+                "Guardar rutina de sueño"
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </Form>

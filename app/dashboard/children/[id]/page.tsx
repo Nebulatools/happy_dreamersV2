@@ -135,7 +135,7 @@ export default function ChildDetailPage() {
         <div className="flex space-x-2">
           <Button 
             variant="outline" 
-            onClick={() => router.push(`/dashboard/children/events?childId=${child._id}`)}
+            onClick={() => router.push(`/dashboard/children/${child._id}/edit`)}
           >
             <Edit className="mr-2 h-4 w-4" />
             Editar

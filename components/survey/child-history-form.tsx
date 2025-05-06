@@ -33,13 +33,14 @@ const childHistorySchema = z.object({
 type ChildHistoryFormValues = z.infer<typeof childHistorySchema>
 
 interface ChildHistoryFormProps {
-  onSubmit: (data: ChildHistoryFormValues) => void;
+  onDataChange: (data: ChildHistoryFormValues) => void;
   initialData?: Partial<ChildHistoryFormValues>;
 }
 
-export function ChildHistoryForm({ onSubmit, initialData = {} }: ChildHistoryFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
+export function ChildHistoryForm({ onDataChange, initialData = {} }: ChildHistoryFormProps) {
+  const [isSaving, setIsSaving] = useState(false)
+  const [showSaved, setShowSaved] = useState(false)
+  
   const form = useForm<ChildHistoryFormValues>({
     resolver: zodResolver(childHistorySchema),
     defaultValues: {
@@ -64,20 +65,26 @@ export function ChildHistoryForm({ onSubmit, initialData = {} }: ChildHistoryFor
     if (initialData && Object.keys(initialData).length > 0) {
       Object.entries(initialData).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          form.setValue(key as any, value as any);
+          form.setValue(key as keyof ChildHistoryFormValues, value as any);
         }
       });
     }
   }, [initialData, form]);
 
-  const handleSubmit = (data: ChildHistoryFormValues) => {
-    setIsSubmitting(true)
-    // Enviar los datos
+  // Nuevo manejador de envío con feedback visual
+  const onSubmit = (data: ChildHistoryFormValues) => {
+    setIsSaving(true);
+    
+    // Simulamos un pequeño delay para mostrar el estado "guardando"
     setTimeout(() => {
-      onSubmit(data)
-      setIsSubmitting(false)
-    }, 500)
-  }
+      onDataChange(data);
+      setIsSaving(false);
+      
+      // Mostrar mensaje de guardado durante 2 segundos
+      setShowSaved(true);
+      setTimeout(() => setShowSaved(false), 2000);
+    }, 500);
+  };
 
   const cupOptions = [
     { id: "cup", label: "Vaso" },
@@ -87,253 +94,270 @@ export function ChildHistoryForm({ onSubmit, initialData = {} }: ChildHistoryFor
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="child_name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nombre del niño</FormLabel>
-                <FormControl>
-                  <Input placeholder="Nombre" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="child_last_name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Apellido del niño</FormLabel>
-                <FormControl>
-                  <Input placeholder="Apellido" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="birth_date"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Fecha de nacimiento</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="weight"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Peso (kg)</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" placeholder="Peso en kg" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="weight_percentile"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Percentil de peso</FormLabel>
-                <FormControl>
-                  <Input type="number" placeholder="Percentil" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="full_term"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>¿Nacimiento a término?</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="child_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nombre del niño</FormLabel>
                   <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar" />
-                    </SelectTrigger>
+                    <Input placeholder="Nombre" {...field} />
                   </FormControl>
-                  <SelectContent>
-                    <SelectItem value="yes">Sí</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="birth_problems"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>¿Problemas al nacer?</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="child_last_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Apellido del niño</FormLabel>
                   <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar" />
-                    </SelectTrigger>
+                    <Input placeholder="Apellido" {...field} />
                   </FormControl>
-                  <SelectContent>
-                    <SelectItem value="yes">Sí</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="child_temperament"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Temperamento del niño</FormLabel>
-                <FormControl>
-                  <Input placeholder="Temperamento" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="daycare"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>¿Asiste a guardería?</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="birth_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fecha de nacimiento</FormLabel>
                   <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar" />
-                    </SelectTrigger>
+                    <Input type="date" {...field} />
                   </FormControl>
-                  <SelectContent>
-                    <SelectItem value="yes">Sí</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="feeding_type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tipo de alimentación</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="weight"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Peso (kg)</FormLabel>
                   <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar" />
-                    </SelectTrigger>
+                    <Input type="number" step="0.01" placeholder="Peso en kg" {...field} />
                   </FormControl>
-                  <SelectContent>
-                    <SelectItem value="formula">Fórmula</SelectItem>
-                    <SelectItem value="leche_materna">Leche Materna Exclusiva</SelectItem>
-                    <SelectItem value="leche_formula">Leche y Fórmula</SelectItem>
-                    <SelectItem value="ninguna">Ninguna</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="eats_solids"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>¿Come sólidos?</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="weight_percentile"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Percentil de peso</FormLabel>
                   <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar" />
-                    </SelectTrigger>
+                    <Input type="number" placeholder="Percentil" {...field} />
                   </FormControl>
-                  <SelectContent>
-                    <SelectItem value="yes">Sí</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="full_term"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>¿Nacimiento a término?</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="yes">Sí</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="birth_problems"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>¿Problemas al nacer?</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="yes">Sí</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="child_temperament"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Temperamento del niño</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Temperamento" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="daycare"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>¿Asiste a guardería?</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="yes">Sí</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="feeding_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo de alimentación</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="formula">Fórmula</SelectItem>
+                      <SelectItem value="leche_materna">Leche Materna Exclusiva</SelectItem>
+                      <SelectItem value="leche_formula">Leche y Fórmula</SelectItem>
+                      <SelectItem value="ninguna">Ninguna</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="eats_solids"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>¿Come sólidos?</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="yes">Sí</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
-        <FormField
-          control={form.control}
-          name="uses_cup"
-          render={() => (
-            <FormItem>
-              <div className="mb-4">
-                <FormLabel>Uso de vaso/biberón</FormLabel>
-                <FormDescription>Selecciona todas las opciones que apliquen</FormDescription>
-              </div>
-              <div className="space-y-2">
-                {cupOptions.map((option) => (
-                  <FormField
-                    key={option.id}
-                    control={form.control}
-                    name="uses_cup"
-                    render={({ field }) => {
-                      return (
-                        <FormItem key={option.id} className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(option.id)}
-                              onCheckedChange={(checked) => {
-                                return checked
-                                  ? field.onChange([...(field.value || []), option.id])
-                                  : field.onChange(field.value?.filter((value) => value !== option.id))
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">{option.label}</FormLabel>
-                        </FormItem>
-                      )
-                    }}
-                  />
-                ))}
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="uses_cup"
+            render={() => (
+              <FormItem>
+                <div className="mb-4">
+                  <FormLabel>Uso de vaso/biberón</FormLabel>
+                  <FormDescription>Selecciona todas las opciones que apliquen</FormDescription>
+                </div>
+                <div className="space-y-2">
+                  {cupOptions.map((option) => (
+                    <FormField
+                      key={option.id}
+                      control={form.control}
+                      name="uses_cup"
+                      render={({ field }) => {
+                        return (
+                          <FormItem key={option.id} className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(option.id)}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...(field.value || []), option.id])
+                                    : field.onChange(field.value?.filter((value) => value !== option.id))
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal">{option.label}</FormLabel>
+                          </FormItem>
+                        )
+                      }}
+                    />
+                  ))}
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="additional_info"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Información adicional</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Cualquier información adicional relevante" className="resize-none" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Guardando..." : "Guardar y continuar"}
-          </Button>
+          <FormField
+            control={form.control}
+            name="additional_info"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Información adicional</FormLabel>
+                <FormControl>
+                  <Textarea placeholder="Cualquier información adicional relevante" className="resize-none" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <div className="flex justify-end relative">
+            <Button 
+              type="submit" 
+              disabled={isSaving}
+              className="bg-green-600 hover:bg-green-700 transition-all relative"
+            >
+              {isSaving ? (
+                <>
+                  <span className="animate-pulse">Guardando...</span>
+                  <span className="absolute inset-0 bg-green-500/20 rounded animate-pulse"></span>
+                </>
+              ) : showSaved ? (
+                <>
+                  ✓ Guardado
+                </>
+              ) : (
+                "Guardar historia del niño"
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </Form>

@@ -71,27 +71,21 @@ export default function ChildEventsPage() {
     if (childIdFromUrl && childIdFromUrl !== activeChildId) {
       setActiveChildId(childIdFromUrl);
     }
-    // Queremos que esto se ejecute solo si la URL cambia o al montar,
-    // No si activeChildId cambia (eso lo maneja el efecto 3)
   }, [childIdFromUrl, setActiveChildId]);
 
   // Efecto 2: Cargar datos cuando el niño activo del contexto cambia
   useEffect(() => {
     const fetchData = async () => {
-      // Solo cargar si tenemos un niño activo en el contexto
       if (!activeChildId) {
         setEvents([]);
         setChild(null);
-        setIsLoading(false);
+        if (isLoading) setIsLoading(false);
         return;
       }
       
-      // Asegurarse de que estamos mostrando el estado de carga correcto
-      // si el activeChildId acaba de cambiar
-      if (!isLoading) setIsLoading(true); 
+      if (!isLoading) setIsLoading(true);
       
       try {
-        // Obtener datos del niño y sus eventos usando el ID del contexto
         const response = await fetch(`/api/children/events?childId=${activeChildId}`)
         if (!response.ok) {
           // Si falla (ej: niño no encontrado), limpiar estado y redirigir o mostrar error
@@ -114,7 +108,6 @@ export default function ChildEventsPage() {
         })
         setEvents(data.events || [])
       } catch (error) {
-        console.error('Error:', error)
         // No mostramos el toast aquí si ya lo hicimos en el if (!response.ok)
         if (error instanceof Error && error.message !== 'Error al cargar los eventos') {
            toast({
@@ -129,15 +122,13 @@ export default function ChildEventsPage() {
     }
 
     fetchData()
-  // }, [childId, toast]) // <-- Depender de activeChildId
-  }, [activeChildId, toast]) // <-- Depender de activeChildId y toast
+  }, [activeChildId, toast]);
 
   // Efecto 3: Sincronizar Contexto con URL si cambia el contexto
   useEffect(() => {
-    // Si el contexto tiene un ID, y es diferente de la URL actual,
-    // navegar a la URL correcta.
     if (activeChildId && activeChildId !== childIdFromUrl) {
-      router.push(`/dashboard/children/${activeChildId}/events`);
+      const targetUrl = `/dashboard/children/${activeChildId}/events`;
+      router.push(targetUrl);
     }
   }, [activeChildId, childIdFromUrl, router]);
 
@@ -214,8 +205,6 @@ export default function ChildEventsPage() {
         notes: editedEvent.notes || "",
         createdAt: selectedEvent.createdAt
       }
-      
-      console.log("Enviando datos para actualización:", updateData);
       
       // Usar la URL con el ID en la ruta
       const response = await fetch(`/api/children/events/${selectedEvent._id}`, {

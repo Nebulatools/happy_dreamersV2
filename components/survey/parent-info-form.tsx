@@ -34,13 +34,14 @@ const parentInfoSchema = z.object({
 type ParentInfoFormValues = z.infer<typeof parentInfoSchema>
 
 interface ParentInfoFormProps {
-  onSubmit: (data: ParentInfoFormValues) => void;
+  onDataChange: (data: ParentInfoFormValues) => void;
   initialData?: Partial<ParentInfoFormValues>;
 }
 
-export function ParentInfoForm({ onSubmit, initialData = {} }: ParentInfoFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
+export function ParentInfoForm({ onDataChange, initialData = {} }: ParentInfoFormProps) {
+  const [isSaving, setIsSaving] = useState(false)
+  const [showSaved, setShowSaved] = useState(false)
+  
   const form = useForm<ParentInfoFormValues>({
     resolver: zodResolver(parentInfoSchema),
     defaultValues: {
@@ -67,244 +68,290 @@ export function ParentInfoForm({ onSubmit, initialData = {} }: ParentInfoFormPro
     if (initialData && Object.keys(initialData).length > 0) {
       Object.entries(initialData).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          form.setValue(key as any, value as any);
+          form.setValue(key as keyof ParentInfoFormValues, value as any);
         }
       });
     }
   }, [initialData, form]);
 
-  const handleSubmit = (data: ParentInfoFormValues) => {
-    setIsSubmitting(true)
-    // Enviar los datos
+  // ELIMINAR el efecto que observa cambios automáticamente
+  // useEffect(() => {
+  //   const subscription = form.watch((value) => {
+  //     parentInfoSchema.safeParseAsync(value).then(result => {
+  //       if (result.success) {
+  //         onDataChange(result.data);
+  //       }
+  //     });
+  //   });
+  //   return () => subscription.unsubscribe();
+  // }, [form, onDataChange]);
+  
+  // ELIMINAR el efecto que envía datos iniciales
+  // useEffect(() => {
+  //   if (initialData && Object.keys(initialData).length > 0) {
+  //     parentInfoSchema.safeParseAsync(form.getValues()).then(result => {
+  //       if (result.success) {
+  //         onDataChange(result.data);
+  //       }
+  //     });
+  //   }
+  // }, [initialData, form, onDataChange]);
+
+  // Nuevo manejador de envío con feedback visual
+  const onSubmit = (data: ParentInfoFormValues) => {
+    setIsSaving(true);
+    
+    // Simulamos un pequeño delay para mostrar el estado "guardando"
     setTimeout(() => {
-      onSubmit(data)
-      setIsSubmitting(false)
-    }, 500)
-  }
+      onDataChange(data);
+      setIsSaving(false);
+      
+      // Mostrar mensaje de guardado durante 2 segundos
+      setShowSaved(true);
+      setTimeout(() => setShowSaved(false), 2000);
+    }, 500);
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Información de la Madre</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="mother_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nombre</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nombre de la madre" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="mother_age"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Edad</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="Edad" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="mother_occupation"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ocupación</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ocupación" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="mother_same_address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>¿Misma dirección que el niño?</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Información de la Madre</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="mother_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar" />
-                      </SelectTrigger>
+                      <Input placeholder="Nombre de la madre" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="yes">Sí</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="mother_city"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ciudad</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ciudad" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="mother_phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Teléfono</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Teléfono" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="mother_email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="Email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="mother_age"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Edad</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="Edad" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="mother_occupation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ocupación</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ocupación" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="mother_same_address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>¿Misma dirección que el niño?</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="yes">Sí</SelectItem>
+                        <SelectItem value="no">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="mother_city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ciudad</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ciudad" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="mother_phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Teléfono</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Teléfono" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="mother_email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="Email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Información del Padre</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="father_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nombre</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nombre del padre" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="father_age"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Edad</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="Edad" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="father_occupation"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ocupación</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ocupación" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="father_address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Dirección</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Dirección" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="father_city"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ciudad</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ciudad" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="father_phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Teléfono</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Teléfono" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="father_email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="Email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Información del Padre</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="father_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nombre del padre" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="father_age"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Edad</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="Edad" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="father_occupation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ocupación</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ocupación" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="father_address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dirección</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Dirección" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="father_city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ciudad</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ciudad" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="father_phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Teléfono</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Teléfono" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="father_email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="Email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
-        </div>
 
-        <FormField
-          control={form.control}
-          name="referral_source"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>¿Cómo se enteró de nosotros?</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Indique cómo conoció Happy Dreamers" className="resize-none" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Guardando..." : "Guardar y continuar"}
-          </Button>
+          <FormField
+            control={form.control}
+            name="referral_source"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>¿Cómo se enteró de nosotros?</FormLabel>
+                <FormControl>
+                  <Textarea placeholder="Indique cómo conoció Happy Dreamers" className="resize-none" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <div className="flex justify-end relative">
+            <Button 
+              type="submit" 
+              disabled={isSaving}
+              className="bg-green-600 hover:bg-green-700 transition-all relative"
+            >
+              {isSaving ? (
+                <>
+                  <span className="animate-pulse">Guardando...</span>
+                  <span className="absolute inset-0 bg-green-500/20 rounded animate-pulse"></span>
+                </>
+              ) : showSaved ? (
+                <>
+                  ✓ Guardado
+                </>
+              ) : (
+                "Guardar información de padres"
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </Form>

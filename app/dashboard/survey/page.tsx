@@ -78,18 +78,8 @@ export default function SurveyPage() {
       description: "Tus respuestas han sido guardadas",
     })
 
-    // Avanzar a la siguiente pestaña
-    const tabs = ["parent-info", "child-history", "family-dynamics", "sleep-routine"]
-    const currentIndex = tabs.indexOf(section)
-
-    if (currentIndex < tabs.length - 1) {
-      const nextTab = tabs[currentIndex + 1]
-      localStorage.setItem(`survey_tab_${childId}`, nextTab)
-      setActiveTab(nextTab)
-    } else {
-      // Si es la última sección, enviar todo el formulario
-      handleSubmitSurvey()
-    }
+    // Ya no avanzamos automáticamente a la siguiente pestaña
+    // Dejamos que el usuario lo haga manualmente con los botones
   }
 
   const handleSubmitSurvey = async () => {
@@ -159,28 +149,52 @@ export default function SurveyPage() {
 
             <TabsContent value="parent-info">
               <ParentInfoForm 
-                onSubmit={(data) => handleSectionSubmit("parentInfo", data)} 
+                onDataChange={(data) => handleSectionSubmit("parentInfo", data)} 
                 initialData={formData.parentInfo}
               />
             </TabsContent>
 
             <TabsContent value="child-history">
               <ChildHistoryForm 
-                onSubmit={(data) => handleSectionSubmit("childHistory", data)} 
+                onDataChange={(data) => handleSectionSubmit("childHistory", data)} 
                 initialData={formData.childHistory}
               />
             </TabsContent>
 
             <TabsContent value="family-dynamics">
               <FamilyDynamicsForm 
-                onSubmit={(data) => handleSectionSubmit("familyDynamics", data)} 
+                onDataChange={(data) => handleSectionSubmit("familyDynamics", data)} 
                 initialData={formData.familyDynamics}
               />
             </TabsContent>
 
             <TabsContent value="sleep-routine">
+              <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
+                <h3 className="text-amber-800 font-medium mb-2">Último paso</h3>
+                <p className="text-amber-700">
+                  Después de completar esta sección, asegúrate de hacer clic en el botón 
+                  <strong> "Finalizar encuesta"</strong> al final de la página para enviar toda la información.
+                </p>
+                <div className="mt-4">
+                  <Button 
+                    onClick={handleSubmitSurvey}
+                    disabled={isSubmitting}
+                    className="bg-amber-600 hover:bg-amber-700"
+                  >
+                    {isSubmitting ? (
+                      <span className="flex items-center">
+                        <span className="animate-spin mr-2 h-5 w-5 border-t-2 border-white rounded-full"></span>
+                        Enviando...
+                      </span>
+                    ) : (
+                      "Finalizar encuesta"
+                    )}
+                  </Button>
+                </div>
+              </div>
+              
               <SleepRoutineForm
-                onSubmit={(data) => handleSectionSubmit("sleepRoutine", data)}
+                onDataChange={(data) => handleSectionSubmit("sleepRoutine", data)}
                 initialData={formData.sleepRoutine}
                 isSubmitting={isSubmitting}
               />
@@ -203,20 +217,38 @@ export default function SurveyPage() {
           >
             Anterior
           </Button>
-          <Button
-            onClick={() => {
-              const tabs = ["parent-info", "child-history", "family-dynamics", "sleep-routine"]
-              const currentIndex = tabs.indexOf(activeTab)
-              if (currentIndex < tabs.length - 1) {
-                const nextTab = tabs[currentIndex + 1]
-                localStorage.setItem(`survey_tab_${childId}`, nextTab)
-                setActiveTab(nextTab)
-              }
-            }}
-            disabled={activeTab === "sleep-routine" || isSubmitting}
-          >
-            Siguiente
-          </Button>
+          
+          {activeTab === "sleep-routine" ? (
+            <Button
+              onClick={handleSubmitSurvey}
+              disabled={isSubmitting}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-medium px-6 py-2 text-lg"
+            >
+              {isSubmitting ? (
+                <span className="flex items-center">
+                  <span className="animate-spin mr-2 h-5 w-5 border-t-2 border-white rounded-full"></span>
+                  Enviando...
+                </span>
+              ) : (
+                "Finalizar encuesta"
+              )}
+            </Button>
+          ) : (
+            <Button
+              onClick={() => {
+                const tabs = ["parent-info", "child-history", "family-dynamics", "sleep-routine"]
+                const currentIndex = tabs.indexOf(activeTab)
+                if (currentIndex < tabs.length - 1) {
+                  const nextTab = tabs[currentIndex + 1]
+                  localStorage.setItem(`survey_tab_${childId}`, nextTab)
+                  setActiveTab(nextTab)
+                }
+              }}
+              disabled={isSubmitting}
+            >
+              Siguiente
+            </Button>
+          )}
         </CardFooter>
       </Card>
     </div>

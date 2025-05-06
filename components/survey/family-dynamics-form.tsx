@@ -38,13 +38,14 @@ const familyDynamicsSchema = z.object({
 type FamilyDynamicsFormValues = z.infer<typeof familyDynamicsSchema>
 
 interface FamilyDynamicsFormProps {
-  onSubmit: (data: FamilyDynamicsFormValues) => void
+  onDataChange: (data: FamilyDynamicsFormValues) => void
   initialData?: Partial<FamilyDynamicsFormValues>
 }
 
-export function FamilyDynamicsForm({ onSubmit, initialData = {} }: FamilyDynamicsFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
+export function FamilyDynamicsForm({ onDataChange, initialData = {} }: FamilyDynamicsFormProps) {
+  const [isSaving, setIsSaving] = useState(false)
+  const [showSaved, setShowSaved] = useState(false)
+  
   const form = useForm<FamilyDynamicsFormValues>({
     resolver: zodResolver(familyDynamicsSchema),
     defaultValues: {
@@ -64,11 +65,23 @@ export function FamilyDynamicsForm({ onSubmit, initialData = {} }: FamilyDynamic
     if (initialData && Object.keys(initialData).length > 0) {
       Object.entries(initialData).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          form.setValue(key as any, value as any)
+          form.setValue(key as keyof FamilyDynamicsFormValues, value as any)
         }
       })
     }
   }, [initialData, form])
+
+  const onSubmit = (data: FamilyDynamicsFormValues) => {
+    setIsSaving(true);
+    
+    setTimeout(() => {
+      onDataChange(data);
+      setIsSaving(false);
+      
+      setShowSaved(true);
+      setTimeout(() => setShowSaved(false), 2000);
+    }, 500);
+  };
 
   const caregiverOptions = [
     { id: "mother", label: "Madre" },
@@ -79,14 +92,6 @@ export function FamilyDynamicsForm({ onSubmit, initialData = {} }: FamilyDynamic
     { id: "nanny", label: "Niñera" },
     { id: "other", label: "Otro" },
   ]
-
-  const handleSubmit = (data: FamilyDynamicsFormValues) => {
-    setIsSubmitting(true)
-    setTimeout(() => {
-      onSubmit(data)
-      setIsSubmitting(false)
-    }, 500)
-  }
 
   const addSibling = () => {
     const currentSiblings = form.getValues("siblings") || []
@@ -111,254 +116,271 @@ export function FamilyDynamicsForm({ onSubmit, initialData = {} }: FamilyDynamic
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">Hermanos</h3>
-            <Button type="button" variant="outline" size="sm" onClick={addSibling} className="gap-1">
-              <PlusCircle className="h-4 w-4" />
-              Agregar hermano
-            </Button>
-          </div>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium">Hermanos</h3>
+              <Button type="button" variant="outline" size="sm" onClick={addSibling} className="gap-1">
+                <PlusCircle className="h-4 w-4" />
+                Agregar hermano
+              </Button>
+            </div>
 
-          {form.watch("siblings")?.map((sibling, index) => (
-            <div key={sibling.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-3">
-              <FormField
-                control={form.control}
-                name={`siblings.${index}.first_name`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombre</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nombre" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name={`siblings.${index}.last_name`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Apellido</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Apellido" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="flex items-end gap-2">
+            {form.watch("siblings")?.map((sibling, index) => (
+              <div key={sibling.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-3">
                 <FormField
                   control={form.control}
-                  name={`siblings.${index}.date_of_birth`}
+                  name={`siblings.${index}.first_name`}
                   render={({ field }) => (
-                    <FormItem className="flex-1">
-                      <FormLabel>Fecha de nacimiento</FormLabel>
+                    <FormItem>
+                      <FormLabel>Nombre</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <Input placeholder="Nombre" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeSibling(sibling.id)}
-                  className="mb-2"
-                >
-                  <X className="h-4 w-4" />
-                  <span className="sr-only">Eliminar hermano</span>
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="primary_caregiver"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Cuidador principal</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {caregiverOptions.map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="night_caregiver"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Cuidador durante la noche</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {caregiverOptions.map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="night_wakings_caregiver"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Cuidador para despertares nocturnos</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {caregiverOptions.map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="parent_participation"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Participación de ambos padres</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="yes">Sí</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="separation_anxiety"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Ansiedad por separación</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="yes">Sí</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="alone_reaction"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Reacción al estar solo</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="yes">Reacciona negativamente</SelectItem>
-                    <SelectItem value="no">No tiene problemas</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="parent_dark_fear"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Miedo a la oscuridad de los padres</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="yes">Sí</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="other_household_members"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Otros miembros del hogar</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Describe otros miembros que viven en el hogar"
-                  className="resize-none"
-                  {...field}
+                <FormField
+                  control={form.control}
+                  name={`siblings.${index}.last_name`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Apellido</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Apellido" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <div className="flex items-end gap-2">
+                  <FormField
+                    control={form.control}
+                    name={`siblings.${index}.date_of_birth`}
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormLabel>Fecha de nacimiento</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeSibling(sibling.id)}
+                    className="mb-2"
+                  >
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Eliminar hermano</span>
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
 
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Guardando..." : "Guardar y continuar"}
-          </Button>
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="primary_caregiver"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cuidador principal</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {caregiverOptions.map((option) => (
+                        <SelectItem key={option.id} value={option.id}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="night_caregiver"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cuidador durante la noche</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {caregiverOptions.map((option) => (
+                        <SelectItem key={option.id} value={option.id}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="night_wakings_caregiver"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cuidador para despertares nocturnos</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {caregiverOptions.map((option) => (
+                        <SelectItem key={option.id} value={option.id}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="parent_participation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Participación de ambos padres</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="yes">Sí</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="separation_anxiety"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Ansiedad por separación</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="yes">Sí</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="alone_reaction"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Reacción al estar solo</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="yes">Reacciona negativamente</SelectItem>
+                      <SelectItem value="no">No tiene problemas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="parent_dark_fear"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Miedo a la oscuridad de los padres</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="yes">Sí</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="other_household_members"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Otros miembros del hogar</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Describe otros miembros que viven en el hogar"
+                    className="resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="flex justify-end relative">
+            <Button 
+              type="submit" 
+              disabled={isSaving}
+              className="bg-green-600 hover:bg-green-700 transition-all relative"
+            >
+              {isSaving ? (
+                <>
+                  <span className="animate-pulse">Guardando...</span>
+                  <span className="absolute inset-0 bg-green-500/20 rounded animate-pulse"></span>
+                </>
+              ) : showSaved ? (
+                <>
+                  ✓ Guardado
+                </>
+              ) : (
+                "Guardar dinámica familiar"
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </Form>

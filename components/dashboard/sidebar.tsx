@@ -13,7 +13,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useSession } from "next-auth/react"
 import { useState } from "react"
-import { LayoutDashboard, Calendar, BarChart3, Users, PlusCircle, Settings, Menu, MessageSquare } from "lucide-react"
+import { useActiveChild } from "@/context/active-child-context"
+import { LayoutDashboard, Calendar, BarChart3, Users, PlusCircle, Settings, Menu, MessageSquare, List } from "lucide-react"
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLDivElement> {
   items: {
@@ -21,6 +22,7 @@ interface SidebarNavProps extends React.HTMLAttributes<HTMLDivElement> {
     title: string
     icon: React.ReactNode
     role?: string[]
+    disabled?: boolean
   }[]
 }
 
@@ -28,8 +30,12 @@ export function Sidebar({ className }: { className?: string }) {
   const { data: session } = useSession()
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const { activeChildId } = useActiveChild()
 
   const isAdmin = session?.user?.role === "admin"
+
+  const eventsHref = activeChildId ? `/dashboard/children/${activeChildId}/events` : "#"
+  const isEventsLinkDisabled = !activeChildId
 
   const sidebarNavItems = [
     {
@@ -43,8 +49,14 @@ export function Sidebar({ className }: { className?: string }) {
       icon: <Calendar className="h-5 w-5" />,
     },
     {
+      title: "Mis Eventos",
+      href: eventsHref,
+      icon: <List className="h-5 w-5" />,
+      disabled: isEventsLinkDisabled,
+    },
+    {
       title: "Registrar Evento",
-      href: "/dashboard/event",
+      href: `/dashboard/event${activeChildId ? `?childId=${activeChildId}` : ''}`,
       icon: <PlusCircle className="h-5 w-5" />,
     },
     {
@@ -104,12 +116,15 @@ function SidebarNav({ items, className }: SidebarNavProps) {
     <nav className={cn("flex flex-col gap-2", className)}>
       {items.map((item) => (
         <Link
-          key={item.href}
-          href={item.href}
+          key={item.href + item.title}
+          href={item.disabled ? "#" : item.href}
           className={cn(
             "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-            pathname === item.href ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+            pathname === item.href && !item.disabled ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+            item.disabled ? "opacity-50 pointer-events-none cursor-not-allowed" : ""
           )}
+          aria-disabled={item.disabled}
+          tabIndex={item.disabled ? -1 : undefined}
         >
           {item.icon}
           {item.title}
@@ -128,6 +143,7 @@ function MobileSidebar({
     title: string
     icon: React.ReactNode
     role?: string[]
+    disabled?: boolean
   }[]
   setOpen: (open: boolean) => void
 }) {
@@ -153,13 +169,16 @@ function MobileSidebar({
       <nav className="flex flex-col gap-2 px-2">
         {items.map((item) => (
           <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => setOpen(false)}
+            key={item.href + item.title}
+            href={item.disabled ? "#" : item.href}
+            onClick={() => { if (!item.disabled) setOpen(false) }}
             className={cn(
               "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-              pathname === item.href ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+              pathname === item.href && !item.disabled ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+              item.disabled ? "opacity-50 pointer-events-none cursor-not-allowed" : ""
             )}
+            aria-disabled={item.disabled}
+            tabIndex={item.disabled ? -1 : undefined}
           >
             {item.icon}
             {item.title}
