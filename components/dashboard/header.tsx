@@ -72,7 +72,6 @@ export function Header() {
           <div className="md:hidden">
             <ChildSelector />
           </div>
-          <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">

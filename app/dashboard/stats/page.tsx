@@ -23,7 +23,10 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
+  ScatterChart,
+  Scatter,
+  ZAxis
 } from "recharts"
 import {
   startOfWeek,
@@ -38,7 +41,13 @@ import {
   isAfter,
   isBefore,
   differenceInHours,
-  differenceInMinutes
+  differenceInMinutes,
+  getHours as getHoursFns,
+  getMinutes as getMinutesFns,
+  eachDayOfInterval,
+  isSameDay,
+  differenceInDays,
+  addDays
 } from "date-fns"
 import { es } from "date-fns/locale"
 
@@ -60,6 +69,17 @@ interface Event {
   createdAt: string;
 }
 
+// Definición del tipo para los patrones de sueño diarios
+interface DailySleepPattern {
+  dayISO: string;
+  bedTime?: number; // minutos desde medianoche
+  wakeUpTime?: number; // minutos desde medianoche
+  firstNapStartTime?: number;
+  firstNapDuration?: number;
+  secondNapStartTime?: number;
+  secondNapDuration?: number;
+}
+
 export default function StatsPage() {
   const { toast } = useToast()
   const { activeChildId } = useActiveChild()
@@ -67,6 +87,20 @@ export default function StatsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [events, setEvents] = useState<Event[]>([])
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
+
+  // Nuevos estados para métricas de patrones de sueño
+  const [averageBedTime, setAverageBedTime] = useState<string | null>(null)
+  const [averageWakeUpTime, setAverageWakeUpTime] = useState<string | null>(null)
+  const [averageFirstNapStartTime, setAverageFirstNapStartTime] = useState<string | null>(null)
+  const [averageFirstNapDuration, setAverageFirstNapDuration] = useState<string | null>(null)
+  const [averageSecondNapStartTime, setAverageSecondNapStartTime] = useState<string | null>(null)
+  const [averageSecondNapDuration, setAverageSecondNapDuration] = useState<string | null>(null)
+  const [bedtimeConsistency, setBedtimeConsistency] = useState<string | null>(null) // e.g., "±30 min"
+  const [wakeUpConsistency, setWakeUpConsistency] = useState<string | null>(null)
+
+  // Nuevos estados para los datos de los gráficos
+  const [napChartData, setNapChartData] = useState<any[]>([])
+  const [bedWakeChartData, setBedWakeChartData] = useState<any[]>([])
 
   // Obtener la fecha de inicio y fin basado en el período seleccionado
   const getDateRange = () => {
@@ -163,6 +197,99 @@ export default function StatsPage() {
     return differenceInHours(endTime, startTime) + (differenceInMinutes(endTime, startTime) % 60) / 60
   }
 
+  // useEffect para calcular patrones de sueño detallados
+  useEffect(() => {
+    if (!filteredEvents.length) {
+      // Resetear todos los estados de patrones detallados
+      setAverageBedTime(null);
+      setAverageWakeUpTime(null);
+      setAverageFirstNapStartTime(null);
+      setAverageFirstNapDuration(null);
+      setAverageSecondNapStartTime(null);
+      setAverageSecondNapDuration(null);
+      setBedtimeConsistency(null);
+      setWakeUpConsistency(null);
+      // También resetear los datos de los gráficos nuevos si los tuviéramos en estado
+      setNapChartData([]);
+      setBedWakeChartData([]);
+      return;
+    }
+
+    // --- LÓGICA DE dailySleepPatterns (EXISTENTE Y REUTILIZABLE) ---
+    const dailySleepPatterns: DailySleepPattern[] = [];
+
+    const uniqueDaysISO = [...new Set(filteredEvents.map(event => format(parseISO(event.startTime), 'yyyy-MM-dd')))].sort();
+
+    uniqueDaysISO.forEach(dayISO => {
+      const dayStart = parseISO(dayISO);
+      const dayEnd = addDays(dayStart, 1);
+
+      const eventsOfTheDay = filteredEvents.filter(event => {
+        const eventStart = parseISO(event.startTime);
+        // Asegurarse que endTime exista para parsearlo
+        const eventActualEndTime = event.endTime ? parseISO(event.endTime) : eventStart;
+        return isSameDay(eventStart, dayStart) || (event.eventType === 'sleep' && eventStart < dayEnd && eventActualEndTime > dayStart);
+      }).sort((a, b) => parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime());
+
+      let mainNightSleep: Event | null = null;
+      const sleepEvents = eventsOfTheDay.filter(e => e.eventType === 'sleep' && e.endTime);
+      
+      if (sleepEvents.length > 0) {
+        mainNightSleep = sleepEvents.reduce((longest, current) => {
+          const currentStarts = getHoursFns(parseISO(current.startTime));
+          if (currentStarts >= 18 || currentStarts < 4) {
+             if (!longest) return current;
+             // Usar una función segura para calcular duración que maneje endTime undefined
+             const currentDuration = current.endTime ? differenceInMinutes(parseISO(current.endTime), parseISO(current.startTime)) : 0;
+             const longestDuration = longest.endTime ? differenceInMinutes(parseISO(longest.endTime), parseISO(longest.startTime)) : 0;
+             return currentDuration > longestDuration ? current : longest;
+          }
+          return longest;
+        }, null as Event | null);
+
+        if (!mainNightSleep && sleepEvents.length === 1) mainNightSleep = sleepEvents[0];
+        else if (!mainNightSleep && sleepEvents.length > 0) {
+            mainNightSleep = sleepEvents.sort((a,b) => parseISO(b.startTime).getTime() - parseISO(a.startTime).getTime())[0];
+        }
+      }
+      
+      const pattern: Partial<DailySleepPattern> & { dayISO: string } = { dayISO };
+
+      if (mainNightSleep && mainNightSleep.startTime && mainNightSleep.endTime) {
+        const bedTimeDate = parseISO(mainNightSleep.startTime);
+        const wakeUpDate = parseISO(mainNightSleep.endTime);
+        pattern.bedTime = getHoursFns(bedTimeDate) * 60 + getMinutesFns(bedTimeDate);
+        // Ajuste para wakeUpTime si cruza la medianoche (se suma 24h en minutos)
+        let wakeUpMinutes = getHoursFns(wakeUpDate) * 60 + getMinutesFns(wakeUpDate);
+        if (wakeUpDate < bedTimeDate || (isSameDay(wakeUpDate, bedTimeDate) && wakeUpMinutes < pattern.bedTime)) {
+            // Si wakeUpDate es anterior o el mismo día pero hora anterior, asumir que es del día siguiente
+            // Esto es una simplificación; una lógica más robusta consideraría la duración
+        }
+        pattern.wakeUpTime = wakeUpMinutes;
+      }
+      
+      // ... Lógica para siestas (se mantiene para datos, pero no para promedios de tarjetas)
+      const napEvents = eventsOfTheDay.filter(e => e.eventType === 'nap' && e.endTime);
+      if (napEvents.length > 0) {
+        // ... (extracción de datos de siestas se mantiene para el gráfico de siestas)
+      }
+
+      if (Object.keys(pattern).length > 1) { // Más que solo dayISO
+        dailySleepPatterns.push(pattern as DailySleepPattern);
+      }
+    });
+    
+    // --- FIN LÓGICA dailySleepPatterns ---
+
+    // Aquí se llamarán las nuevas funciones para preparar datos de gráficos
+    setNapChartData(prepareNapsChartData(filteredEvents));
+    setBedWakeChartData(prepareBedtimeWakeUpChartData(dailySleepPatterns));
+
+    // La lógica de promedios para las tarjetas eliminadas puede ser removida o comentada
+    // setAverageBedTime(...); setBedtimeConsistency(...); etc.
+
+  }, [filteredEvents]); // Dependencia calculateEventDuration eliminada por ahora
+
   // Preparar datos para gráficos
   const prepareSleepData = () => {
     // Filtrar solo eventos de tipo "sleep" o "nap"
@@ -256,6 +383,38 @@ export default function StatsPage() {
   // Colores para los gráficos
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658'];
 
+  // Función para preparar datos para el gráfico de siestas
+  const prepareNapsChartData = (events: Event[]) => {
+    return events
+      .filter(event => event.eventType === "nap" && event.endTime)
+      .map(nap => {
+        const startTime = parseISO(nap.startTime);
+        const endTime = parseISO(nap.endTime!);
+        return {
+          date: format(startTime, 'yyyy-MM-dd'),
+          startTimeMinutes: getHoursFns(startTime) * 60 + getMinutesFns(startTime),
+          duration: differenceInMinutes(endTime, startTime),
+          tooltip: `Siesta: ${format(startTime, 'HH:mm')} (${differenceInMinutes(endTime, startTime)} min)`
+        };
+      });
+  };
+
+  // Función para preparar datos para el gráfico de hora de acostarse/despertar
+  const prepareBedtimeWakeUpChartData = (dailyPatterns: DailySleepPattern[]) => {
+    return dailyPatterns.map(pattern => ({
+      date: format(parseISO(pattern.dayISO!), 'dd/MM'),
+      bedTime: pattern.bedTime, // en minutos desde medianoche
+      wakeUpTime: pattern.wakeUpTime, // en minutos desde medianoche
+    })).sort((a, b) => parseISO(a.date.split('/').reverse().join('-')).getTime() - parseISO(b.date.split('/').reverse().join('-')).getTime()); // Asegurar orden cronológico
+  };
+  
+  // Formateador de ticks para el eje Y de horas (0-1440 minutos a HH:mm)
+  const formatTimeTick = (tickItem: number) => {
+    const hours = Math.floor(tickItem / 60);
+    const minutes = tickItem % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  };
+
   // Renderizar
   if (isLoading && activeChildId) {
     return (
@@ -337,13 +496,14 @@ export default function StatsPage() {
                       ? (filteredEvents
                           .filter(e => e.eventType === "sleep" || e.eventType === "nap")
                           .reduce((acc, evt) => acc + calculateEventDuration(evt), 0) / 
-                          filteredEvents.filter(e => (e.eventType === "sleep" || e.eventType === "nap") && e.endTime).length
+                          // Asegurar que no dividimos por cero si no hay eventos con endTime
+                          (filteredEvents.filter(e => (e.eventType === "sleep" || e.eventType === "nap") && e.endTime).length || 1)
                         ).toFixed(1) + 'h'
                       : 'N/A'
                     }
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Basado en {filteredEvents.filter(e => (e.eventType === "sleep" || e.eventType === "nap") && e.endTime).length} eventos
+                    Basado en {filteredEvents.filter(e => (e.eventType === "sleep" || e.eventType === "nap") && e.endTime).length} eventos con duración
                   </p>
                 </CardContent>
               </Card>
@@ -364,7 +524,7 @@ export default function StatsPage() {
               
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Períodos de sueño</CardTitle>
+                  <CardTitle className="text-sm font-medium">Períodos de sueño nocturno</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
@@ -378,7 +538,7 @@ export default function StatsPage() {
               
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Estado emocional</CardTitle>
+                  <CardTitle className="text-sm font-medium">Estado emocional (sueño)</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
@@ -393,7 +553,7 @@ export default function StatsPage() {
                                 return acc;
                               }, {} as Record<string, number>)
                           )
-                          .sort((a, b) => b[1] - a[1])[0][0]
+                          .sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A' // Evitar error si no hay datos
                         )
                       : 'N/A'
                     }
@@ -405,6 +565,70 @@ export default function StatsPage() {
               </Card>
             </div>
 
+            {/* NUEVOS GRÁFICOS */}
+            <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2"> {/* Ajustar grid para 2 gráficos */}
+              <Card className="col-span-1">
+                <CardHeader>
+                  <CardTitle>Patrón de Sueño Nocturno</CardTitle>
+                  <CardDescription>Hora de acostarse y despertarse</CardDescription>
+                </CardHeader>
+                <CardContent className="h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={bedWakeChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis 
+                        domain={[0, 1440]} 
+                        tickFormatter={formatTimeTick} 
+                        label={{ value: 'Hora del día', angle: -90, position: 'insideLeft' }}
+                        ticks={[0, 180, 360, 540, 720, 900, 1080, 1260, 1440]} // Cada 3 horas
+                      />
+                      <Tooltip formatter={(value: number) => formatTimeTick(value)} />
+                      <Legend />
+                      <Line type="monotone" dataKey="bedTime" name="Hora de Acostarse" stroke="#8884d8" connectNulls />
+                      <Line type="monotone" dataKey="wakeUpTime" name="Hora de Despertar" stroke="#82ca9d" connectNulls />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card className="col-span-1">
+                <CardHeader>
+                  <CardTitle>Registro de Siestas</CardTitle>
+                  <CardDescription>Hora de inicio y duración de las siestas</CardDescription>
+                </CardHeader>
+                <CardContent className="h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ScatterChart>
+                      <CartesianGrid />
+                      <XAxis 
+                        type="number" 
+                        dataKey="startTimeMinutes" 
+                        name="Hora de Inicio" 
+                        domain={[0, 1440]} 
+                        tickFormatter={formatTimeTick}
+                        ticks={[0, 180, 360, 540, 720, 900, 1080, 1260, 1440]}
+                      />
+                      <YAxis type="category" dataKey="date" name="Fecha" reversed={true} />
+                      <Tooltip cursor={{ strokeDasharray: '3 3' }} formatter={(value, name, props) => {
+                        if (name === "startTimeMinutes") return formatTimeTick(value as number);
+                        if (name === "duration") return `${value} min`;
+                        return value;
+                      }} />
+                      <Legend />
+                      <Scatter name="Siestas" data={napChartData} fill="#ffc658">
+                        {/* Podríamos usar ZAxis para la duración si quisiéramos variar el tamaño del punto, 
+                            pero el tooltip ya muestra la duración.
+                            <ZAxis dataKey="duration" range={[20, 200]} name="Duración (min)" /> 
+                        */}
+                      </Scatter>
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Gráficos existentes que se quedan */}
             <div className="grid gap-4 md:grid-cols-2">
               <Card className="col-span-1">
                 <CardHeader>
