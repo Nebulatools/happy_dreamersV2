@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     const db = client.db()
     
     const isAdmin = session.user.role === 'admin';
+    console.log(`API Request: User ${session.user.id}, isAdmin: ${isAdmin}, requestedUserId: ${requestedUserId}`);
 
     // Si se proporciona un ID, obtener solo ese niño
     if (id) {
@@ -43,7 +44,11 @@ export async function GET(request: NextRequest) {
       }
 
       console.log(`Niño encontrado: ${child.firstName} ${child.lastName}`);
-      return NextResponse.json(child)
+      
+      // Asegurar que no se cachea la respuesta
+      const response = NextResponse.json(child);
+      response.headers.set('Cache-Control', 'no-store, max-age=0');
+      return response;
     }
     
     // Si es admin y solicita los niños de un usuario específico
@@ -54,7 +59,11 @@ export async function GET(request: NextRequest) {
         .toArray();
       
       console.log(`Se encontraron ${children.length} niños para el usuario ${requestedUserId}`);
-      return NextResponse.json(children);
+      
+      // Asegurar que no se cachea la respuesta
+      const response = NextResponse.json(children);
+      response.headers.set('Cache-Control', 'no-store, max-age=0');
+      return response;
     }
 
     // Obtener todos los niños del usuario actual
@@ -64,7 +73,11 @@ export async function GET(request: NextRequest) {
       .toArray()
 
     console.log(`Se encontraron ${children.length} niños para el usuario ${session.user.id}`);
-    return NextResponse.json(children)
+    
+    // Asegurar que no se cachea la respuesta
+    const response = NextResponse.json(children);
+    response.headers.set('Cache-Control', 'no-store, max-age=0');
+    return response;
   } catch (error) {
     console.error("Error al obtener niños:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })

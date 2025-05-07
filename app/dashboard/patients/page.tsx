@@ -118,14 +118,25 @@ export default function PatientsPage() {
     localStorage.setItem('admin_selected_user_id', userId)
     localStorage.setItem('admin_selected_user_name', userName)
     
+    // Disparar un evento personalizado para notificar a otros componentes
+    const event = new StorageEvent('storage', {
+      key: 'admin_selected_user_id',
+      newValue: userId,
+      oldValue: null,
+      storageArea: localStorage
+    });
+    window.dispatchEvent(event);
+    
     toast({
       title: "Usuario seleccionado",
       description: `Has seleccionado a ${userName}. Ahora podrás ver sus niños en el selector.`,
       duration: 3000,
     })
     
-    // Redirigir al dashboard
-    router.push('/dashboard')
+    // Forzar una recarga completa de la página para actualizar todos los componentes
+    // Agregar un parámetro de tiempo para evitar caché
+    const timestamp = new Date().getTime();
+    window.location.href = `/dashboard?refresh=${timestamp}`;
   }
 
   if (loading) {
