@@ -19,25 +19,42 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
+    const requestedUserId = searchParams.get("userId") // Para admins que quieren ver niños de otro usuario
     
     const client = await clientPromise
     const db = client.db()
+    
+    const isAdmin = session.user.role === 'admin';
 
     // Si se proporciona un ID, obtener solo ese niño
     if (id) {
-      console.log(`Buscando niño con ID: ${id} para el usuario ${session.user.id}`);
-      const child = await db.collection("children").findOne({
-        _id: new ObjectId(id),
-        parentId: session.user.id,
-      })
+      console.log(`Buscando niño con ID: ${id}`);
+      
+      // Para admins, permitir ver cualquier niño
+      const query = isAdmin 
+        ? { _id: new ObjectId(id) }
+        : { _id: new ObjectId(id), parentId: session.user.id };
+        
+      const child = await db.collection("children").findOne(query);
 
       if (!child) {
-        console.error(`Niño con ID ${id} no encontrado o no pertenece al usuario ${session.user.id}`);
+        console.error(`Niño con ID ${id} no encontrado o no tienes permiso para verlo`);
         return NextResponse.json({ error: "Niño no encontrado o no tienes permiso para verlo" }, { status: 404 })
       }
 
       console.log(`Niño encontrado: ${child.firstName} ${child.lastName}`);
       return NextResponse.json(child)
+    }
+    
+    // Si es admin y solicita los niños de un usuario específico
+    if (isAdmin && requestedUserId) {
+      console.log(`Admin solicitando niños del usuario: ${requestedUserId}`);
+      const children = await db.collection("children")
+        .find({ parentId: requestedUserId })
+        .toArray();
+      
+      console.log(`Se encontraron ${children.length} niños para el usuario ${requestedUserId}`);
+      return NextResponse.json(children);
     }
 
     // Obtener todos los niños del usuario actual

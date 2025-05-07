@@ -34,16 +34,20 @@ export async function POST(req: NextRequest) {
     const { db } = await connectToDatabase()
     console.log("Conectado a MongoDB")
 
-    // Verificar que el niño exista y pertenezca al usuario
-    const child = await db.collection("children").findOne({
-      _id: new ObjectId(data.childId),
-      parentId: session.user.id
-    })
+    // Verificar si el usuario es administrador
+    const isAdmin = session.user.role === 'admin'
+    
+    // Verificar que el niño exista y pertenezca al usuario (o sea admin)
+    const query = isAdmin 
+      ? { _id: new ObjectId(data.childId) }
+      : { _id: new ObjectId(data.childId), parentId: session.user.id }
+    
+    const child = await db.collection("children").findOne(query)
 
     if (!child) {
-      console.error("Niño no encontrado o no pertenece al usuario")
+      console.error("Niño no encontrado o no tienes permiso")
       return NextResponse.json(
-        { error: "Niño no encontrado o no pertenece al usuario" },
+        { error: "Niño no encontrado o no tienes permiso para registrar eventos" },
         { status: 404 }
       )
     }
@@ -51,6 +55,7 @@ export async function POST(req: NextRequest) {
     // Crear el objeto de evento con ID único
     const event = {
       _id: new ObjectId().toString(), // Generar un ID único para el evento
+      childId: data.childId,
       eventType: data.eventType,
       emotionalState: data.emotionalState || "neutral",
       startTime: data.startTime,
@@ -114,20 +119,31 @@ export async function GET(req: NextRequest) {
 
     // Conectar a la base de datos
     const { db } = await connectToDatabase()
+    
+    // Verificar si el usuario es administrador
+    const isAdmin = session.user.role === 'admin'
+    console.log(`Usuario: ${session.user.id}, Es admin: ${isAdmin}, Solicitando niño: ${childId}`)
 
-    // Buscar el niño y verificar que pertenezca al usuario
-    const child = await db.collection("children").findOne({
-      _id: new ObjectId(childId),
-      parentId: session.user.id
-    })
+    // Buscar el niño
+    // Para admins, permitir acceso a cualquier niño sin verificar el parentId
+    const query = isAdmin 
+      ? { _id: new ObjectId(childId) }
+      : { _id: new ObjectId(childId), parentId: session.user.id }
+      
+    console.log("Query para buscar niño:", JSON.stringify(query))
+    
+    const child = await db.collection("children").findOne(query)
 
     if (!child) {
+      console.log(`Niño con ID ${childId} no encontrado o no accesible para usuario ${session.user.id}`)
       return NextResponse.json(
-        { error: "Niño no encontrado o no pertenece al usuario" },
+        { error: "Niño no encontrado o no tienes permiso para ver sus eventos" },
         { status: 404 }
       )
     }
 
+    console.log(`Niño encontrado: ${child.firstName} ${child.lastName}, devolviendo eventos`)
+    
     // Devolver los detalles del niño, incluyendo sus eventos
     return NextResponse.json({
       _id: child._id,
@@ -138,7 +154,7 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     console.error("Error al obtener eventos:", error.message)
     return NextResponse.json(
-      { error: "Error al obtener los eventos" },
+      { error: "Error al obtener los eventos", details: error.message },
       { status: 500 }
     )
   }
@@ -171,16 +187,20 @@ export async function PUT(req: NextRequest) {
     const { db } = await connectToDatabase()
     console.log("Conectado a MongoDB")
 
-    // Verificar que el niño exista y pertenezca al usuario
-    const child = await db.collection("children").findOne({
-      _id: new ObjectId(data.childId),
-      parentId: session.user.id
-    })
+    // Verificar si el usuario es administrador
+    const isAdmin = session.user.role === 'admin'
+    
+    // Verificar que el niño exista y pertenezca al usuario (o sea admin)
+    const query = isAdmin 
+      ? { _id: new ObjectId(data.childId) }
+      : { _id: new ObjectId(data.childId), parentId: session.user.id }
+    
+    const child = await db.collection("children").findOne(query)
 
     if (!child) {
-      console.error("Niño no encontrado o no pertenece al usuario")
+      console.error("Niño no encontrado o no tienes permiso")
       return NextResponse.json(
-        { error: "Niño no encontrado o no pertenece al usuario" },
+        { error: "Niño no encontrado o no tienes permiso para actualizar eventos" },
         { status: 404 }
       )
     }
@@ -188,6 +208,7 @@ export async function PUT(req: NextRequest) {
     // Crear el objeto de evento actualizado
     const updatedEvent = {
       _id: data.id,
+      childId: data.childId,
       eventType: data.eventType,
       emotionalState: data.emotionalState || "neutral",
       startTime: data.startTime,
@@ -251,6 +272,7 @@ export async function DELETE(req: NextRequest) {
     // Obtener el ID del evento de los parámetros de consulta
     const searchParams = req.nextUrl.searchParams
     const eventId = searchParams.get("id")
+    const childId = searchParams.get("childId")
 
     if (!eventId) {
       return NextResponse.json(
@@ -258,35 +280,57 @@ export async function DELETE(req: NextRequest) {
         { status: 400 }
       )
     }
+    
+    if (!childId) {
+      return NextResponse.json(
+        { error: "Se requiere el ID del niño" },
+        { status: 400 }
+      )
+    }
 
     // Conectar a la base de datos
     const { db } = await connectToDatabase()
     console.log("Conectado a MongoDB")
+    
+    // Verificar si el usuario es administrador
+    const isAdmin = session.user.role === 'admin'
+    
+    // Verificar que el niño exista y pertenezca al usuario (o sea admin)
+    const query = isAdmin 
+      ? { _id: new ObjectId(childId) }
+      : { _id: new ObjectId(childId), parentId: session.user.id }
+    
+    const child = await db.collection("children").findOne(query)
+    
+    if (!child) {
+      console.error("Niño no encontrado o no tienes permiso")
+      return NextResponse.json(
+        { error: "Niño no encontrado o no tienes permiso para eliminar eventos" },
+        { status: 404 }
+      )
+    }
 
     // Encontrar y eliminar el evento del array de eventos del niño
     const result = await db.collection("children").updateOne(
-      { 
-        parentId: session.user.id,
-        "events._id": eventId 
-      },
+      { _id: new ObjectId(childId) },
       { $pull: { events: { _id: eventId } } as any }
     )
 
     console.log("Resultado de la eliminación:", result)
 
     if (result.matchedCount === 0) {
-      console.error("Evento no encontrado o no pertenece al usuario")
+      console.error("Niño no encontrado")
       return NextResponse.json(
-        { error: "Evento no encontrado o no pertenece al usuario" },
+        { error: "Niño no encontrado" },
         { status: 404 }
       )
     }
 
     if (result.modifiedCount === 0) {
-      console.error("No se pudo eliminar el evento")
+      console.error("No se pudo eliminar el evento o no existe")
       return NextResponse.json(
-        { error: "No se pudo eliminar el evento" },
-        { status: 500 }
+        { error: "No se pudo eliminar el evento o no existe" },
+        { status: 404 }
       )
     }
 

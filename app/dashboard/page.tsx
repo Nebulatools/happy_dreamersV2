@@ -355,22 +355,38 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchEvents = async () => {
       if (!activeChildId) {
+        console.log("Dashboard - No hay un niño seleccionado, omitiendo carga de eventos");
         setEvents([]);
         setFilteredEvents([]);
         setIsLoading(false);
         return;
       }
 
+      console.log("Dashboard - Cargando eventos para el niño:", activeChildId);
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/children/events?childId=${activeChildId}`);
+        const url = `/api/children/events?childId=${activeChildId}`;
+        console.log("Dashboard - URL de solicitud:", url);
+        
+        const response = await fetch(url);
+        console.log("Dashboard - Código de respuesta:", response.status);
+        
         if (!response.ok) {
-          throw new Error('Error al cargar los eventos');
+          const errorText = await response.text();
+          console.error("Dashboard - Error al cargar eventos:", errorText);
+          throw new Error(`Error al cargar los eventos: ${response.status} ${errorText}`);
         }
+        
         const data = await response.json();
-        setEvents(data.events || []);
+        console.log("Dashboard - Datos recibidos:", data);
+        
+        // Extraer los eventos del objeto devuelto
+        const eventsList = data.events || [];
+        console.log("Dashboard - Número de eventos:", eventsList.length);
+        
+        setEvents(eventsList);
       } catch (error) {
-        console.error('Error:', error);
+        console.error("Dashboard - Error:", error);
         setEvents([]);
         toast({
           title: "Error",

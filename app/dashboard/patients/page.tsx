@@ -4,212 +4,222 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, Eye } from "lucide-react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { useSession } from "next-auth/react"
 import { useToast } from "@/hooks/use-toast"
+import { Loader2, Users } from "lucide-react"
+import { useRouter } from "next/navigation"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
-// Definir una interfaz para el tipo de paciente
-interface Patient {
-  _id: string;
-  firstName: string;
-  lastName: string;
-  birthDate?: string;
-  parentName?: string;
-  lastVisit?: string;
-  status?: string;
+interface User {
+  _id: string
+  name: string
+  email: string
+  role: string
+}
+
+interface Child {
+  _id: string
+  firstName: string
+  lastName: string
+  parentId: string
 }
 
 export default function PatientsPage() {
-  const router = useRouter()
-  const { data: session } = useSession()
   const { toast } = useToast()
-  const [searchTerm, setSearchTerm] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [isLoading, setIsLoading] = useState(true)
-  const [patients, setPatients] = useState<Patient[]>([])
-  const patientsPerPage = 10
+  const router = useRouter()
+  const [users, setUsers] = useState<User[]>([])
+  const [userChildren, setUserChildren] = useState<Record<string, Child[]>>({})
+  const [loading, setLoading] = useState(true)
+  const [expandedUser, setExpandedUser] = useState<string | null>(null)
+  const [selectedUser, setSelectedUser] = useState<string | null>(null)
 
+  // Cargar la lista de usuarios al iniciar
   useEffect(() => {
-    // Cargar los niños desde la base de datos
-    async function loadChildren() {
+    const fetchUsers = async () => {
       try {
-        setIsLoading(true)
-        const response = await fetch('/api/children')
+        setLoading(true)
+        const response = await fetch('/api/admin/users')
         
         if (!response.ok) {
-          throw new Error('Error al cargar los niños')
+          throw new Error('Error al cargar los usuarios')
         }
         
         const data = await response.json()
-        setPatients(data)
+        // Excluir a los usuarios admin
+        const filteredUsers = data.filter((user: User) => user.role !== 'admin')
+        setUsers(filteredUsers)
+        
+        // Verificar si hay un usuario seleccionado en localStorage
+        const savedUserId = localStorage.getItem('admin_selected_user_id')
+        if (savedUserId) {
+          setSelectedUser(savedUserId)
+        }
       } catch (error) {
         console.error('Error:', error)
         toast({
           title: "Error",
-          description: "No se pudieron cargar los pacientes",
+          description: "No se pudieron cargar los usuarios. Verifica que tengas permisos de administrador.",
           variant: "destructive",
         })
       } finally {
-        setIsLoading(false)
+        setLoading(false)
       }
     }
     
-    loadChildren()
+    fetchUsers()
   }, [toast])
 
-  // Filtrar pacientes según el término de búsqueda
-  const filteredPatients = patients.filter(
-    (patient) =>
-      patient.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (patient.parentName && patient.parentName.toLowerCase().includes(searchTerm.toLowerCase())),
-  )
+  // Cargar los niños de un usuario cuando se expande su acordeón
+  const loadUserChildren = async (userId: string) => {
+    try {
+      // Si ya cargamos los niños de este usuario, no hacemos la petición de nuevo
+      if (userChildren[userId]) {
+        return
+      }
+      
+      const response = await fetch(`/api/children?userId=${userId}`)
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar los niños del usuario')
+      }
+      
+      const data = await response.json()
+      setUserChildren(prev => ({
+        ...prev,
+        [userId]: data
+      }))
+    } catch (error) {
+      console.error('Error:', error)
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los niños del usuario.",
+        variant: "destructive",
+      })
+    }
+  }
 
-  // Calcular el total de páginas
-  const totalPages = Math.ceil(filteredPatients.length / patientsPerPage)
+  // Manejar el clic en un usuario para expandir/contraer su acordeón
+  const handleAccordionChange = (userId: string) => {
+    setExpandedUser(expandedUser === userId ? null : userId)
+    loadUserChildren(userId)
+  }
 
-  // Obtener los pacientes para la página actual
-  const currentPatients = filteredPatients.slice((currentPage - 1) * patientsPerPage, currentPage * patientsPerPage)
+  // Manejar la selección de un usuario
+  const handleSelectUser = (userId: string, userName: string) => {
+    setSelectedUser(userId)
+    
+    // Guardar el ID y nombre del usuario seleccionado en localStorage
+    localStorage.setItem('admin_selected_user_id', userId)
+    localStorage.setItem('admin_selected_user_name', userName)
+    
+    toast({
+      title: "Usuario seleccionado",
+      description: `Has seleccionado a ${userName}. Ahora podrás ver sus niños en el selector.`,
+      duration: 3000,
+    })
+    
+    // Redirigir al dashboard
+    router.push('/dashboard')
+  }
 
-  const handleViewPatient = (patientId: string) => {
-    router.push(`/dashboard/patients/${patientId}`)
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+        <span>Cargando usuarios...</span>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Pacientes</h1>
-          <p className="text-muted-foreground">Gestiona y visualiza la información de todos los pacientes</p>
-        </div>
+    <div className="container py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">Mis Pacientes</h1>
+        <p className="text-muted-foreground">Selecciona un paciente para ver y gestionar sus niños</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de pacientes</CardTitle>
-          <CardDescription>Todos los pacientes registrados en el sistema</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Buscar por nombre..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+      {users.length === 0 ? (
+        <Card>
+          <CardContent className="py-10">
+            <div className="text-center">
+              <p>No hay usuarios registrados en el sistema.</p>
             </div>
-          </div>
-
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Padre/Madre</TableHead>
-                  <TableHead>Edad</TableHead>
-                  <TableHead>Última visita</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                      Cargando pacientes...
-                    </TableCell>
-                  </TableRow>
-                ) : currentPatients.length > 0 ? (
-                  currentPatients.map((patient) => (
-                    <TableRow key={patient._id}>
-                      <TableCell className="font-medium">{patient.firstName} {patient.lastName}</TableCell>
-                      <TableCell>{patient.parentName || "-"}</TableCell>
-                      <TableCell>{calculateAge(patient.birthDate)}</TableCell>
-                      <TableCell>{patient.lastVisit ? new Date(patient.lastVisit).toLocaleDateString() : "Sin visitas"}</TableCell>
-                      <TableCell>
-                        <Badge variant={patient.status === "Activo" ? "default" : "secondary"}>
-                          {patient.status || "Activo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleViewPatient(patient._id)}>
-                          <Eye className="h-4 w-4" />
-                          <span className="sr-only">Ver paciente</span>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                      No se encontraron pacientes
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-end space-x-2 py-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-              >
-                Anterior
-              </Button>
-              <div className="text-sm">
-                Página {currentPage} de {totalPages}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-              >
-                Siguiente
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Lista de Pacientes</CardTitle>
+            <CardDescription>Selecciona un paciente para acceder a sus niños</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Accordion type="single" collapsible className="w-full">
+              {users.map(user => (
+                <AccordionItem key={user._id} value={user._id}>
+                  <AccordionTrigger 
+                    onClick={() => handleAccordionChange(user._id)}
+                    className="px-4 hover:bg-accent/30 rounded-md"
+                  >
+                    <div className="flex items-center">
+                      <span className="font-medium">{user.name}</span>
+                      {selectedUser === user._id && (
+                        <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                          Seleccionado
+                        </span>
+                      )}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4">
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground">Email: {user.email}</p>
+                      
+                      <Button 
+                        variant={selectedUser === user._id ? "secondary" : "default"} 
+                        className="w-full"
+                        onClick={() => handleSelectUser(user._id, user.name)}
+                      >
+                        {selectedUser === user._id ? "Usuario seleccionado" : "Seleccionar este usuario"}
+                      </Button>
+                      
+                      <div className="pt-2">
+                        <h4 className="text-sm font-medium mb-2">Niños registrados:</h4>
+                        
+                        {userChildren[user._id] ? (
+                          userChildren[user._id].length > 0 ? (
+                            <div className="space-y-2">
+                              {userChildren[user._id].map(child => (
+                                <div 
+                                  key={child._id} 
+                                  className="p-3 border rounded-md flex items-center"
+                                >
+                                  <span>{child.firstName} {child.lastName}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Este usuario no tiene niños registrados.</p>
+                          )
+                        ) : (
+                          <div className="flex items-center">
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            <span className="text-sm">Cargando niños...</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
-}
-
-// Función para calcular la edad basada en la fecha de nacimiento
-function calculateAge(birthDate?: string): string {
-  if (!birthDate) return "-";
-  
-  const birth = new Date(birthDate);
-  const now = new Date();
-  
-  let years = now.getFullYear() - birth.getFullYear();
-  const monthDiff = now.getMonth() - birth.getMonth();
-  
-  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
-    years--;
-  }
-  
-  // Para niños menores de 1 año, mostrar meses
-  if (years < 1) {
-    let months = (now.getMonth() + 12 - birth.getMonth()) % 12;
-    if (now.getDate() < birth.getDate()) {
-      months--;
-    }
-    return `${months} ${months === 1 ? 'mes' : 'meses'}`;
-  }
-  
-  return `${years} ${years === 1 ? 'año' : 'años'}`;
 }
