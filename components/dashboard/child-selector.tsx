@@ -161,69 +161,65 @@ export function ChildSelector() {
     setActiveChildId(value)
   }
 
-  // Si es admin y no hay usuario seleccionado, mostrar mensaje
-  if (isAdmin && !selectedUserId) {
-    return (
-      <div className="text-sm text-amber-600 flex items-center">
-        <UserCheck className="mr-2 h-4 w-4" />
-        <span>Por favor, selecciona un paciente</span>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2">
-        <Select disabled>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Cargando..." />
-          </SelectTrigger>
-        </Select>
-      </div>
-    )
-  }
-
-  if (children.length === 0) {
-    return (
-      <div className="flex flex-col gap-2">
-        {isAdmin && selectedUserName && (
-          <div className="text-sm flex items-center">
-            <UserCheck className="mr-1 h-3 w-3" />
-            <span className="text-muted-foreground">{selectedUserName}</span>
-          </div>
-        )}
-        <Button variant="outline" size="sm" className="gap-1" onClick={handleAddChild}>
-          <PlusCircle className="h-4 w-4" />
-          <span>Agregar niño</span>
-        </Button>
-      </div>
-    )
-  }
-
+  // Renderizar componente con estructura consistente para evitar saltos visuales
   return (
     <div className="flex items-center gap-2">
-      {isAdmin && selectedUserName && (
-        <div className="text-sm flex items-center">
-          <UserCheck className="mr-1 h-3 w-3" />
-          <span className="text-muted-foreground">{selectedUserName}</span>
+      {/* Información del usuario seleccionado (solo para admins) */}
+      {isAdmin && (
+        <div className="text-sm flex items-center min-h-[24px]">
+          {selectedUserName ? (
+            <>
+              <UserCheck className="mr-1 h-3 w-3" />
+              <span className="text-muted-foreground">{selectedUserName}</span>
+            </>
+          ) : (
+            <span className="text-amber-600 flex items-center">
+              <UserCheck className="mr-2 h-4 w-4" />
+              <span>Selecciona un paciente</span>
+            </span>
+          )}
         </div>
       )}
-      <Select value={activeChildId ?? ""} onValueChange={handleSelectChange}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Seleccionar niño" />
-        </SelectTrigger>
-        <SelectContent>
-          {children.map((child) => (
-            <SelectItem key={child._id} value={child._id}>
-              {child.firstName} {child.lastName}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleAddChild}>
-        <PlusCircle className="h-4 w-4" />
-        <span className="sr-only">Agregar niño</span>
-      </Button>
+
+      {/* Selector de niños o mensaje/botón según el estado */}
+      <div className="flex items-center gap-2">
+        {!isAdmin || (isAdmin && selectedUserId) ? (
+          <>
+            {/* Selector de niños o mensaje de cargando */}
+            <Select 
+              value={activeChildId ?? ""} 
+              onValueChange={handleSelectChange}
+              disabled={loading || children.length === 0}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder={
+                  loading ? "Cargando..." : 
+                  children.length === 0 ? "Sin niños" : 
+                  "Seleccionar niño"
+                } />
+              </SelectTrigger>
+              <SelectContent>
+                {children.map((child) => (
+                  <SelectItem key={child._id} value={child._id}>
+                    {child.firstName} {child.lastName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Botón de agregar niño */}
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-9 w-9" 
+              onClick={handleAddChild}
+            >
+              <PlusCircle className="h-4 w-4" />
+              <span className="sr-only">Agregar niño</span>
+            </Button>
+          </>
+        ) : null}
+      </div>
     </div>
   )
 }
