@@ -34,6 +34,13 @@ export function ChildSelector() {
   // Función para cargar los niños desde la API
   const fetchChildren = async (userId?: string | null) => {
     try {
+      // No hacer petición si no hay sesión activa o si está cargando
+      if (!session || !session.user) {
+        console.log('No hay sesión activa, omitiendo carga de niños')
+        setLoading(false)
+        return
+      }
+      
       setLoading(true)
       
       // Construir la URL adecuada según si es admin y hay un usuario seleccionado
@@ -65,11 +72,14 @@ export function ChildSelector() {
       setLoading(false)
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los niños",
-        variant: "destructive",
-      })
+      // No mostrar toast si el error es de autorización durante logout
+      if (session && session.user) {
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los niños",
+          variant: "destructive",
+        })
+      }
       setLoading(false)
       setActiveChildId(null)
     }
@@ -77,6 +87,14 @@ export function ChildSelector() {
 
   // Verificar localStorage al montar y en cada cambio de ruta
   useEffect(() => {
+    // No hacer nada si no hay sesión activa
+    if (!session || !session.user) {
+      setLoading(false)
+      setChildren([])
+      setActiveChildId(null)
+      return
+    }
+    
     const checkLocalStorage = () => {
       if (isAdmin) {
         const savedUserId = localStorage.getItem('admin_selected_user_id')
@@ -122,7 +140,10 @@ export function ChildSelector() {
 
     // Crear un MutationObserver para detectar cambios en el DOM que podrían indicar una navegación
     const observer = new MutationObserver(() => {
-      checkLocalStorage()
+      // Solo revisar si la sesión sigue activa
+      if (session && session.user) {
+        checkLocalStorage()
+      }
     })
 
     // Iniciar la observación de cambios en el DOM
@@ -146,7 +167,7 @@ export function ChildSelector() {
       window.removeEventListener('popstate', checkLocalStorage)
       observer.disconnect()
     }
-  }, [isAdmin, toast, setActiveChildId, activeChildId, selectedUserId, children.length])
+  }, [isAdmin, toast, setActiveChildId, activeChildId, selectedUserId, children.length, session])
 
   const handleAddChild = () => {
     // Si es admin y hay un usuario seleccionado, redirigir con el parentId

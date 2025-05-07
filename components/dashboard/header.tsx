@@ -33,8 +33,22 @@ export function Header() {
   if (!mounted) return null
 
   const handleSignOut = async () => {
-    await signOut({ redirect: false })
-    router.push("/")
+    // Limpiar localStorage para evitar problemas al cerrar sesión
+    if (localStorage.getItem('admin_selected_user_id')) {
+      localStorage.removeItem('admin_selected_user_id')
+      localStorage.removeItem('admin_selected_user_name')
+    }
+
+    // Usar window.location.href para forzar una redirección completa
+    // que limpie correctamente el estado de la aplicación
+    try {
+      await signOut({ redirect: false })
+      window.location.href = "/"
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error)
+      // En caso de error, forzar redirección de todos modos
+      window.location.href = "/"
+    }
   }
 
   const userInitials = session?.user?.name
