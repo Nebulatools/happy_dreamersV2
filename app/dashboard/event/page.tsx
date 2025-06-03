@@ -17,6 +17,19 @@ import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
 
+// Función auxiliar para formatear la fecha actual en formato ISO para input datetime-local
+const getCurrentDateTimeISO = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+// Esquema con validación para fechas que no sean futuras
 const eventFormSchema = z.object({
   childId: z.string({
     required_error: "Por favor selecciona un niño",
@@ -29,8 +42,18 @@ const eventFormSchema = z.object({
   }),
   startTime: z.string({
     required_error: "Por favor ingresa la hora de inicio",
+  }).refine(val => {
+    // Verificar que la fecha no sea en el futuro
+    return new Date(val) <= new Date();
+  }, {
+    message: "La fecha de inicio no puede ser en el futuro",
   }),
-  endTime: z.string().optional(),
+  endTime: z.string().optional().refine(val => {
+    // Si hay un valor, verificar que no sea en el futuro
+    return !val || new Date(val) <= new Date();
+  }, {
+    message: "La fecha de finalización no puede ser en el futuro",
+  }),
   notes: z.string().optional(),
 })
 
@@ -48,6 +71,7 @@ export default function EventPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingChildren, setIsLoadingChildren] = useState(true)
   const [children, setChildren] = useState<Child[]>([])
+  const [currentDateTime, setCurrentDateTime] = useState(getCurrentDateTimeISO())
 
   // Cargar los niños del usuario actual
   useEffect(() => {
@@ -72,6 +96,13 @@ export default function EventPage() {
     }
 
     fetchChildren()
+    
+    // Actualizar la fecha máxima cada minuto para mantenerla actual
+    const interval = setInterval(() => {
+      setCurrentDateTime(getCurrentDateTimeISO());
+    }, 60000);
+    
+    return () => clearInterval(interval);
   }, [toast])
 
   const eventTypes = [
@@ -260,10 +291,14 @@ export default function EventPage() {
                     <FormItem>
                       <FormLabel>Hora de inicio</FormLabel>
                       <FormControl>
-                        <Input type="datetime-local" {...field} />
+                        <Input 
+                          type="datetime-local" 
+                          max={currentDateTime}
+                          {...field} 
+                        />
                       </FormControl>
                       <FormDescription>
-                        Selecciona cuándo inició el evento
+                        Selecciona cuándo inició el evento (no puede ser en el futuro)
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -277,10 +312,14 @@ export default function EventPage() {
                     <FormItem>
                       <FormLabel>Hora de finalización (opcional)</FormLabel>
                       <FormControl>
-                        <Input type="datetime-local" {...field} />
+                        <Input 
+                          type="datetime-local" 
+                          max={currentDateTime}
+                          {...field} 
+                        />
                       </FormControl>
                       <FormDescription>
-                        Selecciona cuándo terminó el evento
+                        Selecciona cuándo terminó el evento (no puede ser en el futuro)
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
