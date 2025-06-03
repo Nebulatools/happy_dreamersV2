@@ -22,6 +22,12 @@ type Message = {
   role: "user" | "assistant"
   content: string
   timestamp: Date
+  documentsUsed?: number
+  sources?: Array<{
+    source: string
+    type: string
+    preview: string
+  }>
 }
 
 export default function AssistantPage() {
@@ -30,7 +36,7 @@ export default function AssistantPage() {
     {
       id: "welcome",
       role: "assistant",
-      content: "Hola, soy tu asistente mejorado de Happy Dreamers. Ahora puedo acceder a documentos especializados para brindarte mejores consejos sobre el sueño infantil. ¿En qué puedo ayudarte hoy?",
+      content: "¡Hola! Soy la Dra. Ana María, especialista en sueño infantil. Estoy aquí para ayudarte con cualquier duda sobre el descanso de tu pequeño. ¿En qué puedo apoyarte hoy?",
       timestamp: new Date(),
     },
   ])
@@ -80,6 +86,8 @@ export default function AssistantPage() {
           role: "assistant",
           content: result.response,
           timestamp: new Date(),
+          documentsUsed: result.documentsUsed || 0,
+          sources: result.sources || []
         }
 
         setMessages((prev) => [...prev, assistantMessage])
@@ -158,6 +166,31 @@ export default function AssistantPage() {
                           }`}
                         >
                           <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          
+                          {/* Indicador de fuente de información para respuestas del asistente */}
+                          {message.role === "assistant" && (
+                            <div className="mt-2 pt-2 border-t border-gray-200">
+                              {message.documentsUsed && message.documentsUsed > 0 ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-1 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                    <span>📚</span>
+                                    <span>Basado en {message.documentsUsed} documento{message.documentsUsed > 1 ? 's' : ''}</span>
+                                  </div>
+                                  {message.sources && message.sources.length > 0 && (
+                                    <div className="text-xs text-muted-foreground">
+                                      Fuentes: {message.sources.map(s => s.source).join(', ')}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                  <span>🧠</span>
+                                  <span>Conocimiento general</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
                           <p className="text-xs opacity-50 mt-1" suppressHydrationWarning={true}>
                             {message.timestamp.toLocaleTimeString()}
                           </p>

@@ -1,5 +1,6 @@
 import { OpenAI } from "openai";
 import { Document } from "@langchain/core/documents";
+import { getDoctorSystemPrompt } from "./doctor-personality";
 
 export class ChatAgent {
   private openai: OpenAI;
@@ -19,28 +20,8 @@ export class ChatAgent {
         }).join('\n\n---\n\n')
       : '';
 
-    const systemPrompt = `Eres un asistente especializado en el cuidado infantil y desarrollo de niños, enfocado en el proyecto Happy Dreamers.
-
-Tu objetivo es ayudar a padres y cuidadores con:
-- Problemas de sueño infantil
-- Desarrollo emocional y cognitivo
-- Rutinas y hábitos saludables
-- Consejos de crianza
-- Manejo de comportamientos
-
-${context ? `
-INFORMACIÓN DE CONTEXTO RELEVANTE:
-${context}
-
-Usa esta información cuando sea relevante para responder la pregunta del usuario. Si la información del contexto no es directamente relevante, responde basándote en tu conocimiento general sobre cuidado infantil.
-` : 'No hay documentos específicos disponibles, responde basándote en tu conocimiento general sobre cuidado infantil.'}
-
-Instrucciones:
-- Responde de manera clara, empática y práctica
-- Si mencionas información del contexto, puedes referenciar la fuente
-- Si no tienes información específica, sé honesto al respecto
-- Proporciona consejos accionables cuando sea apropiado
-- Mantén un tono profesional pero cálido`;
+    // Usar el prompt de la doctora personalizado
+    const systemPrompt = getDoctorSystemPrompt(context);
 
     const messages = [
       {
@@ -57,8 +38,10 @@ Instrucciones:
       const completion = await this.openai.chat.completions.create({
         model: "gpt-4",
         messages: messages,
-        max_tokens: 800,
-        temperature: 0.7,
+        max_tokens: 300, // ✅ REDUCIDO de 800 a 300 para respuestas más cortas
+        temperature: 0.8, // ✅ AUMENTADO de 0.7 a 0.8 para más naturalidad
+        presence_penalty: 0.1, // ✅ Evita repetición
+        frequency_penalty: 0.1, // ✅ Evita patrones robóticos
       });
 
       return completion.choices[0]?.message?.content || "Lo siento, no pude generar una respuesta.";
