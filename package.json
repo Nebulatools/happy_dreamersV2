@@ -16,7 +16,8 @@
     "@hookform/resolvers": "latest",
     "@langchain/community": "^0.3.45",
     "@langchain/core": "^0.3.57",
-    "@langchain/openai": "^0.5.11",
+    "@langchain/langgraph": "^0.3.0",
+    "@langchain/openai": "^0.5.12",
     "@mongodb-js/zstd": "latest",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
@@ -80,7 +81,7 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "latest",
-    "zod": "latest"
+    "zod": "^3.25.51"
   },
   "devDependencies": {
     "@types/node": "^22",

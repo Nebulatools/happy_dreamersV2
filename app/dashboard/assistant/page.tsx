@@ -18,21 +18,23 @@ import { DocumentUpload } from "@/components/rag/document-upload"
 import { DocumentsList } from "@/components/rag/documents-list"
 import { useActiveChild } from "@/context/active-child-context"
 
-type Message = {
+interface Message {
   id: string
   role: "user" | "assistant"
   content: string
   timestamp: Date
   documentsUsed?: number
-  sources?: Array<{
-    source: string
-    type: string
-    preview: string
-  }>
+  sources?: Array<{source: string, type: string, preview: string}>
   childContext?: {
     name: string
     hasPersonalData: boolean
     recentEventsCount: number
+  }
+  agentInfo?: {
+    agentUsed: string
+    routingDecision: string
+    executionTime: string
+    performance: any
   }
 }
 
@@ -122,31 +124,37 @@ export default function AssistantPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           message: input,
-          childId: activeChildId, // Pasar el ID del niño activo
-          conversationHistory // Enviar historial para mantener contexto
+          childId: activeChild?._id,
+          conversationHistory: conversationHistory
         }),
       })
 
-      const result = await response.json()
-
-      if (response.ok) {
-        // Añadir respuesta del asistente
-        const assistantMessage: Message = {
-          id: Date.now().toString(),
-          role: "assistant",
-          content: result.response,
-          timestamp: new Date(),
-          documentsUsed: result.documentsUsed || 0,
-          sources: result.sources || [],
-          childContext: result.childContext
-        }
-
-        setMessages((prev) => [...prev, assistantMessage])
-      } else {
-        throw new Error(result.error || 'Error en la respuesta')
+      if (!response.ok) {
+        throw new Error('Error en la respuesta del servidor')
       }
+
+      const data = await response.json()
+      
+      // Agregar respuesta del asistente
+      const assistantMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant' as const,
+        content: data.response,
+        timestamp: new Date(),
+        documentsUsed: data.documentsUsed || 0,
+        sources: data.sources || [],
+        childContext: data.childContext,
+        agentInfo: {
+          agentUsed: data.agentUsed,
+          routingDecision: data.routingDecision,
+          executionTime: data.executionTime,
+          performance: data.performance
+        }
+      }
+
+      setMessages((prev) => [...prev, assistantMessage])
     } catch (error) {
       toast({
         title: "Error",
@@ -211,84 +219,46 @@ export default function AssistantPage() {
             <CardContent className="flex-1 p-0 overflow-hidden">
               <ScrollArea className="h-full">
                 <div className="space-y-6 p-6 pb-8">
-                  {messages.map((message) => (
-                    <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                      <div className={`flex gap-4 max-w-[85%] ${message.role === "user" ? "flex-row-reverse" : ""}`}>
-                        <Avatar className="h-10 w-10 border-2 border-white shadow-md">
-                          {message.role === "assistant" ? (
-                            <>
-                              <AvatarImage src="/futuristic-helper-robot.png" alt="Asistente" />
-                              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">AI</AvatarFallback>
-                            </>
-                          ) : (
-                            <>
-                              <AvatarImage src="/placeholder.svg" alt="Usuario" />
-                              <AvatarFallback className="bg-gradient-to-br from-gray-500 to-gray-600 text-white">U</AvatarFallback>
-                            </>
-                          )}
-                        </Avatar>
-                        
-                        <div className={`rounded-2xl px-5 py-4 shadow-md ${
-                          message.role === "assistant" 
-                            ? "bg-white border border-gray-200" 
-                            : "bg-gradient-to-r from-blue-500 to-blue-600 text-white"
-                        }`}>
-                          <p className={`text-sm leading-relaxed whitespace-pre-wrap ${
-                            message.role === "assistant" ? "text-gray-800" : "text-white"
-                          }`}>
-                            {message.content}
-                          </p>
-                          
-                          {/* Indicador de fuente de información para respuestas del asistente */}
-                          {message.role === "assistant" && (
-                            <div className="mt-4 pt-3 border-t border-gray-100">
-                              <div className="flex flex-wrap gap-2 mb-3">
-                                {/* Información de documentos RAG */}
-                                {message.documentsUsed && message.documentsUsed > 0 ? (
-                                  <div className="flex items-center gap-1 text-xs bg-green-100 text-green-800 px-3 py-1.5 rounded-full font-medium">
-                                    <FileText className="h-3 w-3" />
-                                    <span>{message.documentsUsed} documento{message.documentsUsed > 1 ? 's' : ''}</span>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-1 text-xs bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full font-medium">
-                                    <span>🧠</span>
-                                    <span>Conocimiento general</span>
-                                  </div>
-                                )}
-
-                                {/* Información de contexto personal */}
-                                {message.childContext && (
-                                  <div className="flex items-center gap-1 text-xs bg-purple-100 text-purple-800 px-3 py-1.5 rounded-full font-medium">
-                                    <Database className="h-3 w-3" />
-                                    <span>
-                                      Datos de {message.childContext.name}
-                                      {message.childContext.recentEventsCount > 0 && 
-                                        ` (${message.childContext.recentEventsCount} eventos recientes)`
-                                      }
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Fuentes específicas de documentos */}
-                              {message.sources && message.sources.length > 0 && (
-                                <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-2">
-                                  <strong>Fuentes:</strong> {message.sources.map(s => s.source).join(', ')}
-                                </div>
-                              )}
-                              
-                              <p className="text-xs text-gray-400 mt-2" suppressHydrationWarning={true}>
-                                {message.timestamp.toLocaleTimeString()}
-                              </p>
-                            </div>
-                          )}
-                          
-                          {message.role === "user" && (
-                            <p className="text-xs opacity-70 mt-2" suppressHydrationWarning={true}>
-                              {message.timestamp.toLocaleTimeString()}
-                            </p>
-                          )}
+                  {messages.map((message, index) => (
+                    <div key={index} className={`flex ${
+                      message.role === 'user' ? 'justify-end' : 'justify-start'
+                    }`}>
+                      <div className={`
+                        max-w-[80%] p-4 rounded-2xl relative
+                        ${message.role === 'user' 
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' 
+                          : 'bg-white border border-gray-200 text-gray-800 shadow-sm'
+                        }
+                      `}>
+                        <div className="text-sm mb-2 opacity-70">
+                          {message.role === 'user' ? 'Tú' : 'Dra. Mariana'}
+                          <span className="ml-2 text-xs">
+                            {message.timestamp?.toLocaleTimeString()}
+                          </span>
                         </div>
+                        
+                        <div className="text-sm leading-relaxed">
+                          {message.content}
+                        </div>
+
+                        {/* 🎯 NUEVA INFORMACIÓN DEL AGENTE */}
+                        {message.role === 'assistant' && message.agentInfo && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <div className="flex flex-wrap gap-2 text-xs">
+                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                🤖 {message.agentInfo.agentUsed}
+                              </span>
+                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                ⚡ {message.agentInfo.executionTime}
+                              </span>
+                              {message.agentInfo.routingDecision && (
+                                <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                                  🎯 {message.agentInfo.routingDecision}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
