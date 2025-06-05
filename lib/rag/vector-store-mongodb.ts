@@ -201,6 +201,26 @@ export class MongoDBVectorStoreManager {
     }
   }
 
+  async clearAll(): Promise<number> {
+    try {
+      const { db } = await connectToDatabase();
+      
+      // Contar documentos antes de eliminar
+      const vectorCount = await db.collection(this.collectionName).countDocuments();
+      const metaCount = await db.collection(this.metaCollectionName).countDocuments();
+      
+      // Limpiar ambas colecciones
+      await db.collection(this.collectionName).deleteMany({});
+      await db.collection(this.metaCollectionName).deleteMany({});
+      
+      console.log(`🧹 ${vectorCount} vectores y ${metaCount} documentos eliminados`);
+      return metaCount; // Retornamos el número de documentos únicos eliminados
+    } catch (error) {
+      console.error("Error limpiando vector store:", error);
+      throw error;
+    }
+  }
+
   async deleteDocument(documentId: string): Promise<boolean> {
     try {
       const { db } = await connectToDatabase();
