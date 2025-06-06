@@ -16,6 +16,7 @@ type Child = {
   _id: string
   firstName: string
   lastName: string
+  birthDate?: string
 }
 
 export function ChildSelector() {
@@ -34,7 +35,7 @@ export function ChildSelector() {
   // Función para cargar los niños desde la API
   const fetchChildren = async (userId?: string | null) => {
     try {
-      // No hacer petición si no hay sesión activa o si está cargando
+      // No hacer petición si no hay sesión activa
       if (!session || !session.user) {
         console.log('No hay sesión activa, omitiendo carga de niños')
         setLoading(false)
@@ -85,89 +86,78 @@ export function ChildSelector() {
     }
   }
 
-  // Verificar localStorage al montar y en cada cambio de ruta
+  // Función para formatear la fecha de nacimiento
+  const formatBirthDate = (birthDate: string) => {
+    if (!birthDate) return ""
+    
+    try {
+      const date = new Date(birthDate)
+      const day = date.getDate().toString().padStart(2, '0')
+      const month = (date.getMonth() + 1).toString().padStart(2, '0') 
+      const year = date.getFullYear().toString().slice(-2) // Solo los últimos 2 dígitos del año
+      
+      return ` (${day}/${month}/${year})`
+    } catch (error) {
+      return ""
+    }
+  }
+
+  // Efecto simplificado que se ejecuta solo cuando cambia la sesión o el contexto admin
   useEffect(() => {
-    // No hacer nada si no hay sesión activa
     if (!session || !session.user) {
       setLoading(false)
       setChildren([])
       setActiveChildId(null)
       return
     }
-    
-    const checkLocalStorage = () => {
-      if (isAdmin) {
-        const savedUserId = localStorage.getItem('admin_selected_user_id')
-        const savedUserName = localStorage.getItem('admin_selected_user_name')
-        
-        if (savedUserId && savedUserId !== selectedUserId) {
-          console.log(`Updated selected user from localStorage: ${savedUserId}`)
-          setSelectedUserId(savedUserId)
-          setSelectedUserName(savedUserName)
+
+    if (isAdmin) {
+      const savedUserId = localStorage.getItem('admin_selected_user_id')
+      const savedUserName = localStorage.getItem('admin_selected_user_name')
+      
+      if (savedUserId !== selectedUserId) {
+        setSelectedUserId(savedUserId)
+        setSelectedUserName(savedUserName)
+        if (savedUserId) {
           fetchChildren(savedUserId)
-        } else if (!savedUserId && selectedUserId) {
-          // Si no hay usuario en localStorage pero hay uno seleccionado, limpiamos
-          setSelectedUserId(null)
-          setSelectedUserName(null)
+        } else {
           setChildren([])
-        } else if (savedUserId && children.length === 0) {
-          // Si hay ID pero no niños, intentamos cargar de nuevo
-          fetchChildren(savedUserId)
+          setActiveChildId(null)
         }
-      } else {
-        // No es admin, cargamos sus propios niños
-        fetchChildren()
       }
+    } else {
+      fetchChildren()
     }
-    
-    // Revisar al montar el componente
-    checkLocalStorage()
-    
-    // Configurar evento de almacenamiento para detectar cambios en localStorage
+  }, [session?.user?.id, isAdmin]) // Solo dependencias esenciales
+
+  // Efecto separado para cambios en localStorage (solo para admins)
+  useEffect(() => {
+    if (!isAdmin) return
+
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'admin_selected_user_id') {
-        checkLocalStorage()
-      }
-    }
-    
-    // Verificar si estamos en una página que requiere actualización basada en URL params
-    const checkForRefreshParam = () => {
-      if (window.location.search.includes('refresh=')) {
-        console.log('Detected refresh parameter, refreshing children list')
-        checkLocalStorage()
+        const newUserId = e.newValue
+        const newUserName = localStorage.getItem('admin_selected_user_name')
+        
+        if (newUserId !== selectedUserId) {
+          setSelectedUserId(newUserId)
+          setSelectedUserName(newUserName)
+          if (newUserId) {
+            fetchChildren(newUserId)
+          } else {
+            setChildren([])
+            setActiveChildId(null)
+          }
+        }
       }
     }
 
-    // Crear un MutationObserver para detectar cambios en el DOM que podrían indicar una navegación
-    const observer = new MutationObserver(() => {
-      // Solo revisar si la sesión sigue activa
-      if (session && session.user) {
-        checkLocalStorage()
-      }
-    })
-
-    // Iniciar la observación de cambios en el DOM
-    observer.observe(document.documentElement, { 
-      childList: true, 
-      subtree: true 
-    })
-    
-    // Comprobar ahora si hay un parámetro de refresh
-    checkForRefreshParam()
-    
-    // Agregar listeners para eventos de navegación y cambios en localStorage
     window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('focus', checkLocalStorage)
-    window.addEventListener('popstate', checkLocalStorage)
     
-    // Limpiar al desmontar
     return () => {
       window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('focus', checkLocalStorage)
-      window.removeEventListener('popstate', checkLocalStorage)
-      observer.disconnect()
     }
-  }, [isAdmin, toast, setActiveChildId, activeChildId, selectedUserId, children.length, session])
+  }, [isAdmin, selectedUserId])
 
   const handleAddChild = () => {
     // Si es admin y hay un usuario seleccionado, redirigir con el parentId
@@ -212,7 +202,7 @@ export function ChildSelector() {
               onValueChange={handleSelectChange}
               disabled={loading || children.length === 0}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[240px]">
                 <SelectValue placeholder={
                   loading ? "Cargando..." : 
                   children.length === 0 ? "Sin niños" : 
@@ -222,7 +212,7 @@ export function ChildSelector() {
               <SelectContent>
                 {children.map((child) => (
                   <SelectItem key={child._id} value={child._id}>
-                    {child.firstName} {child.lastName}
+                    {child.firstName} {child.lastName}{formatBirthDate(child.birthDate || "")}
                   </SelectItem>
                 ))}
               </SelectContent>
