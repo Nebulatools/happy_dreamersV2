@@ -32,7 +32,8 @@ import {
   eachDayOfInterval,
   isSameDay,
   differenceInDays,
-  addDays
+  addDays,
+  subDays
 } from "date-fns"
 import { es } from "date-fns/locale"
 
@@ -49,7 +50,9 @@ import {
   MoodByActivityChart,
   ProgressSummaryCard,
   EventTrendChart,
-  StatsCard
+  StatsCard,
+  SleepIndicatorsCard,
+  CustomSleepChart
 } from "@/components/stats"
 
 // Interfaces para los datos
@@ -103,6 +106,22 @@ export default function StatsPage() {
   const [napChartData, setNapChartData] = useState<any[]>([])
   const [bedWakeChartData, setBedWakeChartData] = useState<any[]>([])
 
+  // Nuevos estados para los indicadores de la pizarra
+  const [averageWakeTime, setAverageWakeTime] = useState<string | null>(null)
+  const [averageFirstNapTime, setAverageFirstNapTime] = useState<string | null>(null)
+  const [wakeTimeDeviation, setWakeTimeDeviation] = useState<string | null>(null)
+  const [firstNapDeviation, setFirstNapDeviation] = useState<string | null>(null)
+  const [totalNapDuration, setTotalNapDuration] = useState<string | null>(null)
+  const [napDurations, setNapDurations] = useState<{siesta1?: string, siesta2?: string, siesta3?: string, siesta4?: string}>({})
+  const [maxNapsPerDay, setMaxNapsPerDay] = useState<number>(0)
+  const [bedTimeActual, setBedTimeActual] = useState<string | null>(null)
+  const [sleepTimeActual, setSleepTimeActual] = useState<string | null>(null)
+  const [timeToFallAsleep, setTimeToFallAsleep] = useState<string | null>(null)
+  const [sleepTimeVsPlan, setSleepTimeVsPlan] = useState<string | null>(null)
+  const [totalSleepHours, setTotalSleepHours] = useState<string | null>(null)
+
+  const [customChartData, setCustomChartData] = useState<any[]>([])
+
   // Obtener la fecha de inicio y fin basado en el período seleccionado
   const getDateRange = () => {
     const now = new Date()
@@ -110,8 +129,8 @@ export default function StatsPage() {
     switch (period) {
       case "week":
         return {
-          start: startOfWeek(now, { weekStartsOn: 1 }),
-          end: endOfWeek(now, { weekStartsOn: 1 })
+          start: subDays(now, 7), // Últimos 7 días en lugar de semana calendario
+          end: now
         }
       case "month":
         return {
@@ -130,8 +149,8 @@ export default function StatsPage() {
         }
       default:
         return {
-          start: startOfWeek(now, { weekStartsOn: 1 }),
-          end: endOfWeek(now, { weekStartsOn: 1 })
+          start: subDays(now, 7), // Últimos 7 días por defecto también
+          end: now
         }
     }
   }
@@ -181,8 +200,12 @@ export default function StatsPage() {
     
     const filtered = events.filter(event => {
       const eventDate = parseISO(event.startTime)
-      return (isAfter(eventDate, start) || eventDate.getTime() === start.getTime()) && 
-             (isBefore(eventDate, end) || eventDate.getTime() === end.getTime())
+      
+      // Usar comparaciones más inclusivas con date-fns
+      const isInRange = (isAfter(eventDate, start) || isSameDay(eventDate, start)) && 
+                       (isBefore(eventDate, end) || isSameDay(eventDate, end))
+      
+      return isInRange
     })
     
     setFilteredEvents(filtered)
@@ -290,6 +313,175 @@ export default function StatsPage() {
     // setAverageBedTime(...); setBedtimeConsistency(...); etc.
 
   }, [filteredEvents]); // Dependencia calculateEventDuration eliminada por ahora
+
+  // Calcular indicadores específicos cuando cambien los eventos filtrados
+  useEffect(() => {
+    calculateSleepIndicators()
+  }, [filteredEvents])
+
+  // Función para calcular los indicadores específicos de sueño de las imágenes
+  const calculateSleepIndicators = () => {
+    if (!filteredEvents.length) {
+      // Resetear todos los estados
+      setAverageWakeTime(null)
+      setAverageFirstNapTime(null)
+      setWakeTimeDeviation(null)
+      setFirstNapDeviation(null)
+      setTotalNapDuration(null)
+      setNapDurations({})
+      setMaxNapsPerDay(0)
+      setBedTimeActual(null)
+      setSleepTimeActual(null)
+      setTimeToFallAsleep(null)
+      setSleepTimeVsPlan(null)
+      setTotalSleepHours(null)
+      return
+    }
+
+    // 1. Calcular hora de despertar promedio y desviación
+    const wakeEvents = filteredEvents.filter(e => e.eventType === 'sleep' && e.endTime)
+    if (wakeEvents.length > 0) {
+      const avgWakeMinutes = wakeEvents.reduce((sum, event) => {
+        const endTime = parseISO(event.endTime!)
+        return sum + (getHoursFns(endTime) * 60 + getMinutesFns(endTime))
+      }, 0) / wakeEvents.length
+      
+      const hours = Math.floor(avgWakeMinutes / 60)
+      const minutes = Math.round(avgWakeMinutes % 60)
+      setAverageWakeTime(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`)
+      
+      // Calcular desviación en hora de despertar
+      const deviations = wakeEvents.map(event => {
+        const endTime = parseISO(event.endTime!)
+        const eventMinutes = getHoursFns(endTime) * 60 + getMinutesFns(endTime)
+        return Math.abs(eventMinutes - avgWakeMinutes)
+      })
+      const avgDeviation = deviations.reduce((sum, dev) => sum + dev, 0) / deviations.length
+      setWakeTimeDeviation(`±${Math.round(avgDeviation)} min`)
+    }
+
+    // 2. Calcular hora de primera siesta y desviación
+    const napEvents = filteredEvents.filter(e => e.eventType === 'nap')
+      .sort((a, b) => parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime())
+    
+    if (napEvents.length > 0) {
+      // Agrupar siestas por día para encontrar la primera siesta de cada día
+      const napsByDay = napEvents.reduce((acc, nap) => {
+        const day = format(parseISO(nap.startTime), 'yyyy-MM-dd')
+        if (!acc[day]) acc[day] = []
+        acc[day].push(nap)
+        return acc
+      }, {} as Record<string, Event[]>)
+
+      const firstNaps = Object.values(napsByDay).map(dayNaps => 
+        dayNaps.sort((a, b) => parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime())[0]
+      )
+
+      if (firstNaps.length > 0) {
+        const avgFirstNapMinutes = firstNaps.reduce((sum, nap) => {
+          const startTime = parseISO(nap.startTime)
+          return sum + (getHoursFns(startTime) * 60 + getMinutesFns(startTime))
+        }, 0) / firstNaps.length
+        
+        const hours = Math.floor(avgFirstNapMinutes / 60)
+        const minutes = Math.round(avgFirstNapMinutes % 60)
+        setAverageFirstNapTime(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`)
+        
+        // Calcular desviación primera siesta
+        const napDeviations = firstNaps.map(nap => {
+          const startTime = parseISO(nap.startTime)
+          const eventMinutes = getHoursFns(startTime) * 60 + getMinutesFns(startTime)
+          return Math.abs(eventMinutes - avgFirstNapMinutes)
+        })
+        const avgNapDeviation = napDeviations.reduce((sum, dev) => sum + dev, 0) / napDeviations.length
+        setFirstNapDeviation(`±${Math.round(avgNapDeviation)} min`)
+      }
+
+      // 3. Calcular duración total de siestas y duraciones individuales
+      const completedNaps = napEvents.filter(nap => nap.endTime)
+      if (completedNaps.length > 0) {
+        const totalNapMinutes = completedNaps.reduce((sum, nap) => {
+          return sum + differenceInMinutes(parseISO(nap.endTime!), parseISO(nap.startTime))
+        }, 0)
+        const avgNapMinutesPerDay = totalNapMinutes / Math.max(1, new Set(completedNaps.map(n => format(parseISO(n.startTime), 'yyyy-MM-dd'))).size)
+        
+        setTotalNapDuration(`${Math.round(avgNapMinutesPerDay)} min`)
+
+        // Calcular duración individual de siestas (Siesta 1, 2, n)
+        const napDurationsByPosition: {[key: string]: number[]} = {}
+        Object.values(napsByDay).forEach(dayNaps => {
+          const sortedNaps = dayNaps
+            .filter(nap => nap.endTime)
+            .sort((a, b) => parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime())
+          
+          sortedNaps.forEach((nap, index) => {
+            let key: string
+            if (index === 0) key = 'siesta1'
+            else if (index === 1) key = 'siesta2'
+            else if (index === 2) key = 'siesta3'
+            else if (index === 3) key = 'siesta4'
+            else return // Si hay más de 4 siestas, ignorar las extras
+            
+            if (!napDurationsByPosition[key]) napDurationsByPosition[key] = []
+            napDurationsByPosition[key].push(differenceInMinutes(parseISO(nap.endTime!), parseISO(nap.startTime)))
+          })
+        })
+
+        const napDurationResults: {siesta1?: string, siesta2?: string, siesta3?: string, siesta4?: string} = {}
+        Object.entries(napDurationsByPosition).forEach(([key, durations]) => {
+          if (durations.length > 0) {
+            const avgMinutes = durations.reduce((sum, d) => sum + d, 0) / durations.length
+            napDurationResults[key as 'siesta1' | 'siesta2' | 'siesta3' | 'siesta4'] = `${Math.round(avgMinutes)} min`
+          }
+        })
+        setNapDurations(napDurationResults)
+
+        // Calcular máximo de siestas por día
+        const napsPerDay = Object.values(napsByDay).filter(dayNaps => dayNaps.length > 0).length > 0 
+            ? Math.max(...Object.values(napsByDay).map(dayNaps => dayNaps.length))
+            : 0;
+        setMaxNapsPerDay(napsPerDay)
+      }
+    }
+
+    // 4. Calcular hora de acostar (Me acuesto) y hora de dormir (Me dormí)
+    const sleepEvents = filteredEvents.filter(e => e.eventType === 'sleep')
+    if (sleepEvents.length > 0) {
+      const avgBedTimeMinutes = sleepEvents.reduce((sum, event) => {
+        const startTime = parseISO(event.startTime)
+        return sum + (getHoursFns(startTime) * 60 + getMinutesFns(startTime))
+      }, 0) / sleepEvents.length
+      
+      const hours = Math.floor(avgBedTimeMinutes / 60)
+      const minutes = Math.round(avgBedTimeMinutes % 60)
+      setBedTimeActual(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`)
+      
+      // 5. Aproximar hora de dormir (asumiendo 20 min después de acostar)
+      const sleepMinutes = avgBedTimeMinutes + 20 
+      const sleepHours = Math.floor(sleepMinutes / 60) % 24
+      const sleepMins = Math.round(sleepMinutes % 60)
+      setSleepTimeActual(`${sleepHours.toString().padStart(2, '0')}:${sleepMins.toString().padStart(2, '0')}`)
+      
+      // 6. Tiempo para dormir (Dormir - Acostar)
+      setTimeToFallAsleep("20 min") // Aproximación basada en el cálculo anterior
+    }
+
+    // 7. Total de horas de sueño
+    const completedSleepEvents = filteredEvents.filter(e => (e.eventType === 'sleep' || e.eventType === 'nap') && e.endTime)
+    if (completedSleepEvents.length > 0) {
+      const totalMinutes = completedSleepEvents.reduce((sum, event) => {
+        return sum + differenceInMinutes(parseISO(event.endTime!), parseISO(event.startTime))
+      }, 0)
+      
+      const avgMinutesPerDay = totalMinutes / Math.max(1, new Set(completedSleepEvents.map(e => format(parseISO(e.startTime), 'yyyy-MM-dd'))).size)
+      const hours = Math.floor(avgMinutesPerDay / 60)
+      const minutes = Math.round(avgMinutesPerDay % 60)
+      setTotalSleepHours(`${hours}h ${minutes}min`)
+    }
+
+    // 8. Comparación con plan (simulado)
+    setSleepTimeVsPlan("En tiempo") // Placeholder
+  }
 
   // Preparar datos para gráficos
   const prepareSleepData = () => {
@@ -473,6 +665,56 @@ export default function StatsPage() {
     ];
   };
 
+  // NUEVO: useEffect para preparar datos del gráfico personalizado
+  useEffect(() => {
+    if (filteredEvents.length > 0) {
+      setCustomChartData(prepareCustomChartData(filteredEvents))
+    } else {
+      setCustomChartData([])
+    }
+  }, [filteredEvents])
+  
+  // NUEVO: Función para preparar datos para el gráfico personalizado
+  const prepareCustomChartData = (events: Event[]) => {
+    const dataByDay: { [key: string]: any } = {}
+
+    const timeToMinutes = (timeStr: string) => {
+        const date = parseISO(timeStr);
+        return getHoursFns(date) * 60 + getMinutesFns(date);
+    };
+
+    events.forEach(event => {
+      const day = format(parseISO(event.startTime), 'yyyy-MM-dd')
+      if (!dataByDay[day]) {
+        dataByDay[day] = {
+          date: format(parseISO(day), 'dd/MM')
+        }
+      }
+
+      if (event.eventType === 'sleep' && event.endTime) {
+        dataByDay[day].bedTime = timeToMinutes(event.startTime)
+        dataByDay[day].wakeUpTime = timeToMinutes(event.endTime)
+      }
+      
+      if (event.eventType === 'nap' && !dataByDay[day].firstNapStartTime) {
+         dataByDay[day].firstNapStartTime = timeToMinutes(event.startTime)
+      }
+    })
+
+    // Asegurar que las siestas se ordenan por hora para obtener la primera
+     Object.keys(dataByDay).forEach(day => {
+        const naps = events
+            .filter(e => e.eventType === 'nap' && format(parseISO(e.startTime), 'yyyy-MM-dd') === day)
+            .sort((a, b) => parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime());
+        if (naps.length > 0) {
+            dataByDay[day].firstNapStartTime = timeToMinutes(naps[0].startTime);
+        }
+    });
+
+
+    return Object.values(dataByDay).sort((a,b) => parseISO(a.date.split('/').reverse().join('-')).getTime() - parseISO(b.date.split('/').reverse().join('-')).getTime());
+  }
+
   // Renderizar
   if (isLoading && activeChildId) {
     return (
@@ -516,7 +758,7 @@ export default function StatsPage() {
               <SelectValue placeholder="Seleccionar período" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="week">Última semana</SelectItem>
+              <SelectItem value="week">Últimos 7 días</SelectItem>
               <SelectItem value="month">Último mes</SelectItem>
               <SelectItem value="3months">Últimos 3 meses</SelectItem>
               <SelectItem value="year">Último año</SelectItem>
@@ -535,136 +777,35 @@ export default function StatsPage() {
         </Card>
       ) : (
         <Tabs defaultValue="sleep" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="sleep">Sueño</TabsTrigger>
-            <TabsTrigger value="activity">Actividad</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="sleep">Sueño y Actividad</TabsTrigger>
             <TabsTrigger value="mood">Estado de ánimo</TabsTrigger>
             <TabsTrigger value="progress">Progreso</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="sleep" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <StatsCard 
-                title="Promedio de horas de sueño" 
-                value={filteredEvents.filter(e => e.eventType === "sleep" || e.eventType === "nap").length > 0 
-                  ? (filteredEvents
-                      .filter(e => e.eventType === "sleep" || e.eventType === "nap")
-                      .reduce((acc, evt) => acc + calculateEventDuration(evt), 0) / 
-                      (filteredEvents.filter(e => (e.eventType === "sleep" || e.eventType === "nap") && e.endTime).length || 1)
-                    ).toFixed(1) + 'h'
-                  : 'N/A'
-                }
-                description={`Basado en ${filteredEvents.filter(e => (e.eventType === "sleep" || e.eventType === "nap") && e.endTime).length} eventos con duración`}
-              />
-              
-              <StatsCard 
-                title="Total de siestas" 
-                value={filteredEvents.filter(e => e.eventType === "nap").length}
-                description="Durante el período seleccionado"
-              />
-              
-              <StatsCard 
-                title="Períodos de sueño nocturno" 
-                value={filteredEvents.filter(e => e.eventType === "sleep").length}
-                description="Durante el período seleccionado"
-              />
-              
-              <StatsCard 
-                title="Estado emocional (sueño)" 
-                value={filteredEvents.filter(e => e.eventType === "sleep" || e.eventType === "nap").length > 0 
-                  ? getMoodName(
-                      Object.entries(
-                        filteredEvents
-                          .filter(e => e.eventType === "sleep" || e.eventType === "nap")
-                          .reduce((acc, evt) => {
-                            if (!acc[evt.emotionalState]) acc[evt.emotionalState] = 0;
-                            acc[evt.emotionalState]++;
-                            return acc;
-                          }, {} as Record<string, number>)
-                      )
-                      .sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A' // Evitar error si no hay datos
-                    )
-                  : 'N/A'
-                }
-                description="Estado más común durante el sueño"
-              />
-            </div>
-
-            {/* NUEVOS GRÁFICOS */}
-            <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
-              <SleepPatternChart 
-                bedWakeChartData={bedWakeChartData} 
-                formatTimeTick={formatTimeTick} 
-              />
-
-              <NapChart 
-                napChartData={napChartData} 
-                formatTimeTick={formatTimeTick} 
-              />
-            </div>
+          <TabsContent value="sleep" className="space-y-6">
             
-            {/* Gráficos existentes que se quedan */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <SleepHoursChart sleepData={prepareSleepData()} />
-              
-              <SleepEventsChart sleepData={prepareSleepData()} />
-              
-              <SleepTypesChart 
-                sleepData={prepareSleepTypesData()} 
-                colors={COLORS}
-              />
-            </div>
-          </TabsContent>
+            {/* Indicadores Clave de Sueño */}
+            <SleepIndicatorsCard 
+              wakeTime={averageWakeTime}
+              wakeTimeDeviation={wakeTimeDeviation}
+              firstNapTime={averageFirstNapTime}
+              firstNapDeviation={firstNapDeviation}
+              totalNapDuration={totalNapDuration}
+              napDurations={napDurations}
+              bedTime={bedTimeActual}
+              sleepTime={sleepTimeActual}
+              timeToSleep={timeToFallAsleep}
+              sleepVsPlan={sleepTimeVsPlan}
+              totalSleepHours={totalSleepHours}
+            />
 
-          <TabsContent value="activity" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <StatsCard 
-                title="Total actividades" 
-                value={filteredEvents.filter(e => e.eventType === "activity" || e.eventType === "play").length}
-                description="Durante el período seleccionado"
-              />
-              
-              <StatsCard 
-                title="Actividad física" 
-                value={filteredEvents.filter(e => e.eventType === "activity").length}
-                description="Eventos de actividad física"
-              />
-              
-              <StatsCard 
-                title="Juego" 
-                value={filteredEvents.filter(e => e.eventType === "play").length}
-                description="Eventos de juego"
-              />
-              
-              <StatsCard 
-                title="Estado emocional" 
-                value={filteredEvents.filter(e => e.eventType === "activity" || e.eventType === "play").length > 0 
-                  ? getMoodName(
-                      Object.entries(
-                        filteredEvents
-                          .filter(e => e.eventType === "activity" || e.eventType === "play")
-                          .reduce((acc, evt) => {
-                            if (!acc[evt.emotionalState]) acc[evt.emotionalState] = 0;
-                            acc[evt.emotionalState]++;
-                            return acc;
-                          }, {} as Record<string, number>)
-                      )
-                      .sort((a, b) => b[1] - a[1])[0][0]
-                    )
-                  : 'N/A'
-                }
-                description="Estado más común durante actividades"
-              />
-            </div>
+            {/* GRÁFICA NUEVA Y ÚNICA */}
+            <CustomSleepChart 
+                data={customChartData}
+                formatTimeTick={formatTimeTick}
+            />
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <ActivityDistributionChart 
-                activityData={prepareActivityDistributionData()} 
-                colors={COLORS}
-              />
-              
-              <ActivityDurationChart activityData={prepareActivityData()} />
-            </div>
           </TabsContent>
 
           <TabsContent value="mood" className="space-y-4">

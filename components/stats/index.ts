@@ -10,4 +10,6 @@ export { MoodDistributionChart } from './MoodDistributionChart';
 export { MoodByActivityChart } from './MoodByActivityChart';
 export { ProgressSummaryCard } from './ProgressSummaryCard';
 export { EventTrendChart } from './EventTrendChart';
-export { StatsCard } from './StatsCard'; 
+export { StatsCard } from './StatsCard';
+export { SleepIndicatorsCard } from './SleepIndicatorsCard';
+export { CustomSleepChart } from './CustomSleepChart'; 
