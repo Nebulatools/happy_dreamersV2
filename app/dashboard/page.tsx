@@ -1,583 +1,551 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useActiveChild } from "@/context/active-child-context"
-import { Loader2, Plus, Settings2, Grid2X2, List, User } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import Link from "next/link"
+import { useSession } from "next-auth/react"
+import { Loader2, FileText, Users, ChevronDown, ChevronRight } from "lucide-react"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import {
-  startOfWeek,
-  endOfWeek,
   startOfMonth,
   endOfMonth,
-  startOfYear,
-  endOfYear,
   subMonths,
   format,
   parseISO,
-  isAfter,
-  isBefore,
-  differenceInHours,
   differenceInMinutes,
   getHours,
-  getMinutes,
-  eachDayOfInterval,
-  isSameDay,
-  differenceInDays,
-  addDays
+  getMinutes
 } from "date-fns"
 import { es } from "date-fns/locale"
-
-// Importamos los posibles gadgets disponibles
 import {
-  SleepPatternChart,
-  NapChart,
-  SleepHoursChart,
-  SleepEventsChart,
-  SleepTypesChart,
-  ActivityDistributionChart,
-  ActivityDurationChart,
-  MoodDistributionChart,
-  MoodByActivityChart,
-  ProgressSummaryCard,
-  EventTrendChart,
-  StatsCard
-} from "@/components/stats"
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import { Badge } from "@/components/ui/badge"
+import jsPDF from 'jspdf'
 
-interface Gadget {
-  id: string;
-  name: string;
-  description: string;
-  component: string; // Nombre del componente
-  category: string; // Categoría (sleep, activity, mood, progress)
-  size: "small" | "medium" | "large"; // Tamaño del gadget
+interface User {
+  _id: string
+  name: string
+  email: string
+  role: string
+}
+
+interface Child {
+  _id: string
+  firstName: string
+  lastName: string
+  birthDate?: string
+  parentId: string
+  createdAt: string
 }
 
 interface Event {
-  _id: string;
-  childId: string;
-  eventType: string;
-  emotionalState: string;
-  startTime: string;
-  endTime?: string;
-  notes?: string;
-  createdAt: string;
+  _id: string
+  childId: string
+  eventType: string
+  emotionalState: string
+  startTime: string
+  endTime?: string
+  notes?: string
+  createdAt: string
 }
 
-interface DailySleepPattern {
-  dayISO: string;
-  bedTime?: number;
-  wakeUpTime?: number;
-  firstNapStartTime?: number;
-  firstNapDuration?: number;
-  secondNapStartTime?: number;
-  secondNapDuration?: number;
+interface SleepScore {
+  score: number
+  totalSleepHours: string
+  averageWakeTime: string
+  averageFirstNapTime: string
+  consistency: string
+  quality: string
+}
+
+interface FamilyData {
+  user: User
+  children: Child[]
+  sleepScores: Record<string, SleepScore>
+  isExpanded: boolean
 }
 
 export default function DashboardPage() {
   const { toast } = useToast()
-  const { activeChildId } = useActiveChild()
-  const [view, setView] = useState<"grid" | "list">("grid")
-  const [period, setPeriod] = useState("week")
+  const { data: session } = useSession()
+  const [period, setPeriod] = useState("6months") // EMPEZAR CON 6 MESES PARA CAPTURAR TODOS LOS DATOS
   const [isLoading, setIsLoading] = useState(false)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [selectedGadgets, setSelectedGadgets] = useState<string[]>([])
-  
-  // Estados para datos
-  const [events, setEvents] = useState<Event[]>([])
-  const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
-  const [napChartData, setNapChartData] = useState<any[]>([])
-  const [bedWakeChartData, setBedWakeChartData] = useState<any[]>([])
-  const [dailySleepPatterns, setDailySleepPatterns] = useState<DailySleepPattern[]>([])
-  const [COLORS] = useState(['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658'])
+  const [families, setFamilies] = useState<FamilyData[]>([])
+  const [isGeneratingReport, setIsGeneratingReport] = useState<string | null>(null)
 
-  // Lista de todos los gadgets disponibles
-  const availableGadgets: Gadget[] = [
-    { id: "sleepHours", name: "Horas de sueño", description: "Promedio de horas de sueño", component: "StatsCard", category: "sleep", size: "small" },
-    { id: "napCount", name: "Total de siestas", description: "Siestas registradas", component: "StatsCard", category: "sleep", size: "small" },
-    { id: "activityCount", name: "Total actividades", description: "Actividades registradas", component: "StatsCard", category: "activity", size: "small" },
-    { id: "moodSummary", name: "Estado emocional", description: "Estado emocional predominante", component: "StatsCard", category: "mood", size: "small" },
-    { id: "eventCount", name: "Total eventos", description: "Eventos registrados", component: "StatsCard", category: "general", size: "small" },
-    { id: "sleepPattern", name: "Patrón de sueño", description: "Patrón de sueño nocturno", component: "SleepPatternChart", category: "sleep", size: "medium" },
-    { id: "napChart", name: "Registro de siestas", description: "Registro de siestas", component: "NapChart", category: "sleep", size: "medium" },
-    { id: "sleepEventsChart", name: "Eventos de sueño", description: "Eventos de sueño registrados", component: "SleepEventsChart", category: "sleep", size: "medium" },
-    { id: "sleepTypesChart", name: "Tipos de sueño", description: "Distribución de tipos de sueño", component: "SleepTypesChart", category: "sleep", size: "medium" },
-    { id: "activityDistribution", name: "Distribución de actividades", description: "Distribución de actividades", component: "ActivityDistributionChart", category: "activity", size: "medium" },
-    { id: "activityDuration", name: "Duración de actividades", description: "Duración de actividades", component: "ActivityDurationChart", category: "activity", size: "medium" },
-    { id: "moodDistribution", name: "Distribución de estados", description: "Distribución de estados emocionales", component: "MoodDistributionChart", category: "mood", size: "medium" },
-    { id: "moodByActivity", name: "Estados por actividad", description: "Estados emocionales por tipo de actividad", component: "MoodByActivityChart", category: "mood", size: "medium" },
-    { id: "progressSummary", name: "Resumen de progreso", description: "Resumen del progreso en todas las áreas", component: "ProgressSummaryCard", category: "progress", size: "large" },
-    { id: "eventTrend", name: "Tendencia de eventos", description: "Tendencia de eventos registrados", component: "EventTrendChart", category: "progress", size: "large" }
-  ]
+  // Verificar si es admin
+  const isAdmin = session?.user?.role === "admin"
 
-  // Funciones para obtener datos
-  // Obtener la fecha de inicio y fin basado en el período seleccionado
+  // Obtener rango de fechas CORRECTO para cada período
   const getDateRange = () => {
     const now = new Date()
     
     switch (period) {
       case "week":
+        const oneWeekAgo = new Date(now)
+        oneWeekAgo.setDate(now.getDate() - 7)
         return {
-          start: startOfWeek(now, { weekStartsOn: 1 }),
-          end: endOfWeek(now, { weekStartsOn: 1 })
+          start: oneWeekAgo,
+          end: now
         }
       case "month":
+        const oneMonthAgo = new Date(now)
+        oneMonthAgo.setMonth(now.getMonth() - 1)
         return {
-          start: startOfMonth(now),
-          end: endOfMonth(now)
+          start: oneMonthAgo,
+          end: now
         }
       case "3months":
+        const threeMonthsAgo = new Date(now)
+        threeMonthsAgo.setMonth(now.getMonth() - 3)
         return {
-          start: startOfMonth(subMonths(now, 2)),
-          end: endOfMonth(now)
+          start: threeMonthsAgo,
+          end: now
         }
-      case "year":
+      case "6months":
+        const sixMonthsAgo = new Date(now)
+        sixMonthsAgo.setMonth(now.getMonth() - 6)
         return {
-          start: startOfYear(now),
-          end: endOfYear(now)
+          start: sixMonthsAgo,
+          end: now
         }
       default:
+        const defaultSixMonthsAgo = new Date(now)
+        defaultSixMonthsAgo.setMonth(now.getMonth() - 6)
         return {
-          start: startOfWeek(now, { weekStartsOn: 1 }),
-          end: endOfWeek(now, { weekStartsOn: 1 })
+          start: defaultSixMonthsAgo,
+          end: now
         }
     }
   }
 
-  // Función para calcular la duración de un evento en horas
-  const calculateEventDuration = (event: Event) => {
-    if (!event.endTime) return 0
-    
-    const startTime = parseISO(event.startTime)
-    const endTime = parseISO(event.endTime)
-    
-    return differenceInHours(endTime, startTime) + (differenceInMinutes(endTime, startTime) % 60) / 60
-  }
-
-  // Función para obtener el nombre de estado emocional
-  const getMoodName = (mood: string) => {
-    const moods: Record<string, string> = {
-      happy: "Feliz",
-      calm: "Tranquilo",
-      excited: "Emocionado",
-      tired: "Cansado",
-      irritable: "Irritable",
-      sad: "Triste",
-      anxious: "Ansioso"
-    }
-    return moods[mood] || mood
-  }
-
-  // Formatear ticks para el eje Y de horas (0-1440 minutos a HH:mm)
-  const formatTimeTick = (tickItem: number) => {
-    const hours = Math.floor(tickItem / 60);
-    const minutes = tickItem % 60;
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-  };
-
-  // Funciones de preparación de datos para gráficos
-  // Preparar datos para gráfico de horas de sueño
-  const prepareSleepData = () => {
-    const sleepEvents = filteredEvents.filter(event => event.eventType === "sleep" || event.eventType === "nap")
-    
-    const sleepByDay = sleepEvents.reduce((acc, event) => {
-      const day = format(parseISO(event.startTime), 'yyyy-MM-dd')
+  // Calcular sleep score usando lógica SIMPLE y EFECTIVA
+  const calculateSleepScore = useCallback(async (childId: string): Promise<SleepScore> => {
+    try {
+      const { start, end } = getDateRange()
       
-      if (!acc[day]) {
-        acc[day] = {
-          date: day,
-          totalHours: 0,
-          count: 0
-        }
-      }
+      // Cargar eventos del niño
+      const response = await fetch(`/api/children/events?childId=${childId}`)
+      if (!response.ok) throw new Error('Error al cargar eventos')
       
-      acc[day].totalHours += calculateEventDuration(event)
-      acc[day].count++
+      const data = await response.json()
+      const events = data.events || []
       
-      return acc
-    }, {} as Record<string, { date: string, totalHours: number, count: number }>)
-    
-    return Object.values(sleepByDay).map(item => ({
-      name: format(parseISO(item.date), 'dd/MM', { locale: es }),
-      horas: parseFloat(item.totalHours.toFixed(1)),
-      eventos: item.count
-    }))
-  }
-
-  // Preparar datos para gráfico de actividades
-  const prepareActivityData = () => {
-    const activityEvents = filteredEvents.filter(event => event.eventType === "activity" || event.eventType === "play")
-    
-    const byType = activityEvents.reduce((acc, event) => {
-      const type = event.eventType === "activity" ? "Actividad física" : "Juego"
+      console.log(`[DEBUG] Niño ${childId}: ${events.length} eventos totales`)
+      console.log(`[DEBUG] Período: ${format(start, 'yyyy-MM-dd')} a ${format(end, 'yyyy-MM-dd')}`)
       
-      if (!acc[type]) {
-        acc[type] = {
-          type,
-          count: 0,
-          totalHours: 0
-        }
-      }
+      // APLICAR FILTRO DE FECHAS REALMENTE
+      const filteredEvents = events.filter((event: Event) => {
+        const eventDate = parseISO(event.startTime)
+        return eventDate >= start && eventDate <= end
+      })
       
-      acc[type].count++
-      acc[type].totalHours += calculateEventDuration(event)
+      console.log(`[DEBUG] Eventos filtrados: ${filteredEvents.length} de ${events.length}`)
       
-      return acc
-    }, {} as Record<string, { type: string, count: number, totalHours: number }>)
-    
-    return Object.values(byType)
-  }
-
-  // Preparar datos para gráfico de estados emocionales
-  const prepareMoodData = () => {
-    const moodCounts = filteredEvents.reduce((acc, event) => {
-      const mood = event.emotionalState
-      
-      if (!acc[mood]) {
-        acc[mood] = {
-          name: getMoodName(mood),
-          value: 0
-        }
-      }
-      
-      acc[mood].value++
-      
-      return acc
-    }, {} as Record<string, { name: string, value: number }>)
-    
-    return Object.values(moodCounts)
-  }
-
-  // Preparar datos para el gráfico de siestas
-  const prepareNapsChartData = (events: Event[]) => {
-    return events
-      .filter(event => event.eventType === "nap" && event.endTime)
-      .map(nap => {
-        const startTime = parseISO(nap.startTime);
-        const endTime = parseISO(nap.endTime!);
+      if (filteredEvents.length === 0) {
         return {
-          date: format(startTime, 'yyyy-MM-dd'),
-          startTimeMinutes: getHours(startTime) * 60 + getMinutes(startTime),
-          duration: differenceInMinutes(endTime, startTime),
-          tooltip: `Siesta: ${format(startTime, 'HH:mm')} (${differenceInMinutes(endTime, startTime)} min)`
-        };
-      });
-  };
-
-  // Preparar datos para el gráfico de hora de acostarse/despertar
-  const prepareBedtimeWakeUpChartData = (dailyPatterns: DailySleepPattern[]) => {
-    return dailyPatterns.map(pattern => ({
-      date: format(parseISO(pattern.dayISO), 'dd/MM'),
-      bedTime: pattern.bedTime,
-      wakeUpTime: pattern.wakeUpTime,
-    })).sort((a, b) => parseISO(a.date.split('/').reverse().join('-')).getTime() - parseISO(b.date.split('/').reverse().join('-')).getTime());
-  };
-
-  // Preparar datos para estados emocionales por tipo de actividad
-  const prepareMoodByActivityData = () => {
-    return [
-      {
-        name: 'Sueño',
-        feliz: filteredEvents.filter(e => e.eventType === 'sleep' && e.emotionalState === 'happy').length,
-        tranquilo: filteredEvents.filter(e => e.eventType === 'sleep' && e.emotionalState === 'calm').length,
-        cansado: filteredEvents.filter(e => e.eventType === 'sleep' && e.emotionalState === 'tired').length,
-        irritable: filteredEvents.filter(e => e.eventType === 'sleep' && e.emotionalState === 'irritable').length
-      },
-      {
-        name: 'Siesta',
-        feliz: filteredEvents.filter(e => e.eventType === 'nap' && e.emotionalState === 'happy').length,
-        tranquilo: filteredEvents.filter(e => e.eventType === 'nap' && e.emotionalState === 'calm').length,
-        cansado: filteredEvents.filter(e => e.eventType === 'nap' && e.emotionalState === 'tired').length,
-        irritable: filteredEvents.filter(e => e.eventType === 'nap' && e.emotionalState === 'irritable').length
-      },
-      {
-        name: 'Actividad',
-        feliz: filteredEvents.filter(e => e.eventType === 'activity' && e.emotionalState === 'happy').length,
-        tranquilo: filteredEvents.filter(e => e.eventType === 'activity' && e.emotionalState === 'calm').length,
-        cansado: filteredEvents.filter(e => e.eventType === 'activity' && e.emotionalState === 'tired').length,
-        irritable: filteredEvents.filter(e => e.eventType === 'activity' && e.emotionalState === 'irritable').length
-      },
-      {
-        name: 'Juego',
-        feliz: filteredEvents.filter(e => e.eventType === 'play' && e.emotionalState === 'happy').length,
-        tranquilo: filteredEvents.filter(e => e.eventType === 'play' && e.emotionalState === 'calm').length,
-        cansado: filteredEvents.filter(e => e.eventType === 'play' && e.emotionalState === 'tired').length,
-        irritable: filteredEvents.filter(e => e.eventType === 'play' && e.emotionalState === 'irritable').length
-      },
-      {
-        name: 'Comida',
-        feliz: filteredEvents.filter(e => e.eventType === 'meal' && e.emotionalState === 'happy').length,
-        tranquilo: filteredEvents.filter(e => e.eventType === 'meal' && e.emotionalState === 'calm').length,
-        cansado: filteredEvents.filter(e => e.eventType === 'meal' && e.emotionalState === 'tired').length,
-        irritable: filteredEvents.filter(e => e.eventType === 'meal' && e.emotionalState === 'irritable').length
-      }
-    ];
-  };
-
-  // Preparar datos para distribución de tipos de sueño
-  const prepareSleepTypesData = () => {
-    return [
-      { name: 'Sueño nocturno', value: filteredEvents.filter(e => e.eventType === "sleep").length },
-      { name: 'Siestas', value: filteredEvents.filter(e => e.eventType === "nap").length }
-    ];
-  };
-
-  // Preparar datos para distribución de actividades
-  const prepareActivityDistributionData = () => {
-    return [
-      { name: 'Actividad física', value: filteredEvents.filter(e => e.eventType === "activity").length },
-      { name: 'Juego', value: filteredEvents.filter(e => e.eventType === "play").length }
-    ];
-  };
-  
-  // Función para separar gadgets por tamaño
-  const getGadgetsBySize = (size: "small" | "medium" | "large") => {
-    return selectedGadgets
-      .map(id => availableGadgets.find(g => g.id === id))
-      .filter(gadget => gadget && gadget.size === size)
-      .map(gadget => gadget!.id);
-  };
-
-  // Cargar los eventos cuando cambia el niño activo o el período
-  useEffect(() => {
-    const fetchEvents = async () => {
-      if (!activeChildId) {
-        console.log("Dashboard - No hay un niño seleccionado, omitiendo carga de eventos");
-        setEvents([]);
-        setFilteredEvents([]);
-        setIsLoading(false);
-        return;
-      }
-
-      console.log("Dashboard - Cargando eventos para el niño:", activeChildId);
-      setIsLoading(true);
-      try {
-        const url = `/api/children/events?childId=${activeChildId}`;
-        console.log("Dashboard - URL de solicitud:", url);
-        
-        const response = await fetch(url);
-        console.log("Dashboard - Código de respuesta:", response.status);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Dashboard - Error al cargar eventos:", errorText);
-          throw new Error(`Error al cargar los eventos: ${response.status} ${errorText}`);
+          score: 0,
+          totalSleepHours: "Sin datos",
+          averageWakeTime: "Sin datos", 
+          averageFirstNapTime: "Sin datos",
+          consistency: "Sin datos",
+          quality: "Sin datos"
         }
-        
-        const data = await response.json();
-        console.log("Dashboard - Datos recibidos:", data);
-        
-        // Extraer los eventos del objeto devuelto
-        const eventsList = data.events || [];
-        console.log("Dashboard - Número de eventos:", eventsList.length);
-        
-        setEvents(eventsList);
-      } catch (error) {
-        console.error("Dashboard - Error:", error);
-        setEvents([]);
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los eventos. Inténtalo de nuevo.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
       }
-    };
 
-    fetchEvents();
-  }, [activeChildId, toast]);
-
-  // Filtrar eventos por período seleccionado
-  useEffect(() => {
-    if (!events.length) {
-      setFilteredEvents([]);
-      return;
-    }
-
-    const { start, end } = getDateRange();
-    
-    const filtered = events.filter(event => {
-      const eventDate = parseISO(event.startTime);
-      return (isAfter(eventDate, start) || eventDate.getTime() === start.getTime()) && 
-             (isBefore(eventDate, end) || eventDate.getTime() === end.getTime());
-    });
-    
-    setFilteredEvents(filtered);
-  }, [events, period]);
-
-  // Procesar datos de patrones de sueño y preparar datos para gráficos
-  useEffect(() => {
-    if (!filteredEvents.length) {
-      setDailySleepPatterns([]);
-      setNapChartData([]);
-      setBedWakeChartData([]);
-      return;
-    }
-
-    // Lógica para procesar patrones de sueño diarios
-    const patterns: DailySleepPattern[] = [];
-
-    const uniqueDaysISO = [...new Set(filteredEvents.map(event => format(parseISO(event.startTime), 'yyyy-MM-dd')))].sort();
-
-    uniqueDaysISO.forEach(dayISO => {
-      const dayStart = parseISO(dayISO);
-      const dayEnd = addDays(dayStart, 1);
-
-      const eventsOfTheDay = filteredEvents.filter(event => {
-        const eventStart = parseISO(event.startTime);
-        const eventActualEndTime = event.endTime ? parseISO(event.endTime) : eventStart;
-        return isSameDay(eventStart, dayStart) || (event.eventType === 'sleep' && eventStart < dayEnd && eventActualEndTime > dayStart);
-      }).sort((a, b) => parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime());
-
-      let mainNightSleep: Event | null = null;
-      const sleepEvents = eventsOfTheDay.filter(e => e.eventType === 'sleep' && e.endTime);
+      // Calcular métricas usando eventos FILTRADOS
+      const sleepEvents = filteredEvents.filter((e: Event) => e.eventType === 'sleep' && e.endTime)
+      const napEvents = filteredEvents.filter((e: Event) => e.eventType === 'nap')
       
+      console.log(`[DEBUG] ${childId}: ${sleepEvents.length} eventos sleep, ${napEvents.length} eventos nap EN EL PERÍODO`)
+
+      // 1. HORA DE DESPERTAR PROMEDIO
+      let averageWakeTime = "N/A"
       if (sleepEvents.length > 0) {
-        mainNightSleep = sleepEvents.reduce((longest, current) => {
-          const currentStarts = getHours(parseISO(current.startTime));
-          if (currentStarts >= 18 || currentStarts < 4) {
-             if (!longest) return current;
-             const currentDuration = current.endTime ? differenceInMinutes(parseISO(current.endTime), parseISO(current.startTime)) : 0;
-             const longestDuration = longest.endTime ? differenceInMinutes(parseISO(longest.endTime), parseISO(longest.startTime)) : 0;
-             return currentDuration > longestDuration ? current : longest;
+        const avgWakeMinutes = sleepEvents.reduce((sum: number, event: Event) => {
+          const endTime = parseISO(event.endTime!)
+          return sum + (getHours(endTime) * 60 + getMinutes(endTime))
+        }, 0) / sleepEvents.length
+        
+        const hours = Math.floor(avgWakeMinutes / 60)
+        const minutes = Math.round(avgWakeMinutes % 60)
+        averageWakeTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+      }
+
+      // 2. PRIMERA SIESTA PROMEDIO
+      let averageFirstNapTime = "N/A"
+      if (napEvents.length > 0) {
+        // Agrupar siestas por día
+        const napsByDay = napEvents.reduce((acc: Record<string, Event[]>, nap: Event) => {
+          const day = format(parseISO(nap.startTime), 'yyyy-MM-dd')
+          if (!acc[day]) acc[day] = []
+          acc[day].push(nap)
+          return acc
+        }, {} as Record<string, Event[]>)
+
+        const firstNaps = Object.values(napsByDay).map((dayNaps: any) => 
+          dayNaps.sort((a: any, b: any) => parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime())[0]
+        )
+
+        if (firstNaps.length > 0) {
+          const avgFirstNapMinutes = firstNaps.reduce((sum: number, nap: Event) => {
+            const startTime = parseISO(nap.startTime)
+            return sum + (getHours(startTime) * 60 + getMinutes(startTime))
+          }, 0) / firstNaps.length
+          
+          const hours = Math.floor(avgFirstNapMinutes / 60)
+          const minutes = Math.round(avgFirstNapMinutes % 60)
+          averageFirstNapTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+        }
+      }
+
+      // 3. TOTAL DE HORAS DE SUEÑO
+      let totalSleepHours = "0h 0min"
+      const completedSleepEvents = filteredEvents.filter((e: Event) => (e.eventType === 'sleep' || e.eventType === 'nap') && e.endTime)
+      if (completedSleepEvents.length > 0) {
+        const totalMinutes = completedSleepEvents.reduce((sum: number, event: Event) => {
+          return sum + differenceInMinutes(parseISO(event.endTime!), parseISO(event.startTime))
+        }, 0)
+        
+        const avgMinutesPerDay = totalMinutes / Math.max(1, new Set(completedSleepEvents.map((e: Event) => format(parseISO(e.startTime), 'yyyy-MM-dd'))).size)
+        const hours = Math.floor(avgMinutesPerDay / 60)
+        const minutes = Math.round(avgMinutesPerDay % 60)
+        totalSleepHours = `${hours}h ${minutes}min`
+      }
+
+      // 4. CALCULAR SCORE SIMPLE
+      let score = 0
+      
+      // Puntos por tener eventos de sueño
+      score += Math.min(40, sleepEvents.length * 10)
+      
+      // Puntos por tener siestas
+      score += Math.min(30, napEvents.length * 5)
+      
+      // Puntos por completitud de datos
+      score += Math.min(30, completedSleepEvents.length * 3)
+      
+      score = Math.round(Math.min(100, score))
+      
+      // Determinar calidad
+      const quality = score >= 80 ? "Excelente" : score >= 60 ? "Buena" : score >= 30 ? "Regular" : "Necesita atención"
+      const consistency = sleepEvents.length >= 5 ? "Alta" : sleepEvents.length >= 2 ? "Media" : "Baja"
+      
+      console.log(`[DEBUG] Score final ${childId}:`, { score, totalSleepHours, averageWakeTime, averageFirstNapTime })
+      
+      return {
+        score,
+        totalSleepHours,
+        averageWakeTime,
+        averageFirstNapTime,
+        consistency,
+        quality
+      }
+    } catch (error) {
+      console.error('Error calculating sleep score:', error)
+      return {
+        score: 0,
+        totalSleepHours: "Error",
+        averageWakeTime: "Error",
+        averageFirstNapTime: "Error",
+        consistency: "Error",
+        quality: "Error"
+      }
+    }
+  }, [period])
+
+  // Cargar datos de familias
+  const loadFamiliesData = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      
+      // Cargar usuarios (familias)
+      const usersResponse = await fetch('/api/admin/users')
+      if (!usersResponse.ok) throw new Error('Error al cargar usuarios')
+      
+      const users = await usersResponse.json()
+      const parentUsers = users.filter((user: User) => user.role === 'parent')
+      
+      const familiesData: FamilyData[] = []
+      
+      // Para cada familia, cargar niños y calcular sleep scores
+      for (const user of parentUsers) {
+        try {
+          // Cargar niños de la familia
+          const childrenResponse = await fetch(`/api/children?userId=${user._id}`)
+          if (!childrenResponse.ok) continue
+          
+          const children = await childrenResponse.json()
+          const sleepScores: Record<string, SleepScore> = {}
+          
+          // Calcular sleep score para cada niño
+          for (const child of children) {
+            const sleepScore = await calculateSleepScore(child._id)
+            sleepScores[child._id] = sleepScore
           }
-          return longest;
-        }, null as Event | null);
-
-        if (!mainNightSleep && sleepEvents.length === 1) mainNightSleep = sleepEvents[0];
-        else if (!mainNightSleep && sleepEvents.length > 0) {
-            mainNightSleep = sleepEvents.sort((a,b) => parseISO(b.startTime).getTime() - parseISO(a.startTime).getTime())[0];
+          
+          familiesData.push({
+            user,
+            children,
+            sleepScores,
+            isExpanded: false
+          })
+        } catch (error) {
+          console.error(`Error loading data for user ${user._id}:`, error)
         }
       }
       
-      const pattern: Partial<DailySleepPattern> & { dayISO: string } = { dayISO };
+      setFamilies(familiesData)
+    } catch (error) {
+      console.error('Error:', error)
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los datos de las familias.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }, [calculateSleepScore, toast])
 
-      if (mainNightSleep && mainNightSleep.startTime && mainNightSleep.endTime) {
-        const bedTimeDate = parseISO(mainNightSleep.startTime);
-        const wakeUpDate = parseISO(mainNightSleep.endTime);
-        pattern.bedTime = getHours(bedTimeDate) * 60 + getMinutes(bedTimeDate);
-        let wakeUpMinutes = getHours(wakeUpDate) * 60 + getMinutes(wakeUpDate);
-        pattern.wakeUpTime = wakeUpMinutes;
-      }
+  // Generar reporte PDF simple
+  const generateAIReport = async (child: Child) => {
+    try {
+      setIsGeneratingReport(child._id)
       
-      if (Object.keys(pattern).length > 1) {
-        patterns.push(pattern as DailySleepPattern);
+      // Llamar al endpoint de IA para generar análisis inteligente
+      const response = await fetch('/api/admin/reports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          childId: child._id,
+          period: period
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Error al generar análisis de IA')
       }
-    });
 
-    setDailySleepPatterns(patterns);
-    setNapChartData(prepareNapsChartData(filteredEvents));
-    setBedWakeChartData(prepareBedtimeWakeUpChartData(patterns));
-  }, [filteredEvents]);
+      const { report } = await response.json()
+      
+      // Crear PDF profesional con análisis de IA
+      const pdf = new jsPDF()
+      const pageWidth = pdf.internal.pageSize.width
+      const margin = 20
+      const lineHeight = 7
+      let yPosition = margin + 20
 
-  // Cargar preferencias guardadas
-  useEffect(() => {
-    // Cargar vista preferida (grid/list)
-    const savedView = localStorage.getItem('dashboard_view');
-    if (savedView && (savedView === 'grid' || savedView === 'list')) {
-      setView(savedView as "grid" | "list");
-    }
-    
-    // Cargar período preferido
-    const savedPeriod = localStorage.getItem('dashboard_period');
-    if (savedPeriod && ['week', 'month', '3months', 'year'].includes(savedPeriod)) {
-      setPeriod(savedPeriod);
-    }
-    
-    // Cargar gadgets seleccionados por el usuario
-    const savedGadgets = localStorage.getItem('dashboard_gadgets');
-    if (savedGadgets) {
-      try {
-        const parsedGadgets = JSON.parse(savedGadgets);
-        if (Array.isArray(parsedGadgets)) {
-          setSelectedGadgets(parsedGadgets);
-        }
-      } catch (e) {
-        console.error("Error al cargar gadgets guardados:", e);
-        // Si hay un error al cargar, establecer algunos gadgets por defecto
-        setSelectedGadgets(["sleepHours", "napCount", "activityCount", "moodSummary"]);
-      }
-    } else {
-      // Si no hay nada guardado, establecer algunos gadgets por defecto
-      setSelectedGadgets(["sleepHours", "napCount", "activityCount", "moodSummary"]);
-    }
-  }, []);
-  
-  // Guardar preferencias cuando cambien
-  useEffect(() => {
-    localStorage.setItem('dashboard_view', view);
-  }, [view]);
-  
-  useEffect(() => {
-    localStorage.setItem('dashboard_period', period);
-  }, [period]);
-  
-  useEffect(() => {
-    localStorage.setItem('dashboard_gadgets', JSON.stringify(selectedGadgets));
-  }, [selectedGadgets]);
+      // Título principal
+      pdf.setFontSize(18)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text(report.title, margin, yPosition)
+      yPosition += lineHeight * 2
 
-  // Renderizar un placeholder para cuando no hay datos
-  if (!activeChildId) {
-    return (
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground">Panel personalizado con las estadísticas más relevantes</p>
-          </div>
-        </div>
-        <Card>
-          <CardContent className="py-10">
-            <div className="text-center">
-              <p>Por favor, selecciona un niño en la parte superior para ver su dashboard.</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+      // Fecha y período
+      pdf.setFontSize(11)
+      pdf.setFont('helvetica', 'normal')
+      pdf.text(`Período analizado: ${report.period}`, margin, yPosition)
+      yPosition += lineHeight
+      pdf.text(`Fecha del reporte: ${report.dataPoints.analysisDate}`, margin, yPosition)
+      yPosition += lineHeight * 2
+
+      // Resumen ejecutivo
+      pdf.setFontSize(14)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('RESUMEN EJECUTIVO', margin, yPosition)
+      yPosition += lineHeight
+
+      pdf.setFontSize(10)
+      pdf.setFont('helvetica', 'normal')
+      const summaryLines = pdf.splitTextToSize(report.executiveSummary, pageWidth - 2 * margin)
+      summaryLines.forEach((line: string) => {
+        pdf.text(line, margin, yPosition)
+        yPosition += lineHeight
+      })
+      yPosition += lineHeight
+
+      // Métricas clave
+      pdf.setFontSize(14)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('MÉTRICAS CLAVE', margin, yPosition)
+      yPosition += lineHeight
+
+      pdf.setFontSize(10)
+      pdf.setFont('helvetica', 'normal')
+      pdf.text(`• Sleep Score: ${Math.round(report.metrics.sleepScore)}/100`, margin, yPosition)
+      yPosition += lineHeight
+      pdf.text(`• Score de Consistencia: ${Math.round(report.metrics.consistencyScore)}/100`, margin, yPosition)
+      yPosition += lineHeight
+      pdf.text(`• Score Emocional: ${Math.round(report.metrics.emotionalScore)}/100`, margin, yPosition)
+      yPosition += lineHeight
+      pdf.text(`• Horas promedio de sueño: ${report.sleepAnalysis.avgHours}h`, margin, yPosition)
+      yPosition += lineHeight * 2
+
+      // Análisis de sueño
+      pdf.setFontSize(14)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('ANÁLISIS DE PATRONES DE SUEÑO', margin, yPosition)
+      yPosition += lineHeight
+
+      pdf.setFontSize(10)
+      pdf.setFont('helvetica', 'normal')
+      pdf.text(`Calidad del sueño: ${report.sleepAnalysis.quality}`, margin, yPosition)
+      yPosition += lineHeight
+
+      const scheduleLines = pdf.splitTextToSize(report.sleepAnalysis.schedule, pageWidth - 2 * margin)
+      scheduleLines.forEach((line: string) => {
+        pdf.text(line, margin, yPosition)
+        yPosition += lineHeight
+      })
+      yPosition += lineHeight
+
+      pdf.text(`Consistencia: ${report.sleepAnalysis.consistency}`, margin, yPosition)
+      yPosition += lineHeight * 2
+
+      // Análisis emocional
+      pdf.setFontSize(14)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('ANÁLISIS EMOCIONAL', margin, yPosition)
+      yPosition += lineHeight
+
+      pdf.setFontSize(10)
+      pdf.setFont('helvetica', 'normal')
+      const emotionalLines = pdf.splitTextToSize(report.emotionalAnalysis.overview, pageWidth - 2 * margin)
+      emotionalLines.forEach((line: string) => {
+        pdf.text(line, margin, yPosition)
+        yPosition += lineHeight
+      })
+      yPosition += lineHeight
+
+      const moodLines = pdf.splitTextToSize(`Distribución de estados: ${report.emotionalAnalysis.moodBreakdown}`, pageWidth - 2 * margin)
+      moodLines.forEach((line: string) => {
+        pdf.text(line, margin, yPosition)
+        yPosition += lineHeight
+      })
+      yPosition += lineHeight * 2
+
+      // Recomendaciones
+      pdf.setFontSize(14)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('RECOMENDACIONES', margin, yPosition)
+      yPosition += lineHeight
+
+      pdf.setFontSize(10)
+      pdf.setFont('helvetica', 'normal')
+      report.recommendations.forEach((recommendation: string, index: number) => {
+        const recLines = pdf.splitTextToSize(`${index + 1}. ${recommendation}`, pageWidth - 2 * margin)
+        recLines.forEach((line: string) => {
+          // Nueva página si es necesario
+          if (yPosition > 280) {
+            pdf.addPage()
+            yPosition = margin + 20
+          }
+          pdf.text(line, margin, yPosition)
+          yPosition += lineHeight
+        })
+        yPosition += lineHeight / 2
+      })
+
+      // Datos de respaldo
+      yPosition += lineHeight
+      pdf.setFontSize(12)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('DATOS UTILIZADOS', margin, yPosition)
+      yPosition += lineHeight
+
+      pdf.setFontSize(9)
+      pdf.setFont('helvetica', 'normal')
+      pdf.text(`Total de eventos analizados: ${report.dataPoints.totalEvents}`, margin, yPosition)
+      yPosition += lineHeight / 1.5
+      pdf.text(`Eventos de sueño nocturno: ${report.dataPoints.sleepEvents}`, margin, yPosition)
+      yPosition += lineHeight / 1.5
+      pdf.text(`Eventos de siesta: ${report.dataPoints.napEvents}`, margin, yPosition)
+
+      // Descargar
+      pdf.save(`reporte-IA-${child.firstName}-${child.lastName}-${period}.pdf`)
+      
+      toast({
+        title: "🤖 Reporte con IA Generado",
+        description: `Análisis inteligente de ${child.firstName} descargado exitosamente.`,
+      })
+      
+    } catch (error) {
+      console.error('Error generating AI report:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo generar el reporte con IA.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsGeneratingReport(null)
+    }
   }
 
-  // Renderizar la página con tarjetas primero y gráficos después
+  // Expandir/contraer familia
+  const toggleFamily = (familyIndex: number) => {
+    setFamilies(prev => prev.map((family: FamilyData, index: number) => 
+      index === familyIndex 
+        ? { ...family, isExpanded: !family.isExpanded }
+        : family
+    ))
+  }
+
+  // Obtener color del score
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-green-600 bg-green-50"
+    if (score >= 60) return "text-yellow-600 bg-yellow-50"
+    if (score >= 30) return "text-orange-600 bg-orange-50"
+    return "text-red-600 bg-red-50"
+  }
+
+  // Obtener color del badge de calidad
+  const getQualityBadgeVariant = (quality: string) => {
+    switch (quality) {
+      case "Excelente": return "default"
+      case "Buena": return "secondary"
+      case "Regular": return "outline"
+      default: return "destructive"
+    }
+  }
+
+  // Cargar datos al montar componente Y CUANDO CAMBIE EL PERÍODO
+  useEffect(() => {
+    if (isAdmin) {
+      loadFamiliesData()
+    }
+  }, [isAdmin, loadFamiliesData, period])
+
+  // Si no es admin, mostrar mensaje de acceso denegado
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <Users className="h-16 w-16 text-muted-foreground" />
+        <h2 className="text-2xl font-bold">Acceso Restringido</h2>
+        <p className="text-muted-foreground text-center">
+          Este dashboard está disponible solo para administradores.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Panel personalizado con las estadísticas más relevantes</p>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard de Administración</h1>
+          <p className="text-muted-foreground">
+            Gestión de familias y análisis de patrones de sueño
+          </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="flex space-x-2">
-            {activeChildId && (
-              <Link href={`/dashboard/children/${activeChildId}`}>
-                <Button variant="outline" className="gap-2">
-                  <User className="h-4 w-4" />
-                  Ver perfil
-                </Button>
-              </Link>
-            )}
-            <Button
-              variant={isDialogOpen ? "secondary" : "outline"}
-              onClick={() => setIsDialogOpen(true)}
-              className="gap-2"
-            >
-              <Settings2 className="h-4 w-4" />
-              Personalizar gadgets
-            </Button>
-          </div>
+        
+        <div className="flex items-center space-x-2">
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Seleccionar período" />
@@ -586,294 +554,126 @@ export default function DashboardPage() {
               <SelectItem value="week">Última semana</SelectItem>
               <SelectItem value="month">Último mes</SelectItem>
               <SelectItem value="3months">Últimos 3 meses</SelectItem>
-              <SelectItem value="year">Último año</SelectItem>
+              <SelectItem value="6months">Últimos 6 meses</SelectItem>
             </SelectContent>
           </Select>
-          <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              size="icon"
-              onClick={() => setView("grid")}
-              className={view === "grid" ? "bg-muted" : ""}
-            >
-              <Grid2X2 className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="icon"
-              onClick={() => setView("list")}
-              className={view === "list" ? "bg-muted" : ""}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
         </div>
       </div>
 
-      {/* Modal de selección de gadgets */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[700px]">
-          <DialogHeader>
-            <DialogTitle>Personalizar gadgets</DialogTitle>
-            <DialogDescription>Selecciona los gadgets que quieres mostrar en tu dashboard</DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {availableGadgets.map(gadget => (
-                <div key={gadget.id} className="flex items-start space-x-3 space-y-0">
-                  <Checkbox 
-                    id={gadget.id}
-                    checked={selectedGadgets.includes(gadget.id)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedGadgets(prev => [...prev, gadget.id]);
-                      } else {
-                        setSelectedGadgets(prev => prev.filter(id => id !== gadget.id));
-                      }
-                    }}
-                  />
-                  <div className="space-y-1 leading-none">
-                    <Label htmlFor={gadget.id}>{gadget.name}</Label>
-                    <p className="text-sm text-muted-foreground">{gadget.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button type="submit" onClick={() => {
-              // Guardar en localStorage y cerrar el modal
-              localStorage.setItem('dashboard_gadgets', JSON.stringify(selectedGadgets));
-              setIsDialogOpen(false);
-            }}>
-              Guardar configuración
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {isLoading ? (
-        <div className="flex justify-center items-center h-[calc(100vh-12rem)]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2">Cargando datos...</span>
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Cargando datos de familias...</span>
         </div>
       ) : (
-        <>
-          {selectedGadgets.length === 0 ? (
-            <Card className="col-span-full">
-              <CardContent className="py-10">
-                <div className="text-center">
-                  <p>No has seleccionado ningún gadget para mostrar.</p>
-                  <Button 
-                    className="mt-4" 
-                    onClick={() => setIsDialogOpen(true)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" /> Añadir gadgets
-                  </Button>
-                </div>
+        <div className="space-y-4">
+          {families.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-8">
+                <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No se encontraron familias registradas.</p>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-8">
-              {/* Sección de tarjetas (small size) */}
-              <div className={`grid gap-4 ${view === "grid" ? 'md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1'}`}>
-                {getGadgetsBySize("small").map(gadgetId => {
-                  const gadgetInfo = availableGadgets.find(gadget => gadget.id === gadgetId);
-                  if (!gadgetInfo) return null;
+            families.map((family: FamilyData, familyIndex: number) => (
+              <Card key={family.user._id}>
+                <Collapsible open={family.isExpanded} onOpenChange={() => toggleFamily(familyIndex)}>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          {family.isExpanded ? (
+                            <ChevronDown className="h-5 w-5" />
+                          ) : (
+                            <ChevronRight className="h-5 w-5" />
+                          )}
+                          <div>
+                            <CardTitle className="text-xl">{family.user.name}</CardTitle>
+                            <CardDescription>{family.user.email}</CardDescription>
+                          </div>
+                        </div>
+                        <Badge variant="outline">
+                          {family.children.length} {family.children.length === 1 ? 'niño' : 'niños'}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                  </CollapsibleTrigger>
                   
-                  // Renderizar cards
-                  switch (gadgetId) {
-                    case "sleepHours":
-                      const sleepData = prepareSleepData();
-                      const avgSleepHours = sleepData.length > 0 
-                        ? (sleepData.reduce((sum, day) => sum + day.horas, 0) / sleepData.length).toFixed(1)
-                        : "N/A";
-                        
-                      return (
-                        <StatsCard 
-                          key={gadgetId}
-                          title="Promedio de sueño" 
-                          value={avgSleepHours !== "N/A" ? `${avgSleepHours}h` : "Sin datos"}
-                          description="Media diaria de horas de sueño"
-                        />
-                      );
-                    
-                    case "napCount":
-                      return (
-                        <StatsCard 
-                          key={gadgetId}
-                          title="Total de siestas" 
-                          value={filteredEvents.filter(e => e.eventType === "nap").length}
-                          description="Durante el período seleccionado"
-                        />
-                      );
-                    
-                    case "activityCount":
-                      return (
-                        <StatsCard 
-                          key={gadgetId}
-                          title="Total actividades" 
-                          value={filteredEvents.filter(e => e.eventType === "activity" || e.eventType === "play").length}
-                          description="Durante el período seleccionado"
-                        />
-                      );
-                    
-                    case "moodSummary":
-                      return (
-                        <StatsCard 
-                          key={gadgetId}
-                          title="Estado predominante" 
-                          value={filteredEvents.length > 0 
-                            ? getMoodName(
-                                Object.entries(
-                                  filteredEvents
-                                    .reduce((acc, evt) => {
-                                      if (!acc[evt.emotionalState]) acc[evt.emotionalState] = 0;
-                                      acc[evt.emotionalState]++;
-                                      return acc;
-                                    }, {} as Record<string, number>)
-                                )
-                                .sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A'
-                              )
-                            : 'Sin datos'
-                          }
-                          description="Estado emocional más frecuente"
-                        />
-                      );
-                      
-                    case "eventCount":
-                      return (
-                        <StatsCard 
-                          key={gadgetId}
-                          title="Total eventos" 
-                          value={filteredEvents.length}
-                          description="Durante el período seleccionado"
-                        />
-                      );
-                      
-                    default:
-                      return null;
-                  }
-                })}
-              </div>
-              
-              {/* Sección de gráficos medianos (medium size) */}
-              <div className={`grid gap-4 ${view === "grid" ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
-                {getGadgetsBySize("medium").map(gadgetId => {
-                  const gadgetInfo = availableGadgets.find(gadget => gadget.id === gadgetId);
-                  if (!gadgetInfo) return null;
-                  
-                  // Renderizar gráficos medianos
-                  switch (gadgetId) {
-                    case "sleepPattern":
-                      return (
-                        <SleepPatternChart 
-                          key={gadgetId}
-                          bedWakeChartData={bedWakeChartData} 
-                          formatTimeTick={formatTimeTick} 
-                        />
-                      );
-                    
-                    case "napChart":
-                      return (
-                        <NapChart 
-                          key={gadgetId}
-                          napChartData={napChartData} 
-                          formatTimeTick={formatTimeTick} 
-                        />
-                      );
-                    
-                    case "sleepEventsChart":
-                      return (
-                        <SleepEventsChart 
-                          key={gadgetId}
-                          sleepData={prepareSleepData()} 
-                        />
-                      );
-                    
-                    case "sleepTypesChart":
-                      return (
-                        <SleepTypesChart 
-                          key={gadgetId}
-                          sleepData={prepareSleepTypesData()} 
-                          colors={COLORS}
-                        />
-                      );
-                    
-                    case "activityDistribution":
-                      return (
-                        <ActivityDistributionChart 
-                          key={gadgetId}
-                          activityData={prepareActivityDistributionData()} 
-                          colors={COLORS}
-                        />
-                      );
-                    
-                    case "activityDuration":
-                      return (
-                        <ActivityDurationChart 
-                          key={gadgetId}
-                          activityData={prepareActivityData()} 
-                        />
-                      );
-                    
-                    case "moodDistribution":
-                      return (
-                        <MoodDistributionChart 
-                          key={gadgetId}
-                          moodData={prepareMoodData()} 
-                          colors={COLORS}
-                        />
-                      );
-                    
-                    case "moodByActivity":
-                      return (
-                        <MoodByActivityChart 
-                          key={gadgetId}
-                          moodByActivityData={prepareMoodByActivityData()}
-                        />
-                      );
-                      
-                    default:
-                      return null;
-                  }
-                })}
-              </div>
-              
-              {/* Sección de gráficos grandes (large size) */}
-              <div className="grid gap-4 grid-cols-1">
-                {getGadgetsBySize("large").map(gadgetId => {
-                  const gadgetInfo = availableGadgets.find(gadget => gadget.id === gadgetId);
-                  if (!gadgetInfo) return null;
-                  
-                  // Renderizar gráficos grandes
-                  switch (gadgetId) {
-                    case "progressSummary":
-                      return (
-                        <ProgressSummaryCard 
-                          key={gadgetId}
-                          filteredEvents={filteredEvents} 
-                        />
-                      );
-                    
-                    case "eventTrend":
-                      return (
-                        <EventTrendChart 
-                          key={gadgetId}
-                          filteredEvents={filteredEvents} 
-                        />
-                      );
-                      
-                    default:
-                      return null;
-                  }
-                })}
-              </div>
-            </div>
+                  <CollapsibleContent>
+                    <CardContent>
+                      {family.children.length === 0 ? (
+                        <p className="text-muted-foreground text-center py-4">
+                          Esta familia no tiene niños registrados.
+                        </p>
+                      ) : (
+                        <div className="space-y-3">
+                          {family.children.map((child: Child) => {
+                            const sleepScore = family.sleepScores[child._id]
+                            return (
+                              <div key={child._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                                <div className="flex items-center space-x-4 flex-1">
+                                  <div className="flex items-center space-x-3">
+                                    <div className={`text-xl font-bold px-3 py-1 rounded-full ${getScoreColor(sleepScore.score)}`}>
+                                      {sleepScore.score}
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold">{child.firstName} {child.lastName}</h4>
+                                      <Badge variant={getQualityBadgeVariant(sleepScore.quality)} className="text-xs">
+                                        {sleepScore.quality}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="hidden md:flex items-center space-x-6 text-sm">
+                                    <div className="text-center">
+                                      <p className="text-muted-foreground">Sueño total</p>
+                                      <p className="font-medium">{sleepScore.totalSleepHours}</p>
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-muted-foreground">Despertar</p>
+                                      <p className="font-medium">{sleepScore.averageWakeTime}</p>
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-muted-foreground">Primera siesta</p>
+                                      <p className="font-medium">{sleepScore.averageFirstNapTime}</p>
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-muted-foreground">Consistencia</p>
+                                      <p className="font-medium">{sleepScore.consistency}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <Button 
+                                  onClick={() => generateAIReport(child)}
+                                  disabled={isGeneratingReport === child._id}
+                                  variant="outline"
+                                  size="sm"
+                                >
+                                  {isGeneratingReport === child._id ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                      Generando...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <FileText className="h-4 w-4 mr-2" />
+                                      Descargar PDF
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
+            ))
           )}
-        </>
+        </div>
       )}
     </div>
   )
