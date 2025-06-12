@@ -601,12 +601,7 @@ export default function StatsPage() {
     })).sort((a, b) => parseISO(a.date.split('/').reverse().join('-')).getTime() - parseISO(b.date.split('/').reverse().join('-')).getTime()); // Asegurar orden cronológico
   };
   
-  // Formateador de ticks para el eje Y de horas (0-1440 minutos a HH:mm)
-  const formatTimeTick = (tickItem: number) => {
-    const hours = Math.floor(tickItem / 60);
-    const minutes = tickItem % 60;
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-  };
+
 
   // Preparar datos para estados emocionales por tipo de actividad
   const prepareMoodByActivityData = () => {
@@ -674,45 +669,64 @@ export default function StatsPage() {
     }
   }, [filteredEvents])
   
-  // NUEVO: Función para preparar datos para el gráfico personalizado
+  // FUNCIÓN CORREGIDA: Datos individuales de eventos para timeline
   const prepareCustomChartData = (events: Event[]) => {
-    const dataByDay: { [key: string]: any } = {}
-
-    const timeToMinutes = (timeStr: string) => {
-        const date = parseISO(timeStr);
-        return getHoursFns(date) * 60 + getMinutesFns(date);
-    };
-
-    events.forEach(event => {
-      const day = format(parseISO(event.startTime), 'yyyy-MM-dd')
-      if (!dataByDay[day]) {
-        dataByDay[day] = {
-          date: format(parseISO(day), 'dd/MM')
-        }
-      }
-
-      if (event.eventType === 'sleep' && event.endTime) {
-        dataByDay[day].bedTime = timeToMinutes(event.startTime)
-        dataByDay[day].wakeUpTime = timeToMinutes(event.endTime)
+    // Solo procesar eventos que tienen duración (endTime)
+    const eventsWithDuration = events.filter(event => event.endTime)
+    
+    // Retornar eventos individuales con sus horarios reales
+    return eventsWithDuration.map(event => {
+      const startTime = parseISO(event.startTime)
+      const endTime = parseISO(event.endTime!)
+      
+      // Convertir a horas decimales para el timeline
+      const startHour = getHoursFns(startTime) + getMinutesFns(startTime) / 60
+      const endHour = getHoursFns(endTime) + getMinutesFns(endTime) / 60
+      const durationMinutes = differenceInMinutes(endTime, startTime)
+      
+      // Mapear tipos de eventos a colores y nombres
+      let name = ''
+      let color = ''
+      
+      switch (event.eventType) {
+        case 'sleep':
+          name = '🌙 Sueño nocturno'
+          color = '#1e3a8a'
+          break
+        case 'nap':
+          name = '😴 Siesta'
+          color = '#3b82f6'
+          break
+        case 'meal':
+          name = '🍽️ Comida'
+          color = '#f59e0b'
+          break
+        case 'activity':
+          name = '⚽ Actividad'
+          color = '#10b981'
+          break
+        case 'play':
+          name = '🎮 Juego'
+          color = '#8b5cf6'
+          break
+        default:
+          name = event.eventType
+          color = '#6b7280'
       }
       
-      if (event.eventType === 'nap' && !dataByDay[day].firstNapStartTime) {
-         dataByDay[day].firstNapStartTime = timeToMinutes(event.startTime)
+      return {
+        date: format(startTime, 'dd/MM', { locale: es }),
+        startHour,
+        endHour,
+        duration: durationMinutes,
+        type: event.eventType,
+        name,
+        color,
+        eventId: event._id,
+        notes: event.notes || '',
+        emotionalState: event.emotionalState
       }
-    })
-
-    // Asegurar que las siestas se ordenan por hora para obtener la primera
-     Object.keys(dataByDay).forEach(day => {
-        const naps = events
-            .filter(e => e.eventType === 'nap' && format(parseISO(e.startTime), 'yyyy-MM-dd') === day)
-            .sort((a, b) => parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime());
-        if (naps.length > 0) {
-            dataByDay[day].firstNapStartTime = timeToMinutes(naps[0].startTime);
-        }
-    });
-
-
-    return Object.values(dataByDay).sort((a,b) => parseISO(a.date.split('/').reverse().join('-')).getTime() - parseISO(b.date.split('/').reverse().join('-')).getTime());
+    }).sort((a, b) => parseISO(a.date.split('/').reverse().join('-')).getTime() - parseISO(b.date.split('/').reverse().join('-')).getTime())
   }
 
   // Renderizar
@@ -800,10 +814,9 @@ export default function StatsPage() {
               totalSleepHours={totalSleepHours}
             />
 
-            {/* GRÁFICA NUEVA Y ÚNICA */}
+            {/* GRÁFICA NUEVA Y ÚNICA - BARRAS APILADAS */}
             <CustomSleepChart 
                 data={customChartData}
-                formatTimeTick={formatTimeTick}
             />
 
           </TabsContent>
