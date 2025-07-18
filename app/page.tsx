@@ -11,9 +11,9 @@ import { redirect } from "next/navigation"
 export default async function Home() {
   const session = await getServerSession(authOptions)
 
-  // Si el usuario ya está autenticado, redirigir al dashboard
+  // Si el usuario ya está autenticado, redirigir a estadísticas
   if (session) {
-    redirect("/dashboard")
+    redirect("/dashboard/stats")
   }
 
   return (

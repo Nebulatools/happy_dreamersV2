@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Clock, Moon, Sun, Activity } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useActiveChild } from "@/context/active-child-context"
+import { useSession } from "next-auth/react"
 import {
   ResponsiveContainer,
 } from "recharts"
@@ -85,6 +86,7 @@ interface DailySleepPattern {
 }
 
 export default function StatsPage() {
+  const { data: session } = useSession()
   const { toast } = useToast()
   const { activeChildId } = useActiveChild()
   const [period, setPeriod] = useState("week")
@@ -763,7 +765,9 @@ export default function StatsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Estadísticas</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            ¡Hola, {session?.user?.name || 'Usuario'}!
+          </h1>
           <p className="text-muted-foreground">Análisis detallado de patrones de sueño, actividad y estado emocional</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">

@@ -56,8 +56,8 @@ export default function LoginPage() {
         description: "Has iniciado sesión correctamente.",
       })
 
-      // Redirigir al dashboard
-      router.push("/dashboard")
+      // Redirigir a estadísticas
+      router.push("/dashboard/stats")
       router.refresh()
     } catch (error) {
       toast({

@@ -14,7 +14,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useSession } from "next-auth/react"
 import { useState } from "react"
 import { useActiveChild } from "@/context/active-child-context"
-import { LayoutDashboard, Calendar, BarChart3, Users, PlusCircle, Settings, Menu, MessageSquare, List } from "lucide-react"
+import { LayoutDashboard, Calendar, BarChart3, Users, PlusCircle, Settings, Menu, MessageSquare, List, Stethoscope } from "lucide-react"
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLDivElement> {
   items: {
@@ -39,9 +39,15 @@ export function Sidebar({ className }: { className?: string }) {
 
   const sidebarNavItems = [
     {
+      title: "Estadísticas",
+      href: "/dashboard/stats",
+      icon: <BarChart3 className="h-5 w-5" />,
+    },
+    {
       title: "Dashboard",
       href: "/dashboard",
       icon: <LayoutDashboard className="h-5 w-5" />,
+      role: ["admin"], // Solo para admins
     },
     {
       title: "Calendario",
@@ -53,16 +59,13 @@ export function Sidebar({ className }: { className?: string }) {
       href: eventsHref,
       icon: <List className="h-5 w-5" />,
       disabled: isEventsLinkDisabled,
+      role: ["parent", "user"], // Para parents y users
     },
     {
       title: "Registrar Evento",
       href: `/dashboard/event${activeChildId ? `?childId=${activeChildId}` : ''}`,
       icon: <PlusCircle className="h-5 w-5" />,
-    },
-    {
-      title: "Estadísticas",
-      href: "/dashboard/stats",
-      icon: <BarChart3 className="h-5 w-5" />,
+      role: ["parent", "user"], // Para parents y users
     },
     {
       title: "Asistente IA",
@@ -76,6 +79,12 @@ export function Sidebar({ className }: { className?: string }) {
       role: ["admin"],
     },
     {
+      title: "Consultas",
+      href: "/dashboard/consultas",
+      icon: <Stethoscope className="h-5 w-5" />,
+      role: ["admin"],
+    },
+    {
       title: "Configuración",
       href: "/dashboard/configuracion",
       icon: <Settings className="h-5 w-5" />,
@@ -84,7 +93,7 @@ export function Sidebar({ className }: { className?: string }) {
 
   // Filtrar elementos según el rol del usuario
   const filteredItems = sidebarNavItems.filter(
-    (item) => !item.role || (item.role && item.role.includes(session?.user?.role as string)),
+    (item) => !item.role || (item.role && item.role.includes(session?.user?.role as string))
   )
 
   return (
