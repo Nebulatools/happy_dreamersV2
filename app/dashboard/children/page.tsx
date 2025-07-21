@@ -141,7 +141,11 @@ export default function MisSonadoresPage() {
           })
 
           return (
-            <Card key={child._id} className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 border-0 overflow-hidden">
+            <Card 
+              key={child._id} 
+              className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 border-0 overflow-hidden cursor-pointer group"
+              onClick={() => router.push(`/dashboard/children/${child._id}`)}
+            >
               <div className="p-6">
                 {/* Header with Avatar and Name */}
                 <div className="flex items-center justify-between mb-4">
@@ -152,7 +156,7 @@ export default function MisSonadoresPage() {
                       </span>
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                         {child.firstName} {child.lastName || ''}
                       </h3>
                       <p className="text-sm text-gray-500">
@@ -160,14 +164,30 @@ export default function MisSonadoresPage() {
                       </p>
                     </div>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => router.push(`/dashboard/children/${child._id}/edit`)}
-                    className="h-8 w-8 p-0 rounded-full hover:bg-gray-100"
-                  >
-                    <Edit2 className="h-4 w-4 text-gray-600" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/dashboard/children/${child._id}/edit`)
+                      }}
+                      className="h-8 w-8 p-0 rounded-full hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Edit2 className="h-4 w-4 text-gray-600" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        deleteChild(child._id)
+                      }}
+                      className="h-8 w-8 p-0 rounded-full hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Survey Info */}
@@ -176,24 +196,17 @@ export default function MisSonadoresPage() {
                     <p className="text-sm text-blue-600">
                       Última encuesta: {lastSurvey}
                     </p>
-                    <div className="flex items-center gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => router.push(`/dashboard/children/${child._id}/survey`)}
-                        className="h-8 w-8 p-0 rounded-full hover:bg-gray-100"
-                      >
-                        <Edit2 className="h-4 w-4 text-blue-600" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => deleteChild(child._id)}
-                        className="h-8 w-8 p-0 rounded-full hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/dashboard/children/${child._id}/survey`)
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1 rounded-lg transition-colors"
+                    >
+                      Ver perfil →
+                    </Button>
                   </div>
                 </div>
               </div>

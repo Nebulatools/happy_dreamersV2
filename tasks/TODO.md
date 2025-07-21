@@ -1,127 +1,142 @@
-# Plan de Implementación - Página "Ver Niño" - Happy Dreamers
+# Plan de Implementación - Página "Estadísticas de Sueño" - Happy Dreamers
 
 *Actualizado: January 21, 2025*
 
-## 🎯 ANÁLISIS PÁGINA "VER NIÑO" COMPLETADO ✅
+## 🎯 ANÁLISIS PÁGINA "ESTADÍSTICAS DE SUEÑO" COMPLETADO ✅
 
 ### Estructura Principal Identificada:
 
 #### 📱 **Layout General:**
-- **Breadcrumb**: "Volver a la lista" (enlace de navegación)
-- **Perfil del Niño**: Card principal con información personal
-- **Navegación por Tabs**: Resumen, Eventos de Sueño, Progreso y Estadísticas, Encuestas
-- **Área de Contenido**: Cambia según tab activo
+- **Header**: "Estadísticas de Sueño" con botones Exportar y Compartir
+- **Panel de Filtros**: Selector de niño, rango de fechas, tipo de evento
+- **Métricas Principales**: 4 cards con métricas de sueño (mismo estilo que "Ver niño")
+- **Gráficos Principales**: 3 gráficos grandes
+- **Análisis y Recomendaciones**: Cards con insights de IA
+- **Tabla Comparativa**: Comparación de períodos
 - **Sidebar**: Barra lateral con navegación (ya implementada)
 
-#### 👶 **Tarjeta de Perfil del Niño:**
-- **Avatar circular**: Con borde azul, imagen del niño
-- **Nombre**: "Lucía García" (título principal)
-- **Botón Editar**: "Editar Perfil" con ícono
-- **Información adicional**: 
-  - Edad: "5 años" con ícono
-  - Fecha de registro: "Miembro desde Mayo 2025" con ícono calendario
+#### 🎛️ **Panel de Filtros (Card blanco):**
+- **Selector Niño**: Dropdown "Lucas García (4 años)" con avatar
+- **Rango de fechas**: Dropdown "Últimos 7 días"
+- **Tipo de evento**: Dropdown "Todos los eventos"
+- **Botón**: "Aplicar filtros" (gradiente azul)
 
-#### 🏷️ **Sistema de Navegación por Tabs:**
-- **Resumen** (activo por defecto) - con borde azul inferior
-- **Eventos de Sueño** 
-- **Progreso y Estadísticas**
-- **Encuestas**
+#### 📊 **Métricas Principales (4 cards iguales a "Ver niño"):**
+- **Tiempo total de sueño**: 9.5h - Badge "Bueno" (verde)
+- **Hora de acostarse**: 20:30 - Badge "Consistente" (morado)  
+- **Despertares nocturnos**: 1.2 - Badge "Promedio" (amarillo)
+- **Calidad del sueño**: 40% - Badge "Mala" (rojo)
 
-#### 📊 **Contenido del Tab "Resumen":**
-1. **Consejo del Sleep Coach** (card azul claro)
-   - Título: "Consejo del Sleep Coach"
-   - Texto del consejo
-   - Botón: "Ver más consejos"
+#### � **Gráficos Principales:**
 
-2. **Eventos Recientes** (card blanco con borde)
-   - Lista de eventos con íconos coloridos
-   - "Despertar - 07:15 - Mayo 8, 2025"
-   - "Hora de dormir - 20:30 - Mayo 8, 2025"
+1. **Duración del sueño (últimos 7 días)** (Card superior izquierdo)
+   - Gráfico de barras apiladas por día de semana
+   - Leyenda: Nocturno (azul) y Siestas (rojo/rosa)
+   - Promedios: "8.3 horas nocturno" y "1.2 horas siestas"
 
-3. **Botón Principal**: "Registrar Nuevo Evento" (gradient azul)
+2. **Consistencia de horarios** (Card superior derecho)
+   - Gráfico de puntos/timeline por día de semana
+   - Líneas para "Hora de acostarse" y "Hora de levantarse"
+   - Promedios: "20:30 ±15min" y "07:15 ±10min"
 
-4. **Métricas de Sueño** (4 cards en grid):
-   - **Tiempo total de sueño**: 9.5h - Badge "Bueno" (verde)
-   - **Hora de acostarse**: 20:30 - Badge "Consistente" (morado)
-   - **Despertares nocturnos**: 1.2 - Badge "Promedio" (amarillo)
-   - **Calidad del sueño**: 40% - Badge "Mala" (rojo)
+3. **Despertares nocturnos** (Card medio izquierdo)
+   - Gráfico de barras por día de semana
+   - Escala 0-4+ despertares
+   - Totales: "9 veces total" y "1.2 promedio por noche"
+
+4. **Distribución del sueño** (Card medio derecho)
+   - Gráfico circular/donut
+   - 87% Nocturno vs 13% Siestas
+   - Total: "9.5 horas/día" vs "Recomendado: 10-13 horas/día"
+
+#### 💡 **Análisis y Recomendaciones (4 cards con colores específicos):**
+1. **Rutina constante** (verde) - "Seguir así →"
+2. **Despertares nocturnos** (amarillo) - "Ver recomendaciones →"  
+3. **Duración total del sueño** (azul) - "Consejos para mejorar →"
+4. **Tendencia positiva** (morado) - "Ver detalles →"
+
+#### 📋 **Tabla Comparativa:**
+- Headers: Métrica, Período actual, Período anterior, Cambio
+- 4 filas con datos de comparación
+- Iconos de flechas para cambios positivos/negativos
 
 ## 📋 PLAN DE IMPLEMENTACIÓN
 
 ### ✅ FASE 1: Análisis Completado
 - [x] **1.1** Analizar diseño de Figma ✅
-- [x] **1.2** Identificar componentes necesarios ✅
-- [x] **1.3** Definir estructura de datos ✅
+- [x] **1.2** Identificar componentes y gráficos necesarios ✅
+- [x] **1.3** Definir estructura de datos y filtros ✅
 
 ### 🚀 FASE 2: Estructura Base (ALTA PRIORIDAD)
-- [x] **2.1** Crear ruta dinámica `/dashboard/children/[id]/page.tsx` ✅
-- [x] **2.2** Implementar layout base con breadcrumb ✅
-- [x] **2.3** Crear tarjeta de perfil del niño ✅
-- [x] **2.4** Implementar sistema de navegación por tabs ✅
-- [x] **2.5** Configurar estado para cambio de tabs ✅
+- [x] **2.1** Crear ruta `/dashboard/sleep-statistics/page.tsx` ✅
+- [x] **2.2** Implementar header con título y botones acción ✅
+- [x] **2.3** Crear panel de filtros con dropdowns ✅
+- [x] **2.4** Reutilizar componente SleepMetricsGrid existente ✅
+- [x] **2.5** Crear layout grid para gráficos principales ✅
 
-### � FASE 3: Componentes del Tab Resumen (ALTA PRIORIDAD)
-- [x] **3.1** Crear componente `SleepCoachAdvice` (consejo del sleep coach) ✅
-- [x] **3.2** Crear componente `RecentEvents` (eventos recientes) ✅
-- [x] **3.3** Crear botón "Registrar Nuevo Evento" ✅
-- [x] **3.4** Crear componente `SleepMetricsGrid` (métricas en grid) ✅
-- [x] **3.5** Implementar badges de estado (Bueno, Consistente, Promedio, Mala) ✅
+### 📊 FASE 3: Gráficos y Visualizaciones (ALTA PRIORIDAD)
+- [ ] **3.1** Crear `SleepDurationChart` (barras apiladas)
+- [ ] **3.2** Crear `ScheduleConsistencyChart` (timeline/puntos)
+- [ ] **3.3** Crear `NightWakingsChart` (barras simples)
+- [ ] **3.4** Crear `SleepDistributionChart` (donut/circular)
+- [ ] **3.5** Integrar biblioteca de gráficos (Recharts/Chart.js)
 
-### 📊 FASE 4: Integración con Datos (MEDIA PRIORIDAD)
-- [ ] **4.1** Conectar con API `/api/children/[id]` para obtener datos del niño
-- [ ] **4.2** Integrar con API de eventos de sueño
-- [ ] **4.3** Calcular métricas de sueño dinámicamente
-- [ ] **4.4** Implementar manejo de estados de carga
+### 💡 FASE 4: Análisis y Recomendaciones (MEDIA PRIORIDAD)
+- [ ] **4.1** Crear componente `AnalysisCard` con colores específicos
+- [ ] **4.2** Implementar 4 tipos de análisis (verde, amarillo, azul, morado)
+- [ ] **4.3** Agregar links de acción personalizados
+- [ ] **4.4** Sistema de iconos para cada tipo de análisis
 
-### 🧩 FASE 5: Otros Tabs (BAJA PRIORIDAD)
-- [ ] **5.1** Implementar contenido del tab "Eventos de Sueño"
-- [ ] **5.2** Implementar contenido del tab "Progreso y Estadísticas"
-- [ ] **5.3** Implementar contenido del tab "Encuestas"
+### � FASE 5: Tabla Comparativa (MEDIA PRIORIDAD)
+- [ ] **5.1** Crear componente `ComparisonTable`
+- [ ] **5.2** Implementar tabs de período (Esta semana, Mes anterior, 3 meses)
+- [ ] **5.3** Agregar iconos de tendencia (flechas arriba/abajo)
+- [ ] **5.4** Formateo de datos y colores para cambios
+
+### 🔧 FASE 6: Integración de Datos (BAJA PRIORIDAD)
+- [ ] **6.1** Conectar filtros con datos reales
+- [ ] **6.2** Implementar cálculos de métricas dinámicas
+- [ ] **6.3** Funcionalidad de exportar y compartir
+- [ ] **6.4** Estados de carga y error
 
 ### 🎯 COMPONENTES NUEVOS A CREAR:
 
 #### **Archivos principales:**
-- `app/dashboard/children/[id]/page.tsx` - Página principal
-- `components/child-profile/ChildProfileCard.tsx` - Tarjeta de perfil
-- `components/child-profile/TabNavigation.tsx` - Navegación por tabs
-- `components/child-profile/SleepCoachAdvice.tsx` - Consejo del sleep coach
-- `components/child-profile/RecentEvents.tsx` - Eventos recientes
-- `components/child-profile/SleepMetricsGrid.tsx` - Grid de métricas
-- `components/child-profile/MetricCard.tsx` - Tarjeta individual de métrica
-- `components/ui/Badge.tsx` - Component badge para estados
+- `app/dashboard/sleep-statistics/page.tsx` - Página principal
+- `components/statistics/FilterPanel.tsx` - Panel de filtros
+- `components/statistics/SleepDurationChart.tsx` - Duración por días
+- `components/statistics/ScheduleConsistencyChart.tsx` - Consistencia horarios
+- `components/statistics/NightWakingsChart.tsx` - Despertares nocturnos
+- `components/statistics/SleepDistributionChart.tsx` - Distribución circular
+- `components/statistics/AnalysisCard.tsx` - Cards de análisis
+- `components/statistics/ComparisonTable.tsx` - Tabla comparativa
+- `components/ui/Select.tsx` - Dropdown component (si no existe)
 
 #### **Colores y Estilos Identificados:**
-- **Badges**: 
-  - Verde: `#22B07D` (fondo `#E6F9EF`) para "Bueno"
-  - Morado: `#8666D2` (fondo `#D4C1FF`) para "Consistente"  
-  - Amarillo: `#E5A43B` (fondo `#FFF6E6`) para "Promedio"
-  - Rojo: `#EC6A6A` (fondo `#FFC4C4`) para "Mala"
+- **Gráficos**:
+  - Azul nocturno: `#9BC5F7`
+  - Rojo siestas: `#FFC2BB` 
+  - Línea acostarse: `#4A90E2`
+  - Línea levantarse: `#FFD92F`
 
-- **Gradients**:
-  - Botón principal: `#628BE6` → `#67C5FF`
-  - Sidebar: `#EAE8FE` → `#6AAAFA` (ya implementado)
+- **Análisis Cards**:
+  - Verde (rutina): `#94F2C0` (fondo `#DEFFEE`)
+  - Amarillo (despertares): `#FD8375` (fondo `#AGXL1F`)
+  - Azul (duración): `#62A0E3` (fondo `#C6DEF8`)
+  - Morado (tendencia): `#C9B3FB` (fondo `#EDE5FF`)
 
 ## 🚀 ESTADO ACTUAL
 
 ### ✅ COMPLETADO PREVIAMENTE:
-- **Sistema de diseño base** ✅ (Colores, tipografía, utilidades CSS)
-- **Componentes básicos** ✅ (Button, Input con nuevo estilo)
-- **Páginas de autenticación** ✅ (Login y Register rediseñadas)
-- **Sidebar rediseñado** ✅ (Nueva barra lateral con gradiente azul)
-- **Página "Mis Soñadores"** ✅ (Lista de niños con cards personalizados)
-- **Página "Añadir Soñador"** ✅ (Formulario completo para registro)
+- **Página "Ver Niño"** ✅ - Estructura base y componentes reutilizables
+- **SleepMetricsGrid** ✅ - Se puede reutilizar en estadísticas
+- **Badge component** ✅ - Estilos ya definidos
 
-### ✅ COMPLETADO EN ESTA SESIÓN:
-- **Página "Ver Niño" implementada completamente** ✅
-- **Sistema de navegación por tabs funcional** ✅
-- **Componentes del tab Resumen implementados** ✅
-- **Badges de estado personalizados creados** ✅
+### 🎯 PRÓXIMO PASO INMEDIATO:
+**Crear estructura base de la página Estadísticas** - Comenzar con header, filtros y layout.
 
-### 🎯 PRÓXIMO PASO RECOMENDADO:
-**Analizar e implementar la página "Estadísticas de sueño"** - Segunda página de Figma pendiente.
-
-### 📊 PROGRESO: 75% COMPLETADO
-*Página "Ver Niño" completamente funcional - Lista para pruebas*
+### 📊 PROGRESO GENERAL: 78% COMPLETADO
+*Página "Estadísticas de sueño" analizada y planificada - Lista para implementación*
 
 ---
-*Actualizado por Claude AI - Happy Dreamers UI Redesign - Página "Ver Niño" Analizada*
+*Actualizado por Claude AI - Happy Dreamers UI Redesign - Análisis Estadísticas Completado*

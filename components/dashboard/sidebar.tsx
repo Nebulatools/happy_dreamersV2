@@ -39,15 +39,14 @@ export function Sidebar({ className }: { className?: string }) {
 
   const sidebarNavItems = [
     {
-      title: "Estadísticas",
+      title: "Dashboard",
       href: "/dashboard/stats",
-      icon: <BarChart3 className="h-5 w-5" />,
+      icon: <LayoutDashboard className="h-5 w-5" />,
     },
     {
-      title: "Dashboard",
-      href: "/dashboard",
-      icon: <LayoutDashboard className="h-5 w-5" />,
-      role: ["admin"], // Solo para admins
+      title: "Estadísticas de Sueño",
+      href: "/dashboard/sleep-statistics",
+      icon: <BarChart3 className="h-5 w-5" />,
     },
     {
       title: "Mis Soñadores",
