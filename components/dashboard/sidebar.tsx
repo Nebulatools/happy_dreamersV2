@@ -12,9 +12,10 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useSession } from "next-auth/react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useActiveChild } from "@/context/active-child-context"
 import { LayoutDashboard, Calendar, BarChart3, Users, PlusCircle, Settings, Menu, MessageSquare, List, Stethoscope } from "lucide-react"
+import { EventRegistrationModal } from "@/components/events"
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLDivElement> {
   items: {
@@ -23,13 +24,17 @@ interface SidebarNavProps extends React.HTMLAttributes<HTMLDivElement> {
     icon: React.ReactNode
     role?: string[]
     disabled?: boolean
+    onClick?: () => void
   }[]
+  onItemClick?: (item: any) => void
 }
 
 export function Sidebar({ className }: { className?: string }) {
   const { data: session } = useSession()
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const [eventModalOpen, setEventModalOpen] = useState(false)
+  const [children, setChildren] = useState([])
   const { activeChildId } = useActiveChild()
 
   const isAdmin = session?.user?.role === "admin"
@@ -68,9 +73,11 @@ export function Sidebar({ className }: { className?: string }) {
     },
     {
       title: "Registrar Evento",
-      href: `/dashboard/event${activeChildId ? `?childId=${activeChildId}` : ''}`,
+      href: "#",
       icon: <PlusCircle className="h-5 w-5" />,
       role: ["parent", "user"], // Para parents y users
+      onClick: () => setEventModalOpen(true),
+      disabled: !activeChildId,
     },
     {
       title: "Asistente IA",
@@ -96,10 +103,30 @@ export function Sidebar({ className }: { className?: string }) {
     },
   ]
 
+  // Cargar children cuando se abre el modal
+  useEffect(() => {
+    if (eventModalOpen && session?.user?.email) {
+      fetch('/api/children')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setChildren(data.children)
+          }
+        })
+        .catch(console.error)
+    }
+  }, [eventModalOpen, session?.user?.email])
+
   // Filtrar elementos según el rol del usuario
   const filteredItems = sidebarNavItems.filter(
     (item) => !item.role || (item.role && item.role.includes(session?.user?.role as string))
   )
+
+  const handleItemClick = (item: any) => {
+    if (item.onClick) {
+      item.onClick()
+    }
+  }
 
   return (
     <>
@@ -111,7 +138,7 @@ export function Sidebar({ className }: { className?: string }) {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-[256px] pr-0 hd-gradient-primary">
-          <MobileSidebar items={filteredItems} setOpen={setOpen} />
+          <MobileSidebar items={filteredItems} setOpen={setOpen} onItemClick={handleItemClick} />
         </SheetContent>
       </Sheet>
       <div className="hidden md:block w-[256px] h-screen hd-gradient-primary border-r border-white/10">
@@ -139,7 +166,7 @@ export function Sidebar({ className }: { className?: string }) {
           
           {/* Navigation */}
           <ScrollArea className="flex-1 px-4">
-            <SidebarNav items={filteredItems} className="" />
+            <SidebarNav items={filteredItems} className="" onItemClick={handleItemClick} />
           </ScrollArea>
           
           {/* Premium Section (si no es admin) */}
@@ -163,33 +190,64 @@ export function Sidebar({ className }: { className?: string }) {
           )}
         </div>
       </div>
+
+      {/* Event Registration Modal */}
+      <EventRegistrationModal
+        isOpen={eventModalOpen}
+        onClose={() => setEventModalOpen(false)}
+        childId={activeChildId || undefined}
+        children={children}
+        onEventCreated={() => {
+          // Aquí podrías agregar lógica para refrescar datos si es necesario
+        }}
+      />
     </>
   )
 }
 
-function SidebarNav({ items, className }: SidebarNavProps) {
+function SidebarNav({ items, className, onItemClick }: SidebarNavProps) {
   const pathname = usePathname()
 
   return (
     <nav className={cn("flex flex-col gap-1", className)}>
-      {items.map((item) => (
-        <Link
-          key={item.href + item.title}
-          href={item.disabled ? "#" : item.href}
-          className={cn(
-            "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
-            pathname === item.href && !item.disabled 
-              ? "bg-white/20 text-white backdrop-blur-sm border border-white/30" 
-              : "text-white/80 hover:bg-white/10 hover:text-white",
-            item.disabled ? "opacity-50 pointer-events-none cursor-not-allowed" : ""
-          )}
-          aria-disabled={item.disabled}
-          tabIndex={item.disabled ? -1 : undefined}
-        >
-          {item.icon}
-          {item.title}
-        </Link>
-      ))}
+      {items.map((item) => {
+        if (item.onClick) {
+          return (
+            <button
+              key={item.href + item.title}
+              onClick={item.disabled ? undefined : () => onItemClick?.(item)}
+              disabled={item.disabled}
+              className={cn(
+                "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 text-left w-full",
+                "text-white/80 hover:bg-white/10 hover:text-white",
+                item.disabled ? "opacity-50 cursor-not-allowed" : ""
+              )}
+            >
+              {item.icon}
+              {item.title}
+            </button>
+          )
+        }
+
+        return (
+          <Link
+            key={item.href + item.title}
+            href={item.disabled ? "#" : item.href}
+            className={cn(
+              "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
+              pathname === item.href && !item.disabled 
+                ? "bg-white/20 text-white backdrop-blur-sm border border-white/30" 
+                : "text-white/80 hover:bg-white/10 hover:text-white",
+              item.disabled ? "opacity-50 pointer-events-none cursor-not-allowed" : ""
+            )}
+            aria-disabled={item.disabled}
+            tabIndex={item.disabled ? -1 : undefined}
+          >
+            {item.icon}
+            {item.title}
+          </Link>
+        )
+      })}
     </nav>
   )
 }
@@ -197,6 +255,7 @@ function SidebarNav({ items, className }: SidebarNavProps) {
 function MobileSidebar({
   items,
   setOpen,
+  onItemClick,
 }: {
   items: {
     href: string
@@ -204,8 +263,10 @@ function MobileSidebar({
     icon: React.ReactNode
     role?: string[]
     disabled?: boolean
+    onClick?: () => void
   }[]
   setOpen: (open: boolean) => void
+  onItemClick?: (item: any) => void
 }) {
   const pathname = usePathname()
 
@@ -227,23 +288,48 @@ function MobileSidebar({
         <span className="font-bold">Happy Dreamers</span>
       </Link>
       <nav className="flex flex-col gap-2 px-2">
-        {items.map((item) => (
-          <Link
-            key={item.href + item.title}
-            href={item.disabled ? "#" : item.href}
-            onClick={() => { if (!item.disabled) setOpen(false) }}
-            className={cn(
-              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-              pathname === item.href && !item.disabled ? "bg-primary text-primary-foreground" : "hover:bg-muted",
-              item.disabled ? "opacity-50 pointer-events-none cursor-not-allowed" : ""
-            )}
-            aria-disabled={item.disabled}
-            tabIndex={item.disabled ? -1 : undefined}
-          >
-            {item.icon}
-            {item.title}
-          </Link>
-        ))}
+        {items.map((item) => {
+          if (item.onClick) {
+            return (
+              <button
+                key={item.href + item.title}
+                onClick={() => {
+                  if (!item.disabled) {
+                    onItemClick?.(item)
+                    setOpen(false)
+                  }
+                }}
+                disabled={item.disabled}
+                className={cn(
+                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors text-left w-full",
+                  "hover:bg-muted",
+                  item.disabled ? "opacity-50 cursor-not-allowed" : ""
+                )}
+              >
+                {item.icon}
+                {item.title}
+              </button>
+            )
+          }
+
+          return (
+            <Link
+              key={item.href + item.title}
+              href={item.disabled ? "#" : item.href}
+              onClick={() => { if (!item.disabled) setOpen(false) }}
+              className={cn(
+                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                pathname === item.href && !item.disabled ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+                item.disabled ? "opacity-50 pointer-events-none cursor-not-allowed" : ""
+              )}
+              aria-disabled={item.disabled}
+              tabIndex={item.disabled ? -1 : undefined}
+            >
+              {item.icon}
+              {item.title}
+            </Link>
+          )
+        })}
       </nav>
     </div>
   )
