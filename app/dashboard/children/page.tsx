@@ -192,22 +192,9 @@ export default function MisSonadoresPage() {
 
                 {/* Survey Info */}
                 <div className="border-t pt-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-blue-600">
-                      Última encuesta: {lastSurvey}
-                    </p>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        router.push(`/dashboard/children/${child._id}/survey`)
-                      }}
-                      className="text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1 rounded-lg transition-colors"
-                    >
-                      Ver perfil →
-                    </Button>
-                  </div>
+                  <p className="text-sm text-blue-600">
+                    Última encuesta: {lastSurvey}
+                  </p>
                 </div>
               </div>
             </Card>

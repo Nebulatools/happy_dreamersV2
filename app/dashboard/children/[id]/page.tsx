@@ -8,8 +8,9 @@ import SleepMetricsGrid from '@/components/child-profile/SleepMetricsGrid'
 import RecentEvents from '@/components/child-profile/RecentEvents'
 
 interface Child {
-  id: string
-  name: string
+  _id: string
+  firstName: string
+  lastName?: string
   birthDate: string
   gender: string
   createdAt: string
@@ -123,27 +124,32 @@ export default function ChildProfilePage() {
                 {child.avatar ? (
                   <img 
                     src={child.avatar} 
-                    alt={child.name}
+                    alt={`${child.firstName} ${child.lastName || ''}`}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <User className="w-12 h-12 text-blue-500" />
+                  <span className="text-2xl font-semibold text-blue-600">
+                    {child.firstName.charAt(0).toUpperCase()}
+                  </span>
                 )}
               </div>
             </div>
 
             {/* Información del niño */}
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-4">
-                <h1 className="text-3xl font-bold text-[#2F2F2F]">{child.name}</h1>
-                <Button 
-                  variant="outline" 
-                  className="flex items-center space-x-2 text-[#4A90E2] border-[#4A90E2] hover:bg-[#4A90E2] hover:text-white"
-                >
-                  <Edit className="w-4 h-4" />
-                  <span>Editar Perfil</span>
-                </Button>
-              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-4">
+                  <h1 className="text-3xl font-bold text-[#2F2F2F]">
+                    {child.firstName} {child.lastName || ''}
+                  </h1>
+                  <Button 
+                    variant="outline" 
+                    className="flex items-center space-x-2 text-[#4A90E2] border-[#4A90E2] hover:bg-[#4A90E2] hover:text-white"
+                    onClick={() => router.push(`/dashboard/children/${child._id}/edit`)}
+                  >
+                    <Edit className="w-4 h-4" />
+                    <span>Editar Perfil</span>
+                  </Button>
+                </div>
 
               <div className="flex items-center space-x-6 text-gray-600">
                 <div className="flex items-center space-x-2">
