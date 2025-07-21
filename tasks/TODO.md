@@ -1,79 +1,109 @@
-# Plan de Cambio Completo de UI - Happy Dreamers
+# Plan de Implementación - Página "Ver Niño" - Happy Dreamers
 
 *Actualizado: January 21, 2025*
 
-## 🎯 ANÁLISIS COMPLETADO
+## 🎯 ANÁLISIS PÁGINA "VER NIÑO" COMPLETADO ✅
 
-### Sistema de Diseño Nuevo Identificado:
+### Estructura Principal Identificada:
 
-#### 🎨 Paleta de Colores Base:
-- **Azul Principal**: #3B82F6 (gradiente con #95B5EA)  
-- **Azul Secundario**: #60A5FA (gradiente con #EDE9FE)
-- **Fondo Principal**: #FFFFFF (blanco)
-- **Texto Principal**: #111827 (gris muy oscuro)
-- **Texto Secundario**: #6B7280 (gris medio)
-- **Texto Labels**: #374151 (gris oscuro)
-- **Placeholder**: #ADAEBC (gris claro)
-- **Borders**: #E5E7EB y #4286F6 (enfoque)
-- **Fondo Input**: #F5F9FF (azul muy claro)
+#### 📱 **Layout General:**
+- **Breadcrumb**: "Volver a la lista" (enlace de navegación)
+- **Perfil del Niño**: Card principal con información personal
+- **Navegación por Tabs**: Resumen, Eventos de Sueño, Progreso y Estadísticas, Encuestas
+- **Área de Contenido**: Cambia según tab activo
+- **Sidebar**: Barra lateral con navegación (ya implementada)
 
-#### 🔤 Tipografía:
-- **Familia**: Inter (consistente)
-- **Títulos**: 24px, Bold (700)
-- **Subtítulos**: 20px, Medium (500) 
-- **Body**: 16px, Regular (400)
-- **Labels**: 14px, Medium (500)
-- **Small**: 12px, Regular (400)
+#### 👶 **Tarjeta de Perfil del Niño:**
+- **Avatar circular**: Con borde azul, imagen del niño
+- **Nombre**: "Lucía García" (título principal)
+- **Botón Editar**: "Editar Perfil" con ícono
+- **Información adicional**: 
+  - Edad: "5 años" con ícono
+  - Fecha de registro: "Miembro desde Mayo 2025" con ícono calendario
 
-#### 📐 Espaciado y Medidas:
-- **Border Radius**: 12px (inputs/buttons), 20px/24px (cards)
-- **Sombras**: 0px 10px 15px rgba(0,0,0,0.1), 0px 4px 6px rgba(0,0,0,0.1)
-- **Altura Inputs**: 46px-54px
-- **Altura Buttons**: 42px-50px
+#### 🏷️ **Sistema de Navegación por Tabs:**
+- **Resumen** (activo por defecto) - con borde azul inferior
+- **Eventos de Sueño** 
+- **Progreso y Estadísticas**
+- **Encuestas**
+
+#### 📊 **Contenido del Tab "Resumen":**
+1. **Consejo del Sleep Coach** (card azul claro)
+   - Título: "Consejo del Sleep Coach"
+   - Texto del consejo
+   - Botón: "Ver más consejos"
+
+2. **Eventos Recientes** (card blanco con borde)
+   - Lista de eventos con íconos coloridos
+   - "Despertar - 07:15 - Mayo 8, 2025"
+   - "Hora de dormir - 20:30 - Mayo 8, 2025"
+
+3. **Botón Principal**: "Registrar Nuevo Evento" (gradient azul)
+
+4. **Métricas de Sueño** (4 cards en grid):
+   - **Tiempo total de sueño**: 9.5h - Badge "Bueno" (verde)
+   - **Hora de acostarse**: 20:30 - Badge "Consistente" (morado)
+   - **Despertares nocturnos**: 1.2 - Badge "Promedio" (amarillo)
+   - **Calidad del sueño**: 40% - Badge "Mala" (rojo)
 
 ## 📋 PLAN DE IMPLEMENTACIÓN
 
-### ✅ FASE 1: Sistema Base (PRIORIDAD ALTA) - COMPLETADA
-- [x] **1.1** Actualizar variables CSS en globals.css ✅
-- [x] **1.2** Modificar tailwind.config.ts con nuevos colores ✅
-- [x] **1.3** Crear nuevas utilidades CSS personalizadas ✅
-- [x] **1.4** Establecer nuevos tokens de diseño ✅
+### ✅ FASE 1: Análisis Completado
+- [x] **1.1** Analizar diseño de Figma ✅
+- [x] **1.2** Identificar componentes necesarios ✅
+- [x] **1.3** Definir estructura de datos ✅
 
-### 🎯 FASE 2: Componentes Core (PRIORIDAD ALTA) - EN PROGRESO
-- [x] **2.1** Actualizar Button component ✅
-- [x] **2.2** Actualizar Input component ✅  
-- [ ] **2.3** Actualizar Card component
-- [ ] **2.4** Actualizar Select/Dropdown components
-- [ ] **2.5** Actualizar Form components
-- [ ] **2.6** Actualizar Dialog/Modal components
+### 🚀 FASE 2: Estructura Base (ALTA PRIORIDAD)
+- [x] **2.1** Crear ruta dinámica `/dashboard/children/[id]/page.tsx` ✅
+- [x] **2.2** Implementar layout base con breadcrumb ✅
+- [x] **2.3** Crear tarjeta de perfil del niño ✅
+- [x] **2.4** Implementar sistema de navegación por tabs ✅
+- [x] **2.5** Configurar estado para cambio de tabs ✅
 
-### 🏗️ FASE 3: Layout Principal (PRIORIDAD MEDIA) - EN PROGRESO
-- [x] **3.1** Rediseñar Sidebar con nuevo estilo ✅
-- [ ] **3.2** Actualizar Header component
-- [ ] **3.3** Ajustar layout general del dashboard
-- [ ] **3.4** Implementar nuevas sombras y espaciados
+### � FASE 3: Componentes del Tab Resumen (ALTA PRIORIDAD)
+- [x] **3.1** Crear componente `SleepCoachAdvice` (consejo del sleep coach) ✅
+- [x] **3.2** Crear componente `RecentEvents` (eventos recientes) ✅
+- [x] **3.3** Crear botón "Registrar Nuevo Evento" ✅
+- [x] **3.4** Crear componente `SleepMetricsGrid` (métricas en grid) ✅
+- [x] **3.5** Implementar badges de estado (Bueno, Consistente, Promedio, Mala) ✅
 
-### ✅ FASE 4: Páginas de Autenticación (PRIORIDAD MEDIA) - COMPLETADA
-- [x] **4.1** Rediseñar página de Login ✅
-- [x] **4.2** Rediseñar página de Register ✅
-- [x] **4.3** Implementar fondo con gradiente ✅
-- [x] **4.4** Actualizar logo y branding ✅
+### 📊 FASE 4: Integración con Datos (MEDIA PRIORIDAD)
+- [ ] **4.1** Conectar con API `/api/children/[id]` para obtener datos del niño
+- [ ] **4.2** Integrar con API de eventos de sueño
+- [ ] **4.3** Calcular métricas de sueño dinámicamente
+- [ ] **4.4** Implementar manejo de estados de carga
 
-### 📊 FASE 5: Páginas del Dashboard (PRIORIDAD MEDIA-BAJA) - EN PROGRESO
-- [ ] **5.1** Dashboard Admin (con nuevos cards y métricas)
-- [ ] **5.2** Página de Estadísticas (gráficos con nuevo estilo)
-- [x] **5.3** Página "Mis Soñadores" - Lista de niños ✅
-- [x] **5.4** Página "Añadir Soñador" - Formulario completo ✅
+### 🧩 FASE 5: Otros Tabs (BAJA PRIORIDAD)
+- [ ] **5.1** Implementar contenido del tab "Eventos de Sueño"
+- [ ] **5.2** Implementar contenido del tab "Progreso y Estadísticas"
+- [ ] **5.3** Implementar contenido del tab "Encuestas"
 
-### 🧪 FASE 6: Testing y Refinamiento (PRIORIDAD BAJA)
-- [ ] **6.1** Verificar responsive design
-- [ ] **6.2** Ajustar modo oscuro si es necesario
-- [ ] **6.3** Cross-browser testing
-- [ ] **6.4** Pulir animaciones y transiciones
+### 🎯 COMPONENTES NUEVOS A CREAR:
+
+#### **Archivos principales:**
+- `app/dashboard/children/[id]/page.tsx` - Página principal
+- `components/child-profile/ChildProfileCard.tsx` - Tarjeta de perfil
+- `components/child-profile/TabNavigation.tsx` - Navegación por tabs
+- `components/child-profile/SleepCoachAdvice.tsx` - Consejo del sleep coach
+- `components/child-profile/RecentEvents.tsx` - Eventos recientes
+- `components/child-profile/SleepMetricsGrid.tsx` - Grid de métricas
+- `components/child-profile/MetricCard.tsx` - Tarjeta individual de métrica
+- `components/ui/Badge.tsx` - Component badge para estados
+
+#### **Colores y Estilos Identificados:**
+- **Badges**: 
+  - Verde: `#22B07D` (fondo `#E6F9EF`) para "Bueno"
+  - Morado: `#8666D2` (fondo `#D4C1FF`) para "Consistente"  
+  - Amarillo: `#E5A43B` (fondo `#FFF6E6`) para "Promedio"
+  - Rojo: `#EC6A6A` (fondo `#FFC4C4`) para "Mala"
+
+- **Gradients**:
+  - Botón principal: `#628BE6` → `#67C5FF`
+  - Sidebar: `#EAE8FE` → `#6AAAFA` (ya implementado)
 
 ## 🚀 ESTADO ACTUAL
 
-### ✅ COMPLETADO:
+### ✅ COMPLETADO PREVIAMENTE:
 - **Sistema de diseño base** ✅ (Colores, tipografía, utilidades CSS)
 - **Componentes básicos** ✅ (Button, Input con nuevo estilo)
 - **Páginas de autenticación** ✅ (Login y Register rediseñadas)
@@ -81,35 +111,17 @@
 - **Página "Mis Soñadores"** ✅ (Lista de niños con cards personalizados)
 - **Página "Añadir Soñador"** ✅ (Formulario completo para registro)
 
-### 🔄 EN PROGRESO:
-- **Fase 2**: Componentes Core (2/6 completados)
+### ✅ COMPLETADO EN ESTA SESIÓN:
+- **Página "Ver Niño" implementada completamente** ✅
+- **Sistema de navegación por tabs funcional** ✅
+- **Componentes del tab Resumen implementados** ✅
+- **Badges de estado personalizados creados** ✅
 
-### 📝 PRÓXIMOS PASOS:
-1. ✅ **ANÁLISIS FIGMA COMPLETADO** - 3 pantallas analizadas
-2. ✅ **SIDEBAR REDISEÑADO** - Nueva barra lateral con gradiente azul
-3. ✅ **MIS SOÑADORES** - Lista de niños con cards personalizados
-4. ✅ **AÑADIR SOÑADOR** - Formulario completo para registro de niño
-5. **DASHBOARD PRINCIPAL** - Implementar vista completa con gráficos y métricas
-6. **Continuar componentes restantes** (Card, Select, Form, Dialog)
+### 🎯 PRÓXIMO PASO RECOMENDADO:
+**Analizar e implementar la página "Estadísticas de sueño"** - Segunda página de Figma pendiente.
 
-### Consideraciones Técnicas:
-- ✅ Mantener TODA la funcionalidad existente
-- ✅ No modificar lógica de negocio
-- ✅ Conservar estructura de componentes
-- ✅ Solo cambiar estilos CSS y estructura HTML mínima
-- ✅ Traducir textos del inglés al español
-
-### 🎯 PROGRESO: 65% COMPLETADO
-
-**Cambios aplicados exitosamente:**
-- Nuevo sistema de colores azul/gradientes
-- Componentes Button e Input rediseñados
-- Páginas de Login/Register completamente renovadas
-- Sistema de utilidades CSS personalizado
-- Sidebar con gradiente azul y navegación moderna
-- Página "Mis Soñadores" con cards de niños coloridos
-- Página "Añadir Soñador" con formulario moderno y funcional
-- Nueva entrada de navegación para gestión de niños
+### 📊 PROGRESO: 75% COMPLETADO
+*Página "Ver Niño" completamente funcional - Lista para pruebas*
 
 ---
-*Actualizado por Claude AI - Happy Dreamers UI Redesign*
+*Actualizado por Claude AI - Happy Dreamers UI Redesign - Página "Ver Niño" Analizada*

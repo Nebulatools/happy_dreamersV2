@@ -1,288 +1,244 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowLeft, Calendar, Clock, Edit, Trash2 } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { format } from "date-fns"
-import { es } from "date-fns/locale"
-import { Loader2 } from "lucide-react"
+import { useState, useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { ArrowLeft, Edit, Calendar, User, Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import SleepMetricsGrid from '@/components/child-profile/SleepMetricsGrid'
+import RecentEvents from '@/components/child-profile/RecentEvents'
 
 interface Child {
-  _id: string;
-  firstName: string;
-  lastName: string;
-  birthDate: string;
-  parentId: string;
-  createdAt: string;
-  surveyData?: {
-    parentInfo?: any;
-    childHistory?: any;
-    familyDynamics?: any;
-    sleepRoutine?: any;
-  }
+  id: string
+  name: string
+  birthDate: string
+  gender: string
+  createdAt: string
+  avatar?: string
 }
 
-export default function ChildDetailPage() {
-  const router = useRouter()
+type TabType = 'resumen' | 'eventos' | 'progreso' | 'encuestas'
+
+export default function ChildProfilePage() {
   const params = useParams()
-  const childId = params.id as string
-  const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter()
   const [child, setChild] = useState<Child | null>(null)
+  const [activeTab, setActiveTab] = useState<TabType>('resumen')
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Calcular edad del niño
+  const calculateAge = (birthDate: string) => {
+    const birth = new Date(birthDate)
+    const today = new Date()
+    let age = today.getFullYear() - birth.getFullYear()
+    const monthDiff = today.getMonth() - birth.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--
+    }
+    return age
+  }
+
+  // Formatear fecha de registro
+  const formatRegistrationDate = (createdAt: string) => {
+    const date = new Date(createdAt)
+    const monthNames = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ]
+    return `Miembro desde ${monthNames[date.getMonth()]} ${date.getFullYear()}`
+  }
 
   useEffect(() => {
     const fetchChild = async () => {
       try {
-        const response = await fetch(`/api/children?id=${childId}`)
-        if (!response.ok) {
-          throw new Error('Error al cargar los datos del niño')
+        const response = await fetch(`/api/children/${params.id}`)
+        if (response.ok) {
+          const childData = await response.json()
+          setChild(childData)
+        } else {
+          console.error('Error fetching child data')
+          router.push('/dashboard/children')
         }
-        const data = await response.json()
-        setChild(data)
       } catch (error) {
         console.error('Error:', error)
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los datos del niño. Inténtalo de nuevo.",
-          variant: "destructive",
-        })
+        router.push('/dashboard/children')
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchChild()
-  }, [childId, toast])
-
-  const calculateAge = (birthDate: string) => {
-    if (!birthDate) return "N/A"
-    
-    const birth = new Date(birthDate)
-    const now = new Date()
-    
-    let years = now.getFullYear() - birth.getFullYear()
-    const months = now.getMonth() - birth.getMonth()
-    
-    if (months < 0 || (months === 0 && now.getDate() < birth.getDate())) {
-      years--
+    if (params.id) {
+      fetchChild()
     }
-    
-    // Para niños menores de 1 año, mostrar meses
-    if (years === 0) {
-      let monthsAge = now.getMonth() - birth.getMonth()
-      if (now.getDate() < birth.getDate()) {
-        monthsAge--
-      }
-      if (monthsAge < 0) {
-        monthsAge += 12
-      }
-      return `${monthsAge} ${monthsAge === 1 ? 'mes' : 'meses'}`
-    }
-    
-    return `${years} ${years === 1 ? 'año' : 'años'}`
-  }
-
-  const formatDate = (dateString: string) => {
-    try {
-      return format(new Date(dateString), "d 'de' MMMM 'de' yyyy", { locale: es })
-    } catch (error) {
-      return "Fecha no disponible"
-    }
-  }
+  }, [params.id, router])
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Cargando información del niño...</span>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando información del niño...</p>
+        </div>
       </div>
     )
   }
 
   if (!child) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center space-x-4">
-          <Button variant="ghost" onClick={() => router.back()}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">No se pudo cargar la información del niño</p>
+          <Button onClick={() => router.push('/dashboard/children')}>
+            Volver a la lista
           </Button>
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Niño no encontrado</h1>
-          <p className="text-muted-foreground">No se pudo encontrar la información del niño solicitado</p>
         </div>
       </div>
     )
   }
 
-  const birthDateFormatted = child.birthDate ? formatDate(child.birthDate) : "No disponible"
-  const age = child.birthDate ? calculateAge(child.birthDate) : "No disponible"
+  const tabs = [
+    { id: 'resumen' as TabType, label: 'Resumen' },
+    { id: 'eventos' as TabType, label: 'Eventos de Sueño' },
+    { id: 'progreso' as TabType, label: 'Progreso y Estadísticas' },
+    { id: 'encuestas' as TabType, label: 'Encuestas' }
+  ]
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button variant="ghost" onClick={() => router.push("/dashboard")}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver al dashboard
-          </Button>
-        </div>
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={() => router.push(`/dashboard/children/${child._id}/edit`)}
-          >
-            <Edit className="mr-2 h-4 w-4" />
-            Editar
-          </Button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#F5F9FF] p-10">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Breadcrumb */}
+        <button 
+          onClick={() => router.push('/dashboard/children')}
+          className="flex items-center text-[#4A90E2] hover:text-[#2553A1] transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Volver a la lista
+        </button>
 
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{child.firstName} {child.lastName}</h1>
-          <p className="text-muted-foreground">
-            {age} • Nacimiento: {birthDateFormatted}
-          </p>
-        </div>
-        <div className="flex space-x-2">
-          <Button 
-            onClick={() => router.push(`/dashboard/children/${child._id}/events`)}
-            className="flex items-center"
-          >
-            <Calendar className="mr-2 h-4 w-4" />
-            Ver eventos
-          </Button>
-          <Button 
-            onClick={() => router.push(`/dashboard/event`)}
-            variant="outline"
-            className="flex items-center"
-          >
-            <Clock className="mr-2 h-4 w-4" />
-            Registrar evento
-          </Button>
-        </div>
-      </div>
+        {/* Tarjeta de Perfil del Niño */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+          <div className="flex items-center space-x-8">
+            {/* Avatar */}
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full border-4 border-[#4A90E2] overflow-hidden bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
+                {child.avatar ? (
+                  <img 
+                    src={child.avatar} 
+                    alt={child.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="w-12 h-12 text-blue-500" />
+                )}
+              </div>
+            </div>
 
-      <Tabs defaultValue="info" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="info">Información básica</TabsTrigger>
-          <TabsTrigger value="parent-info">Padres</TabsTrigger>
-          <TabsTrigger value="child-history">Historia</TabsTrigger>
-          <TabsTrigger value="sleep-routine">Rutinas de sueño</TabsTrigger>
-        </TabsList>
+            {/* Información del niño */}
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-4">
+                <h1 className="text-3xl font-bold text-[#2F2F2F]">{child.name}</h1>
+                <Button 
+                  variant="outline" 
+                  className="flex items-center space-x-2 text-[#4A90E2] border-[#4A90E2] hover:bg-[#4A90E2] hover:text-white"
+                >
+                  <Edit className="w-4 h-4" />
+                  <span>Editar Perfil</span>
+                </Button>
+              </div>
 
-        <TabsContent value="info">
-          <Card>
-            <CardHeader>
-              <CardTitle>Información básica</CardTitle>
-              <CardDescription>Datos generales del niño</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium">Nombre completo</p>
-                    <p className="text-lg">{child.firstName} {child.lastName}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Edad</p>
-                    <p className="text-lg">{age}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Fecha de nacimiento</p>
-                    <p className="text-lg">{birthDateFormatted}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Fecha de registro</p>
-                    <p className="text-lg">{formatDate(child.createdAt)}</p>
-                  </div>
+              <div className="flex items-center space-x-6 text-gray-600">
+                <div className="flex items-center space-x-2">
+                  <User className="w-4 h-4" />
+                  <span>{calculateAge(child.birthDate)} años</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-4 h-4" />
+                  <span>{formatRegistrationDate(child.createdAt)}</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </div>
+        </div>
 
-        <TabsContent value="parent-info">
-          <Card>
-            <CardHeader>
-              <CardTitle>Información de los padres</CardTitle>
-              <CardDescription>Datos del padre y la madre</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {child.surveyData?.parentInfo ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(child.surveyData.parentInfo).map(([key, value]) => (
-                      <div key={key}>
-                        <p className="text-sm font-medium">{key.replaceAll('_', ' ')}</p>
-                        <p className="text-lg">{String(value)}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-muted-foreground">No hay información disponible sobre los padres</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {/* Navegación por Tabs */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          {/* Tab Headers */}
+          <nav className="border-b border-gray-100">
+            <div className="flex">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-6 py-4 text-center font-medium transition-colors relative ${
+                    activeTab === tab.id
+                      ? 'text-[#4A90E2] bg-white border-b-2 border-[#4A90E2]'
+                      : 'text-gray-600 hover:text-gray-800 bg-white'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </nav>
 
-        <TabsContent value="child-history">
-          <Card>
-            <CardHeader>
-              <CardTitle>Historia del niño</CardTitle>
-              <CardDescription>Antecedentes y desarrollo</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {child.surveyData?.childHistory ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(child.surveyData.childHistory).map(([key, value]) => (
-                      <div key={key}>
-                        <p className="text-sm font-medium">{key.replaceAll('_', ' ')}</p>
-                        <p className="text-lg">{String(value)}</p>
-                      </div>
-                    ))}
-                  </div>
+          {/* Tab Content */}
+          <div className="p-6">
+            {activeTab === 'resumen' && (
+              <div className="space-y-6">
+                {/* Consejo del Sleep Coach */}
+                <div className="bg-[#F0F7FF] rounded-xl border border-blue-100 p-6">
+                  <h3 className="text-xl font-semibold text-[#2F2F2F] mb-3">
+                    Consejo del Sleep Coach
+                  </h3>
+                  <p className="text-gray-600 mb-4 leading-relaxed">
+                    Mantener una rutina constante antes de dormir ayuda a mejorar la calidad del 
+                    sueño. Considera incluir actividades relajantes como leer un cuento o hacer 
+                    ejercicios de respiración suaves.
+                  </p>
+                  <Button variant="outline" className="text-[#4A90E2] border-[#4A90E2] hover:bg-[#4A90E2] hover:text-white">
+                    Ver más consejos
+                    <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
+                  </Button>
                 </div>
-              ) : (
-                <p className="text-muted-foreground">No hay información disponible sobre la historia del niño</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        <TabsContent value="sleep-routine">
-          <Card>
-            <CardHeader>
-              <CardTitle>Rutinas de sueño</CardTitle>
-              <CardDescription>Hábitos y patrones de sueño</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {child.surveyData?.sleepRoutine ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(child.surveyData.sleepRoutine).map(([key, value]) => (
-                      <div key={key}>
-                        <p className="text-sm font-medium">{key.replaceAll('_', ' ')}</p>
-                        <p className="text-lg">{String(value)}</p>
-                      </div>
-                    ))}
-                  </div>
+                {/* Eventos Recientes */}
+                <RecentEvents childId={params.id as string} />
+
+                {/* Botón Registrar Nuevo Evento */}
+                <div className="flex justify-end">
+                  <Button 
+                    className="bg-gradient-to-r from-[#628BE6] to-[#67C5FF] text-white hover:from-[#5478D2] hover:to-[#5AB1E6] shadow-sm px-6 py-3 text-base font-medium"
+                    onClick={() => router.push('/dashboard/event')}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Registrar Nuevo Evento
+                  </Button>
                 </div>
-              ) : (
-                <p className="text-muted-foreground">No hay información disponible sobre rutinas de sueño</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+
+                {/* Métricas de Sueño */}
+                <SleepMetricsGrid childId={params.id as string} />
+              </div>
+            )}
+
+            {activeTab === 'eventos' && (
+              <div className="text-center py-8 text-gray-500">
+                <p>Contenido de Eventos de Sueño próximamente...</p>
+              </div>
+            )}
+
+            {activeTab === 'progreso' && (
+              <div className="text-center py-8 text-gray-500">
+                <p>Contenido de Progreso y Estadísticas próximamente...</p>
+              </div>
+            )}
+
+            {activeTab === 'encuestas' && (
+              <div className="text-center py-8 text-gray-500">
+                <p>Contenido de Encuestas próximamente...</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
-} 
+}

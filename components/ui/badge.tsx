@@ -1,6 +1,5 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
-
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
@@ -15,6 +14,11 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
+        // Nuevos badges personalizados para Happy Dreamers
+        good: "border-transparent bg-[#E6F9EF] text-[#22B07D] hover:bg-[#E6F9EF]/80",
+        consistent: "border-transparent bg-[#D4C1FF] text-[#8666D2] hover:bg-[#D4C1FF]/80",
+        average: "border-transparent bg-[#FFF6E6] text-[#E5A43B] hover:bg-[#FFF6E6]/80",
+        poor: "border-transparent bg-[#FFC4C4] text-[#EC6A6A] hover:bg-[#FFC4C4]/80",
       },
     },
     defaultVariants: {
