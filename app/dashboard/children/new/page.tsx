@@ -1,382 +1,259 @@
-// Página para agregar un nuevo niño
-// Permite al usuario registrar un nuevo hijo y completar la encuesta inicial
-
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { useToast } from "@/hooks/use-toast"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Camera, Calendar, ArrowLeft } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { useSession } from "next-auth/react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ParentInfoForm } from "@/components/survey/parent-info-form"
-import { ChildHistoryForm } from "@/components/survey/child-history-form"
-import { FamilyDynamicsForm } from "@/components/survey/family-dynamics-form"
-import { SleepRoutineForm } from "@/components/survey/sleep-routine-form"
 
-// Formulario básico del niño
-const childFormSchema = z.object({
-  firstName: z.string().min(2, {
-    message: "El nombre debe tener al menos 2 caracteres.",
-  }),
-  lastName: z.string().min(2, {
-    message: "El apellido debe tener al menos 2 caracteres.",
-  }),
-  birthDate: z.string().optional(),
-})
-
-type ChildFormValues = z.infer<typeof childFormSchema>
-
-export default function NewChildPage() {
+export default function AddChildPage() {
   const router = useRouter()
-  const { toast } = useToast()
   const { data: session } = useSession()
-  const [isLoading, setIsLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState("basic-info")
-  
-  // Estado para almacenar datos básicos
-  const [basicInfo, setBasicInfo] = useState<ChildFormValues | null>(null)
-  
-  // Estado para almacenar las respuestas de cada sección de la encuesta
-  const [surveyData, setSurveyData] = useState<Record<string, any>>({
-    parentInfo: {},
-    childHistory: {},
-    familyDynamics: {},
-    sleepRoutine: {},
+  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    birthDate: "",
+    notes: "",
+    profileImage: null as File | null
   })
 
-  // Formulario de información básica
-  const form = useForm<ChildFormValues>({
-    resolver: zodResolver(childFormSchema),
-    defaultValues: {
-      firstName: "",
-      lastName: "",
-      birthDate: "",
-    },
-  })
-
-  // Actualizar estado basicInfo automáticamente
-  useEffect(() => {
-    const subscription = form.watch((value) => {
-      childFormSchema.safeParseAsync(value).then(result => {
-        if (result.success) {
-          setBasicInfo(result.data);
-        }
-      });
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
-
-  // Función para actualizar el estado de la encuesta
-  const handleSurveyDataChange = (section: string, data: any) => {
-    setSurveyData(prev => ({
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
       ...prev,
-      [section]: data,
+      [name]: value
     }))
   }
 
-  // Enviar todo el formulario completo (datos básicos + encuesta)
-  const handleSubmitComplete = async () => {
-    if (!basicInfo || !session?.user?.id) {
-      console.error("Error: Información básica o sesión no disponible", { basicInfo, sessionUserId: session?.user?.id });
-      toast({
-        title: "Error",
-        description: "No se puede guardar la información sin los datos básicos o sesión",
-        variant: "destructive",
-      });
-      return;
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setFormData(prev => ({
+        ...prev,
+        profileImage: file
+      }))
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!formData.firstName.trim()) {
+      toast.error("El nombre es obligatorio")
+      return
     }
     
-    if (!basicInfo.firstName || !basicInfo.lastName) {
-      console.error("Error: Faltan datos básicos", { 
-        firstName: basicInfo.firstName,
-        lastName: basicInfo.lastName
-      });
-      toast({
-        title: "Datos incompletos",
-        description: "Por favor completa el nombre y apellido del niño",
-        variant: "destructive",
-      });
-      setActiveTab("basic-info");
-      return;
+    if (!formData.birthDate) {
+      toast.error("La fecha de nacimiento es obligatoria")
+      return
     }
-    
-    setIsLoading(true);
-    console.log("Datos básicos a enviar:", basicInfo);
-    console.log("Datos de encuesta a enviar:", surveyData);
-    
+
+    setLoading(true)
+
     try {
-      // Crear el niño con toda la información
-      const requestData = {
-        firstName: basicInfo.firstName,
-        lastName: basicInfo.lastName,
-        birthDate: basicInfo.birthDate || "",
-        parentId: session.user.id,
-        surveyData: surveyData // Usar el estado completo
-      };
-      
-      console.log("Enviando datos a /api/children:", JSON.stringify(requestData));
-      
+      const childData = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        birthDate: formData.birthDate,
+        notes: formData.notes.trim()
+      }
+
       const response = await fetch('/api/children', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestData),
-      });
-      
-      console.log("Respuesta del servidor:", response.status, response.statusText);
-      const responseData = await response.json();
-      console.log("Datos de respuesta:", responseData);
-      
-      if (!response.ok) {
-        throw new Error(responseData.message || 'Error al registrar el niño con la encuesta');
+        body: JSON.stringify(childData)
+      })
+
+      if (response.ok) {
+        toast.success("Soñador registrado exitosamente")
+        router.push('/dashboard/children')
+      } else {
+        const errorData = await response.json()
+        toast.error(errorData.message || "Error al registrar el soñador")
       }
-
-      toast({
-        title: "Registro completado",
-        description: `El niño ${basicInfo.firstName} ha sido registrado correctamente y vinculado a tu perfil. ID: ${responseData.id}`,
-      });
-
-      // Redirigir al dashboard
-      router.push("/dashboard");
-
-    } catch (error: any) {
-      console.error("Error en handleSubmitComplete:", error);
-      toast({
-        title: "Error al registrar",
-        description: error?.message || "No se pudo completar el registro. Inténtalo de nuevo.",
-        variant: "destructive",
-      });
+    } catch (error) {
+      console.error('Error:', error)
+      toast.error("Error al registrar el soñador")
     } finally {
-      setIsLoading(false);
+      setLoading(false)
     }
-  };
-
-  // Botones de navegación entre pestañas
-  const renderTabNavigation = () => {
-    const tabs = ["basic-info", "parent-info", "child-history", "family-dynamics", "sleep-routine"]
-    const currentIndex = tabs.indexOf(activeTab)
-    
-    return (
-      <div className="flex justify-between border-t p-4">
-        <Button
-          variant="outline"
-          onClick={() => {
-            if (currentIndex > 0) {
-              const prevTab = tabs[currentIndex - 1]
-              setActiveTab(prevTab)
-            }
-          }}
-          disabled={currentIndex === 0 || isLoading}
-        >
-          Anterior
-        </Button>
-        
-        <div className="space-x-2">
-          {/* Botón Guardar (Registrar) siempre visible en la última pestaña */} 
-          {activeTab === "sleep-routine" && (
-            <Button 
-              onClick={handleSubmitComplete} 
-              disabled={isLoading}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {isLoading ? "Guardando..." : "Registrar niño"}
-            </Button>
-          )}
-
-          {/* Botón Siguiente (excepto en la última pestaña) */} 
-          {activeTab !== "sleep-routine" && (
-            <Button
-              onClick={() => {
-                // Ya no necesitamos guardar explícitamente aquí
-                if (currentIndex < tabs.length - 1) {
-                  const nextTab = tabs[currentIndex + 1]
-                  setActiveTab(nextTab)
-                }
-              }}
-              // Habilitar siguiente solo si la info básica está completa
-              disabled={isLoading || !basicInfo || !basicInfo.firstName || !basicInfo.lastName}
-            >
-              Siguiente
-            </Button>
-          )}
-        </div>
-      </div>
-    )
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Registrar Nuevo Niño</h1>
-            <p className="text-muted-foreground">Completa la información y la encuesta inicial</p>
+    <div className="min-h-screen bg-blue-50/30 p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Back Button & Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => router.back()}
+            className="p-2 hover:bg-white rounded-xl"
+          >
+            <ArrowLeft className="h-5 w-5 text-gray-600" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold text-gray-900">Mis Soñadores</h1>
+            <div className="flex items-center gap-3 mt-2">
+              <Button variant="ghost" size="sm" className="text-blue-600 hover:bg-blue-50">
+                Ayuda
+              </Button>
+              <Button variant="ghost" size="sm" className="text-blue-600 hover:bg-blue-50">
+                Contacto
+              </Button>
+            </div>
           </div>
-          {process.env.NODE_ENV === 'development' && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={async () => {
-                try {
-                  const response = await fetch('/api/test-db');
-                  const data = await response.json();
-                  console.log("Prueba de conexión a MongoDB:", data);
-                  toast({
-                    title: data.status === "success" ? "Conexión exitosa" : "Error de conexión",
-                    description: data.status === "success" 
-                      ? `Conectado a MongoDB. Niños: ${data.childrenCount}`
-                      : `Error: ${data.error}`,
-                    variant: data.status === "success" ? "default" : "destructive",
-                  });
-                } catch (error) {
-                  console.error("Error en prueba de conexión:", error);
-                  toast({
-                    title: "Error de conexión",
-                    description: "No se pudo conectar a MongoDB. Revisa la consola para más detalles.",
-                    variant: "destructive",
-                  });
-                }
-              }}
-            >
-              Probar Conexión MongoDB
-            </Button>
-          )}
         </div>
-      </div>
 
-      <Card className="pt-6">
-        <CardHeader className="px-8">
-          <CardTitle>Formulario de registro</CardTitle>
-          <CardDescription>Por favor completa todos los campos para crear un perfil completo</CardDescription>
-        </CardHeader>
-        
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 px-8">
-            <TabsTrigger value="basic-info" disabled={isLoading}>Datos Básicos</TabsTrigger>
-            <TabsTrigger value="parent-info" disabled={!basicInfo || isLoading}>Información Padres</TabsTrigger>
-            <TabsTrigger value="child-history" disabled={!basicInfo || isLoading}>Historia Niño</TabsTrigger>
-            <TabsTrigger value="family-dynamics" disabled={!basicInfo || isLoading}>Dinámica Familiar</TabsTrigger>
-            <TabsTrigger value="sleep-routine" disabled={!basicInfo || isLoading}>Rutinas de Sueño</TabsTrigger>
-          </TabsList>
-          
-          <CardContent className="px-8 pt-6">
-            <TabsContent value="basic-info">
-              <Form {...form}>
-                <div className="space-y-6">
-                  <FormField
-                    control={form.control}
+        {/* Main Form Card */}
+        <Card className="bg-white rounded-2xl shadow-lg border-0 overflow-hidden">
+          <div className="p-8">
+            {/* Form Header */}
+            <div className="flex items-start justify-between mb-8">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <Camera className="h-6 w-6 text-blue-600" />
+                  </div>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Añadir un Pequeño Soñador
+                </h2>
+                <p className="text-gray-600 text-base leading-relaxed">
+                  Completa la información para crear un nuevo perfil infantil en Happy Dreamers.
+                </p>
+              </div>
+
+              {/* Profile Image Upload */}
+              <div className="ml-8">
+                <Label className="text-sm font-medium text-gray-700 mb-3 block">
+                  Perfil del Soñador
+                </Label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    id="profile-image"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="profile-image"
+                    className="flex flex-col items-center justify-center w-20 h-20 bg-blue-50 border-2 border-dashed border-blue-300 rounded-full cursor-pointer hover:bg-blue-100 transition-colors"
+                  >
+                    <Camera className="h-4 w-4 text-blue-600 mb-1" />
+                    <span className="text-xs text-blue-600 font-medium">Subir</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Name Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">
+                    Nombre(s)
+                  </Label>
+                  <Input
+                    id="firstName"
                     name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nombre</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Nombre del niño" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Apellido</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Apellido del niño" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="birthDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fecha de nacimiento <span className="text-red-500">*</span></FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="date" 
-                            required
-                            {...field} 
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              console.log("Fecha seleccionada:", value);
-                              if (value) {
-                                field.onChange(value);
-                              }
-                            }}
-                          />
-                        </FormControl>
-                        <FormDescription>Esta información nos ayudará a personalizar las recomendaciones</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    value={formData.firstName}
+                    onChange={handleInputChange}
+                    placeholder="Ingresa el nombre"
+                    className="h-12 bg-blue-50/50 border-gray-200 rounded-xl focus:bg-white focus:border-blue-400 transition-all"
+                    required
                   />
                 </div>
-              </Form>
-            </TabsContent>
+                
+                <div className="space-y-3">
+                  <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">
+                    Apellido(s)
+                  </Label>
+                  <Input
+                    id="lastName"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    placeholder="Ingresa el apellido"
+                    className="h-12 bg-blue-50/50 border-gray-200 rounded-xl focus:bg-white focus:border-blue-400 transition-all"
+                  />
+                </div>
+              </div>
 
-            <TabsContent value="parent-info">
-              {basicInfo && (
-                <ParentInfoForm 
-                  onDataChange={(data) => handleSurveyDataChange("parentInfo", data)}
-                  initialData={surveyData.parentInfo}
+              {/* Birth Date */}
+              <div className="space-y-3">
+                <Label htmlFor="birthDate" className="text-sm font-medium text-gray-700">
+                  Fecha de Nacimiento
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="birthDate"
+                    name="birthDate"
+                    type="date"
+                    value={formData.birthDate}
+                    onChange={handleInputChange}
+                    className="h-12 bg-white border-gray-200 rounded-xl focus:border-blue-400 transition-all pr-12"
+                    required
+                  />
+                  <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-3">
+                <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
+                  Notas Adicionales (Opcional)
+                </Label>
+                <Textarea
+                  id="notes"
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleInputChange}
+                  placeholder="Información adicional, preferencias, etc."
+                  rows={4}
+                  className="bg-white border-gray-200 rounded-xl resize-none focus:border-blue-400 transition-all"
                 />
-              )}
-            </TabsContent>
+              </div>
 
-            <TabsContent value="child-history">
-              {basicInfo && (
-                <ChildHistoryForm 
-                  onDataChange={(data) => handleSurveyDataChange("childHistory", data)}
-                  initialData={{
-                    ...surveyData.childHistory,
-                    // Pasar automáticamente los datos básicos a la historia del niño
-                    child_name: basicInfo.firstName,
-                    child_last_name: basicInfo.lastName,
-                    birth_date: basicInfo.birthDate,
-                  }}
-                />
-              )}
-            </TabsContent>
-
-            <TabsContent value="family-dynamics">
-              {basicInfo && (
-                <FamilyDynamicsForm 
-                  onDataChange={(data) => handleSurveyDataChange("familyDynamics", data)}
-                  initialData={surveyData.familyDynamics}
-                />
-              )}
-            </TabsContent>
-
-            <TabsContent value="sleep-routine">
-              {basicInfo && (
-                <SleepRoutineForm
-                  onDataChange={(data) => handleSurveyDataChange("sleepRoutine", data)}
-                  initialData={surveyData.sleepRoutine}
-                  isSubmitting={isLoading}
-                />
-              )}
-            </TabsContent>
-          </CardContent>
-
-          <CardFooter>
-            {renderTabNavigation()}
-          </CardFooter>
-        </Tabs>
-      </Card>
+              {/* Form Actions */}
+              <div className="flex items-center justify-end gap-4 pt-6 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.back()}
+                  className="px-8 py-2.5 rounded-xl border-gray-200 hover:bg-gray-50 transition-all"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-gradient-to-r from-blue-500 to-blue-400 hover:from-blue-600 hover:to-blue-500 text-white font-medium px-8 py-2.5 rounded-xl shadow-sm transition-all duration-200 disabled:opacity-50"
+                >
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Guardando...
+                    </div>
+                  ) : (
+                    "Guardar Soñador"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </Card>
+      </div>
     </div>
   )
 }

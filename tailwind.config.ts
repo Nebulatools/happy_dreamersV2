@@ -53,6 +53,22 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // === HAPPY DREAMERS COLORS ===
+        "hd-primary": "hsl(var(--text-primary))",
+        "hd-secondary": "hsl(var(--text-secondary))",
+        "hd-label": "hsl(var(--text-label))",
+        "hd-placeholder": "hsl(var(--text-placeholder))",
+        "bg-input": "hsl(var(--bg-input))",
+        "bg-card": "hsl(var(--bg-card))",
+        "input-focused": "hsl(var(--input-focused))",
+        "gradient-primary": {
+          from: "hsl(var(--gradient-primary-from))",
+          to: "hsl(var(--gradient-primary-to))",
+        },
+        "gradient-secondary": {
+          from: "hsl(var(--gradient-secondary-from))",
+          to: "hsl(var(--gradient-secondary-to))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
