@@ -44,9 +44,16 @@ export function Sidebar({ className }: { className?: string }) {
 
   const sidebarNavItems = [
     {
-      title: "Dashboard",
+      title: "Dashboard Usuario",
+      href: "/dashboard",
+      icon: <LayoutDashboard className="h-5 w-5" />,
+      role: ["parent", "user"],
+    },
+    {
+      title: "Dashboard Admin",
       href: "/dashboard/stats",
       icon: <LayoutDashboard className="h-5 w-5" />,
+      role: ["admin"],
     },
     {
       title: "Estadísticas de Sueño",

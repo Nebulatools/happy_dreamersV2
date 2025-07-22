@@ -192,46 +192,60 @@ export function ChildSelector() {
         </div>
       )}
 
-      {/* Selector de niños o mensaje/botón según el estado */}
-      <div className="flex items-center gap-2">
+      {/* Selector de niños - Diseño exacto de Figma */}
+      <div className="flex items-center">
         {!isAdmin || (isAdmin && selectedUserId) ? (
-          <>
-            {/* Selector de niños o mensaje de cargando */}
-            <Select 
-              value={activeChildId ?? ""} 
-              onValueChange={handleSelectChange}
-              disabled={loading || children.length === 0}
-            >
-              <SelectTrigger className="w-[260px] h-11 bg-white border-gray-200 hover:border-[#4A90E2] transition-colors">
-                <div className="flex items-center gap-2">
-                  <Baby className="h-4 w-4 text-[#4A90E2]" />
-                  <SelectValue placeholder={
-                    loading ? "Cargando..." : 
-                    children.length === 0 ? "Sin niños registrados" : 
-                    "Seleccionar niño"
-                  } />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                {children.map((child) => (
-                  <SelectItem key={child._id} value={child._id}>
-                    {child.firstName} {child.lastName}{formatBirthDate(child.birthDate || "")}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Botón de agregar niño */}
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="h-11 w-11 border-gray-200 hover:border-[#4A90E2] hover:text-[#4A90E2] transition-colors" 
-              onClick={handleAddChild}
-            >
-              <PlusCircle className="h-5 w-5" />
-              <span className="sr-only">Agregar niño</span>
-            </Button>
-          </>
+          <div className="flex items-center bg-[#F0F7FF] rounded-xl px-4 py-2 h-12 min-w-[131px]">
+            {/* Avatar del niño */}
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-gray-300 border-2 border-white overflow-hidden">
+                <img 
+                  src="/placeholder-user.jpg" 
+                  alt="Child avatar" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+            
+            {/* Contenido del selector */}
+            <div className="ml-2 flex-1 min-w-0">
+              <Select 
+                value={activeChildId ?? ""} 
+                onValueChange={handleSelectChange}
+                disabled={loading || children.length === 0}
+              >
+                <SelectTrigger className="h-auto p-0 border-none bg-transparent hover:bg-transparent focus:ring-0 focus:ring-offset-0 shadow-none [&>svg]:hidden">
+                  <div className="flex items-center justify-between w-full">
+                    <SelectValue 
+                      placeholder={
+                        loading ? "Cargando..." : 
+                        children.length === 0 ? "Sin niños" : 
+                        "Seleccionar"
+                      }
+                      className="text-[#2553A1] font-medium text-base"
+                    />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-3 w-3 text-[#2553A1] ml-2 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {children.map((child) => (
+                    <SelectItem key={child._id} value={child._id}>
+                      {child.firstName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         ) : null}
       </div>
     </div>

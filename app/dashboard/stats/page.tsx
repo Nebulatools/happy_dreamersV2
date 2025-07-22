@@ -1,893 +1,480 @@
-// Página de estadísticas
-// Muestra gráficos y análisis de patrones de sueño, actividad y estado emocional
-
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Clock, Moon, Sun, Activity } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { useActiveChild } from "@/context/active-child-context"
 import { useSession } from "next-auth/react"
+import { 
+  Users, TrendingUp, AlertTriangle, Calendar, 
+  Moon, Activity, BarChart3, CheckCircle,
+  FileText, MessageSquare, Filter
+} from "lucide-react"
 import {
-  ResponsiveContainer,
-} from "recharts"
-import {
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  startOfYear,
-  endOfYear,
-  subMonths,
   format,
   parseISO,
-  isAfter,
-  isBefore,
-  differenceInHours,
-  differenceInMinutes,
-  getHours as getHoursFns,
-  getMinutes as getMinutesFns,
-  eachDayOfInterval,
-  isSameDay,
-  differenceInDays,
-  addDays,
-  subDays
+  differenceInMinutes
 } from "date-fns"
 import { es } from "date-fns/locale"
 
-// Importar componentes de estadísticas
-import {
-  SleepPatternChart,
-  NapChart,
-  SleepHoursChart,
-  SleepEventsChart,
-  SleepTypesChart,
-  ActivityDistributionChart,
-  ActivityDurationChart,
-  MoodDistributionChart,
-  MoodByActivityChart,
-  ProgressSummaryCard,
-  EventTrendChart,
-  StatsCard,
-  SleepIndicatorsCard,
-  CustomSleepChart
-} from "@/components/stats"
-
-// Interfaces para los datos
 interface Child {
-  _id: string;
-  firstName: string;
-  lastName: string;
+  _id: string
+  firstName: string
+  lastName: string
+  birthDate?: string
+  parentId: string
 }
 
 interface Event {
-  _id: string;
-  childId: string;
-  eventType: string;
-  emotionalState: string;
-  startTime: string;
-  endTime?: string;
-  notes?: string;
-  createdAt: string;
+  _id: string
+  childId: string
+  eventType: string
+  emotionalState: string
+  startTime: string
+  endTime?: string
+  notes?: string
+  createdAt: string
 }
 
-// Definición del tipo para los patrones de sueño diarios
-interface DailySleepPattern {
-  dayISO: string;
-  bedTime?: number; // minutos desde medianoche
-  wakeUpTime?: number; // minutos desde medianoche
-  firstNapStartTime?: number;
-  firstNapDuration?: number;
-  secondNapStartTime?: number;
-  secondNapDuration?: number;
+interface AdminMetrics {
+  totalPatients: number
+  activeToday: number
+  totalEvents: number
+  avgSleepHours: string
+  alertsCount: number
+  completedConsultations: number
 }
 
-export default function StatsPage() {
+export default function AdminDashboardPage() {
   const { data: session } = useSession()
   const { toast } = useToast()
-  const { activeChildId } = useActiveChild()
   const [period, setPeriod] = useState("week")
   const [isLoading, setIsLoading] = useState(true)
+  const [children, setChildren] = useState<Child[]>([])
   const [events, setEvents] = useState<Event[]>([])
-  const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
+  const [metrics, setMetrics] = useState<AdminMetrics>({
+    totalPatients: 0,
+    activeToday: 0,
+    totalEvents: 0,
+    avgSleepHours: "0h 0min",
+    alertsCount: 0,
+    completedConsultations: 0
+  })
+  const [recentChildren, setRecentChildren] = useState<Child[]>([])
+  const [recentAlerts, setRecentAlerts] = useState<any[]>([])
 
-  // Nuevos estados para métricas de patrones de sueño
-  const [averageBedTime, setAverageBedTime] = useState<string | null>(null)
-  const [averageWakeUpTime, setAverageWakeUpTime] = useState<string | null>(null)
-  const [averageFirstNapStartTime, setAverageFirstNapStartTime] = useState<string | null>(null)
-  const [averageFirstNapDuration, setAverageFirstNapDuration] = useState<string | null>(null)
-  const [averageSecondNapStartTime, setAverageSecondNapStartTime] = useState<string | null>(null)
-  const [averageSecondNapDuration, setAverageSecondNapDuration] = useState<string | null>(null)
-  const [bedtimeConsistency, setBedtimeConsistency] = useState<string | null>(null) // e.g., "±30 min"
-  const [wakeUpConsistency, setWakeUpConsistency] = useState<string | null>(null)
-
-  // Nuevos estados para los datos de los gráficos
-  const [napChartData, setNapChartData] = useState<any[]>([])
-  const [bedWakeChartData, setBedWakeChartData] = useState<any[]>([])
-
-  // Nuevos estados para los indicadores de la pizarra
-  const [averageWakeTime, setAverageWakeTime] = useState<string | null>(null)
-  const [averageFirstNapTime, setAverageFirstNapTime] = useState<string | null>(null)
-  const [wakeTimeDeviation, setWakeTimeDeviation] = useState<string | null>(null)
-  const [firstNapDeviation, setFirstNapDeviation] = useState<string | null>(null)
-  const [totalNapDuration, setTotalNapDuration] = useState<string | null>(null)
-  const [napDurations, setNapDurations] = useState<{siesta1?: string, siesta2?: string, siesta3?: string, siesta4?: string}>({})
-  const [maxNapsPerDay, setMaxNapsPerDay] = useState<number>(0)
-  const [bedTimeActual, setBedTimeActual] = useState<string | null>(null)
-  const [sleepTimeActual, setSleepTimeActual] = useState<string | null>(null)
-  const [timeToFallAsleep, setTimeToFallAsleep] = useState<string | null>(null)
-  const [sleepTimeVsPlan, setSleepTimeVsPlan] = useState<string | null>(null)
-  const [totalSleepHours, setTotalSleepHours] = useState<string | null>(null)
-
-  const [customChartData, setCustomChartData] = useState<any[]>([])
-
-  // Obtener la fecha de inicio y fin basado en el período seleccionado
-  const getDateRange = () => {
-    const now = new Date()
-    
-    switch (period) {
-      case "week":
-        return {
-          start: subDays(now, 7), // Últimos 7 días en lugar de semana calendario
-          end: now
-        }
-      case "month":
-        return {
-          start: startOfMonth(now),
-          end: endOfMonth(now)
-        }
-      case "3months":
-        return {
-          start: startOfMonth(subMonths(now, 2)),
-          end: endOfMonth(now)
-        }
-      case "year":
-        return {
-          start: startOfYear(now),
-          end: endOfYear(now)
-        }
-      default:
-        return {
-          start: subDays(now, 7), // Últimos 7 días por defecto también
-          end: now
-        }
-    }
-  }
-
-  // Cargar los eventos cuando cambia el niño activo del contexto
+  // Cargar datos administrativos
   useEffect(() => {
-    const fetchEvents = async () => {
-      if (!activeChildId) {
-        setEvents([]);
-        setFilteredEvents([]);
-        setIsLoading(false);
-        return;
-      }
+    loadAdminData()
+  }, [period])
 
+  const loadAdminData = async () => {
+    try {
       setIsLoading(true)
-      try {
-        const response = await fetch(`/api/children/events?childId=${activeChildId}`)
-        if (!response.ok) {
-          throw new Error('Error al cargar los eventos')
+      
+      // Cargar todos los niños
+      const childrenResponse = await fetch('/api/children')
+      if (childrenResponse.ok) {
+        const childrenData = await childrenResponse.json()
+        const allChildren = childrenData.children || []
+        setChildren(allChildren)
+        setRecentChildren(allChildren.slice(0, 5))
+        
+        // Calcular métricas administrativas
+        const totalPatients = allChildren.length
+        const activeToday = Math.floor(totalPatients * 0.7) // Simular 70% activos hoy
+        
+        // Cargar eventos de todos los niños para calcular métricas globales
+        const eventsPromises = allChildren.map((child: Child) => 
+          fetch(`/api/children/events?childId=${child._id}`)
+            .then(res => res.json())
+            .then(data => data.events || [])
+            .catch(() => [])
+        )
+        
+        const allEventsArrays = await Promise.all(eventsPromises)
+        const allEvents = allEventsArrays.flat()
+        setEvents(allEvents)
+        
+        // Calcular métricas
+        const totalEvents = allEvents.length
+        const alertsCount = Math.floor(totalPatients * 0.15) // 15% con alertas
+        const completedConsultations = Math.floor(totalPatients * 0.6) // 60% completadas
+        
+        // Calcular promedio de horas de sueño
+        const sleepEvents = allEvents.filter(e => e.eventType === 'sleep' && e.endTime)
+        let avgSleepHours = "0h 0min"
+        if (sleepEvents.length > 0) {
+          const totalMinutes = sleepEvents.reduce((sum, event) => {
+            return sum + differenceInMinutes(parseISO(event.endTime!), parseISO(event.startTime))
+          }, 0)
+          const avgMinutes = totalMinutes / sleepEvents.length
+          const hours = Math.floor(avgMinutes / 60)
+          const minutes = Math.round(avgMinutes % 60)
+          avgSleepHours = `${hours}h ${minutes}min`
         }
-        const data = await response.json()
-        setEvents(data.events || [])
-      } catch (error) {
-        console.error('Error:', error)
-        setEvents([])
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los eventos. Inténtalo de nuevo.",
-          variant: "destructive",
+        
+        setMetrics({
+          totalPatients,
+          activeToday,
+          totalEvents,
+          avgSleepHours,
+          alertsCount,
+          completedConsultations
         })
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchEvents()
-  }, [activeChildId, toast])
-
-  // Filtrar eventos por período seleccionado
-  useEffect(() => {
-    if (!events.length) {
-      setFilteredEvents([])
-      return
-    }
-
-    const { start, end } = getDateRange()
-    
-    const filtered = events.filter(event => {
-      const eventDate = parseISO(event.startTime)
-      
-      // Usar comparaciones más inclusivas con date-fns
-      const isInRange = (isAfter(eventDate, start) || isSameDay(eventDate, start)) && 
-                       (isBefore(eventDate, end) || isSameDay(eventDate, end))
-      
-      return isInRange
-    })
-    
-    setFilteredEvents(filtered)
-  }, [events, period])
-
-  // Función para calcular la duración de un evento en horas
-  const calculateEventDuration = (event: Event) => {
-    if (!event.endTime) return 0
-    
-    const startTime = parseISO(event.startTime)
-    const endTime = parseISO(event.endTime)
-    
-    return differenceInHours(endTime, startTime) + (differenceInMinutes(endTime, startTime) % 60) / 60
-  }
-
-  // useEffect para calcular patrones de sueño detallados
-  useEffect(() => {
-    if (!filteredEvents.length) {
-      // Resetear todos los estados de patrones detallados
-      setAverageBedTime(null);
-      setAverageWakeUpTime(null);
-      setAverageFirstNapStartTime(null);
-      setAverageFirstNapDuration(null);
-      setAverageSecondNapStartTime(null);
-      setAverageSecondNapDuration(null);
-      setBedtimeConsistency(null);
-      setWakeUpConsistency(null);
-      // También resetear los datos de los gráficos nuevos si los tuviéramos en estado
-      setNapChartData([]);
-      setBedWakeChartData([]);
-      return;
-    }
-
-    // --- LÓGICA DE dailySleepPatterns (EXISTENTE Y REUTILIZABLE) ---
-    const dailySleepPatterns: DailySleepPattern[] = [];
-
-    const uniqueDaysISO = [...new Set(filteredEvents.map(event => format(parseISO(event.startTime), 'yyyy-MM-dd')))].sort();
-
-    uniqueDaysISO.forEach(dayISO => {
-      const dayStart = parseISO(dayISO);
-      const dayEnd = addDays(dayStart, 1);
-
-      const eventsOfTheDay = filteredEvents.filter(event => {
-        const eventStart = parseISO(event.startTime);
-        // Asegurarse que endTime exista para parsearlo
-        const eventActualEndTime = event.endTime ? parseISO(event.endTime) : eventStart;
-        return isSameDay(eventStart, dayStart) || (event.eventType === 'sleep' && eventStart < dayEnd && eventActualEndTime > dayStart);
-      }).sort((a, b) => parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime());
-
-      let mainNightSleep: Event | null = null;
-      const sleepEvents = eventsOfTheDay.filter(e => e.eventType === 'sleep' && e.endTime);
-      
-      if (sleepEvents.length > 0) {
-        mainNightSleep = sleepEvents.reduce((longest, current) => {
-          const currentStarts = getHoursFns(parseISO(current.startTime));
-          if (currentStarts >= 18 || currentStarts < 4) {
-             if (!longest) return current;
-             // Usar una función segura para calcular duración que maneje endTime undefined
-             const currentDuration = current.endTime ? differenceInMinutes(parseISO(current.endTime), parseISO(current.startTime)) : 0;
-             const longestDuration = longest.endTime ? differenceInMinutes(parseISO(longest.endTime), parseISO(longest.startTime)) : 0;
-             return currentDuration > longestDuration ? current : longest;
+        
+        // Simular alertas recientes
+        setRecentAlerts([
+          {
+            id: 1,
+            childName: allChildren[0]?.firstName || 'Paciente',
+            message: 'Patrón de sueño irregular detectado',
+            type: 'warning',
+            time: '2 horas'
+          },
+          {
+            id: 2,
+            childName: allChildren[1]?.firstName || 'Paciente',
+            message: 'Consulta pendiente de revisión',
+            type: 'info',
+            time: '5 horas'
           }
-          return longest;
-        }, null as Event | null);
-
-        if (!mainNightSleep && sleepEvents.length === 1) mainNightSleep = sleepEvents[0];
-        else if (!mainNightSleep && sleepEvents.length > 0) {
-            mainNightSleep = sleepEvents.sort((a,b) => parseISO(b.startTime).getTime() - parseISO(a.startTime).getTime())[0];
-        }
+        ])
       }
-      
-      const pattern: Partial<DailySleepPattern> & { dayISO: string } = { dayISO };
-
-      if (mainNightSleep && mainNightSleep.startTime && mainNightSleep.endTime) {
-        const bedTimeDate = parseISO(mainNightSleep.startTime);
-        const wakeUpDate = parseISO(mainNightSleep.endTime);
-        pattern.bedTime = getHoursFns(bedTimeDate) * 60 + getMinutesFns(bedTimeDate);
-        // Ajuste para wakeUpTime si cruza la medianoche (se suma 24h en minutos)
-        let wakeUpMinutes = getHoursFns(wakeUpDate) * 60 + getMinutesFns(wakeUpDate);
-        if (wakeUpDate < bedTimeDate || (isSameDay(wakeUpDate, bedTimeDate) && wakeUpMinutes < pattern.bedTime)) {
-            // Si wakeUpDate es anterior o el mismo día pero hora anterior, asumir que es del día siguiente
-            // Esto es una simplificación; una lógica más robusta consideraría la duración
-        }
-        pattern.wakeUpTime = wakeUpMinutes;
-      }
-      
-      // ... Lógica para siestas (se mantiene para datos, pero no para promedios de tarjetas)
-      const napEvents = eventsOfTheDay.filter(e => e.eventType === 'nap' && e.endTime);
-      if (napEvents.length > 0) {
-        // ... (extracción de datos de siestas se mantiene para el gráfico de siestas)
-      }
-
-      if (Object.keys(pattern).length > 1) { // Más que solo dayISO
-        dailySleepPatterns.push(pattern as DailySleepPattern);
-      }
-    });
-    
-    // --- FIN LÓGICA dailySleepPatterns ---
-
-    // Aquí se llamarán las nuevas funciones para preparar datos de gráficos
-    setNapChartData(prepareNapsChartData(filteredEvents));
-    setBedWakeChartData(prepareBedtimeWakeUpChartData(dailySleepPatterns));
-
-    // La lógica de promedios para las tarjetas eliminadas puede ser removida o comentada
-    // setAverageBedTime(...); setBedtimeConsistency(...); etc.
-
-  }, [filteredEvents]); // Dependencia calculateEventDuration eliminada por ahora
-
-  // Calcular indicadores específicos cuando cambien los eventos filtrados
-  useEffect(() => {
-    calculateSleepIndicators()
-  }, [filteredEvents])
-
-  // Función para calcular los indicadores específicos de sueño de las imágenes
-  const calculateSleepIndicators = () => {
-    if (!filteredEvents.length) {
-      // Resetear todos los estados
-      setAverageWakeTime(null)
-      setAverageFirstNapTime(null)
-      setWakeTimeDeviation(null)
-      setFirstNapDeviation(null)
-      setTotalNapDuration(null)
-      setNapDurations({})
-      setMaxNapsPerDay(0)
-      setBedTimeActual(null)
-      setSleepTimeActual(null)
-      setTimeToFallAsleep(null)
-      setSleepTimeVsPlan(null)
-      setTotalSleepHours(null)
-      return
-    }
-
-    // 1. Calcular hora de despertar promedio y desviación
-    const wakeEvents = filteredEvents.filter(e => e.eventType === 'sleep' && e.endTime)
-    if (wakeEvents.length > 0) {
-      const avgWakeMinutes = wakeEvents.reduce((sum, event) => {
-        const endTime = parseISO(event.endTime!)
-        return sum + (getHoursFns(endTime) * 60 + getMinutesFns(endTime))
-      }, 0) / wakeEvents.length
-      
-      const hours = Math.floor(avgWakeMinutes / 60)
-      const minutes = Math.round(avgWakeMinutes % 60)
-      setAverageWakeTime(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`)
-      
-      // Calcular desviación en hora de despertar
-      const deviations = wakeEvents.map(event => {
-        const endTime = parseISO(event.endTime!)
-        const eventMinutes = getHoursFns(endTime) * 60 + getMinutesFns(endTime)
-        return Math.abs(eventMinutes - avgWakeMinutes)
+    } catch (error) {
+      console.error('Error loading admin data:', error)
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los datos administrativos.",
+        variant: "destructive",
       })
-      const avgDeviation = deviations.reduce((sum, dev) => sum + dev, 0) / deviations.length
-      setWakeTimeDeviation(`±${Math.round(avgDeviation)} min`)
+    } finally {
+      setIsLoading(false)
     }
-
-    // 2. Calcular hora de primera siesta y desviación
-    const napEvents = filteredEvents.filter(e => e.eventType === 'nap')
-      .sort((a, b) => parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime())
-    
-    if (napEvents.length > 0) {
-      // Agrupar siestas por día para encontrar la primera siesta de cada día
-      const napsByDay = napEvents.reduce((acc, nap) => {
-        const day = format(parseISO(nap.startTime), 'yyyy-MM-dd')
-        if (!acc[day]) acc[day] = []
-        acc[day].push(nap)
-        return acc
-      }, {} as Record<string, Event[]>)
-
-      const firstNaps = Object.values(napsByDay).map(dayNaps => 
-        dayNaps.sort((a, b) => parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime())[0]
-      )
-
-      if (firstNaps.length > 0) {
-        const avgFirstNapMinutes = firstNaps.reduce((sum, nap) => {
-          const startTime = parseISO(nap.startTime)
-          return sum + (getHoursFns(startTime) * 60 + getMinutesFns(startTime))
-        }, 0) / firstNaps.length
-        
-        const hours = Math.floor(avgFirstNapMinutes / 60)
-        const minutes = Math.round(avgFirstNapMinutes % 60)
-        setAverageFirstNapTime(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`)
-        
-        // Calcular desviación primera siesta
-        const napDeviations = firstNaps.map(nap => {
-          const startTime = parseISO(nap.startTime)
-          const eventMinutes = getHoursFns(startTime) * 60 + getMinutesFns(startTime)
-          return Math.abs(eventMinutes - avgFirstNapMinutes)
-        })
-        const avgNapDeviation = napDeviations.reduce((sum, dev) => sum + dev, 0) / napDeviations.length
-        setFirstNapDeviation(`±${Math.round(avgNapDeviation)} min`)
-      }
-
-      // 3. Calcular duración total de siestas y duraciones individuales
-      const completedNaps = napEvents.filter(nap => nap.endTime)
-      if (completedNaps.length > 0) {
-        const totalNapMinutes = completedNaps.reduce((sum, nap) => {
-          return sum + differenceInMinutes(parseISO(nap.endTime!), parseISO(nap.startTime))
-        }, 0)
-        const avgNapMinutesPerDay = totalNapMinutes / Math.max(1, new Set(completedNaps.map(n => format(parseISO(n.startTime), 'yyyy-MM-dd'))).size)
-        
-        setTotalNapDuration(`${Math.round(avgNapMinutesPerDay)} min`)
-
-        // Calcular duración individual de siestas (Siesta 1, 2, n)
-        const napDurationsByPosition: {[key: string]: number[]} = {}
-        Object.values(napsByDay).forEach(dayNaps => {
-          const sortedNaps = dayNaps
-            .filter(nap => nap.endTime)
-            .sort((a, b) => parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime())
-          
-          sortedNaps.forEach((nap, index) => {
-            let key: string
-            if (index === 0) key = 'siesta1'
-            else if (index === 1) key = 'siesta2'
-            else if (index === 2) key = 'siesta3'
-            else if (index === 3) key = 'siesta4'
-            else return // Si hay más de 4 siestas, ignorar las extras
-            
-            if (!napDurationsByPosition[key]) napDurationsByPosition[key] = []
-            napDurationsByPosition[key].push(differenceInMinutes(parseISO(nap.endTime!), parseISO(nap.startTime)))
-          })
-        })
-
-        const napDurationResults: {siesta1?: string, siesta2?: string, siesta3?: string, siesta4?: string} = {}
-        Object.entries(napDurationsByPosition).forEach(([key, durations]) => {
-          if (durations.length > 0) {
-            const avgMinutes = durations.reduce((sum, d) => sum + d, 0) / durations.length
-            napDurationResults[key as 'siesta1' | 'siesta2' | 'siesta3' | 'siesta4'] = `${Math.round(avgMinutes)} min`
-          }
-        })
-        setNapDurations(napDurationResults)
-
-        // Calcular máximo de siestas por día
-        const napsPerDay = Object.values(napsByDay).filter(dayNaps => dayNaps.length > 0).length > 0 
-            ? Math.max(...Object.values(napsByDay).map(dayNaps => dayNaps.length))
-            : 0;
-        setMaxNapsPerDay(napsPerDay)
-      }
-    }
-
-    // 4. Calcular hora de acostar (Me acuesto) y hora de dormir (Me dormí)
-    const sleepEvents = filteredEvents.filter(e => e.eventType === 'sleep')
-    if (sleepEvents.length > 0) {
-      const avgBedTimeMinutes = sleepEvents.reduce((sum, event) => {
-        const startTime = parseISO(event.startTime)
-        return sum + (getHoursFns(startTime) * 60 + getMinutesFns(startTime))
-      }, 0) / sleepEvents.length
-      
-      const hours = Math.floor(avgBedTimeMinutes / 60)
-      const minutes = Math.round(avgBedTimeMinutes % 60)
-      setBedTimeActual(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`)
-      
-      // 5. Aproximar hora de dormir (asumiendo 20 min después de acostar)
-      const sleepMinutes = avgBedTimeMinutes + 20 
-      const sleepHours = Math.floor(sleepMinutes / 60) % 24
-      const sleepMins = Math.round(sleepMinutes % 60)
-      setSleepTimeActual(`${sleepHours.toString().padStart(2, '0')}:${sleepMins.toString().padStart(2, '0')}`)
-      
-      // 6. Tiempo para dormir (Dormir - Acostar)
-      setTimeToFallAsleep("20 min") // Aproximación basada en el cálculo anterior
-    }
-
-    // 7. Total de horas de sueño
-    const completedSleepEvents = filteredEvents.filter(e => (e.eventType === 'sleep' || e.eventType === 'nap') && e.endTime)
-    if (completedSleepEvents.length > 0) {
-      const totalMinutes = completedSleepEvents.reduce((sum, event) => {
-        return sum + differenceInMinutes(parseISO(event.endTime!), parseISO(event.startTime))
-      }, 0)
-      
-      const avgMinutesPerDay = totalMinutes / Math.max(1, new Set(completedSleepEvents.map(e => format(parseISO(e.startTime), 'yyyy-MM-dd'))).size)
-      const hours = Math.floor(avgMinutesPerDay / 60)
-      const minutes = Math.round(avgMinutesPerDay % 60)
-      setTotalSleepHours(`${hours}h ${minutes}min`)
-    }
-
-    // 8. Comparación con plan (simulado)
-    setSleepTimeVsPlan("En tiempo") // Placeholder
   }
 
-  // Preparar datos para gráficos
-  const prepareSleepData = () => {
-    // Filtrar solo eventos de tipo "sleep" o "nap"
-    const sleepEvents = filteredEvents.filter(event => event.eventType === "sleep" || event.eventType === "nap")
-    
-    // Organizar por día
-    const sleepByDay = sleepEvents.reduce((acc, event) => {
-      const day = format(parseISO(event.startTime), 'yyyy-MM-dd')
-      
-      if (!acc[day]) {
-        acc[day] = {
-          date: day,
-          totalHours: 0,
-          count: 0
-        }
-      }
-      
-      acc[day].totalHours += calculateEventDuration(event)
-      acc[day].count++
-      
-      return acc
-    }, {} as Record<string, { date: string, totalHours: number, count: number }>)
-    
-    // Convertir a array para gráficos
-    return Object.values(sleepByDay).map(item => ({
-      name: format(parseISO(item.date), 'dd/MM', { locale: es }),
-      horas: parseFloat(item.totalHours.toFixed(1)),
-      eventos: item.count
-    }))
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return "¡Buenos días"
+    if (hour < 18) return "¡Buenas tardes"
+    return "¡Buenas noches"
   }
 
-  const prepareActivityData = () => {
-    // Filtrar solo eventos de tipo "activity" o "play"
-    const activityEvents = filteredEvents.filter(event => event.eventType === "activity" || event.eventType === "play")
-    
-    // Organizar por tipo
-    const byType = activityEvents.reduce((acc, event) => {
-      const type = event.eventType === "activity" ? "Actividad física" : "Juego"
-      
-      if (!acc[type]) {
-        acc[type] = {
-          type,
-          count: 0,
-          totalHours: 0
-        }
-      }
-      
-      acc[type].count++
-      acc[type].totalHours += calculateEventDuration(event)
-      
-      return acc
-    }, {} as Record<string, { type: string, count: number, totalHours: number }>)
-    
-    return Object.values(byType)
-  }
-
-  const prepareMoodData = () => {
-    // Contar eventos por estado emocional
-    const moodCounts = filteredEvents.reduce((acc, event) => {
-      const mood = event.emotionalState
-      
-      if (!acc[mood]) {
-        acc[mood] = {
-          name: getMoodName(mood),
-          value: 0
-        }
-      }
-      
-      acc[mood].value++
-      
-      return acc
-    }, {} as Record<string, { name: string, value: number }>)
-    
-    return Object.values(moodCounts)
-  }
-
-  // Función para obtener el nombre de estado emocional
-  const getMoodName = (mood: string) => {
-    const moods: Record<string, string> = {
-      happy: "Feliz",
-      calm: "Tranquilo",
-      excited: "Emocionado",
-      tired: "Cansado",
-      irritable: "Irritable",
-      sad: "Triste",
-      anxious: "Ansioso"
+  const getAlertIcon = (type: string) => {
+    switch(type) {
+      case 'warning': return <AlertTriangle className="h-4 w-4 text-yellow-600" />
+      case 'error': return <AlertTriangle className="h-4 w-4 text-red-600" />
+      case 'info': return <MessageSquare className="h-4 w-4 text-blue-600" />
+      default: return <AlertTriangle className="h-4 w-4 text-gray-600" />
     }
-    return moods[mood] || mood
   }
 
-  // Colores para los gráficos
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658'];
-
-  // Función para preparar datos para el gráfico de siestas
-  const prepareNapsChartData = (events: Event[]) => {
-    return events
-      .filter(event => event.eventType === "nap" && event.endTime)
-      .map(nap => {
-        const startTime = parseISO(nap.startTime);
-        const endTime = parseISO(nap.endTime!);
-        return {
-          date: format(startTime, 'yyyy-MM-dd'),
-          startTimeMinutes: getHoursFns(startTime) * 60 + getMinutesFns(startTime),
-          duration: differenceInMinutes(endTime, startTime),
-          tooltip: `Siesta: ${format(startTime, 'HH:mm')} (${differenceInMinutes(endTime, startTime)} min)`
-        };
-      });
-  };
-
-  // Función para preparar datos para el gráfico de hora de acostarse/despertar
-  const prepareBedtimeWakeUpChartData = (dailyPatterns: DailySleepPattern[]) => {
-    return dailyPatterns.map(pattern => ({
-      date: format(parseISO(pattern.dayISO!), 'dd/MM'),
-      bedTime: pattern.bedTime, // en minutos desde medianoche
-      wakeUpTime: pattern.wakeUpTime, // en minutos desde medianoche
-    })).sort((a, b) => parseISO(a.date.split('/').reverse().join('-')).getTime() - parseISO(b.date.split('/').reverse().join('-')).getTime()); // Asegurar orden cronológico
-  };
-  
-
-
-  // Preparar datos para estados emocionales por tipo de actividad
-  const prepareMoodByActivityData = () => {
-    return [
-      {
-        name: 'Sueño',
-        feliz: filteredEvents.filter(e => e.eventType === 'sleep' && e.emotionalState === 'happy').length,
-        tranquilo: filteredEvents.filter(e => e.eventType === 'sleep' && e.emotionalState === 'calm').length,
-        cansado: filteredEvents.filter(e => e.eventType === 'sleep' && e.emotionalState === 'tired').length,
-        irritable: filteredEvents.filter(e => e.eventType === 'sleep' && e.emotionalState === 'irritable').length
-      },
-      {
-        name: 'Siesta',
-        feliz: filteredEvents.filter(e => e.eventType === 'nap' && e.emotionalState === 'happy').length,
-        tranquilo: filteredEvents.filter(e => e.eventType === 'nap' && e.emotionalState === 'calm').length,
-        cansado: filteredEvents.filter(e => e.eventType === 'nap' && e.emotionalState === 'tired').length,
-        irritable: filteredEvents.filter(e => e.eventType === 'nap' && e.emotionalState === 'irritable').length
-      },
-      {
-        name: 'Actividad',
-        feliz: filteredEvents.filter(e => e.eventType === 'activity' && e.emotionalState === 'happy').length,
-        tranquilo: filteredEvents.filter(e => e.eventType === 'activity' && e.emotionalState === 'calm').length,
-        cansado: filteredEvents.filter(e => e.eventType === 'activity' && e.emotionalState === 'tired').length,
-        irritable: filteredEvents.filter(e => e.eventType === 'activity' && e.emotionalState === 'irritable').length
-      },
-      {
-        name: 'Juego',
-        feliz: filteredEvents.filter(e => e.eventType === 'play' && e.emotionalState === 'happy').length,
-        tranquilo: filteredEvents.filter(e => e.eventType === 'play' && e.emotionalState === 'calm').length,
-        cansado: filteredEvents.filter(e => e.eventType === 'play' && e.emotionalState === 'tired').length,
-        irritable: filteredEvents.filter(e => e.eventType === 'play' && e.emotionalState === 'irritable').length
-      },
-      {
-        name: 'Comida',
-        feliz: filteredEvents.filter(e => e.eventType === 'meal' && e.emotionalState === 'happy').length,
-        tranquilo: filteredEvents.filter(e => e.eventType === 'meal' && e.emotionalState === 'calm').length,
-        cansado: filteredEvents.filter(e => e.eventType === 'meal' && e.emotionalState === 'tired').length,
-        irritable: filteredEvents.filter(e => e.eventType === 'meal' && e.emotionalState === 'irritable').length
-      }
-    ];
-  };
-
-  // Preparar datos para distribución de tipos de sueño
-  const prepareSleepTypesData = () => {
-    return [
-      { name: 'Sueño nocturno', value: filteredEvents.filter(e => e.eventType === "sleep").length },
-      { name: 'Siestas', value: filteredEvents.filter(e => e.eventType === "nap").length }
-    ];
-  };
-
-  // Preparar datos para distribución de actividades
-  const prepareActivityDistributionData = () => {
-    return [
-      { name: 'Actividad física', value: filteredEvents.filter(e => e.eventType === "activity").length },
-      { name: 'Juego', value: filteredEvents.filter(e => e.eventType === "play").length }
-    ];
-  };
-
-  // NUEVO: useEffect para preparar datos del gráfico personalizado
-  useEffect(() => {
-    if (filteredEvents.length > 0) {
-      setCustomChartData(prepareCustomChartData(filteredEvents))
-    } else {
-      setCustomChartData([])
+  const getAlertBgColor = (type: string) => {
+    switch(type) {
+      case 'warning': return 'bg-yellow-50 border-yellow-200'
+      case 'error': return 'bg-red-50 border-red-200'
+      case 'info': return 'bg-blue-50 border-blue-200'
+      default: return 'bg-gray-50 border-gray-200'
     }
-  }, [filteredEvents])
-  
-  // FUNCIÓN CORREGIDA: Datos individuales de eventos para timeline
-  const prepareCustomChartData = (events: Event[]) => {
-    // Solo procesar eventos que tienen duración (endTime)
-    const eventsWithDuration = events.filter(event => event.endTime)
-    
-    // Retornar eventos individuales con sus horarios reales
-    return eventsWithDuration.map(event => {
-      const startTime = parseISO(event.startTime)
-      const endTime = parseISO(event.endTime!)
-      
-      // Convertir a horas decimales para el timeline
-      const startHour = getHoursFns(startTime) + getMinutesFns(startTime) / 60
-      const endHour = getHoursFns(endTime) + getMinutesFns(endTime) / 60
-      const durationMinutes = differenceInMinutes(endTime, startTime)
-      
-      // Mapear tipos de eventos a colores y nombres
-      let name = ''
-      let color = ''
-      
-      switch (event.eventType) {
-        case 'sleep':
-          name = '🌙 Sueño nocturno'
-          color = '#1e3a8a'
-          break
-        case 'nap':
-          name = '😴 Siesta'
-          color = '#3b82f6'
-          break
-        case 'meal':
-          name = '🍽️ Comida'
-          color = '#f59e0b'
-          break
-        case 'activity':
-          name = '⚽ Actividad'
-          color = '#10b981'
-          break
-        case 'play':
-          name = '🎮 Juego'
-          color = '#8b5cf6'
-          break
-        default:
-          name = event.eventType
-          color = '#6b7280'
-      }
-      
-      return {
-        date: format(startTime, 'dd/MM', { locale: es }),
-        startHour,
-        endHour,
-        duration: durationMinutes,
-        type: event.eventType,
-        name,
-        color,
-        eventId: event._id,
-        notes: event.notes || '',
-        emotionalState: event.emotionalState
-      }
-    }).sort((a, b) => parseISO(a.date.split('/').reverse().join('-')).getTime() - parseISO(b.date.split('/').reverse().join('-')).getTime())
   }
 
-  // Renderizar
-  if (isLoading && activeChildId) {
+  if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-[calc(100vh-12rem)]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Cargando estadísticas...</span>
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <Activity className="h-16 w-16 text-muted-foreground animate-pulse" />
+        <h2 className="text-2xl font-bold">Cargando Dashboard Administrativo</h2>
+        <p className="text-muted-foreground text-center">
+          Obteniendo métricas y datos de todos los pacientes...
+        </p>
       </div>
     )
   }
 
-  if (!activeChildId) {
-    return (
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Estadísticas</h1>
-            <p className="text-muted-foreground">Análisis detallado de patrones de sueño, actividad y estado emocional</p>
+  return (
+    <div className="min-h-screen bg-[#F5F9FF] p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Saludo personalizado para admin */}
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold text-[#2F2F2F]">
+            {getGreeting()}, Dr. {session?.user?.name?.split(' ')[0] || 'Admin'}!
+          </h1>
+          <p className="text-[#666666]">
+            Panel administrativo con métricas globales y gestión de pacientes.
+          </p>
+        </div>
+
+        {/* Métricas principales administrativas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Total de Pacientes */}
+          <Card className="bg-white shadow-sm border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm text-[#666666]">Total de Pacientes</p>
+                  <p className="text-3xl font-bold text-[#2F2F2F]">{metrics.totalPatients}</p>
+                </div>
+                <div className="h-10 w-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <Users className="h-5 w-5 text-blue-600" />
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-2">
+                <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50">Registrados</Badge>
+                <span className="text-xs text-[#666666]">+{Math.floor(metrics.totalPatients * 0.1)} este mes</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Activos Hoy */}
+          <Card className="bg-white shadow-sm border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm text-[#666666]">Activos Hoy</p>
+                  <p className="text-3xl font-bold text-[#2F2F2F]">{metrics.activeToday}</p>
+                </div>
+                <div className="h-10 w-10 bg-green-100 rounded-xl flex items-center justify-center">
+                  <Activity className="h-5 w-5 text-green-600" />
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-2">
+                <Badge className="bg-green-50 text-green-700 hover:bg-green-50">
+                  {Math.round((metrics.activeToday / metrics.totalPatients) * 100)}% de tasa
+                </Badge>
+                <span className="text-xs text-[#666666]">vs. ayer</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Total de Eventos */}
+          <Card className="bg-white shadow-sm border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm text-[#666666]">Total de Eventos</p>
+                  <p className="text-3xl font-bold text-[#2F2F2F]">{metrics.totalEvents}</p>
+                </div>
+                <div className="h-10 w-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                  <BarChart3 className="h-5 w-5 text-purple-600" />
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-2">
+                <Badge className="bg-purple-50 text-purple-700 hover:bg-purple-50">Registrados</Badge>
+                <span className="text-xs text-[#666666]">En {period}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Promedio de Sueño */}
+          <Card className="bg-white shadow-sm border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm text-[#666666]">Promedio de Sueño</p>
+                  <p className="text-3xl font-bold text-[#2F2F2F]">{metrics.avgSleepHours.split(' ')[0]}</p>
+                </div>
+                <div className="h-10 w-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                  <Moon className="h-5 w-5 text-indigo-600" />
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-2">
+                <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50">Global</Badge>
+                <span className="text-xs text-[#666666]">Todos los pacientes</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Alertas Activas */}
+          <Card className="bg-white shadow-sm border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm text-[#666666]">Alertas Activas</p>
+                  <p className="text-3xl font-bold text-[#2F2F2F]">{metrics.alertsCount}</p>
+                </div>
+                <div className="h-10 w-10 bg-red-100 rounded-xl flex items-center justify-center">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-2">
+                <Badge className="bg-red-50 text-red-700 hover:bg-red-50">Requieren atención</Badge>
+                <span className="text-xs text-[#666666]">2 críticas</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Consultas Completadas */}
+          <Card className="bg-white shadow-sm border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm text-[#666666]">Consultas Completadas</p>
+                  <p className="text-3xl font-bold text-[#2F2F2F]">{metrics.completedConsultations}</p>
+                </div>
+                <div className="h-10 w-10 bg-teal-100 rounded-xl flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-teal-600" />
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-2">
+                <Badge className="bg-teal-50 text-teal-700 hover:bg-teal-50">
+                  {Math.round((metrics.completedConsultations / metrics.totalPatients) * 100)}% completado
+                </Badge>
+                <span className="text-xs text-[#666666]">Este período</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sección de filtros y período */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h2 className="text-xl font-semibold text-[#2F2F2F]">Análisis Detallado</h2>
+          <div className="flex gap-2">
+            <Button size="sm" variant="ghost" className="text-[#666666]">
+              <Filter className="h-4 w-4 mr-2" />
+              Filtros
+            </Button>
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger className="w-[140px] h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="week">7 días</SelectItem>
+                <SelectItem value="month">30 días</SelectItem>
+                <SelectItem value="3months">3 meses</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-        <Card>
-          <CardContent className="py-10">
-            <div className="text-center">
-              <p>Por favor, selecciona un niño en la parte superior para ver sus estadísticas.</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            ¡Hola, {session?.user?.name || 'Usuario'}!
-          </h1>
-          <p className="text-muted-foreground">Análisis detallado de patrones de sueño, actividad y estado emocional</p>
+        {/* Grid de contenido administrativo */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Pacientes Recientes */}
+          <Card className="bg-white shadow-sm border-0">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-[#2F2F2F]">Pacientes Recientes</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {recentChildren.map((child, index) => (
+                <div key={child._id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#F8FAFC] transition-colors">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={`/placeholder-user.jpg`} />
+                    <AvatarFallback>{child.firstName.charAt(0)}{child.lastName.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="text-sm text-[#3A3A3A] font-medium">
+                      {child.firstName} {child.lastName}
+                    </p>
+                    <p className="text-xs text-[#666666]">
+                      {child.birthDate ? 
+                        `${Math.floor((Date.now() - new Date(child.birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} años` 
+                        : 'Edad no especificada'
+                      }
+                    </p>
+                  </div>
+                  <Badge className="bg-green-50 text-green-700 text-xs">
+                    Activo
+                  </Badge>
+                </div>
+              ))}
+              {recentChildren.length === 0 && (
+                <p className="text-[#666666] text-sm text-center py-8">
+                  No hay pacientes registrados
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Alertas y Notificaciones */}
+          <Card className="bg-white shadow-sm border-0">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-[#2F2F2F]">Alertas Recientes</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {recentAlerts.map((alert) => (
+                <div key={alert.id} className={`p-3 rounded-xl border ${getAlertBgColor(alert.type)}`}>
+                  <div className="flex items-start gap-3">
+                    {getAlertIcon(alert.type)}
+                    <div className="flex-1">
+                      <p className="text-sm text-[#3A3A3A] font-medium mb-1">
+                        {alert.childName}
+                      </p>
+                      <p className="text-xs text-[#666666] leading-relaxed">
+                        {alert.message}
+                      </p>
+                      <p className="text-xs text-[#999999] mt-2">
+                        Hace {alert.time}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {recentAlerts.length === 0 && (
+                <p className="text-[#666666] text-sm text-center py-8">
+                  No hay alertas recientes
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Acciones Rápidas */}
+          <Card className="bg-white shadow-sm border-0">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-[#2F2F2F]">Acciones Rápidas</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button className="w-full bg-[#4A90E2] hover:bg-[#2553A1] text-white justify-start">
+                <FileText className="h-4 w-4 mr-2" />
+                Generar Reporte
+              </Button>
+              <Button variant="ghost" className="w-full text-[#4A90E2] hover:bg-[#F0F7FF] justify-start">
+                <Users className="h-4 w-4 mr-2" />
+                Gestionar Pacientes
+              </Button>
+              <Button variant="ghost" className="w-full text-[#4A90E2] hover:bg-[#F0F7FF] justify-start">
+                <Calendar className="h-4 w-4 mr-2" />
+                Ver Calendario
+              </Button>
+              <Button variant="ghost" className="w-full text-[#4A90E2] hover:bg-[#F0F7FF] justify-start">
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Consultas Pendientes
+              </Button>
+            </CardContent>
+          </Card>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Seleccionar período" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="week">Últimos 7 días</SelectItem>
-              <SelectItem value="month">Último mes</SelectItem>
-              <SelectItem value="3months">Últimos 3 meses</SelectItem>
-              <SelectItem value="year">Último año</SelectItem>
-            </SelectContent>
-          </Select>
+
+        {/* Métricas de rendimiento (placeholder para gráficos futuros) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="bg-white shadow-sm border-0">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-[#2F2F2F]">Tendencias Globales</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64 bg-[#F8FAFC] rounded-xl flex items-center justify-center">
+                <div className="text-center space-y-2">
+                  <TrendingUp className="h-12 w-12 text-[#E3E6EA] mx-auto" />
+                  <p className="text-[#666666] text-sm">Gráfico de tendencias globales</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white shadow-sm border-0">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-[#2F2F2F]">Distribución de Patrones</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64 bg-[#F8FAFC] rounded-xl flex items-center justify-center">
+                <div className="text-center space-y-2">
+                  <BarChart3 className="h-12 w-12 text-[#E3E6EA] mx-auto" />
+                  <p className="text-[#666666] text-sm">Análisis de patrones de sueño</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
-
-      {filteredEvents.length === 0 && !isLoading ? (
-        <Card>
-          <CardContent className="py-10">
-            <div className="text-center">
-              <p>No hay eventos registrados para este niño en el período seleccionado.</p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Tabs defaultValue="sleep" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="sleep">Sueño y Actividad</TabsTrigger>
-            <TabsTrigger value="mood">Estado de ánimo</TabsTrigger>
-            <TabsTrigger value="progress">Progreso</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="sleep" className="space-y-6">
-            
-            {/* Indicadores Clave de Sueño */}
-            <SleepIndicatorsCard 
-              wakeTime={averageWakeTime}
-              wakeTimeDeviation={wakeTimeDeviation}
-              firstNapTime={averageFirstNapTime}
-              firstNapDeviation={firstNapDeviation}
-              totalNapDuration={totalNapDuration}
-              napDurations={napDurations}
-              bedTime={bedTimeActual}
-              sleepTime={sleepTimeActual}
-              timeToSleep={timeToFallAsleep}
-              sleepVsPlan={sleepTimeVsPlan}
-              totalSleepHours={totalSleepHours}
-            />
-
-            {/* GRÁFICA NUEVA Y ÚNICA - BARRAS APILADAS */}
-            <CustomSleepChart 
-                data={customChartData}
-            />
-
-          </TabsContent>
-
-          <TabsContent value="mood" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <StatsCard 
-                title="Estado predominante" 
-                value={filteredEvents.length > 0 
-                  ? getMoodName(
-                      Object.entries(
-                        filteredEvents
-                          .reduce((acc, evt) => {
-                            if (!acc[evt.emotionalState]) acc[evt.emotionalState] = 0;
-                            acc[evt.emotionalState]++;
-                            return acc;
-                          }, {} as Record<string, number>)
-                      )
-                      .sort((a, b) => b[1] - a[1])[0][0]
-                    )
-                  : 'N/A'
-                }
-                description="Estado emocional más frecuente"
-              />
-              
-              <StatsCard 
-                title="Estados positivos" 
-                value={filteredEvents.filter(e => ['happy', 'calm', 'excited'].includes(e.emotionalState)).length}
-                description={`${((filteredEvents.filter(e => ['happy', 'calm', 'excited'].includes(e.emotionalState)).length / 
-                  (filteredEvents.length || 1)) * 100).toFixed(0)}% del total`}
-              />
-              
-              <StatsCard 
-                title="Estados negativos" 
-                value={filteredEvents.filter(e => ['tired', 'irritable', 'sad', 'anxious'].includes(e.emotionalState)).length}
-                description={`${((filteredEvents.filter(e => ['tired', 'irritable', 'sad', 'anxious'].includes(e.emotionalState)).length / 
-                  (filteredEvents.length || 1)) * 100).toFixed(0)}% del total`}
-              />
-              
-              <StatsCard 
-                title="Total eventos" 
-                value={filteredEvents.length}
-                description="Durante el período seleccionado"
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <MoodDistributionChart 
-                moodData={prepareMoodData()} 
-                colors={COLORS}
-              />
-              
-              <MoodByActivityChart 
-                moodByActivityData={prepareMoodByActivityData()}
-              />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="progress" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <ProgressSummaryCard filteredEvents={filteredEvents} />
-              
-              <EventTrendChart filteredEvents={filteredEvents} />
-            </div>
-          </TabsContent>
-        </Tabs>
-      )}
     </div>
   )
 }
