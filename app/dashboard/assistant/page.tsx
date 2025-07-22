@@ -351,7 +351,7 @@ export default function AssistantPage() {
               type="submit"
               size="icon"
               disabled={isLoading || !input.trim()}
-              className="bg-[#4A90E2] hover:bg-[#2553A1] text-white rounded-full"
+              className="hd-gradient-button text-white rounded-full"
             >
               <Send className="w-4 h-4" />
             </Button>

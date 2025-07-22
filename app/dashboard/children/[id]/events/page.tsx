@@ -343,7 +343,7 @@ export default function ChildEventsPage() {
             Lista de todos los eventos registrados para este niño
           </p>
         </div>
-        <Button className="gap-2" onClick={() => setEventModalOpen(true)}>
+        <Button className="gap-2 hd-gradient-button text-white" onClick={() => setEventModalOpen(true)}>
           <PlusCircle className="h-4 w-4" />
           Registrar evento
         </Button>
@@ -354,7 +354,7 @@ export default function ChildEventsPage() {
           <CardContent className="py-10">
             <div className="text-center">
               <p>No hay eventos registrados para este niño.</p>
-              <Button className="mt-4" onClick={() => setEventModalOpen(true)}>
+              <Button className="mt-4 hd-gradient-button text-white" onClick={() => setEventModalOpen(true)}>
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Registrar el primer evento
               </Button>

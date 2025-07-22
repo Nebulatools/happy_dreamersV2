@@ -12,6 +12,7 @@ import {
   Plus,
   Moon,
   Sun,
+  Cloud,
   AlertCircle,
   TrendingUp,
   TrendingDown,
@@ -286,23 +287,46 @@ export default function CalendarPage() {
     value: string, 
     unit: string, 
     change: number, 
-    changeLabel: string
+    changeLabel: string,
+    type?: 'sleep' | 'nap' | 'wake'
   ) => {
     const isPositive = change > 0
     const isNeutral = change === 0
     const Icon = isPositive ? TrendingUp : (isNeutral ? Minus : TrendingDown)
     const color = isPositive ? "text-green-600" : (isNeutral ? "text-gray-600" : "text-red-600")
     
+    // Determinar el color de fondo según el tipo
+    const bgColorClass = type === 'sleep' ? 'bg-sleep/10' : 
+                        type === 'nap' ? 'bg-nap/10' : 
+                        type === 'wake' ? 'bg-wake/10' : ''
+    
+    const borderColorClass = type === 'sleep' ? 'border-sleep' : 
+                            type === 'nap' ? 'border-nap' : 
+                            type === 'wake' ? 'border-wake' : ''
+    
+    const iconColorClass = type === 'sleep' ? 'bg-sleep' : 
+                          type === 'nap' ? 'bg-nap' : 
+                          type === 'wake' ? 'bg-wake' : ''
+    
     return (
-      <div>
-        <h4 className="text-sm font-medium text-gray-600 mb-1">{title}</h4>
-        <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-bold text-[#2F2F2F]">{value}</span>
-          <span className="text-sm text-gray-500">{unit}</span>
+      <div className={cn("p-5 rounded-lg border", bgColorClass, borderColorClass)}>
+        <div className="flex items-start gap-4">
+          <div className={cn("w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0", iconColorClass)}>
+            {type === 'sleep' && <Moon className="w-6 h-6 text-white" />}
+            {type === 'nap' && <Cloud className="w-6 h-6 text-white" />}
+            {type === 'wake' && <AlertCircle className="w-6 h-6 text-white" />}
+          </div>
+          <div className="flex-1 space-y-3">
+            <h4 className="text-sm font-medium text-gray-600">{title}</h4>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-[#2F2F2F]">{value}</span>
+              <span className="text-sm text-gray-500">{unit}</span>
+            </div>
+          </div>
         </div>
-        <div className={cn("flex items-center gap-1 mt-1", color)}>
+        <div className={cn("flex items-center gap-2 mt-4 pt-4 border-t", color, borderColorClass + '/20')}>
           <Icon className="w-4 h-4" />
-          <span className="text-sm">
+          <span className="text-sm flex-1">
             {isNeutral ? "Sin cambios" : `${Math.abs(change)} ${changeLabel}`}
           </span>
         </div>
@@ -370,7 +394,7 @@ export default function CalendarPage() {
           variant={view === 'month' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setView('month')}
-          className={view === 'month' ? 'bg-[#4A90E2]' : ''}
+          className={view === 'month' ? 'hd-gradient-button text-white' : ''}
         >
           Mensual
         </Button>
@@ -433,7 +457,8 @@ export default function CalendarPage() {
               monthlyStats.nightSleepHours.toFixed(1),
               "horas",
               monthlyStats.nightSleepChange,
-              "horas más que el mes pasado"
+              "horas más que el mes pasado",
+              "sleep"
             )}
             
             {renderStatCard(
@@ -441,7 +466,8 @@ export default function CalendarPage() {
               monthlyStats.napHours.toFixed(1),
               "horas",
               monthlyStats.napChange,
-              "respecto al mes pasado"
+              "respecto al mes pasado",
+              "nap"
             )}
             
             {renderStatCard(
@@ -449,7 +475,8 @@ export default function CalendarPage() {
               monthlyStats.nightWakings.toString(),
               "",
               monthlyStats.wakingsChange,
-              "menos que el mes pasado"
+              "menos que el mes pasado",
+              "wake"
             )}
           </div>
         </Card>

@@ -163,8 +163,8 @@ export default function ChildProfilePage() {
                     {child.firstName} {child.lastName || ''}
                   </h1>
                   <Button 
-                    variant="outline" 
-                    className="flex items-center space-x-2 text-[#4A90E2] border-[#4A90E2] hover:bg-[#4A90E2] hover:text-white"
+                    variant="outline"
+                    className="flex items-center space-x-2 border-[#628BE6] text-[#628BE6] hover:hd-gradient-button hover:text-white hover:border-transparent"
                     onClick={() => router.push(`/dashboard/children/${child._id}/edit`)}
                   >
                     <Edit className="w-4 h-4" />
@@ -221,7 +221,7 @@ export default function ChildProfilePage() {
                     sueño. Considera incluir actividades relajantes como leer un cuento o hacer 
                     ejercicios de respiración suaves.
                   </p>
-                  <Button variant="outline" className="text-[#4A90E2] border-[#4A90E2] hover:bg-[#4A90E2] hover:text-white">
+                  <Button variant="outline" className="border-[#628BE6] text-[#628BE6] hover:hd-gradient-button hover:text-white hover:border-transparent">
                     Ver más consejos
                     <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
                   </Button>

@@ -232,6 +232,32 @@
     background-color: hsl(var(--color-wake));
   }
   
+  /* Event type colors with opacity */
+  .bg-sleep\/10 {
+    background-color: hsl(var(--color-sleep) / 0.1);
+  }
+  
+  .bg-nap\/10 {
+    background-color: hsl(var(--color-nap) / 0.1);
+  }
+  
+  .bg-wake\/10 {
+    background-color: hsl(var(--color-wake) / 0.1);
+  }
+  
+  /* Event type border colors */
+  .border-sleep {
+    border-color: hsl(var(--color-sleep));
+  }
+  
+  .border-nap {
+    border-color: hsl(var(--color-nap));
+  }
+  
+  .border-wake {
+    border-color: hsl(var(--color-wake));
+  }
+  
   /* Event pills */
   .event-pill {
     @apply px-3 py-1 rounded-full text-xs font-medium text-white;

@@ -3,10 +3,18 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Plus, Edit2, Trash2 } from "lucide-react"
+import { Plus, Edit2, Trash2, AlertTriangle } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface Child {
   _id: string
@@ -46,6 +54,8 @@ export default function MisSonadoresPage() {
   const router = useRouter()
   const [children, setChildren] = useState<Child[]>([])
   const [loading, setLoading] = useState(true)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [childToDelete, setChildToDelete] = useState<Child | null>(null)
 
   useEffect(() => {
     fetchChildren()
@@ -68,19 +78,24 @@ export default function MisSonadoresPage() {
     }
   }
 
-  const deleteChild = async (id: string) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este soñador?')) {
-      return
-    }
+  const confirmDelete = (child: Child) => {
+    setChildToDelete(child)
+    setShowDeleteModal(true)
+  }
+
+  const deleteChild = async () => {
+    if (!childToDelete) return
 
     try {
-      const response = await fetch(`/api/children/${id}`, {
+      const response = await fetch(`/api/children/${childToDelete._id}`, {
         method: 'DELETE'
       })
 
       if (response.ok) {
         toast.success('Soñador eliminado correctamente')
         fetchChildren()
+        setShowDeleteModal(false)
+        setChildToDelete(null)
       } else {
         toast.error('Error al eliminar el soñador')
       }
@@ -173,7 +188,7 @@ export default function MisSonadoresPage() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation()
-                        deleteChild(child._id)
+                        confirmDelete(child)
                       }}
                       className="h-8 w-8 p-0 rounded-full hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
@@ -233,6 +248,45 @@ export default function MisSonadoresPage() {
           </Button>
         </div>
       )}
+
+      {/* Modal de confirmación de eliminación */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-4 w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+              <AlertTriangle className="w-8 h-8 text-red-600" />
+            </div>
+            <DialogTitle className="text-center text-xl">Confirmar Eliminación</DialogTitle>
+            <DialogDescription className="text-center space-y-3">
+              <p className="text-black">
+                ¿Estás seguro de que quieres eliminar a <strong>{childToDelete?.firstName} {childToDelete?.lastName || ''}</strong>?
+              </p>
+              <p className="text-red-400">
+                Esta acción no se puede deshacer y se perderán todos los datos asociados.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:justify-center">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteModal(false)
+                setChildToDelete(null)
+              }}
+              className="min-w-[120px]"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={deleteChild}
+              className="min-w-[120px]"
+            >
+              Sí, Eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

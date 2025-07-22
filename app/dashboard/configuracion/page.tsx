@@ -516,7 +516,7 @@ export default function ConfiguracionPage() {
             <DialogTitle className="text-center text-xl">Confirmar Eliminación</DialogTitle>
             <DialogDescription className="text-center space-y-3">
               <p className="text-black">
-                ¿Estás seguro de que quieres eliminar a <strong>Martín García</strong>?
+                ¿Estás seguro de que quieres eliminar a <strong>{profileData.name || 'tu cuenta'}</strong>?
               </p>
               <p className="text-[#FFC8C8]">
                 Esta acción no se puede deshacer y se perderán todos los datos asociados.
@@ -532,8 +532,9 @@ export default function ConfiguracionPage() {
               Cancelar
             </Button>
             <Button
+              variant="destructive"
               onClick={handleDeleteAccount}
-              className="min-w-[120px] bg-[#D0021B] hover:bg-red-700 text-white"
+              className="min-w-[120px]"
             >
               Sí, Eliminar
             </Button>

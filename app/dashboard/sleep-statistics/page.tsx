@@ -204,7 +204,7 @@ export default function SleepStatisticsPage() {
             <h2 className="text-xl font-bold text-[#2F2F2F]">
               Análisis y recomendaciones
             </h2>
-            <Button variant="outline" className="text-[#4A90E2] border-[#4A90E2] hover:bg-[#4A90E2] hover:text-white">
+            <Button variant="outline" className="border-[#628BE6] text-[#628BE6] hover:hd-gradient-button hover:text-white hover:border-transparent">
               Ver todas
             </Button>
           </div>
@@ -221,7 +221,7 @@ export default function SleepStatisticsPage() {
               Comparativa con períodos anteriores
             </h2>
             <div className="flex space-x-2">
-              <Button size="sm" className="bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#4A90E2] hover:text-white">
+              <Button size="sm" className="hd-gradient-button text-white">
                 Esta semana
               </Button>
               <Button size="sm" variant="outline" className="text-gray-600">

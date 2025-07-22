@@ -231,29 +231,27 @@ export default function SurveyPage() {
                 ¿Con qué frecuencia se despierta durante la noche?
               </h3>
               <p className="text-sm text-[#666666]">Frecuencia de despertares</p>
-              <div className="space-y-2">
-                <DurationSlider
-                  value={[formData.nightWakings === "Nunca" ? 0 : 
-                         formData.nightWakings === "1-2 veces" ? 1.5 :
-                         formData.nightWakings === "3-4 veces" ? 3.5 : 5]}
-                  onValueChange={(value) => {
-                    const val = value[0]
-                    const mapping = val === 0 ? "Nunca" :
-                                  val <= 2 ? "1-2 veces" :
-                                  val <= 4 ? "3-4 veces" : "5+ veces"
-                    setFormData({ ...formData, nightWakings: mapping })
-                  }}
-                  max={6}
-                  min={0}
-                  step={0.5}
-                  showLabels={false}
-                />
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>Nunca</span>
-                  <span>1-2 veces</span>
-                  <span>3-4 veces</span>
-                  <span>5+ veces</span>
-                </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { value: "Nunca", label: "Nunca" },
+                  { value: "1-2 veces", label: "1-2 veces" },
+                  { value: "3-4 veces", label: "3-4 veces" },
+                  { value: "5+ veces", label: "5+ veces" }
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, nightWakings: option.value })}
+                    className={cn(
+                      "px-4 py-3 rounded-lg border-2 transition-all duration-200 font-medium",
+                      formData.nightWakings === option.value
+                        ? "border-[#628BE6] bg-[#628BE6]/10 text-[#628BE6]"
+                        : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
             </div>
 
