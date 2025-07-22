@@ -51,11 +51,23 @@
     
     /* === COLORES ESPECÍFICOS HAPPY DREAMERS === */
     /* Gradientes */
-    --gradient-primary-from: 214 92% 60%;  /* #3B82F6 */
-    --gradient-primary-to: 213 82% 73%;    /* #95B5EA */
+    --gradient-sidebar-from: 245 88% 94%;  /* #EAE8FE */
+    --gradient-sidebar-to: 213 86% 71%;    /* #6AAAFA */
     
-    --gradient-secondary-from: 213 95% 68%; /* #60A5FA */
-    --gradient-secondary-to: 254 88% 90%;   /* #EDE9FE */
+    --gradient-button-from: 227 65% 66%;   /* #628BE6 */
+    --gradient-button-to: 201 100% 70%;    /* #67C5FF */
+    
+    /* Colores de eventos */
+    --color-sleep: 201 56% 68%;            /* #7DBFE2 - Sueño nocturno */
+    --color-nap: 37 90% 56%;               /* #F5A623 - Siesta */
+    --color-wake: 358 100% 78%;            /* #FF9194 - Despertar nocturno */
+    
+    /* Colores principales Figma */
+    --color-blue-primary: 218 56% 40%;     /* #2553A1 */
+    --color-blue-secondary: 213 84% 61%;   /* #4A90E2 */
+    --color-gray-dark: 0 0% 18%;           /* #2F2F2F */
+    --color-gray-medium: 217 9% 37%;       /* #4D4E78 */
+    --color-gray-light: 220 9% 46%;        /* #6B7280 */
     
     /* Texto específico */
     --text-primary: 210 9% 10%;    /* #111827 */
@@ -125,11 +137,15 @@
   /* === UTILIDADES ESPECÍFICAS HAPPY DREAMERS === */
   
   .hd-gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--gradient-primary-from)) 0%, hsl(var(--gradient-primary-to)) 100%);
+    background: linear-gradient(to bottom, hsl(var(--gradient-sidebar-from)) 0%, hsl(var(--gradient-sidebar-to)) 100%);
+  }
+  
+  .hd-gradient-button {
+    background: linear-gradient(135deg, hsl(var(--gradient-button-from)) 0%, hsl(var(--gradient-button-to)) 100%);
   }
   
   .hd-gradient-secondary {
-    background: linear-gradient(135deg, hsl(var(--gradient-secondary-from)) 0%, hsl(var(--gradient-secondary-to)) 100%);
+    background: linear-gradient(135deg, hsl(var(--gradient-button-from)) 0%, hsl(var(--gradient-button-to)) 100%);
   }
   
   .hd-card-shadow {
@@ -201,5 +217,54 @@
   /* Border utilities */
   .border-hd-input-focused {
     border-color: hsl(var(--input-focused));
+  }
+  
+  /* Event type colors */
+  .bg-sleep {
+    background-color: hsl(var(--color-sleep));
+  }
+  
+  .bg-nap {
+    background-color: hsl(var(--color-nap));
+  }
+  
+  .bg-wake {
+    background-color: hsl(var(--color-wake));
+  }
+  
+  /* Event pills */
+  .event-pill {
+    @apply px-3 py-1 rounded-full text-xs font-medium text-white;
+  }
+  
+  /* Calendar cell */
+  .calendar-cell {
+    @apply min-h-[100px] p-2 border border-gray-200 hover:bg-gray-50 transition-colors;
+  }
+  
+  /* Chat message bubbles */
+  .chat-bubble-assistant {
+    @apply bg-[#EDE5FF] rounded-2xl p-4 max-w-[80%];
+  }
+  
+  .chat-bubble-user {
+    @apply bg-[#EBF4FF] rounded-2xl p-4 max-w-[80%] ml-auto;
+  }
+  
+  /* Step indicator */
+  .step-circle {
+    @apply w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-200;
+  }
+  
+  .step-circle-active {
+    @apply bg-blue-500 text-white border-2 border-blue-500;
+  }
+  
+  .step-circle-completed {
+    @apply bg-blue-500 text-white;
+  }
+  
+  .step-circle-pending {
+    @apply bg-gray-200 text-gray-500;
   }
 }

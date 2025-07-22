@@ -60,10 +60,10 @@ export function Header() {
     : "U"
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
+    <header className="sticky top-0 z-30 border-b border-gray-200 bg-white shadow-sm">
+      <div className="container flex h-16 items-center justify-between px-4 md:px-6">
+        <div className="flex items-center gap-6 flex-1">
+          <Link href="/dashboard" className="flex items-center gap-2 lg:hidden">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -72,20 +72,16 @@ export function Header() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="h-6 w-6 text-primary"
+              className="h-6 w-6 text-[#4A90E2]"
             >
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
             </svg>
-            <span className="hidden font-bold md:inline-block">Happy Dreamers</span>
           </Link>
-          <div className="hidden md:block">
+          <div className="flex-1 max-w-md">
             <ChildSelector />
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="md:hidden">
-            <ChildSelector />
-          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">

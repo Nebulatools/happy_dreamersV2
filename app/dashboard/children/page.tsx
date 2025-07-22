@@ -106,14 +106,6 @@ export default function MisSonadoresPage() {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-2xl font-bold text-gray-900">Mis Soñadores</h1>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="text-blue-600 hover:bg-blue-50">
-              Ayuda
-            </Button>
-            <Button variant="ghost" size="sm" className="text-blue-600 hover:bg-blue-50">
-              Contacto
-            </Button>
-          </div>
         </div>
         <div className="flex items-center justify-between">
           <p className="text-gray-600">

@@ -72,7 +72,7 @@ export default function SleepMetricsGrid({ childId }: SleepMetricsGridProps) {
       {sleepMetrics.map((metric, index) => (
         <div 
           key={index}
-          className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+          className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02] cursor-pointer"
         >
           {/* Contenido principal */}
           <div className="p-6">

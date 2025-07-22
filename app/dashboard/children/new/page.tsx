@@ -102,14 +102,6 @@ export default function AddChildPage() {
           </Button>
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-900">Mis Soñadores</h1>
-            <div className="flex items-center gap-3 mt-2">
-              <Button variant="ghost" size="sm" className="text-blue-600 hover:bg-blue-50">
-                Ayuda
-              </Button>
-              <Button variant="ghost" size="sm" className="text-blue-600 hover:bg-blue-50">
-                Contacto
-              </Button>
-            </div>
           </div>
         </div>
 

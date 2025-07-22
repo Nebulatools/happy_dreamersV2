@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, UserCheck } from "lucide-react"
+import { PlusCircle, UserCheck, Baby } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { useActiveChild } from "@/context/active-child-context"
@@ -202,12 +202,15 @@ export function ChildSelector() {
               onValueChange={handleSelectChange}
               disabled={loading || children.length === 0}
             >
-              <SelectTrigger className="w-[240px]">
-                <SelectValue placeholder={
-                  loading ? "Cargando..." : 
-                  children.length === 0 ? "Sin niños" : 
-                  "Seleccionar niño"
-                } />
+              <SelectTrigger className="w-[260px] h-11 bg-white border-gray-200 hover:border-[#4A90E2] transition-colors">
+                <div className="flex items-center gap-2">
+                  <Baby className="h-4 w-4 text-[#4A90E2]" />
+                  <SelectValue placeholder={
+                    loading ? "Cargando..." : 
+                    children.length === 0 ? "Sin niños registrados" : 
+                    "Seleccionar niño"
+                  } />
+                </div>
               </SelectTrigger>
               <SelectContent>
                 {children.map((child) => (
@@ -222,10 +225,10 @@ export function ChildSelector() {
             <Button 
               variant="outline" 
               size="icon" 
-              className="h-9 w-9" 
+              className="h-11 w-11 border-gray-200 hover:border-[#4A90E2] hover:text-[#4A90E2] transition-colors" 
               onClick={handleAddChild}
             >
-              <PlusCircle className="h-4 w-4" />
+              <PlusCircle className="h-5 w-5" />
               <span className="sr-only">Agregar niño</span>
             </Button>
           </>

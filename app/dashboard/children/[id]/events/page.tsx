@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useActiveChild } from "@/context/active-child-context"
+import { EventRegistrationModal } from "@/components/events"
 
 interface Event {
   _id: string;
@@ -65,6 +66,8 @@ export default function ChildEventsPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editedEvent, setEditedEvent] = useState<Partial<Event>>({})
+  const [eventModalOpen, setEventModalOpen] = useState(false)
+  const [children, setChildren] = useState<Child[]>([])
 
   // Efecto 1: Sincronizar URL con Contexto al cargar o si cambia la URL
   useEffect(() => {
@@ -340,12 +343,10 @@ export default function ChildEventsPage() {
             Lista de todos los eventos registrados para este niño
           </p>
         </div>
-        <Link href={`/dashboard/event?childId=${activeChildId}`}>
-          <Button className="gap-2">
-            <PlusCircle className="h-4 w-4" />
-            Registrar evento
-          </Button>
-        </Link>
+        <Button className="gap-2" onClick={() => setEventModalOpen(true)}>
+          <PlusCircle className="h-4 w-4" />
+          Registrar evento
+        </Button>
       </div>
 
       {events.length === 0 ? (
@@ -353,12 +354,10 @@ export default function ChildEventsPage() {
           <CardContent className="py-10">
             <div className="text-center">
               <p>No hay eventos registrados para este niño.</p>
-              <Link href={`/dashboard/event?childId=${activeChildId}`}>
-                <Button className="mt-4">
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Registrar el primer evento
-                </Button>
-              </Link>
+              <Button className="mt-4" onClick={() => setEventModalOpen(true)}>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Registrar el primer evento
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -569,6 +568,18 @@ export default function ChildEventsPage() {
           )}
         </DialogContent>
       </Dialog>
+      
+      {/* Event Registration Modal */}
+      <EventRegistrationModal
+        isOpen={eventModalOpen}
+        onClose={() => setEventModalOpen(false)}
+        childId={activeChildId || undefined}
+        children={children}
+        onEventCreated={() => {
+          setEventModalOpen(false)
+          fetchChildData(childIdFromUrl) // Recargar eventos después de crear uno nuevo
+        }}
+      />
     </div>
   )
 } 

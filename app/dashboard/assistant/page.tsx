@@ -1,22 +1,25 @@
-// Página del asistente IA
-// Permite al usuario interactuar con un chatbot basado en OpenAI
+// Página del Asistente Happy Dreamers según diseño de Figma
+// Chat interactivo con el asistente de sueño infantil
 
 "use client"
 
-import type React from "react"
-import { useState, useRef, useEffect } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Card } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
-import { Send, Bot, Settings, User, Database, FileText } from "lucide-react"
-import { DocumentUpload } from "@/components/rag/document-upload"
-import { DocumentsList } from "@/components/rag/documents-list"
+import { 
+  Send, 
+  Paperclip, 
+  Mic, 
+  Bot, 
+  User,
+  MoreHorizontal,
+  HelpCircle
+} from "lucide-react"
 import { useActiveChild } from "@/context/active-child-context"
+import { cn } from "@/lib/utils"
 
 interface Message {
   id: string
@@ -30,12 +33,6 @@ interface Message {
     hasPersonalData: boolean
     recentEventsCount: number
   }
-  agentInfo?: {
-    agentUsed: string
-    routingDecision: string
-    executionTime: string
-    performance: any
-  }
 }
 
 interface Child {
@@ -43,6 +40,12 @@ interface Child {
   firstName: string
   lastName: string
 }
+
+const quickSuggestions = [
+  "Rutinas de sueño",
+  "Pesadillas",
+  "Siestas"
+]
 
 export default function AssistantPage() {
   const { data: session } = useSession()
@@ -52,17 +55,18 @@ export default function AssistantPage() {
     {
       id: "welcome",
       role: "assistant",
-      content: "¡Hola! Soy la Dra. Mariana, especialista en sueño infantil. Estoy aquí para ayudarte con cualquier duda sobre el descanso de tu pequeño. ¿En qué puedo apoyarte hoy?",
+      content: "¡Hola! Soy el asistente de Happy Dreamers. Estoy aquí para ayudarte con cualquier consulta sobre el sueño de tu hijo/a. ¿En qué puedo ayudarte hoy?",
       timestamp: new Date(),
     },
   ])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
   const { toast } = useToast()
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const isAdmin = session?.user?.role === "admin"
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  // Cargar información del niño activo cuando cambie
+  // Cargar información del niño activo
   useEffect(() => {
     const fetchActiveChild = async () => {
       if (!activeChildId) {
@@ -75,8 +79,6 @@ export default function AssistantPage() {
         if (response.ok) {
           const child = await response.json()
           setActiveChild(child)
-        } else {
-          setActiveChild(null)
         }
       } catch (error) {
         console.error('Error cargando información del niño:', error)
@@ -87,17 +89,16 @@ export default function AssistantPage() {
     fetchActiveChild()
   }, [activeChildId])
 
-  // Scroll al final de los mensajes cuando se añade uno nuevo
+  // Auto-scroll a mensajes nuevos
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    e?.preventDefault()
 
     if (!input.trim()) return
 
-    // Añadir mensaje del usuario
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -110,10 +111,9 @@ export default function AssistantPage() {
     setIsLoading(true)
 
     try {
-      // Preparar historial de conversación (últimos 10 mensajes para mantener contexto sin sobrecargar)
       const conversationHistory = messages
-        .slice(-10) // Solo últimos 10 mensajes para evitar tokens excesivos
-        .filter(msg => msg.id !== "welcome") // Excluir mensaje de bienvenida
+        .slice(-10)
+        .filter(msg => msg.id !== "welcome")
         .map(msg => ({
           role: msg.role,
           content: msg.content
@@ -137,21 +137,14 @@ export default function AssistantPage() {
 
       const data = await response.json()
       
-      // Agregar respuesta del asistente
       const assistantMessage: Message = {
         id: Date.now().toString(),
-        role: 'assistant' as const,
+        role: 'assistant',
         content: data.response,
         timestamp: new Date(),
         documentsUsed: data.documentsUsed || 0,
         sources: data.sources || [],
-        childContext: data.childContext,
-        agentInfo: {
-          agentUsed: data.agentUsed,
-          routingDecision: data.routingDecision,
-          executionTime: data.executionTime,
-          performance: data.performance
-        }
+        childContext: data.childContext
       }
 
       setMessages((prev) => [...prev, assistantMessage])
@@ -166,168 +159,205 @@ export default function AssistantPage() {
     }
   }
 
-  const refreshDocuments = () => {
-    // Esta función se llama cuando se sube un nuevo documento
-    // Los componentes DocumentUpload y DocumentsList la usan para sincronizarse
+  const handleQuickSuggestion = (suggestion: string) => {
+    setInput(suggestion)
+    inputRef.current?.focus()
+  }
+
+  const handleRecordToggle = () => {
+    setIsRecording(!isRecording)
+    if (!isRecording) {
+      toast({
+        title: "Grabación iniciada",
+        description: "Habla cerca del micrófono",
+      })
+    } else {
+      toast({
+        title: "Grabación detenida",
+        description: "Procesando audio...",
+      })
+    }
+  }
+
+  const formatContent = (content: string) => {
+    // Dividir el contenido en secciones si contiene listas
+    const lines = content.split('\n')
+    return lines.map((line, index) => {
+      if (line.trim().startsWith('•')) {
+        return (
+          <li key={index} className="ml-4 mb-1">
+            {line.substring(1).trim()}
+          </li>
+        )
+      }
+      return <p key={index} className="mb-2">{line}</p>
+    })
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Asistente IA Mejorado</h1>
-        <p className="text-muted-foreground">
-          Consulta con nuestro asistente especializado con acceso a documentos de conocimiento
-          {activeChild && (
-            <span className="block mt-1 text-sm font-medium text-primary">
-              💡 El asistente tiene acceso a la información de {activeChild.firstName} {activeChild.lastName}
-            </span>
-          )}
-        </p>
+    <div className="max-w-5xl mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-[#2F2F2F]">Asistente Happy Dreamers</h1>
       </div>
 
-      <Tabs defaultValue="chat" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="chat" className="flex items-center gap-2">
-            <Bot className="h-4 w-4" />
-            Chat
-          </TabsTrigger>
-          {isAdmin && (
-            <TabsTrigger value="configuracion" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Configuración
-            </TabsTrigger>
-          )}
-        </TabsList>
+      {/* Main Chat Container */}
+      <Card className="h-[calc(100vh-12rem)] flex flex-col overflow-hidden">
+        {/* Assistant Header */}
+        <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#4A90E2] rounded-full flex items-center justify-center">
+              <Bot className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-base">Tu Coach de Sueño Virtual</h3>
+              <p className="text-xs text-gray-500">Disponible 24/7 para ayudarte</p>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon">
+            <MoreHorizontal className="w-5 h-5" />
+          </Button>
+        </div>
 
-        <TabsContent value="chat">
-          <Card className="h-[calc(100vh-12rem)] flex flex-col">
-            <CardHeader className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-              <CardTitle>Chat con el asistente</CardTitle>
-              <CardDescription>
-                Haz preguntas sobre el sueño de tus hijos y recibe consejos basados en documentos especializados
-                {activeChild && (
-                  <span className="block mt-2 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                    <User className="inline h-4 w-4 mr-2 text-blue-600" />
-                    <span className="text-blue-900 font-medium">
-                      Contexto activo: <strong>{activeChild.firstName} {activeChild.lastName}</strong>
-                    </span>
-                  </span>
+        {/* Messages Area */}
+        <ScrollArea className="flex-1 p-4">
+          <div className="space-y-4">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={cn(
+                  "flex gap-3",
+                  message.role === 'user' && "flex-row-reverse"
                 )}
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent className="flex-1 p-0 overflow-hidden">
-              <ScrollArea className="h-full">
-                <div className="space-y-6 p-6 pb-8">
-                  {messages.map((message, index) => (
-                    <div key={index} className={`flex ${
-                      message.role === 'user' ? 'justify-end' : 'justify-start'
-                    }`}>
-                      <div className={`
-                        max-w-[80%] p-4 rounded-2xl relative
-                        ${message.role === 'user' 
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' 
-                          : 'bg-white border border-gray-200 text-gray-800 shadow-sm'
-                        }
-                      `}>
-                        <div className="text-sm mb-2 opacity-70">
-                          {message.role === 'user' ? 'Tú' : 'Dra. Mariana'}
-                          <span className="ml-2 text-xs">
-                            {message.timestamp?.toLocaleTimeString()}
-                          </span>
-                        </div>
-                        
-                        <div className="text-sm leading-relaxed">
-                          {message.content}
-                        </div>
+              >
+                {/* Avatar */}
+                {message.role === 'assistant' && (
+                  <div className="w-8 h-8 bg-[#4A90E2] rounded-full flex items-center justify-center flex-shrink-0">
+                    <Bot className="w-5 h-5 text-white" />
+                  </div>
+                )}
 
-                        {/* 🎯 NUEVA INFORMACIÓN DEL AGENTE */}
-                        {message.role === 'assistant' && message.agentInfo && (
-                          <div className="mt-3 pt-3 border-t border-gray-200">
-                            <div className="flex flex-wrap gap-2 text-xs">
-                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                                🤖 {message.agentInfo.agentUsed}
-                              </span>
-                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                ⚡ {message.agentInfo.executionTime}
-                              </span>
-                              {message.agentInfo.routingDecision && (
-                                <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
-                                  🎯 {message.agentInfo.routingDecision}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                {/* Message Bubble */}
+                <div
+                  className={cn(
+                    "rounded-2xl p-4 max-w-[70%]",
+                    message.role === 'assistant' 
+                      ? "chat-bubble-assistant" 
+                      : "chat-bubble-user"
+                  )}
+                >
+                  <div className="text-sm">
+                    {formatContent(message.content)}
+                  </div>
                   
-                  {/* Indicador de "escribiendo..." cuando está cargando */}
-                  {isLoading && (
-                    <div className="flex justify-start">
-                      <div className="flex gap-4 max-w-[85%]">
-                        <Avatar className="h-10 w-10 border-2 border-white shadow-md">
-                          <AvatarImage src="/futuristic-helper-robot.png" alt="Asistente" />
-                          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">AI</AvatarFallback>
-                        </Avatar>
-                        <div className="rounded-2xl px-5 py-4 bg-white border border-gray-200 shadow-md">
-                          <div className="flex items-center gap-3">
-                            <div className="flex gap-1">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: "150ms"}}></div>
-                              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: "300ms"}}></div>
-                            </div>
-                            <p className="text-sm text-gray-600">está escribiendo...</p>
-                          </div>
-                        </div>
-                      </div>
+                  {/* Sources */}
+                  {message.sources && message.sources.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-purple-200">
+                      <a href="#" className="text-xs text-[#4A90E2] hover:underline">
+                        Ver guía completa sobre ambientes de sueño
+                      </a>
                     </div>
                   )}
-                  
-                  <div ref={messagesEndRef} />
                 </div>
-              </ScrollArea>
-            </CardContent>
+              </div>
+            ))}
             
-            <CardFooter className="flex-shrink-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-6">
-              <form onSubmit={handleSendMessage} className="flex w-full gap-3">
-                <div className="flex-1 relative">
-                  <Input
-                    placeholder={
-                      activeChild 
-                        ? `Pregunta sobre ${activeChild.firstName}...` 
-                        : "Escribe tu mensaje..."
-                    }
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    disabled={isLoading}
-                    className="pr-12 py-3 text-base rounded-full border-2 border-gray-200 focus:border-blue-400 focus:ring-blue-400/20 transition-all duration-200"
-                  />
+            {/* Loading Indicator */}
+            {isLoading && (
+              <div className="flex gap-3">
+                <div className="w-8 h-8 bg-[#4A90E2] rounded-full flex items-center justify-center">
+                  <Bot className="w-5 h-5 text-white" />
                 </div>
-                <Button 
-                  type="submit" 
-                  size="lg"
-                  disabled={isLoading || !input.trim()}
-                  className="rounded-full px-6 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
-                >
-                  <Send className="h-4 w-4" />
-                  <span className="sr-only">Enviar mensaje</span>
-                </Button>
-              </form>
-            </CardFooter>
-          </Card>
-        </TabsContent>
+                <div className="chat-bubble-assistant">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
 
-        {session?.user?.role === 'admin' && (
-          <TabsContent value="configuracion" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <DocumentUpload onUploadSuccess={refreshDocuments} />
-              <DocumentsList onDocumentDeleted={refreshDocuments} />
+        {/* Suggestions */}
+        <div className="px-4 py-2 border-t">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600 flex items-center gap-1">
+              <HelpCircle className="w-4 h-4" />
+              Sugerencias:
+            </span>
+            <div className="flex gap-2">
+              {quickSuggestions.map((suggestion) => (
+                <Button
+                  key={suggestion}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickSuggestion(suggestion)}
+                  className="text-xs rounded-full"
+                >
+                  {suggestion}
+                </Button>
+              ))}
             </div>
-          </TabsContent>
-        )}
-      </Tabs>
+          </div>
+        </div>
+
+        {/* Input Area */}
+        <form onSubmit={handleSendMessage} className="p-4 border-t">
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="text-gray-500"
+            >
+              <Paperclip className="w-5 h-5" />
+            </Button>
+            
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Message"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={isLoading}
+              className="flex-1 px-4 py-2 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleRecordToggle}
+              className={cn(
+                "text-gray-500",
+                isRecording && "text-red-500"
+              )}
+            >
+              <div className="relative">
+                <Mic className="w-5 h-5" />
+                {isRecording && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-8 h-8 bg-red-500/20 rounded-full animate-ping" />
+                  </div>
+                )}
+              </div>
+            </Button>
+            
+            <Button
+              type="submit"
+              size="icon"
+              disabled={isLoading || !input.trim()}
+              className="bg-[#4A90E2] hover:bg-[#2553A1] text-white rounded-full"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
+        </form>
+      </Card>
     </div>
   )
 }

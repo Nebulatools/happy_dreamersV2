@@ -6,6 +6,8 @@ import { ArrowLeft, Edit, Calendar, User, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import SleepMetricsGrid from '@/components/child-profile/SleepMetricsGrid'
 import RecentEvents from '@/components/child-profile/RecentEvents'
+import { EventRegistrationModal } from '@/components/events'
+import { useActiveChild } from '@/context/active-child-context'
 
 interface Child {
   _id: string
@@ -25,6 +27,9 @@ export default function ChildProfilePage() {
   const [child, setChild] = useState<Child | null>(null)
   const [activeTab, setActiveTab] = useState<TabType>('resumen')
   const [isLoading, setIsLoading] = useState(true)
+  const [eventModalOpen, setEventModalOpen] = useState(false)
+  const [children, setChildren] = useState<Child[]>([])  
+  const { setActiveChildId } = useActiveChild()
 
   // Calcular edad del niño
   const calculateAge = (birthDate: string) => {
@@ -69,8 +74,24 @@ export default function ChildProfilePage() {
 
     if (params.id) {
       fetchChild()
+      // También establecer este niño como activo
+      setActiveChildId(params.id as string)
     }
-  }, [params.id, router])
+  }, [params.id, router, setActiveChildId])
+
+  // Cargar children cuando se abre el modal
+  useEffect(() => {
+    if (eventModalOpen) {
+      fetch('/api/children')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setChildren(data.children)
+          }
+        })
+        .catch(console.error)
+    }
+  }, [eventModalOpen])
 
   if (isLoading) {
     return (
@@ -213,7 +234,7 @@ export default function ChildProfilePage() {
                 <div className="flex justify-end">
                   <Button 
                     className="bg-gradient-to-r from-[#628BE6] to-[#67C5FF] text-white hover:from-[#5478D2] hover:to-[#5AB1E6] shadow-sm px-6 py-3 text-base font-medium"
-                    onClick={() => router.push('/dashboard/event')}
+                    onClick={() => setEventModalOpen(true)}
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Registrar Nuevo Evento
@@ -238,13 +259,49 @@ export default function ChildProfilePage() {
             )}
 
             {activeTab === 'encuestas' && (
-              <div className="text-center py-8 text-gray-500">
-                <p>Contenido de Encuestas próximamente...</p>
+              <div className="space-y-6">
+                <div className="bg-[#F0F7FF] rounded-xl border border-blue-100 p-8 text-center">
+                  <h3 className="text-xl font-semibold text-[#2F2F2F] mb-3">
+                    Encuesta de Sueño Infantil
+                  </h3>
+                  <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+                    Completa nuestra encuesta detallada para recibir recomendaciones personalizadas 
+                    sobre los patrones de sueño de {child.firstName}. La encuesta toma aproximadamente 
+                    10-15 minutos y nos ayudará a crear un plan de sueño adaptado a sus necesidades.
+                  </p>
+                  <Button 
+                    className="bg-gradient-to-r from-[#628BE6] to-[#67C5FF] text-white hover:from-[#5478D2] hover:to-[#5AB1E6] shadow-sm px-8 py-3 text-base font-medium"
+                    onClick={() => router.push(`/dashboard/survey?childId=${child._id}`)}
+                  >
+                    Comenzar Encuesta
+                    <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
+                  </Button>
+                </div>
+                
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-3">Estado de la Encuesta</h4>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                    <span className="text-gray-600">Encuesta pendiente de completar</span>
+                  </div>
+                </div>
               </div>
             )}
           </div>
         </div>
       </div>
+      
+      {/* Event Registration Modal */}
+      <EventRegistrationModal
+        isOpen={eventModalOpen}
+        onClose={() => setEventModalOpen(false)}
+        childId={params.id as string}
+        children={children}
+        onEventCreated={() => {
+          // Recargar eventos si es necesario
+          setEventModalOpen(false)
+        }}
+      />
     </div>
   )
 }
