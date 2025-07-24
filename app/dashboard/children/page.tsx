@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { createLogger } from "@/lib/logger"
+import { extractChildrenFromResponse } from "@/lib/api-response-utils"
 
 const logger = createLogger("page")
 
@@ -69,7 +70,12 @@ export default function MisSonadoresPage() {
       const response = await fetch('/api/children')
       if (response.ok) {
         const data = await response.json()
-        setChildren(data)
+        const childrenData = extractChildrenFromResponse(data)
+        setChildren(childrenData)
+        
+        if (childrenData.length === 0 && data && !Array.isArray(data)) {
+          logger.warn('No se pudieron extraer niños de la respuesta:', data)
+        }
       } else {
         toast.error('Error al cargar los soñadores')
       }

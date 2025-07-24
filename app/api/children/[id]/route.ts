@@ -64,7 +64,8 @@ export async function PUT(
     logger.info(`Actualizando niño con ID: ${id}`)
 
     const data = await request.json()
-    console.log("Datos recibidos para actualización:", {
+    logger.info("Datos recibidos para actualización", {
+      childId: id,
       firstName: data.firstName,
       lastName: data.lastName,
       birthDate: data.birthDate,
@@ -105,7 +106,8 @@ export async function PUT(
       { $set: updateData }
     )
 
-    console.log("Resultado de la actualización:", {
+    logger.info("Resultado de la actualización", {
+      childId: id,
       matchedCount: result.matchedCount,
       modifiedCount: result.modifiedCount,
     })

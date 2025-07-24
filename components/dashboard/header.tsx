@@ -5,7 +5,6 @@
 
 import Link from "next/link"
 import { useSession } from "next-auth/react"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,

@@ -13,6 +13,7 @@ import { useActiveChild } from "@/context/active-child-context"
 import { useSession } from "next-auth/react"
 
 import { createLogger } from "@/lib/logger"
+import { extractChildrenFromResponse } from "@/lib/api-response-utils"
 
 const logger = createLogger("child-selector")
 
@@ -62,17 +63,25 @@ export function ChildSelector() {
         throw new Error("Error al cargar los niños")
       }
       
-      const data = await response.json()
-      logger.info(`Loaded ${data.length} children`)
-      setChildren(data)
+      const responseData = await response.json()
+      
+      // Usar la función utilidad para extraer los niños
+      const childrenData = extractChildrenFromResponse(responseData)
+      
+      if (childrenData.length === 0 && responseData && !Array.isArray(responseData)) {
+        logger.warn('No se pudieron extraer niños de la respuesta:', responseData)
+      }
+      
+      logger.info(`Loaded ${childrenData.length} children`)
+      setChildren(childrenData)
 
       // Si hay niños y no hay uno activo seleccionado, seleccionamos el primero por defecto
-      if (data.length > 0 && !activeChildId) {
-        setActiveChildId(data[0]._id)
+      if (childrenData.length > 0 && !activeChildId) {
+        setActiveChildId(childrenData[0]._id)
       }
       // Si ya había un niño activo, pero ya no existe en la lista, seleccionamos el primero
-      else if (activeChildId && !data.some((child: Child) => child._id === activeChildId)) {
-        setActiveChildId(data.length > 0 ? data[0]._id : null)
+      else if (activeChildId && !childrenData.some((child: Child) => child._id === activeChildId)) {
+        setActiveChildId(childrenData.length > 0 ? childrenData[0]._id : null)
       }
 
       setLoading(false)

@@ -14,7 +14,6 @@ import {
   Paperclip, 
   Mic, 
   Bot, 
-  User,
   MoreHorizontal,
   HelpCircle,
 } from "lucide-react"

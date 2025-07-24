@@ -10,6 +10,7 @@ import { EventRegistrationModal } from "@/components/events"
 import { useActiveChild } from "@/context/active-child-context"
 
 import { createLogger } from "@/lib/logger"
+import { extractChildrenFromResponse } from "@/lib/api-response-utils"
 
 const logger = createLogger("page")
 
@@ -90,11 +91,16 @@ export default function ChildProfilePage() {
       fetch("/api/children")
         .then(res => res.json())
         .then(data => {
-          if (data.success) {
-            setChildren(data.children)
+          const childrenData = extractChildrenFromResponse(data)
+          setChildren(childrenData)
+          
+          if (childrenData.length === 0 && data && !Array.isArray(data)) {
+            logger.warn('No se pudieron extraer niños de la respuesta:', data)
           }
         })
-        .catch(console.error)
+        .catch((error) => {
+          logger.error('Error al cargar niños', error)
+        })
     }
   }, [eventModalOpen])
 
