@@ -12,6 +12,11 @@ import { useToast } from "@/hooks/use-toast"
 import { useActiveChild } from "@/context/active-child-context"
 import { useSession } from "next-auth/react"
 
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("child-selector")
+
+
 type Child = {
   _id: string
   firstName: string
@@ -37,7 +42,7 @@ export function ChildSelector() {
     try {
       // No hacer petición si no hay sesión activa
       if (!session || !session.user) {
-        console.log('No hay sesión activa, omitiendo carga de niños')
+        logger.info("No hay sesión activa, omitiendo carga de niños")
         setLoading(false)
         return
       }
@@ -45,20 +50,20 @@ export function ChildSelector() {
       setLoading(true)
       
       // Construir la URL adecuada según si es admin y hay un usuario seleccionado
-      let url = '/api/children'
+      let url = "/api/children"
       if (isAdmin && (userId || selectedUserId)) {
         url = `/api/children?userId=${userId || selectedUserId}`
       }
       
-      console.log(`Fetching children from ${url}`)
-      const response = await fetch(url, { cache: 'no-store' })
+      logger.info(`Fetching children from ${url}`)
+      const response = await fetch(url, { cache: "no-store" })
       
       if (!response.ok) {
-        throw new Error('Error al cargar los niños')
+        throw new Error("Error al cargar los niños")
       }
       
       const data = await response.json()
-      console.log(`Loaded ${data.length} children`)
+      logger.info(`Loaded ${data.length} children`)
       setChildren(data)
 
       // Si hay niños y no hay uno activo seleccionado, seleccionamos el primero por defecto
@@ -72,7 +77,7 @@ export function ChildSelector() {
 
       setLoading(false)
     } catch (error) {
-      console.error('Error:', error)
+      logger.error("Error:", error)
       // No mostrar toast si el error es de autorización durante logout
       if (session && session.user) {
         toast({
@@ -92,8 +97,8 @@ export function ChildSelector() {
     
     try {
       const date = new Date(birthDate)
-      const day = date.getDate().toString().padStart(2, '0')
-      const month = (date.getMonth() + 1).toString().padStart(2, '0') 
+      const day = date.getDate().toString().padStart(2, "0")
+      const month = (date.getMonth() + 1).toString().padStart(2, "0") 
       const year = date.getFullYear().toString().slice(-2) // Solo los últimos 2 dígitos del año
       
       return ` (${day}/${month}/${year})`
@@ -112,8 +117,8 @@ export function ChildSelector() {
     }
 
     if (isAdmin) {
-      const savedUserId = localStorage.getItem('admin_selected_user_id')
-      const savedUserName = localStorage.getItem('admin_selected_user_name')
+      const savedUserId = localStorage.getItem("admin_selected_user_id")
+      const savedUserName = localStorage.getItem("admin_selected_user_name")
       
       if (savedUserId !== selectedUserId) {
         setSelectedUserId(savedUserId)
@@ -135,9 +140,9 @@ export function ChildSelector() {
     if (!isAdmin) return
 
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'admin_selected_user_id') {
+      if (e.key === "admin_selected_user_id") {
         const newUserId = e.newValue
-        const newUserName = localStorage.getItem('admin_selected_user_name')
+        const newUserName = localStorage.getItem("admin_selected_user_name")
         
         if (newUserId !== selectedUserId) {
           setSelectedUserId(newUserId)
@@ -152,10 +157,10 @@ export function ChildSelector() {
       }
     }
 
-    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener("storage", handleStorageChange)
     
     return () => {
-      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener("storage", handleStorageChange)
     }
   }, [isAdmin, selectedUserId])
 
@@ -219,8 +224,8 @@ export function ChildSelector() {
                     <SelectValue 
                       placeholder={
                         loading ? "Cargando..." : 
-                        children.length === 0 ? "Sin niños" : 
-                        "Seleccionar"
+                          children.length === 0 ? "Sin niños" : 
+                            "Seleccionar"
                       }
                       className="text-[#2553A1] font-medium text-base"
                     />

@@ -113,20 +113,20 @@ export function SleepRoutineForm({ onDataChange, isSubmitting = false, initialDa
   // Nuevo manejador de envío con feedback visual
   const onSubmit = (data: SleepRoutineFormValues) => {
     // No iniciar guardado si isSubmitting es true (se está enviando toda la encuesta)
-    if (isSubmitting) return;
+    if (isSubmitting) return
     
-    setIsSaving(true);
+    setIsSaving(true)
     
     // Simulamos un pequeño delay para mostrar el estado "guardando"
     setTimeout(() => {
-      onDataChange(data);
-      setIsSaving(false);
+      onDataChange(data)
+      setIsSaving(false)
       
       // Mostrar mensaje de guardado durante 2 segundos
-      setShowSaved(true);
-      setTimeout(() => setShowSaved(false), 2000);
-    }, 500);
-  };
+      setShowSaved(true)
+      setTimeout(() => setShowSaved(false), 2000)
+    }, 500)
+  }
 
   const caregiverOptions = [
     { id: "mother", label: "Madre" },

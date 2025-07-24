@@ -9,7 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from "recharts"
 import { format, parseISO } from "date-fns"
 
@@ -34,7 +34,7 @@ export function EventTrendChart({ filteredEvents }: EventTrendChartProps) {
   const eventTrendData = (() => {
     // Agrupar eventos por día
     const eventsByDay = filteredEvents.reduce<Record<string, DayEvents>>((acc, event) => {
-      const day = format(parseISO(event.startTime), 'yyyy-MM-dd')
+      const day = format(parseISO(event.startTime), "yyyy-MM-dd")
       
       if (!acc[day]) {
         acc[day] = {
@@ -44,7 +44,7 @@ export function EventTrendChart({ filteredEvents }: EventTrendChartProps) {
           activity: 0,
           play: 0,
           meal: 0,
-          total: 0
+          total: 0,
         }
       }
       
@@ -61,7 +61,7 @@ export function EventTrendChart({ filteredEvents }: EventTrendChartProps) {
     return Object.values(eventsByDay)
       .map(day => ({
         ...day,
-        name: format(parseISO(day.date), 'dd/MM')
+        name: format(parseISO(day.date), "dd/MM"),
       }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   })()

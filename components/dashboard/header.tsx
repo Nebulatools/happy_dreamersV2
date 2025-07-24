@@ -21,6 +21,11 @@ import { signOut } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { ChildSelector } from "@/components/dashboard/child-selector"
 
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("header")
+
+
 export function Header() {
   const { data: session } = useSession()
   const router = useRouter()
@@ -34,9 +39,9 @@ export function Header() {
 
   const handleSignOut = async () => {
     // Limpiar localStorage para evitar problemas al cerrar sesión
-    if (localStorage.getItem('admin_selected_user_id')) {
-      localStorage.removeItem('admin_selected_user_id')
-      localStorage.removeItem('admin_selected_user_name')
+    if (localStorage.getItem("admin_selected_user_id")) {
+      localStorage.removeItem("admin_selected_user_id")
+      localStorage.removeItem("admin_selected_user_name")
     }
 
     // Usar window.location.href para forzar una redirección completa
@@ -45,7 +50,7 @@ export function Header() {
       await signOut({ redirect: false })
       window.location.href = "/"
     } catch (error) {
-      console.error("Error al cerrar sesión:", error)
+      logger.error("Error al cerrar sesión:", error)
       // En caso de error, forzar redirección de todos modos
       window.location.href = "/"
     }
@@ -53,10 +58,10 @@ export function Header() {
 
   const userInitials = session?.user?.name
     ? session.user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
     : "U"
 
   return (

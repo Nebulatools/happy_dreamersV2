@@ -19,7 +19,7 @@ import {
   User,
   Baby,
   Calendar,
-  TrendingUp
+  TrendingUp,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Separator } from "@/components/ui/separator"
@@ -52,7 +52,7 @@ export function AnalysisReport({
   result, 
   isLoading = false, 
   userName, 
-  childName 
+  childName, 
 }: AnalysisReportProps) {
   const { toast } = useToast()
   const [copied, setCopied] = useState(false)
@@ -62,9 +62,9 @@ export function AnalysisReport({
     if (!result) return
 
     const fullReport = `
-ANÁLISIS PEDIÁTRICO - ${new Date().toLocaleDateString('es-ES')}
-${userName ? `Usuario: ${userName}` : ''}
-${childName ? `Niño: ${childName}` : ''}
+ANÁLISIS PEDIÁTRICO - ${new Date().toLocaleDateString("es-ES")}
+${userName ? `Usuario: ${userName}` : ""}
+${childName ? `Niño: ${childName}` : ""}
 
 ANÁLISIS:
 ${result.analysis}
@@ -100,9 +100,9 @@ Generado por Happy Dreamers AI Assistant
 
     const fullReport = `
 ANÁLISIS PEDIÁTRICO
-Fecha: ${new Date().toLocaleDateString('es-ES')}
-${userName ? `Usuario: ${userName}` : ''}
-${childName ? `Niño: ${childName}` : ''}
+Fecha: ${new Date().toLocaleDateString("es-ES")}
+${userName ? `Usuario: ${userName}` : ""}
+${childName ? `Niño: ${childName}` : ""}
 
 ANÁLISIS:
 ${result.analysis}
@@ -114,18 +114,18 @@ ${result.childContext ? `
 CONTEXTO DEL NIÑO:
 - Edad: ${result.childContext.ageInMonths} meses
 - Total de eventos: ${result.childContext.totalEvents}
-` : ''}
+` : ""}
 
 ---
 Generado por Happy Dreamers AI Assistant
-Reporte ID: ${result.metadata?.reportId || 'N/A'}
+Reporte ID: ${result.metadata?.reportId || "N/A"}
     `.trim()
 
-    const blob = new Blob([fullReport], { type: 'text/plain;charset=utf-8' })
+    const blob = new Blob([fullReport], { type: "text/plain;charset=utf-8" })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
+    const a = document.createElement("a")
     a.href = url
-    a.download = `analisis-${childName || 'consulta'}-${new Date().toISOString().slice(0, 10)}.txt`
+    a.download = `analisis-${childName || "consulta"}-${new Date().toISOString().slice(0, 10)}.txt`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -193,7 +193,7 @@ Reporte ID: ${result.metadata?.reportId || 'N/A'}
                 Análisis Completado
               </CardTitle>
               <CardDescription>
-                Análisis generado el {new Date().toLocaleDateString('es-ES')} 
+                Análisis generado el {new Date().toLocaleDateString("es-ES")} 
                 {result.metadata?.processingTime && ` en ${result.metadata.processingTime}`}
               </CardDescription>
             </div>
@@ -305,7 +305,7 @@ Reporte ID: ${result.metadata?.reportId || 'N/A'}
               </div>
               <div>
                 <strong>Generado:</strong><br />
-                {new Date(result.metadata.createdAt).toLocaleString('es-ES')}
+                {new Date(result.metadata.createdAt).toLocaleString("es-ES")}
               </div>
               {result.metadata.adminName && (
                 <div>

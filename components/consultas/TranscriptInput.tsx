@@ -16,11 +16,16 @@ import {
   Play, 
   Pause,
   Trash2,
-  Download
+  Download,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
+
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("TranscriptInput")
+
 
 interface TranscriptInputProps {
   value: string
@@ -57,7 +62,7 @@ export function TranscriptInput({ value, onChange, disabled = false }: Transcrip
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
+        mimeType: "audio/webm;codecs=opus",
       })
       
       mediaRecorderRef.current = mediaRecorder
@@ -70,7 +75,7 @@ export function TranscriptInput({ value, onChange, disabled = false }: Transcrip
       }
       
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm;codecs=opus' })
+        const blob = new Blob(chunksRef.current, { type: "audio/webm;codecs=opus" })
         setAudioBlob(blob)
         setAudioUrl(URL.createObjectURL(blob))
         
@@ -93,7 +98,7 @@ export function TranscriptInput({ value, onChange, disabled = false }: Transcrip
       })
       
     } catch (error) {
-      console.error('Error al iniciar grabación:', error)
+      logger.error("Error al iniciar grabación:", error)
       toast({
         title: "Error",
         description: "No se pudo acceder al micrófono. Verifica los permisos.",
@@ -175,7 +180,7 @@ export function TranscriptInput({ value, onChange, disabled = false }: Transcrip
 
     try {
       const formData = new FormData()
-      formData.append('audio', audioBlob, 'recording.webm')
+      formData.append("audio", audioBlob, "recording.webm")
 
       // Simular progreso
       const progressInterval = setInterval(() => {
@@ -188,8 +193,8 @@ export function TranscriptInput({ value, onChange, disabled = false }: Transcrip
         })
       }, 500)
 
-      const response = await fetch('/api/transcript', {
-        method: 'POST',
+      const response = await fetch("/api/transcript", {
+        method: "POST",
         body: formData,
       })
 
@@ -198,7 +203,7 @@ export function TranscriptInput({ value, onChange, disabled = false }: Transcrip
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Error en la transcripción')
+        throw new Error(errorData.error || "Error en la transcripción")
       }
 
       const result = await response.json()
@@ -209,11 +214,11 @@ export function TranscriptInput({ value, onChange, disabled = false }: Transcrip
       
       toast({
         title: "Transcripción completada",
-        description: `Se transcribieron ${result.metadata?.duration || 'varios'} segundos de audio.`,
+        description: `Se transcribieron ${result.metadata?.duration || "varios"} segundos de audio.`,
       })
 
     } catch (error) {
-      console.error('Error en transcripción:', error)
+      logger.error("Error en transcripción:", error)
       toast({
         title: "Error en transcripción",
         description: error instanceof Error ? error.message : "No se pudo transcribir el audio.",
@@ -229,7 +234,7 @@ export function TranscriptInput({ value, onChange, disabled = false }: Transcrip
   const downloadAudio = () => {
     if (!audioUrl) return
     
-    const a = document.createElement('a')
+    const a = document.createElement("a")
     a.href = audioUrl
     a.download = `grabacion-${new Date().toISOString().slice(0, 19)}.webm`
     document.body.appendChild(a)
@@ -255,7 +260,7 @@ export function TranscriptInput({ value, onChange, disabled = false }: Transcrip
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
+    return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
   return (
@@ -318,7 +323,7 @@ export function TranscriptInput({ value, onChange, disabled = false }: Transcrip
                   className="flex-1"
                 >
                   {isPaused ? <Play className="h-4 w-4 mr-2" /> : <Pause className="h-4 w-4 mr-2" />}
-                  {isPaused ? 'Reanudar' : 'Pausar'}
+                  {isPaused ? "Reanudar" : "Pausar"}
                 </Button>
                 
                 <Button 
@@ -381,7 +386,7 @@ export function TranscriptInput({ value, onChange, disabled = false }: Transcrip
                   ) : (
                     <FileAudio className="h-4 w-4 mr-2" />
                   )}
-                  {isTranscribing ? 'Transcribiendo...' : 'Transcribir Audio'}
+                  {isTranscribing ? "Transcribiendo..." : "Transcribir Audio"}
                 </Button>
               </div>
 

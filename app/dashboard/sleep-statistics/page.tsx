@@ -1,14 +1,19 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
-import { Download, Share2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import SleepMetricsGrid from '@/components/child-profile/SleepMetricsGrid'
+import { useState } from "react"
+import { Download, Share2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import SleepMetricsGrid from "@/components/child-profile/SleepMetricsGrid"
+
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("page")
+
 
 export default function SleepStatisticsPage() {
-  const [selectedChild, setSelectedChild] = useState('lucas-garcia')
-  const [dateRange, setDateRange] = useState('7-days')
-  const [eventType, setEventType] = useState('all')
+  const [selectedChild, setSelectedChild] = useState("lucas-garcia")
+  const [dateRange, setDateRange] = useState("7-days")
+  const [eventType, setEventType] = useState("all")
 
   return (
     <div className="min-h-screen bg-[#F5F9FF] p-8">
@@ -116,7 +121,7 @@ export default function SleepStatisticsPage() {
                 className="w-full bg-gradient-to-r from-[#628BE6] to-[#67C5FF] text-white hover:from-[#5478D2] hover:to-[#5AB1E6] shadow-sm h-11 font-medium"
                 onClick={() => {
                   // TODO: Aplicar filtros y actualizar datos
-                  console.log('Filtros aplicados:', { selectedChild, dateRange, eventType })
+                  logger.info("Filtros aplicados:", { selectedChild, dateRange, eventType })
                 }}
               >
                 Aplicar filtros

@@ -1,12 +1,17 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Camera, Save, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useToast } from '@/hooks/use-toast'
+import { useState, useEffect } from "react"
+import { useRouter, useParams } from "next/navigation"
+import { ArrowLeft, Camera, Save, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useToast } from "@/hooks/use-toast"
+
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("page")
+
 
 interface Child {
   _id: string
@@ -26,10 +31,10 @@ export default function EditChildProfilePage() {
   const [isFetching, setIsFetching] = useState(true)
   const [childData, setChildData] = useState<Child | null>(null)
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    birthDate: '',
-    gender: ''
+    firstName: "",
+    lastName: "",
+    birthDate: "",
+    gender: "",
   })
 
   // Cargar datos del niño
@@ -39,24 +44,24 @@ export default function EditChildProfilePage() {
         setIsFetching(true)
         const response = await fetch(`/api/children/${childId}`)
         if (!response.ok) {
-          throw new Error('Error al cargar los datos del niño')
+          throw new Error("Error al cargar los datos del niño")
         }
         const data = await response.json()
         setChildData(data)
         setFormData({
-          firstName: data.firstName || '',
-          lastName: data.lastName || '',
-          birthDate: data.birthDate || '',
-          gender: data.gender || 'Femenino'
+          firstName: data.firstName || "",
+          lastName: data.lastName || "",
+          birthDate: data.birthDate || "",
+          gender: data.gender || "Femenino",
         })
       } catch (error) {
-        console.error('Error:', error)
+        logger.error("Error:", error)
         toast({
           title: "Error",
           description: "No se pudieron cargar los datos del niño",
           variant: "destructive",
         })
-        router.push('/dashboard/children')
+        router.push("/dashboard/children")
       } finally {
         setIsFetching(false)
       }
@@ -71,7 +76,7 @@ export default function EditChildProfilePage() {
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }))
   }
 
@@ -89,15 +94,15 @@ export default function EditChildProfilePage() {
     setIsLoading(true)
     try {
       const response = await fetch(`/api/children/${childId}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       })
 
       if (!response.ok) {
-        throw new Error('Error al actualizar el perfil')
+        throw new Error("Error al actualizar el perfil")
       }
 
       toast({
@@ -107,7 +112,7 @@ export default function EditChildProfilePage() {
 
       router.push(`/dashboard/children/${childId}`)
     } catch (error) {
-      console.error('Error:', error)
+      logger.error("Error:", error)
       toast({
         title: "Error",
         description: "No se pudo actualizar el perfil",
@@ -174,7 +179,7 @@ export default function EditChildProfilePage() {
               {/* Header */}
               <div className="mb-8">
                 <h1 className="text-3xl font-bold text-[#2F2F2F] mb-2">
-                  Editando Perfil de {formData.firstName || 'Niño'}
+                  Editando Perfil de {formData.firstName || "Niño"}
                 </h1>
                 <p className="text-gray-600">
                   Actualiza la información del perfil
@@ -182,14 +187,14 @@ export default function EditChildProfilePage() {
               </div>
 
               {/* Form */}
-              <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+              <form onSubmit={(e) => { e.preventDefault(); handleSave() }}>
                 <div className="space-y-8">
                   {/* Avatar Section */}
                   <div className="flex items-center space-x-6">
                     <div className="relative">
                       <div className="w-32 h-32 rounded-full border-4 border-[#4A90E2] overflow-hidden bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center">
                         <span className="text-4xl font-semibold text-pink-600">
-                          {formData.firstName.charAt(0).toUpperCase() || 'N'}
+                          {formData.firstName.charAt(0).toUpperCase() || "N"}
                         </span>
                       </div>
                     </div>
@@ -213,7 +218,7 @@ export default function EditChildProfilePage() {
                         id="firstName"
                         type="text"
                         value={formData.firstName}
-                        onChange={(e) => handleInputChange('firstName', e.target.value)}
+                        onChange={(e) => handleInputChange("firstName", e.target.value)}
                         className="h-12 border-gray-300 rounded-xl focus:border-[#4A90E2] focus:ring-2 focus:ring-[#4A90E2] focus:ring-opacity-20"
                         placeholder="María"
                       />
@@ -228,7 +233,7 @@ export default function EditChildProfilePage() {
                         id="lastName"
                         type="text"
                         value={formData.lastName}
-                        onChange={(e) => handleInputChange('lastName', e.target.value)}
+                        onChange={(e) => handleInputChange("lastName", e.target.value)}
                         className="h-12 border-gray-300 rounded-xl focus:border-[#4A90E2] focus:ring-2 focus:ring-[#4A90E2] focus:ring-opacity-20"
                         placeholder="González"
                       />
@@ -243,7 +248,7 @@ export default function EditChildProfilePage() {
                         id="birthDate"
                         type="date"
                         value={formData.birthDate}
-                        onChange={(e) => handleInputChange('birthDate', e.target.value)}
+                        onChange={(e) => handleInputChange("birthDate", e.target.value)}
                         className="h-12 border-gray-300 rounded-xl focus:border-[#4A90E2] focus:ring-2 focus:ring-[#4A90E2] focus:ring-opacity-20"
                       />
                     </div>
@@ -257,7 +262,7 @@ export default function EditChildProfilePage() {
                         <select
                           id="gender"
                           value={formData.gender}
-                          onChange={(e) => handleInputChange('gender', e.target.value)}
+                          onChange={(e) => handleInputChange("gender", e.target.value)}
                           className="w-full h-12 px-3 pr-10 bg-white border border-gray-300 rounded-xl text-gray-900 focus:border-[#4A90E2] focus:ring-2 focus:ring-[#4A90E2] focus:ring-opacity-20 outline-none transition-colors appearance-none"
                         >
                           <option value="Femenino">Femenino</option>
@@ -281,7 +286,7 @@ export default function EditChildProfilePage() {
                       className="bg-gradient-to-r from-[#628BE6] to-[#67C5FF] text-white hover:from-[#5478D2] hover:to-[#5AB1E6] shadow-sm px-8 py-3 h-12 font-semibold rounded-xl"
                     >
                       <Save className="w-4 h-4 mr-2" />
-                      {isLoading ? 'Guardando...' : 'Guardar Cambios'}
+                      {isLoading ? "Guardando..." : "Guardar Cambios"}
                     </Button>
                     
                     <Button

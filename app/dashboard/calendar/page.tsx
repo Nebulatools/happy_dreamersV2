@@ -16,7 +16,7 @@ import {
   AlertCircle,
   TrendingUp,
   TrendingDown,
-  Minus
+  Minus,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useActiveChild } from "@/context/active-child-context"
@@ -34,10 +34,15 @@ import {
   endOfWeek,
   parse,
   differenceInHours,
-  differenceInMinutes
+  differenceInMinutes,
 } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("page")
+
 
 interface Event {
   _id: string;
@@ -72,7 +77,7 @@ export default function CalendarPage() {
     nightWakings: 0,
     nightSleepChange: 0,
     napChange: 0,
-    wakingsChange: 0
+    wakingsChange: 0,
   })
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [children, setChildren] = useState([])
@@ -85,14 +90,14 @@ export default function CalendarPage() {
   // Cargar lista de niños para el modal
   useEffect(() => {
     if (eventModalOpen) {
-      fetch('/api/children')
+      fetch("/api/children")
         .then(res => res.json())
         .then(data => {
           if (data.success) {
             setChildren(data.children)
           }
         })
-        .catch(console.error)
+        .catch(error => logger.error("Error al cargar niños", error))
     }
   }, [eventModalOpen])
 
@@ -106,7 +111,7 @@ export default function CalendarPage() {
     setIsLoading(true)
     try {
       const response = await fetch(`/api/children/events?childId=${activeChildId}`)
-      if (!response.ok) throw new Error('Error al cargar eventos')
+      if (!response.ok) throw new Error("Error al cargar eventos")
       
       const data = await response.json()
       const eventsData = data.events || []
@@ -121,7 +126,7 @@ export default function CalendarPage() {
       setEvents(monthEvents)
       calculateMonthlyStats(monthEvents)
     } catch (error) {
-      console.error('Error:', error)
+      logger.error("Error:", error)
       toast({
         title: "Error",
         description: "No se pudieron cargar los eventos",
@@ -138,18 +143,18 @@ export default function CalendarPage() {
     let wakingsCount = 0
 
     monthEvents.forEach(event => {
-      if (event.eventType === 'sleep') {
+      if (event.eventType === "sleep") {
         // Calcular duración si hay endTime
         if (event.endTime) {
           const duration = differenceInHours(new Date(event.endTime), new Date(event.startTime))
           nightSleepTotal += duration
         }
-      } else if (event.eventType === 'nap') {
+      } else if (event.eventType === "nap") {
         if (event.endTime) {
           const duration = differenceInHours(new Date(event.endTime), new Date(event.startTime))
           napTotal += duration
         }
-      } else if (event.eventType === 'wake') {
+      } else if (event.eventType === "wake") {
         wakingsCount++
       }
     })
@@ -166,51 +171,51 @@ export default function CalendarPage() {
       nightWakings: wakingsCount,
       nightSleepChange: 0.3, // Placeholder
       napChange: 0,
-      wakingsChange: -2
+      wakingsChange: -2,
     })
   }
 
   const getEventsForDay = (day: Date) => {
-    const dayStr = format(day, 'yyyy-MM-dd')
+    const dayStr = format(day, "yyyy-MM-dd")
     return events.filter(event => event.startTime.startsWith(dayStr))
   }
 
   const getEventTypeIcon = (type: string) => {
     switch(type) {
-      case 'sleep':
-        return <Moon className="w-3 h-3" />
-      case 'nap':
-        return <Sun className="w-3 h-3" />
-      case 'wake':
-        return <AlertCircle className="w-3 h-3" />
-      default:
-        return null
+    case "sleep":
+      return <Moon className="w-3 h-3" />
+    case "nap":
+      return <Sun className="w-3 h-3" />
+    case "wake":
+      return <AlertCircle className="w-3 h-3" />
+    default:
+      return null
     }
   }
 
   const getEventTypeColor = (type: string) => {
     switch(type) {
-      case 'sleep':
-        return 'bg-sleep event-pill'
-      case 'nap':
-        return 'bg-nap event-pill'
-      case 'wake':
-        return 'bg-wake event-pill'
-      default:
-        return 'bg-gray-400 event-pill'
+    case "sleep":
+      return "bg-sleep event-pill"
+    case "nap":
+      return "bg-nap event-pill"
+    case "wake":
+      return "bg-wake event-pill"
+    default:
+      return "bg-gray-400 event-pill"
     }
   }
 
   const formatEventTime = (event: Event) => {
     const start = new Date(event.startTime)
-    if (event.eventType === 'wake') {
-      return format(start, 'HH:mm')
+    if (event.eventType === "wake") {
+      return format(start, "HH:mm")
     }
     if (event.endTime) {
       const end = new Date(event.endTime)
-      return `${format(start, 'HH:mm')}-${format(end, 'HH:mm')}`
+      return `${format(start, "HH:mm")}-${format(end, "HH:mm")}`
     }
-    return format(start, 'HH:mm')
+    return format(start, "HH:mm")
   }
 
   const renderMonthView = () => {
@@ -220,7 +225,7 @@ export default function CalendarPage() {
     const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 })
     
     const days = eachDayOfInterval({ start: startDate, end: endDate })
-    const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+    const weekDays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
     
     return (
       <div className="mt-6">
@@ -250,7 +255,7 @@ export default function CalendarPage() {
                 )}
               >
                 <div className="absolute top-2 right-2 text-sm font-medium">
-                  {format(day, 'd')}
+                  {format(day, "d")}
                 </div>
                 
                 <div className="mt-6 space-y-1">
@@ -288,7 +293,7 @@ export default function CalendarPage() {
     unit: string, 
     change: number, 
     changeLabel: string,
-    type?: 'sleep' | 'nap' | 'wake'
+    type?: "sleep" | "nap" | "wake"
   ) => {
     const isPositive = change > 0
     const isNeutral = change === 0
@@ -296,25 +301,25 @@ export default function CalendarPage() {
     const color = isPositive ? "text-green-600" : (isNeutral ? "text-gray-600" : "text-red-600")
     
     // Determinar el color de fondo según el tipo
-    const bgColorClass = type === 'sleep' ? 'bg-sleep/10' : 
-                        type === 'nap' ? 'bg-nap/10' : 
-                        type === 'wake' ? 'bg-wake/10' : ''
+    const bgColorClass = type === "sleep" ? "bg-sleep/10" : 
+      type === "nap" ? "bg-nap/10" : 
+        type === "wake" ? "bg-wake/10" : ""
     
-    const borderColorClass = type === 'sleep' ? 'border-sleep' : 
-                            type === 'nap' ? 'border-nap' : 
-                            type === 'wake' ? 'border-wake' : ''
+    const borderColorClass = type === "sleep" ? "border-sleep" : 
+      type === "nap" ? "border-nap" : 
+        type === "wake" ? "border-wake" : ""
     
-    const iconColorClass = type === 'sleep' ? 'bg-sleep' : 
-                          type === 'nap' ? 'bg-nap' : 
-                          type === 'wake' ? 'bg-wake' : ''
+    const iconColorClass = type === "sleep" ? "bg-sleep" : 
+      type === "nap" ? "bg-nap" : 
+        type === "wake" ? "bg-wake" : ""
     
     return (
       <div className={cn("p-5 rounded-lg border", bgColorClass, borderColorClass)}>
         <div className="flex items-start gap-4">
           <div className={cn("w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0", iconColorClass)}>
-            {type === 'sleep' && <Moon className="w-6 h-6 text-white" />}
-            {type === 'nap' && <Cloud className="w-6 h-6 text-white" />}
-            {type === 'wake' && <AlertCircle className="w-6 h-6 text-white" />}
+            {type === "sleep" && <Moon className="w-6 h-6 text-white" />}
+            {type === "nap" && <Cloud className="w-6 h-6 text-white" />}
+            {type === "wake" && <AlertCircle className="w-6 h-6 text-white" />}
           </div>
           <div className="flex-1 space-y-3">
             <h4 className="text-sm font-medium text-gray-600">{title}</h4>
@@ -324,7 +329,7 @@ export default function CalendarPage() {
             </div>
           </div>
         </div>
-        <div className={cn("flex items-center gap-2 mt-4 pt-4 border-t", color, borderColorClass + '/20')}>
+        <div className={cn("flex items-center gap-2 mt-4 pt-4 border-t", color, borderColorClass + "/20")}>
           <Icon className="w-4 h-4" />
           <span className="text-sm flex-1">
             {isNeutral ? "Sin cambios" : `${Math.abs(change)} ${changeLabel}`}
@@ -365,7 +370,7 @@ export default function CalendarPage() {
             </Button>
             
             <span className="font-medium text-lg min-w-[140px] text-center">
-              {format(date, 'MMMM yyyy', { locale: es })}
+              {format(date, "MMMM yyyy", { locale: es })}
             </span>
             
             <Button
@@ -391,25 +396,25 @@ export default function CalendarPage() {
       {/* Controles de vista */}
       <div className="flex gap-2">
         <Button
-          variant={view === 'month' ? 'default' : 'outline'}
+          variant={view === "month" ? "default" : "outline"}
           size="sm"
-          onClick={() => setView('month')}
-          className={view === 'month' ? 'hd-gradient-button text-white' : ''}
+          onClick={() => setView("month")}
+          className={view === "month" ? "hd-gradient-button text-white" : ""}
         >
           Mensual
         </Button>
         <Button
-          variant={view === 'week' ? 'default' : 'outline'}
+          variant={view === "week" ? "default" : "outline"}
           size="sm"
-          onClick={() => setView('week')}
+          onClick={() => setView("week")}
           disabled
         >
           Semanal
         </Button>
         <Button
-          variant={view === 'day' ? 'default' : 'outline'}
+          variant={view === "day" ? "default" : "outline"}
           size="sm"
-          onClick={() => setView('day')}
+          onClick={() => setView("day")}
           disabled
         >
           Diario

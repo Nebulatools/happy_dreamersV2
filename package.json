@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "lint:strict": "next lint --max-warnings=0",
+    "type-check": "tsc --noEmit",
+    "check-all": "npm run lint:strict && npm run type-check"
   },
   "dependencies": {
     "@ai-sdk/openai": "latest",
@@ -89,6 +93,8 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "eslint": "^9.31.0",
+    "eslint-config-next": "^15.4.4",
     "postcss": "^8",
     "tailwindcss": "^3.4.17",
     "typescript": "^5"

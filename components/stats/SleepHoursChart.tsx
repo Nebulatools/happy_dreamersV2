@@ -9,7 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from "recharts"
 
 interface SleepHoursChartProps {
@@ -21,7 +21,7 @@ interface SleepHoursChartProps {
 export function SleepHoursChart({ 
   sleepData, 
   title = "Horas de sueño por día", 
-  description = "Distribución de las horas de sueño durante el período seleccionado"
+  description = "Distribución de las horas de sueño durante el período seleccionado",
 }: SleepHoursChartProps) {
   return (
     <Card className="col-span-1">

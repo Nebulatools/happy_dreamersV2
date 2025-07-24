@@ -14,7 +14,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Happy Dreamers - Seguimiento del Sueño Infantil",
   description: "Aplicación para el seguimiento del sueño de niños",
-    generator: 'v0.dev'
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
@@ -26,8 +26,8 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
         <AuthProvider>
-            {children}
-            <Toaster />
+          {children}
+          <Toaster />
         </AuthProvider>
       </body>
     </html>

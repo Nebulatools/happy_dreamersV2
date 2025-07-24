@@ -1,13 +1,18 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Edit, Calendar, User, Plus } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import SleepMetricsGrid from '@/components/child-profile/SleepMetricsGrid'
-import RecentEvents from '@/components/child-profile/RecentEvents'
-import { EventRegistrationModal } from '@/components/events'
-import { useActiveChild } from '@/context/active-child-context'
+import { useState, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
+import { ArrowLeft, Edit, Calendar, User, Plus } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import SleepMetricsGrid from "@/components/child-profile/SleepMetricsGrid"
+import RecentEvents from "@/components/child-profile/RecentEvents"
+import { EventRegistrationModal } from "@/components/events"
+import { useActiveChild } from "@/context/active-child-context"
+
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("page")
+
 
 interface Child {
   _id: string
@@ -19,13 +24,13 @@ interface Child {
   avatar?: string
 }
 
-type TabType = 'resumen' | 'eventos' | 'progreso' | 'encuestas'
+type TabType = "resumen" | "eventos" | "progreso" | "encuestas"
 
 export default function ChildProfilePage() {
   const params = useParams()
   const router = useRouter()
   const [child, setChild] = useState<Child | null>(null)
-  const [activeTab, setActiveTab] = useState<TabType>('resumen')
+  const [activeTab, setActiveTab] = useState<TabType>("resumen")
   const [isLoading, setIsLoading] = useState(true)
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [children, setChildren] = useState<Child[]>([])  
@@ -47,8 +52,8 @@ export default function ChildProfilePage() {
   const formatRegistrationDate = (createdAt: string) => {
     const date = new Date(createdAt)
     const monthNames = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
     ]
     return `Miembro desde ${monthNames[date.getMonth()]} ${date.getFullYear()}`
   }
@@ -61,12 +66,12 @@ export default function ChildProfilePage() {
           const childData = await response.json()
           setChild(childData)
         } else {
-          console.error('Error fetching child data')
-          router.push('/dashboard/children')
+          logger.error("Error fetching child data")
+          router.push("/dashboard/children")
         }
       } catch (error) {
-        console.error('Error:', error)
-        router.push('/dashboard/children')
+        logger.error("Error:", error)
+        router.push("/dashboard/children")
       } finally {
         setIsLoading(false)
       }
@@ -82,7 +87,7 @@ export default function ChildProfilePage() {
   // Cargar children cuando se abre el modal
   useEffect(() => {
     if (eventModalOpen) {
-      fetch('/api/children')
+      fetch("/api/children")
         .then(res => res.json())
         .then(data => {
           if (data.success) {
@@ -109,7 +114,7 @@ export default function ChildProfilePage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <p className="text-red-600 mb-4">No se pudo cargar la información del niño</p>
-          <Button onClick={() => router.push('/dashboard/children')}>
+          <Button onClick={() => router.push("/dashboard/children")}>
             Volver a la lista
           </Button>
         </div>
@@ -118,10 +123,10 @@ export default function ChildProfilePage() {
   }
 
   const tabs = [
-    { id: 'resumen' as TabType, label: 'Resumen' },
-    { id: 'eventos' as TabType, label: 'Eventos de Sueño' },
-    { id: 'progreso' as TabType, label: 'Progreso y Estadísticas' },
-    { id: 'encuestas' as TabType, label: 'Encuestas' }
+    { id: "resumen" as TabType, label: "Resumen" },
+    { id: "eventos" as TabType, label: "Eventos de Sueño" },
+    { id: "progreso" as TabType, label: "Progreso y Estadísticas" },
+    { id: "encuestas" as TabType, label: "Encuestas" },
   ]
 
   return (
@@ -129,7 +134,7 @@ export default function ChildProfilePage() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Breadcrumb */}
         <button 
-          onClick={() => router.push('/dashboard/children')}
+          onClick={() => router.push("/dashboard/children")}
           className="flex items-center text-[#4A90E2] hover:text-[#2553A1] transition-colors"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -145,7 +150,7 @@ export default function ChildProfilePage() {
                 {child.avatar ? (
                   <img 
                     src={child.avatar} 
-                    alt={`${child.firstName} ${child.lastName || ''}`}
+                    alt={`${child.firstName} ${child.lastName || ""}`}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -157,20 +162,20 @@ export default function ChildProfilePage() {
             </div>
 
             {/* Información del niño */}
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-4">
-                  <h1 className="text-3xl font-bold text-[#2F2F2F]">
-                    {child.firstName} {child.lastName || ''}
-                  </h1>
-                  <Button 
-                    variant="outline"
-                    className="flex items-center space-x-2 border-[#628BE6] text-[#628BE6] hover:hd-gradient-button hover:text-white hover:border-transparent"
-                    onClick={() => router.push(`/dashboard/children/${child._id}/edit`)}
-                  >
-                    <Edit className="w-4 h-4" />
-                    <span>Editar Perfil</span>
-                  </Button>
-                </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-4">
+                <h1 className="text-3xl font-bold text-[#2F2F2F]">
+                  {child.firstName} {child.lastName || ""}
+                </h1>
+                <Button 
+                  variant="outline"
+                  className="flex items-center space-x-2 border-[#628BE6] text-[#628BE6] hover:hd-gradient-button hover:text-white hover:border-transparent"
+                  onClick={() => router.push(`/dashboard/children/${child._id}/edit`)}
+                >
+                  <Edit className="w-4 h-4" />
+                  <span>Editar Perfil</span>
+                </Button>
+              </div>
 
               <div className="flex items-center space-x-6 text-gray-600">
                 <div className="flex items-center space-x-2">
@@ -197,8 +202,8 @@ export default function ChildProfilePage() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`px-6 py-4 text-center font-medium transition-colors relative ${
                     activeTab === tab.id
-                      ? 'text-[#4A90E2] bg-white border-b-2 border-[#4A90E2]'
-                      : 'text-gray-600 hover:text-gray-800 bg-white'
+                      ? "text-[#4A90E2] bg-white border-b-2 border-[#4A90E2]"
+                      : "text-gray-600 hover:text-gray-800 bg-white"
                   }`}
                 >
                   {tab.label}
@@ -209,7 +214,7 @@ export default function ChildProfilePage() {
 
           {/* Tab Content */}
           <div className="p-6">
-            {activeTab === 'resumen' && (
+            {activeTab === "resumen" && (
               <div className="space-y-6">
                 {/* Consejo del Sleep Coach */}
                 <div className="bg-[#F0F7FF] rounded-xl border border-blue-100 p-6">
@@ -246,19 +251,19 @@ export default function ChildProfilePage() {
               </div>
             )}
 
-            {activeTab === 'eventos' && (
+            {activeTab === "eventos" && (
               <div className="text-center py-8 text-gray-500">
                 <p>Contenido de Eventos de Sueño próximamente...</p>
               </div>
             )}
 
-            {activeTab === 'progreso' && (
+            {activeTab === "progreso" && (
               <div className="text-center py-8 text-gray-500">
                 <p>Contenido de Progreso y Estadísticas próximamente...</p>
               </div>
             )}
 
-            {activeTab === 'encuestas' && (
+            {activeTab === "encuestas" && (
               <div className="space-y-6">
                 <div className="bg-[#F0F7FF] rounded-xl border border-blue-100 p-8 text-center">
                   <h3 className="text-xl font-semibold text-[#2F2F2F] mb-3">

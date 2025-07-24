@@ -1,6 +1,6 @@
-import React from 'react'
+import React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Sun, Moon, Clock, TrendingUp, BedDouble, Bed, Timer, CheckCircle, BarChart } from 'lucide-react'
+import { Sun, Moon, Clock, TrendingUp, BedDouble, Bed, Timer, CheckCircle, BarChart } from "lucide-react"
 
 // Interfaces para las props
 interface SleepIndicatorsCardProps {
@@ -34,11 +34,11 @@ const Indicator = ({ icon, label, value, deviation, unit, colorClass }: {
   colorClass?: string
 }) => {
   if (value === null || value === undefined) {
-    return null; // No renderizar si no hay valor
+    return null // No renderizar si no hay valor
   }
   return (
     <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-      <div className={`mt-1 ${colorClass || 'text-indigo-600'}`}>
+      <div className={`mt-1 ${colorClass || "text-indigo-600"}`}>
         {icon}
       </div>
       <div>
@@ -65,7 +65,7 @@ export function SleepIndicatorsCard({
   sleepTime,
   timeToSleep,
   sleepVsPlan,
-  totalSleepHours
+  totalSleepHours,
 }: SleepIndicatorsCardProps) {
   
   const hasNapData = totalNapDuration || Object.keys(napDurations).length > 0
@@ -113,7 +113,7 @@ export function SleepIndicatorsCard({
             value={totalSleepHours}
             colorClass="text-teal-600"
           />
-           <Indicator 
+          <Indicator 
             icon={<CheckCircle size={24} />} 
             label="Dormir vs Plan" 
             value={sleepVsPlan}
@@ -144,7 +144,7 @@ export function SleepIndicatorsCard({
               />
               {/* Siestas individuales */}
               {Object.entries(napDurations).map(([key, value]) => {
-                const napNumber = key.replace('siesta', '');
+                const napNumber = key.replace("siesta", "")
                 return (
                   <Indicator
                     key={key}

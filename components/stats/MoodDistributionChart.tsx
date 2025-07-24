@@ -7,7 +7,7 @@ import {
   Cell,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from "recharts"
 
 interface MoodDistributionChartProps {

@@ -7,6 +7,11 @@ import { authOptions } from "@/lib/auth"
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("API:survey:route")
+
+
 // GET: Obtener respuestas de encuesta
 export async function GET(req: Request) {
   try {
@@ -28,7 +33,7 @@ export async function GET(req: Request) {
     // Verificar que el niño pertenece al usuario o es admin
     const child = await db.collection("children").findOne({ 
       _id: new ObjectId(childId),
-      parentId: session.user.id
+      parentId: session.user.id,
     })
 
     if (!child) {
@@ -44,10 +49,10 @@ export async function GET(req: Request) {
       childId: child._id.toString(),
       parentId: child.parentId,
       surveyData: child.surveyData,
-      updatedAt: child.surveyUpdatedAt || child.updatedAt || child.createdAt
+      updatedAt: child.surveyUpdatedAt || child.updatedAt || child.createdAt,
     })
   } catch (error) {
-    console.error("Error al obtener encuesta:", error)
+    logger.error("Error al obtener encuesta:", error)
     return NextResponse.json({ message: "Error interno del servidor" }, { status: 500 })
   }
 }
@@ -87,8 +92,8 @@ export async function POST(req: Request) {
       {
         $set: {
           surveyData: surveyData,
-          surveyUpdatedAt: new Date()
-        }
+          surveyUpdatedAt: new Date(),
+        },
       }
     )
 
@@ -96,7 +101,7 @@ export async function POST(req: Request) {
     if (result.matchedCount === 0) {
       return NextResponse.json({ 
         message: "No se encontró el niño para actualizar", 
-        success: false 
+        success: false, 
       }, { status: 404 })
     }
 
@@ -104,15 +109,15 @@ export async function POST(req: Request) {
       {
         message: "Encuesta guardada correctamente en el perfil del niño",
         success: true,
-        updated: result.modifiedCount > 0
+        updated: result.modifiedCount > 0,
       },
       { status: 200 },
     )
   } catch (error: any) {
-    console.error("Error al guardar encuesta:", error)
+    logger.error("Error al guardar encuesta:", error)
     return NextResponse.json({ 
       message: "Error interno del servidor", 
-      error: error?.message || "Error desconocido" 
+      error: error?.message || "Error desconocido", 
     }, { status: 500 })
   }
 }

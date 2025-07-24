@@ -1,14 +1,19 @@
 // API para análisis inteligente de consultas
 // Combina transcript + estadísticas del niño + knowledge base RAG
 
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
-import clientPromise from '@/lib/mongodb'
-import { ObjectId } from 'mongodb'
-import { getMongoDBVectorStoreManager } from '@/lib/rag/vector-store-mongodb'
-import { OpenAI } from 'openai'
-import { differenceInDays, differenceInMinutes, format, parseISO, getHours, getMinutes } from 'date-fns'
+import { NextRequest, NextResponse } from "next/server"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
+import clientPromise from "@/lib/mongodb"
+import { ObjectId } from "mongodb"
+import { getMongoDBVectorStoreManager } from "@/lib/rag/vector-store-mongodb"
+import { OpenAI } from "openai"
+import { differenceInDays, differenceInMinutes, format, parseISO, getHours, getMinutes } from "date-fns"
+
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("API:consultas:analyze:route")
+
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -18,15 +23,15 @@ export async function POST(req: NextRequest) {
   try {
     // Verificar autenticación y permisos de admin
     const session = await getServerSession(authOptions)
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    if (!session?.user || session.user.role !== "admin") {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
     const { userId, childId, transcript } = await req.json()
 
     if (!userId || !childId || !transcript) {
       return NextResponse.json({ 
-        error: 'Faltan parámetros requeridos: userId, childId, transcript' 
+        error: "Faltan parámetros requeridos: userId, childId, transcript", 
       }, { status: 400 })
     }
 
@@ -34,7 +39,7 @@ export async function POST(req: NextRequest) {
     const childData = await getChildWithStats(userId, childId)
     if (!childData) {
       return NextResponse.json({ 
-        error: 'No se pudo obtener la información del niño' 
+        error: "No se pudo obtener la información del niño", 
       }, { status: 404 })
     }
 
@@ -49,7 +54,7 @@ export async function POST(req: NextRequest) {
       transcript,
       childData,
       ragContext,
-      consultationHistory
+      consultationHistory,
     })
 
     // 5. Guardar el reporte en la base de datos
@@ -58,7 +63,7 @@ export async function POST(req: NextRequest) {
       childId,
       transcript,
       analysis,
-      adminId: session.user.id
+      adminId: session.user.id,
     })
 
     return NextResponse.json({
@@ -69,15 +74,15 @@ export async function POST(req: NextRequest) {
       childContext: {
         name: `${childData.firstName} ${childData.lastName}`,
         ageInMonths: childData.ageInMonths,
-        totalEvents: childData.stats.totalEvents
-      }
+        totalEvents: childData.stats.totalEvents,
+      },
     })
 
   } catch (error) {
-    console.error('Error en análisis de consulta:', error)
+    logger.error("Error en análisis de consulta:", error)
     return NextResponse.json({ 
-      error: 'Error interno del servidor',
-      details: error instanceof Error ? error.message : 'Error desconocido'
+      error: "Error interno del servidor",
+      details: error instanceof Error ? error.message : "Error desconocido",
     }, { status: 500 })
   }
 }
@@ -89,16 +94,16 @@ async function getChildWithStats(userId: string, childId: string) {
     const db = client.db()
     
     // Obtener información básica del niño
-    const child = await db.collection('children').findOne({
+    const child = await db.collection("children").findOne({
       _id: new ObjectId(childId),
-      parentId: userId
+      parentId: userId,
     })
 
     if (!child) return null
 
     // Obtener todos los eventos del niño
-    const events = await db.collection('events').find({
-      childId: new ObjectId(childId)
+    const events = await db.collection("events").find({
+      childId: new ObjectId(childId),
     }).sort({ startTime: -1 }).toArray()
 
     // Calcular estadísticas
@@ -112,10 +117,10 @@ async function getChildWithStats(userId: string, childId: string) {
       ...child,
       ageInMonths,
       events,
-      stats
+      stats,
     }
   } catch (error) {
-    console.error('Error obteniendo datos del niño:', error)
+    logger.error("Error obteniendo datos del niño:", error)
     return null
   }
 }
@@ -128,22 +133,22 @@ function calculateChildStats(events: any[]) {
     return differenceInDays(now, eventDate) <= 7
   })
 
-  const sleepEvents = last7Days.filter(e => e.eventType === 'sleep' && e.endTime)
-  const napEvents = last7Days.filter(e => e.eventType === 'nap' && e.endTime)
+  const sleepEvents = last7Days.filter(e => e.eventType === "sleep" && e.endTime)
+  const napEvents = last7Days.filter(e => e.eventType === "nap" && e.endTime)
   
   // Calcular duración promedio de sueño
   const avgSleepDuration = sleepEvents.length > 0 
     ? sleepEvents.reduce((sum, event) => {
-        return sum + differenceInMinutes(parseISO(event.endTime), parseISO(event.startTime))
-      }, 0) / sleepEvents.length
+      return sum + differenceInMinutes(parseISO(event.endTime), parseISO(event.startTime))
+    }, 0) / sleepEvents.length
     : 0
 
   // Calcular hora de despertar promedio
   const avgWakeTime = sleepEvents.length > 0
     ? sleepEvents.reduce((sum, event) => {
-        const endTime = parseISO(event.endTime)
-        return sum + (getHours(endTime) * 60 + getMinutes(endTime))
-      }, 0) / sleepEvents.length
+      const endTime = parseISO(event.endTime)
+      return sum + (getHours(endTime) * 60 + getMinutes(endTime))
+    }, 0) / sleepEvents.length
     : 0
 
   // Contar estados emocionales
@@ -163,7 +168,7 @@ function calculateChildStats(events: any[]) {
     avgWakeTimeMinutes: Math.round(avgWakeTime),
     emotionalStates,
     dominantMood: Object.entries(emotionalStates)
-      .sort(([,a], [,b]) => b - a)[0]?.[0] || 'unknown'
+      .sort(([,a], [,b]) => b - a)[0]?.[0] || "unknown",
   }
 }
 
@@ -175,9 +180,9 @@ async function searchRAGKnowledge(transcript: string) {
     // Extraer conceptos clave del transcript para búsqueda
     const searchQueries = [
       transcript.substring(0, 200), // Primeras líneas del transcript
-      'patrones de sueño infantil',
-      'desarrollo del niño',
-      'problemas de sueño'
+      "patrones de sueño infantil",
+      "desarrollo del niño",
+      "problemas de sueño",
     ]
 
     let allResults: any[] = []
@@ -193,11 +198,11 @@ async function searchRAGKnowledge(transcript: string) {
     ).slice(0, 5)
 
     return uniqueResults.map(doc => ({
-      source: doc.metadata?.source || 'documento',
-      content: doc.pageContent
+      source: doc.metadata?.source || "documento",
+      content: doc.pageContent,
     }))
   } catch (error) {
-    console.error('Error en búsqueda RAG:', error)
+    logger.error("Error en búsqueda RAG:", error)
     return []
   }
 }
@@ -208,19 +213,19 @@ async function getPreviousConsultations(childId: string) {
     const client = await clientPromise
     const db = client.db()
     
-    const previousConsultations = await db.collection('consultation_reports')
+    const previousConsultations = await db.collection("consultation_reports")
       .find({ childId: new ObjectId(childId) })
       .sort({ createdAt: -1 })
       .limit(3)
       .toArray()
 
     return previousConsultations.map(consultation => ({
-      date: format(consultation.createdAt, 'dd/MM/yyyy'),
-      summary: consultation.analysis?.substring(0, 200) + '...',
-      recommendations: consultation.recommendations?.substring(0, 150) + '...'
+      date: format(consultation.createdAt, "dd/MM/yyyy"),
+      summary: consultation.analysis?.substring(0, 200) + "...",
+      recommendations: consultation.recommendations?.substring(0, 150) + "...",
     }))
   } catch (error) {
-    console.error('Error obteniendo consultas anteriores:', error)
+    logger.error("Error obteniendo consultas anteriores:", error)
     return []
   }
 }
@@ -230,7 +235,7 @@ async function generateIntelligentAnalysis({
   transcript,
   childData,
   ragContext,
-  consultationHistory
+  consultationHistory,
 }: {
   transcript: string
   childData: any
@@ -247,16 +252,16 @@ INFORMACIÓN DEL NIÑO:
 - Eventos de sueño recientes: ${childData.stats.sleepEvents}
 - Siestas recientes: ${childData.stats.napEvents}
 - Duración promedio de sueño: ${childData.stats.avgSleepDurationMinutes} minutos
-- Hora promedio de despertar: ${Math.floor(childData.stats.avgWakeTimeMinutes / 60)}:${(childData.stats.avgWakeTimeMinutes % 60).toString().padStart(2, '0')}
+- Hora promedio de despertar: ${Math.floor(childData.stats.avgWakeTimeMinutes / 60)}:${(childData.stats.avgWakeTimeMinutes % 60).toString().padStart(2, "0")}
 - Estado emocional dominante: ${childData.stats.dominantMood}
 
 CONOCIMIENTO ESPECIALIZADO:
-${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join('\n\n---\n\n')}
+${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join("\n\n---\n\n")}
 
 ${consultationHistory.length > 0 ? `
 CONSULTAS ANTERIORES:
-${consultationHistory.map(c => `- ${c.date}: ${c.summary}`).join('\n')}
-` : ''}
+${consultationHistory.map(c => `- ${c.date}: ${c.summary}`).join("\n")}
+` : ""}
 
 INSTRUCCIONES:
 1. Analiza el transcript de la consulta combinándolo con los datos estadísticos del niño
@@ -277,12 +282,12 @@ Responde en el siguiente formato JSON:
       messages: [
         {
           role: "system",
-          content: systemPrompt
+          content: systemPrompt,
         },
         {
           role: "user",
-          content: `Transcript de la consulta:\n\n${transcript}`
-        }
+          content: `Transcript de la consulta:\n\n${transcript}`,
+        },
       ],
       max_tokens: 1500,
       temperature: 0.7,
@@ -297,12 +302,12 @@ Responde en el siguiente formato JSON:
       // Si no es JSON válido, estructurar la respuesta
       return {
         analysis: responseContent,
-        recommendations: "Ver análisis para recomendaciones específicas."
+        recommendations: "Ver análisis para recomendaciones específicas.",
       }
     }
   } catch (error) {
-    console.error('Error generando análisis con IA:', error)
-    throw new Error('Error al procesar el análisis con IA')
+    logger.error("Error generando análisis con IA:", error)
+    throw new Error("Error al procesar el análisis con IA")
   }
 }
 
@@ -312,7 +317,7 @@ async function saveConsultationReport({
   childId,
   transcript,
   analysis,
-  adminId
+  adminId,
 }: {
   userId: string
   childId: string
@@ -332,13 +337,13 @@ async function saveConsultationReport({
       analysis: analysis.analysis,
       recommendations: analysis.recommendations,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     }
 
-    const result = await db.collection('consultation_reports').insertOne(report)
+    const result = await db.collection("consultation_reports").insertOne(report)
     return result.insertedId
   } catch (error) {
-    console.error('Error guardando reporte:', error)
-    throw new Error('Error al guardar el reporte de consulta')
+    logger.error("Error guardando reporte:", error)
+    throw new Error("Error al guardar el reporte de consulta")
   }
 }

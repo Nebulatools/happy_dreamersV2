@@ -4,6 +4,11 @@ import { authOptions } from "@/lib/auth"
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("API:children:events:[id]:route")
+
+
 // PUT /api/children/events/[id] - actualizar un evento específico por ID
 export async function PUT(
   req: NextRequest,
@@ -12,22 +17,22 @@ export async function PUT(
   try {
     // Usar await con params para evitar el warning de Next.js
     const { id: eventId } = await Promise.resolve(params)
-    console.log("ID del evento a actualizar:", eventId)
+    logger.info("ID del evento a actualizar:", eventId)
 
     // Verificar la sesión del usuario
     const session = await getServerSession(authOptions)
     if (!session?.user) {
-      console.error("No hay sesión de usuario activa")
+      logger.error("No hay sesión de usuario activa")
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
     // Obtener datos del cuerpo de la solicitud
     const data = await req.json()
-    console.log("Datos recibidos para actualización:", data)
+    logger.info("Datos recibidos para actualización:", data)
 
     // Validar que se proporcionen los campos requeridos
     if (!data.childId || !data.eventType) {
-      console.error("Faltan campos requeridos", { data })
+      logger.error("Faltan campos requeridos", { data })
       return NextResponse.json(
         { error: "Se requieren childId y eventType" },
         { status: 400 }
@@ -36,16 +41,16 @@ export async function PUT(
 
     // Conectar a la base de datos
     const { db } = await connectToDatabase()
-    console.log("Conectado a MongoDB")
+    logger.info("Conectado a MongoDB")
 
     // Verificar que el niño exista y pertenezca al usuario
     const child = await db.collection("children").findOne({
       _id: new ObjectId(data.childId),
-      parentId: session.user.id
+      parentId: session.user.id,
     })
 
     if (!child) {
-      console.error("Niño no encontrado o no pertenece al usuario")
+      logger.error("Niño no encontrado o no pertenece al usuario")
       return NextResponse.json(
         { error: "Niño no encontrado o no pertenece al usuario" },
         { status: 404 }
@@ -60,24 +65,24 @@ export async function PUT(
       startTime: data.startTime,
       endTime: data.endTime || null,
       notes: data.notes || "",
-      createdAt: data.createdAt || new Date().toISOString()
+      createdAt: data.createdAt || new Date().toISOString(),
     }
 
-    console.log("Evento a actualizar:", updatedEvent)
+    logger.info("Evento a actualizar:", updatedEvent)
 
     // Actualizar el evento específico en el array de eventos del niño
     const result = await db.collection("children").updateOne(
       { 
         _id: new ObjectId(data.childId),
-        "events._id": eventId
+        "events._id": eventId,
       },
       { $set: { "events.$": updatedEvent } }
     )
 
-    console.log("Resultado de la actualización:", result)
+    logger.info("Resultado de la actualización:", result)
 
     if (result.matchedCount === 0) {
-      console.error("Evento no encontrado")
+      logger.error("Evento no encontrado")
       return NextResponse.json(
         { error: "Evento no encontrado" },
         { status: 404 }
@@ -85,7 +90,7 @@ export async function PUT(
     }
 
     if (result.modifiedCount === 0) {
-      console.error("No se realizaron cambios en el evento")
+      logger.error("No se realizaron cambios en el evento")
       return NextResponse.json(
         { message: "No se realizaron cambios en el evento" },
         { status: 200 }
@@ -97,7 +102,7 @@ export async function PUT(
       { status: 200 }
     )
   } catch (error: any) {
-    console.error("Error al actualizar evento:", error.message, error.stack)
+    logger.error("Error al actualizar evento:", error.message, error.stack)
     return NextResponse.json(
       { error: "Error al actualizar el evento" },
       { status: 500 }
@@ -113,32 +118,32 @@ export async function DELETE(
   try {
     // Usar await con params para evitar el warning de Next.js
     const { id: eventId } = await Promise.resolve(params)
-    console.log("ID del evento a eliminar:", eventId)
+    logger.info("ID del evento a eliminar:", eventId)
 
     // Verificar la sesión del usuario
     const session = await getServerSession(authOptions)
     if (!session?.user) {
-      console.error("No hay sesión de usuario activa")
+      logger.error("No hay sesión de usuario activa")
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
     // Conectar a la base de datos
     const { db } = await connectToDatabase()
-    console.log("Conectado a MongoDB")
+    logger.info("Conectado a MongoDB")
 
     // Encontrar y eliminar el evento del array de eventos del niño
     const result = await db.collection("children").updateOne(
       { 
         parentId: session.user.id,
-        "events._id": eventId 
+        "events._id": eventId, 
       },
       { $pull: { events: { _id: eventId } } as any }
     )
 
-    console.log("Resultado de la eliminación:", result)
+    logger.info("Resultado de la eliminación:", result)
 
     if (result.matchedCount === 0) {
-      console.error("Evento no encontrado o no pertenece al usuario")
+      logger.error("Evento no encontrado o no pertenece al usuario")
       return NextResponse.json(
         { error: "Evento no encontrado o no pertenece al usuario" },
         { status: 404 }
@@ -146,7 +151,7 @@ export async function DELETE(
     }
 
     if (result.modifiedCount === 0) {
-      console.error("No se pudo eliminar el evento")
+      logger.error("No se pudo eliminar el evento")
       return NextResponse.json(
         { error: "No se pudo eliminar el evento" },
         { status: 500 }
@@ -158,7 +163,7 @@ export async function DELETE(
       { status: 200 }
     )
   } catch (error: any) {
-    console.error("Error al eliminar evento:", error.message, error.stack)
+    logger.error("Error al eliminar evento:", error.message, error.stack)
     return NextResponse.json(
       { error: "Error al eliminar el evento" },
       { status: 500 }

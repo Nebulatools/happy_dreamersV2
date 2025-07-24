@@ -11,6 +11,11 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { useSession } from "next-auth/react"
 
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("page")
+
+
 export default function AddChildPage() {
   const router = useRouter()
   const { data: session } = useSession()
@@ -20,14 +25,14 @@ export default function AddChildPage() {
     lastName: "",
     birthDate: "",
     notes: "",
-    profileImage: null as File | null
+    profileImage: null as File | null,
   })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }))
   }
 
@@ -36,7 +41,7 @@ export default function AddChildPage() {
     if (file) {
       setFormData(prev => ({
         ...prev,
-        profileImage: file
+        profileImage: file,
       }))
     }
   }
@@ -61,26 +66,26 @@ export default function AddChildPage() {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         birthDate: formData.birthDate,
-        notes: formData.notes.trim()
+        notes: formData.notes.trim(),
       }
 
-      const response = await fetch('/api/children', {
-        method: 'POST',
+      const response = await fetch("/api/children", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(childData)
+        body: JSON.stringify(childData),
       })
 
       if (response.ok) {
         toast.success("Soñador registrado exitosamente")
-        router.push('/dashboard/children')
+        router.push("/dashboard/children")
       } else {
         const errorData = await response.json()
         toast.error(errorData.message || "Error al registrar el soñador")
       }
     } catch (error) {
-      console.error('Error:', error)
+      logger.error("Error:", error)
       toast.error("Error al registrar el soñador")
     } finally {
       setLoading(false)

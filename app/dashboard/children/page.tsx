@@ -15,6 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("page")
 
 interface Child {
   _id: string
@@ -71,7 +74,7 @@ export default function MisSonadoresPage() {
         toast.error('Error al cargar los soñadores')
       }
     } catch (error) {
-      console.error('Error:', error)
+      logger.error('Error:', error);
       toast.error('Error al cargar los soñadores')
     } finally {
       setLoading(false)
@@ -100,7 +103,7 @@ export default function MisSonadoresPage() {
         toast.error('Error al eliminar el soñador')
       }
     } catch (error) {
-      console.error('Error:', error)
+      logger.error('Error:', error);
       toast.error('Error al eliminar el soñador')
     }
   }

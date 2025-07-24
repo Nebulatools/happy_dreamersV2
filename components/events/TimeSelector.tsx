@@ -9,17 +9,17 @@ interface TimeSelectorProps {
   onChange: (value: string) => void
   label?: string
   disabled?: boolean
-  color?: 'blue' | 'green'
+  color?: "blue" | "green"
 }
 
-export function TimeSelector({ value, onChange, label, disabled = false, color = 'blue' }: TimeSelectorProps) {
+export function TimeSelector({ value, onChange, label, disabled = false, color = "blue" }: TimeSelectorProps) {
   // Convertir el valor string a fecha
   const dateValue = value ? new Date(value) : new Date()
   
   // Estado para horas y minutos
   const [hours24, setHours24] = useState(dateValue.getHours())
   const [minutes, setMinutes] = useState(Math.round(dateValue.getMinutes() / 10) * 10)
-  const [date, setDate] = useState(dateValue.toISOString().split('T')[0])
+  const [date, setDate] = useState(dateValue.toISOString().split("T")[0])
   const [isPM, setIsPM] = useState(dateValue.getHours() >= 12)
   
   // Convertir horas 24 a formato 12
@@ -35,10 +35,10 @@ export function TimeSelector({ value, onChange, label, disabled = false, color =
     
     // Formatear como datetime-local
     const year = newDate.getFullYear()
-    const month = String(newDate.getMonth() + 1).padStart(2, '0')
-    const day = String(newDate.getDate()).padStart(2, '0')
-    const h = String(newDate.getHours()).padStart(2, '0')
-    const m = String(newDate.getMinutes()).padStart(2, '0')
+    const month = String(newDate.getMonth() + 1).padStart(2, "0")
+    const day = String(newDate.getDate()).padStart(2, "0")
+    const h = String(newDate.getHours()).padStart(2, "0")
+    const m = String(newDate.getMinutes()).padStart(2, "0")
     
     onChange(`${year}-${month}-${day}T${h}:${m}`)
   }, [hours24, minutes, date, onChange])
@@ -46,7 +46,7 @@ export function TimeSelector({ value, onChange, label, disabled = false, color =
   // Funciones para ajustar el tiempo
   const adjustHours = (increment: number) => {
     let newHours12 = hours12 + increment
-    let newIsPM = isPM
+    const newIsPM = isPM
     
     if (newHours12 > 12) {
       newHours12 = 1
@@ -99,34 +99,34 @@ export function TimeSelector({ value, onChange, label, disabled = false, color =
 
   const formatTime = (h: number, m: number, pm: boolean) => {
     const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
-    return `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${pm ? 'PM' : 'AM'}`
+    return `${String(h12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${pm ? "PM" : "AM"}`
   }
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
     const options: Intl.DateTimeFormatOptions = { 
-      day: 'numeric', 
-      month: 'short',
-      year: 'numeric'
+      day: "numeric", 
+      month: "short",
+      year: "numeric",
     }
-    return d.toLocaleDateString('es-ES', options)
+    return d.toLocaleDateString("es-ES", options)
   }
 
   const colorClasses = {
     blue: {
-      bg: 'bg-blue-50',
-      border: 'border-blue-200',
-      text: 'text-blue-700',
-      button: 'bg-blue-600 hover:bg-blue-700',
-      icon: 'text-blue-600'
+      bg: "bg-blue-50",
+      border: "border-blue-200",
+      text: "text-blue-700",
+      button: "bg-blue-600 hover:bg-blue-700",
+      icon: "text-blue-600",
     },
     green: {
-      bg: 'bg-green-50', 
-      border: 'border-green-200',
-      text: 'text-green-700',
-      button: 'bg-green-600 hover:bg-green-700',
-      icon: 'text-green-600'
-    }
+      bg: "bg-green-50", 
+      border: "border-green-200",
+      text: "text-green-700",
+      button: "bg-green-600 hover:bg-green-700",
+      icon: "text-green-600",
+    },
   }
   
   const currentColor = colorClasses[color]
@@ -150,7 +150,7 @@ export function TimeSelector({ value, onChange, label, disabled = false, color =
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          max={new Date().toISOString().split('T')[0]}
+          max={new Date().toISOString().split("T")[0]}
           disabled={disabled}
           className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
@@ -171,7 +171,7 @@ export function TimeSelector({ value, onChange, label, disabled = false, color =
               "bg-white border-2 rounded-lg px-3 py-1.5 min-w-[50px] text-center font-bold text-xl",
               currentColor.border
             )}>
-              {String(hours12).padStart(2, '0')}
+              {String(hours12).padStart(2, "0")}
             </div>
             <button
               type="button"
@@ -199,7 +199,7 @@ export function TimeSelector({ value, onChange, label, disabled = false, color =
               "bg-white border-2 rounded-lg px-3 py-1.5 min-w-[50px] text-center font-bold text-xl",
               currentColor.border
             )}>
-              {String(minutes).padStart(2, '0')}
+              {String(minutes).padStart(2, "0")}
             </div>
             <button
               type="button"
@@ -221,7 +221,7 @@ export function TimeSelector({ value, onChange, label, disabled = false, color =
               currentColor.button
             )}
           >
-            {isPM ? 'PM' : 'AM'}
+            {isPM ? "PM" : "AM"}
           </button>
         </div>
       </div>

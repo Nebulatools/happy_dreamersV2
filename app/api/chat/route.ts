@@ -8,6 +8,11 @@ import { connectToDatabase } from "@/lib/mongodb"
 import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
 
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("API:chat:route")
+
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -84,7 +89,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ response: text })
   } catch (error) {
-    console.error("Error en el chatbot:", error)
+    logger.error("Error en el chatbot:", error)
     return NextResponse.json({ message: "Error interno del servidor" }, { status: 500 })
   }
 }

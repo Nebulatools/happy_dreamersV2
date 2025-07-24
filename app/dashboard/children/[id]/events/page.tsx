@@ -22,13 +22,18 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useActiveChild } from "@/context/active-child-context"
 import { EventRegistrationModal } from "@/components/events"
+
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("page")
+
 
 interface Event {
   _id: string;
@@ -49,12 +54,12 @@ interface Child {
 }
 
 export default function ChildEventsPage() {
-  const params = useParams();
-  const childIdFromUrl = params.id as string;
+  const params = useParams()
+  const childIdFromUrl = params.id as string
   
   const router = useRouter()
   const { toast } = useToast()
-  const { activeChildId, setActiveChildId } = useActiveChild();
+  const { activeChildId, setActiveChildId } = useActiveChild()
   
   const [isLoading, setIsLoading] = useState(true)
   const [child, setChild] = useState<Child | null>(null)
@@ -72,48 +77,48 @@ export default function ChildEventsPage() {
   // Efecto 1: Sincronizar URL con Contexto al cargar o si cambia la URL
   useEffect(() => {
     if (childIdFromUrl && childIdFromUrl !== activeChildId) {
-      setActiveChildId(childIdFromUrl);
+      setActiveChildId(childIdFromUrl)
     }
-  }, [childIdFromUrl, setActiveChildId]);
+  }, [childIdFromUrl, setActiveChildId])
 
   // Efecto 2: Cargar datos cuando el niño activo del contexto cambia
   useEffect(() => {
     const fetchData = async () => {
       if (!activeChildId) {
-        setEvents([]);
-        setChild(null);
-        if (isLoading) setIsLoading(false);
-        return;
+        setEvents([])
+        setChild(null)
+        if (isLoading) setIsLoading(false)
+        return
       }
       
-      if (!isLoading) setIsLoading(true);
+      if (!isLoading) setIsLoading(true)
       
       try {
         const response = await fetch(`/api/children/events?childId=${activeChildId}`)
         if (!response.ok) {
           // Si falla (ej: niño no encontrado), limpiar estado y redirigir o mostrar error
-          setEvents([]);
-          setChild(null);
+          setEvents([])
+          setChild(null)
           toast({
             title: "Error",
             description: "No se pudieron cargar los eventos del niño seleccionado.",
             variant: "destructive",
-          });
+          })
           // Podríamos redirigir a /dashboard si el niño no existe
           // router.push('/dashboard');
-          throw new Error('Error al cargar los eventos')
+          throw new Error("Error al cargar los eventos")
         }
         const data = await response.json()
         setChild({
           _id: data._id,
           firstName: data.firstName,
-          lastName: data.lastName
+          lastName: data.lastName,
         })
         setEvents(data.events || [])
       } catch (error) {
         // No mostramos el toast aquí si ya lo hicimos en el if (!response.ok)
-        if (error instanceof Error && error.message !== 'Error al cargar los eventos') {
-           toast({
+        if (error instanceof Error && error.message !== "Error al cargar los eventos") {
+          toast({
             title: "Error",
             description: "Ocurrió un problema al cargar los datos.",
             variant: "destructive",
@@ -125,15 +130,15 @@ export default function ChildEventsPage() {
     }
 
     fetchData()
-  }, [activeChildId, toast]);
+  }, [activeChildId, toast])
 
   // Efecto 3: Sincronizar Contexto con URL si cambia el contexto
   useEffect(() => {
     if (activeChildId && activeChildId !== childIdFromUrl) {
-      const targetUrl = `/dashboard/children/${activeChildId}/events`;
-      router.push(targetUrl);
+      const targetUrl = `/dashboard/children/${activeChildId}/events`
+      router.push(targetUrl)
     }
-  }, [activeChildId, childIdFromUrl, router]);
+  }, [activeChildId, childIdFromUrl, router])
 
   // Función para obtener nombre de tipo de evento
   const getEventTypeName = (type: string) => {
@@ -144,7 +149,7 @@ export default function ChildEventsPage() {
       play: "Juego",
       activity: "Actividad física",
       bath: "Baño",
-      other: "Otro"
+      other: "Otro",
     }
     return types[type] || type
   }
@@ -158,7 +163,7 @@ export default function ChildEventsPage() {
       tired: "Cansado",
       irritable: "Irritable",
       sad: "Triste",
-      anxious: "Ansioso"
+      anxious: "Ansioso",
     }
     return states[state] || state
   }
@@ -172,7 +177,7 @@ export default function ChildEventsPage() {
       play: "bg-yellow-200 text-yellow-800",
       activity: "bg-orange-200 text-orange-800", 
       bath: "bg-cyan-200 text-cyan-800",
-      other: "bg-purple-200 text-purple-800"
+      other: "bg-purple-200 text-purple-800",
     }
     return colors[type] || "bg-gray-200 text-gray-800"
   }
@@ -185,8 +190,8 @@ export default function ChildEventsPage() {
       eventType: event.eventType,
       emotionalState: event.emotionalState,
       startTime: event.startTime,
-      endTime: event.endTime || '',
-      notes: event.notes || ''
+      endTime: event.endTime || "",
+      notes: event.notes || "",
     })
     setIsEditing(false)
     setIsDialogOpen(true)
@@ -206,14 +211,14 @@ export default function ChildEventsPage() {
         startTime: editedEvent.startTime,
         endTime: editedEvent.endTime || null,
         notes: editedEvent.notes || "",
-        createdAt: selectedEvent.createdAt
+        createdAt: selectedEvent.createdAt,
       }
       
       // Usar la URL con el ID en la ruta
       const response = await fetch(`/api/children/events/${selectedEvent._id}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(updateData),
       })
@@ -221,7 +226,7 @@ export default function ChildEventsPage() {
       const responseData = await response.json()
       
       if (!response.ok) {
-        throw new Error(responseData.message || responseData.error || 'Error al actualizar el evento')
+        throw new Error(responseData.message || responseData.error || "Error al actualizar el evento")
       }
       
       // Actualizar el evento en el estado local
@@ -229,9 +234,9 @@ export default function ChildEventsPage() {
         currentEvents.map(event => 
           event._id === selectedEvent._id 
             ? { 
-                ...event, 
-                ...editedEvent
-              } 
+              ...event, 
+              ...editedEvent,
+            } 
             : event
         )
       )
@@ -244,7 +249,7 @@ export default function ChildEventsPage() {
       setIsEditing(false)
       setIsDialogOpen(false)
     } catch (error: any) {
-      console.error("Error:", error)
+      logger.error("Error:", error)
       toast({
         title: "Error",
         description: error?.message || "No se pudo actualizar el evento. Inténtalo de nuevo.",
@@ -263,13 +268,13 @@ export default function ChildEventsPage() {
     try {
       // Usar la URL con el ID en la ruta
       const response = await fetch(`/api/children/events/${selectedEvent._id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       })
       
       const responseData = await response.json()
       
       if (!response.ok) {
-        throw new Error(responseData.message || responseData.error || 'Error al eliminar el evento')
+        throw new Error(responseData.message || responseData.error || "Error al eliminar el evento")
       }
       
       // Eliminar el evento del estado local
@@ -284,7 +289,7 @@ export default function ChildEventsPage() {
       
       setIsDialogOpen(false)
     } catch (error: any) {
-      console.error("Error:", error)
+      logger.error("Error:", error)
       toast({
         title: "Error",
         description: error?.message || "No se pudo eliminar el evento. Inténtalo de nuevo.",
@@ -385,7 +390,7 @@ export default function ChildEventsPage() {
                         {getEventTypeName(event.eventType)}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {format(new Date(event.startTime), 'PPpp', { locale: es })}
+                        {format(new Date(event.startTime), "PPpp", { locale: es })}
                       </div>
                     </div>
                     <div className="flex justify-between items-start">
@@ -398,9 +403,9 @@ export default function ChildEventsPage() {
                           size="sm"
                           variant="outline"
                           onClick={(e) => {
-                            e.stopPropagation(); // Evitar que se abra el diálogo completo
-                            handleEventClick(event);
-                            setIsEditing(true);
+                            e.stopPropagation() // Evitar que se abra el diálogo completo
+                            handleEventClick(event)
+                            setIsEditing(true)
                           }}
                         >
                           <Edit className="h-4 w-4" />
@@ -409,9 +414,9 @@ export default function ChildEventsPage() {
                           size="sm"
                           variant="destructive"
                           onClick={(e) => {
-                            e.stopPropagation(); // Evitar que se abra el diálogo completo
-                            setSelectedEvent(event);
-                            deleteEvent();
+                            e.stopPropagation() // Evitar que se abra el diálogo completo
+                            setSelectedEvent(event)
+                            deleteEvent()
                           }}
                         >
                           <Trash className="h-4 w-4" />
@@ -444,9 +449,9 @@ export default function ChildEventsPage() {
                     <div className="flex items-center">
                       <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
                       <span className="text-sm">
-                        {format(new Date(selectedEvent.startTime), 'PPpp', { locale: es })}
+                        {format(new Date(selectedEvent.startTime), "PPpp", { locale: es })}
                         {selectedEvent.endTime && (
-                          <> hasta {format(new Date(selectedEvent.endTime), 'p', { locale: es })}</>
+                          <> hasta {format(new Date(selectedEvent.endTime), "p", { locale: es })}</>
                         )}
                       </span>
                     </div>
@@ -470,7 +475,7 @@ export default function ChildEventsPage() {
                       <Label htmlFor="eventType">Tipo de evento</Label>
                       <Select 
                         value={editedEvent.eventType || ""}
-                        onValueChange={(value) => setEditedEvent({...editedEvent, eventType: value})}
+                        onValueChange={(value) => setEditedEvent({ ...editedEvent, eventType: value })}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecciona un tipo" />
@@ -489,7 +494,7 @@ export default function ChildEventsPage() {
                       <Label htmlFor="emotionalState">Estado emocional</Label>
                       <Select 
                         value={editedEvent.emotionalState || ""}
-                        onValueChange={(value) => setEditedEvent({...editedEvent, emotionalState: value})}
+                        onValueChange={(value) => setEditedEvent({ ...editedEvent, emotionalState: value })}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecciona un estado" />
@@ -509,16 +514,16 @@ export default function ChildEventsPage() {
                         <Label htmlFor="startTime">Hora de inicio</Label>
                         <Input 
                           type="datetime-local" 
-                          value={editedEvent.startTime?.replace('Z', '') || ""}
-                          onChange={(e) => setEditedEvent({...editedEvent, startTime: e.target.value})}
+                          value={editedEvent.startTime?.replace("Z", "") || ""}
+                          onChange={(e) => setEditedEvent({ ...editedEvent, startTime: e.target.value })}
                         />
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="endTime">Hora de finalización</Label>
                         <Input 
                           type="datetime-local" 
-                          value={editedEvent.endTime?.replace('Z', '') || ""}
-                          onChange={(e) => setEditedEvent({...editedEvent, endTime: e.target.value})}
+                          value={editedEvent.endTime?.replace("Z", "") || ""}
+                          onChange={(e) => setEditedEvent({ ...editedEvent, endTime: e.target.value })}
                         />
                       </div>
                     </div>
@@ -527,7 +532,7 @@ export default function ChildEventsPage() {
                       <Label htmlFor="notes">Notas</Label>
                       <Textarea 
                         value={editedEvent.notes || ""}
-                        onChange={(e) => setEditedEvent({...editedEvent, notes: e.target.value})}
+                        onChange={(e) => setEditedEvent({ ...editedEvent, notes: e.target.value })}
                         placeholder="Notas adicionales sobre el evento..."
                       />
                     </div>

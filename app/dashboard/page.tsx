@@ -10,7 +10,7 @@ import { useSession } from "next-auth/react"
 import { useActiveChild } from "@/context/active-child-context"
 import { 
   Moon, Sun, Activity, TrendingUp, Calendar, MessageSquare, 
-  Lightbulb, ChevronLeft, ChevronRight, Send 
+  Lightbulb, ChevronLeft, ChevronRight, Send, 
 } from "lucide-react"
 import {
   format,
@@ -21,9 +21,14 @@ import {
   startOfWeek,
   endOfWeek,
   eachDayOfInterval,
-  isSameDay
+  isSameDay,
 } from "date-fns"
 import { es } from "date-fns/locale"
+
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("page")
+
 
 interface Child {
   _id: string
@@ -62,7 +67,7 @@ export default function DashboardPage() {
     totalSleepHours: "0h 0min",
     avgBedtime: "--:--",
     nightWakeups: 0,
-    sleepQuality: 0
+    sleepQuality: 0,
   })
   const [isLoading, setIsLoading] = useState(true)
   const [noteText, setNoteText] = useState("")
@@ -96,7 +101,7 @@ export default function DashboardPage() {
         calculateSleepMetrics(eventsData.events || [])
       }
     } catch (error) {
-      console.error('Error loading child data:', error)
+      logger.error("Error loading child data:", error)
       toast({
         title: "Error",
         description: "No se pudieron cargar los datos del niño.",
@@ -118,8 +123,8 @@ export default function DashboardPage() {
       return eventDate >= weekStart && eventDate <= weekEnd
     })
     
-    const sleepEvents = weekEvents.filter(e => e.eventType === 'sleep' && e.endTime)
-    const napEvents = weekEvents.filter(e => e.eventType === 'nap' && e.endTime)
+    const sleepEvents = weekEvents.filter(e => e.eventType === "sleep" && e.endTime)
+    const napEvents = weekEvents.filter(e => e.eventType === "nap" && e.endTime)
     const allSleepEvents = [...sleepEvents, ...napEvents]
     
     // Calcular horas totales de sueño promedio
@@ -145,7 +150,7 @@ export default function DashboardPage() {
       
       const hours = Math.floor(avgMinutes / 60)
       const minutes = Math.round(avgMinutes % 60)
-      avgBedtime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+      avgBedtime = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`
     }
     
     // Calcular despertares nocturnos (simular basado en eventos)
@@ -170,7 +175,7 @@ export default function DashboardPage() {
       totalSleepHours,
       avgBedtime,
       nightWakeups,
-      sleepQuality: Math.round(sleepQuality)
+      sleepQuality: Math.round(sleepQuality),
     })
   }
 
@@ -183,12 +188,12 @@ export default function DashboardPage() {
 
   const getMoodEmoji = (mood: string) => {
     switch(mood?.toLowerCase()) {
-      case 'happy': case 'feliz': return '😊'
-      case 'energetic': case 'energético': return '⚡'
-      case 'tired': case 'cansado': return '😴'
-      case 'stressed': case 'estresado': return '😰'
-      case 'calm': case 'tranquilo': return '😌'
-      default: return '😊'
+    case "happy": case "feliz": return "😊"
+    case "energetic": case "energético": return "⚡"
+    case "tired": case "cansado": return "😴"
+    case "stressed": case "estresado": return "😰"
+    case "calm": case "tranquilo": return "😌"
+    default: return "😊"
     }
   }
 
@@ -220,15 +225,15 @@ export default function DashboardPage() {
     
     if (dayEvents.length === 0) return null
     
-    const sleepEvent = dayEvents.find(e => e.eventType === 'sleep')
+    const sleepEvent = dayEvents.find(e => e.eventType === "sleep")
     if (!sleepEvent) return null
     
     // Simular calidad basada en el estado emocional
     const mood = sleepEvent.emotionalState?.toLowerCase()
-    if (mood === 'happy' || mood === 'feliz') return 'good'
-    if (mood === 'tired' || mood === 'cansado') return 'poor'
-    if (mood === 'stressed' || mood === 'estresado') return 'poor'
-    return 'average'
+    if (mood === "happy" || mood === "feliz") return "good"
+    if (mood === "tired" || mood === "cansado") return "poor"
+    if (mood === "stressed" || mood === "estresado") return "poor"
+    return "average"
   }
 
   const recentMoods = events
@@ -254,10 +259,10 @@ export default function DashboardPage() {
         {/* Saludo personalizado */}
         <div className="space-y-2">
           <h1 className="text-2xl font-bold text-[#2F2F2F]">
-            {getGreeting()}, {session?.user?.name?.split(' ')[0] || 'Usuario'}!
+            {getGreeting()}, {session?.user?.name?.split(" ")[0] || "Usuario"}!
           </h1>
           <p className="text-[#666666]">
-            Aquí tienes un resumen del sueño de {child?.firstName || 'tu niño'} de los últimos 7 días.
+            Aquí tienes un resumen del sueño de {child?.firstName || "tu niño"} de los últimos 7 días.
           </p>
         </div>
 
@@ -269,7 +274,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="text-sm text-[#666666]">Tiempo total de sueño (promedio)</p>
-                  <p className="text-3xl font-bold text-[#2F2F2F]">{sleepMetrics.totalSleepHours.split(' ')[0]}</p>
+                  <p className="text-3xl font-bold text-[#2F2F2F]">{sleepMetrics.totalSleepHours.split(" ")[0]}</p>
                 </div>
                 <div className="h-10 w-10 bg-green-100 rounded-xl flex items-center justify-center">
                   <Moon className="h-5 w-5 text-green-600" />
@@ -380,7 +385,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex-1">
                       <p className="text-sm text-[#3A3A3A] font-medium">
-                        {index === 0 ? 'Hoy' : format(parseISO(event.startTime), 'EEEE', { locale: es })}
+                        {index === 0 ? "Hoy" : format(parseISO(event.startTime), "EEEE", { locale: es })}
                       </p>
                     </div>
                     <Badge className="bg-green-50 text-green-700 text-xs">
@@ -414,14 +419,14 @@ export default function DashboardPage() {
                 </div>
               </div>
               <p className="text-[#3A3A3A] font-medium">
-                {format(currentDate, 'MMMM yyyy', { locale: es })}
+                {format(currentDate, "MMMM yyyy", { locale: es })}
               </p>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {/* Días de la semana */}
                 <div className="grid grid-cols-7 gap-2 text-xs text-center text-[#666666] font-medium">
-                  {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(day => (
+                  {["L", "M", "X", "J", "V", "S", "D"].map(day => (
                     <div key={day}>{day}</div>
                   ))}
                 </div>
@@ -437,15 +442,15 @@ export default function DashboardPage() {
                         {quality ? (
                           <div className={`
                             w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium
-                            ${quality === 'good' ? 'bg-green-600 text-white' : ''}
-                            ${quality === 'average' ? 'bg-yellow-500 text-white' : ''}
-                            ${quality === 'poor' ? 'bg-red-500 text-white' : ''}
+                            ${quality === "good" ? "bg-green-600 text-white" : ""}
+                            ${quality === "average" ? "bg-yellow-500 text-white" : ""}
+                            ${quality === "poor" ? "bg-red-500 text-white" : ""}
                           `}>
-                            {format(date, 'd')}
+                            {format(date, "d")}
                           </div>
                         ) : (
-                          <div className={`text-xs ${isToday ? 'font-bold text-[#3A3A3A]' : 'text-[#9CA3AF]'}`}>
-                            {format(date, 'd')}
+                          <div className={`text-xs ${isToday ? "font-bold text-[#3A3A3A]" : "text-[#9CA3AF]"}`}>
+                            {format(date, "d")}
                           </div>
                         )}
                       </div>

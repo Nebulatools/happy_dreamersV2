@@ -12,20 +12,25 @@ import {
   Users, TrendingUp, AlertTriangle, Calendar, 
   Moon, Activity, BarChart3, CheckCircle,
   FileText, MessageSquare, Filter, ChevronRight,
-  Clock, AlertCircle
+  Clock, AlertCircle,
 } from "lucide-react"
 import {
   format,
   parseISO,
-  differenceInMinutes
+  differenceInMinutes,
 } from "date-fns"
 import { es } from "date-fns/locale"
+
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("page")
+
 
 // Interfaces para el sistema de triage
 interface ChildAlert {
   childId: string
   childName: string
-  severity: 'critical' | 'warning' | 'ok'
+  severity: "critical" | "warning" | "ok"
   diagnosis: string
   lastUpdate: string
   parentName?: string
@@ -88,8 +93,8 @@ export default function AdminDashboardPage() {
     alerts: {
       critical: 0,
       warning: 0,
-      ok: 0
-    }
+      ok: 0,
+    },
   })
 
   // Cargar datos administrativos
@@ -122,8 +127,8 @@ export default function AdminDashboardPage() {
         alerts: {
           critical: 0,
           warning: 0,
-          ok: 0
-        }
+          ok: 0,
+        },
       })
       
       // CÓDIGO REAL A IMPLEMENTAR:
@@ -144,7 +149,7 @@ export default function AdminDashboardPage() {
       }
       */
     } catch (error) {
-      console.error('Error loading admin data:', error)
+      logger.error("Error loading admin data:", error)
       toast({
         title: "Error",
         description: "No se pudieron cargar los datos administrativos.",
@@ -165,19 +170,19 @@ export default function AdminDashboardPage() {
   // Función para manejar navegación a paciente
   const handlePatientClick = (childId: string) => {
     // TODO: Navegar a la vista de diagnóstico del paciente
-    console.log('Navegar a paciente:', childId)
+    logger.info("Navegar a paciente:", childId)
   }
 
   // Función para crear plan
   const handleCreatePlan = (childId: string) => {
     // TODO: Navegar a la vista de planificación
-    console.log('Crear plan para:', childId)
+    logger.info("Crear plan para:", childId)
   }
 
   // Función para revisar bitácora
   const handleReviewLog = (childId: string) => {
     // TODO: Navegar a la bitácora del paciente
-    console.log('Revisar bitácora de:', childId)
+    logger.info("Revisar bitácora de:", childId)
   }
 
   if (isLoading) {
@@ -198,7 +203,7 @@ export default function AdminDashboardPage() {
         {/* Saludo personalizado para admin */}
         <div className="space-y-2">
           <h1 className="text-2xl font-bold text-[#2F2F2F]">
-            {getGreeting()}, Dr. {session?.user?.name?.split(' ')[0] || 'Admin'}!
+            {getGreeting()}, Dr. {session?.user?.name?.split(" ")[0] || "Admin"}!
           </h1>
           <p className="text-[#666666]">
             Casos que requieren tu atención hoy.
@@ -216,14 +221,14 @@ export default function AdminDashboardPage() {
                 </div>
                 <h2 className="text-xl font-semibold text-[#2F2F2F]">ACCIÓN URGENTE</h2>
                 <Badge className="bg-red-100 text-red-700 hover:bg-red-100">
-                  {criticalAlerts.length} {criticalAlerts.length === 1 ? 'caso' : 'casos'}
+                  {criticalAlerts.length} {criticalAlerts.length === 1 ? "caso" : "casos"}
                 </Badge>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {criticalAlerts.map((alert) => (
                   <Card key={alert.childId} className="bg-white shadow-sm border-red-200 hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => handlePatientClick(alert.childId)}>
+                    onClick={() => handlePatientClick(alert.childId)}>
                     <CardContent className="p-6">
                       <div className="space-y-4">
                         <div className="flex items-start justify-between">
@@ -272,14 +277,14 @@ export default function AdminDashboardPage() {
                 </div>
                 <h2 className="text-xl font-semibold text-[#2F2F2F]">NECESITAN REVISIÓN</h2>
                 <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">
-                  {warningAlerts.length} {warningAlerts.length === 1 ? 'caso' : 'casos'}
+                  {warningAlerts.length} {warningAlerts.length === 1 ? "caso" : "casos"}
                 </Badge>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {warningAlerts.map((alert) => (
                   <Card key={alert.childId} className="bg-white shadow-sm border-yellow-200 hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => handlePatientClick(alert.childId)}>
+                    onClick={() => handlePatientClick(alert.childId)}>
                     <CardContent className="p-5">
                       <div className="space-y-3">
                         <div className="flex items-start justify-between">
@@ -328,8 +333,8 @@ export default function AdminDashboardPage() {
             className="text-[#4A90E2] hover:bg-[#F0F7FF] text-sm"
             onClick={() => setShowAllPatients(!showAllPatients)}
           >
-            {showAllPatients ? 'Ocultar todos los pacientes' : 'Ver todos los pacientes'}
-            <ChevronRight className={`h-4 w-4 ml-2 transition-transform ${showAllPatients ? 'rotate-90' : ''}`} />
+            {showAllPatients ? "Ocultar todos los pacientes" : "Ver todos los pacientes"}
+            <ChevronRight className={`h-4 w-4 ml-2 transition-transform ${showAllPatients ? "rotate-90" : ""}`} />
           </Button>
         </div>
 
@@ -342,14 +347,14 @@ export default function AdminDashboardPage() {
               </div>
               <h2 className="text-lg font-medium text-[#666666]">Pacientes sin alertas</h2>
               <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
-                {okPatients.length} {okPatients.length === 1 ? 'paciente' : 'pacientes'}
+                {okPatients.length} {okPatients.length === 1 ? "paciente" : "pacientes"}
               </Badge>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {okPatients.map((patient) => (
                 <Card key={patient.childId} className="bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => handlePatientClick(patient.childId)}>
+                  onClick={() => handlePatientClick(patient.childId)}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -452,11 +457,11 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {todayPatients.length > 0 ? todayPatients.map((child) => (
               <Card key={child._id} className="bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => handlePatientClick(child._id)}>
+                onClick={() => handlePatientClick(child._id)}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={`/placeholder-user.jpg`} />
+                      <AvatarImage src={"/placeholder-user.jpg"} />
                       <AvatarFallback>{child.firstName.charAt(0)}{child.lastName.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
@@ -466,7 +471,7 @@ export default function AdminDashboardPage() {
                       <p className="text-xs text-[#666666]">
                         {child.birthDate ? 
                           `${Math.floor((Date.now() - new Date(child.birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} años` 
-                          : 'Edad no especificada'
+                          : "Edad no especificada"
                         }
                       </p>
                     </div>

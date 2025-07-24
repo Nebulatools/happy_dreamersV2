@@ -10,6 +10,11 @@ import { useToast } from "@/hooks/use-toast"
 import { Loader2, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
 import {
+
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("page")
+
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -61,7 +66,7 @@ export default function PatientsPage() {
           setSelectedUser(savedUserId)
         }
       } catch (error) {
-        console.error('Error:', error)
+        logger.error('Error:', error);
         toast({
           title: "Error",
           description: "No se pudieron cargar los usuarios. Verifica que tengas permisos de administrador.",
@@ -95,7 +100,7 @@ export default function PatientsPage() {
         [userId]: data
       }))
     } catch (error) {
-      console.error('Error:', error)
+      logger.error('Error:', error);
       toast({
         title: "Error",
         description: "No se pudieron cargar los niños del usuario.",

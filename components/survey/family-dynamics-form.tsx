@@ -72,16 +72,16 @@ export function FamilyDynamicsForm({ onDataChange, initialData = {} }: FamilyDyn
   }, [initialData, form])
 
   const onSubmit = (data: FamilyDynamicsFormValues) => {
-    setIsSaving(true);
+    setIsSaving(true)
     
     setTimeout(() => {
-      onDataChange(data);
-      setIsSaving(false);
+      onDataChange(data)
+      setIsSaving(false)
       
-      setShowSaved(true);
-      setTimeout(() => setShowSaved(false), 2000);
-    }, 500);
-  };
+      setShowSaved(true)
+      setTimeout(() => setShowSaved(false), 2000)
+    }, 500)
+  }
 
   const caregiverOptions = [
     { id: "mother", label: "Madre" },

@@ -17,17 +17,22 @@ import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
 
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("page")
+
+
 // Función auxiliar para formatear la fecha actual en formato ISO para input datetime-local
 const getCurrentDateTimeISO = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, "0")
+  const day = String(now.getDate()).padStart(2, "0")
+  const hours = String(now.getHours()).padStart(2, "0")
+  const minutes = String(now.getMinutes()).padStart(2, "0")
   
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
 
 // Esquema con validación para fechas que no sean futuras
 const eventFormSchema = z.object({
@@ -44,13 +49,13 @@ const eventFormSchema = z.object({
     required_error: "Por favor ingresa la hora de inicio",
   }).refine(val => {
     // Verificar que la fecha no sea en el futuro
-    return new Date(val) <= new Date();
+    return new Date(val) <= new Date()
   }, {
     message: "La fecha de inicio no puede ser en el futuro",
   }),
   endTime: z.string().optional().refine(val => {
     // Si hay un valor, verificar que no sea en el futuro
-    return !val || new Date(val) <= new Date();
+    return !val || new Date(val) <= new Date()
   }, {
     message: "La fecha de finalización no puede ser en el futuro",
   }),
@@ -77,14 +82,14 @@ export default function EventPage() {
   useEffect(() => {
     const fetchChildren = async () => {
       try {
-        const response = await fetch('/api/children')
+        const response = await fetch("/api/children")
         if (!response.ok) {
-          throw new Error('Error al cargar los niños')
+          throw new Error("Error al cargar los niños")
         }
         const data = await response.json()
         setChildren(data)
       } catch (error) {
-        console.error('Error:', error)
+        logger.error("Error:", error)
         toast({
           title: "Error",
           description: "No se pudieron cargar los niños. Inténtalo de nuevo.",
@@ -99,10 +104,10 @@ export default function EventPage() {
     
     // Actualizar la fecha máxima cada minuto para mantenerla actual
     const interval = setInterval(() => {
-      setCurrentDateTime(getCurrentDateTimeISO());
-    }, 60000);
+      setCurrentDateTime(getCurrentDateTimeISO())
+    }, 60000)
     
-    return () => clearInterval(interval);
+    return () => clearInterval(interval)
   }, [toast])
 
   const eventTypes = [
@@ -136,12 +141,12 @@ export default function EventPage() {
     setIsLoading(true)
     try {
       // Enviar los datos a la API
-      console.log("Enviando evento:", data)
+      logger.info("Enviando evento:", data)
       
-      const response = await fetch('/api/children/events', {
-        method: 'POST',
+      const response = await fetch("/api/children/events", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       })
@@ -149,7 +154,7 @@ export default function EventPage() {
       const responseData = await response.json()
       
       if (!response.ok) {
-        throw new Error(responseData.message || 'Error al registrar el evento')
+        throw new Error(responseData.message || "Error al registrar el evento")
       }
 
       toast({
@@ -159,7 +164,7 @@ export default function EventPage() {
 
       router.push("/dashboard")
     } catch (error: any) {
-      console.error("Error:", error)
+      logger.error("Error:", error)
       toast({
         title: "Error",
         description: error?.message || "No se pudo registrar el evento. Inténtalo de nuevo.",
@@ -186,7 +191,7 @@ export default function EventPage() {
           <h1 className="text-3xl font-bold tracking-tight">Registrar Evento</h1>
           <p className="text-muted-foreground">No hay niños registrados para agregar eventos</p>
         </div>
-        <Button onClick={() => router.push('/dashboard/children/new')}>
+        <Button onClick={() => router.push("/dashboard/children/new")}>
           Registrar un niño
         </Button>
       </div>

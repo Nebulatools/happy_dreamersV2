@@ -16,12 +16,17 @@ import {
   Moon, 
   Sun,
   Save,
-  Info
+  Info,
 } from "lucide-react"
 import { ProgressBar } from "@/components/ui/progress-bar"
 import { TimePicker } from "@/components/ui/time-picker"
 import { DurationSlider } from "@/components/ui/duration-slider"
 import { cn } from "@/lib/utils"
+
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("page")
+
 
 interface SurveyData {
   // Paso 1: Información Básica
@@ -56,7 +61,7 @@ const steps = [
   { id: 2, name: "Patrones de Sueño", icon: "🌙" },
   { id: 3, name: "Rutinas", icon: "🛁" },
   { id: 4, name: "Ambiente", icon: "🏠" },
-  { id: 5, name: "Finalizar", icon: "✅" }
+  { id: 5, name: "Finalizar", icon: "✅" },
 ]
 
 const bedtimeOptions = [
@@ -67,7 +72,7 @@ const bedtimeOptions = [
   { value: "21:00", label: "21:00" },
   { value: "21:30", label: "21:30" },
   { value: "22:00", label: "22:00" },
-  { value: "22:30", label: "22:30" }
+  { value: "22:30", label: "22:30" },
 ]
 
 const wakeTimeOptions = [
@@ -77,13 +82,13 @@ const wakeTimeOptions = [
   { value: "7:00", label: "7:00" },
   { value: "7:30", label: "7:30" },
   { value: "8:00", label: "8:00" },
-  { value: "8:30", label: "8:30" }
+  { value: "8:30", label: "8:30" },
 ]
 
 export default function SurveyPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const childId = searchParams.get('childId')
+  const childId = searchParams.get("childId")
   const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(2) // Iniciando en paso 2 como en Figma
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -92,7 +97,7 @@ export default function SurveyPage() {
     sleepHours: "9-10 horas",
     nightWakings: "1-2 veces",
     wakeTime: "6:30",
-    naps: "Regularmente (3-5 veces por semana)"
+    naps: "Regularmente (3-5 veces por semana)",
   })
 
   // Cargar datos guardados si existen
@@ -107,7 +112,7 @@ export default function SurveyPage() {
           description: "Se han cargado tus respuestas anteriores",
         })
       } catch (error) {
-        console.error("Error al cargar datos guardados:", error)
+        logger.error("Error al cargar datos guardados:", error)
       }
     }
   }, [childId, toast])
@@ -142,19 +147,19 @@ export default function SurveyPage() {
   const handleSubmit = async () => {
     setIsSubmitting(true)
     try {
-      const response = await fetch('/api/survey', {
-        method: 'POST',
+      const response = await fetch("/api/survey", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           childId,
-          surveyData: formData
+          surveyData: formData,
         }),
       })
       
       if (!response.ok) {
-        throw new Error('Error al enviar la encuesta')
+        throw new Error("Error al enviar la encuesta")
       }
 
       // Limpiar datos guardados
@@ -180,143 +185,143 @@ export default function SurveyPage() {
 
   const renderStepContent = () => {
     switch (currentStep) {
-      case 2: // Patrones de Sueño
-        return (
-          <div className="space-y-8">
-            {/* Pregunta 1: Hora de acostarse */}
-            <div>
-              <TimePicker
-                label="¿A qué hora suele acostarse tu hijo/a habitualmente?"
-                description="Selecciona la hora más frecuente en la que tu hijo/a se va a la cama"
-                value={formData.bedtime}
-                onChange={(value) => setFormData({ ...formData, bedtime: value })}
-                options={bedtimeOptions}
-              />
-            </div>
+    case 2: // Patrones de Sueño
+      return (
+        <div className="space-y-8">
+          {/* Pregunta 1: Hora de acostarse */}
+          <div>
+            <TimePicker
+              label="¿A qué hora suele acostarse tu hijo/a habitualmente?"
+              description="Selecciona la hora más frecuente en la que tu hijo/a se va a la cama"
+              value={formData.bedtime}
+              onChange={(value) => setFormData({ ...formData, bedtime: value })}
+              options={bedtimeOptions}
+            />
+          </div>
 
-            {/* Pregunta 2: Horas de sueño */}
-            <div className="space-y-3">
-              <h3 className="text-xl font-semibold text-[#2F2F2F]">
+          {/* Pregunta 2: Horas de sueño */}
+          <div className="space-y-3">
+            <h3 className="text-xl font-semibold text-[#2F2F2F]">
                 ¿Cuántas horas duerme en promedio durante la noche?
-              </h3>
-              <p className="text-sm text-[#666666]">
+            </h3>
+            <p className="text-sm text-[#666666]">
                 Incluye solo el tiempo total de sueño nocturno
-              </p>
-              <RadioGroup
-                value={formData.sleepHours}
-                onValueChange={(value) => setFormData({ ...formData, sleepHours: value })}
-              >
-                <div className="space-y-2">
-                  {["Menos de 7 horas", "7-8 horas", "9-10 horas", "11-12 horas", "Más de 12 horas"].map((option) => (
-                    <label
-                      key={option}
-                      className={cn(
-                        "flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors",
-                        formData.sleepHours === option 
-                          ? "border-[#4A90E2] bg-blue-50" 
-                          : "border-gray-200 hover:border-gray-300"
-                      )}
-                    >
-                      <RadioGroupItem value={option} />
-                      <span className="text-sm font-medium">{option}</span>
-                    </label>
-                  ))}
-                </div>
-              </RadioGroup>
-            </div>
-
-            {/* Pregunta 3: Despertares nocturnos */}
-            <div className="space-y-3">
-              <h3 className="text-xl font-semibold text-[#2F2F2F]">
-                ¿Con qué frecuencia se despierta durante la noche?
-              </h3>
-              <p className="text-sm text-[#666666]">Frecuencia de despertares</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[
-                  { value: "Nunca", label: "Nunca" },
-                  { value: "1-2 veces", label: "1-2 veces" },
-                  { value: "3-4 veces", label: "3-4 veces" },
-                  { value: "5+ veces", label: "5+ veces" }
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, nightWakings: option.value })}
+            </p>
+            <RadioGroup
+              value={formData.sleepHours}
+              onValueChange={(value) => setFormData({ ...formData, sleepHours: value })}
+            >
+              <div className="space-y-2">
+                {["Menos de 7 horas", "7-8 horas", "9-10 horas", "11-12 horas", "Más de 12 horas"].map((option) => (
+                  <label
+                    key={option}
                     className={cn(
-                      "px-4 py-3 rounded-lg border-2 transition-all duration-200 font-medium",
-                      formData.nightWakings === option.value
-                        ? "border-[#628BE6] bg-[#628BE6]/10 text-[#628BE6]"
-                        : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                      "flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                      formData.sleepHours === option 
+                        ? "border-[#4A90E2] bg-blue-50" 
+                        : "border-gray-200 hover:border-gray-300"
                     )}
                   >
-                    {option.label}
-                  </button>
+                    <RadioGroupItem value={option} />
+                    <span className="text-sm font-medium">{option}</span>
+                  </label>
                 ))}
               </div>
-            </div>
+            </RadioGroup>
+          </div>
 
-            {/* Pregunta 4: Hora de despertar */}
-            <div>
-              <TimePicker
-                label="¿A qué hora se despierta normalmente?"
-                description="Hora habitual de despertar por la mañana"
-                value={formData.wakeTime}
-                onChange={(value) => setFormData({ ...formData, wakeTime: value })}
-                options={wakeTimeOptions}
-              />
+          {/* Pregunta 3: Despertares nocturnos */}
+          <div className="space-y-3">
+            <h3 className="text-xl font-semibold text-[#2F2F2F]">
+                ¿Con qué frecuencia se despierta durante la noche?
+            </h3>
+            <p className="text-sm text-[#666666]">Frecuencia de despertares</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { value: "Nunca", label: "Nunca" },
+                { value: "1-2 veces", label: "1-2 veces" },
+                { value: "3-4 veces", label: "3-4 veces" },
+                { value: "5+ veces", label: "5+ veces" },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, nightWakings: option.value })}
+                  className={cn(
+                    "px-4 py-3 rounded-lg border-2 transition-all duration-200 font-medium",
+                    formData.nightWakings === option.value
+                      ? "border-[#628BE6] bg-[#628BE6]/10 text-[#628BE6]"
+                      : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
+          </div>
 
-            {/* Pregunta 5: Siestas */}
-            <div className="space-y-3">
-              <h3 className="text-xl font-semibold text-[#2F2F2F]">
+          {/* Pregunta 4: Hora de despertar */}
+          <div>
+            <TimePicker
+              label="¿A qué hora se despierta normalmente?"
+              description="Hora habitual de despertar por la mañana"
+              value={formData.wakeTime}
+              onChange={(value) => setFormData({ ...formData, wakeTime: value })}
+              options={wakeTimeOptions}
+            />
+          </div>
+
+          {/* Pregunta 5: Siestas */}
+          <div className="space-y-3">
+            <h3 className="text-xl font-semibold text-[#2F2F2F]">
                 ¿Tu hijo/a toma siestas durante el día?
-              </h3>
-              <RadioGroup
-                value={formData.naps}
-                onValueChange={(value) => setFormData({ ...formData, naps: value })}
-              >
-                <div className="space-y-2">
-                  {[
-                    "No, nunca hace siestas",
-                    "Ocasionalmente (1-2 veces por semana)",
-                    "Regularmente (3-5 veces por semana)",
-                    "Diariamente (todos los días)"
-                  ].map((option) => (
-                    <label
-                      key={option}
-                      className={cn(
-                        "flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors",
-                        formData.naps === option 
-                          ? "border-[#4A90E2] bg-blue-50" 
-                          : "border-gray-200 hover:border-gray-300"
-                      )}
-                    >
-                      <RadioGroupItem value={option} />
-                      <span className="text-sm font-medium">{option}</span>
-                    </label>
-                  ))}
-                </div>
-              </RadioGroup>
-            </div>
+            </h3>
+            <RadioGroup
+              value={formData.naps}
+              onValueChange={(value) => setFormData({ ...formData, naps: value })}
+            >
+              <div className="space-y-2">
+                {[
+                  "No, nunca hace siestas",
+                  "Ocasionalmente (1-2 veces por semana)",
+                  "Regularmente (3-5 veces por semana)",
+                  "Diariamente (todos los días)",
+                ].map((option) => (
+                  <label
+                    key={option}
+                    className={cn(
+                      "flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                      formData.naps === option 
+                        ? "border-[#4A90E2] bg-blue-50" 
+                        : "border-gray-200 hover:border-gray-300"
+                    )}
+                  >
+                    <RadioGroupItem value={option} />
+                    <span className="text-sm font-medium">{option}</span>
+                  </label>
+                ))}
+              </div>
+            </RadioGroup>
+          </div>
 
-            {/* Nota informativa */}
-            <div className="flex gap-3 p-4 bg-[#F0F7FF] rounded-lg">
-              <Info className="w-5 h-5 text-[#91C1F8] flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-gray-700">
+          {/* Nota informativa */}
+          <div className="flex gap-3 p-4 bg-[#F0F7FF] rounded-lg">
+            <Info className="w-5 h-5 text-[#91C1F8] flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-gray-700">
                 Recuerda que cada niño es único y los patrones de sueño pueden variar. 
                 Esta información nos ayudará a crear un plan personalizado para mejorar 
                 el descanso de tu pequeño.
-              </p>
-            </div>
+            </p>
           </div>
-        )
+        </div>
+      )
       
-      default:
-        return (
-          <div className="text-center py-10">
-            <p className="text-gray-600">Contenido del paso {currentStep} en desarrollo</p>
-          </div>
-        )
+    default:
+      return (
+        <div className="text-center py-10">
+          <p className="text-gray-600">Contenido del paso {currentStep} en desarrollo</p>
+        </div>
+      )
     }
   }
 

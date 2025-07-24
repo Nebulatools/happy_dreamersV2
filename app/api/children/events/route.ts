@@ -7,23 +7,28 @@ import { authOptions } from "@/lib/auth"
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("API:children:events:route")
+
+
 // POST /api/children/events - registrar un nuevo evento para un niño
 export async function POST(req: NextRequest) {
   try {
     // Verificar la sesión del usuario
     const session = await getServerSession(authOptions)
     if (!session?.user) {
-      console.error("No hay sesión de usuario activa")
+      logger.error("No hay sesión de usuario activa")
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
     // Obtener datos del cuerpo de la solicitud
     const data = await req.json()
-    console.log("Datos recibidos:", data)
+    logger.info("Datos recibidos:", data)
 
     // Validar que se proporcionen los campos requeridos
     if (!data.childId || !data.eventType) {
-      console.error("Faltan campos requeridos", { data })
+      logger.error("Faltan campos requeridos", { data })
       return NextResponse.json(
         { error: "Se requieren childId y eventType" },
         { status: 400 }
@@ -32,10 +37,10 @@ export async function POST(req: NextRequest) {
 
     // Conectar a la base de datos
     const { db } = await connectToDatabase()
-    console.log("Conectado a MongoDB")
+    logger.info("Conectado a MongoDB")
 
     // Verificar si el usuario es administrador
-    const isAdmin = session.user.role === 'admin'
+    const isAdmin = session.user.role === "admin"
     
     // Verificar que el niño exista y pertenezca al usuario (o sea admin)
     const query = isAdmin 
@@ -45,7 +50,7 @@ export async function POST(req: NextRequest) {
     const child = await db.collection("children").findOne(query)
 
     if (!child) {
-      console.error("Niño no encontrado o no tienes permiso")
+      logger.error("Niño no encontrado o no tienes permiso")
       return NextResponse.json(
         { error: "Niño no encontrado o no tienes permiso para registrar eventos" },
         { status: 404 }
@@ -61,10 +66,10 @@ export async function POST(req: NextRequest) {
       startTime: data.startTime,
       endTime: data.endTime || null,
       notes: data.notes || "",
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     }
 
-    console.log("Evento a registrar:", event)
+    logger.info("Evento a registrar:", event)
 
     // Actualizar el documento del niño para agregar el evento
     // Usamos Object.assign para resolver el error de tipo con $push
@@ -73,10 +78,10 @@ export async function POST(req: NextRequest) {
       { $push: { events: event } as any }
     )
 
-    console.log("Resultado de la operación:", result)
+    logger.info("Resultado de la operación:", result)
 
     if (result.modifiedCount === 0) {
-      console.error("No se pudo registrar el evento")
+      logger.error("No se pudo registrar el evento")
       return NextResponse.json(
         { error: "No se pudo registrar el evento" },
         { status: 500 }
@@ -88,7 +93,7 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     )
   } catch (error: any) {
-    console.error("Error al registrar evento:", error.message, error.stack)
+    logger.error("Error al registrar evento:", error.message, error.stack)
     return NextResponse.json(
       { error: "Error al registrar el evento" },
       { status: 500 }
@@ -102,7 +107,7 @@ export async function GET(req: NextRequest) {
     // Verificar la sesión del usuario
     const session = await getServerSession(authOptions)
     if (!session?.user) {
-      console.error("No hay sesión de usuario activa")
+      logger.error("No hay sesión de usuario activa")
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
@@ -121,8 +126,8 @@ export async function GET(req: NextRequest) {
     const { db } = await connectToDatabase()
     
     // Verificar si el usuario es administrador
-    const isAdmin = session.user.role === 'admin'
-    console.log(`Usuario: ${session.user.id}, Es admin: ${isAdmin}, Solicitando niño: ${childId}`)
+    const isAdmin = session.user.role === "admin"
+    logger.info(`Usuario: ${session.user.id}, Es admin: ${isAdmin}, Solicitando niño: ${childId}`)
 
     // Buscar el niño
     // Para admins, permitir acceso a cualquier niño sin verificar el parentId
@@ -130,29 +135,29 @@ export async function GET(req: NextRequest) {
       ? { _id: new ObjectId(childId) }
       : { _id: new ObjectId(childId), parentId: session.user.id }
       
-    console.log("Query para buscar niño:", JSON.stringify(query))
+    logger.info("Query para buscar niño:", JSON.stringify(query))
     
     const child = await db.collection("children").findOne(query)
 
     if (!child) {
-      console.log(`Niño con ID ${childId} no encontrado o no accesible para usuario ${session.user.id}`)
+      logger.info(`Niño con ID ${childId} no encontrado o no accesible para usuario ${session.user.id}`)
       return NextResponse.json(
         { error: "Niño no encontrado o no tienes permiso para ver sus eventos" },
         { status: 404 }
       )
     }
 
-    console.log(`Niño encontrado: ${child.firstName} ${child.lastName}, devolviendo eventos`)
+    logger.info(`Niño encontrado: ${child.firstName} ${child.lastName}, devolviendo eventos`)
     
     // Devolver los detalles del niño, incluyendo sus eventos
     return NextResponse.json({
       _id: child._id,
       firstName: child.firstName,
       lastName: child.lastName,
-      events: child.events || []
+      events: child.events || [],
     })
   } catch (error: any) {
-    console.error("Error al obtener eventos:", error.message)
+    logger.error("Error al obtener eventos:", error.message)
     return NextResponse.json(
       { error: "Error al obtener los eventos", details: error.message },
       { status: 500 }
@@ -166,17 +171,17 @@ export async function PUT(req: NextRequest) {
     // Verificar la sesión del usuario
     const session = await getServerSession(authOptions)
     if (!session?.user) {
-      console.error("No hay sesión de usuario activa")
+      logger.error("No hay sesión de usuario activa")
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
     // Obtener datos del cuerpo de la solicitud
     const data = await req.json()
-    console.log("Datos recibidos para actualización:", data)
+    logger.info("Datos recibidos para actualización:", data)
 
     // Validar que se proporcionen los campos requeridos
     if (!data.id || !data.childId || !data.eventType) {
-      console.error("Faltan campos requeridos", { data })
+      logger.error("Faltan campos requeridos", { data })
       return NextResponse.json(
         { error: "Se requieren id, childId y eventType" },
         { status: 400 }
@@ -185,10 +190,10 @@ export async function PUT(req: NextRequest) {
 
     // Conectar a la base de datos
     const { db } = await connectToDatabase()
-    console.log("Conectado a MongoDB")
+    logger.info("Conectado a MongoDB")
 
     // Verificar si el usuario es administrador
-    const isAdmin = session.user.role === 'admin'
+    const isAdmin = session.user.role === "admin"
     
     // Verificar que el niño exista y pertenezca al usuario (o sea admin)
     const query = isAdmin 
@@ -198,7 +203,7 @@ export async function PUT(req: NextRequest) {
     const child = await db.collection("children").findOne(query)
 
     if (!child) {
-      console.error("Niño no encontrado o no tienes permiso")
+      logger.error("Niño no encontrado o no tienes permiso")
       return NextResponse.json(
         { error: "Niño no encontrado o no tienes permiso para actualizar eventos" },
         { status: 404 }
@@ -214,24 +219,24 @@ export async function PUT(req: NextRequest) {
       startTime: data.startTime,
       endTime: data.endTime || null,
       notes: data.notes || "",
-      createdAt: data.createdAt || new Date().toISOString()
+      createdAt: data.createdAt || new Date().toISOString(),
     }
 
-    console.log("Evento a actualizar:", updatedEvent)
+    logger.info("Evento a actualizar:", updatedEvent)
 
     // Actualizar el evento específico en el array de eventos del niño
     const result = await db.collection("children").updateOne(
       { 
         _id: new ObjectId(data.childId),
-        "events._id": data.id
+        "events._id": data.id,
       },
       { $set: { "events.$": updatedEvent } }
     )
 
-    console.log("Resultado de la actualización:", result)
+    logger.info("Resultado de la actualización:", result)
 
     if (result.matchedCount === 0) {
-      console.error("Evento no encontrado")
+      logger.error("Evento no encontrado")
       return NextResponse.json(
         { error: "Evento no encontrado" },
         { status: 404 }
@@ -239,7 +244,7 @@ export async function PUT(req: NextRequest) {
     }
 
     if (result.modifiedCount === 0) {
-      console.error("No se realizaron cambios en el evento")
+      logger.error("No se realizaron cambios en el evento")
       return NextResponse.json(
         { message: "No se realizaron cambios en el evento" },
         { status: 200 }
@@ -251,7 +256,7 @@ export async function PUT(req: NextRequest) {
       { status: 200 }
     )
   } catch (error: any) {
-    console.error("Error al actualizar evento:", error.message, error.stack)
+    logger.error("Error al actualizar evento:", error.message, error.stack)
     return NextResponse.json(
       { error: "Error al actualizar el evento" },
       { status: 500 }
@@ -265,7 +270,7 @@ export async function DELETE(req: NextRequest) {
     // Verificar la sesión del usuario
     const session = await getServerSession(authOptions)
     if (!session?.user) {
-      console.error("No hay sesión de usuario activa")
+      logger.error("No hay sesión de usuario activa")
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
@@ -290,10 +295,10 @@ export async function DELETE(req: NextRequest) {
 
     // Conectar a la base de datos
     const { db } = await connectToDatabase()
-    console.log("Conectado a MongoDB")
+    logger.info("Conectado a MongoDB")
     
     // Verificar si el usuario es administrador
-    const isAdmin = session.user.role === 'admin'
+    const isAdmin = session.user.role === "admin"
     
     // Verificar que el niño exista y pertenezca al usuario (o sea admin)
     const query = isAdmin 
@@ -303,7 +308,7 @@ export async function DELETE(req: NextRequest) {
     const child = await db.collection("children").findOne(query)
     
     if (!child) {
-      console.error("Niño no encontrado o no tienes permiso")
+      logger.error("Niño no encontrado o no tienes permiso")
       return NextResponse.json(
         { error: "Niño no encontrado o no tienes permiso para eliminar eventos" },
         { status: 404 }
@@ -316,10 +321,10 @@ export async function DELETE(req: NextRequest) {
       { $pull: { events: { _id: eventId } } as any }
     )
 
-    console.log("Resultado de la eliminación:", result)
+    logger.info("Resultado de la eliminación:", result)
 
     if (result.matchedCount === 0) {
-      console.error("Niño no encontrado")
+      logger.error("Niño no encontrado")
       return NextResponse.json(
         { error: "Niño no encontrado" },
         { status: 404 }
@@ -327,7 +332,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     if (result.modifiedCount === 0) {
-      console.error("No se pudo eliminar el evento o no existe")
+      logger.error("No se pudo eliminar el evento o no existe")
       return NextResponse.json(
         { error: "No se pudo eliminar el evento o no existe" },
         { status: 404 }
@@ -339,7 +344,7 @@ export async function DELETE(req: NextRequest) {
       { status: 200 }
     )
   } catch (error: any) {
-    console.error("Error al eliminar evento:", error.message, error.stack)
+    logger.error("Error al eliminar evento:", error.message, error.stack)
     return NextResponse.json(
       { error: "Error al eliminar el evento" },
       { status: 500 }

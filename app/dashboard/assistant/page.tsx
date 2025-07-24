@@ -16,10 +16,15 @@ import {
   Bot, 
   User,
   MoreHorizontal,
-  HelpCircle
+  HelpCircle,
 } from "lucide-react"
 import { useActiveChild } from "@/context/active-child-context"
 import { cn } from "@/lib/utils"
+
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("page")
+
 
 interface Message {
   id: string
@@ -44,7 +49,7 @@ interface Child {
 const quickSuggestions = [
   "Rutinas de sueño",
   "Pesadillas",
-  "Siestas"
+  "Siestas",
 ]
 
 export default function AssistantPage() {
@@ -81,7 +86,7 @@ export default function AssistantPage() {
           setActiveChild(child)
         }
       } catch (error) {
-        console.error('Error cargando información del niño:', error)
+        logger.error("Error cargando información del niño:", error)
         setActiveChild(null)
       }
     }
@@ -116,35 +121,35 @@ export default function AssistantPage() {
         .filter(msg => msg.id !== "welcome")
         .map(msg => ({
           role: msg.role,
-          content: msg.content
+          content: msg.content,
         }))
 
-      const response = await fetch('/api/rag/chat', {
-        method: 'POST',
+      const response = await fetch("/api/rag/chat", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           message: input,
           childId: activeChild?._id,
-          conversationHistory: conversationHistory
+          conversationHistory: conversationHistory,
         }),
       })
 
       if (!response.ok) {
-        throw new Error('Error en la respuesta del servidor')
+        throw new Error("Error en la respuesta del servidor")
       }
 
       const data = await response.json()
       
       const assistantMessage: Message = {
         id: Date.now().toString(),
-        role: 'assistant',
+        role: "assistant",
         content: data.response,
         timestamp: new Date(),
         documentsUsed: data.documentsUsed || 0,
         sources: data.sources || [],
-        childContext: data.childContext
+        childContext: data.childContext,
       }
 
       setMessages((prev) => [...prev, assistantMessage])
@@ -181,9 +186,9 @@ export default function AssistantPage() {
 
   const formatContent = (content: string) => {
     // Dividir el contenido en secciones si contiene listas
-    const lines = content.split('\n')
+    const lines = content.split("\n")
     return lines.map((line, index) => {
-      if (line.trim().startsWith('•')) {
+      if (line.trim().startsWith("•")) {
         return (
           <li key={index} className="ml-4 mb-1">
             {line.substring(1).trim()}
@@ -227,11 +232,11 @@ export default function AssistantPage() {
                 key={message.id}
                 className={cn(
                   "flex gap-3",
-                  message.role === 'user' && "flex-row-reverse"
+                  message.role === "user" && "flex-row-reverse"
                 )}
               >
                 {/* Avatar */}
-                {message.role === 'assistant' && (
+                {message.role === "assistant" && (
                   <div className="w-8 h-8 bg-[#4A90E2] rounded-full flex items-center justify-center flex-shrink-0">
                     <Bot className="w-5 h-5 text-white" />
                   </div>
@@ -241,7 +246,7 @@ export default function AssistantPage() {
                 <div
                   className={cn(
                     "rounded-2xl p-4 max-w-[70%]",
-                    message.role === 'assistant' 
+                    message.role === "assistant" 
                       ? "chat-bubble-assistant" 
                       : "chat-bubble-user"
                   )}

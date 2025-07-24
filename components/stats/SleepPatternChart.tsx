@@ -9,7 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from "recharts"
 
 interface SleepPatternChartProps {
@@ -32,7 +32,7 @@ export function SleepPatternChart({ bedWakeChartData, formatTimeTick }: SleepPat
             <YAxis 
               domain={[0, 1440]} 
               tickFormatter={formatTimeTick} 
-              label={{ value: 'Hora del día', angle: -90, position: 'insideLeft' }}
+              label={{ value: "Hora del día", angle: -90, position: "insideLeft" }}
               ticks={[0, 180, 360, 540, 720, 900, 1080, 1260, 1440]} // Cada 3 horas
             />
             <Tooltip formatter={(value: number) => formatTimeTick(value)} />

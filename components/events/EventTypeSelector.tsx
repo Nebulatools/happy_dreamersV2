@@ -14,26 +14,26 @@ const eventTypes = [
     id: "sleep",
     label: "Noche completa",
     icon: Moon,
-    description: "Período de sueño nocturno"
+    description: "Período de sueño nocturno",
   },
   {
     id: "nap", 
     label: "Siesta",
     icon: Sun,
-    description: "Período de descanso diurno"
+    description: "Período de descanso diurno",
   },
   {
     id: "wake",
     label: "Despertar",
     icon: Sun,
-    description: "Momento de despertar"
+    description: "Momento de despertar",
   },
   {
     id: "activity",
     label: "Actividad",
     icon: Activity,
-    description: "Actividad física o juego"
-  }
+    description: "Actividad física o juego",
+  },
 ]
 
 export function EventTypeSelector({ value, onValueChange }: EventTypeSelectorProps) {

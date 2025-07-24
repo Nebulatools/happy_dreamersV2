@@ -16,6 +16,11 @@ import { z } from "zod"
 import { StateGraph, Annotation, START, END } from "@langchain/langgraph"
 import { BaseMessage, HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages"
 
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("API:rag:chat:route")
+
+
 // 🤖 DEFINICIÓN DEL ESTADO DEL MULTI-AGENT SYSTEM
 const MultiAgentState = Annotation.Root({
   question: Annotation<string>,
@@ -25,7 +30,7 @@ const MultiAgentState = Annotation.Root({
   finalAnswer: Annotation<string>,
   conversationHistory: Annotation<any[]>,
   routingDecision: Annotation<string>,
-  performance: Annotation<{ startTime: number; endTime?: number; agent: string }>
+  performance: Annotation<{ startTime: number; endTime?: number; agent: string }>,
 })
 
 // 🎯 DEFINICIÓN DE HERRAMIENTAS PARA LOS AGENTES
@@ -33,7 +38,7 @@ const ragSearchTool = new DynamicStructuredTool({
   name: "rag_search",
   description: "Busca información en documentos especializados sobre desarrollo infantil, sueño, alimentación y técnicas de crianza",
   schema: z.object({
-    query: z.string().describe("La consulta para buscar en los documentos especializados")
+    query: z.string().describe("La consulta para buscar en los documentos especializados"),
   }),
   func: async ({ query }) => {
     try {
@@ -47,13 +52,13 @@ const ragSearchTool = new DynamicStructuredTool({
       const ragContext = results.map((doc: any, i: number) => {
         const metadata = doc.metadata as any
         return `Fuente: ${metadata.source}\nContenido: ${doc.pageContent}`
-      }).join('\n\n---\n\n')
+      }).join("\n\n---\n\n")
 
       return ragContext
     } catch (error) {
       return "Error al buscar en los documentos"
     }
-  }
+  },
 })
 
 const childDataTool = new DynamicStructuredTool({
@@ -62,7 +67,7 @@ const childDataTool = new DynamicStructuredTool({
   schema: z.object({
     childId: z.string().describe("ID del niño"),
     userId: z.string().describe("ID del usuario padre"),
-    dataType: z.string().describe("Tipo de datos: 'stats', 'events', 'emotions', 'patterns'")
+    dataType: z.string().describe("Tipo de datos: 'stats', 'events', 'emotions', 'patterns'"),
   }),
   func: async ({ childId, userId, dataType }) => {
     try {
@@ -72,7 +77,7 @@ const childDataTool = new DynamicStructuredTool({
       if (childId) {
         activeChild = await db.collection("children").findOne({
           _id: new ObjectId(childId),
-          parentId: userId
+          parentId: userId,
         })
       } else {
         const children = await db.collection("children")
@@ -91,14 +96,14 @@ const childDataTool = new DynamicStructuredTool({
     } catch (error) {
       return "Error al acceder a los datos del niño"
     }
-  }
+  },
 })
 
 // 🧠 AGENTE ROUTER INTELIGENTE SIMPLIFICADO
 const routerAgent = async (state: typeof MultiAgentState.State) => {
   const llm = new ChatOpenAI({
     modelName: "gpt-4o-mini",
-    temperature: 0
+    temperature: 0,
   })
 
   const routingPrompt = `Eres un router inteligente para un asistente pediátrico. 
@@ -120,7 +125,7 @@ const routerAgent = async (state: typeof MultiAgentState.State) => {
 
   const response = await llm.invoke([
     new SystemMessage(routingPrompt),
-    new HumanMessage(state.question)
+    new HumanMessage(state.question),
   ])
 
   const agentType = response.content.toString().trim()
@@ -128,7 +133,7 @@ const routerAgent = async (state: typeof MultiAgentState.State) => {
   return {
     agentType,
     routingDecision: `Router decidió: ${agentType}`,
-    performance: { startTime: Date.now(), agent: agentType }
+    performance: { startTime: Date.now(), agent: agentType },
   }
 }
 
@@ -136,7 +141,7 @@ const routerAgent = async (state: typeof MultiAgentState.State) => {
 const ragAgent = async (state: typeof MultiAgentState.State) => {
   const llm = new ChatOpenAI({
     modelName: "gpt-4o-mini",
-    temperature: 0.7
+    temperature: 0.7,
   })
 
   const agent = createReactAgent({
@@ -144,7 +149,7 @@ const ragAgent = async (state: typeof MultiAgentState.State) => {
     tools: [ragSearchTool],
     stateModifier: `Eres la Dra. Mariana, especialista en pediatría. 
     Usa SOLO la herramienta rag_search para buscar información en documentos especializados.
-    Responde de forma concisa y directa. Si no encuentras información específica, dilo claramente.`
+    Responde de forma concisa y directa. Si no encuentras información específica, dilo claramente.`,
   })
 
   const messages = [new HumanMessage(state.question)]
@@ -152,7 +157,7 @@ const ragAgent = async (state: typeof MultiAgentState.State) => {
   
   return {
     finalAnswer: result.messages[result.messages.length - 1].content,
-    performance: { ...state.performance, endTime: Date.now() }
+    performance: { ...state.performance, endTime: Date.now() },
   }
 }
 
@@ -160,7 +165,7 @@ const ragAgent = async (state: typeof MultiAgentState.State) => {
 const childDataAgent = async (state: typeof MultiAgentState.State, childId: string, userId: string) => {
   const llm = new ChatOpenAI({
     modelName: "gpt-4o-mini",
-    temperature: 0.3
+    temperature: 0.3,
   })
 
   const agent = createReactAgent({
@@ -168,38 +173,38 @@ const childDataAgent = async (state: typeof MultiAgentState.State, childId: stri
     tools: [childDataTool],
     stateModifier: `Eres la Dra. Mariana, especialista en análisis de datos infantiles.
     Usa SOLO la herramienta child_data_search para acceder a información específica del niño.
-    Proporciona respuestas precisas y concisas basadas en los datos reales.`
+    Proporciona respuestas precisas y concisas basadas en los datos reales.`,
   })
 
   const messages = [
     new SystemMessage(`Datos disponibles: childId=${childId}, userId=${userId}`),
-    new HumanMessage(state.question)
+    new HumanMessage(state.question),
   ]
   
   const result = await agent.invoke({ messages })
   
   return {
     finalAnswer: result.messages[result.messages.length - 1].content,
-    performance: { ...state.performance, endTime: Date.now() }
+    performance: { ...state.performance, endTime: Date.now() },
   }
 }
 
 // 🎯 FUNCIÓN DE ROUTING CON TIPOS EXPLÍCITOS
 const routeToAgent = (state: { agentType: string }): "RAG_ONLY" | "CHILD_DATA_ONLY" => {
-  return state.agentType === "DB" ? "CHILD_DATA_ONLY" : "RAG_ONLY";
-};
+  return state.agentType === "DB" ? "CHILD_DATA_ONLY" : "RAG_ONLY"
+}
 
 // 🏗️ CONSTRUCCIÓN DEL GRAFO CON SINTAXIS CORRECTA
 const buildMultiAgentGraph = (childId: string, userId: string) => {
-  const workflow = new StateGraph(MultiAgentState);
+  const workflow = new StateGraph(MultiAgentState)
 
   // 1. Agregar nodos
-  workflow.addNode("router", routerAgent);
-  workflow.addNode("RAG_ONLY", ragAgent);
-  workflow.addNode("CHILD_DATA_ONLY", (state) => childDataAgent(state, childId, userId));
+  workflow.addNode("router", routerAgent)
+  workflow.addNode("RAG_ONLY", ragAgent)
+  workflow.addNode("CHILD_DATA_ONLY", (state) => childDataAgent(state, childId, userId))
 
   // 2. Definir punto de entrada
-  workflow.setEntryPoint("router");
+  workflow.setEntryPoint("router")
 
   // 3. Definir branching condicional
   workflow.addConditionalEdges(
@@ -207,17 +212,17 @@ const buildMultiAgentGraph = (childId: string, userId: string) => {
     routeToAgent, // La función que decide la ruta
     {
       "RAG_ONLY": "RAG_ONLY",           // Si la función devuelve "RAG_ONLY", ir a este nodo
-      "CHILD_DATA_ONLY": "CHILD_DATA_ONLY" // Si devuelve "CHILD_DATA_ONLY", ir a este nodo
+      "CHILD_DATA_ONLY": "CHILD_DATA_ONLY", // Si devuelve "CHILD_DATA_ONLY", ir a este nodo
     }
-  );
+  )
 
   // 4. Definir los puntos finales
-  workflow.addEdge("RAG_ONLY", END);
-  workflow.addEdge("CHILD_DATA_ONLY", END);
+  workflow.addEdge("RAG_ONLY", END)
+  workflow.addEdge("CHILD_DATA_ONLY", END)
 
   // 5. Compilar
-  return workflow.compile();
-};
+  return workflow.compile()
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -243,7 +248,7 @@ export async function POST(req: NextRequest) {
       finalAnswer: "",
       conversationHistory,
       routingDecision: "",
-      performance: { startTime: Date.now(), agent: "" }
+      performance: { startTime: Date.now(), agent: "" },
     }
 
     // 🎯 EJECUTAR EL GRAFO
@@ -264,15 +269,15 @@ export async function POST(req: NextRequest) {
       childContext,
       performance: {
         agent: result.performance?.agent,
-        duration: executionTime
-      }
+        duration: executionTime,
+      },
     })
 
   } catch (error) {
-    console.error("Error en multi-agent system:", error)
+    logger.error("Error en multi-agent system:", error)
     return NextResponse.json({ 
       error: "Error interno del servidor",
-      details: error instanceof Error ? error.message : "Error desconocido"
+      details: error instanceof Error ? error.message : "Error desconocido",
     }, { status: 500 })
   }
 }
@@ -297,11 +302,11 @@ function buildChildContext(activeChild: any): string {
     )
 
     // ESTADÍSTICAS GENERALES
-    const totalNaps = allEvents.filter((e: any) => e.eventType === 'nap').length
-    const totalSleep = allEvents.filter((e: any) => e.eventType === 'sleep').length
-    const totalMeals = allEvents.filter((e: any) => e.eventType === 'meal').length
+    const totalNaps = allEvents.filter((e: any) => e.eventType === "nap").length
+    const totalSleep = allEvents.filter((e: any) => e.eventType === "sleep").length
+    const totalMeals = allEvents.filter((e: any) => e.eventType === "meal").length
     
-    context += `\nESTADÍSTICAS:\n`
+    context += "\nESTADÍSTICAS:\n"
     context += `- Total siestas: ${totalNaps}\n`
     context += `- Total eventos sueño: ${totalSleep}\n`
     context += `- Total comidas: ${totalMeals}\n`
@@ -317,7 +322,7 @@ function buildChildContext(activeChild: any): string {
         stateCount[state] = (stateCount[state] || 0) + 1
       })
       
-      context += `\nESTADOS EMOCIONALES:\n`
+      context += "\nESTADOS EMOCIONALES:\n"
       Object.entries(stateCount).forEach(([state, count]) => {
         context += `- ${state}: ${count} veces\n`
       })
@@ -334,25 +339,25 @@ async function getChildContextForResponse(childId: string, userId: string) {
     
     const activeChild = await db.collection("children").findOne({
       _id: new ObjectId(childId),
-      parentId: userId
+      parentId: userId,
     })
 
     if (!activeChild) return null
 
     const recentEventsCount = activeChild.events 
       ? activeChild.events.filter((event: any) => {
-          const daysDiff = differenceInDays(new Date(), new Date(event.startTime))
-          return daysDiff <= 7
-        }).length 
+        const daysDiff = differenceInDays(new Date(), new Date(event.startTime))
+        return daysDiff <= 7
+      }).length 
       : 0
 
     return {
       name: `${activeChild.firstName} ${activeChild.lastName}`,
       hasPersonalData: true,
-      recentEventsCount
+      recentEventsCount,
     }
   } catch (error) {
-    console.error("Error obteniendo contexto del niño:", error)
+    logger.error("Error obteniendo contexto del niño:", error)
     return null
   }
 }

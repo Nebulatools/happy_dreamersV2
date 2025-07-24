@@ -7,6 +7,11 @@ import { authOptions } from "@/lib/auth"
 import clientPromise from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("API:children:[id]:route")
+
+
 // GET /api/children/[id] - obtener un niño específico
 export async function GET(
   request: NextRequest,
@@ -19,7 +24,7 @@ export async function GET(
     }
 
     const id = params.id
-    console.log(`Buscando niño con ID: ${id} para el usuario ${session.user.id}`);
+    logger.info(`Buscando niño con ID: ${id} para el usuario ${session.user.id}`)
     
     const client = await clientPromise
     const db = client.db()
@@ -30,14 +35,14 @@ export async function GET(
     })
 
     if (!child) {
-      console.error(`Niño con ID ${id} no encontrado o no pertenece al usuario ${session.user.id}`);
+      logger.error(`Niño con ID ${id} no encontrado o no pertenece al usuario ${session.user.id}`)
       return NextResponse.json({ error: "Niño no encontrado o no tienes permiso para verlo" }, { status: 404 })
     }
 
-    console.log(`Niño encontrado: ${child.firstName} ${child.lastName}`);
+    logger.info(`Niño encontrado: ${child.firstName} ${child.lastName}`)
     return NextResponse.json(child)
   } catch (error) {
-    console.error("Error al obtener niño:", error)
+    logger.error("Error al obtener niño:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }
@@ -47,24 +52,24 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log("PUT /api/children/[id] - Iniciando solicitud de actualización");
+  logger.info("PUT /api/children/[id] - Iniciando solicitud de actualización")
   try {
     const session = await getServerSession(authOptions)
     if (!session || !session.user) {
-      console.error("Error: No hay sesión o usuario autorizado");
+      logger.error("Error: No hay sesión o usuario autorizado")
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
     const id = params.id
-    console.log(`Actualizando niño con ID: ${id}`);
+    logger.info(`Actualizando niño con ID: ${id}`)
 
     const data = await request.json()
     console.log("Datos recibidos para actualización:", {
       firstName: data.firstName,
       lastName: data.lastName,
       birthDate: data.birthDate,
-      hasSurveyData: !!data.surveyData
-    });
+      hasSurveyData: !!data.surveyData,
+    })
 
     const client = await clientPromise
     const db = client.db()
@@ -76,7 +81,7 @@ export async function PUT(
     })
 
     if (!child) {
-      console.error(`Niño con ID ${id} no encontrado o no pertenece al usuario ${session.user.id}`);
+      logger.error(`Niño con ID ${id} no encontrado o no pertenece al usuario ${session.user.id}`)
       return NextResponse.json({ error: "Niño no encontrado o no tienes permiso para editarlo" }, { status: 404 })
     }
 
@@ -93,7 +98,7 @@ export async function PUT(
       updateData.surveyData = data.surveyData
     }
 
-    console.log("Datos a actualizar:", updateData);
+    logger.info("Datos a actualizar:", updateData)
     
     const result = await db.collection("children").updateOne(
       { _id: new ObjectId(id) },
@@ -102,8 +107,8 @@ export async function PUT(
 
     console.log("Resultado de la actualización:", {
       matchedCount: result.matchedCount,
-      modifiedCount: result.modifiedCount
-    });
+      modifiedCount: result.modifiedCount,
+    })
 
     if (result.matchedCount === 0) {
       return NextResponse.json({ error: "No se encontró el niño para actualizar" }, { status: 404 })
@@ -111,10 +116,10 @@ export async function PUT(
 
     return NextResponse.json({ 
       message: "Información del niño actualizada correctamente",
-      updated: result.modifiedCount > 0
+      updated: result.modifiedCount > 0,
     })
   } catch (error) {
-    console.error("Error al actualizar niño:", error)
+    logger.error("Error al actualizar niño:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }
@@ -154,7 +159,7 @@ export async function DELETE(
 
     return NextResponse.json({ message: "Niño eliminado correctamente" })
   } catch (error) {
-    console.error("Error al eliminar niño:", error)
+    logger.error("Error al eliminar niño:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 } 

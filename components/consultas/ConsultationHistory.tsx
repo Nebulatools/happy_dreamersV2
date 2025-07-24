@@ -24,6 +24,11 @@ import { useToast } from "@/hooks/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import {
+
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("ConsultationHistory")
+
   Dialog,
   DialogContent,
   DialogDescription,
@@ -86,7 +91,7 @@ export function ConsultationHistory({
       const data = await response.json()
       setConsultations(data.consultations || [])
     } catch (error) {
-      console.error('Error:', error)
+      logger.error('Error:', error);
       toast({
         title: "Error",
         description: "No se pudo cargar el historial de consultas.",

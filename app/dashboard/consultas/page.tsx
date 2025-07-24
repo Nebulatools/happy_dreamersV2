@@ -15,6 +15,11 @@ import { TranscriptInput } from "@/components/consultas/TranscriptInput"
 import { AnalysisReport } from "@/components/consultas/AnalysisReport"
 import { ConsultationHistory } from "@/components/consultas/ConsultationHistory"
 
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("page")
+
+
 interface User {
   _id: string
   name: string
@@ -44,7 +49,7 @@ export default function ConsultasPage() {
 
   // Verificar que el usuario es admin
   useEffect(() => {
-    if (session && session.user.role !== 'admin') {
+    if (session && session.user.role !== "admin") {
       toast({
         title: "Acceso denegado",
         description: "Solo los administradores pueden acceder a esta página.",
@@ -61,7 +66,7 @@ export default function ConsultasPage() {
       const response = await fetch(`/api/children?userId=${userId}`)
       
       if (!response.ok) {
-        throw new Error('Error al cargar los niños del usuario')
+        throw new Error("Error al cargar los niños del usuario")
       }
       
       const data = await response.json()
@@ -69,7 +74,7 @@ export default function ConsultasPage() {
       setSelectedChild(null) // Reset child selection
       setAnalysisResult(null) // Reset analysis
     } catch (error) {
-      console.error('Error:', error)
+      logger.error("Error:", error)
       toast({
         title: "Error",
         description: "No se pudieron cargar los niños del usuario.",
@@ -107,21 +112,21 @@ export default function ConsultasPage() {
     try {
       const startTime = Date.now()
       
-      const response = await fetch('/api/consultas/analyze', {
-        method: 'POST',
+      const response = await fetch("/api/consultas/analyze", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           userId: selectedUser._id,
           childId: selectedChild._id,
-          transcript: transcript.trim()
+          transcript: transcript.trim(),
         }),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Error al procesar el análisis')
+        throw new Error(errorData.error || "Error al procesar el análisis")
       }
 
       const result = await response.json()
@@ -133,9 +138,9 @@ export default function ConsultasPage() {
         metadata: {
           reportId: result.reportId,
           createdAt: new Date().toISOString(),
-          adminName: session?.user?.name || 'Admin',
-          processingTime: `${processingTime}ms`
-        }
+          adminName: session?.user?.name || "Admin",
+          processingTime: `${processingTime}ms`,
+        },
       }
       
       setAnalysisResult(analysisWithMetadata)
@@ -145,7 +150,7 @@ export default function ConsultasPage() {
         description: "Se ha generado el análisis y plan de mejoramiento.",
       })
     } catch (error) {
-      console.error('Error:', error)
+      logger.error("Error:", error)
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "No se pudo procesar el análisis.",
@@ -156,7 +161,7 @@ export default function ConsultasPage() {
     }
   }
 
-  if (session?.user.role !== 'admin') {
+  if (session?.user.role !== "admin") {
     return (
       <div className="container py-8">
         <Card>

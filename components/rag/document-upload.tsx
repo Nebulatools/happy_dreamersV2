@@ -20,20 +20,20 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
     if (!file) return
 
     // Validar tipo de archivo
-    const allowedTypes = ['.txt', '.md', '.pdf']
-    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase()
+    const allowedTypes = [".txt", ".md", ".pdf"]
+    const fileExtension = "." + file.name.split(".").pop()?.toLowerCase()
     
     if (!allowedTypes.includes(fileExtension)) {
       toast({
         title: "Tipo de archivo no válido",
-        description: `Solo se permiten archivos: ${allowedTypes.join(', ')}`,
+        description: `Solo se permiten archivos: ${allowedTypes.join(", ")}`,
         variant: "destructive",
       })
       return
     }
 
     // Validar tamaño (100MB)
-    const maxSize = 100 * 1024 * 1024; // 100MB
+    const maxSize = 100 * 1024 * 1024 // 100MB
     if (file.size > maxSize) {
       toast({
         title: "Archivo demasiado grande",
@@ -47,10 +47,10 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
 
     try {
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append("file", file)
 
-      const response = await fetch('/api/rag/upload', {
-        method: 'POST',
+      const response = await fetch("/api/rag/upload", {
+        method: "POST",
         body: formData,
       })
 
@@ -63,7 +63,7 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
         })
         onUploadSuccess?.()
       } else {
-        throw new Error(result.error || 'Error subiendo documento')
+        throw new Error(result.error || "Error subiendo documento")
       }
     } catch (error) {
       toast({
@@ -103,7 +103,7 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
       <CardContent className="space-y-4">
         <div
           className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-            dragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
+            dragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25"
           }`}
           onDragOver={(e) => {
             e.preventDefault()

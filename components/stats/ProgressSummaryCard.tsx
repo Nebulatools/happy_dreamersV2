@@ -29,7 +29,7 @@ export function ProgressSummaryCard({ filteredEvents }: ProgressSummaryCardProps
                         ? 70 + (Math.random() * 30)
                         : 50
                     )
-                  )}%`
+                  )}%`,
                 }}
               />
             </div>
@@ -54,7 +54,7 @@ export function ProgressSummaryCard({ filteredEvents }: ProgressSummaryCardProps
                         ? 65 + (Math.random() * 35)
                         : 50
                     )
-                  )}%`
+                  )}%`,
                 }}
               />
             </div>
@@ -78,18 +78,18 @@ export function ProgressSummaryCard({ filteredEvents }: ProgressSummaryCardProps
                     Math.max(
                       0,
                       filteredEvents.length > 0
-                        ? (filteredEvents.filter(e => ['happy', 'calm', 'excited'].includes(e.emotionalState)).length / 
+                        ? (filteredEvents.filter(e => ["happy", "calm", "excited"].includes(e.emotionalState)).length / 
                            filteredEvents.length) * 100
                         : 50
                     )
-                  )}%`
+                  )}%`,
                 }}
               />
             </div>
             <p className="text-sm text-muted-foreground">
               {filteredEvents.length > 0
-                ? filteredEvents.filter(e => ['happy', 'calm', 'excited'].includes(e.emotionalState)).length > 
-                  filteredEvents.filter(e => ['tired', 'irritable', 'sad', 'anxious'].includes(e.emotionalState)).length
+                ? filteredEvents.filter(e => ["happy", "calm", "excited"].includes(e.emotionalState)).length > 
+                  filteredEvents.filter(e => ["tired", "irritable", "sad", "anxious"].includes(e.emotionalState)).length
                   ? "Predominan los estados emocionales positivos."
                   : "Predominan los estados emocionales negativos."
                 : "No hay suficientes datos para evaluar."}
@@ -114,7 +114,7 @@ export function ProgressSummaryCard({ filteredEvents }: ProgressSummaryCardProps
                             ? 50
                             : 0
                     )
-                  )}%`
+                  )}%`,
                 }}
               />
             </div>

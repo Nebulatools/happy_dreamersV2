@@ -65,26 +65,26 @@ export function ChildHistoryForm({ onDataChange, initialData = {} }: ChildHistor
     if (initialData && Object.keys(initialData).length > 0) {
       Object.entries(initialData).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          form.setValue(key as keyof ChildHistoryFormValues, value as any);
+          form.setValue(key as keyof ChildHistoryFormValues, value as any)
         }
-      });
+      })
     }
-  }, [initialData, form]);
+  }, [initialData, form])
 
   // Nuevo manejador de envío con feedback visual
   const onSubmit = (data: ChildHistoryFormValues) => {
-    setIsSaving(true);
+    setIsSaving(true)
     
     // Simulamos un pequeño delay para mostrar el estado "guardando"
     setTimeout(() => {
-      onDataChange(data);
-      setIsSaving(false);
+      onDataChange(data)
+      setIsSaving(false)
       
       // Mostrar mensaje de guardado durante 2 segundos
-      setShowSaved(true);
-      setTimeout(() => setShowSaved(false), 2000);
-    }, 500);
-  };
+      setShowSaved(true)
+      setTimeout(() => setShowSaved(false), 2000)
+    }, 500)
+  }
 
   const cupOptions = [
     { id: "cup", label: "Vaso" },

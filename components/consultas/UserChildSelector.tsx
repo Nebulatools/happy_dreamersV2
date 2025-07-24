@@ -16,11 +16,16 @@ import {
   Loader2,
   ChevronRight,
   Calendar,
-  Mail
+  Mail,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { differenceInDays } from "date-fns"
+
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("UserChildSelector")
+
 
 interface User {
   _id: string
@@ -54,7 +59,7 @@ export function UserChildSelector({
   onUserSelect,
   onChildSelect,
   userChildren,
-  loading = false
+  loading = false,
 }: UserChildSelectorProps) {
   const { toast } = useToast()
   
@@ -68,18 +73,18 @@ export function UserChildSelector({
     const fetchUsers = async () => {
       try {
         setLoadingUsers(true)
-        const response = await fetch('/api/admin/users')
+        const response = await fetch("/api/admin/users")
         
         if (!response.ok) {
-          throw new Error('Error al cargar los usuarios')
+          throw new Error("Error al cargar los usuarios")
         }
         
         const data = await response.json()
-        const filteredUsers = data.filter((user: User) => user.role !== 'admin')
+        const filteredUsers = data.filter((user: User) => user.role !== "admin")
         setUsers(filteredUsers)
         setFilteredUsers(filteredUsers)
       } catch (error) {
-        console.error('Error:', error)
+        logger.error("Error:", error)
         toast({
           title: "Error",
           description: "No se pudieron cargar los usuarios.",
@@ -116,10 +121,10 @@ export function UserChildSelector({
   // Formatear fecha de registro
   const formatRegistrationDate = (date?: string) => {
     if (!date) return "Fecha no disponible"
-    return new Date(date).toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+    return new Date(date).toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     })
   }
 

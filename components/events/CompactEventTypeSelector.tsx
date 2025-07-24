@@ -14,26 +14,26 @@ const eventTypes = [
     id: "sleep",
     label: "Noche",
     icon: Moon,
-    color: "text-blue-600 bg-blue-50"
+    color: "text-blue-600 bg-blue-50",
   },
   {
     id: "nap", 
     label: "Siesta",
     icon: Sun,
-    color: "text-orange-600 bg-orange-50"
+    color: "text-orange-600 bg-orange-50",
   },
   {
     id: "wake",
     label: "Despertar",
     icon: Sun,
-    color: "text-yellow-600 bg-yellow-50"
+    color: "text-yellow-600 bg-yellow-50",
   },
   {
     id: "activity",
     label: "Actividad",
     icon: Activity,
-    color: "text-purple-600 bg-purple-50"
-  }
+    color: "text-purple-600 bg-purple-50",
+  },
 ]
 
 export function CompactEventTypeSelector({ value, onValueChange }: CompactEventTypeSelectorProps) {

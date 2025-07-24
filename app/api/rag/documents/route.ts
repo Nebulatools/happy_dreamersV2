@@ -1,77 +1,82 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import { getMongoDBVectorStoreManager } from "@/lib/rag/vector-store-mongodb";
+import { NextRequest, NextResponse } from "next/server"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
+import { getMongoDBVectorStoreManager } from "@/lib/rag/vector-store-mongodb"
+
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("API:rag:documents:route")
+
 
 // GET - Obtener lista de documentos (solo admin)
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions)
     
     if (!session?.user) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
     // Verificar que es admin
-    if (session.user.role !== 'admin') {
-      return NextResponse.json({ error: "Solo los administradores pueden ver los documentos" }, { status: 403 });
+    if (session.user.role !== "admin") {
+      return NextResponse.json({ error: "Solo los administradores pueden ver los documentos" }, { status: 403 })
     }
 
-    const vectorStore = getMongoDBVectorStoreManager();
-    const documents = await vectorStore.getDocumentsList();
-    const totalCount = await vectorStore.getDocumentCount();
+    const vectorStore = getMongoDBVectorStoreManager()
+    const documents = await vectorStore.getDocumentsList()
+    const totalCount = await vectorStore.getDocumentCount()
 
     return NextResponse.json({
       documents,
       totalCount,
-      message: `${totalCount} documentos en el vector store`
-    });
+      message: `${totalCount} documentos en el vector store`,
+    })
 
   } catch (error) {
-    console.error("Error obteniendo documentos:", error);
+    logger.error("Error obteniendo documentos:", error)
     return NextResponse.json({ 
-      error: "Error interno del servidor" 
-    }, { status: 500 });
+      error: "Error interno del servidor", 
+    }, { status: 500 })
   }
 }
 
 // DELETE - Eliminar un documento específico (solo admin)
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions)
     
     if (!session?.user) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
     // Verificar que es admin
-    if (session.user.role !== 'admin') {
-      return NextResponse.json({ error: "Solo los administradores pueden eliminar documentos" }, { status: 403 });
+    if (session.user.role !== "admin") {
+      return NextResponse.json({ error: "Solo los administradores pueden eliminar documentos" }, { status: 403 })
     }
 
-    const { searchParams } = new URL(req.url);
-    const documentId = searchParams.get('id');
+    const { searchParams } = new URL(req.url)
+    const documentId = searchParams.get("id")
 
     if (!documentId) {
-      return NextResponse.json({ error: "ID de documento requerido" }, { status: 400 });
+      return NextResponse.json({ error: "ID de documento requerido" }, { status: 400 })
     }
 
-    const vectorStore = getMongoDBVectorStoreManager();
-    const success = await vectorStore.deleteDocument(documentId);
+    const vectorStore = getMongoDBVectorStoreManager()
+    const success = await vectorStore.deleteDocument(documentId)
 
     if (!success) {
-      return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
+      return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 })
     }
 
     return NextResponse.json({
       message: "Documento eliminado exitosamente",
-      documentId
-    });
+      documentId,
+    })
 
   } catch (error) {
-    console.error("Error eliminando documento:", error);
+    logger.error("Error eliminando documento:", error)
     return NextResponse.json({ 
-      error: "Error interno del servidor" 
-    }, { status: 500 });
+      error: "Error interno del servidor", 
+    }, { status: 500 })
   }
 } 

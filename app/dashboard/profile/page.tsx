@@ -1,33 +1,38 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { User, Mail, Calendar, Settings, Save } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { useToast } from '@/hooks/use-toast'
+import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
+import { User, Mail, Calendar, Settings, Save } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useToast } from "@/hooks/use-toast"
+
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("page")
+
 
 export default function ProfilePage() {
   const { data: session, update } = useSession()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    role: ''
+    name: "",
+    email: "",
+    phone: "",
+    role: "",
   })
 
   useEffect(() => {
     if (session?.user) {
       setFormData({
-        name: session.user.name || '',
-        email: session.user.email || '',
-        phone: (session.user as any).phone || '',
-        role: session.user.role || 'user'
+        name: session.user.name || "",
+        email: session.user.email || "",
+        phone: (session.user as any).phone || "",
+        role: session.user.role || "user",
       })
     }
   }, [session])
@@ -35,23 +40,23 @@ export default function ProfilePage() {
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }))
   }
 
   const handleSave = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/user/profile', {
-        method: 'PUT',
+      const response = await fetch("/api/user/profile", {
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       })
 
       if (!response.ok) {
-        throw new Error('Error al actualizar el perfil')
+        throw new Error("Error al actualizar el perfil")
       }
 
       await update({
@@ -59,8 +64,8 @@ export default function ProfilePage() {
         user: {
           ...session?.user,
           name: formData.name,
-          phone: formData.phone
-        }
+          phone: formData.phone,
+        },
       })
 
       toast({
@@ -68,7 +73,7 @@ export default function ProfilePage() {
         description: "Tu información ha sido actualizada correctamente",
       })
     } catch (error) {
-      console.error('Error:', error)
+      logger.error("Error:", error)
       toast({
         title: "Error",
         description: "No se pudo actualizar el perfil",
@@ -80,8 +85,8 @@ export default function ProfilePage() {
   }
 
   const userInitials = formData.name
-    ? formData.name.split(' ').map(n => n[0]).join('').toUpperCase()
-    : 'U'
+    ? formData.name.split(" ").map(n => n[0]).join("").toUpperCase()
+    : "U"
 
   return (
     <div className="min-h-screen bg-blue-50/30 p-6">
@@ -106,10 +111,10 @@ export default function ProfilePage() {
                   </AvatarFallback>
                 </Avatar>
               </div>
-              <CardTitle className="text-xl">{formData.name || 'Usuario'}</CardTitle>
+              <CardTitle className="text-xl">{formData.name || "Usuario"}</CardTitle>
               <CardDescription className="capitalize">
-                {formData.role === 'admin' ? 'Administrador' : 
-                 formData.role === 'parent' ? 'Padre/Madre' : 'Usuario'}
+                {formData.role === "admin" ? "Administrador" : 
+                  formData.role === "parent" ? "Padre/Madre" : "Usuario"}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -138,7 +143,7 @@ export default function ProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
+              <form onSubmit={(e) => { e.preventDefault(); handleSave() }} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="name">Nombre completo</Label>
@@ -146,7 +151,7 @@ export default function ProfilePage() {
                       id="name"
                       type="text"
                       value={formData.name}
-                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      onChange={(e) => handleInputChange("name", e.target.value)}
                       className="mt-1"
                       placeholder="Tu nombre completo"
                     />
@@ -171,7 +176,7 @@ export default function ProfilePage() {
                       id="phone"
                       type="tel"
                       value={formData.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      onChange={(e) => handleInputChange("phone", e.target.value)}
                       className="mt-1"
                       placeholder="+52 123 456 7890"
                     />
@@ -181,8 +186,8 @@ export default function ProfilePage() {
                     <Input
                       id="role"
                       type="text"
-                      value={formData.role === 'admin' ? 'Administrador' : 
-                            formData.role === 'parent' ? 'Padre/Madre' : 'Usuario'}
+                      value={formData.role === "admin" ? "Administrador" : 
+                        formData.role === "parent" ? "Padre/Madre" : "Usuario"}
                       disabled
                       className="mt-1 bg-gray-50 capitalize"
                     />
@@ -196,7 +201,7 @@ export default function ProfilePage() {
                     className="bg-gradient-to-r from-blue-500 to-blue-400 hover:from-blue-600 hover:to-blue-500 text-white px-6"
                   >
                     <Save className="h-4 w-4 mr-2" />
-                    {isLoading ? 'Guardando...' : 'Guardar Cambios'}
+                    {isLoading ? "Guardando..." : "Guardar Cambios"}
                   </Button>
                 </div>
               </form>
@@ -216,15 +221,15 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center p-4 bg-blue-50 rounded-lg">
                 <div className="text-2xl font-bold text-blue-600">
-                  {session?.user?.role === 'admin' ? '∞' : '3'}
+                  {session?.user?.role === "admin" ? "∞" : "3"}
                 </div>
                 <div className="text-sm text-gray-600">
-                  {session?.user?.role === 'admin' ? 'Acceso completo' : 'Niños registrados'}
+                  {session?.user?.role === "admin" ? "Acceso completo" : "Niños registrados"}
                 </div>
               </div>
               <div className="text-center p-4 bg-green-50 rounded-lg">
                 <div className="text-2xl font-bold text-green-600">
-                  {session?.user?.role === 'admin' ? 'Pro' : 'Básico'}
+                  {session?.user?.role === "admin" ? "Pro" : "Básico"}
                 </div>
                 <div className="text-sm text-gray-600">Plan actual</div>
               </div>

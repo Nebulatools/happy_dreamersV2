@@ -6,6 +6,11 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { connectToDatabase } from "@/lib/mongodb"
 
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("API:events:route")
+
+
 // GET: Obtener eventos
 export async function GET(req: Request) {
   try {
@@ -49,7 +54,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(events)
   } catch (error) {
-    console.error("Error al obtener eventos:", error)
+    logger.error("Error al obtener eventos:", error)
     return NextResponse.json({ message: "Error interno del servidor" }, { status: 500 })
   }
 }
@@ -88,7 +93,7 @@ export async function POST(req: Request) {
       { status: 201 },
     )
   } catch (error) {
-    console.error("Error al crear evento:", error)
+    logger.error("Error al crear evento:", error)
     return NextResponse.json({ message: "Error interno del servidor" }, { status: 500 })
   }
 }
@@ -137,7 +142,7 @@ export async function PUT(req: Request) {
 
     return NextResponse.json({ message: "Evento actualizado correctamente" })
   } catch (error) {
-    console.error("Error al actualizar evento:", error)
+    logger.error("Error al actualizar evento:", error)
     return NextResponse.json({ message: "Error interno del servidor" }, { status: 500 })
   }
 }
@@ -177,7 +182,7 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({ message: "Evento eliminado correctamente" })
   } catch (error) {
-    console.error("Error al eliminar evento:", error)
+    logger.error("Error al eliminar evento:", error)
     return NextResponse.json({ message: "Error interno del servidor" }, { status: 500 })
   }
 }

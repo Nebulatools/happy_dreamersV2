@@ -40,7 +40,7 @@ export function DurationSlider({ value, onValueChange }: DurationSliderProps) {
             isDragging && "cursor-grabbing"
           )}
           style={{
-            background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${(value / 12) * 100}%, #E5E7EB ${(value / 12) * 100}%, #E5E7EB 100%)`
+            background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${(value / 12) * 100}%, #E5E7EB ${(value / 12) * 100}%, #E5E7EB 100%)`,
           }}
         />
         

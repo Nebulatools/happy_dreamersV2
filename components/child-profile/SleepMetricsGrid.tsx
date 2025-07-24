@@ -1,6 +1,6 @@
-import React from 'react'
-import { Clock, Moon, AlertCircle, Heart } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import React from "react"
+import { Clock, Moon, AlertCircle, Heart } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 interface SleepMetric {
   title: string
@@ -8,7 +8,7 @@ interface SleepMetric {
   icon: React.ReactNode
   status: {
     label: string
-    variant: 'good' | 'consistent' | 'average' | 'poor'
+    variant: "good" | "consistent" | "average" | "poor"
   }
   change: string
   iconBg: string
@@ -22,49 +22,49 @@ export default function SleepMetricsGrid({ childId }: SleepMetricsGridProps) {
   // TODO: Obtener datos reales del API
   const sleepMetrics: SleepMetric[] = [
     {
-      title: 'Tiempo total de sueño (promedio)',
-      value: '9.5h',
+      title: "Tiempo total de sueño (promedio)",
+      value: "9.5h",
       icon: <Clock className="w-3 h-3" />,
       status: {
-        label: 'Bueno',
-        variant: 'good'
+        label: "Bueno",
+        variant: "good",
       },
-      change: '+0.5h vs. semana anterior',
-      iconBg: 'bg-[#B7F1C0]'
+      change: "+0.5h vs. semana anterior",
+      iconBg: "bg-[#B7F1C0]",
     },
     {
-      title: 'Hora de acostarse (promedio)',
-      value: '20:30',
+      title: "Hora de acostarse (promedio)",
+      value: "20:30",
       icon: <Moon className="w-5 h-4" />,
       status: {
-        label: 'Consistente',
-        variant: 'consistent'
+        label: "Consistente",
+        variant: "consistent",
       },
-      change: '±15 min de variación',
-      iconBg: 'bg-[#D4C1FF]'
+      change: "±15 min de variación",
+      iconBg: "bg-[#D4C1FF]",
     },
     {
-      title: 'Despertares nocturnos (promedio)',
-      value: '1.2',
+      title: "Despertares nocturnos (promedio)",
+      value: "1.2",
       icon: <AlertCircle className="w-4 h-4" />,
       status: {
-        label: 'Promedio',
-        variant: 'average'
+        label: "Promedio",
+        variant: "average",
       },
-      change: '-0.3 vs. semana anterior',
-      iconBg: 'bg-[#FFE442]'
+      change: "-0.3 vs. semana anterior",
+      iconBg: "bg-[#FFE442]",
     },
     {
-      title: 'Calidad del sueño',
-      value: '40%',
+      title: "Calidad del sueño",
+      value: "40%",
       icon: <Heart className="w-4 h-4" />,
       status: {
-        label: 'Mala',
-        variant: 'poor'
+        label: "Mala",
+        variant: "poor",
       },
-      change: '-20 % vs. semana anterior',
-      iconBg: 'bg-[#FFC4C4]'
-    }
+      change: "-20 % vs. semana anterior",
+      iconBg: "bg-[#FFC4C4]",
+    },
   ]
 
   return (

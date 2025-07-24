@@ -18,7 +18,7 @@ import {
   Camera,
   Trash2,
   LogOut,
-  AlertTriangle
+  AlertTriangle,
 } from "lucide-react"
 import {
   Select,
@@ -70,7 +70,7 @@ export default function ConfiguracionPage() {
     sleepReminders: true,
     weeklyTips: true,
     appUpdates: false,
-    marketingEmails: false
+    marketingEmails: false,
   })
 
   useEffect(() => {
@@ -79,32 +79,32 @@ export default function ConfiguracionPage() {
         ...prev,
         name: session.user.name || "",
         email: session.user.email || "",
-        phone: (session.user as any).phone || ""
+        phone: (session.user as any).phone || "",
       }))
     }
   }, [session])
 
   const userInitials = profileData.name
-    ? profileData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-    : 'MG'
+    ? profileData.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+    : "MG"
 
   const handleSaveProfile = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/user/profile', {
-        method: 'PUT',
+      const response = await fetch("/api/user/profile", {
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           name: profileData.name,
           phone: profileData.phone,
-          language: profileData.language
+          language: profileData.language,
         }),
       })
 
       if (!response.ok) {
-        throw new Error('Error al actualizar el perfil')
+        throw new Error("Error al actualizar el perfil")
       }
 
       toast({
@@ -134,19 +134,19 @@ export default function ConfiguracionPage() {
 
     setIsLoading(true)
     try {
-      const response = await fetch('/api/user/password', {
-        method: 'PUT',
+      const response = await fetch("/api/user/password", {
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           currentPassword: profileData.currentPassword,
-          newPassword: profileData.newPassword
+          newPassword: profileData.newPassword,
         }),
       })
 
       if (!response.ok) {
-        throw new Error('Error al actualizar la contraseña')
+        throw new Error("Error al actualizar la contraseña")
       }
 
       toast({
@@ -159,7 +159,7 @@ export default function ConfiguracionPage() {
         ...prev,
         currentPassword: "",
         newPassword: "",
-        confirmPassword: ""
+        confirmPassword: "",
       }))
     } catch (error) {
       toast({
@@ -174,7 +174,7 @@ export default function ConfiguracionPage() {
 
   const handleLogoutAllDevices = async () => {
     try {
-      await signOut({ callbackUrl: '/auth/signin' })
+      await signOut({ callbackUrl: "/auth/signin" })
       toast({
         title: "Sesión cerrada",
         description: "Has cerrado sesión en todos los dispositivos",
@@ -190,15 +190,15 @@ export default function ConfiguracionPage() {
 
   const handleDeleteAccount = async () => {
     try {
-      const response = await fetch('/api/user/account', {
-        method: 'DELETE',
+      const response = await fetch("/api/user/account", {
+        method: "DELETE",
       })
 
       if (!response.ok) {
-        throw new Error('Error al eliminar la cuenta')
+        throw new Error("Error al eliminar la cuenta")
       }
 
-      await signOut({ callbackUrl: '/auth/signin' })
+      await signOut({ callbackUrl: "/auth/signin" })
       toast({
         title: "Cuenta eliminada",
         description: "Tu cuenta ha sido eliminada permanentemente",
@@ -516,7 +516,7 @@ export default function ConfiguracionPage() {
             <DialogTitle className="text-center text-xl">Confirmar Eliminación</DialogTitle>
             <DialogDescription className="text-center space-y-3">
               <p className="text-black">
-                ¿Estás seguro de que quieres eliminar a <strong>{profileData.name || 'tu cuenta'}</strong>?
+                ¿Estás seguro de que quieres eliminar a <strong>{profileData.name || "tu cuenta"}</strong>?
               </p>
               <p className="text-[#FFC8C8]">
                 Esta acción no se puede deshacer y se perderán todos los datos asociados.

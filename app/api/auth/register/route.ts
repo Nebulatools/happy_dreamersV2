@@ -5,6 +5,11 @@ import { NextResponse } from "next/server"
 import { hash } from "bcryptjs"
 import { connectToDatabase } from "@/lib/mongodb"
 
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("API:auth:register:route")
+
+
 export async function POST(req: Request) {
   try {
     const { name, email, password, role } = await req.json()
@@ -44,7 +49,7 @@ export async function POST(req: Request) {
       { status: 201 },
     )
   } catch (error) {
-    console.error("Error al registrar usuario:", error)
+    logger.error("Error al registrar usuario:", error)
     return NextResponse.json({ message: "Error interno del servidor" }, { status: 500 })
   }
 }

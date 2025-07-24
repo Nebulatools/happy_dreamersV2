@@ -13,22 +13,22 @@ const emotionalStates = [
     label: "Tranquilo",
     emoji: "😊",
     color: "bg-green-50 border-green-200 text-green-700",
-    selectedColor: "bg-green-100 border-green-300"
+    selectedColor: "bg-green-100 border-green-300",
   },
   {
     id: "restless", 
     label: "Inquieto",
     emoji: "😕",
     color: "bg-yellow-50 border-yellow-200 text-yellow-700",
-    selectedColor: "bg-yellow-100 border-yellow-300"
+    selectedColor: "bg-yellow-100 border-yellow-300",
   },
   {
     id: "agitated",
     label: "Alterado", 
     emoji: "😣",
     color: "bg-red-50 border-red-200 text-red-700",
-    selectedColor: "bg-red-100 border-red-300"
-  }
+    selectedColor: "bg-red-100 border-red-300",
+  },
 ]
 
 export function EmotionalStateSelector({ value, onValueChange }: EmotionalStateSelectorProps) {

@@ -32,27 +32,27 @@ export function DocumentsList({ onDocumentDeleted }: DocumentsListProps) {
   const fetchDocuments = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/rag/documents')
+      const response = await fetch("/api/rag/documents")
       const data = await response.json()
 
       if (response.ok) {
         const uniqueDocuments = data.documents.reduce((acc: Document[], current: Document) => {
-          const existingDoc = acc.find(doc => doc.source === current.source);
+          const existingDoc = acc.find(doc => doc.source === current.source)
           if (!existingDoc) {
-            acc.push(current);
+            acc.push(current)
           } else {
             if (new Date(current.createdAt) > new Date(existingDoc.createdAt)) {
-              const index = acc.findIndex(doc => doc.source === current.source);
-              acc[index] = current;
+              const index = acc.findIndex(doc => doc.source === current.source)
+              acc[index] = current
             }
           }
-          return acc;
-        }, []);
+          return acc
+        }, [])
 
         setDocuments(uniqueDocuments)
         setTotalCount(uniqueDocuments.length)
       } else {
-        throw new Error(data.error || 'Error cargando documentos')
+        throw new Error(data.error || "Error cargando documentos")
       }
     } catch (error) {
       toast({
@@ -73,7 +73,7 @@ export function DocumentsList({ onDocumentDeleted }: DocumentsListProps) {
     try {
       setDeleting(documentId)
       const response = await fetch(`/api/rag/documents?id=${documentId}`, {
-        method: 'DELETE'
+        method: "DELETE",
       })
 
       const data = await response.json()
@@ -86,7 +86,7 @@ export function DocumentsList({ onDocumentDeleted }: DocumentsListProps) {
         fetchDocuments()
         onDocumentDeleted?.()
       } else {
-        throw new Error(data.error || 'Error eliminando documento')
+        throw new Error(data.error || "Error eliminando documento")
       }
     } catch (error) {
       toast({
@@ -100,14 +100,14 @@ export function DocumentsList({ onDocumentDeleted }: DocumentsListProps) {
   }
 
   const clearAllDocuments = async () => {
-    if (!confirm('¿Estás seguro que deseas ELIMINAR TODOS los documentos del vector store? Esta acción no se puede deshacer.')) {
+    if (!confirm("¿Estás seguro que deseas ELIMINAR TODOS los documentos del vector store? Esta acción no se puede deshacer.")) {
       return
     }
 
     try {
       setClearing(true)
-      const response = await fetch('/api/rag/clear', {
-        method: 'POST'
+      const response = await fetch("/api/rag/clear", {
+        method: "POST",
       })
 
       const data = await response.json()
@@ -120,7 +120,7 @@ export function DocumentsList({ onDocumentDeleted }: DocumentsListProps) {
         fetchDocuments()
         onDocumentDeleted?.()
       } else {
-        throw new Error(data.error || 'Error limpiando vector store')
+        throw new Error(data.error || "Error limpiando vector store")
       }
     } catch (error) {
       toast({
@@ -138,36 +138,36 @@ export function DocumentsList({ onDocumentDeleted }: DocumentsListProps) {
   }, [])
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("es-ES", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     })
   }
 
   const formatFileSize = (bytes: number) => {
-    const sizes = ['Bytes', 'KB', 'MB']
-    if (bytes === 0) return '0 Bytes'
+    const sizes = ["Bytes", "KB", "MB"]
+    if (bytes === 0) return "0 Bytes"
     const i = Math.floor(Math.log(bytes) / Math.log(1024))
-    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i]
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + " " + sizes[i]
   }
 
   const getFileTypeIcon = (type: string) => {
     switch(type) {
-      case '.pdf': return '📄'
-      case '.txt': return '📝'
-      case '.md': return '📋'
-      default: return '📄'
+    case ".pdf": return "📄"
+    case ".txt": return "📝"
+    case ".md": return "📋"
+    default: return "📄"
     }
   }
 
   const getExtractedWithBadge = (extractedWith?: string) => {
     switch(extractedWith) {
-      case 'gemini': return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Gemini AI</Badge>
-      case 'text': return <Badge variant="secondary" className="bg-green-100 text-green-800">Texto plano</Badge>
-      default: return <Badge variant="outline">Desconocido</Badge>
+    case "gemini": return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Gemini AI</Badge>
+    case "text": return <Badge variant="secondary" className="bg-green-100 text-green-800">Texto plano</Badge>
+    default: return <Badge variant="outline">Desconocido</Badge>
     }
   }
 

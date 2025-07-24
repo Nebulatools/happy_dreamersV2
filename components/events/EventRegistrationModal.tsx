@@ -14,56 +14,61 @@ import { CompactEventTypeSelector } from "./CompactEventTypeSelector"
 import { CompactEmotionalStateSelector } from "./CompactEmotionalStateSelector"
 import { TimeSelector } from "./TimeSelector"
 
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("EventRegistrationModal")
+
+
 // Función auxiliar para formatear la fecha actual en formato ISO para input datetime-local
 const getCurrentDateTimeISO = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(Math.round(now.getMinutes() / 10) * 10).padStart(2, '0');
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, "0")
+  const day = String(now.getDate()).padStart(2, "0")
+  const hours = String(now.getHours()).padStart(2, "0")
+  const minutes = String(Math.round(now.getMinutes() / 10) * 10).padStart(2, "0")
   
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
 
 // Función para determinar el tipo de evento basado en la hora
 const getEventTypeByTime = (date: Date) => {
-  const hour = date.getHours();
+  const hour = date.getHours()
   
   if (hour >= 20 || hour < 6) {
-    return "sleep"; // Noche completa
+    return "sleep" // Noche completa
   } else if (hour >= 12 && hour < 17) {
-    return "nap"; // Siesta
+    return "nap" // Siesta
   } else {
-    return "wake"; // Despertar
+    return "wake" // Despertar
   }
-};
+}
 
 // Función para calcular la duración entre dos fechas
 const calculateDuration = (startTime: string, endTime: string) => {
-  if (!startTime || !endTime) return 0;
+  if (!startTime || !endTime) return 0
   
-  const start = new Date(startTime);
-  const end = new Date(endTime);
-  const diffMs = end.getTime() - start.getTime();
-  const diffHours = diffMs / (1000 * 60 * 60);
+  const start = new Date(startTime)
+  const end = new Date(endTime)
+  const diffMs = end.getTime() - start.getTime()
+  const diffHours = diffMs / (1000 * 60 * 60)
   
-  return Math.max(0, Math.round(diffHours * 2) / 2); // Redondear a 0.5 horas
-};
+  return Math.max(0, Math.round(diffHours * 2) / 2) // Redondear a 0.5 horas
+}
 
 // Función para obtener la hora de fin predeterminada (1 hora después de inicio)
 const getDefaultEndTime = (startTime: string) => {
-  const start = new Date(startTime);
-  const end = new Date(start.getTime() + 60 * 60 * 1000); // +1 hora
+  const start = new Date(startTime)
+  const end = new Date(start.getTime() + 60 * 60 * 1000) // +1 hora
   
-  const year = end.getFullYear();
-  const month = String(end.getMonth() + 1).padStart(2, '0');
-  const day = String(end.getDate()).padStart(2, '0');
-  const hours = String(end.getHours()).padStart(2, '0');
-  const minutes = String(Math.round(end.getMinutes() / 10) * 10).padStart(2, '0');
+  const year = end.getFullYear()
+  const month = String(end.getMonth() + 1).padStart(2, "0")
+  const day = String(end.getDate()).padStart(2, "0")
+  const hours = String(end.getHours()).padStart(2, "0")
+  const minutes = String(Math.round(end.getMinutes() / 10) * 10).padStart(2, "0")
   
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
 
 // Esquema con validación para fechas que no sean futuras
 const eventFormSchema = z.object({
@@ -76,12 +81,12 @@ const eventFormSchema = z.object({
   startTime: z.string({
     required_error: "Por favor ingresa la hora de inicio",
   }).refine(val => {
-    return new Date(val) <= new Date();
+    return new Date(val) <= new Date()
   }, {
     message: "La fecha de inicio no puede ser en el futuro",
   }),
   endTime: z.string().optional().refine(val => {
-    return !val || new Date(val) <= new Date();
+    return !val || new Date(val) <= new Date()
   }, {
     message: "La fecha de finalización no puede ser en el futuro",
   }),
@@ -110,7 +115,7 @@ export function EventRegistrationModal({
   onClose,
   childId,
   children = [],
-  onEventCreated
+  onEventCreated,
 }: EventRegistrationModalProps) {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
@@ -129,18 +134,18 @@ export function EventRegistrationModal({
   // Actualizar la fecha máxima cada minuto
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentDateTime(getCurrentDateTimeISO());
-    }, 60000);
+      setCurrentDateTime(getCurrentDateTimeISO())
+    }, 60000)
     
-    return () => clearInterval(interval);
+    return () => clearInterval(interval)
   }, [])
 
   // Reset form cuando se abre/cierra el modal
   useEffect(() => {
     if (isOpen) {
-      const now = new Date();
-      const currentTime = getCurrentDateTimeISO();
-      const defaultEndTime = getDefaultEndTime(currentTime);
+      const now = new Date()
+      const currentTime = getCurrentDateTimeISO()
+      const defaultEndTime = getDefaultEndTime(currentTime)
       
       form.reset({
         notes: "",
@@ -153,13 +158,13 @@ export function EventRegistrationModal({
   }, [isOpen, form])
   
   // Calcular duración automáticamente cuando cambian las fechas
-  const startTime = form.watch("startTime");
-  const endTime = form.watch("endTime");
+  const startTime = form.watch("startTime")
+  const endTime = form.watch("endTime")
   
   useEffect(() => {
     if (startTime && endTime) {
-      const duration = calculateDuration(startTime, endTime);
-      form.setValue("duration", duration);
+      const duration = calculateDuration(startTime, endTime)
+      form.setValue("duration", duration)
     }
   }, [startTime, endTime, form])
 
@@ -175,10 +180,10 @@ export function EventRegistrationModal({
 
     setIsLoading(true)
     try {
-      const response = await fetch('/api/children/events', {
-        method: 'POST',
+      const response = await fetch("/api/children/events", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ...data,
@@ -190,7 +195,7 @@ export function EventRegistrationModal({
       const responseData = await response.json()
       
       if (!response.ok) {
-        throw new Error(responseData.message || 'Error al registrar el evento')
+        throw new Error(responseData.message || "Error al registrar el evento")
       }
 
       toast({
@@ -201,7 +206,7 @@ export function EventRegistrationModal({
       onClose()
       onEventCreated?.()
     } catch (error: any) {
-      console.error("Error:", error)
+      logger.error("Error:", error)
       toast({
         title: "Error",
         description: error?.message || "No se pudo registrar el evento. Inténtalo de nuevo.",

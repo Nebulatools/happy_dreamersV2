@@ -16,6 +16,9 @@ import { useState, useEffect } from "react"
 import { useActiveChild } from "@/context/active-child-context"
 import { LayoutDashboard, Calendar, BarChart3, Users, PlusCircle, Settings, Menu, MessageSquare, List, Stethoscope, ClipboardList, HelpCircle, Mail } from "lucide-react"
 import { EventRegistrationModal } from "@/components/events"
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("sidebar")
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLDivElement> {
   items: {
@@ -119,14 +122,14 @@ export function Sidebar({ className }: { className?: string }) {
   // Cargar children cuando se abre el modal
   useEffect(() => {
     if (eventModalOpen && session?.user?.email) {
-      fetch('/api/children')
+      fetch("/api/children")
         .then(res => res.json())
         .then(data => {
           if (data.success) {
             setChildren(data.children)
           }
         })
-        .catch(console.error)
+        .catch(error => logger.error("Error al obtener niños", error))
     }
   }, [eventModalOpen, session?.user?.email])
 

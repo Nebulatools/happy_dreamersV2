@@ -1,9 +1,9 @@
-import React from 'react'
-import { Sun, Moon, ChevronRight } from 'lucide-react'
+import React from "react"
+import { Sun, Moon, ChevronRight } from "lucide-react"
 
 interface SleepEvent {
   id: string
-  type: 'sleep' | 'wake'
+  type: "sleep" | "wake"
   timestamp: string
   date: string
 }
@@ -16,38 +16,38 @@ export default function RecentEvents({ childId }: RecentEventsProps) {
   // TODO: Obtener datos reales del API
   const recentEvents: SleepEvent[] = [
     {
-      id: '1',
-      type: 'wake',
-      timestamp: '07:15',
-      date: 'Mayo 8, 2025'
+      id: "1",
+      type: "wake",
+      timestamp: "07:15",
+      date: "Mayo 8, 2025",
     },
     {
-      id: '2',
-      type: 'sleep',
-      timestamp: '20:30',
-      date: 'Mayo 8, 2025'
-    }
+      id: "2",
+      type: "sleep",
+      timestamp: "20:30",
+      date: "Mayo 8, 2025",
+    },
   ]
 
   const getEventIcon = (type: string) => {
     switch (type) {
-      case 'wake':
-        return <Sun className="w-4 h-4" />
-      case 'sleep':
-        return <Moon className="w-5 h-4" />
-      default:
-        return <Sun className="w-4 h-4" />
+    case "wake":
+      return <Sun className="w-4 h-4" />
+    case "sleep":
+      return <Moon className="w-5 h-4" />
+    default:
+      return <Sun className="w-4 h-4" />
     }
   }
 
   const getEventTitle = (type: string) => {
     switch (type) {
-      case 'wake':
-        return 'Despertar'
-      case 'sleep':
-        return 'Hora de dormir'
-      default:
-        return 'Evento'
+    case "wake":
+      return "Despertar"
+    case "sleep":
+      return "Hora de dormir"
+    default:
+      return "Evento"
     }
   }
 
@@ -66,7 +66,7 @@ export default function RecentEvents({ childId }: RecentEventsProps) {
           <div 
             key={event.id}
             className={`p-6 flex items-center justify-between hover:bg-gray-50 transition-colors ${
-              index === 0 ? '' : 'border-t border-gray-100'
+              index === 0 ? "" : "border-t border-gray-100"
             }`}
           >
             <div className="flex items-center space-x-4">

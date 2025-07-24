@@ -9,7 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from "recharts"
 
 interface NapChartProps {
@@ -37,10 +37,10 @@ export function NapChart({ napChartData, formatTimeTick }: NapChartProps) {
               ticks={[0, 180, 360, 540, 720, 900, 1080, 1260, 1440]}
             />
             <YAxis type="category" dataKey="date" name="Fecha" reversed={true} />
-            <Tooltip cursor={{ strokeDasharray: '3 3' }} formatter={(value, name, props) => {
-              if (name === "startTimeMinutes") return formatTimeTick(value as number);
-              if (name === "duration") return `${value} min`;
-              return value;
+            <Tooltip cursor={{ strokeDasharray: "3 3" }} formatter={(value, name, props) => {
+              if (name === "startTimeMinutes") return formatTimeTick(value as number)
+              if (name === "duration") return `${value} min`
+              return value
             }} />
             <Legend />
             <Scatter name="Siestas" data={napChartData} fill="#ffc658" />

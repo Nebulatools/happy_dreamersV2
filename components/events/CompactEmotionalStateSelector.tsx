@@ -13,20 +13,20 @@ const emotionalStates = [
     id: "calm",
     label: "Tranquilo",
     emoji: "😊",
-    color: "bg-green-50 hover:bg-green-100 border-green-200"
+    color: "bg-green-50 hover:bg-green-100 border-green-200",
   },
   {
     id: "restless", 
     label: "Inquieto",
     emoji: "😕",
-    color: "bg-yellow-50 hover:bg-yellow-100 border-yellow-200"
+    color: "bg-yellow-50 hover:bg-yellow-100 border-yellow-200",
   },
   {
     id: "agitated",
     label: "Alterado", 
     emoji: "😣",
-    color: "bg-red-50 hover:bg-red-100 border-red-200"
-  }
+    color: "bg-red-50 hover:bg-red-100 border-red-200",
+  },
 ]
 
 export function CompactEmotionalStateSelector({ value, onValueChange }: CompactEmotionalStateSelectorProps) {
