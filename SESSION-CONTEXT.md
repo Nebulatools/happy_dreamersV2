@@ -1,6 +1,6 @@
 # Session Context - Happy Dreamers UI Implementation
 
-*Last Updated: January 22, 2025 - 19:30*
+*Last Updated: January 23, 2025 - 18:00*
 
 ## 🎯 Current System State
 
@@ -224,7 +224,54 @@
 
 ## 📁 Files Modified/Created This Session
 
-### **Latest Updates (UI/UX Session - January 22, 2025 - 18:30):**
+### **Latest Updates (UI/UX Session - January 23, 2025 - 18:00):**
+
+#### **Rediseño Completo del Formulario de Registro de Eventos:**
+
+1. **✅ Auto-llenado Inteligente**
+   - Fecha y hora se establecen automáticamente al momento actual
+   - Tipo de evento seleccionado automáticamente según la hora:
+     - 20:00-06:00 → "Noche completa"
+     - 12:00-17:00 → "Siesta"
+     - Otras horas → "Despertar"
+   - Minutos redondeados a bloques de 10 minutos
+
+2. **✅ Selector de Tiempo Mejorado (TimeSelector)**
+   - **Formato 12 horas con AM/PM**: Más familiar para usuarios
+   - **Incrementos de 10 minutos**: Fácil ajuste con botones arriba/abajo
+   - **Diseño compacto**: Optimizado para móviles y desktop
+   - **Colores diferenciados**: Azul para inicio, verde para fin
+   - **Visualización clara**: Fecha y hora en formato amigable
+
+3. **✅ Cálculo Automático de Duración**
+   - Eliminado el slider de duración redundante
+   - Duración calculada automáticamente entre hora inicio y fin
+   - Visualización prominente con color púrpura e ícono de reloj
+   - Hora de fin mostrada por defecto (1 hora después del inicio)
+
+4. **✅ Estado Emocional Compacto**
+   - Nuevo componente CompactEmotionalStateSelector
+   - Diseño horizontal que ocupa menos espacio
+   - Botones con emojis y texto más pequeños
+   - Mejor integración visual con el formulario
+
+5. **✅ Selector de Tipo de Evento Compacto**
+   - Nuevo componente CompactEventTypeSelector
+   - Grid de 2 columnas en el dropdown
+   - Iconos y diseño más limpio
+   - Menos espacio vertical utilizado
+
+#### **Nuevos Componentes Creados:**
+- `components/events/TimeSelector.tsx` - Selector de tiempo con formato 12h AM/PM
+- `components/events/CompactEmotionalStateSelector.tsx` - Selector de emociones compacto
+- `components/events/CompactEventTypeSelector.tsx` - Selector de tipo de evento optimizado
+
+#### **Archivos Modificados:**
+- `components/events/EventRegistrationModal.tsx` - Rediseño completo del formulario
+- Modal más compacto (max-w-xl), mejor organización visual
+- Layout vertical para selectores de tiempo en móviles
+
+### **Sesión Anterior (January 22, 2025 - 18:30):**
 
 #### **Mejoras de UI/UX Implementadas:**
 
@@ -253,9 +300,11 @@
    - Reemplaza el window.confirm nativo del navegador
 
 #### **Archivos Modificados en Esta Sesión (Últimos Cambios):**
-- `components/dashboard/header.tsx` - Botón search funcional, español, tamaños optimizados
-- `components/dashboard/child-selector.tsx` - Solo nombre, flecha duplicada eliminada
-- `SESSION-CONTEXT.md` - Documentación actualizada con nuevas mejoras
+- `components/events/EventRegistrationModal.tsx` - Rediseño completo con mejoras UX
+- `components/events/TimeSelector.tsx` - NUEVO - Selector de tiempo 12h AM/PM
+- `components/events/CompactEmotionalStateSelector.tsx` - NUEVO - Estado emocional compacto
+- `components/events/CompactEventTypeSelector.tsx` - NUEVO - Tipo de evento optimizado
+- `SESSION-CONTEXT.md` - Documentación actualizada con rediseño del formulario
 
 #### **Archivos Modificados (Sesión Anterior):**
 - `app/dashboard/calendar/page.tsx` - Colores en resumen del mes, botón Mensual corregido
