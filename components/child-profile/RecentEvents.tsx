@@ -13,21 +13,47 @@ interface RecentEventsProps {
 }
 
 export default function RecentEvents({ childId }: RecentEventsProps) {
-  // TODO: Obtener datos reales del API
-  const recentEvents: SleepEvent[] = [
-    {
-      id: "1",
-      type: "wake",
-      timestamp: "07:15",
-      date: "Mayo 8, 2025",
-    },
-    {
-      id: "2",
-      type: "sleep",
-      timestamp: "20:30",
-      date: "Mayo 8, 2025",
-    },
-  ]
+  const [recentEvents, setRecentEvents] = React.useState<SleepEvent[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    async function fetchRecentEvents() {
+      try {
+        setLoading(true)
+        const response = await fetch(`/api/children/${childId}/events?limit=5&type=sleep,wake`)
+        if (!response.ok) {
+          throw new Error('Error al cargar eventos recientes')
+        }
+        const data = await response.json()
+        
+        // Formatear eventos del API al formato esperado
+        const formattedEvents: SleepEvent[] = data.events?.map((event: any) => ({
+          id: event._id,
+          type: event.eventType as "sleep" | "wake",
+          timestamp: new Date(event.startTime).toLocaleTimeString('es-ES', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          date: new Date(event.startTime).toLocaleDateString('es-ES', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })
+        })) || []
+        
+        setRecentEvents(formattedEvents)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error desconocido')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (childId) {
+      fetchRecentEvents()
+    }
+  }, [childId])
 
   const getEventIcon = (type: string) => {
     switch (type) {
@@ -62,7 +88,20 @@ export default function RecentEvents({ childId }: RecentEventsProps) {
 
       {/* Lista de eventos */}
       <div className="divide-y divide-gray-100">
-        {recentEvents.map((event, index) => (
+        {loading ? (
+          <div className="p-6 text-center text-gray-500">
+            Cargando eventos...
+          </div>
+        ) : error ? (
+          <div className="p-6 text-center text-red-500">
+            {error}
+          </div>
+        ) : recentEvents.length === 0 ? (
+          <div className="p-6 text-center text-gray-500">
+            No hay eventos recientes
+          </div>
+        ) : (
+          recentEvents.map((event, index) => (
           <div 
             key={event.id}
             className={`p-6 flex items-center justify-between hover:bg-gray-50 transition-colors ${
@@ -93,7 +132,8 @@ export default function RecentEvents({ childId }: RecentEventsProps) {
               <ChevronRight className="w-5 h-4" />
             </button>
           </div>
-        ))}
+        ))
+        )}
       </div>
     </div>
   )

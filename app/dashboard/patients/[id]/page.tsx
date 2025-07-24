@@ -3,32 +3,85 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Calendar, BarChart3, FileText, MessageSquare } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { format, parseISO, differenceInYears } from "date-fns"
+import { es } from "date-fns/locale"
 
-// Datos de ejemplo para el paciente
-const mockPatient = {
-  id: "1",
-  name: "Ana García",
-  lastName: "García",
-  birthDate: "2022-01-15",
-  parentName: "María García",
-  parentEmail: "maria@example.com",
-  parentPhone: "123-456-7890",
-  lastVisit: "2025-04-25",
-  status: "Activo",
+function calculateAge(birthDate: string): string {
+  const years = differenceInYears(new Date(), parseISO(birthDate))
+  return `${years} año${years !== 1 ? 's' : ''}`
+}
+
+interface Patient {
+  _id: string
+  firstName: string
+  lastName: string
+  birthDate: string
+  parent?: {
+    name: string
+    email: string
+    phone?: string
+  }
+  lastVisit?: string
+  status: "active" | "inactive"
 }
 
 export default function PatientDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("overview")
+  const [patient, setPatient] = useState<Patient | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // En una aplicación real, aquí cargaríamos los datos del paciente desde la API
+  useEffect(() => {
+    async function fetchPatient() {
+      try {
+        setLoading(true)
+        const response = await fetch(`/api/children/${params.id}`)
+        if (!response.ok) {
+          throw new Error('Error al cargar datos del paciente')
+        }
+        const data = await response.json()
+        setPatient(data.child)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error desconocido')
+        toast({
+          title: "Error",
+          description: "No se pudo cargar la información del paciente",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPatient()
+  }, [params.id, toast])
   // usando el ID proporcionado en params.id
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Cargando información del paciente...</p>
+      </div>
+    )
+  }
+
+  if (error || !patient) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <p className="text-destructive">{error || "No se encontró el paciente"}</p>
+        <Button onClick={() => router.back()}>Volver</Button>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -40,10 +93,10 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
-              {mockPatient.name} {mockPatient.lastName}
+              {patient.firstName} {patient.lastName}
             </h1>
             <p className="text-muted-foreground">
-              Paciente desde {new Date(mockPatient.birthDate).toLocaleDateString()}
+              Paciente desde {format(parseISO(patient.birthDate), "d 'de' MMMM 'de' yyyy", { locale: es })}
             </p>
           </div>
         </div>
@@ -78,20 +131,20 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
                   <div className="flex justify-between">
                     <dt className="font-medium">Nombre completo:</dt>
                     <dd>
-                      {mockPatient.name} {mockPatient.lastName}
+                      {patient.firstName} {patient.lastName}
                     </dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="font-medium">Fecha de nacimiento:</dt>
-                    <dd>{new Date(mockPatient.birthDate).toLocaleDateString()}</dd>
+                    <dd>{format(parseISO(patient.birthDate), "d 'de' MMMM 'de' yyyy", { locale: es })}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="font-medium">Edad:</dt>
-                    <dd>3 años</dd>
+                    <dd>{calculateAge(patient.birthDate)}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="font-medium">Estado:</dt>
-                    <dd>{mockPatient.status}</dd>
+                    <dd>{patient.status === "active" ? "Activo" : "Inactivo"}</dd>
                   </div>
                 </dl>
               </CardContent>
@@ -105,15 +158,15 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
                 <dl className="space-y-2">
                   <div className="flex justify-between">
                     <dt className="font-medium">Nombre:</dt>
-                    <dd>{mockPatient.parentName}</dd>
+                    <dd>{patient.parent?.name || "No especificado"}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="font-medium">Email:</dt>
-                    <dd>{mockPatient.parentEmail}</dd>
+                    <dd>{patient.parent?.email || "No especificado"}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="font-medium">Teléfono:</dt>
-                    <dd>{mockPatient.parentPhone}</dd>
+                    <dd>{patient.parent?.phone || "No especificado"}</dd>
                   </div>
                 </dl>
               </CardContent>

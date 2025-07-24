@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ChildAvatar } from "@/components/ui/child-avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
@@ -460,10 +460,10 @@ export default function AdminDashboardPage() {
                 onClick={() => handlePatientClick(child._id)}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={"/placeholder-user.jpg"} />
-                      <AvatarFallback>{child.firstName.charAt(0)}{child.lastName.charAt(0)}</AvatarFallback>
-                    </Avatar>
+                    <ChildAvatar 
+                      name={`${child.firstName} ${child.lastName}`}
+                      className="h-10 w-10"
+                    />
                     <div className="flex-1">
                       <p className="text-sm text-[#3A3A3A] font-medium">
                         {child.firstName} {child.lastName}

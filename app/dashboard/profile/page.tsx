@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { UserAvatar } from "@/components/ui/user-avatar"
 import { useToast } from "@/hooks/use-toast"
 
 import { createLogger } from "@/lib/logger"
@@ -104,12 +104,11 @@ export default function ProfilePage() {
           <Card className="lg:col-span-1">
             <CardHeader className="text-center">
               <div className="flex justify-center mb-4">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src="/placeholder.svg" alt={formData.name} />
-                  <AvatarFallback className="text-lg font-semibold bg-blue-100 text-blue-600">
-                    {userInitials}
-                  </AvatarFallback>
-                </Avatar>
+                <UserAvatar 
+                  name={formData.name} 
+                  image={null}
+                  className="h-24 w-24 text-lg" 
+                />
               </div>
               <CardTitle className="text-xl">{formData.name || "Usuario"}</CardTitle>
               <CardDescription className="capitalize">

@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { UserAvatar } from "@/components/ui/user-avatar"
 import { useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { useState, useEffect } from "react"
@@ -120,10 +120,11 @@ export function Header() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative p-0">
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src="/placeholder-user.jpg" alt={session?.user?.name || "Usuario"} />
-                    <AvatarFallback className="bg-gray-200">{userInitials}</AvatarFallback>
-                  </Avatar>
+                  <UserAvatar 
+                    name={session?.user?.name} 
+                    image={session?.user?.image}
+                    className="h-9 w-9" 
+                  />
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-3 w-3 text-[#666666] ml-1"

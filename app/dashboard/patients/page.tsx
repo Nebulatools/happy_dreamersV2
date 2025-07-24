@@ -9,17 +9,15 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
-import {
-
 import { createLogger } from "@/lib/logger"
-
-const logger = createLogger("page")
-
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+
+const logger = createLogger("page")
 
 interface User {
   _id: string

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { UserAvatar } from "@/components/ui/user-avatar"
 import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
 import { useActiveChild } from "@/context/active-child-context"
@@ -153,8 +153,21 @@ export default function DashboardPage() {
       avgBedtime = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`
     }
     
-    // Calcular despertares nocturnos (simular basado en eventos)
-    const nightWakeups = Math.round(Math.random() * 2 + 0.5) // Entre 0.5 y 2.5
+    // Calcular despertares nocturnos basado en notas de eventos
+    let nightWakeups = 0
+    if (allSleepEvents.length > 0) {
+      const totalWakeups = allSleepEvents.reduce((sum, event) => {
+        // Buscar en las notas menciones de despertares
+        const notes = event.notes?.toLowerCase() || ''
+        if (notes.includes('despertó') || notes.includes('despierta') || notes.includes('lloró')) {
+          // Intentar extraer número de veces
+          const match = notes.match(/(\d+)\s*(veces|vez)/)
+          return sum + (match ? parseInt(match[1]) : 1)
+        }
+        return sum
+      }, 0)
+      nightWakeups = totalWakeups / allSleepEvents.length
+    }
     
     // Calcular calidad del sueño (basado en duración y consistencia)
     let sleepQuality = 0
@@ -483,27 +496,29 @@ export default function DashboardPage() {
               <CardTitle className="text-[#2F2F2F]">Notas Recientes</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Nota de ejemplo */}
+              {/* Mostrar notas reales de eventos recientes */}
               <div className="space-y-3">
-                <div className="bg-[#EDE5FF] rounded-2xl rounded-tl-sm p-3">
-                  <p className="text-sm text-[#3A3A3A] leading-relaxed">
-                    {child?.firstName} se despertó a las 3 AM debido a una pesadilla, pero volvió a dormirse rápidamente.
-                  </p>
-                  <p className="text-xs text-[#666666] mt-2">Ayer, 23:15</p>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src="/placeholder-user.jpg" />
-                    <AvatarFallback>M</AvatarFallback>
-                  </Avatar>
-                  <div className="bg-[#F0F7FF] rounded-2xl rounded-tl-sm p-3 flex-1">
-                    <p className="text-sm text-[#3A3A3A] leading-relaxed">
-                      Hoy durmió sin interrupciones toda la noche. La rutina de lectura antes de dormir parece estar ayudando.
-                    </p>
-                    <p className="text-xs text-[#666666] mt-2">7 Mayo, 08:30</p>
+                {events.filter(e => e.notes).length > 0 ? (
+                  events.filter(e => e.notes).slice(0, 3).map((event) => (
+                    <div key={event._id} className="space-y-2">
+                      {event.notes && (
+                        <div className="bg-[#EDE5FF] rounded-2xl rounded-tl-sm p-3">
+                          <p className="text-sm text-[#3A3A3A] leading-relaxed">
+                            {event.notes}
+                          </p>
+                          <p className="text-xs text-[#666666] mt-2">
+                            {format(parseISO(event.startTime), "d MMM, HH:mm", { locale: es })}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <p className="text-sm">No hay notas recientes</p>
+                    <p className="text-xs mt-2">Registra eventos para ver las notas aquí</p>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Input para nueva nota */}

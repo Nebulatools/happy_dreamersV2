@@ -1,9 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Download, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import SleepMetricsGrid from "@/components/child-profile/SleepMetricsGrid"
+import { useActiveChild } from "@/context/active-child-context"
+import { useToast } from "@/hooks/use-toast"
+import { calculateAge } from "@/lib/date-utils"
+import { parseISO } from "date-fns"
 
 import { createLogger } from "@/lib/logger"
 
@@ -11,9 +15,44 @@ const logger = createLogger("page")
 
 
 export default function SleepStatisticsPage() {
-  const [selectedChild, setSelectedChild] = useState("lucas-garcia")
+  const { activeChildId } = useActiveChild()
+  const { toast } = useToast()
+  const [children, setChildren] = useState<any[]>([])
+  const [selectedChild, setSelectedChild] = useState(activeChildId || "")
   const [dateRange, setDateRange] = useState("7-days")
   const [eventType, setEventType] = useState("all")
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchChildren() {
+      try {
+        setLoading(true)
+        const response = await fetch("/api/children")
+        if (!response.ok) {
+          throw new Error('Error al cargar niños')
+        }
+        const data = await response.json()
+        setChildren(data.children || [])
+        
+        // Si hay un niño activo y no está seleccionado, seleccionarlo
+        if (activeChildId && !selectedChild) {
+          setSelectedChild(activeChildId)
+        } else if (!selectedChild && data.children?.length > 0) {
+          setSelectedChild(data.children[0]._id)
+        }
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los datos",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchChildren()
+  }, [activeChildId])
 
   return (
     <div className="min-h-screen bg-[#F5F9FF] p-8">
@@ -56,9 +95,17 @@ export default function SleepStatisticsPage() {
                   onChange={(e) => setSelectedChild(e.target.value)}
                   className="w-full h-12 px-3 pr-10 bg-white border border-gray-300 rounded-xl text-gray-900 focus:border-[#4A90E2] focus:ring-2 focus:ring-[#4A90E2] focus:ring-opacity-20 outline-none transition-colors"
                 >
-                  <option value="lucas-garcia">Lucas García (4 años)</option>
-                  <option value="maria-lopez">María López (6 años)</option>
-                  <option value="juan-martinez">Juan Martínez (3 años)</option>
+                  {loading ? (
+                    <option value="">Cargando...</option>
+                  ) : children.length === 0 ? (
+                    <option value="">No hay niños registrados</option>
+                  ) : (
+                    children.map((child) => (
+                      <option key={child._id} value={child._id}>
+                        {child.firstName} {child.lastName} ({calculateAge(child.birthDate)})
+                      </option>
+                    ))
+                  )}
                 </select>
                 <div className="absolute right-3 top-4 pointer-events-none">
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

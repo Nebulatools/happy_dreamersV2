@@ -8,9 +8,16 @@ import { differenceInYears, differenceInMonths } from "date-fns"
  * @param birthDate - Fecha de nacimiento como string ISO o Date
  * @returns Edad en años
  */
-export function calculateAge(birthDate: string | Date): number {
+export function calculateAge(birthDate: string | Date): number | string {
   const birth = typeof birthDate === "string" ? new Date(birthDate) : birthDate
-  return differenceInYears(new Date(), birth)
+  const years = differenceInYears(new Date(), birth)
+  
+  // Si se llama con un string, devolver el formato "X años"
+  if (typeof birthDate === "string") {
+    return `${years} año${years !== 1 ? 's' : ''}`
+  }
+  
+  return years
 }
 
 /**

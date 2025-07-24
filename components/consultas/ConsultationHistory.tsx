@@ -24,11 +24,6 @@ import { useToast } from "@/hooks/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import {
-
-import { createLogger } from "@/lib/logger"
-
-const logger = createLogger("ConsultationHistory")
-
   Dialog,
   DialogContent,
   DialogDescription,
@@ -36,6 +31,9 @@ const logger = createLogger("ConsultationHistory")
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("ConsultationHistory")
 
 interface ConsultationRecord {
   _id: string

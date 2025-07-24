@@ -14,6 +14,7 @@ import { useSession } from "next-auth/react"
 
 import { createLogger } from "@/lib/logger"
 import { extractChildrenFromResponse } from "@/lib/api-response-utils"
+import { ChildAvatar } from "@/components/ui/child-avatar"
 
 const logger = createLogger("child-selector")
 
@@ -173,6 +174,13 @@ export function ChildSelector() {
     }
   }, [isAdmin, selectedUserId])
 
+  // Obtener el nombre del niño activo
+  const getActiveChildName = () => {
+    if (!activeChildId) return ""
+    const activeChild = children.find(child => child._id === activeChildId)
+    return activeChild ? `${activeChild.firstName} ${activeChild.lastName}` : ""
+  }
+
   const handleAddChild = () => {
     // Si es admin y hay un usuario seleccionado, redirigir con el parentId
     if (isAdmin && selectedUserId) {
@@ -212,13 +220,10 @@ export function ChildSelector() {
           <div className="flex items-center bg-[#F0F7FF] rounded-xl px-4 py-2 h-12 min-w-[131px]">
             {/* Avatar del niño */}
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 rounded-full bg-gray-300 border-2 border-white overflow-hidden">
-                <img 
-                  src="/placeholder-user.jpg" 
-                  alt="Child avatar" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
+              <ChildAvatar 
+                name={getActiveChildName()} 
+                className="w-8 h-8 border-2 border-white"
+              />
             </div>
             
             {/* Contenido del selector */}
