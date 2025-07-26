@@ -22,25 +22,14 @@ export function TimeSelector({ value, onChange, label, disabled = false, color =
   
   const dateValue = createSafeDate(value)
   
-  // Estado para horas y minutos
-  const [hours24, setHours24] = useState(dateValue.getHours())
-  const [minutes, setMinutes] = useState(Math.round(dateValue.getMinutes() / 10) * 10)
-  const [date, setDate] = useState(dateValue.toISOString().split("T")[0])
-  const [isPM, setIsPM] = useState(dateValue.getHours() >= 12)
+  // Estado para horas y minutos - inicializar solo una vez
+  const [hours24, setHours24] = useState(() => dateValue.getHours())
+  const [minutes, setMinutes] = useState(() => Math.round(dateValue.getMinutes() / 10) * 10)
+  const [date, setDate] = useState(() => dateValue.toISOString().split("T")[0])
+  const [isPM, setIsPM] = useState(() => dateValue.getHours() >= 12)
   
   // Convertir horas 24 a formato 12
   const hours12 = hours24 === 0 ? 12 : hours24 > 12 ? hours24 - 12 : hours24
-
-  // Sincronizar estado cuando cambia el prop value
-  useEffect(() => {
-    if (value) {
-      const newDateValue = createSafeDate(value)
-      setHours24(newDateValue.getHours())
-      setMinutes(Math.round(newDateValue.getMinutes() / 10) * 10)
-      setDate(newDateValue.toISOString().split("T")[0])
-      setIsPM(newDateValue.getHours() >= 12)
-    }
-  }, [value])
 
   // Actualizar el valor cuando cambian las partes
   useEffect(() => {
