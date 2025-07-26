@@ -29,26 +29,158 @@ export interface Child {
   updatedAt: Date
 }
 
-// Datos del cuestionario inicial
+// Datos del cuestionario completo de sueño infantil
 export interface SurveyData {
-  completedAt: Date
-  edad: number
-  tieneMigracion: boolean
-  problemasSalud: string[]
-  sintomas: string[]
-  habitosSueno: {
-    horaDormir: string
-    horaDespertar: string
-    siestas: boolean
-    duracionSiestas?: number
+  completedAt?: Date
+  
+  // INFORMACIÓN FAMILIAR
+  informacionFamiliar: {
+    // Sobre Papá
+    papa: {
+      nombre: string
+      edad?: number
+      ocupacion: string
+      direccion: string
+      ciudad?: string
+      telefono?: string
+      email: string
+      trabajaFueraCasa: boolean
+      tieneAlergias: boolean
+      alergias?: string
+    }
+    
+    // Sobre Mamá
+    mama: {
+      nombre: string
+      edad?: number
+      ocupacion: string
+      mismaDireccionPapa: boolean
+      direccion?: string
+      ciudad: string
+      telefono: string
+      email: string
+      trabajaFueraCasa?: boolean
+      puedeDormirConHijo: boolean
+      apetito: string
+      pensamientosNegativos: boolean
+      tieneAlergias: boolean
+      alergias?: string
+    }
   }
-  entornoSueno: {
+  
+  // DINÁMICA FAMILIAR
+  dinamicaFamiliar: {
+    cantidadHijos: number
+    hijosInfo: Array<{
+      nombre: string
+      fechaNacimiento: string
+      edad: number
+      esElQueNecesitaAyuda: boolean
+    }>
+    otrosEnCasa: string
+    telefonoSeguimiento: string
+    emailObservaciones: string
+    comoConocioServicios: string
+    librosConsultados?: string
+    metodosEnContra?: string
+    asesorAnterior?: string
+    quienSeLevaantaNoche: string
+  }
+  
+  // HISTORIAL DEL NIÑO
+  historial: {
+    // Información básica
+    nombre: string
+    fechaNacimiento: string
+    peso: number
+    percentilPeso?: number
+    
+    // Información prenatal
+    embarazoPlaneado: boolean
+    problemasEmbarazo: boolean
+    problemasEmbarazoDescripcion?: string
+    padecimientosEmbarazo: string[] // "Anemia", "Infecciones", "Ninguna"
+    tipoParto: "Vaginal" | "Cesárea" | "Vaginal después de Cesárea"
+    complicacionesParto: boolean
+    complicacionesPartoDescripcion?: string
+    nacioPlazo: boolean
+    problemasAlNacer: boolean
+    problemasAlNacerDescripcion?: string
+    pediatra?: string
+    pediatraDescartaProblemas: boolean
+    pediatraConfirmaCapacidadDormir: boolean
+    tratamientoMedico: boolean
+    tratamientoMedicoDescripcion?: string
+  }
+  
+  // DESARROLLO Y SALUD
+  desarrolloSalud: {
+    edadRodar?: number
+    edadSentarse?: number
+    edadGatear?: number
+    edadPararse?: number
+    edadCaminar?: number
+    usoVaso?: "Vaso" | "Biberón"
+    alimentacion?: "Fórmula" | "Leche materna exclusiva" | "Leche materna y fórmula" | "Ninguna"
+    comeSolidos?: boolean
+    caracteristicas: string[] // Array de características como "Se chupa el dedo", "Usa chupón", etc.
+  }
+  
+  // ACTIVIDAD FÍSICA
+  actividadFisica: {
+    vePantallas: boolean
+    pantallasTiempo?: string
+    practicaActividad: boolean
+    actividades?: string
+    actividadesDespierto?: string
+    signosIrritabilidad: boolean
+    situacionesSufridas?: string[] // "Alergias", "Infecciones de oído frecuentes", etc.
+  }
+  
+  // RUTINA Y HÁBITOS DE SUEÑO
+  rutinaHabitos: {
+    diaTypico: string // Descripción detallada del día típico
+    vaGuarderia: boolean
+    quienPasaTiempo: string
+    quienCuidaNoche?: string
+    dondeVurmePadresSalen?: string
+    rutinaAntesAcostarse: string
+    horaEspecificaDormir: boolean
+    horaDormir?: string
+    seQuedaDormirSolo: boolean
+    oscuridadCuarto: string[] // "Lamparita prendida", "Puerta abierta", etc.
+    usaRuidoBlanco: boolean
+    temperaturaCuarto?: string
+    tipoPiyama: string
+    usaSacoDormir: boolean
+    seQuedaHastaConciliar: boolean
+    
+    dondeDuermeNoche: "Cama en su cuarto" | "Cama en su cuarto con alguno de los padres" | 
+                     "Cuna/corral en su cuarto" | "Cuna/corral en cuarto de papás" | 
+                     "Cama de papás" | "Primero en su cuna/corral y luego a cama de papás" | 
+                     "Primero en su cama y luego a cama de papás"
+    
     comparteHabitacion: boolean
-    tieneRutina: boolean
-    usaPantallas: boolean
-    actividadesAntesDormir: string[]
+    conQuienComparte?: string
+    intentaSalirCama: boolean
+    sacaDesCamaNohe: boolean
+    lloraAlDejarSolo: boolean
+    golpeaCabeza: boolean
+    despiertaEnNoche: boolean
+    miendoOscuridad: boolean
+    padresMiedoOscuridad: boolean
+    temperamento: string
+    reaccionDejarSolo: string
+    metodosRelajarse: string
+    haceSiestas: boolean
+    
+    otrosHijosProblemas?: boolean
+    dondeViermesViaja?: string
+    duermeMejorViaja?: "Mejor" | "Peor" | "No aplica"
+    padresDispuestos: boolean
+    objetivosPadres: string
+    informacionAdicional?: string
   }
-  preocupaciones: string
 }
 
 // Perfil de sueño del niño

@@ -4,8 +4,8 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { connectToDatabase } from "@/lib/mongodb"
-
+import clientPromise from "@/lib/mongodb"
+import { ObjectId } from "mongodb"
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("API:events:route")
@@ -26,7 +26,8 @@ export async function GET(req: Request) {
     const endDate = searchParams.get("endDate")
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const client = await clientPromise
+    const db = client.db()
 
     // Construir la consulta
     const query: any = {}
@@ -76,7 +77,8 @@ export async function POST(req: Request) {
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const client = await clientPromise
+    const db = client.db()
 
     // Crear el evento
     const result = await db.collection("events").insertOne({
@@ -115,10 +117,11 @@ export async function PUT(req: Request) {
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const client = await clientPromise
+    const db = client.db()
 
     // Verificar que el evento pertenece al usuario o es admin
-    const event = await db.collection("events").findOne({ _id: data.id })
+    const event = await db.collection("events").findOne({ _id: new ObjectId(data.id) })
 
     if (!event) {
       return NextResponse.json({ message: "Evento no encontrado" }, { status: 404 })
@@ -131,7 +134,7 @@ export async function PUT(req: Request) {
     // Actualizar el evento
     const { id, ...updateData } = data
     await db.collection("events").updateOne(
-      { _id: id },
+      { _id: new ObjectId(id) },
       {
         $set: {
           ...updateData,
@@ -164,10 +167,11 @@ export async function DELETE(req: Request) {
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const client = await clientPromise
+    const db = client.db()
 
     // Verificar que el evento pertenece al usuario o es admin
-    const event = await db.collection("events").findOne({ _id: id })
+    const event = await db.collection("events").findOne({ _id: new ObjectId(id) })
 
     if (!event) {
       return NextResponse.json({ message: "Evento no encontrado" }, { status: 404 })
@@ -178,7 +182,7 @@ export async function DELETE(req: Request) {
     }
 
     // Eliminar el evento
-    await db.collection("events").deleteOne({ _id: id })
+    await db.collection("events").deleteOne({ _id: new ObjectId(id) })
 
     return NextResponse.json({ message: "Evento eliminado correctamente" })
   } catch (error) {

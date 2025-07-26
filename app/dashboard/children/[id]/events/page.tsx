@@ -29,6 +29,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useActiveChild } from "@/context/active-child-context"
 import { EventRegistrationModal } from "@/components/events"
+import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal"
 
 import { createLogger } from "@/lib/logger"
 
@@ -68,6 +69,7 @@ export default function ChildEventsPage() {
   // Estado para el diálogo de edición
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editedEvent, setEditedEvent] = useState<Partial<Event>>({})
@@ -262,7 +264,7 @@ export default function ChildEventsPage() {
 
   // Función para eliminar un evento
   const deleteEvent = async () => {
-    if (!selectedEvent) return
+    if (!selectedEvent || isSaving) return // Prevenir doble click
     
     setIsSaving(true)
     try {
@@ -277,7 +279,7 @@ export default function ChildEventsPage() {
         throw new Error(responseData.message || responseData.error || "Error al eliminar el evento")
       }
       
-      // Eliminar el evento del estado local
+      // Eliminar del estado local inmediatamente
       setEvents(currentEvents => 
         currentEvents.filter(event => event._id !== selectedEvent._id)
       )
@@ -288,8 +290,10 @@ export default function ChildEventsPage() {
       })
       
       setIsDialogOpen(false)
+      setSelectedEvent(null)
+      setShowDeleteModal(false)
     } catch (error: any) {
-      logger.error("Error:", error)
+      logger.error("Error al eliminar evento:", error?.message || error)
       toast({
         title: "Error",
         description: error?.message || "No se pudo eliminar el evento. Inténtalo de nuevo.",
@@ -415,8 +419,9 @@ export default function ChildEventsPage() {
                           variant="destructive"
                           onClick={(e) => {
                             e.stopPropagation() // Evitar que se abra el diálogo completo
+                            console.log("Eliminando desde tarjeta:", event._id)
                             setSelectedEvent(event)
-                            deleteEvent()
+                            setShowDeleteModal(true)
                           }}
                         >
                           <Trash className="h-4 w-4" />
@@ -431,7 +436,10 @@ export default function ChildEventsPage() {
       )}
 
       {/* Diálogo para mostrar/editar detalles del evento */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        setIsDialogOpen(open)
+        if (!open) setSelectedEvent(null) // Limpiar cuando se cierra
+      }}>
         <DialogContent className="sm:max-w-[500px]">
           {selectedEvent && (
             <>
@@ -543,7 +551,14 @@ export default function ChildEventsPage() {
               <DialogFooter className="flex justify-between">
                 {isEditing ? (
                   <>
-                    <Button variant="destructive" onClick={deleteEvent} disabled={isSaving}>
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => {
+                        console.log("Abriendo modal de eliminación")
+                        setShowDeleteModal(true)
+                      }}
+                      disabled={isSaving}
+                    >
                       <Trash className="h-4 w-4 mr-2" />
                       Eliminar
                     </Button>
@@ -558,15 +573,27 @@ export default function ChildEventsPage() {
                     </div>
                   </>
                 ) : (
-                  <>
-                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                      Cerrar
+                  <div className="flex justify-between w-full">
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => {
+                        console.log("Abriendo modal de eliminación desde vista")
+                        setShowDeleteModal(true)
+                      }}
+                    >
+                      <Trash className="h-4 w-4 mr-2" />
+                      Eliminar
                     </Button>
-                    <Button onClick={() => setIsEditing(true)}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Editar evento
-                    </Button>
-                  </>
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                        Cerrar
+                      </Button>
+                      <Button onClick={() => setIsEditing(true)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar evento
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </DialogFooter>
             </>
@@ -582,9 +609,43 @@ export default function ChildEventsPage() {
         children={children}
         onEventCreated={() => {
           setEventModalOpen(false)
-          fetchChildData(childIdFromUrl) // Recargar eventos después de crear uno nuevo
+          // Recargar eventos después de crear uno nuevo
+          if (activeChildId) {
+            const loadEvents = async () => {
+              try {
+                const response = await fetch(`/api/children/events?childId=${activeChildId}`)
+                if (response.ok) {
+                  const data = await response.json()
+                  setEvents(data.events || [])
+                }
+              } catch (error) {
+                console.error("Error recargando eventos:", error)
+              }
+            }
+            loadEvents()
+          }
         }}
       />
+
+      {/* Modal de confirmación de eliminación */}
+      {selectedEvent && (
+        <DeleteConfirmationModal
+          isOpen={showDeleteModal}
+          onClose={() => {
+            console.log("Cerrando modal de eliminación")
+            setShowDeleteModal(false)
+          }}
+          onConfirm={() => {
+            console.log("Confirmando eliminación")
+            deleteEvent()
+          }}
+          itemName={`evento de ${getEventTypeName(selectedEvent.eventType)}`}
+          isDeleting={isSaving}
+        />
+      )}
+      
+      {/* Debug */}
+      {console.log("showDeleteModal:", showDeleteModal, "selectedEvent:", selectedEvent)}
     </div>
   )
 } 

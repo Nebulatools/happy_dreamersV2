@@ -32,9 +32,16 @@ import {
   subMonths,
   startOfWeek,
   endOfWeek,
+  startOfDay,
+  endOfDay,
+  addWeeks,
+  subWeeks,
+  addDays,
+  subDays,
   parse,
   differenceInHours,
   differenceInMinutes,
+  eachHourOfInterval,
 } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -82,10 +89,10 @@ export default function CalendarPage() {
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [children, setChildren] = useState([])
 
-  // Cargar datos cuando cambia el niño activo o el mes
+  // Cargar datos cuando cambia el niño activo, fecha o vista
   useEffect(() => {
     fetchEvents()
-  }, [activeChildId, date])
+  }, [activeChildId, date, view])
 
   // Cargar lista de niños para el modal
   useEffect(() => {
@@ -116,15 +123,33 @@ export default function CalendarPage() {
       const data = await response.json()
       const eventsData = data.events || []
       
-      // Filtrar eventos del mes actual
-      const monthEvents = eventsData.filter((event: Event) => {
-        const eventDate = new Date(event.startTime)
-        return eventDate.getMonth() === date.getMonth() && 
-               eventDate.getFullYear() === date.getFullYear()
-      })
+      // Filtrar eventos según la vista actual
+      let filteredEvents = eventsData
       
-      setEvents(monthEvents)
-      calculateMonthlyStats(monthEvents)
+      if (view === "month") {
+        filteredEvents = eventsData.filter((event: Event) => {
+          const eventDate = new Date(event.startTime)
+          return eventDate.getMonth() === date.getMonth() && 
+                 eventDate.getFullYear() === date.getFullYear()
+        })
+      } else if (view === "week") {
+        const weekStart = startOfWeek(date, { weekStartsOn: 1 })
+        const weekEnd = endOfWeek(date, { weekStartsOn: 1 })
+        filteredEvents = eventsData.filter((event: Event) => {
+          const eventDate = new Date(event.startTime)
+          return eventDate >= weekStart && eventDate <= weekEnd
+        })
+      } else if (view === "day") {
+        const dayStart = startOfDay(date)
+        const dayEnd = endOfDay(date)
+        filteredEvents = eventsData.filter((event: Event) => {
+          const eventDate = new Date(event.startTime)
+          return eventDate >= dayStart && eventDate <= dayEnd
+        })
+      }
+      
+      setEvents(filteredEvents)
+      calculateMonthlyStats(filteredEvents)
     } catch (error) {
       logger.error("Error:", error)
       toast({
@@ -137,12 +162,12 @@ export default function CalendarPage() {
     }
   }
 
-  const calculateMonthlyStats = (monthEvents: Event[]) => {
+  const calculateMonthlyStats = (periodEvents: Event[]) => {
     let nightSleepTotal = 0
     let napTotal = 0
     let wakingsCount = 0
 
-    monthEvents.forEach(event => {
+    periodEvents.forEach(event => {
       if (event.eventType === "sleep") {
         // Calcular duración si hay endTime
         if (event.endTime) {
@@ -159,10 +184,22 @@ export default function CalendarPage() {
       }
     })
 
-    // Calcular promedios diarios
-    const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
-    const avgNightSleep = nightSleepTotal / daysInMonth
-    const avgNap = napTotal / daysInMonth
+    // Calcular promedios según la vista
+    let avgNightSleep = 0
+    let avgNap = 0
+    
+    if (view === "month") {
+      const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
+      avgNightSleep = nightSleepTotal / daysInMonth
+      avgNap = napTotal / daysInMonth
+    } else if (view === "week") {
+      avgNightSleep = nightSleepTotal / 7
+      avgNap = napTotal / 7
+    } else {
+      // Para vista diaria, mostrar totales del día
+      avgNightSleep = nightSleepTotal
+      avgNap = napTotal
+    }
 
     // TODO: Calcular cambios respecto al mes anterior
     setMonthlyStats({
@@ -216,6 +253,34 @@ export default function CalendarPage() {
       return `${format(start, "HH:mm")}-${format(end, "HH:mm")}`
     }
     return format(start, "HH:mm")
+  }
+
+  const getEventTypeName = (type: string) => {
+    const types: Record<string, string> = {
+      sleep: "Sueño nocturno",
+      nap: "Siesta",
+      wake: "Despertar nocturno",
+      meal: "Comida",
+      play: "Juego",
+      activity: "Actividad física",
+      bath: "Baño",
+      other: "Otro",
+    }
+    return types[type] || type
+  }
+
+  const getEmotionalStateName = (state: string) => {
+    const states: Record<string, string> = {
+      happy: "Feliz",
+      calm: "Tranquilo",
+      excited: "Emocionado",
+      tired: "Cansado",
+      irritable: "Irritable",
+      sad: "Triste",
+      anxious: "Ansioso",
+      restless: "Inquieto",
+    }
+    return states[state] || state
   }
 
   const renderMonthView = () => {
@@ -283,6 +348,152 @@ export default function CalendarPage() {
             )
           })}
         </div>
+      </div>
+    )
+  }
+
+  const renderWeekView = () => {
+    const weekStart = startOfWeek(date, { weekStartsOn: 1 })
+    const weekEnd = endOfWeek(date, { weekStartsOn: 1 })
+    const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
+    const weekDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    
+    return (
+      <div className="mt-6">
+        {/* Headers de días */}
+        <div className="grid grid-cols-7 gap-4 mb-4">
+          {weekDays.map((dayName, index) => {
+            const day = days[index]
+            const isDayToday = isToday(day)
+            
+            return (
+              <div key={dayName} className="text-center">
+                <div className="text-sm font-medium text-gray-600 mb-2">{dayName}</div>
+                <div className={cn(
+                  "text-lg font-semibold p-2 rounded-lg",
+                  isDayToday ? "bg-blue-100 text-blue-600" : "text-gray-900"
+                )}>
+                  {format(day, "d")}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        
+        {/* Grid de eventos por día */}
+        <div className="grid grid-cols-7 gap-4">
+          {days.map((day) => {
+            const dayEvents = getEventsForDay(day)
+            
+            return (
+              <div key={day.toString()} className="border rounded-lg p-3 min-h-[200px] bg-white">
+                <div className="space-y-2">
+                  {dayEvents.map((event) => (
+                    <div
+                      key={event._id}
+                      className={cn(
+                        "p-2 rounded text-xs",
+                        getEventTypeColor(event.eventType)
+                      )}
+                    >
+                      <div className="flex items-center gap-1 mb-1">
+                        {getEventTypeIcon(event.eventType)}
+                        <span className="font-medium">
+                          {getEventTypeName(event.eventType)}
+                        </span>
+                      </div>
+                      <div className="text-xs">
+                        {formatEventTime(event)}
+                      </div>
+                    </div>
+                  ))}
+                  {dayEvents.length === 0 && (
+                    <div className="text-xs text-gray-400 text-center mt-8">
+                      Sin eventos
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  const renderDayView = () => {
+    const dayEvents = getEventsForDay(date)
+    const hours = Array.from({ length: 24 }, (_, i) => i)
+    
+    return (
+      <div className="mt-6">
+        {/* Header del día */}
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">
+            {format(date, "EEEE, d 'de' MMMM", { locale: es })}
+          </h2>
+          {isToday(date) && (
+            <div className="text-blue-600 font-medium mt-1">Hoy</div>
+          )}
+        </div>
+        
+        {/* Timeline de 24 horas */}
+        <div className="border rounded-lg bg-white">
+          {hours.map((hour) => {
+            const hourEvents = dayEvents.filter(event => {
+              const eventHour = new Date(event.startTime).getHours()
+              return eventHour === hour
+            })
+            
+            return (
+              <div key={hour} className="flex border-b last:border-b-0">
+                <div className="w-16 p-3 bg-gray-50 text-center text-sm font-medium text-gray-600">
+                  {hour.toString().padStart(2, '0')}:00
+                </div>
+                <div className="flex-1 p-3 min-h-[60px]">
+                  <div className="space-y-2">
+                    {hourEvents.map((event) => (
+                      <div
+                        key={event._id}
+                        className={cn(
+                          "p-3 rounded-lg",
+                          getEventTypeColor(event.eventType)
+                        )}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          {getEventTypeIcon(event.eventType)}
+                          <span className="font-medium">
+                            {getEventTypeName(event.eventType)}
+                          </span>
+                          <span className="text-sm text-gray-600">
+                            {formatEventTime(event)}
+                          </span>
+                        </div>
+                        {event.notes && (
+                          <div className="text-sm text-gray-600 mt-1">
+                            {event.notes}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-500 mt-1">
+                          Estado: {getEmotionalStateName(event.emotionalState)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        
+        {dayEvents.length === 0 && (
+          <div className="text-center py-12">
+            <div className="text-gray-400 text-lg mb-2">No hay eventos registrados</div>
+            <div className="text-gray-500 text-sm">
+              Agrega el primer evento del día
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -364,19 +575,37 @@ export default function CalendarPage() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setDate(subMonths(date, 1))}
+              onClick={() => {
+                if (view === "month") {
+                  setDate(subMonths(date, 1))
+                } else if (view === "week") {
+                  setDate(subWeeks(date, 1))
+                } else {
+                  setDate(subDays(date, 1))
+                }
+              }}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             
-            <span className="font-medium text-lg min-w-[140px] text-center">
-              {format(date, "MMMM yyyy", { locale: es })}
+            <span className="font-medium text-lg min-w-[200px] text-center">
+              {view === "month" && format(date, "MMMM yyyy", { locale: es })}
+              {view === "week" && `Semana del ${format(startOfWeek(date, { weekStartsOn: 1 }), "d 'de' MMMM", { locale: es })}`}
+              {view === "day" && format(date, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
             </span>
             
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setDate(addMonths(date, 1))}
+              onClick={() => {
+                if (view === "month") {
+                  setDate(addMonths(date, 1))
+                } else if (view === "week") {
+                  setDate(addWeeks(date, 1))
+                } else {
+                  setDate(addDays(date, 1))
+                }
+              }}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -407,7 +636,7 @@ export default function CalendarPage() {
           variant={view === "week" ? "default" : "outline"}
           size="sm"
           onClick={() => setView("week")}
-          disabled
+          className={view === "week" ? "hd-gradient-button text-white" : ""}
         >
           Semanal
         </Button>
@@ -415,7 +644,7 @@ export default function CalendarPage() {
           variant={view === "day" ? "default" : "outline"}
           size="sm"
           onClick={() => setView("day")}
-          disabled
+          className={view === "day" ? "hd-gradient-button text-white" : ""}
         >
           Diario
         </Button>
@@ -448,39 +677,48 @@ export default function CalendarPage() {
               </div>
             </div>
           ) : (
-            renderMonthView()
+            view === "month" ? renderMonthView() :
+            view === "week" ? renderWeekView() :
+            renderDayView()
           )}
         </Card>
 
         {/* Panel de Resumen */}
         <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Resumen del mes</h3>
+          <h3 className="text-lg font-semibold mb-4">
+            {view === "month" && "Resumen del mes"}
+            {view === "week" && "Resumen de la semana"}
+            {view === "day" && "Resumen del día"}
+          </h3>
           
           <div className="space-y-6">
             {renderStatCard(
-              "Horas de sueño nocturno",
+              view === "day" ? "Horas de sueño nocturno" : "Promedio de sueño nocturno",
               monthlyStats.nightSleepHours.toFixed(1),
               "horas",
               monthlyStats.nightSleepChange,
-              "horas más que el mes pasado",
+              view === "month" ? "horas más que el mes pasado" : 
+              view === "week" ? "vs semana anterior" : "del día",
               "sleep"
             )}
             
             {renderStatCard(
-              "Tiempo de siesta",
+              view === "day" ? "Tiempo de siesta" : "Promedio de siestas",
               monthlyStats.napHours.toFixed(1),
               "horas",
               monthlyStats.napChange,
-              "respecto al mes pasado",
+              view === "month" ? "respecto al mes pasado" : 
+              view === "week" ? "vs semana anterior" : "del día",
               "nap"
             )}
             
             {renderStatCard(
               "Despertares nocturnos",
               monthlyStats.nightWakings.toString(),
-              "",
+              view === "day" ? "" : "total",
               monthlyStats.wakingsChange,
-              "menos que el mes pasado",
+              view === "month" ? "menos que el mes pasado" : 
+              view === "week" ? "vs semana anterior" : "del día",
               "wake"
             )}
           </div>

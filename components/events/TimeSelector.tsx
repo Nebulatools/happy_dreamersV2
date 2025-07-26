@@ -13,8 +13,14 @@ interface TimeSelectorProps {
 }
 
 export function TimeSelector({ value, onChange, label, disabled = false, color = "blue" }: TimeSelectorProps) {
-  // Convertir el valor string a fecha
-  const dateValue = value ? new Date(value) : new Date()
+  // Convertir el valor string a fecha con validación
+  const createSafeDate = (val?: string) => {
+    if (!val) return new Date()
+    const parsedDate = new Date(val)
+    return isNaN(parsedDate.getTime()) ? new Date() : parsedDate
+  }
+  
+  const dateValue = createSafeDate(value)
   
   // Estado para horas y minutos
   const [hours24, setHours24] = useState(dateValue.getHours())
@@ -24,6 +30,17 @@ export function TimeSelector({ value, onChange, label, disabled = false, color =
   
   // Convertir horas 24 a formato 12
   const hours12 = hours24 === 0 ? 12 : hours24 > 12 ? hours24 - 12 : hours24
+
+  // Sincronizar estado cuando cambia el prop value
+  useEffect(() => {
+    if (value) {
+      const newDateValue = createSafeDate(value)
+      setHours24(newDateValue.getHours())
+      setMinutes(Math.round(newDateValue.getMinutes() / 10) * 10)
+      setDate(newDateValue.toISOString().split("T")[0])
+      setIsPM(newDateValue.getHours() >= 12)
+    }
+  }, [value])
 
   // Actualizar el valor cuando cambian las partes
   useEffect(() => {

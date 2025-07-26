@@ -206,7 +206,7 @@ export function EventRegistrationModal({
       onClose()
       onEventCreated?.()
     } catch (error: any) {
-      logger.error("Error:", error)
+      logger.error("Error al registrar evento:", error?.message || error)
       toast({
         title: "Error",
         description: error?.message || "No se pudo registrar el evento. Inténtalo de nuevo.",

@@ -127,7 +127,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   logger.debug("Conexión a MongoDB establecida")
 
   // Crear documento completo con datos básicos y encuesta
-  const newChild: Partial<Child> = {
+  const newChild: Omit<Child, '_id'> = {
     firstName: data.firstName!,
     lastName: data.lastName!,
     birthDate: data.birthDate || "",
@@ -143,8 +143,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     logger.info("Documento insertado con éxito", { childId: result.insertedId })
 
     // Ahora actualizamos el usuario (padre) con el ID del niño
-    logger.debug("Actualizando usuario con el ID del niño", { userId })
     const userId = session.user.id
+    logger.debug("Actualizando usuario con el ID del niño", { userId })
     
     // Actualizamos el usuario usando $addToSet para evitar duplicados
     // Usamos casting a any para evitar errores de TypeScript con los operadores de MongoDB

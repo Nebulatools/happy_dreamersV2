@@ -4,7 +4,7 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { connectToDatabase } from "@/lib/mongodb"
+import clientPromise from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
 import { createLogger } from "@/lib/logger"
@@ -28,7 +28,8 @@ export async function GET(req: Request) {
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const client = await clientPromise
+    const db = client.db()
 
     // Verificar que el niño pertenece al usuario o es admin
     const child = await db.collection("children").findOne({ 
@@ -74,7 +75,8 @@ export async function POST(req: Request) {
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const client = await clientPromise
+    const db = client.db()
 
     // Verificar que el niño pertenezca al usuario autenticado
     const child = await db.collection("children").findOne({
@@ -87,11 +89,17 @@ export async function POST(req: Request) {
     }
 
     // Actualizar directamente el documento del niño con los datos de la encuesta
+    // Agregar fecha de completado si no existe
+    const surveyDataWithCompletion = {
+      ...surveyData,
+      completedAt: surveyData.completedAt || new Date()
+    }
+    
     const result = await db.collection("children").updateOne(
       { _id: new ObjectId(childId) },
       {
         $set: {
-          surveyData: surveyData,
+          surveyData: surveyDataWithCompletion,
           surveyUpdatedAt: new Date(),
         },
       }

@@ -267,12 +267,12 @@ export default function MisSonadoresPage() {
             </div>
             <DialogTitle className="text-center text-xl">Confirmar Eliminación</DialogTitle>
             <DialogDescription className="text-center space-y-3">
-              <p className="text-black">
+              <span className="block text-black">
                 ¿Estás seguro de que quieres eliminar a <strong>{childToDelete?.firstName} {childToDelete?.lastName || ''}</strong>?
-              </p>
-              <p className="text-red-400">
+              </span>
+              <span className="block text-red-400">
                 Esta acción no se puede deshacer y se perderán todos los datos asociados.
-              </p>
+              </span>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:justify-center">
