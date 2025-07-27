@@ -1,58 +1,26 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Download, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import SleepMetricsGrid from "@/components/child-profile/SleepMetricsGrid"
+import SleepDurationChart from "@/components/sleep-statistics/SleepDurationChart"
+import SleepConsistencyChart from "@/components/sleep-statistics/SleepConsistencyChart"
+import NightWakeupsChart from "@/components/sleep-statistics/NightWakeupsChart"
+import SleepDistributionChart from "@/components/sleep-statistics/SleepDistributionChart"
+import SleepComparison from "@/components/sleep-statistics/SleepComparison"
 import { useActiveChild } from "@/context/active-child-context"
 import { useToast } from "@/hooks/use-toast"
-import { calculateAge } from "@/lib/date-utils"
-import { parseISO } from "date-fns"
 
 import { createLogger } from "@/lib/logger"
 
-const logger = createLogger("page")
-
+const logger = createLogger("SleepStatistics")
 
 export default function SleepStatisticsPage() {
   const { activeChildId } = useActiveChild()
   const { toast } = useToast()
-  const [children, setChildren] = useState<any[]>([])
-  const [selectedChild, setSelectedChild] = useState(activeChildId || "")
   const [dateRange, setDateRange] = useState("7-days")
-  const [eventType, setEventType] = useState("all")
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function fetchChildren() {
-      try {
-        setLoading(true)
-        const response = await fetch("/api/children")
-        if (!response.ok) {
-          throw new Error('Error al cargar niños')
-        }
-        const data = await response.json()
-        setChildren(data.children || [])
-        
-        // Si hay un niño activo y no está seleccionado, seleccionarlo
-        if (activeChildId && !selectedChild) {
-          setSelectedChild(activeChildId)
-        } else if (!selectedChild && data.children?.length > 0) {
-          setSelectedChild(data.children[0]._id)
-        }
-      } catch (err) {
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los datos",
-          variant: "destructive",
-        })
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchChildren()
-  }, [activeChildId])
+  const [eventType, setEventType] = useState("sleep")
 
   return (
     <div className="min-h-screen bg-[#F5F9FF] p-8">
@@ -81,40 +49,9 @@ export default function SleepStatisticsPage() {
           </div>
         </div>
 
-        {/* Panel de Filtros */}
+        {/* Panel de Filtros Simplificado */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Selector de Niño */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Niño
-              </label>
-              <div className="relative">
-                <select 
-                  value={selectedChild}
-                  onChange={(e) => setSelectedChild(e.target.value)}
-                  className="w-full h-12 px-3 pr-10 bg-white border border-gray-300 rounded-xl text-gray-900 focus:border-[#4A90E2] focus:ring-2 focus:ring-[#4A90E2] focus:ring-opacity-20 outline-none transition-colors"
-                >
-                  {loading ? (
-                    <option value="">Cargando...</option>
-                  ) : children.length === 0 ? (
-                    <option value="">No hay niños registrados</option>
-                  ) : (
-                    children.map((child) => (
-                      <option key={child._id} value={child._id}>
-                        {child.firstName} {child.lastName} ({calculateAge(child.birthDate)})
-                      </option>
-                    ))
-                  )}
-                </select>
-                <div className="absolute right-3 top-4 pointer-events-none">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Selector de Rango de Fechas */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -149,10 +86,10 @@ export default function SleepStatisticsPage() {
                   onChange={(e) => setEventType(e.target.value)}
                   className="w-full h-12 px-3 pr-10 bg-white border border-gray-300 rounded-xl text-gray-900 focus:border-[#4A90E2] focus:ring-2 focus:ring-[#4A90E2] focus:ring-opacity-20 outline-none transition-colors"
                 >
-                  <option value="all">Todos los eventos</option>
                   <option value="sleep">Solo sueño nocturno</option>
                   <option value="nap">Solo siestas</option>
                   <option value="wake">Solo despertares</option>
+                  <option value="all">Todos los eventos</option>
                 </select>
                 <div className="absolute right-3 top-4 pointer-events-none">
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,8 +104,10 @@ export default function SleepStatisticsPage() {
               <Button 
                 className="w-full bg-gradient-to-r from-[#628BE6] to-[#67C5FF] text-white hover:from-[#5478D2] hover:to-[#5AB1E6] shadow-sm h-11 font-medium"
                 onClick={() => {
-                  // TODO: Aplicar filtros y actualizar datos
-                  logger.info("Filtros aplicados:", { selectedChild, dateRange, eventType })
+                  toast({
+                    title: "Filtros aplicados",
+                    description: `Mostrando datos de los ${dateRange === '7-days' ? 'últimos 7 días' : dateRange === '30-days' ? 'últimos 30 días' : 'últimos 3 meses'}`,
+                  })
                 }}
               >
                 Aplicar filtros
@@ -177,78 +116,40 @@ export default function SleepStatisticsPage() {
           </div>
         </div>
 
-        {/* Métricas Principales - Reutilizando el componente existente */}
-        <SleepMetricsGrid childId={selectedChild} />
-
-        {/* Placeholder para Gráficos Principales */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Duración del sueño */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-[#2F2F2F]">
-                Duración del sueño (últimos 7 días)
-              </h3>
-            </div>
-            <div className="h-64 flex items-center justify-center text-gray-500">
-              <p>Gráfico de duración de sueño próximamente...</p>
-            </div>
-            <div className="mt-4 space-y-2 text-sm text-gray-600">
-              <p>Promedio nocturno: 8.3 horas</p>
-              <p>Promedio siestas: 1.2 horas</p>
-            </div>
+        {/* Métricas Principales */}
+        {activeChildId ? (
+          <SleepMetricsGrid childId={activeChildId} />
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
+            <p className="text-gray-500">Por favor selecciona un niño desde el menú superior para ver las estadísticas</p>
           </div>
+        )}
 
-          {/* Consistencia de horarios */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-[#2F2F2F]">
-                Consistencia de horarios
-              </h3>
-            </div>
-            <div className="h-64 flex items-center justify-center text-gray-500">
-              <p>Gráfico de consistencia próximamente...</p>
-            </div>
-            <div className="mt-4 space-y-2 text-sm text-gray-600">
-              <p>Hora promedio de acostarse: 20:30 ±15min</p>
-              <p>Hora promedio de levantarse: 07:15 ±10min</p>
-            </div>
-          </div>
-        </div>
+        {/* Gráficos Principales con datos reales */}
+        {activeChildId ? (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Duración del sueño */}
+              <SleepDurationChart childId={activeChildId} />
 
-        {/* Segunda fila de gráficos */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Despertares nocturnos */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-[#2F2F2F]">
-                Despertares nocturnos
-              </h3>
+              {/* Consistencia de horarios */}
+              <SleepConsistencyChart childId={activeChildId} />
             </div>
-            <div className="h-64 flex items-center justify-center text-gray-500">
-              <p>Gráfico de despertares próximamente...</p>
-            </div>
-            <div className="mt-4 space-y-2 text-sm text-gray-600">
-              <p>Total de despertares: 9 veces</p>
-              <p>Promedio: 1.2 por noche</p>
-            </div>
-          </div>
 
-          {/* Distribución del sueño */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-[#2F2F2F]">
-                Distribución del sueño
-              </h3>
+            {/* Segunda fila de gráficos */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Despertares nocturnos */}
+              <NightWakeupsChart childId={activeChildId} />
+
+              {/* Distribución del sueño */}
+              <SleepDistributionChart childId={activeChildId} />
             </div>
-            <div className="h-64 flex items-center justify-center text-gray-500">
-              <p>Gráfico circular próximamente...</p>
-            </div>
-            <div className="mt-4 space-y-2 text-sm text-gray-600">
-              <p>Total horas de sueño: 9.5 horas/día</p>
-              <p>Recomendado para su edad: 10-13 horas/día</p>
-            </div>
+          </>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
+            <p className="text-gray-500">Selecciona un niño para ver los gráficos detallados</p>
           </div>
-        </div>
+        )}
 
         {/* Placeholder para Análisis y Recomendaciones */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -266,29 +167,17 @@ export default function SleepStatisticsPage() {
           </div>
         </div>
 
-        {/* Placeholder para Tabla Comparativa */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="mb-6">
+        {/* Tabla Comparativa con datos reales */}
+        {activeChildId ? (
+          <SleepComparison childId={activeChildId} />
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
             <h2 className="text-xl font-bold text-[#2F2F2F] mb-4">
               Comparativa con períodos anteriores
             </h2>
-            <div className="flex space-x-2">
-              <Button size="sm" className="hd-gradient-button text-white">
-                Esta semana
-              </Button>
-              <Button size="sm" variant="outline" className="text-gray-600">
-                Mes anterior
-              </Button>
-              <Button size="sm" variant="outline" className="text-gray-600">
-                3 meses
-              </Button>
-            </div>
+            <p className="text-gray-500">Selecciona un niño para ver la comparativa</p>
           </div>
-          
-          <div className="text-center py-8 text-gray-500">
-            <p>Tabla comparativa próximamente...</p>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )

@@ -1,7 +1,7 @@
 import React from "react"
 import { Clock, Moon, AlertCircle, Heart } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { differenceInMinutes, parseISO, startOfWeek, endOfWeek, subWeeks } from "date-fns"
+import { differenceInMinutes, parseISO, subDays } from "date-fns"
 
 interface SleepMetric {
   title: string
@@ -29,39 +29,38 @@ export default function SleepMetricsGrid({ childId }: SleepMetricsGridProps) {
       try {
         setLoading(true)
         
-        // Obtener eventos de las últimas 2 semanas
+        // Últimos 7 días simple
         const now = new Date()
-        const thisWeekStart = startOfWeek(now, { weekStartsOn: 1 })
-        const thisWeekEnd = endOfWeek(now, { weekStartsOn: 1 })
-        const lastWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 })
-        const lastWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 })
+        const currentPeriodStart = subDays(now, 7)
+        const previousPeriodStart = subDays(now, 14)
+        const previousPeriodEnd = subDays(now, 7)
         
-        const response = await fetch(`/api/children/${childId}/events?` + 
-          `startDate=${lastWeekStart.toISOString()}&` +
-          `endDate=${thisWeekEnd.toISOString()}&` +
-          `type=sleep`
-        )
+        const response = await fetch(`/api/children/events?childId=${childId}`)
         
         if (!response.ok) {
           throw new Error('Error al cargar métricas de sueño')
         }
         
         const data = await response.json()
-        const events = data.events || []
+        const allEvents = data.events || []
         
-        // Separar eventos por semana
-        const thisWeekEvents = events.filter((e: any) => {
+        // Solo eventos de sueño de los últimos 7 días
+        const sleepEvents = allEvents.filter((e: any) => 
+          e.eventType === 'sleep' || e.eventType === 'nap'
+        )
+        
+        const currentEvents = sleepEvents.filter((e: any) => {
           const date = parseISO(e.startTime)
-          return date >= thisWeekStart && date <= thisWeekEnd
+          return date >= currentPeriodStart
         })
         
-        const lastWeekEvents = events.filter((e: any) => {
+        const previousEvents = sleepEvents.filter((e: any) => {
           const date = parseISO(e.startTime)
-          return date >= lastWeekStart && date <= lastWeekEnd
+          return date >= previousPeriodStart && date <= previousPeriodEnd
         })
         
-        // Calcular métricas
-        const metrics = calculateMetrics(thisWeekEvents, lastWeekEvents)
+        // Calcular métricas simples
+        const metrics = calculateMetrics(currentEvents, previousEvents)
         setSleepMetrics(metrics)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido')
