@@ -28,8 +28,11 @@ type Child = {
 
 export function ChildSelector() {
   const [children, setChildren] = useState<Child[]>([])
-  const { activeChildId, setActiveChildId } = useActiveChild()
+  const { activeChildId, setActiveChildId, isInitialized } = useActiveChild()
   const [loading, setLoading] = useState(true)
+  
+  // Estado local para forzar el valor del dropdown
+  const [displayValue, setDisplayValue] = useState<string>("")
   const router = useRouter()
   const { toast } = useToast()
   const { data: session } = useSession()
@@ -76,13 +79,26 @@ export function ChildSelector() {
       logger.info(`Loaded ${childrenData.length} children`)
       setChildren(childrenData)
 
-      // Si hay niños y no hay uno activo seleccionado, seleccionamos el primero por defecto
-      if (childrenData.length > 0 && !activeChildId) {
-        setActiveChildId(childrenData[0]._id)
+      // SOLO cambiar si el niño guardado NO existe en la lista
+      // NO cambiar automáticamente a ningún niño por defecto
+      if (activeChildId && !childrenData.some((child: Child) => child._id === activeChildId)) {
+        const savedId = localStorage.getItem('activeChildId')
+        if (savedId && childrenData.some((child: Child) => child._id === savedId)) {
+          // Existe en localStorage y en la lista, usarlo
+          setActiveChildId(savedId)
+        } else {
+          // No existe ni guardado ni en lista, usar el primero
+          setActiveChildId(childrenData[0]._id)
+        }
       }
-      // Si ya había un niño activo, pero ya no existe en la lista, seleccionamos el primero
-      else if (activeChildId && !childrenData.some((child: Child) => child._id === activeChildId)) {
-        setActiveChildId(childrenData.length > 0 ? childrenData[0]._id : null)
+      // Si NO hay activeChildId pero HAY algo guardado, restaurarlo
+      else if (!activeChildId && childrenData.length > 0) {
+        const savedId = localStorage.getItem('activeChildId')
+        if (savedId && childrenData.some((child: Child) => child._id === savedId)) {
+          setActiveChildId(savedId)
+        } else {
+          setActiveChildId(childrenData[0]._id)
+        }
       }
 
       setLoading(false)
@@ -143,7 +159,7 @@ export function ChildSelector() {
     } else {
       fetchChildren()
     }
-  }, [session?.user?.id, isAdmin]) // Solo dependencias esenciales
+  }, [session?.user?.id, isAdmin])
 
   // Efecto separado para cambios en localStorage (solo para admins)
   useEffect(() => {
@@ -192,7 +208,28 @@ export function ChildSelector() {
 
   const handleSelectChange = (value: string) => {
     setActiveChildId(value)
+    setDisplayValue(value)
+    // FORZAR guardado inmediato
+    localStorage.setItem('activeChildId', value)
   }
+  
+  // Sincronizar displayValue con activeChildId cuando cambie
+  useEffect(() => {
+    if (activeChildId) {
+      setDisplayValue(activeChildId)
+    }
+  }, [activeChildId])
+  
+  // Al inicializar, restaurar desde localStorage DIRECTAMENTE
+  useEffect(() => {
+    const saved = localStorage.getItem('activeChildId')
+    if (saved && saved !== 'null') {
+      setDisplayValue(saved)
+      if (activeChildId !== saved) {
+        setActiveChildId(saved)
+      }
+    }
+  }, [isInitialized])
 
   // Renderizar componente con estructura consistente para evitar saltos visuales
   return (
@@ -229,7 +266,7 @@ export function ChildSelector() {
             {/* Contenido del selector */}
             <div className="ml-2 flex-1 min-w-0">
               <Select 
-                value={activeChildId ?? ""} 
+                value={displayValue || activeChildId || ""} 
                 onValueChange={handleSelectChange}
                 disabled={loading || children.length === 0}
               >

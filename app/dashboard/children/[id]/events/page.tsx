@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useActiveChild } from "@/context/active-child-context"
+import { useEventsCache, useEventsInvalidation } from "@/hooks/use-events-cache"
 import { EventRegistrationModal } from "@/components/events"
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal"
 
@@ -61,6 +62,8 @@ export default function ChildEventsPage() {
   const router = useRouter()
   const { toast } = useToast()
   const { activeChildId, setActiveChildId } = useActiveChild()
+  const { refreshTrigger, subscribe } = useEventsCache(activeChildId)
+  const invalidateEvents = useEventsInvalidation()
   
   const [isLoading, setIsLoading] = useState(true)
   const [child, setChild] = useState<Child | null>(null)
@@ -76,6 +79,12 @@ export default function ChildEventsPage() {
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [children, setChildren] = useState<Child[]>([])
 
+  // Suscribirse a invalidaciones de cache
+  useEffect(() => {
+    const unsubscribe = subscribe()
+    return unsubscribe
+  }, [subscribe])
+
   // Efecto 1: Sincronizar URL con Contexto al cargar o si cambia la URL
   useEffect(() => {
     if (childIdFromUrl && childIdFromUrl !== activeChildId) {
@@ -83,7 +92,7 @@ export default function ChildEventsPage() {
     }
   }, [childIdFromUrl, setActiveChildId])
 
-  // Efecto 2: Cargar datos cuando el niño activo del contexto cambia
+  // Efecto 2: Cargar datos cuando el niño activo del contexto cambia o el cache se invalida
   useEffect(() => {
     const fetchData = async () => {
       if (!activeChildId) {
@@ -132,7 +141,7 @@ export default function ChildEventsPage() {
     }
 
     fetchData()
-  }, [activeChildId, toast])
+  }, [activeChildId, toast, refreshTrigger])
 
   // Efecto 3: Sincronizar Contexto con URL si cambia el contexto
   useEffect(() => {
@@ -243,6 +252,9 @@ export default function ChildEventsPage() {
         )
       )
       
+      // Invalidar cache global
+      invalidateEvents()
+      
       toast({
         title: "Evento actualizado",
         description: "El evento ha sido actualizado correctamente.",
@@ -283,6 +295,9 @@ export default function ChildEventsPage() {
       setEvents(currentEvents => 
         currentEvents.filter(event => event._id !== selectedEvent._id)
       )
+      
+      // Invalidar cache global
+      invalidateEvents()
       
       toast({
         title: "Evento eliminado",
@@ -608,22 +623,8 @@ export default function ChildEventsPage() {
         childId={activeChildId || undefined}
         children={children}
         onEventCreated={() => {
+          invalidateEvents() // Invalidar cache global
           setEventModalOpen(false)
-          // Recargar eventos después de crear uno nuevo
-          if (activeChildId) {
-            const loadEvents = async () => {
-              try {
-                const response = await fetch(`/api/children/events?childId=${activeChildId}`)
-                if (response.ok) {
-                  const data = await response.json()
-                  setEvents(data.events || [])
-                }
-              } catch (error) {
-                console.error("Error recargando eventos:", error)
-              }
-            }
-            loadEvents()
-          }
         }}
       />
 

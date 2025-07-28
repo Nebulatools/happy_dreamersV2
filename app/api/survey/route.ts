@@ -68,7 +68,7 @@ export async function POST(req: Request) {
     }
 
     // Obtener datos de la solicitud
-    const { childId, surveyData } = await req.json()
+    const { childId, surveyData, isPartialSave = false, currentStep } = await req.json()
 
     if (!childId || !surveyData) {
       return NextResponse.json({ message: "Datos incompletos" }, { status: 400 })
@@ -88,21 +88,41 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Niño no encontrado o no autorizado" }, { status: 404 })
     }
 
-    // Actualizar directamente el documento del niño con los datos de la encuesta
-    // Agregar fecha de completado si no existe
-    const surveyDataWithCompletion = {
-      ...surveyData,
-      completedAt: surveyData.completedAt || new Date()
+    // Preparar datos según el tipo de guardado
+    let surveyDataToSave
+    let updateFields
+    
+    if (isPartialSave) {
+      // Para guardado parcial: no marcar como completado, incluir paso actual
+      surveyDataToSave = {
+        ...surveyData,
+        isPartial: true,
+        currentStep: currentStep,
+        lastSavedAt: new Date()
+      }
+      updateFields = {
+        surveyData: surveyDataToSave,
+        surveyUpdatedAt: new Date(),
+      }
+      logger.info(`Guardado parcial para niño ${childId} en paso ${currentStep}`)
+    } else {
+      // Para guardado final: marcar como completado
+      surveyDataToSave = {
+        ...surveyData,
+        isPartial: false,
+        completedAt: surveyData.completedAt || new Date(),
+        currentStep: undefined // Limpiar paso actual ya que está completo
+      }
+      updateFields = {
+        surveyData: surveyDataToSave,
+        surveyUpdatedAt: new Date(),
+      }
+      logger.info(`Guardado final para niño ${childId} - encuesta completada`)
     }
     
     const result = await db.collection("children").updateOne(
       { _id: new ObjectId(childId) },
-      {
-        $set: {
-          surveyData: surveyDataWithCompletion,
-          surveyUpdatedAt: new Date(),
-        },
-      }
+      { $set: updateFields }
     )
 
     // Verificar si la actualización tuvo éxito
@@ -113,11 +133,17 @@ export async function POST(req: Request) {
       }, { status: 404 })
     }
 
+    const message = isPartialSave 
+      ? `Progreso guardado correctamente en paso ${currentStep}`
+      : "Encuesta completada y guardada correctamente en el perfil del niño"
+    
     return NextResponse.json(
       {
-        message: "Encuesta guardada correctamente en el perfil del niño",
+        message,
         success: true,
         updated: result.modifiedCount > 0,
+        isPartialSave,
+        currentStep: isPartialSave ? currentStep : undefined,
       },
       { status: 200 },
     )

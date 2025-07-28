@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 import { CompactEventTypeSelector } from "./CompactEventTypeSelector"
 import { CompactEmotionalStateSelector } from "./CompactEmotionalStateSelector"
 import { TimeSelector } from "./TimeSelector"
+import { eventTypeHasEndTime } from "@/lib/event-types"
 
 import { createLogger } from "@/lib/logger"
 
@@ -36,9 +37,11 @@ const getEventTypeByTime = (date: Date) => {
   const hour = date.getHours()
   
   if (hour >= 20 || hour < 6) {
-    return "sleep" // Noche completa
+    return "sleep" // Dormir
   } else if (hour >= 12 && hour < 17) {
     return "nap" // Siesta
+  } else if (hour >= 19 && hour < 22) {
+    return "bedtime" // Acostarse
   } else {
     return "wake" // Despertar
   }
@@ -157,16 +160,31 @@ export function EventRegistrationModal({
     }
   }, [isOpen, form])
   
-  // Calcular duración automáticamente cuando cambian las fechas
+  // Observar cambios en el formulario
   const startTime = form.watch("startTime")
   const endTime = form.watch("endTime")
+  const eventType = form.watch("eventType")
   
+  // Determinar si el tipo de evento actual necesita hora de fin
+  const shouldShowEndTime = eventType ? eventTypeHasEndTime(eventType) : false
+  
+  // Limpiar hora de fin cuando el tipo de evento no la necesita
   useEffect(() => {
-    if (startTime && endTime) {
+    if (!shouldShowEndTime) {
+      form.setValue("endTime", undefined)
+    } else if (shouldShowEndTime && !endTime && startTime) {
+      // Establecer hora de fin por defecto si se necesita pero no existe
+      form.setValue("endTime", getDefaultEndTime(startTime))
+    }
+  }, [shouldShowEndTime, eventType, endTime, startTime, form])
+  
+  // Calcular duración automáticamente cuando cambian las fechas
+  useEffect(() => {
+    if (startTime && endTime && shouldShowEndTime) {
       const duration = calculateDuration(startTime, endTime)
       form.setValue("duration", duration)
     }
-  }, [startTime, endTime, form])
+  }, [startTime, endTime, shouldShowEndTime, form])
 
   async function onSubmit(data: EventFormValues) {
     if (!childId) {
@@ -294,27 +312,29 @@ export function EventRegistrationModal({
                 )}
               />
               
-              {/* Hora de fin */}
-              <FormField
-                control={form.control}
-                name="endTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <TimeSelector
-                        value={field.value}
-                        onChange={field.onChange}
-                        label="Hora de Fin"
-                        color="green"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Hora de fin - solo para siesta y actividad física */}
+              {shouldShowEndTime && (
+                <FormField
+                  control={form.control}
+                  name="endTime"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <TimeSelector
+                          value={field.value}
+                          onChange={field.onChange}
+                          label="Hora de Fin"
+                          color="green"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               
-              {/* Mostrar duración calculada */}
-              {startTime && endTime && (
+              {/* Mostrar duración calculada - solo si hay hora de fin */}
+              {shouldShowEndTime && startTime && endTime && (
                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-purple-600" />

@@ -1,40 +1,22 @@
 "use client"
 
 import { useState } from "react"
-import { Check, ChevronDown, Moon, Sun, Activity } from "lucide-react"
+import { Check, ChevronDown, Activity, Bed } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { eventTypes } from "@/lib/event-types"
 
 interface CompactEventTypeSelectorProps {
   value?: string
   onValueChange: (value: string) => void
 }
 
-const eventTypes = [
-  {
-    id: "sleep",
-    label: "Noche",
-    icon: Moon,
-    color: "text-blue-600 bg-blue-50",
-  },
-  {
-    id: "nap", 
-    label: "Siesta",
-    icon: Sun,
-    color: "text-orange-600 bg-orange-50",
-  },
-  {
-    id: "wake",
-    label: "Despertar",
-    icon: Sun,
-    color: "text-yellow-600 bg-yellow-50",
-  },
-  {
-    id: "activity",
-    label: "Actividad",
-    icon: Activity,
-    color: "text-purple-600 bg-purple-50",
-  },
-]
+const eventTypeColors = {
+  sleep: "text-blue-600 bg-blue-50",
+  bedtime: "text-indigo-600 bg-indigo-50", 
+  nap: "text-orange-600 bg-orange-50",
+  wake: "text-yellow-600 bg-yellow-50",
+  activity: "text-purple-600 bg-purple-50",
+}
 
 export function CompactEventTypeSelector({ value, onValueChange }: CompactEventTypeSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -54,7 +36,7 @@ export function CompactEventTypeSelector({ value, onValueChange }: CompactEventT
         <div className="flex items-center gap-2">
           {selectedType ? (
             <>
-              <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", selectedType.color)}>
+              <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", eventTypeColors[selectedType.id as keyof typeof eventTypeColors])}>
                 <selectedType.icon className="w-4 h-4" />
               </div>
               <span className="text-gray-900 font-medium">{selectedType.label}</span>
@@ -85,6 +67,7 @@ export function CompactEventTypeSelector({ value, onValueChange }: CompactEventT
               {eventTypes.map((type) => {
                 const Icon = type.icon
                 const isSelected = value === type.id
+                const typeColor = eventTypeColors[type.id as keyof typeof eventTypeColors]
                 
                 return (
                   <button
@@ -102,7 +85,7 @@ export function CompactEventTypeSelector({ value, onValueChange }: CompactEventT
                   >
                     <div className={cn(
                       "w-8 h-8 rounded-lg flex items-center justify-center",
-                      isSelected ? "bg-blue-100 text-blue-600" : type.color
+                      isSelected ? "bg-blue-100 text-blue-600" : typeColor
                     )}>
                       <Icon className="w-4 h-4" />
                     </div>

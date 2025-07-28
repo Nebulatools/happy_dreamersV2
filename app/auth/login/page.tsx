@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { signIn } from "next-auth/react"
+import { signIn, getSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
@@ -56,8 +56,15 @@ export default function LoginPage() {
         description: "Has iniciado sesión correctamente.",
       })
 
-      // Redirigir a estadísticas
-      router.push("/dashboard/stats")
+      // Obtener la sesión actualizada para verificar el rol
+      const session = await getSession()
+      
+      // Redirigir según el rol del usuario
+      if (session?.user?.role === 'admin') {
+        router.push("/dashboard/stats")  // Admin → Dashboard de admin
+      } else {
+        router.push("/dashboard")        // Usuario normal → Dashboard normal
+      }
       router.refresh()
     } catch (error) {
       toast({

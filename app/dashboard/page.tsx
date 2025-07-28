@@ -8,9 +8,10 @@ import { UserAvatar } from "@/components/ui/user-avatar"
 import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
 import { useActiveChild } from "@/context/active-child-context"
+import { useEventsCache } from "@/hooks/use-events-cache"
 import { 
   Moon, Sun, Activity, TrendingUp, Calendar, MessageSquare, 
-  Lightbulb, ChevronLeft, ChevronRight, Send, 
+  Lightbulb, ChevronLeft, ChevronRight, Send, X,
 } from "lucide-react"
 import {
   format,
@@ -60,6 +61,7 @@ export default function DashboardPage() {
   const { toast } = useToast()
   const { data: session } = useSession()
   const { activeChildId } = useActiveChild()
+  const { refreshTrigger, subscribe } = useEventsCache(activeChildId)
   
   const [child, setChild] = useState<Child | null>(null)
   const [events, setEvents] = useState<Event[]>([])
@@ -72,13 +74,21 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [noteText, setNoteText] = useState("")
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [selectedPeriod, setSelectedPeriod] = useState<"7d" | "30d" | "3m">("7d")
+  const [isAddingNote, setIsAddingNote] = useState(false)
   
+  // Suscribirse a invalidaciones de cache
+  useEffect(() => {
+    const unsubscribe = subscribe()
+    return unsubscribe
+  }, [subscribe])
+
   // Cargar datos del niño activo
   useEffect(() => {
     if (activeChildId) {
       loadChildData()
     }
-  }, [activeChildId])
+  }, [activeChildId, refreshTrigger])
 
   const loadChildData = async () => {
     if (!activeChildId) return
@@ -249,6 +259,147 @@ export default function DashboardPage() {
     return "average"
   }
 
+  // Función para agregar una nueva nota
+  const handleAddNote = async () => {
+    if (!noteText.trim() || !activeChildId) return
+    
+    try {
+      setIsAddingNote(true)
+      
+      const response = await fetch('/api/children/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          childId: activeChildId,
+          eventType: 'note',
+          emotionalState: 'neutral',
+          startTime: new Date().toISOString(),
+          notes: noteText.trim(),
+        }),
+      })
+      
+      if (response.ok) {
+        setNoteText('')
+        loadChildData() // Recargar datos para mostrar la nueva nota
+        toast({
+          title: "✅ Nota agregada",
+          description: "La nota se ha guardado correctamente.",
+        })
+      } else {
+        throw new Error('Error al guardar la nota')
+      }
+    } catch (error) {
+      toast({
+        title: "❌ Error",
+        description: "No se pudo guardar la nota. Intenta de nuevo.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAddingNote(false)
+    }
+  }
+
+  // Función para eliminar una nota
+  const handleDeleteNote = async (eventId: string) => {
+    try {
+      const response = await fetch(`/api/children/events/${eventId}`, {
+        method: 'DELETE',
+      })
+      
+      if (response.ok) {
+        loadChildData() // Recargar datos
+        toast({
+          title: "✅ Nota eliminada",
+          description: "La nota se ha eliminado correctamente.",
+        })
+      } else {
+        throw new Error('Error al eliminar la nota')
+      }
+    } catch (error) {
+      toast({
+        title: "❌ Error",
+        description: "No se pudo eliminar la nota. Intenta de nuevo.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Generar datos del gráfico según el período seleccionado
+  const getSleepChartData = () => {
+    const now = new Date()
+    let startDate: Date
+    let dateFormat: string
+    let groupBy: string
+    
+    switch (selectedPeriod) {
+      case "7d":
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        dateFormat = "d MMM"
+        groupBy = "day"
+        break
+      case "30d":
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        dateFormat = "d MMM"
+        groupBy = "day"
+        break
+      case "3m":
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
+        dateFormat = "MMM"
+        groupBy = "week"
+        break
+      default:
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        dateFormat = "d MMM"
+        groupBy = "day"
+    }
+    
+    // Filtrar eventos del período
+    const periodEvents = events.filter(event => {
+      const eventDate = parseISO(event.startTime)
+      return eventDate >= startDate && eventDate <= now && 
+             (event.eventType === "sleep" || event.eventType === "nap") && 
+             event.endTime
+    })
+    
+    // Agrupar por día/semana
+    const groupedData = new Map()
+    
+    periodEvents.forEach(event => {
+      const eventDate = parseISO(event.startTime)
+      let groupKey: string
+      
+      if (groupBy === "day") {
+        groupKey = format(eventDate, "yyyy-MM-dd")
+      } else {
+        // Agrupar por semana
+        const startOfWeekDate = startOfWeek(eventDate)
+        groupKey = format(startOfWeekDate, "yyyy-MM-dd")
+      }
+      
+      if (!groupedData.has(groupKey)) {
+        groupedData.set(groupKey, {
+          date: eventDate,
+          totalMinutes: 0,
+          events: []
+        })
+      }
+      
+      const duration = differenceInMinutes(parseISO(event.endTime!), parseISO(event.startTime))
+      const group = groupedData.get(groupKey)
+      group.totalMinutes += duration
+      group.events.push(event)
+    })
+    
+    // Convertir a array y formatear
+    return Array.from(groupedData.entries()).map(([key, data]) => ({
+      label: format(data.date, dateFormat, { locale: es }),
+      hours: Number((data.totalMinutes / 60).toFixed(1)),
+      date: data.date
+    })).sort((a, b) => a.date.getTime() - b.date.getTime())
+  }
+
   const recentMoods = events
     .filter(e => e.emotionalState)
     .slice(-5)
@@ -368,18 +519,85 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-[#2F2F2F]">Tendencia de Sueño</CardTitle>
                 <div className="flex gap-2">
-                  <Button size="sm" className="bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-8">7 días</Button>
-                  <Button size="sm" variant="ghost" className="text-[#666666] h-8">30 días</Button>
-                  <Button size="sm" variant="ghost" className="text-[#666666] h-8">3 meses</Button>
+                  <Button 
+                    size="sm" 
+                    onClick={() => setSelectedPeriod("7d")}
+                    className={selectedPeriod === "7d" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-8" : "h-8"}
+                    variant={selectedPeriod === "7d" ? "default" : "ghost"}
+                  >
+                    7 días
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={() => setSelectedPeriod("30d")}
+                    className={selectedPeriod === "30d" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-8" : "text-[#666666] h-8"}
+                    variant={selectedPeriod === "30d" ? "default" : "ghost"}
+                  >
+                    30 días
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={() => setSelectedPeriod("3m")}
+                    className={selectedPeriod === "3m" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-8" : "text-[#666666] h-8"}
+                    variant={selectedPeriod === "3m" ? "default" : "ghost"}
+                  >
+                    3 meses
+                  </Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="h-64 bg-[#F8FAFC] rounded-xl flex items-center justify-center">
-                <div className="text-center space-y-2">
-                  <TrendingUp className="h-12 w-12 text-[#E3E6EA] mx-auto" />
-                  <p className="text-[#666666] text-sm">Gráfico de tendencias de sueño</p>
-                </div>
+              <div className="h-64 bg-[#F8FAFC] rounded-xl p-4">
+                {(() => {
+                  const chartData = getSleepChartData()
+                  const maxHours = Math.max(...chartData.map(d => d.hours), 1)
+                  
+                  if (chartData.length === 0) {
+                    return (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center space-y-2">
+                          <TrendingUp className="h-12 w-12 text-[#E3E6EA] mx-auto" />
+                          <p className="text-[#666666] text-sm">No hay datos de sueño para este período</p>
+                        </div>
+                      </div>
+                    )
+                  }
+                  
+                  return (
+                    <div className="h-full flex flex-col">
+                      <div className="flex-1 flex items-end justify-between gap-2">
+                        {chartData.map((data, index) => (
+                          <div key={`chart-${data.label}-${index}`} className="flex flex-col items-center flex-1">
+                            <div 
+                              className="bg-[#4A90E2] rounded-t-md w-full transition-all duration-300 hover:bg-[#357ABD] flex items-end justify-center relative"
+                              style={{ 
+                                height: `${Math.max((data.hours / maxHours) * 80, 8)}%`,
+                                minHeight: data.hours > 0 ? '12px' : '4px'
+                              }}
+                              title={`${data.hours} horas`}
+                            >
+                              {data.hours > 0 && (
+                                <span className="text-white text-xs font-medium mb-1">
+                                  {data.hours}h
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-[#666666] mt-2 text-center">
+                              {data.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-4 flex justify-between text-xs text-[#666666]">
+                        <span>0h</span>
+                        <span className="text-[#4A90E2] font-medium">
+                          Período: {selectedPeriod === "7d" ? "7 días" : selectedPeriod === "30d" ? "30 días" : "3 meses"}
+                        </span>
+                        <span>{Math.ceil(maxHours)}h</span>
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             </CardContent>
           </Card>
@@ -391,21 +609,52 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentMoods.length > 0 ? recentMoods.map((event, index) => (
-                  <div key={event._id} className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-[#F0F7FF] rounded-full flex items-center justify-center">
-                      <span className="text-lg">{getMoodEmoji(event.emotionalState)}</span>
+                {recentMoods.length > 0 ? recentMoods.map((event) => {
+                  const eventDate = parseISO(event.startTime)
+                  const isToday = isSameDay(eventDate, new Date())
+                  const daysDiff = Math.floor((Date.now() - eventDate.getTime()) / (1000 * 60 * 60 * 24))
+                  
+                  // Determinar el texto de fecha
+                  let dateText
+                  if (isToday) {
+                    dateText = "Hoy"
+                  } else if (daysDiff === 1) {
+                    dateText = "Ayer"
+                  } else if (daysDiff <= 6) {
+                    dateText = format(eventDate, "EEEE", { locale: es })
+                  } else {
+                    dateText = format(eventDate, "d MMM", { locale: es })
+                  }
+                  
+                  // Determinar color del badge según el estado
+                  const getBadgeColor = (mood: string) => {
+                    const normalizedMood = mood.toLowerCase()
+                    if (normalizedMood.includes('happy') || normalizedMood.includes('feliz') || normalizedMood.includes('calm') || normalizedMood.includes('tranquilo')) {
+                      return "bg-green-50 text-green-700"
+                    } else if (normalizedMood.includes('tired') || normalizedMood.includes('cansado') || normalizedMood.includes('restless') || normalizedMood.includes('inquieto')) {
+                      return "bg-yellow-50 text-yellow-700"
+                    } else if (normalizedMood.includes('stressed') || normalizedMood.includes('estresado') || normalizedMood.includes('anxious') || normalizedMood.includes('ansioso')) {
+                      return "bg-red-50 text-red-700"
+                    }
+                    return "bg-blue-50 text-blue-700" // neutral
+                  }
+                  
+                  return (
+                    <div key={event._id} className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-[#F0F7FF] rounded-full flex items-center justify-center">
+                        <span className="text-lg">{getMoodEmoji(event.emotionalState)}</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-[#3A3A3A] font-medium">
+                          {dateText}
+                        </p>
+                      </div>
+                      <Badge className={`${getBadgeColor(event.emotionalState)} text-xs`}>
+                        {event.emotionalState}
+                      </Badge>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-[#3A3A3A] font-medium">
-                        {index === 0 ? "Hoy" : format(parseISO(event.startTime), "EEEE", { locale: es })}
-                      </p>
-                    </div>
-                    <Badge className="bg-green-50 text-green-700 text-xs">
-                      {event.emotionalState}
-                    </Badge>
-                  </div>
-                )) : (
+                  )
+                }) : (
                   <p className="text-[#666666] text-sm text-center py-8">
                     No hay datos de estado de ánimo recientes
                   </p>
@@ -498,27 +747,32 @@ export default function DashboardPage() {
             <CardContent className="space-y-4">
               {/* Mostrar notas reales de eventos recientes */}
               <div className="space-y-3">
-                {events.filter(e => e.notes).length > 0 ? (
-                  events.filter(e => e.notes).slice(0, 3).map((event) => (
-                    <div key={event._id} className="space-y-2">
-                      {event.notes && (
-                        <div className="bg-[#EDE5FF] rounded-2xl rounded-tl-sm p-3">
-                          <p className="text-sm text-[#3A3A3A] leading-relaxed">
-                            {event.notes}
-                          </p>
-                          <p className="text-xs text-[#666666] mt-2">
-                            {format(parseISO(event.startTime), "d MMM, HH:mm", { locale: es })}
-                          </p>
-                        </div>
-                      )}
+                {(() => {
+                  const notesEvents = events.filter(e => e.notes).slice(0, 3)
+                  return notesEvents.length > 0 ? (
+                    notesEvents.map((event, index) => (
+                    <div key={`note-${event._id}-${index}`} className="bg-[#EDE5FF] rounded-2xl rounded-tl-sm p-3 relative group">
+                      <button
+                        onClick={() => handleDeleteNote(event._id)}
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded-full"
+                        title="Eliminar nota"
+                      >
+                        <X className="h-4 w-4 text-red-500" />
+                      </button>
+                      <p className="text-sm text-[#3A3A3A] leading-relaxed pr-6">
+                        {event.notes}
+                      </p>
+                      <p className="text-xs text-[#666666] mt-2">
+                        {format(parseISO(event.startTime), "d MMM, HH:mm", { locale: es })}
+                      </p>
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
+                  <div key="no-notes" className="text-center py-8 text-gray-500">
                     <p className="text-sm">No hay notas recientes</p>
                     <p className="text-xs mt-2">Registra eventos para ver las notas aquí</p>
                   </div>
-                )}
+                )})()}
               </div>
 
               {/* Input para nueva nota */}
@@ -526,11 +780,18 @@ export default function DashboardPage() {
                 <input
                   value={noteText}
                   onChange={(e) => setNoteText(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddNote()}
                   placeholder="Añadir una nota..."
-                  className="flex-1 px-4 py-3 bg-white border border-[#E5E5E5] rounded-xl text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4A90E2] focus:border-transparent"
+                  disabled={isAddingNote}
+                  className="flex-1 px-4 py-3 bg-white border border-[#E5E5E5] rounded-xl text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4A90E2] focus:border-transparent disabled:opacity-50"
                 />
-                <Button size="sm" className="h-12 w-12 p-0 bg-white border-0 shadow-none">
-                  <Send className="h-4 w-4 text-[#4A90E2]" />
+                <Button 
+                  size="sm" 
+                  onClick={handleAddNote}
+                  disabled={!noteText.trim() || isAddingNote}
+                  className="h-12 w-12 p-0 bg-[#4A90E2] hover:bg-[#357ABD] border-0 shadow-none disabled:opacity-50"
+                >
+                  <Send className="h-4 w-4 text-white" />
                 </Button>
               </div>
             </CardContent>

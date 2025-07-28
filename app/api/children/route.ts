@@ -79,10 +79,18 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return response
   }
 
-  // Obtener todos los niños del usuario actual
-  logger.debug("Obteniendo niños del usuario", { userId: session.user.id })
+  // Para admin: obtener TODOS los niños del sistema
+  // Para usuario normal: solo sus propios niños
+  const query = isAdmin ? {} : { parentId: session.user.id }
+  
+  logger.debug("Obteniendo niños", { 
+    userId: session.user.id, 
+    isAdmin,
+    query: JSON.stringify(query)
+  })
+  
   const children = await db.collection<Child>("children")
-    .find({ parentId: session.user.id })
+    .find(query)
     .toArray()
 
   logger.info("Niños encontrados", { count: children.length, userId: session.user.id })

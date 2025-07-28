@@ -1,5 +1,6 @@
 import React from "react"
 import { Sun, Moon, ChevronRight } from "lucide-react"
+import { useEventsCache } from "@/hooks/use-events-cache"
 
 interface SleepEvent {
   id: string
@@ -16,6 +17,13 @@ export default function RecentEvents({ childId }: RecentEventsProps) {
   const [recentEvents, setRecentEvents] = React.useState<SleepEvent[]>([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
+  const { refreshTrigger, subscribe } = useEventsCache(childId)
+
+  // Suscribirse a invalidaciones de cache
+  React.useEffect(() => {
+    const unsubscribe = subscribe()
+    return unsubscribe
+  }, [subscribe])
 
   React.useEffect(() => {
     async function fetchRecentEvents() {
@@ -53,7 +61,7 @@ export default function RecentEvents({ childId }: RecentEventsProps) {
     if (childId) {
       fetchRecentEvents()
     }
-  }, [childId])
+  }, [childId, refreshTrigger])
 
   const getEventIcon = (type: string) => {
     switch (type) {

@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useActiveChild } from "@/context/active-child-context"
+import { useEventsCache, useEventsInvalidation } from "@/hooks/use-events-cache"
 import { EventRegistrationModal } from "@/components/events"
 import {
   format,
@@ -74,6 +75,8 @@ interface MonthlyStats {
 export default function CalendarPage() {
   const { toast } = useToast()
   const { activeChildId } = useActiveChild()
+  const { refreshTrigger, subscribe } = useEventsCache(activeChildId)
+  const invalidateEvents = useEventsInvalidation()
   const [date, setDate] = useState<Date>(new Date())
   const [view, setView] = useState<"month" | "week" | "day">("month")
   const [isLoading, setIsLoading] = useState(true)
@@ -89,10 +92,16 @@ export default function CalendarPage() {
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [children, setChildren] = useState([])
 
+  // Suscribirse a invalidaciones de cache
+  useEffect(() => {
+    const unsubscribe = subscribe()
+    return unsubscribe
+  }, [subscribe])
+
   // Cargar datos cuando cambia el niño activo, fecha o vista
   useEffect(() => {
     fetchEvents()
-  }, [activeChildId, date, view])
+  }, [activeChildId, date, view, refreshTrigger])
 
   // Cargar lista de niños para el modal
   useEffect(() => {
@@ -732,7 +741,7 @@ export default function CalendarPage() {
         childId={activeChildId || undefined}
         children={children}
         onEventCreated={() => {
-          fetchEvents()
+          invalidateEvents() // Invalidar cache global
           setEventModalOpen(false)
         }}
       />

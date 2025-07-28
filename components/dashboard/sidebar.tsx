@@ -16,6 +16,7 @@ import { useState, useEffect } from "react"
 import { useActiveChild } from "@/context/active-child-context"
 import { LayoutDashboard, Calendar, BarChart3, Users, PlusCircle, Settings, Menu, MessageSquare, List, Stethoscope, ClipboardList, HelpCircle, Mail } from "lucide-react"
 import { EventRegistrationModal } from "@/components/events"
+import { useEventsInvalidation } from "@/hooks/use-events-cache"
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("sidebar")
@@ -39,6 +40,7 @@ export function Sidebar({ className }: { className?: string }) {
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [children, setChildren] = useState([])
   const { activeChildId } = useActiveChild()
+  const invalidateEvents = useEventsInvalidation()
 
   const isAdmin = session?.user?.role === "admin"
 
@@ -226,7 +228,8 @@ export function Sidebar({ className }: { className?: string }) {
         childId={activeChildId || undefined}
         children={children}
         onEventCreated={() => {
-          // Aquí podrías agregar lógica para refrescar datos si es necesario
+          invalidateEvents() // Invalidar cache de eventos en todas las páginas
+          setEventModalOpen(false)
         }}
       />
     </>

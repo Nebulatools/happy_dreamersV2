@@ -23,7 +23,7 @@ export async function GET(
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    const id = params.id
+    const { id } = await params
     logger.info(`Buscando niño con ID: ${id} para el usuario ${session.user.id}`)
     
     const client = await clientPromise

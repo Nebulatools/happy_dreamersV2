@@ -1,40 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { Check, ChevronDown, Moon, Sun, Activity, Coffee } from "lucide-react"
+import { Check, ChevronDown, Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { eventTypes } from "@/lib/event-types"
 
 interface EventTypeSelectorProps {
   value?: string
   onValueChange: (value: string) => void
 }
-
-const eventTypes = [
-  {
-    id: "sleep",
-    label: "Noche completa",
-    icon: Moon,
-    description: "Período de sueño nocturno",
-  },
-  {
-    id: "nap", 
-    label: "Siesta",
-    icon: Sun,
-    description: "Período de descanso diurno",
-  },
-  {
-    id: "wake",
-    label: "Despertar",
-    icon: Sun,
-    description: "Momento de despertar",
-  },
-  {
-    id: "activity",
-    label: "Actividad",
-    icon: Activity,
-    description: "Actividad física o juego",
-  },
-]
 
 export function EventTypeSelector({ value, onValueChange }: EventTypeSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)

@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { useActiveChild } from "@/context/active-child-context"
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -75,8 +76,12 @@ const wakeTimeOptions = [
 export default function SurveyPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const childId = searchParams.get("childId")
+  const urlChildId = searchParams.get("childId")
+  const { activeChildId } = useActiveChild()
   const { toast } = useToast()
+  
+  // Usar childId de URL si está disponible, sino usar el del contexto
+  const childId = urlChildId || activeChildId
   const [currentStep, setCurrentStep] = useState(1) // Iniciando en paso 1
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState<Partial<SurveyData>>({
@@ -262,6 +267,14 @@ export default function SurveyPage() {
     loadSurveyData()
   }, [childId, toast])
 
+  // Efecto adicional para resetear la encuesta cuando cambie el niño activo
+  useEffect(() => {
+    // Si cambia el activeChildId (no el de URL), resetear al paso 1
+    if (activeChildId && !urlChildId) {
+      setCurrentStep(1)
+    }
+  }, [activeChildId, urlChildId])
+
   const handleNext = () => {
     // Guardar datos antes de avanzar
     localStorage.setItem(`survey_${childId}`, JSON.stringify(formData))
@@ -277,14 +290,47 @@ export default function SurveyPage() {
     }
   }
 
-  const handleSaveAndContinueLater = () => {
-    localStorage.setItem(`survey_${childId}`, JSON.stringify(formData))
-    localStorage.setItem(`survey_step_${childId}`, currentStep.toString())
-    
-    toast({
-      title: "Progreso guardado",
-      description: "Puedes continuar más tarde desde donde lo dejaste",
-    })
+  const handleSaveAndContinueLater = async () => {
+    try {
+      // Guardar en localStorage como backup
+      localStorage.setItem(`survey_${childId}`, JSON.stringify(formData))
+      localStorage.setItem(`survey_step_${childId}`, currentStep.toString())
+      
+      // Guardar en el servidor (información parcial)
+      const response = await fetch("/api/survey", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          childId,
+          surveyData: formData,
+          isPartialSave: true, // Indicar que es un guardado parcial
+          currentStep: currentStep
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "✅ Progreso guardado",
+          description: "Tu información se ha guardado correctamente. Puedes continuar más tarde desde donde lo dejaste.",
+        })
+      } else {
+        // Si falla el servidor, al menos tenemos localStorage
+        toast({
+          title: "⚠️ Guardado parcial",
+          description: "Se guardó localmente. Intenta completar la encuesta pronto.",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      // Si hay error, al menos guardamos en localStorage
+      toast({
+        title: "⚠️ Guardado local",
+        description: "Se guardó en tu dispositivo. Intenta completar la encuesta pronto.",
+        variant: "destructive"
+      })
+    }
     
     router.push("/dashboard")
   }

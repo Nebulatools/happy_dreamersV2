@@ -8,6 +8,7 @@ import SleepMetricsGrid from "@/components/child-profile/SleepMetricsGrid"
 import RecentEvents from "@/components/child-profile/RecentEvents"
 import { EventRegistrationModal } from "@/components/events"
 import { useActiveChild } from "@/context/active-child-context"
+import { useEventsInvalidation } from "@/hooks/use-events-cache"
 
 import { createLogger } from "@/lib/logger"
 import { extractChildrenFromResponse } from "@/lib/api-response-utils"
@@ -36,6 +37,7 @@ export default function ChildProfilePage() {
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [children, setChildren] = useState<Child[]>([])  
   const { setActiveChildId } = useActiveChild()
+  const invalidateEvents = useEventsInvalidation()
 
   // Calcular edad del niño
   const calculateAge = (birthDate: string) => {
@@ -309,7 +311,7 @@ export default function ChildProfilePage() {
         childId={params.id as string}
         children={children}
         onEventCreated={() => {
-          // Recargar eventos si es necesario
+          invalidateEvents() // Invalidar cache global de eventos
           setEventModalOpen(false)
         }}
       />

@@ -2,6 +2,7 @@ import React from "react"
 import { Clock, Moon, AlertCircle, Heart } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { differenceInMinutes, parseISO, subDays } from "date-fns"
+import { useEventsCache } from "@/hooks/use-events-cache"
 
 interface SleepMetric {
   title: string
@@ -17,23 +18,33 @@ interface SleepMetric {
 
 interface SleepMetricsGridProps {
   childId: string
+  dateRange?: string
+  eventType?: string
 }
 
-export default function SleepMetricsGrid({ childId }: SleepMetricsGridProps) {
+export default function SleepMetricsGrid({ childId, dateRange = "7-days", eventType = "sleep" }: SleepMetricsGridProps) {
   const [sleepMetrics, setSleepMetrics] = React.useState<SleepMetric[]>([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
+  const { refreshTrigger, subscribe } = useEventsCache(childId)
+
+  // Suscribirse a invalidaciones de cache
+  React.useEffect(() => {
+    const unsubscribe = subscribe()
+    return unsubscribe
+  }, [subscribe])
 
   React.useEffect(() => {
     async function fetchSleepMetrics() {
       try {
         setLoading(true)
         
-        // Últimos 7 días simple
+        // Calcular período según filtro
         const now = new Date()
-        const currentPeriodStart = subDays(now, 7)
-        const previousPeriodStart = subDays(now, 14)
-        const previousPeriodEnd = subDays(now, 7)
+        const days = dateRange === "30-days" ? 30 : dateRange === "90-days" ? 90 : 7
+        const currentPeriodStart = subDays(now, days)
+        const previousPeriodStart = subDays(now, days * 2)
+        const previousPeriodEnd = subDays(now, days)
         
         const response = await fetch(`/api/children/events?childId=${childId}`)
         
@@ -44,17 +55,23 @@ export default function SleepMetricsGrid({ childId }: SleepMetricsGridProps) {
         const data = await response.json()
         const allEvents = data.events || []
         
-        // Solo eventos de sueño de los últimos 7 días
-        const sleepEvents = allEvents.filter((e: any) => 
-          e.eventType === 'sleep' || e.eventType === 'nap'
-        )
+        // Filtrar eventos según tipo seleccionado
+        const filteredEvents = allEvents.filter((e: any) => {
+          if (eventType === 'all') return ['sleep', 'bedtime', 'nap', 'wake', 'activity'].includes(e.eventType)
+          if (eventType === 'sleep') return e.eventType === 'sleep'
+          if (eventType === 'bedtime') return e.eventType === 'bedtime'
+          if (eventType === 'nap') return e.eventType === 'nap'
+          if (eventType === 'wake') return e.eventType === 'wake'
+          if (eventType === 'activity') return e.eventType === 'activity'
+          return ['sleep', 'nap'].includes(e.eventType) // Fallback para compatibilidad
+        })
         
-        const currentEvents = sleepEvents.filter((e: any) => {
+        const currentEvents = filteredEvents.filter((e: any) => {
           const date = parseISO(e.startTime)
           return date >= currentPeriodStart
         })
         
-        const previousEvents = sleepEvents.filter((e: any) => {
+        const previousEvents = filteredEvents.filter((e: any) => {
           const date = parseISO(e.startTime)
           return date >= previousPeriodStart && date <= previousPeriodEnd
         })
@@ -72,7 +89,7 @@ export default function SleepMetricsGrid({ childId }: SleepMetricsGridProps) {
     if (childId) {
       fetchSleepMetrics()
     }
-  }, [childId])
+  }, [childId, dateRange, eventType, refreshTrigger])
 
   function calculateMetrics(thisWeek: any[], lastWeek: any[]): SleepMetric[] {
     // Calcular tiempo total de sueño promedio
@@ -116,7 +133,7 @@ export default function SleepMetricsGrid({ childId }: SleepMetricsGridProps) {
         value: avgWakeupsThisWeek.toFixed(1),
         icon: <AlertCircle className="w-4 h-4" />,
         status: getWakeupsStatus(avgWakeupsThisWeek),
-        change: `${wakeupsDiff > 0 ? '+' : ''}${wakeupsDiff.toFixed(1)} vs. semana anterior`,
+        change: wakeupsDiff === 0 ? 'Sin cambios' : `${wakeupsDiff > 0 ? '+' : ''}${wakeupsDiff.toFixed(1)} promedio anterior`,
         iconBg: "bg-[#FFE442]",
       },
       {
@@ -124,7 +141,7 @@ export default function SleepMetricsGrid({ childId }: SleepMetricsGridProps) {
         value: `${Math.round(qualityThisWeek)}%`,
         icon: <Heart className="w-4 h-4" />,
         status: getSleepQualityStatus(qualityThisWeek),
-        change: `${qualityDiff > 0 ? '+' : ''}${Math.round(qualityDiff)}% vs. semana anterior`,
+        change: qualityDiff === 0 ? 'Sin cambios' : `${qualityDiff > 0 ? '+' : ''}${Math.round(qualityDiff)}% desde período anterior`,
         iconBg: "bg-[#FFC4C4]",
       },
     ]
@@ -223,11 +240,12 @@ export default function SleepMetricsGrid({ childId }: SleepMetricsGridProps) {
   }
 
   function formatDurationChange(hours: number): string {
+    if (hours === 0) return 'Sin cambios'
     const sign = hours > 0 ? '+' : ''
     const h = Math.floor(Math.abs(hours))
     const m = Math.round((Math.abs(hours) - h) * 60)
     const formatted = m > 0 ? `${h}h ${m}m` : `${h}h`
-    return `${sign}${formatted} vs. semana anterior`
+    return `${sign}${formatted} desde período anterior`
   }
 
   function getSleepDurationStatus(hours: number): { label: string; variant: "good" | "consistent" | "average" | "poor" } {

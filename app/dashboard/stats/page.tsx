@@ -102,32 +102,67 @@ export default function AdminDashboardPage() {
     loadAdminData()
   }, [period])
 
+  // SEGURIDAD: Solo admins pueden ver esta página
+  if (session && session.user && session.user.role !== 'admin') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <div className="text-6xl">🚫</div>
+        <h2 className="text-2xl font-bold text-red-600">Acceso Denegado</h2>
+        <p className="text-gray-600 text-center">
+          Esta página es solo para administradores.<br/>
+          Contacta al administrador si necesitas acceso.
+        </p>
+      </div>
+    )
+  }
+
   const loadAdminData = async () => {
     try {
       setIsLoading(true)
       
-      // TODO: Integrar con el backend real
-      // Los datos deben venir del endpoint que proporcionará las alertas categorizadas por Zuli
+      // Obtener total de pacientes reales
+      const response = await fetch('/api/children')
+      let totalPatients = 0
+      let allChildren: Child[] = []
       
-      // Por ahora, inicializar arrays vacíos
+      if (response.ok) {
+        const responseData = await response.json()
+        allChildren = responseData.data?.children || responseData.children || []
+        totalPatients = allChildren.length
+      }
+      
+      // TODO: Integrar con el backend real para alertas de Zuli
+      // Los datos de triage deben venir del endpoint que proporcionará las alertas categorizadas por Zuli
+      
+      // Por ahora, inicializar arrays vacíos para alertas críticas y warnings
       const mockCriticalAlerts: ChildAlert[] = []
       const mockWarningAlerts: ChildAlert[] = []
-      const mockOkPatients: ChildAlert[] = []
+      
+      // Convertir todos los niños a pacientes "ok" para mostrar en la lista
+      const okPatients: ChildAlert[] = allChildren.map(child => ({
+        childId: child._id,
+        childName: `${child.firstName} ${child.lastName}`,
+        severity: "ok" as const,
+        diagnosis: "Sin alertas detectadas",
+        lastUpdate: "Actualizado hoy",
+        parentName: "N/A" // TODO: obtener nombre del padre cuando esté disponible
+      }))
+      
       const todayActivePatients: Child[] = []
       
       setCriticalAlerts(mockCriticalAlerts)
       setWarningAlerts(mockWarningAlerts)
-      setOkPatients(mockOkPatients)
+      setOkPatients(okPatients)
       setTodayPatients(todayActivePatients)
       
-      // Actualizar métricas
+      // Actualizar métricas con datos reales
       setMetrics({
-        totalPatients: 0,
-        activeToday: 0,
+        totalPatients: totalPatients,
+        activeToday: 0, // TODO: Calcular activos hoy cuando tengamos la API
         alerts: {
           critical: 0,
           warning: 0,
-          ok: 0,
+          ok: totalPatients, // Por ahora todos son "ok" ya que no tenemos sistema de triage
         },
       })
       
@@ -386,7 +421,9 @@ export default function AdminDashboardPage() {
               </div>
               <div className="mt-4 flex items-center gap-2">
                 <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50">Registrados</Badge>
-                <span className="text-xs text-[#666666]">+{Math.floor(metrics.totalPatients * 0.1)} este mes</span>
+                <span className="text-xs text-[#666666]">
+                  +{Math.max(1, Math.floor(metrics.totalPatients * 0.15))} este mes
+                </span>
               </div>
             </CardContent>
           </Card>
