@@ -24,8 +24,28 @@ export function TimeSelector({ value, onChange, label, disabled = false, color =
   
   // Estado para horas y minutos - inicializar solo una vez
   const [hours24, setHours24] = useState(() => dateValue.getHours())
-  const [minutes, setMinutes] = useState(() => Math.round(dateValue.getMinutes() / 10) * 10)
+  const [minutes, setMinutes] = useState(() => {
+    const roundedMinutes = Math.round(dateValue.getMinutes() / 10) * 10
+    return roundedMinutes >= 60 ? 50 : roundedMinutes
+  })
   const [date, setDate] = useState(() => dateValue.toISOString().split("T")[0])
+  
+  // SINCRONIZAR CON VALOR EXTERNO - cuando el valor cambia desde fuera
+  useEffect(() => {
+    if (value) {
+      const newDate = createSafeDate(value)
+      const newDateStr = newDate.toISOString().split("T")[0]
+      const newHours = newDate.getHours()
+      const newMinutes = Math.round(newDate.getMinutes() / 10) * 10
+      
+      setDate(newDateStr)
+      setHours24(newHours)
+      setMinutes(newMinutes >= 60 ? 50 : newMinutes)
+      setIsPM(newHours >= 12)
+    }
+  }, [value])
+  
+  
   const [isPM, setIsPM] = useState(() => dateValue.getHours() >= 12)
   
   // Convertir horas 24 a formato 12
@@ -33,20 +53,9 @@ export function TimeSelector({ value, onChange, label, disabled = false, color =
 
   // Actualizar el valor cuando cambian las partes
   useEffect(() => {
-    const newDate = new Date(date)
-    newDate.setHours(hours24)
-    newDate.setMinutes(minutes)
-    newDate.setSeconds(0)
-    newDate.setMilliseconds(0)
-    
-    // Formatear como datetime-local
-    const year = newDate.getFullYear()
-    const month = String(newDate.getMonth() + 1).padStart(2, "0")
-    const day = String(newDate.getDate()).padStart(2, "0")
-    const h = String(newDate.getHours()).padStart(2, "0")
-    const m = String(newDate.getMinutes()).padStart(2, "0")
-    
-    onChange(`${year}-${month}-${day}T${h}:${m}`)
+    const h = String(hours24).padStart(2, "0")
+    const m = String(minutes).padStart(2, "0")
+    onChange(`${date}T${h}:${m}`)
   }, [hours24, minutes, date, onChange])
 
   // Funciones para ajustar el tiempo
@@ -97,6 +106,9 @@ export function TimeSelector({ value, onChange, label, disabled = false, color =
       newMinutes = 50
     }
     
+    // ASEGURAR QUE MINUTOS SEA VÁLIDO (0-50)
+    newMinutes = Math.max(0, Math.min(50, newMinutes))
+    
     setMinutes(newMinutes)
     if (hourAdjust !== 0) {
       adjustHours(hourAdjust)
@@ -109,13 +121,9 @@ export function TimeSelector({ value, onChange, label, disabled = false, color =
   }
 
   const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr)
-    const options: Intl.DateTimeFormatOptions = { 
-      day: "numeric", 
-      month: "short",
-      year: "numeric",
-    }
-    return d.toLocaleDateString("es-ES", options)
+    const [year, month, day] = dateStr.split('-')
+    const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+    return `${parseInt(day)} ${months[parseInt(month) - 1]} ${year}`
   }
 
   const colorClasses = {

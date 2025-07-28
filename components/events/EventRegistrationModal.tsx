@@ -165,8 +165,23 @@ export function EventRegistrationModal({
   const endTime = form.watch("endTime")
   const eventType = form.watch("eventType")
   
+  
   // Determinar si el tipo de evento actual necesita hora de fin
   const shouldShowEndTime = eventType ? eventTypeHasEndTime(eventType) : false
+  
+  // SINCRONIZAR FECHAS - SÚPER SIMPLE
+  useEffect(() => {
+    if (shouldShowEndTime && startTime && endTime) {
+      const startDate = startTime.split('T')[0]
+      const endDate = endTime.split('T')[0] 
+      if (startDate !== endDate) {
+        const endTime = form.getValues('endTime')
+        const endTimeOnly = endTime ? endTime.split('T')[1] : '23:59'
+        form.setValue('endTime', `${startDate}T${endTimeOnly}`, { shouldValidate: false })
+      }
+    }
+  }, [startTime, shouldShowEndTime, form])
+  
   
   // Limpiar hora de fin cuando el tipo de evento no la necesita
   useEffect(() => {

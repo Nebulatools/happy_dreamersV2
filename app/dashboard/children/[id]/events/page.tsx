@@ -409,7 +409,12 @@ export default function ChildEventsPage() {
                         {getEventTypeName(event.eventType)}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {format(new Date(event.startTime), "PPpp", { locale: es })}
+                        <div className="flex items-center gap-2">
+                          <span>Inicio: {format(new Date(event.startTime), "dd/MM/yyyy HH:mm", { locale: es })}</span>
+                          {event.endTime && (
+                            <span>• Fin: {format(new Date(event.endTime), "dd/MM/yyyy HH:mm", { locale: es })}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex justify-between items-start">
