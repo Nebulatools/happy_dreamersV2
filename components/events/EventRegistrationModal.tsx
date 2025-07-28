@@ -73,7 +73,7 @@ const getDefaultEndTime = (startTime: string) => {
   return `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
-// Esquema con validación para fechas que no sean futuras
+// Esquema con validación correcta para fechas
 const eventFormSchema = z.object({
   eventType: z.string({
     required_error: "Por favor selecciona un tipo de evento",
@@ -88,13 +88,18 @@ const eventFormSchema = z.object({
   }, {
     message: "La fecha de inicio no puede ser en el futuro",
   }),
-  endTime: z.string().optional().refine(val => {
-    return !val || new Date(val) <= new Date()
-  }, {
-    message: "La fecha de finalización no puede ser en el futuro",
-  }),
+  endTime: z.string().optional(),
   duration: z.number().min(0).max(24).optional(),
   notes: z.string().optional(),
+}).refine((data) => {
+  // Validar que la hora de fin sea después de la hora de inicio
+  if (data.endTime && data.startTime) {
+    return new Date(data.endTime) > new Date(data.startTime)
+  }
+  return true
+}, {
+  message: "La hora de fin debe ser después de la hora de inicio",
+  path: ["endTime"], // El error aparecerá en el campo endTime
 })
 
 type EventFormValues = z.infer<typeof eventFormSchema>
@@ -149,6 +154,10 @@ export function EventRegistrationModal({
       const now = new Date()
       const currentTime = getCurrentDateTimeISO()
       const defaultEndTime = getDefaultEndTime(currentTime)
+      const currentDate = now.toISOString().split('T')[0]
+      
+      // Actualizar fecha compartida
+      setSharedDate(currentDate)
       
       form.reset({
         notes: "",
@@ -169,18 +178,26 @@ export function EventRegistrationModal({
   // Determinar si el tipo de evento actual necesita hora de fin
   const shouldShowEndTime = eventType ? eventTypeHasEndTime(eventType) : false
   
-  // SINCRONIZAR FECHAS - SÚPER SIMPLE
-  useEffect(() => {
-    if (shouldShowEndTime && startTime && endTime) {
-      const startDate = startTime.split('T')[0]
-      const endDate = endTime.split('T')[0] 
-      if (startDate !== endDate) {
-        const endTime = form.getValues('endTime')
-        const endTimeOnly = endTime ? endTime.split('T')[1] : '23:59'
-        form.setValue('endTime', `${startDate}T${endTimeOnly}`, { shouldValidate: false })
-      }
+  // FECHA COMPARTIDA entre ambos TimeSelectors
+  const [sharedDate, setSharedDate] = useState<string>(() => {
+    const now = new Date()
+    return now.toISOString().split('T')[0]
+  })
+  
+  // Cuando cambie la fecha compartida, actualizar ambos campos manteniendo sus horas
+  const handleDateChange = (newDate: string) => {
+    setSharedDate(newDate)
+    
+    if (startTime) {
+      const startTimeOnly = startTime.split('T')[1]
+      form.setValue('startTime', `${newDate}T${startTimeOnly}`, { shouldValidate: false })
     }
-  }, [startTime, shouldShowEndTime, form])
+    
+    if (shouldShowEndTime && endTime) {
+      const endTimeOnly = endTime.split('T')[1]
+      form.setValue('endTime', `${newDate}T${endTimeOnly}`, { shouldValidate: false })
+    }
+  }
   
   
   // Limpiar hora de fin cuando el tipo de evento no la necesita
@@ -320,6 +337,8 @@ export function EventRegistrationModal({
                         onChange={field.onChange}
                         label="Hora de Inicio"
                         color="blue"
+                        sharedDate={sharedDate}
+                        onDateChange={handleDateChange}
                       />
                     </FormControl>
                     <FormMessage />
@@ -340,6 +359,8 @@ export function EventRegistrationModal({
                           onChange={field.onChange}
                           label="Hora de Fin"
                           color="green"
+                          sharedDate={sharedDate}
+                          onDateChange={handleDateChange}
                         />
                       </FormControl>
                       <FormMessage />

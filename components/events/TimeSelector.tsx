@@ -10,9 +10,11 @@ interface TimeSelectorProps {
   label?: string
   disabled?: boolean
   color?: "blue" | "green"
+  sharedDate?: string
+  onDateChange?: (date: string) => void
 }
 
-export function TimeSelector({ value, onChange, label, disabled = false, color = "blue" }: TimeSelectorProps) {
+export function TimeSelector({ value, onChange, label, disabled = false, color = "blue", sharedDate, onDateChange }: TimeSelectorProps) {
   // Convertir el valor string a fecha con validación
   const createSafeDate = (val?: string) => {
     if (!val) return new Date()
@@ -28,22 +30,19 @@ export function TimeSelector({ value, onChange, label, disabled = false, color =
     const roundedMinutes = Math.round(dateValue.getMinutes() / 10) * 10
     return roundedMinutes >= 60 ? 50 : roundedMinutes
   })
-  const [date, setDate] = useState(() => dateValue.toISOString().split("T")[0])
+  // Usar sharedDate si existe, sino usar el estado interno
+  const [internalDate, setInternalDate] = useState(() => dateValue.toISOString().split("T")[0])
+  const date = sharedDate || internalDate
   
-  // SINCRONIZAR CON VALOR EXTERNO - cuando el valor cambia desde fuera
-  useEffect(() => {
-    if (value) {
-      const newDate = createSafeDate(value)
-      const newDateStr = newDate.toISOString().split("T")[0]
-      const newHours = newDate.getHours()
-      const newMinutes = Math.round(newDate.getMinutes() / 10) * 10
-      
-      setDate(newDateStr)
-      setHours24(newHours)
-      setMinutes(newMinutes >= 60 ? 50 : newMinutes)
-      setIsPM(newHours >= 12)
+  const setDate = (newDate: string) => {
+    if (sharedDate && onDateChange) {
+      // Si tenemos fecha compartida, notificar el cambio
+      onDateChange(newDate)
+    } else {
+      // Si no, usar estado interno
+      setInternalDate(newDate)
     }
-  }, [value])
+  }
   
   
   const [isPM, setIsPM] = useState(() => dateValue.getHours() >= 12)
