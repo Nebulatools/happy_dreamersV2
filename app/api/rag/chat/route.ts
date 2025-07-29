@@ -112,18 +112,30 @@ const routerAgent = async (state: typeof MultiAgentState.State) => {
   const llm = new ChatOpenAI({
     modelName: "gpt-4o-mini", 
     temperature: 0,
+    maxTokens: 50,
   })
 
   // Primero, analizar si la pregunta es sobre datos específicos del niño
-  const analysisPrompt = `Eres un analizador experto en preguntas sobre datos infantiles.
+  const analysisPrompt = `Tu trabajo es clasificar esta pregunta:
 
 PREGUNTA: "${state.question}"
 
-ANÁLISIS: Esta pregunta busca:
-A) Datos específicos de un niño particular (eventos, estadísticas, patrones, información personal)
-B) Información general/consejos sobre crianza y sueño infantil
+REGLA SIMPLE: 
+- Si la pregunta busca información que EXISTE EN UNA BASE DE DATOS sobre un niño específico → DATOS_ESPECIFICOS
+- Si la pregunta busca conocimiento médico general que está en DOCUMENTOS → INFORMACION_GENERAL
 
-Considera que palabras como "tengo", "mi niño", "eventos", "estadísticas", "cuántas", "cómo durmió", "patrones" indican datos específicos.
+CONTEXTO: Estamos en un sistema médico donde hay un niño seleccionado con datos registrados (eventos, estadísticas, métricas, patrones de sueño, etc.).
+
+La pregunta "¿qué estadísticas tienes?" claramente busca las estadísticas calculadas de ESE niño específico que están en la base de datos.
+
+EJEMPLOS CLAROS:
+- "¿qué estadísticas tienes?" = DATOS_ESPECIFICOS (busca estadísticas del niño en BD)
+- "¿cuántas horas durmió?" = DATOS_ESPECIFICOS (busca datos registrados)
+- "¿cuál es su promedio de sueño?" = DATOS_ESPECIFICOS (busca métricas calculadas)
+- "¿cómo mejorar el sueño?" = INFORMACION_GENERAL (busca conocimiento médico)
+- "¿qué técnicas usar?" = INFORMACION_GENERAL (busca consejos generales)
+
+Para esta pregunta específica, ¿busca datos de la BD del niño o conocimiento médico general?
 
 Responde solo: DATOS_ESPECIFICOS o INFORMACION_GENERAL`
 
@@ -181,8 +193,16 @@ const childDataAgent = async (state: typeof MultiAgentState.State, childId: stri
     llm,
     tools: [childDataTool],
     stateModifier: `Eres la Dra. Mariana, especialista en análisis de datos infantiles.
-    Usa SOLO la herramienta child_data_search para acceder a información específica del niño.
-    Proporciona respuestas precisas y concisas basadas en los datos reales.`,
+    
+    SIEMPRE usa la herramienta child_data_search para obtener las estadísticas específicas del niño.
+    
+    Cuando te pregunten sobre estadísticas o datos:
+    - Usa child_data_search con dataType: "stats" para obtener métricas procesadas
+    - Presenta los datos de forma clara y profesional
+    - Incluye promedios, patrones y tendencias relevantes
+    - Si no hay datos suficientes, explica qué se necesita para generar estadísticas
+    
+    Responde de forma directa y basada en datos reales del niño.`,
   })
 
   const messages = [
@@ -246,9 +266,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Mensaje requerido" }, { status: 400 })
     }
 
+    // 🔍 OBTENER EL PARENT ID CORRECTO DEL NIÑO
+    let parentUserId = session.user.id // Default para usuarios normales
+    
+    if (childId) {
+      try {
+        const { db } = await connectToDatabase()
+        const child = await db.collection("children").findOne({
+          _id: new ObjectId(childId)
+        })
+        
+        if (child && child.parentId) {
+          parentUserId = child.parentId
+          console.log(`👶 Niño encontrado: ${child.firstName} ${child.lastName}, Parent ID: ${parentUserId}`)
+        } else {
+          console.log(`❌ No se encontró niño con ID: ${childId}`)
+        }
+      } catch (error) {
+        console.log(`❌ Error obteniendo parent ID:`, error)
+      }
+    }
 
-    // 🚀 CREAR Y EJECUTAR EL SISTEMA MULTI-AGENTE
-    const multiAgentGraph = buildMultiAgentGraph(childId || "", session.user.id)
+    // 🚀 CREAR Y EJECUTAR EL SISTEMA MULTI-AGENTE CON PARENT ID CORRECTO
+    const multiAgentGraph = buildMultiAgentGraph(childId || "", parentUserId)
     
     const initialState = {
       question: message,
@@ -268,8 +308,8 @@ export async function POST(req: NextRequest) {
     const executionTime = result.performance?.endTime ? 
       result.performance.endTime - result.performance.startTime : 0
 
-    // 🎭 OBTENER CONTEXTO DEL NIÑO PARA RESPUESTA
-    const childContext = childId ? await getChildContextForResponse(childId, session.user.id) : null
+    // 🎭 OBTENER CONTEXTO DEL NIÑO PARA RESPUESTA (con parent ID correcto)
+    const childContext = childId ? await getChildContextForResponse(childId, parentUserId) : null
 
     return NextResponse.json({
       response: result.finalAnswer,
