@@ -23,8 +23,7 @@ import { es } from "date-fns/locale"
 
 import { createLogger } from "@/lib/logger"
 
-const logger = createLogger("page")
-
+const logger = createLogger("AdminStatistics")
 
 // Interfaces para el sistema de triage
 interface ChildAlert {
@@ -74,7 +73,7 @@ interface AdminMetrics {
   completedConsultations: number
 }
 
-export default function AdminDashboardPage() {
+export default function AdminStatistics() {
   const { data: session } = useSession()
   const { toast } = useToast()
   const [period, setPeriod] = useState("week")
@@ -101,20 +100,6 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     loadAdminData()
   }, [period])
-
-  // SEGURIDAD: Solo admins pueden ver esta página
-  if (session && session.user && session.user.role !== 'admin') {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <div className="text-6xl">🚫</div>
-        <h2 className="text-2xl font-bold text-red-600">Acceso Denegado</h2>
-        <p className="text-gray-600 text-center">
-          Esta página es solo para administradores.<br/>
-          Contacta al administrador si necesitas acceso.
-        </p>
-      </div>
-    )
-  }
 
   const loadAdminData = async () => {
     try {
@@ -166,23 +151,6 @@ export default function AdminDashboardPage() {
         },
       })
       
-      // CÓDIGO REAL A IMPLEMENTAR:
-      /*
-      const response = await fetch('/api/admin/dashboard/triage')
-      if (response.ok) {
-        const data = await response.json()
-        
-        setCriticalAlerts(data.criticalAlerts || [])
-        setWarningAlerts(data.warningAlerts || [])
-        setOkPatients(data.okPatients || [])
-        setTodayPatients(data.todayPatients || [])
-        setMetrics(data.metrics || {
-          totalPatients: 0,
-          activeToday: 0,
-          alerts: { critical: 0, warning: 0, ok: 0 }
-        })
-      }
-      */
     } catch (error) {
       logger.error("Error loading admin data:", error)
       toast({

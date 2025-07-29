@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
 import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache } from "@/hooks/use-events-cache"
+import AdminStatistics from "@/components/dashboard/AdminStatistics"
 import { 
   Moon, Sun, Activity, TrendingUp, Calendar, MessageSquare, 
   Lightbulb, ChevronLeft, ChevronRight, Send, X,
@@ -63,6 +64,9 @@ export default function DashboardPage() {
   const { activeChildId } = useActiveChild()
   const { refreshTrigger, subscribe } = useEventsCache(activeChildId)
   
+  // Detectar si el usuario es admin
+  const isAdmin = session?.user?.role === "admin"
+  
   const [child, setChild] = useState<Child | null>(null)
   const [events, setEvents] = useState<Event[]>([])
   const [sleepMetrics, setSleepMetrics] = useState<SleepMetrics>({
@@ -77,6 +81,8 @@ export default function DashboardPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<"7d" | "30d" | "3m">("7d")
   const [isAddingNote, setIsAddingNote] = useState(false)
   
+  // Ya no redirigimos, manejamos todo en esta página
+
   // Suscribirse a invalidaciones de cache
   useEffect(() => {
     const unsubscribe = subscribe()
@@ -415,6 +421,11 @@ export default function DashboardPage() {
         </p>
       </div>
     )
+  }
+
+  // Si es admin, mostrar las estadísticas completas
+  if (isAdmin) {
+    return <AdminStatistics />
   }
 
   return (

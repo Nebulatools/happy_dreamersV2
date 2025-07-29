@@ -56,7 +56,7 @@ export function Sidebar({ className }: { className?: string }) {
     },
     {
       title: "Dashboard Admin",
-      href: "/dashboard/stats",
+      href: "/dashboard",
       icon: <LayoutDashboard className="h-5 w-5" />,
       role: ["admin"],
     },
