@@ -4,9 +4,10 @@ import { PieChart } from "lucide-react"
 
 interface SleepDistributionChartProps {
   childId: string
+  dateRange?: string
 }
 
-export default function SleepDistributionChart({ childId }: SleepDistributionChartProps) {
+export default function SleepDistributionChart({ childId, dateRange = "7-days" }: SleepDistributionChartProps) {
   const { data, loading, error } = useSleepData(childId)
 
   if (loading) {

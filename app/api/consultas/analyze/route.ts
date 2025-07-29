@@ -8,7 +8,7 @@ import clientPromise from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { getMongoDBVectorStoreManager } from "@/lib/rag/vector-store-mongodb"
 import { OpenAI } from "openai"
-import { differenceInDays, differenceInMinutes, format, parseISO, getHours, getMinutes } from "date-fns"
+import { differenceInDays, differenceInMinutes, format, parseISO, getHours, getMinutes, subDays } from "date-fns"
 
 import { createLogger } from "@/lib/logger"
 
@@ -101,13 +101,32 @@ async function getChildWithStats(userId: string, childId: string) {
 
     if (!child) return null
 
+    // Obtener la fecha de la última consulta
+    const lastConsultation = await db.collection("consultation_reports")
+      .findOne(
+        { childId: new ObjectId(childId) },
+        { sort: { createdAt: -1 } }
+      )
+
+    // Determinar fecha de inicio para estadísticas
+    const now = new Date()
+    let statsStartDate: Date
+    
+    if (lastConsultation) {
+      // Si hay consulta previa, usar desde esa fecha
+      statsStartDate = new Date(lastConsultation.createdAt)
+    } else {
+      // Si no hay consulta previa, usar últimos 30 días como fallback
+      statsStartDate = subDays(now, 30)
+    }
+
     // Obtener todos los eventos del niño
     const events = await db.collection("events").find({
       childId: new ObjectId(childId),
     }).sort({ startTime: -1 }).toArray()
 
-    // Calcular estadísticas
-    const stats = calculateChildStats(events)
+    // Calcular estadísticas desde la fecha determinada
+    const stats = calculateChildStats(events, statsStartDate)
     
     // Calcular edad en meses
     const birthDate = child.birthDate ? new Date(child.birthDate) : null
@@ -118,6 +137,8 @@ async function getChildWithStats(userId: string, childId: string) {
       ageInMonths,
       events,
       stats,
+      lastConsultationDate: lastConsultation?.createdAt,
+      statsFromDate: statsStartDate,
     }
   } catch (error) {
     logger.error("Error obteniendo datos del niño:", error)
@@ -126,15 +147,15 @@ async function getChildWithStats(userId: string, childId: string) {
 }
 
 // Función para calcular estadísticas del niño
-function calculateChildStats(events: any[]) {
+function calculateChildStats(events: any[], statsFromDate: Date) {
   const now = new Date()
-  const last7Days = events.filter(event => {
+  const relevantEvents = events.filter(event => {
     const eventDate = parseISO(event.startTime)
-    return differenceInDays(now, eventDate) <= 7
+    return eventDate >= statsFromDate && eventDate <= now
   })
 
-  const sleepEvents = last7Days.filter(e => e.eventType === "sleep" && e.endTime)
-  const napEvents = last7Days.filter(e => e.eventType === "nap" && e.endTime)
+  const sleepEvents = relevantEvents.filter(e => e.eventType === "sleep" && e.endTime)
+  const napEvents = relevantEvents.filter(e => e.eventType === "nap" && e.endTime)
   
   // Calcular duración promedio de sueño
   const avgSleepDuration = sleepEvents.length > 0 
@@ -152,7 +173,7 @@ function calculateChildStats(events: any[]) {
     : 0
 
   // Contar estados emocionales
-  const emotionalStates = last7Days.reduce((acc, event) => {
+  const emotionalStates = relevantEvents.reduce((acc, event) => {
     if (event.emotionalState) {
       acc[event.emotionalState] = (acc[event.emotionalState] || 0) + 1
     }
@@ -161,7 +182,7 @@ function calculateChildStats(events: any[]) {
 
   return {
     totalEvents: events.length,
-    recentEvents: last7Days.length,
+    recentEvents: relevantEvents.length,
     sleepEvents: sleepEvents.length,
     napEvents: napEvents.length,
     avgSleepDurationMinutes: Math.round(avgSleepDuration),
@@ -248,12 +269,17 @@ INFORMACIÓN DEL NIÑO:
 - Nombre: ${childData.firstName} ${childData.lastName}
 - Edad: ${childData.ageInMonths} meses
 - Eventos totales registrados: ${childData.stats.totalEvents}
-- Eventos recientes (7 días): ${childData.stats.recentEvents}
-- Eventos de sueño recientes: ${childData.stats.sleepEvents}
-- Siestas recientes: ${childData.stats.napEvents}
+
+ESTADÍSTICAS ${childData.lastConsultationDate 
+  ? `DESDE ÚLTIMA CONSULTA (${format(new Date(childData.lastConsultationDate), "dd/MM/yyyy")})` 
+  : 'DE LOS ÚLTIMOS 30 DÍAS (primera consulta)'}:
+- Eventos registrados: ${childData.stats.recentEvents}
+- Eventos de sueño nocturno: ${childData.stats.sleepEvents}
+- Siestas: ${childData.stats.napEvents}
 - Duración promedio de sueño: ${childData.stats.avgSleepDurationMinutes} minutos
 - Hora promedio de despertar: ${Math.floor(childData.stats.avgWakeTimeMinutes / 60)}:${(childData.stats.avgWakeTimeMinutes % 60).toString().padStart(2, "0")}
 - Estado emocional dominante: ${childData.stats.dominantMood}
+- Período analizado: ${format(new Date(childData.statsFromDate), "dd/MM/yyyy")} - ${format(new Date(), "dd/MM/yyyy")}
 
 CONOCIMIENTO ESPECIALIZADO:
 ${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join("\n\n---\n\n")}
@@ -265,10 +291,11 @@ ${consultationHistory.map(c => `- ${c.date}: ${c.summary}`).join("\n")}
 
 INSTRUCCIONES:
 1. Analiza el transcript de la consulta combinándolo con los datos estadísticos del niño
-2. Utiliza el conocimiento especializado para respaldar tu análisis
-3. Considera el contexto de consultas anteriores si las hay
-4. Proporciona un análisis detallado pero conciso
-5. Genera recomendaciones específicas y accionables para un plan de mejoramiento del sueño
+2. Las estadísticas reflejan el período desde la última consulta (o últimos 30 días si es la primera)
+3. Compara con consultas anteriores para identificar patrones de mejora o empeoramiento
+4. Utiliza el conocimiento especializado para respaldar tu análisis
+5. Proporciona un análisis detallado pero conciso considerando la evolución temporal
+6. Genera recomendaciones específicas y accionables basadas en los cambios observados
 
 Responde en el siguiente formato JSON:
 {

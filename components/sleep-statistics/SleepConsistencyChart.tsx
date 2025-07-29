@@ -4,17 +4,25 @@ import { Moon } from "lucide-react"
 
 interface SleepConsistencyChartProps {
   childId: string
+  dateRange?: string
 }
 
-export default function SleepConsistencyChart({ childId }: SleepConsistencyChartProps) {
-  const { data, loading, error } = useSleepData(childId)
+
+export default function SleepConsistencyChart({ childId, dateRange = "7-days" }: SleepConsistencyChartProps) {
+  const { data: sleepData, loading, error } = useSleepData(childId)
+
+  // Usar datos centralizados del hook
+  const avgBedtime = sleepData?.avgBedtime || "--:--"
+  const avgSleepTime = sleepData?.avgSleepTime || "--:--"
+  const sleepDuration = sleepData?.avgSleepDuration || 0
+  const bedtimeToSleepDiff = sleepData?.bedtimeToSleepDifference || "--"
 
   if (loading) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-[#2F2F2F]">
-            Consistencia de horarios
+            Acostarse vs Dormir
           </h3>
           <Moon className="w-5 h-5 text-[#8B7ADD]" />
         </div>
@@ -25,12 +33,12 @@ export default function SleepConsistencyChart({ childId }: SleepConsistencyChart
     )
   }
 
-  if (error || !data) {
+  if (error) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-[#2F2F2F]">
-            Consistencia de horarios
+            Acostarse vs Dormir
           </h3>
           <Moon className="w-5 h-5 text-[#8B7ADD]" />
         </div>
@@ -40,26 +48,26 @@ export default function SleepConsistencyChart({ childId }: SleepConsistencyChart
       </div>
     )
   }
-
-  // Crear una visualización simple de consistencia
-  const variationLevel = data.bedtimeVariation <= 15 ? 'excellent' : 
-                        data.bedtimeVariation <= 30 ? 'good' : 
-                        data.bedtimeVariation <= 45 ? 'fair' : 'poor'
   
-  const consistencyScore = Math.max(0, 100 - data.bedtimeVariation)
-  const consistencyPercentage = (consistencyScore / 100) * 100
+  const sleepQuality = sleepDuration >= 9 && sleepDuration <= 11 ? 'excellent' :
+                      sleepDuration >= 8 && sleepDuration <= 12 ? 'good' :
+                      sleepDuration >= 7 && sleepDuration <= 13 ? 'fair' : 'poor'
+  
+  const qualityScore = sleepDuration >= 9 && sleepDuration <= 11 ? 90 :
+                      sleepDuration >= 8 && sleepDuration <= 12 ? 70 :
+                      sleepDuration >= 7 && sleepDuration <= 13 ? 50 : 25
 
-  const getConsistencyColor = () => {
-    if (variationLevel === 'excellent') return 'from-green-400 to-green-500'
-    if (variationLevel === 'good') return 'from-blue-400 to-blue-500'
-    if (variationLevel === 'fair') return 'from-yellow-400 to-yellow-500'
+  const getSleepQualityColor = () => {
+    if (sleepQuality === 'excellent') return 'from-green-400 to-green-500'
+    if (sleepQuality === 'good') return 'from-blue-400 to-blue-500'
+    if (sleepQuality === 'fair') return 'from-yellow-400 to-yellow-500'
     return 'from-red-400 to-red-500'
   }
 
-  const getConsistencyLabel = () => {
-    if (variationLevel === 'excellent') return 'Excelente'
-    if (variationLevel === 'good') return 'Buena'
-    if (variationLevel === 'fair') return 'Regular'
+  const getSleepQualityLabel = () => {
+    if (sleepQuality === 'excellent') return 'Excelente'
+    if (sleepQuality === 'good') return 'Buena'
+    if (sleepQuality === 'fair') return 'Regular'
     return 'Necesita mejorar'
   }
 
@@ -67,7 +75,7 @@ export default function SleepConsistencyChart({ childId }: SleepConsistencyChart
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-[#2F2F2F]">
-          Consistencia de horarios
+          Acostarse vs Dormir
         </h3>
         <Moon className="w-5 h-5 text-[#8B7ADD]" />
       </div>
@@ -80,28 +88,28 @@ export default function SleepConsistencyChart({ childId }: SleepConsistencyChart
           
           {/* Círculo de progreso */}
           <div 
-            className={`absolute top-0 left-0 w-full h-full rounded-full bg-gradient-to-r ${getConsistencyColor()} opacity-80`}
+            className={`absolute top-0 left-0 w-full h-full rounded-full bg-gradient-to-r ${getSleepQualityColor()} opacity-80`}
             style={{
-              clipPath: `polygon(50% 50%, 50% 0%, ${50 + (consistencyPercentage / 100) * 50}% 0%, 100% 100%, 0% 100%)`
+              clipPath: `polygon(50% 50%, 50% 0%, ${50 + (qualityScore / 100) * 50}% 0%, 100% 100%, 0% 100%)`
             }}
           ></div>
           
           {/* Texto central */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-2xl font-bold text-[#2F2F2F]">
-              {Math.round(consistencyScore)}%
+              {sleepDuration.toFixed(1)}h
             </span>
-            <span className="text-xs text-gray-600">Consistencia</span>
+            <span className="text-xs text-gray-600">Duración</span>
           </div>
         </div>
         
         <div className="text-center">
           <p className={`text-sm font-medium ${
-            variationLevel === 'excellent' ? 'text-green-600' :
-            variationLevel === 'good' ? 'text-blue-600' :
-            variationLevel === 'fair' ? 'text-yellow-600' : 'text-red-600'
+            sleepQuality === 'excellent' ? 'text-green-600' :
+            sleepQuality === 'good' ? 'text-blue-600' :
+            sleepQuality === 'fair' ? 'text-yellow-600' : 'text-red-600'
           }`}>
-            {getConsistencyLabel()}
+            {getSleepQualityLabel()}
           </p>
         </div>
       </div>
@@ -109,25 +117,31 @@ export default function SleepConsistencyChart({ childId }: SleepConsistencyChart
       {/* Estadísticas */}
       <div className="space-y-2 text-sm text-gray-600">
         <div className="flex items-center justify-between">
-          <span>Hora promedio de acostarse:</span>
+          <span>Hora de acostarse:</span>
           <span className="font-medium text-[#8B7ADD]">
-            {data.avgBedtime} ±{Math.round(data.bedtimeVariation)}min
+            {avgBedtime}
           </span>
         </div>
         <div className="flex items-center justify-between">
-          <span>Hora promedio de levantarse:</span>
+          <span>Hora de dormir:</span>
           <span className="font-medium text-[#8B7ADD]">
-            {data.avgWakeTime}
+            {avgSleepTime}
           </span>
         </div>
         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-          <span>Variación:</span>
+          <span>Duración del sueño:</span>
           <span className={`font-medium ${
-            variationLevel === 'excellent' ? 'text-green-600' :
-            variationLevel === 'good' ? 'text-blue-600' :
-            variationLevel === 'fair' ? 'text-yellow-600' : 'text-red-600'
+            sleepQuality === 'excellent' ? 'text-green-600' :
+            sleepQuality === 'good' ? 'text-blue-600' :
+            sleepQuality === 'fair' ? 'text-yellow-600' : 'text-red-600'
           }`}>
-            ±{Math.round(data.bedtimeVariation)} minutos
+            {sleepDuration.toFixed(1)} horas
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Diferencia (acostarse → dormir):</span>
+          <span className="font-medium text-[#FF6B7A]">
+            {bedtimeToSleepDiff}
           </span>
         </div>
       </div>

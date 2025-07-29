@@ -4,9 +4,10 @@ import { Clock } from "lucide-react"
 
 interface SleepDurationChartProps {
   childId: string
+  dateRange?: string
 }
 
-export default function SleepDurationChart({ childId }: SleepDurationChartProps) {
+export default function SleepDurationChart({ childId, dateRange = "7-days" }: SleepDurationChartProps) {
   const { data, loading, error } = useSleepData(childId)
 
   if (loading) {
@@ -14,7 +15,7 @@ export default function SleepDurationChart({ childId }: SleepDurationChartProps)
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-[#2F2F2F]">
-            Duración del sueño (últimos 7 días)
+            Duración del sueño
           </h3>
           <Clock className="w-5 h-5 text-[#628BE6]" />
         </div>
@@ -30,7 +31,7 @@ export default function SleepDurationChart({ childId }: SleepDurationChartProps)
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-[#2F2F2F]">
-            Duración del sueño (últimos 7 días)
+            Duración del sueño
           </h3>
           <Clock className="w-5 h-5 text-[#628BE6]" />
         </div>
@@ -50,7 +51,7 @@ export default function SleepDurationChart({ childId }: SleepDurationChartProps)
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-[#2F2F2F]">
-          Duración del sueño (últimos 7 días)
+          Duración del sueño
         </h3>
         <Clock className="w-5 h-5 text-[#628BE6]" />
       </div>

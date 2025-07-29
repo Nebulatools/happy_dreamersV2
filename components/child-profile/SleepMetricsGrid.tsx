@@ -3,6 +3,7 @@ import { Clock, Moon, AlertCircle, Heart } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { differenceInMinutes, parseISO, subDays } from "date-fns"
 import { useEventsCache } from "@/hooks/use-events-cache"
+import { useSleepData } from "@/hooks/use-sleep-data"
 
 interface SleepMetric {
   title: string
@@ -19,14 +20,11 @@ interface SleepMetric {
 interface SleepMetricsGridProps {
   childId: string
   dateRange?: string
-  eventType?: string
 }
 
-export default function SleepMetricsGrid({ childId, dateRange = "7-days", eventType = "sleep" }: SleepMetricsGridProps) {
-  const [sleepMetrics, setSleepMetrics] = React.useState<SleepMetric[]>([])
-  const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState<string | null>(null)
+export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: SleepMetricsGridProps) {
   const { refreshTrigger, subscribe } = useEventsCache(childId)
+  const { data: sleepData, loading, error } = useSleepData(childId)
 
   // Suscribirse a invalidaciones de cache
   React.useEffect(() => {
@@ -34,203 +32,47 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days", eventT
     return unsubscribe
   }, [subscribe])
 
-  React.useEffect(() => {
-    async function fetchSleepMetrics() {
-      try {
-        setLoading(true)
-        
-        // Calcular período según filtro
-        const now = new Date()
-        const days = dateRange === "30-days" ? 30 : dateRange === "90-days" ? 90 : 7
-        const currentPeriodStart = subDays(now, days)
-        const previousPeriodStart = subDays(now, days * 2)
-        const previousPeriodEnd = subDays(now, days)
-        
-        const response = await fetch(`/api/children/events?childId=${childId}`)
-        
-        if (!response.ok) {
-          throw new Error('Error al cargar métricas de sueño')
-        }
-        
-        const data = await response.json()
-        const allEvents = data.events || []
-        
-        // Filtrar eventos según tipo seleccionado
-        const filteredEvents = allEvents.filter((e: any) => {
-          if (eventType === 'all') return ['sleep', 'bedtime', 'nap', 'wake', 'activity'].includes(e.eventType)
-          if (eventType === 'sleep') return e.eventType === 'sleep'
-          if (eventType === 'bedtime') return e.eventType === 'bedtime'
-          if (eventType === 'nap') return e.eventType === 'nap'
-          if (eventType === 'wake') return e.eventType === 'wake'
-          if (eventType === 'activity') return e.eventType === 'activity'
-          return ['sleep', 'nap'].includes(e.eventType) // Fallback para compatibilidad
-        })
-        
-        const currentEvents = filteredEvents.filter((e: any) => {
-          const date = parseISO(e.startTime)
-          return date >= currentPeriodStart
-        })
-        
-        const previousEvents = filteredEvents.filter((e: any) => {
-          const date = parseISO(e.startTime)
-          return date >= previousPeriodStart && date <= previousPeriodEnd
-        })
-        
-        // Calcular métricas simples
-        const metrics = calculateMetrics(currentEvents, previousEvents)
-        setSleepMetrics(metrics)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error desconocido')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (childId) {
-      fetchSleepMetrics()
-    }
-  }, [childId, dateRange, eventType, refreshTrigger])
-
-  function calculateMetrics(thisWeek: any[], lastWeek: any[]): SleepMetric[] {
-    // Calcular tiempo total de sueño promedio
-    const avgSleepThisWeek = calculateAverageSleepDuration(thisWeek)
-    const avgSleepLastWeek = calculateAverageSleepDuration(lastWeek)
-    const sleepDiff = avgSleepThisWeek - avgSleepLastWeek
-    
-    // Calcular hora promedio de acostarse
-    const avgBedtimeThisWeek = calculateAverageBedtime(thisWeek)
-    const bedtimeVariation = calculateBedtimeVariation(thisWeek)
-    
-    // Calcular despertares nocturnos (basado en eventos adicionales o notas)
-    const avgWakeupsThisWeek = calculateAverageWakeups(thisWeek)
-    const avgWakeupsLastWeek = calculateAverageWakeups(lastWeek)
-    const wakeupsDiff = avgWakeupsThisWeek - avgWakeupsLastWeek
-    
-    // Calcular calidad del sueño
-    const qualityThisWeek = calculateSleepQuality(thisWeek)
-    const qualityLastWeek = calculateSleepQuality(lastWeek)
-    const qualityDiff = qualityThisWeek - qualityLastWeek
+  const sleepMetrics = React.useMemo(() => {
+    if (!sleepData) return []
     
     return [
       {
         title: "Tiempo total de sueño (promedio)",
-        value: formatDuration(avgSleepThisWeek),
+        value: formatDuration(sleepData.avgSleepDuration),
         icon: <Clock className="w-3 h-3" />,
-        status: getSleepDurationStatus(avgSleepThisWeek),
-        change: formatDurationChange(sleepDiff),
+        status: getSleepDurationStatus(sleepData.avgSleepDuration),
+        change: `${sleepData.avgSleepDuration.toFixed(1)} horas promedio`,
         iconBg: "bg-[#B7F1C0]",
       },
       {
         title: "Hora de acostarse (promedio)",
-        value: avgBedtimeThisWeek,
+        value: sleepData.avgBedtime,
         icon: <Moon className="w-5 h-4" />,
-        status: getBedtimeConsistencyStatus(bedtimeVariation),
-        change: `±${Math.round(bedtimeVariation)} min de variación`,
+        status: getBedtimeConsistencyStatus(sleepData.bedtimeVariation),
+        change: `±${Math.round(sleepData.bedtimeVariation)} min de variación`,
         iconBg: "bg-[#D4C1FF]",
       },
       {
         title: "Despertares nocturnos (promedio)",
-        value: avgWakeupsThisWeek.toFixed(1),
+        value: sleepData.totalWakeups.toString(),
         icon: <AlertCircle className="w-4 h-4" />,
-        status: getWakeupsStatus(avgWakeupsThisWeek),
-        change: wakeupsDiff === 0 ? 'Sin cambios' : `${wakeupsDiff > 0 ? '+' : ''}${wakeupsDiff.toFixed(1)} promedio anterior`,
+        status: getWakeupsStatus(sleepData.totalWakeups),
+        change: `${sleepData.totalWakeups} despertares en período`,
         iconBg: "bg-[#FFE442]",
       },
       {
         title: "Calidad del sueño",
-        value: `${Math.round(qualityThisWeek)}%`,
+        value: `${Math.round((sleepData.avgSleepDuration >= 9 && sleepData.avgSleepDuration <= 11) ? 90 : 
+                             (sleepData.avgSleepDuration >= 8 && sleepData.avgSleepDuration <= 12) ? 70 : 50)}%`,
         icon: <Heart className="w-4 h-4" />,
-        status: getSleepQualityStatus(qualityThisWeek),
-        change: qualityDiff === 0 ? 'Sin cambios' : `${qualityDiff > 0 ? '+' : ''}${Math.round(qualityDiff)}% desde período anterior`,
+        status: getSleepQualityStatus((sleepData.avgSleepDuration >= 9 && sleepData.avgSleepDuration <= 11) ? 90 : 
+                                   (sleepData.avgSleepDuration >= 8 && sleepData.avgSleepDuration <= 12) ? 70 : 50),
+        change: "Basado en duración del sueño",
         iconBg: "bg-[#FFC4C4]",
       },
     ]
-  }
+  }, [sleepData])
 
-  // Funciones auxiliares de cálculo
-  function calculateAverageSleepDuration(events: any[]): number {
-    if (events.length === 0) return 0
-    const totalMinutes = events.reduce((sum, event) => {
-      if (event.endTime) {
-        return sum + differenceInMinutes(parseISO(event.endTime), parseISO(event.startTime))
-      }
-      return sum
-    }, 0)
-    return totalMinutes / events.length / 60 // Retornar en horas
-  }
-
-  function calculateAverageBedtime(events: any[]): string {
-    if (events.length === 0) return "--:--"
-    const totalMinutes = events.reduce((sum, event) => {
-      const date = parseISO(event.startTime)
-      return sum + date.getHours() * 60 + date.getMinutes()
-    }, 0)
-    const avgMinutes = totalMinutes / events.length
-    const hours = Math.floor(avgMinutes / 60) % 24
-    const minutes = Math.round(avgMinutes % 60)
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
-  }
-
-  function calculateBedtimeVariation(events: any[]): number {
-    if (events.length <= 1) return 0
-    const bedtimes = events.map(event => {
-      const date = parseISO(event.startTime)
-      return date.getHours() * 60 + date.getMinutes()
-    })
-    const avg = bedtimes.reduce((a, b) => a + b, 0) / bedtimes.length
-    const variance = bedtimes.reduce((sum, time) => sum + Math.pow(time - avg, 2), 0) / bedtimes.length
-    return Math.sqrt(variance)
-  }
-
-  function calculateAverageWakeups(events: any[]): number {
-    if (events.length === 0) return 0
-    // Por ahora, basado en notas o comentarios
-    const totalWakeups = events.reduce((sum, event) => {
-      // Buscar en las notas menciones de despertares
-      const notes = event.notes?.toLowerCase() || ''
-      if (notes.includes('despertó') || notes.includes('despierta')) {
-        // Intentar extraer número de veces
-        const match = notes.match(/(\d+)\s*(veces|vez)/)
-        return sum + (match ? parseInt(match[1]) : 1)
-      }
-      return sum
-    }, 0)
-    return totalWakeups / events.length
-  }
-
-  function calculateSleepQuality(events: any[]): number {
-    if (events.length === 0) return 0
-    
-    let qualitySum = 0
-    events.forEach(event => {
-      let quality = 50 // Base
-      
-      // Duración del sueño (ideal 10-11 horas para niños)
-      if (event.endTime) {
-        const duration = differenceInMinutes(parseISO(event.endTime), parseISO(event.startTime)) / 60
-        if (duration >= 9 && duration <= 12) {
-          quality += 30
-        } else if (duration >= 8 && duration <= 13) {
-          quality += 20
-        } else {
-          quality += 10
-        }
-      }
-      
-      // Hora de acostarse (ideal antes de las 21:00)
-      const bedtime = parseISO(event.startTime)
-      const hour = bedtime.getHours()
-      if (hour <= 20) {
-        quality += 20
-      } else if (hour <= 21) {
-        quality += 10
-      }
-      
-      qualitySum += Math.min(100, quality)
-    })
-    
-    return qualitySum / events.length
-  }
 
   // Funciones de formato y estado
   function formatDuration(hours: number): string {

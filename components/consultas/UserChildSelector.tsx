@@ -68,6 +68,15 @@ export function UserChildSelector({
   const [searchTerm, setSearchTerm] = useState("")
   const [loadingUsers, setLoadingUsers] = useState(true)
 
+  // Debug logging temporal
+  console.log('🔍 UserChildSelector PROPS:', {
+    userChildren: userChildren,
+    userChildrenLength: userChildren?.length,
+    userChildrenType: typeof userChildren,
+    loading: loading,
+    selectedUser: selectedUser?._id
+  })
+
   // Cargar usuarios al iniciar
   useEffect(() => {
     const fetchUsers = async () => {

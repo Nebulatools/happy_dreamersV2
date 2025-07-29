@@ -8,7 +8,7 @@ import SleepDurationChart from "@/components/sleep-statistics/SleepDurationChart
 import SleepConsistencyChart from "@/components/sleep-statistics/SleepConsistencyChart"
 import NightWakeupsChart from "@/components/sleep-statistics/NightWakeupsChart"
 import SleepDistributionChart from "@/components/sleep-statistics/SleepDistributionChart"
-import SleepComparison from "@/components/sleep-statistics/SleepComparison"
+// import SleepComparison from "@/components/sleep-statistics/SleepComparison"
 import { useActiveChild } from "@/context/active-child-context"
 import { useToast } from "@/hooks/use-toast"
 
@@ -20,7 +20,6 @@ export default function SleepStatisticsPage() {
   const { activeChildId } = useActiveChild()
   const { toast } = useToast()
   const [dateRange, setDateRange] = useState("7-days")
-  const [eventType, setEventType] = useState("sleep")
 
   return (
     <div className="min-h-screen bg-[#F5F9FF] p-8">
@@ -49,64 +48,42 @@ export default function SleepStatisticsPage() {
           </div>
         </div>
 
-        {/* Panel de Filtros Simplificado */}
+        {/* Panel de Filtros - Solo Rango de Fechas */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Selector de Rango de Fechas */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Rango de fechas
-              </label>
-              <div className="relative">
-                <select 
-                  value={dateRange}
-                  onChange={(e) => setDateRange(e.target.value)}
-                  className="w-full h-12 px-3 pr-10 bg-white border border-gray-300 rounded-xl text-gray-900 focus:border-[#4A90E2] focus:ring-2 focus:ring-[#4A90E2] focus:ring-opacity-20 outline-none transition-colors"
-                >
-                  <option value="7-days">Últimos 7 días</option>
-                  <option value="30-days">Últimos 30 días</option>
-                  <option value="90-days">Últimos 3 meses</option>
-                </select>
-                <div className="absolute right-3 top-4 pointer-events-none">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-[#2F2F2F]">Período de análisis</h2>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant={dateRange === "7-days" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setDateRange("7-days")}
+                className={dateRange === "7-days" ? "hd-gradient-button text-white" : "text-gray-600"}
+              >
+                7 días
+              </Button>
+              <Button
+                variant={dateRange === "30-days" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setDateRange("30-days")}
+                className={dateRange === "30-days" ? "hd-gradient-button text-white" : "text-gray-600"}
+              >
+                30 días
+              </Button>
+              <Button
+                variant={dateRange === "90-days" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setDateRange("90-days")}
+                className={dateRange === "90-days" ? "hd-gradient-button text-white" : "text-gray-600"}
+              >
+                3 meses
+              </Button>
             </div>
-
-            {/* Selector de Tipo de Evento */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tipo de evento
-              </label>
-              <div className="relative">
-                <select 
-                  value={eventType}
-                  onChange={(e) => setEventType(e.target.value)}
-                  className="w-full h-12 px-3 pr-10 bg-white border border-gray-300 rounded-xl text-gray-900 focus:border-[#4A90E2] focus:ring-2 focus:ring-[#4A90E2] focus:ring-opacity-20 outline-none transition-colors"
-                >
-                  <option value="sleep">Solo dormir</option>
-                  <option value="bedtime">Solo acostarse</option>
-                  <option value="nap">Solo siestas</option>
-                  <option value="wake">Solo despertares</option>
-                  <option value="activity">Solo actividad física</option>
-                  <option value="all">Todos los eventos</option>
-                </select>
-                <div className="absolute right-3 top-4 pointer-events-none">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
           </div>
         </div>
 
         {/* Métricas Principales */}
         {activeChildId ? (
-          <SleepMetricsGrid childId={activeChildId} dateRange={dateRange} eventType={eventType} />
+          <SleepMetricsGrid childId={activeChildId} dateRange={dateRange} />
         ) : (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
             <p className="text-gray-500">Por favor selecciona un niño desde el menú superior para ver las estadísticas</p>
@@ -118,19 +95,19 @@ export default function SleepStatisticsPage() {
           <>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Duración del sueño */}
-              <SleepDurationChart childId={activeChildId} dateRange={dateRange} eventType={eventType} />
+              <SleepDurationChart childId={activeChildId} dateRange={dateRange} />
 
               {/* Consistencia de horarios */}
-              <SleepConsistencyChart childId={activeChildId} dateRange={dateRange} eventType={eventType} />
+              <SleepConsistencyChart childId={activeChildId} dateRange={dateRange} />
             </div>
 
             {/* Segunda fila de gráficos */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Despertares nocturnos */}
-              <NightWakeupsChart childId={activeChildId} dateRange={dateRange} eventType={eventType} />
+              <NightWakeupsChart childId={activeChildId} dateRange={dateRange} />
 
               {/* Distribución del sueño */}
-              <SleepDistributionChart childId={activeChildId} dateRange={dateRange} eventType={eventType} />
+              <SleepDistributionChart childId={activeChildId} dateRange={dateRange} />
             </div>
           </>
         ) : (
@@ -155,9 +132,9 @@ export default function SleepStatisticsPage() {
           </div>
         </div>
 
-        {/* Tabla Comparativa con datos reales */}
+        {/* Tabla Comparativa temporalmente deshabilitada 
         {activeChildId ? (
-          <SleepComparison childId={activeChildId} dateRange={dateRange} eventType={eventType} />
+          <SleepComparison childId={activeChildId} dateRange={dateRange} />
         ) : (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
             <h2 className="text-xl font-bold text-[#2F2F2F] mb-4">
@@ -166,6 +143,7 @@ export default function SleepStatisticsPage() {
             <p className="text-gray-500">Selecciona un niño para ver la comparativa</p>
           </div>
         )}
+        */}
       </div>
     </div>
   )

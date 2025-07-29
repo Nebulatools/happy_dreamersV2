@@ -70,7 +70,12 @@ export default function ConsultasPage() {
       }
       
       const data = await response.json()
-      setUserChildren(data)
+      
+      // La API regresa un objeto con estructura { children: [], success: true }
+      // Para admins consultando niños de otro usuario viene en data.data.children
+      const children = Array.isArray(data) ? data : (data?.children || data?.data?.children || [])
+      
+      setUserChildren(children)
       setSelectedChild(null) // Reset child selection
       setAnalysisResult(null) // Reset analysis
     } catch (error) {

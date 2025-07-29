@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { 
   Send, 
@@ -16,6 +17,10 @@ import {
   Bot, 
   MoreHorizontal,
   HelpCircle,
+  Settings,
+  Upload,
+  Trash2,
+  FileText,
 } from "lucide-react"
 import { useActiveChild } from "@/context/active-child-context"
 import { cn } from "@/lib/utils"
@@ -66,9 +71,15 @@ export default function AssistantPage() {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
+  const [documents, setDocuments] = useState<any[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [loadingDocs, setLoadingDocs] = useState(false)
   const { toast } = useToast()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const isAdmin = session?.user?.role === "admin"
 
   // Cargar información del niño activo
   useEffect(() => {
@@ -97,6 +108,94 @@ export default function AssistantPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  // Cargar documentos RAG si es admin
+  useEffect(() => {
+    if (isAdmin) {
+      loadDocuments()
+    }
+  }, [isAdmin])
+
+  const loadDocuments = async () => {
+    if (!isAdmin) return
+    
+    try {
+      setLoadingDocs(true)
+      const response = await fetch("/api/rag/documents")
+      if (response.ok) {
+        const data = await response.json()
+        setDocuments(data.documents || [])
+      }
+    } catch (error) {
+      logger.error("Error cargando documentos:", error)
+    } finally {
+      setLoadingDocs(false)
+    }
+  }
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
+
+    setUploading(true)
+    try {
+      for (const file of files) {
+        const formData = new FormData()
+        formData.append("file", file)
+
+        const response = await fetch("/api/rag/upload", {
+          method: "POST",
+          body: formData,
+        })
+
+        if (!response.ok) {
+          throw new Error(`Error uploading ${file.name}`)
+        }
+      }
+
+      toast({
+        title: "Documentos subidos",
+        description: `Se subieron ${files.length} documento(s) exitosamente.`,
+      })
+      
+      loadDocuments() // Recargar lista
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudieron subir los documentos.",
+        variant: "destructive",
+      })
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    }
+  }
+
+  const deleteDocument = async (documentId: string) => {
+    try {
+      const response = await fetch(`/api/rag/documents?id=${documentId}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Documento eliminado",
+          description: "El documento se eliminó exitosamente.",
+        })
+        loadDocuments() // Recargar lista
+      } else {
+        throw new Error("Error eliminando documento")
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el documento.",
+        variant: "destructive",
+      })
+    }
+  }
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -205,8 +304,24 @@ export default function AssistantPage() {
         <h1 className="text-xl font-semibold text-[#2F2F2F]">Asistente Happy Dreamers</h1>
       </div>
 
-      {/* Main Chat Container */}
-      <Card className="h-[calc(100vh-12rem)] flex flex-col overflow-hidden">
+      {/* Tabs Container */}
+      <Tabs defaultValue="chat" className="w-full">
+        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          <TabsTrigger value="chat" className="flex items-center gap-2">
+            <Bot className="w-4 h-4" />
+            Chat
+          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Configuración IA
+            </TabsTrigger>
+          )}
+        </TabsList>
+
+        {/* Chat Tab */}
+        <TabsContent value="chat">
+          <Card className="h-[calc(100vh-16rem)] flex flex-col overflow-hidden">
         {/* Assistant Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-3">
@@ -361,7 +476,97 @@ export default function AssistantPage() {
             </Button>
           </div>
         </form>
-      </Card>
+          </Card>
+        </TabsContent>
+
+        {/* Settings Tab - Solo para Admins */}
+        {isAdmin && (
+          <TabsContent value="settings">
+            <Card className="h-[calc(100vh-16rem)] flex flex-col overflow-hidden">
+              <div className="p-6 border-b">
+                <h2 className="text-lg font-semibold text-[#2F2F2F] flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  Gestión de Documentos RAG
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Administra los documentos que usa el asistente para generar respuestas
+                </p>
+              </div>
+
+              <ScrollArea className="flex-1 p-6">
+                {/* Upload Section */}
+                <div className="mb-6">
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="hd-gradient-button text-white flex items-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    {uploading ? "Subiendo..." : "Subir Documentos"}
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,.txt,.doc,.docx"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Formatos soportados: PDF, TXT, DOC, DOCX
+                  </p>
+                </div>
+
+                {/* Documents List */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-[#2F2F2F]">
+                    Documentos ({documents.length})
+                  </h3>
+                  
+                  {loadingDocs ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>Cargando documentos...</p>
+                    </div>
+                  ) : documents.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <FileText className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                      <p>No hay documentos subidos</p>
+                      <p className="text-sm">Sube documentos para mejorar las respuestas del asistente</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {documents.map((doc) => (
+                        <div
+                          key={doc.id}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <FileText className="w-4 h-4 text-gray-600" />
+                            <div>
+                              <p className="font-medium text-sm">{doc.source}</p>
+                              <p className="text-xs text-gray-500">
+                                {doc.type} • {Math.round(doc.size / 1024)} KB
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteDocument(doc.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </Card>
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   )
 }

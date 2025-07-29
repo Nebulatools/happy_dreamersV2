@@ -5,11 +5,12 @@ import { TrendingUp, TrendingDown, Minus } from "lucide-react"
 
 interface SleepComparisonProps {
   childId: string
+  dateRange?: string
 }
 
-export default function SleepComparison({ childId }: SleepComparisonProps) {
-  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter'>('week')
-  const { data, loading, error } = useSleepComparison(childId, selectedPeriod)
+export default function SleepComparison({ childId, dateRange = "7-days" }: SleepComparisonProps) {
+  // Usar el dateRange global en lugar de filtros internos
+  const { data, loading, error } = useSleepComparison(childId, dateRange)
 
   if (loading) {
     return (
@@ -18,17 +19,6 @@ export default function SleepComparison({ childId }: SleepComparisonProps) {
           <h2 className="text-xl font-bold text-[#2F2F2F] mb-4">
             Comparativa con períodos anteriores
           </h2>
-          <div className="flex space-x-2">
-            <Button size="sm" className="hd-gradient-button text-white">
-              Esta semana
-            </Button>
-            <Button size="sm" variant="outline" className="text-gray-600">
-              Mes anterior
-            </Button>
-            <Button size="sm" variant="outline" className="text-gray-600">
-              3 meses
-            </Button>
-          </div>
         </div>
         <div className="text-center py-8 text-gray-500">
           <p>Cargando datos de comparación...</p>
@@ -92,10 +82,10 @@ export default function SleepComparison({ childId }: SleepComparisonProps) {
   }
 
   const getPeriodLabel = () => {
-    switch (selectedPeriod) {
-      case 'week': return 'semana anterior'
-      case 'month': return 'mes anterior'
-      case 'quarter': return '3 meses atrás'
+    switch (dateRange) {
+      case '7-days': return 'período anterior (7 días)'
+      case '30-days': return 'período anterior (30 días)'
+      case '90-days': return 'período anterior (3 meses)'
       default: return 'período anterior'
     }
   }
@@ -106,32 +96,9 @@ export default function SleepComparison({ childId }: SleepComparisonProps) {
         <h2 className="text-xl font-bold text-[#2F2F2F] mb-4">
           Comparativa con períodos anteriores
         </h2>
-        <div className="flex space-x-2">
-          <Button 
-            size="sm" 
-            className={selectedPeriod === 'week' ? 'hd-gradient-button text-white' : 'text-gray-600'}
-            variant={selectedPeriod === 'week' ? 'default' : 'outline'}
-            onClick={() => setSelectedPeriod('week')}
-          >
-            Esta semana
-          </Button>
-          <Button 
-            size="sm" 
-            className={selectedPeriod === 'month' ? 'hd-gradient-button text-white' : 'text-gray-600'}
-            variant={selectedPeriod === 'month' ? 'default' : 'outline'}
-            onClick={() => setSelectedPeriod('month')}
-          >
-            Mes anterior
-          </Button>
-          <Button 
-            size="sm" 
-            className={selectedPeriod === 'quarter' ? 'hd-gradient-button text-white' : 'text-gray-600'}
-            variant={selectedPeriod === 'quarter' ? 'default' : 'outline'}
-            onClick={() => setSelectedPeriod('quarter')}
-          >
-            3 meses
-          </Button>
-        </div>
+        <p className="text-sm text-gray-600">
+          Usando el período seleccionado arriba ({dateRange === "7-days" ? "7 días" : dateRange === "30-days" ? "30 días" : "3 meses"})
+        </p>
       </div>
       
       {/* Tabla comparativa */}
