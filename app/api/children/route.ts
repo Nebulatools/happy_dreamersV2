@@ -56,10 +56,21 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       throw new ApiError(ApiErrorType.NOT_FOUND, "Niño no encontrado o no tienes permiso para verlo", 404)
     }
 
-    logger.debug("Niño encontrado", { childId: id })
+    // Serializar datos correctamente
+    const childData = {
+      _id: child._id.toString(),
+      firstName: child.firstName || '',
+      lastName: child.lastName || '',
+      birthDate: child.birthDate,
+      parentId: child.parentId,
+      createdAt: child.createdAt,
+      updatedAt: child.updatedAt,
+      surveyData: child.surveyData,
+      ...(child.events && { events: child.events })
+    }
     
     // Asegurar que no se cachea la respuesta
-    const response = createSuccessResponse(child)
+    const response = createSuccessResponse(childData)
     response.headers.set("Cache-Control", "no-store, max-age=0")
     return response
   }

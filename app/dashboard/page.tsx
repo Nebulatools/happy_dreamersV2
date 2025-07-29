@@ -10,6 +10,7 @@ import { useSession } from "next-auth/react"
 import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache } from "@/hooks/use-events-cache"
 import AdminStatistics from "@/components/dashboard/AdminStatistics"
+import SleepMetricsGrid from "@/components/child-profile/SleepMetricsGrid"
 import { 
   Moon, Sun, Activity, TrendingUp, Calendar, MessageSquare, 
   Lightbulb, ChevronLeft, ChevronRight, Send, X,
@@ -51,12 +52,6 @@ interface Event {
   createdAt: string
 }
 
-interface SleepMetrics {
-  totalSleepHours: string
-  avgBedtime: string
-  nightWakeups: number
-  sleepQuality: number
-}
 
 export default function DashboardPage() {
   const { toast } = useToast()
@@ -69,12 +64,6 @@ export default function DashboardPage() {
   
   const [child, setChild] = useState<Child | null>(null)
   const [events, setEvents] = useState<Event[]>([])
-  const [sleepMetrics, setSleepMetrics] = useState<SleepMetrics>({
-    totalSleepHours: "0h 0min",
-    avgBedtime: "--:--",
-    nightWakeups: 0,
-    sleepQuality: 0,
-  })
   const [isLoading, setIsLoading] = useState(true)
   const [noteText, setNoteText] = useState("")
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -114,7 +103,6 @@ export default function DashboardPage() {
       if (eventsResponse.ok) {
         const eventsData = await eventsResponse.json()
         setEvents(eventsData.events || [])
-        calculateSleepMetrics(eventsData.events || [])
       }
     } catch (error) {
       logger.error("Error loading child data:", error)
@@ -128,85 +116,6 @@ export default function DashboardPage() {
     }
   }
 
-  const calculateSleepMetrics = (events: Event[]) => {
-    const now = new Date()
-    const weekStart = startOfWeek(now, { locale: es })
-    const weekEnd = endOfWeek(now, { locale: es })
-    
-    // Filtrar eventos de la semana actual
-    const weekEvents = events.filter(event => {
-      const eventDate = parseISO(event.startTime)
-      return eventDate >= weekStart && eventDate <= weekEnd
-    })
-    
-    const sleepEvents = weekEvents.filter(e => e.eventType === "sleep" && e.endTime)
-    const napEvents = weekEvents.filter(e => e.eventType === "nap" && e.endTime)
-    const allSleepEvents = [...sleepEvents, ...napEvents]
-    
-    // Calcular horas totales de sueño promedio
-    let totalSleepHours = "0h 0min"
-    if (allSleepEvents.length > 0) {
-      const totalMinutes = allSleepEvents.reduce((sum, event) => {
-        return sum + differenceInMinutes(parseISO(event.endTime!), parseISO(event.startTime))
-      }, 0)
-      
-      const avgMinutesPerDay = totalMinutes / 7
-      const hours = Math.floor(avgMinutesPerDay / 60)
-      const minutes = Math.round(avgMinutesPerDay % 60)
-      totalSleepHours = `${hours}h ${minutes}min`
-    }
-    
-    // Calcular hora promedio de acostarse
-    let avgBedtime = "--:--"
-    if (sleepEvents.length > 0) {
-      const avgMinutes = sleepEvents.reduce((sum, event) => {
-        const startTime = parseISO(event.startTime)
-        return sum + (getHours(startTime) * 60 + getMinutes(startTime))
-      }, 0) / sleepEvents.length
-      
-      const hours = Math.floor(avgMinutes / 60)
-      const minutes = Math.round(avgMinutes % 60)
-      avgBedtime = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`
-    }
-    
-    // Calcular despertares nocturnos basado en notas de eventos
-    let nightWakeups = 0
-    if (allSleepEvents.length > 0) {
-      const totalWakeups = allSleepEvents.reduce((sum, event) => {
-        // Buscar en las notas menciones de despertares
-        const notes = event.notes?.toLowerCase() || ''
-        if (notes.includes('despertó') || notes.includes('despierta') || notes.includes('lloró')) {
-          // Intentar extraer número de veces
-          const match = notes.match(/(\d+)\s*(veces|vez)/)
-          return sum + (match ? parseInt(match[1]) : 1)
-        }
-        return sum
-      }, 0)
-      nightWakeups = totalWakeups / allSleepEvents.length
-    }
-    
-    // Calcular calidad del sueño (basado en duración y consistencia)
-    let sleepQuality = 0
-    if (allSleepEvents.length > 0) {
-      const avgHours = allSleepEvents.reduce((sum, event) => {
-        return sum + differenceInMinutes(parseISO(event.endTime!), parseISO(event.startTime)) / 60
-      }, 0) / allSleepEvents.length
-      
-      // Calidad basada en si está cerca de 10-11 horas recomendadas
-      if (avgHours >= 9 && avgHours <= 12) {
-        sleepQuality = Math.max(70, Math.min(100, 85 + (10.5 - Math.abs(avgHours - 10.5)) * 10))
-      } else {
-        sleepQuality = Math.max(20, 70 - Math.abs(avgHours - 10.5) * 15)
-      }
-    }
-    
-    setSleepMetrics({
-      totalSleepHours,
-      avgBedtime,
-      nightWakeups,
-      sleepQuality: Math.round(sleepQuality),
-    })
-  }
 
   const getGreeting = () => {
     const hour = new Date().getHours()
@@ -226,19 +135,6 @@ export default function DashboardPage() {
     }
   }
 
-  const getQualityColor = (quality: number) => {
-    if (quality >= 80) return "bg-green-100 text-green-800"
-    if (quality >= 60) return "bg-yellow-100 text-yellow-800"
-    if (quality >= 40) return "bg-orange-100 text-orange-800"
-    return "bg-red-100 text-red-800"
-  }
-
-  const getQualityLabel = (quality: number) => {
-    if (quality >= 80) return "Excelente"
-    if (quality >= 60) return "Buena"
-    if (quality >= 40) return "Regular"
-    return "Mala"
-  }
 
   // Datos del calendario (últimos 7 días)
   const getWeekDays = () => {
@@ -398,12 +294,19 @@ export default function DashboardPage() {
       group.events.push(event)
     })
     
-    // Convertir a array y formatear
-    return Array.from(groupedData.entries()).map(([key, data]) => ({
-      label: format(data.date, dateFormat, { locale: es }),
-      hours: Number((data.totalMinutes / 60).toFixed(1)),
-      date: data.date
-    })).sort((a, b) => a.date.getTime() - b.date.getTime())
+    // Convertir a array y formatear - PROMEDIO en lugar de SUMA
+    return Array.from(groupedData.entries()).map(([key, data]) => {
+      // Calcular promedio de horas por día en el período
+      const avgHoursPerDay = groupBy === "week" 
+        ? Number((data.totalMinutes / 60 / 7).toFixed(1)) // Promedio semanal dividido por 7 días
+        : Number((data.totalMinutes / 60).toFixed(1)) // Total del día
+      
+      return {
+        label: format(data.date, dateFormat, { locale: es }),
+        hours: avgHoursPerDay,
+        date: data.date
+      }
+    }).sort((a, b) => a.date.getTime() - b.date.getTime())
   }
 
   const recentMoods = events
@@ -441,86 +344,16 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Métricas principales */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Tiempo total de sueño */}
-          <Card className="bg-white shadow-sm border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm text-[#666666]">Tiempo total de sueño (promedio)</p>
-                  <p className="text-3xl font-bold text-[#2F2F2F]">{sleepMetrics.totalSleepHours.split(" ")[0]}</p>
-                </div>
-                <div className="h-10 w-10 bg-green-100 rounded-xl flex items-center justify-center">
-                  <Moon className="h-5 w-5 text-green-600" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center gap-2">
-                <Badge className="bg-green-50 text-green-700 hover:bg-green-50">Bueno</Badge>
-                <span className="text-xs text-[#666666]">+0.5h vs. semana anterior</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Hora de acostarse */}
-          <Card className="bg-white shadow-sm border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm text-[#666666]">Hora de acostarse (promedio)</p>
-                  <p className="text-3xl font-bold text-[#2F2F2F]">{sleepMetrics.avgBedtime}</p>
-                </div>
-                <div className="h-10 w-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                  <Sun className="h-5 w-5 text-purple-600" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center gap-2">
-                <Badge className="bg-purple-50 text-purple-700 hover:bg-purple-50">Consistente</Badge>
-                <span className="text-xs text-[#666666]">±15 min de variación</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Despertares nocturnos */}
-          <Card className="bg-white shadow-sm border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm text-[#666666]">Despertares nocturnos (promedio)</p>
-                  <p className="text-3xl font-bold text-[#2F2F2F]">{sleepMetrics.nightWakeups}</p>
-                </div>
-                <div className="h-10 w-10 bg-yellow-100 rounded-xl flex items-center justify-center">
-                  <Activity className="h-5 w-5 text-yellow-600" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center gap-2">
-                <Badge className="bg-yellow-50 text-yellow-700 hover:bg-yellow-50">Promedio</Badge>
-                <span className="text-xs text-[#666666]">-0.3 vs. semana anterior</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Calidad del sueño */}
-          <Card className="bg-white shadow-sm border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm text-[#666666]">Calidad del sueño</p>
-                  <p className="text-3xl font-bold text-[#2F2F2F]">{sleepMetrics.sleepQuality}%</p>
-                </div>
-                <div className="h-10 w-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="h-5 w-5 text-blue-600" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center gap-2">
-                <Badge className={getQualityColor(sleepMetrics.sleepQuality)}>
-                  {getQualityLabel(sleepMetrics.sleepQuality)}
-                </Badge>
-                <span className="text-xs text-[#666666]">-5% vs. semana anterior</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Métricas principales - usando el componente de sleep-statistics */}
+        {activeChildId ? (
+          <SleepMetricsGrid childId={activeChildId} dateRange="7-days" />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="col-span-full bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
+              <p className="text-gray-500">Por favor selecciona un niño desde el menú superior para ver las métricas</p>
+            </div>
+          </div>
+        )}
 
         {/* Grid de contenido principal */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

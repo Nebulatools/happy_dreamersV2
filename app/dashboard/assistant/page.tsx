@@ -59,7 +59,7 @@ const quickSuggestions = [
 export default function AssistantPage() {
   const { data: session } = useSession()
   const { activeChildId } = useActiveChild()
-  const [activeChild, setActiveChild] = useState<Child | null>(null)
+  const [childData, setChildData] = useState<Child | null>(null)
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -85,19 +85,22 @@ export default function AssistantPage() {
   useEffect(() => {
     const fetchActiveChild = async () => {
       if (!activeChildId) {
-        setActiveChild(null)
+        setChildData(null)
         return
       }
 
       try {
         const response = await fetch(`/api/children?id=${activeChildId}`)
         if (response.ok) {
-          const child = await response.json()
-          setActiveChild(child)
+          const result = await response.json()
+          const child = result.data || result
+          setChildData(child)
+        } else {
+          setChildData(null)
         }
       } catch (error) {
         logger.error("Error cargando información del niño:", error)
-        setActiveChild(null)
+        setChildData(null)
       }
     }
 
@@ -202,6 +205,16 @@ export default function AssistantPage() {
 
     if (!input.trim()) return
 
+    // 🚫 Verificar que hay un niño activo seleccionado
+    if (!activeChildId || !childData) {
+      toast({
+        title: "Sin niño seleccionado",
+        description: "Por favor selecciona un niño desde el menú superior para usar el asistente.",
+        variant: "destructive",
+      })
+      return
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -214,6 +227,7 @@ export default function AssistantPage() {
     setIsLoading(true)
 
     try {
+
       const conversationHistory = messages
         .slice(-10)
         .filter(msg => msg.id !== "welcome")
@@ -229,7 +243,7 @@ export default function AssistantPage() {
         },
         body: JSON.stringify({
           message: input,
-          childId: activeChild?._id,
+          childId: childData?._id,
           conversationHistory: conversationHistory,
         }),
       })
@@ -330,7 +344,12 @@ export default function AssistantPage() {
             </div>
             <div>
               <h3 className="font-semibold text-base">Tu Coach de Sueño Virtual</h3>
-              <p className="text-xs text-gray-500">Disponible 24/7 para ayudarte</p>
+              <p className="text-xs text-gray-500">
+                {childData 
+                  ? `Consultando sobre ${childData.firstName}` 
+                  : "Selecciona un niño para comenzar"
+                }
+              </p>
             </div>
           </div>
           <Button variant="ghost" size="icon">
@@ -469,7 +488,7 @@ export default function AssistantPage() {
             <Button
               type="submit"
               size="icon"
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || !input.trim() || !childData}
               className="hd-gradient-button text-white rounded-full"
             >
               <Send className="w-4 h-4" />

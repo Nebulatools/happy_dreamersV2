@@ -8,7 +8,7 @@ import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { getMongoDBVectorStoreManager } from "@/lib/rag/vector-store-mongodb"
 import { getDoctorSystemPrompt } from "@/lib/rag/doctor-personality"
-import { differenceInDays } from "date-fns"
+import { differenceInDays, differenceInMinutes, parseISO, subDays } from "date-fns"
 import { createReactAgent } from "@langchain/langgraph/prebuilt"
 import { ChatOpenAI } from "@langchain/openai"
 import { DynamicStructuredTool } from "@langchain/core/tools"
@@ -63,76 +63,85 @@ const ragSearchTool = new DynamicStructuredTool({
 
 const childDataTool = new DynamicStructuredTool({
   name: "child_data_search",
-  description: "Busca información específica del niño: estadísticas, eventos, estados emocionales, patrones de comportamiento",
+  description: "Busca estadísticas procesadas del niño: promedios de sueño, patrones, métricas calculadas",
   schema: z.object({
     childId: z.string().describe("ID del niño"),
     userId: z.string().describe("ID del usuario padre"),
-    dataType: z.string().describe("Tipo de datos: 'stats', 'events', 'emotions', 'patterns'"),
+    dataType: z.string().describe("Tipo de datos: 'stats', 'patterns', 'metrics'"),
   }),
   func: async ({ childId, userId, dataType }) => {
     try {
+      console.log(`🔍 childDataTool llamado con: childId=${childId}, userId=${userId}, dataType=${dataType}`)
+      
+      if (!childId || childId === "null" || childId === "") {
+        console.log("❌ No hay childId válido")
+        return "Por favor selecciona un niño específico para obtener sus estadísticas"
+      }
+
+      // 📊 ACCESO DIRECTO A LA BASE DE DATOS (MÁS EFICIENTE QUE FETCH)
       const { db } = await connectToDatabase()
       
-      let activeChild = null
-      if (childId) {
-        activeChild = await db.collection("children").findOne({
-          _id: new ObjectId(childId),
-          parentId: userId,
-        })
-      } else {
-        const children = await db.collection("children")
-          .find({ parentId: userId })
-          .sort({ createdAt: -1 })
-          .limit(1)
-          .toArray()
-        activeChild = children[0] || null
-      }
-
-      if (!activeChild) {
+      const childDoc = await db.collection("children").findOne({
+        _id: new ObjectId(childId),
+        parentId: userId,
+      })
+      
+      if (!childDoc) {
+        console.log("❌ No se encontró el niño en la base de datos")
         return "No se encontró información del niño"
       }
-
-      return buildChildContext(activeChild)
+      
+      console.log(`👶 Niño encontrado: ${childDoc.firstName} ${childDoc.lastName}`)
+      
+      const events = childDoc.events || []
+      console.log(`📊 Eventos totales encontrados: ${events.length}`)
+      
+      // 🧮 PROCESAR ESTADÍSTICAS COMO EN SLEEP-STATISTICS
+      const sleepStats = await processSleepStatistics(events)
+      
+      return buildProcessedStatsContext(childDoc, sleepStats)
     } catch (error) {
-      return "Error al acceder a los datos del niño"
+      console.log("❌ Error en childDataTool:", error)
+      return "Error al acceder a las estadísticas del niño"
     }
   },
 })
 
-// 🧠 AGENTE ROUTER INTELIGENTE SIMPLIFICADO
+// 🧠 AGENTE ROUTER INTELIGENTE CON ANÁLISIS CONTEXTUAL
 const routerAgent = async (state: typeof MultiAgentState.State) => {
   const llm = new ChatOpenAI({
-    modelName: "gpt-4o-mini",
+    modelName: "gpt-4o-mini", 
     temperature: 0,
   })
 
-  const routingPrompt = `Eres un router inteligente para un asistente pediátrico. 
-  Analiza la pregunta y decide qué fuente usar:
+  // Primero, analizar si la pregunta es sobre datos específicos del niño
+  const analysisPrompt = `Eres un analizador experto en preguntas sobre datos infantiles.
 
-  OPCIONES:
-  - RAG: Preguntas sobre técnicas, consejos, información médica, conceptos (ej: "qué es la atención", "cómo mejorar el sueño", "técnicas de lactancia", "problemas de desarrollo")
-  - DB: Preguntas sobre números/estadísticas específicas del niño (ej: "cuántas siestas", "cuántos eventos", "estados emocionales de mi niño", "estadísticas")
+PREGUNTA: "${state.question}"
 
-  PREGUNTA: "${state.question}"
+ANÁLISIS: Esta pregunta busca:
+A) Datos específicos de un niño particular (eventos, estadísticas, patrones, información personal)
+B) Información general/consejos sobre crianza y sueño infantil
 
-  EJEMPLOS:
-  - "que es la atencion" → RAG (pregunta conceptual)
-  - "cuantas siestas ha tomado" → DB (estadística específica)
-  - "como mejorar el sueño" → RAG (técnica/consejo)
-  - "estados emocionales de jacoe" → DB (datos del niño)
+Considera que palabras como "tengo", "mi niño", "eventos", "estadísticas", "cuántas", "cómo durmió", "patrones" indican datos específicos.
 
-  Responde SOLO con: RAG o DB`
+Responde solo: DATOS_ESPECIFICOS o INFORMACION_GENERAL`
 
-  const response = await llm.invoke([
-    new SystemMessage(routingPrompt),
+  const analysisResponse = await llm.invoke([
+    new SystemMessage(analysisPrompt),
     new HumanMessage(state.question),
   ])
 
-  const agentType = response.content.toString().trim()
+  const analysis = analysisResponse.content.toString().trim()
+  
+  // Convertir análisis a decisión de agente
+  const agentType = analysis === "DATOS_ESPECIFICOS" ? "DB" : "RAG"
+  
+  console.log(`🤖 ROUTER: Pregunta="${state.question}" → Análisis="${analysis}" → Decisión="${agentType}"`)
   
   return {
     agentType,
-    routingDecision: `Router decidió: ${agentType}`,
+    routingDecision: `Router analizó: ${analysis} → ${agentType}`,
     performance: { startTime: Date.now(), agent: agentType },
   }
 }
@@ -237,6 +246,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Mensaje requerido" }, { status: 400 })
     }
 
+
     // 🚀 CREAR Y EJECUTAR EL SISTEMA MULTI-AGENTE
     const multiAgentGraph = buildMultiAgentGraph(childId || "", session.user.id)
     
@@ -282,7 +292,204 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// 🏗️ FUNCIÓN AUXILIAR PARA CONSTRUIR CONTEXTO DEL NIÑO
+// 🧮 FUNCIONES PARA PROCESAR ESTADÍSTICAS (COPIADAS DE useSleepData)
+async function processSleepStatistics(events: any[]) {
+  if (events.length === 0) {
+    return {
+      avgSleepDuration: 0,
+      avgNapDuration: 0,
+      avgBedtime: "--:--",
+      avgSleepTime: "--:--",
+      avgWakeTime: "--:--",
+      totalEvents: 0,
+      totalSleepEvents: 0,
+      totalNaps: 0,
+      totalMeals: 0,
+      recentEventsCount: 0
+    }
+  }
+
+  // Filtrar eventos de la última semana para "recientes"
+  const now = new Date()
+  const weekAgo = subDays(now, 7)
+  const recentEvents = events.filter((e: any) => {
+    const eventDate = parseISO(e.startTime)
+    return eventDate >= weekAgo
+  })
+
+  // Separar tipos de eventos
+  const sleepEvents = events.filter((e: any) => e.eventType === 'sleep')
+  const naps = events.filter((e: any) => e.eventType === 'nap')
+  const meals = events.filter((e: any) => e.eventType === 'meal')
+  const bedtimeEvents = events.filter((e: any) => e.eventType === 'bedtime')
+
+  // Calcular promedios usando la misma lógica que useSleepData
+  const avgSleepDuration = calculateInferredSleepDuration(events)
+  const avgNapDuration = naps.length > 0
+    ? naps.reduce((sum: number, event: any) => {
+        if (event.endTime) {
+          return sum + differenceInMinutes(parseISO(event.endTime), parseISO(event.startTime)) / 60
+        }
+        return sum
+      }, 0) / naps.length
+    : 0
+
+  // Calcular horarios promedio
+  const nocturnalBedtimeEvents = bedtimeEvents.filter((e: any) => {
+    const hour = parseISO(e.startTime).getHours()
+    return hour >= 18 || hour <= 6
+  })
+  
+  const avgBedtime = nocturnalBedtimeEvents.length > 0
+    ? calculateAverageTime(nocturnalBedtimeEvents.map((e: any) => parseISO(e.startTime)))
+    : "--:--"
+
+  const nocturnalSleepEvents = sleepEvents.filter((e: any) => {
+    const hour = parseISO(e.startTime).getHours()
+    return hour >= 18 || hour <= 6
+  })
+  
+  const avgSleepTime = nocturnalSleepEvents.length > 0
+    ? calculateAverageTime(nocturnalSleepEvents.map((e: any) => parseISO(e.startTime)))
+    : "--:--"
+
+  const avgWakeTime = calculateInferredWakeTime(events)
+
+  return {
+    avgSleepDuration,
+    avgNapDuration,
+    avgBedtime,
+    avgSleepTime,
+    avgWakeTime,
+    totalEvents: events.length,
+    totalSleepEvents: sleepEvents.length,
+    totalNaps: naps.length,
+    totalMeals: meals.length,
+    recentEventsCount: recentEvents.length
+  }
+}
+
+function calculateInferredSleepDuration(events: any[]): number {
+  if (events.length === 0) return 0
+  
+  const sortedEvents = events.sort((a: any, b: any) => 
+    new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+  )
+  
+  const sleepDurations: number[] = []
+  
+  for (let i = 0; i < sortedEvents.length - 1; i++) {
+    const currentEvent = sortedEvents[i]
+    const nextEvent = sortedEvents[i + 1]
+    
+    if (
+      ['bedtime', 'sleep'].includes(currentEvent.eventType) &&
+      nextEvent.eventType === 'wake'
+    ) {
+      const bedTime = parseISO(currentEvent.startTime)
+      const wakeTime = parseISO(nextEvent.startTime)
+      
+      let duration = differenceInMinutes(wakeTime, bedTime)
+      
+      if (duration < 0) {
+        duration += 24 * 60
+      }
+      
+      if (duration >= 120 && duration <= 960) {
+        sleepDurations.push(duration)
+      }
+    }
+  }
+  
+  if (sleepDurations.length === 0) return 0
+  
+  const averageMinutes = sleepDurations.reduce((sum, duration) => sum + duration, 0) / sleepDurations.length
+  return averageMinutes / 60
+}
+
+function calculateAverageTime(dates: Date[]): string {
+  if (dates.length === 0) return "--:--"
+  
+  try {
+    const totalMinutes = dates.reduce((sum, date) => {
+      let minutes = date.getHours() * 60 + date.getMinutes()
+      
+      if (date.getHours() >= 0 && date.getHours() <= 6) {
+        minutes += 24 * 60
+      }
+      
+      return sum + minutes
+    }, 0)
+    
+    const avgMinutes = totalMinutes / dates.length
+    let finalHours = Math.floor(avgMinutes / 60) % 24
+    const finalMinutes = Math.round(avgMinutes % 60)
+    
+    return `${finalHours.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`
+  } catch {
+    return "--:--"
+  }
+}
+
+function calculateInferredWakeTime(events: any[]): string {
+  if (events.length === 0) return "--:--"
+  
+  const sortedEvents = events.sort((a: any, b: any) => 
+    new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+  )
+  
+  const wakeTimes: Date[] = []
+  
+  for (let i = 0; i < sortedEvents.length - 1; i++) {
+    const currentEvent = sortedEvents[i]
+    const nextEvent = sortedEvents[i + 1]
+    
+    if (
+      ['bedtime', 'sleep'].includes(currentEvent.eventType) &&
+      nextEvent.eventType === 'wake'
+    ) {
+      wakeTimes.push(parseISO(nextEvent.startTime))
+    }
+  }
+  
+  if (wakeTimes.length === 0) return "--:--"
+  
+  return calculateAverageTime(wakeTimes)
+}
+
+// 🏗️ FUNCIÓN PARA CONSTRUIR CONTEXTO CON ESTADÍSTICAS PROCESADAS
+function buildProcessedStatsContext(childData: any, stats: any): string {
+  let context = "=== ESTADÍSTICAS DE SUEÑO PROCESADAS ===\n"
+  
+  // Información básica
+  const birthDate = childData.birthDate ? new Date(childData.birthDate) : null
+  const ageInMonths = birthDate ? Math.floor(differenceInDays(new Date(), birthDate) / 30.44) : null
+  
+  context += `Nombre: ${childData.firstName} ${childData.lastName}\n`
+  if (ageInMonths !== null) {
+    context += `Edad: ${ageInMonths} meses\n`
+  }
+
+  // ESTADÍSTICAS PRINCIPALES
+  context += "\n📊 MÉTRICAS PRINCIPALES:\n"
+  context += `- Duración promedio de sueño nocturno: ${stats.avgSleepDuration.toFixed(1)} horas\n`
+  context += `- Duración promedio de siestas: ${stats.avgNapDuration.toFixed(1)} horas\n`
+  context += `- Hora promedio de acostarse: ${stats.avgBedtime}\n`
+  context += `- Hora promedio de dormir: ${stats.avgSleepTime}\n`
+  context += `- Hora promedio de despertar: ${stats.avgWakeTime}\n`
+
+  // CONTADORES DE EVENTOS
+  context += "\n📈 RESUMEN DE EVENTOS:\n"
+  context += `- Total de eventos registrados: ${stats.totalEvents}\n`
+  context += `- Eventos de sueño nocturno: ${stats.totalSleepEvents}\n`
+  context += `- Total de siestas: ${stats.totalNaps}\n`
+  context += `- Total de comidas: ${stats.totalMeals}\n`
+  context += `- Eventos recientes (última semana): ${stats.recentEventsCount}\n`
+
+  return context + "=== FIN DE ESTADÍSTICAS ===\n\n"
+}
+
+// 🏗️ FUNCIÓN AUXILIAR PARA CONSTRUIR CONTEXTO DEL NIÑO (LEGACY)
 function buildChildContext(activeChild: any): string {
   let context = "=== INFORMACIÓN ESPECÍFICA DEL NIÑO ===\n"
   
@@ -344,8 +551,14 @@ async function getChildContextForResponse(childId: string, userId: string) {
 
     if (!activeChild) return null
 
-    const recentEventsCount = activeChild.events 
-      ? activeChild.events.filter((event: any) => {
+    // 🔧 CARGAR EVENTOS RECIENTES DEL NIÑO
+    const events = await db.collection("events")
+      .find({ childId: activeChild._id.toString() })
+      .sort({ startTime: -1 })
+      .toArray()
+
+    const recentEventsCount = events
+      ? events.filter((event: any) => {
         const daysDiff = differenceInDays(new Date(), new Date(event.startTime))
         return daysDiff <= 7
       }).length 
