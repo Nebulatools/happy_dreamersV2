@@ -9,7 +9,7 @@ interface SleepConsistencyChartProps {
 
 
 export default function SleepConsistencyChart({ childId, dateRange = "7-days" }: SleepConsistencyChartProps) {
-  const { data: sleepData, loading, error } = useSleepData(childId)
+  const { data: sleepData, loading, error } = useSleepData(childId, dateRange)
 
   // Usar datos centralizados del hook
   const avgBedtime = sleepData?.avgBedtime || "--:--"

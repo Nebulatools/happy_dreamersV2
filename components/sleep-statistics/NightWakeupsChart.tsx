@@ -94,44 +94,33 @@ interface NightWakeupsChartProps {
 }
 
 export default function NightWakeupsChart({ childId, dateRange = "7-days" }: NightWakeupsChartProps) {
-  const [allEvents, setAllEvents] = React.useState<any[]>([])
-  const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState<string | null>(null)
+  // Usar hook centralizado CON filtro de fecha
+  const { data: sleepData, loading, error } = useSleepData(childId, dateRange)
 
-  // Cargar TODOS los eventos (incluyendo wake) igual que SleepMetricsGrid
-  React.useEffect(() => {
-    async function fetchEvents() {
-      if (!childId) return
-      
-      try {
-        setLoading(true)
-        const response = await fetch(`/api/children/events?childId=${childId}`)
-        
-        if (!response.ok) {
-          throw new Error('Error al cargar eventos')
-        }
-        
-        const data = await response.json()
-        const events = data.events || []
-        
-        // Filtrar TODOS los tipos de eventos necesarios (igual que SleepMetricsGrid)
-        const filteredEvents = events.filter((e: any) => {
-          return ['sleep', 'nap', 'wake', 'dormir', 'bedtime'].includes(e.eventType)
-        })
-        
-        console.log('DEBUG - NightWakeupsChart eventos cargados:', filteredEvents.length)
-        console.log('DEBUG - Tipos encontrados:', [...new Set(filteredEvents.map((e: any) => e.eventType))])
-        
-        setAllEvents(filteredEvents)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error desconocido')
-      } finally {
-        setLoading(false)
-      }
+  // Calcular datos antes de los returns condicionales
+  const totalWakeups = sleepData?.totalWakeups || 0
+  const avgWakeupsPerNight = sleepData?.avgWakeupsPerNight || 0
+  
+  // Simular distribución por día de la semana (ya que los datos reales están centralizados)
+  const wakeupsData = React.useMemo(() => {
+    const daysData = [
+      { day: 'L', dayIndex: 1, count: 0, duration: 0 },
+      { day: 'M', dayIndex: 2, count: 0, duration: 0 },
+      { day: 'X', dayIndex: 3, count: 0, duration: 0 },
+      { day: 'J', dayIndex: 4, count: 0, duration: 0 },
+      { day: 'V', dayIndex: 5, count: 0, duration: 0 },
+      { day: 'S', dayIndex: 6, count: 0, duration: 0 },
+      { day: 'D', dayIndex: 0, count: 0, duration: 0 },
+    ]
+    
+    if (sleepData?.events) {
+      // Procesar eventos usando la misma lógica
+      const processedData = processNightWakeups(sleepData.events)
+      return processedData
     }
-
-    fetchEvents()
-  }, [childId])
+    
+    return daysData
+  }, [sleepData])
 
   if (loading) {
     return (
@@ -165,16 +154,7 @@ export default function NightWakeupsChart({ childId, dateRange = "7-days" }: Nig
     )
   }
 
-  // Calcular datos reales de despertares por día de la semana
-  const daysOfWeek = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
-  
-  // Procesar eventos reales para obtener despertares por día
-  const wakeupsData = processNightWakeups(allEvents)
-  
-  console.log('DEBUG - Wakeups data por día:', wakeupsData)
-  console.log('DEBUG - Total eventos para procesar:', allEvents.length)
-  
-  const maxDuration = Math.max(...wakeupsData.map(d => d.duration), 60) // Mínimo 1 hora para escala
+  const maxDuration = Math.max(...wakeupsData.map(d => d.duration), 60)
   
   const getWakeupLevel = (avg: number) => {
     if (avg < 1) return { label: 'Excelente', color: 'text-green-600' }
@@ -220,24 +200,24 @@ export default function NightWakeupsChart({ childId, dateRange = "7-days" }: Nig
         })}
       </div>
       
-      {/* Estadísticas */}
+      {/* Estadísticas - Usar datos del hook centralizado */}
       <div className="space-y-2 text-sm text-gray-600">
         <div className="flex items-center justify-between">
           <span>Total de despertares:</span>
           <span className="font-medium text-[#FF6B6B]">
-            {wakeupsData.reduce((sum, day) => sum + day.count, 0)} veces
+            {totalWakeups} veces
           </span>
         </div>
         <div className="flex items-center justify-between">
           <span>Promedio por noche:</span>
           <span className="font-medium text-[#FF6B6B]">
-            {(wakeupsData.reduce((sum, day) => sum + day.count, 0) / 7).toFixed(1)} veces
+            {avgWakeupsPerNight.toFixed(1)} veces
           </span>
         </div>
         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
           <span>Evaluación:</span>
-          <span className={`font-medium ${getWakeupLevel(wakeupsData.reduce((sum, day) => sum + day.count, 0) / 7).color}`}>
-            {getWakeupLevel(wakeupsData.reduce((sum, day) => sum + day.count, 0) / 7).label}
+          <span className={`font-medium ${getWakeupLevel(avgWakeupsPerNight).color}`}>
+            {getWakeupLevel(avgWakeupsPerNight).label}
           </span>
         </div>
       </div>

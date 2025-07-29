@@ -8,7 +8,7 @@ interface SleepDistributionChartProps {
 }
 
 export default function SleepDistributionChart({ childId, dateRange = "7-days" }: SleepDistributionChartProps) {
-  const { data, loading, error } = useSleepData(childId)
+  const { data, loading, error } = useSleepData(childId, dateRange)
 
   if (loading) {
     return (

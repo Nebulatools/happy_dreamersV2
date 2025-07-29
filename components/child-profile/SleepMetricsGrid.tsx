@@ -24,7 +24,7 @@ interface SleepMetricsGridProps {
 
 export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: SleepMetricsGridProps) {
   const { refreshTrigger, subscribe } = useEventsCache(childId)
-  const { data: sleepData, loading, error } = useSleepData(childId)
+  const { data: sleepData, loading, error } = useSleepData(childId, dateRange)
 
   // Suscribirse a invalidaciones de cache
   React.useEffect(() => {

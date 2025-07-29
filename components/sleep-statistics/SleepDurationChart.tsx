@@ -8,7 +8,7 @@ interface SleepDurationChartProps {
 }
 
 export default function SleepDurationChart({ childId, dateRange = "7-days" }: SleepDurationChartProps) {
-  const { data, loading, error } = useSleepData(childId)
+  const { data, loading, error } = useSleepData(childId, dateRange)
 
   if (loading) {
     return (

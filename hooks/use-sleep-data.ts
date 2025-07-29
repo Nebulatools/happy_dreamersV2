@@ -23,7 +23,7 @@ export interface SleepData {
   events: SleepEvent[]
 }
 
-export function useSleepData(childId: string | null) {
+export function useSleepData(childId: string | null, dateRange: string = "7-days") {
   const [data, setData] = useState<SleepData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -47,14 +47,28 @@ export function useSleepData(childId: string | null) {
         const result = await response.json()
         const allEvents = result.events || []
         
-        // Filtrar eventos de sueño de los últimos 7 días
+        // Calcular días a filtrar basado en dateRange
         const now = new Date()
-        const weekAgo = subDays(now, 7)
+        let daysToSubtract = 7 // default
+        
+        if (dateRange === "30-days") {
+          daysToSubtract = 30
+        } else if (dateRange === "90-days") {
+          daysToSubtract = 90
+        } else if (dateRange === "7-days") {
+          daysToSubtract = 7
+        }
+        
+        const filterDate = subDays(now, daysToSubtract)
+        
+        console.log(`DEBUG - Filtrando eventos desde: ${filterDate.toLocaleDateString()} (${daysToSubtract} días)`)
         
         const sleepEvents = allEvents.filter((e: any) => {
           const date = parseISO(e.startTime)
-          return ['sleep', 'nap', 'bedtime', 'wake'].includes(e.eventType) && date >= weekAgo
+          return ['sleep', 'nap', 'bedtime', 'wake'].includes(e.eventType) && date >= filterDate
         })
+        
+        console.log(`DEBUG - Eventos encontrados: ${allEvents.length} total, ${sleepEvents.length} filtrados`)
         
         // Calcular métricas
         const processedData = processSleepData(sleepEvents)
@@ -67,7 +81,7 @@ export function useSleepData(childId: string | null) {
     }
 
     fetchData()
-  }, [childId])
+  }, [childId, dateRange])
 
   return { data, loading, error }
 }
@@ -154,16 +168,8 @@ function processSleepData(events: any[]): SleepData {
     ? calculateTimeVariation(nocturnalBedtimeEvents.map(e => parseISO(e.startTime)))
     : 0
 
-  // Despertares nocturnos (basado en notas)
-  const totalWakeups = events.reduce((sum, event) => {
-    const notes = event.notes?.toLowerCase() || ''
-    if (notes.includes('despertó') || notes.includes('despierta')) {
-      const match = notes.match(/(\d+)\s*(veces|vez)/)
-      return sum + (match ? parseInt(match[1]) : 1)
-    }
-    return sum
-  }, 0)
-
+  // Despertares nocturnos (usando la misma lógica compleja que SleepMetricsGrid)
+  const totalWakeups = calculateNightWakeups(events)
   const avgWakeupsPerNight = nightSleep.length > 0 ? totalWakeups / nightSleep.length : 0
 
   // Calcular diferencia entre bedtime y sleep time
@@ -370,4 +376,76 @@ function calculateTimeDifference(bedtime: string, sleepTime: string): string {
   } catch {
     return "???"
   }
+}
+
+// Función para calcular despertares nocturnos (COPIADA EXACTAMENTE de SleepMetricsGrid)
+function calculateNightWakeups(events: any[]): number {
+  if (events.length === 0) return 0
+  
+  // Ordenar eventos por fecha
+  const sortedEvents = events.sort((a, b) => 
+    new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+  )
+  
+  let totalWakeups = 0
+  
+  // Analizar secuencias de sueño nocturno
+  for (let i = 0; i < sortedEvents.length; i++) {
+    const currentEvent = sortedEvents[i]
+    
+    // Si es evento de dormir (bedtime, sleep o dormir)
+    if (['bedtime', 'sleep', 'dormir'].includes(currentEvent.eventType)) {
+      const sleepStartTime = new Date(currentEvent.startTime)
+      let sessionWakeups = 0
+      
+      // Buscar eventos wake después de este sleep hasta el próximo sleep del día siguiente
+      for (let j = i + 1; j < sortedEvents.length; j++) {
+        const nextEvent = sortedEvents[j]
+        const nextEventTime = new Date(nextEvent.startTime)
+        
+        // Si es el siguiente día y es otro evento de dormir, terminar sesión
+        if (['bedtime', 'sleep', 'dormir'].includes(nextEvent.eventType) && 
+            nextEventTime.getDate() !== sleepStartTime.getDate()) {
+          break
+        }
+        
+        // Contar eventos wake como despertares nocturnos
+        if (nextEvent.eventType === 'wake') {
+          const wakeHour = nextEventTime.getHours()
+          const wakeDuration = Math.abs(nextEventTime.getTime() - sleepStartTime.getTime()) / (1000 * 60 * 60)
+          
+          // Solo contar como despertar nocturno si:
+          // 1. Ocurre en horario de madrugada (23:00-06:00)
+          // 2. Al menos 30 min después de dormir
+          // 3. No es el despertar final de la mañana (menos de 8 horas)
+          const isNighttime = (wakeHour >= 0 && wakeHour <= 6) || wakeHour >= 23
+          const isValidDuration = wakeDuration > 0.5 && wakeDuration < 8
+          
+          if (isNighttime && isValidDuration) {
+            sessionWakeups++
+          }
+        }
+      }
+      
+      // También buscar menciones en notas como respaldo
+      const notes = currentEvent.notes?.toLowerCase() || ''
+      const wakeupKeywords = [
+        'despertó', 'despierta', 'se despertó', 'lloró', 'pesadilla'
+      ]
+      
+      if (wakeupKeywords.some(keyword => notes.includes(keyword))) {
+        const numberMatch = notes.match(/(\d+)\s*(veces|vez)/)
+        if (numberMatch) {
+          sessionWakeups += parseInt(numberMatch[1])
+        } else if (sessionWakeups === 0) {
+          sessionWakeups = 1 // Si hay mención pero no eventos, contar 1
+        }
+      }
+      
+      totalWakeups += sessionWakeups
+    }
+  }
+  
+  // Retornar el TOTAL de despertares nocturnos en el período
+  return totalWakeups
 }
