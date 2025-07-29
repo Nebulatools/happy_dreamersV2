@@ -545,7 +545,8 @@ export default function AssistantPage() {
                             <div>
                               <p className="font-medium text-sm">{doc.source}</p>
                               <p className="text-xs text-gray-500">
-                                {doc.type} • {Math.round(doc.size / 1024)} KB
+                                {doc.type.toUpperCase()} • {Math.round(doc.size / 1024)} KB
+                                {doc.chunksCount && doc.chunksCount > 1 && ` • ${doc.chunksCount} chunks`}
                               </p>
                             </div>
                           </div>

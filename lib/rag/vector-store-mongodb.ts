@@ -85,17 +85,48 @@ export class MongoDBVectorStoreManager {
   private async saveDocumentsMeta(documents: Document[]) {
     const { db } = await connectToDatabase()
     
-    const metaDocuments = documents.map(doc => ({
-      source: doc.metadata.source,
-      type: doc.metadata.type,
-      uploadDate: doc.metadata.uploadDate,
-      extractedWith: doc.metadata.extractedWith || "unknown",
-      size: doc.pageContent.length,
+    // Agrupar documentos por source para evitar duplicados
+    const groupedBySources = new Map<string, {
+      source: string,
+      type: string,
+      uploadDate: string,
+      extractedWith: string,
+      totalSize: number,
+      chunksCount: number,
+    }>()
+
+    documents.forEach(doc => {
+      const source = doc.metadata.source
+      if (!groupedBySources.has(source)) {
+        groupedBySources.set(source, {
+          source: doc.metadata.source,
+          type: doc.metadata.type,
+          uploadDate: doc.metadata.uploadDate,
+          extractedWith: doc.metadata.extractedWith || "unknown",
+          totalSize: 0,
+          chunksCount: 0,
+        })
+      }
+      
+      const group = groupedBySources.get(source)!
+      group.totalSize += doc.pageContent.length
+      group.chunksCount += 1
+    })
+
+    // Crear un documento de metadata por archivo único
+    const metaDocuments = Array.from(groupedBySources.values()).map(group => ({
+      source: group.source,
+      type: group.type,
+      uploadDate: group.uploadDate,
+      extractedWith: group.extractedWith,
+      size: group.totalSize,
+      chunksCount: group.chunksCount,
       createdAt: new Date(),
     }))
 
     if (metaDocuments.length > 0) {
       await db.collection(this.metaCollectionName).insertMany(metaDocuments)
+      logger.info(`📝 Metadata guardada para ${metaDocuments.length} documento(s) único(s)`)
     }
   }
 
@@ -183,6 +214,7 @@ export class MongoDBVectorStoreManager {
         uploadDate: doc.uploadDate,
         extractedWith: doc.extractedWith,
         size: doc.size,
+        chunksCount: doc.chunksCount || 1,
         createdAt: doc.createdAt,
       }))
     } catch (error) {

@@ -59,12 +59,8 @@ export default function LoginPage() {
       // Obtener la sesión actualizada para verificar el rol
       const session = await getSession()
       
-      // Redirigir según el rol del usuario
-      if (session?.user?.role === 'admin') {
-        router.push("/dashboard/stats")  // Admin → Dashboard de admin
-      } else {
-        router.push("/dashboard")        // Usuario normal → Dashboard normal
-      }
+      // Redirigir al dashboard principal para todos los usuarios
+      router.push("/dashboard")
       router.refresh()
     } catch (error) {
       toast({

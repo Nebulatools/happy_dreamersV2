@@ -225,10 +225,42 @@ export default function SurveyPage() {
                 ...data.surveyData.rutinaHabitos
               }
             }))
-            setIsExistingSurvey(true)
+            
+            // Solo marcar como completada si realmente está completa según la validación
+            const mergedData = {
+              ...data.surveyData,
+              informacionFamiliar: {
+                ...data.surveyData.informacionFamiliar,
+                papa: {
+                  ...data.surveyData.informacionFamiliar?.papa
+                },
+                mama: {
+                  ...data.surveyData.informacionFamiliar?.mama
+                }
+              },
+              dinamicaFamiliar: {
+                ...data.surveyData.dinamicaFamiliar
+              },
+              historial: {
+                ...data.surveyData.historial
+              },
+              desarrollo: {
+                ...data.surveyData.desarrollo
+              },
+              actividadFisica: {
+                ...data.surveyData.actividadFisica
+              },
+              rutinaHabitos: {
+                ...data.surveyData.rutinaHabitos
+              }
+            }
+            
+            const isComplete = checkIfDataIsComplete(mergedData)
+            setIsExistingSurvey(isComplete)
+            
             toast({
-              title: "Encuesta encontrada",
-              description: "Se ha cargado la encuesta completada de este niño",
+              title: isComplete ? "Encuesta completada encontrada" : "Encuesta en progreso encontrada",
+              description: isComplete ? "Se ha cargado la encuesta completada de este niño" : "Se ha cargado el progreso de la encuesta de este niño",
               variant: "default",
             })
             setIsLoading(false)
@@ -281,6 +313,33 @@ export default function SurveyPage() {
     
     if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1)
+    }
+  }
+
+  // Función para manejar el clic del botón principal
+  const handleMainButtonClick = () => {
+    if (currentStep === steps.length) {
+      // Si estamos en el último paso
+      if (isFormComplete()) {
+        // Solo permitir finalizar si está completo
+        if (isExistingSurvey) {
+          handleUpdateSurvey()
+        } else {
+          handleSubmit()
+        }
+      } else {
+        // Si no está completo, mostrar mensaje y volver al primer paso con campos faltantes
+        toast({
+          title: "Encuesta Incompleta",
+          description: "Por favor, completa todos los campos obligatorios (*) antes de finalizar la encuesta.",
+          variant: "destructive",
+        })
+        // Volver al primer paso para completar los campos
+        setCurrentStep(1)
+      }
+    } else {
+      // Si no estamos en el último paso, continuar normal
+      handleNext()
     }
   }
 
@@ -425,6 +484,59 @@ export default function SurveyPage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // Función auxiliar para verificar si los datos están completos
+  const checkIfDataIsComplete = (data: Partial<SurveyData>) => {
+    const { informacionFamiliar, dinamicaFamiliar, historial, desarrollo } = data
+    
+    // Validar Información Familiar (Paso 1)
+    if (!informacionFamiliar?.papa?.nombre || 
+        !informacionFamiliar?.papa?.ocupacion || 
+        !informacionFamiliar?.papa?.direccion || 
+        !informacionFamiliar?.papa?.email ||
+        !informacionFamiliar?.mama?.nombre || 
+        !informacionFamiliar?.mama?.ocupacion || 
+        !informacionFamiliar?.mama?.ciudad || 
+        !informacionFamiliar?.mama?.telefono || 
+        !informacionFamiliar?.mama?.email || 
+        !informacionFamiliar?.mama?.apetito) {
+      return false
+    }
+    
+    // Validar Dinámica Familiar (Paso 2)
+    if (!dinamicaFamiliar?.cantidadHijos || 
+        !dinamicaFamiliar?.otrosEnCasa || 
+        !dinamicaFamiliar?.telefonoSeguimiento || 
+        !dinamicaFamiliar?.emailObservaciones || 
+        !dinamicaFamiliar?.comoConocio || 
+        !dinamicaFamiliar?.quienSeLevaantaNoche) {
+      return false
+    }
+    
+    // Validar Historial del Niño (Paso 3)
+    if (!historial?.nombre || 
+        !historial?.fechaNacimiento || 
+        !historial?.peso) {
+      return false
+    }
+    
+    // Validar Desarrollo y Salud (Paso 4)
+    if (!desarrollo?.diaTipico || 
+        !desarrollo?.quienPasaTiempo || 
+        !desarrollo?.rutinaAntesAcostar || 
+        !desarrollo?.tipoPiyama || 
+        !desarrollo?.temperamento || 
+        !desarrollo?.reaccionDejarSolo) {
+      return false
+    }
+    
+    return true
+  }
+
+  // Función para validar si todos los campos obligatorios están completos
+  const isFormComplete = () => {
+    return checkIfDataIsComplete(formData)
   }
 
   const renderStepContent = () => {
@@ -2455,17 +2567,14 @@ export default function SurveyPage() {
         </button>
 
         <Button
-          onClick={currentStep === steps.length ? 
-            (isExistingSurvey ? handleUpdateSurvey : handleSubmit) : 
-            handleNext
-          }
+          onClick={handleMainButtonClick}
           disabled={isSubmitting}
           className="min-w-[150px] hd-gradient-button text-white"
         >
           {currentStep === steps.length ? (
             isSubmitting ? 
               (isExistingSurvey ? "Actualizando..." : "Enviando...") : 
-              (isExistingSurvey ? "💾 Guardar Cambios" : "Finalizar")
+              (isExistingSurvey ? "💾 Guardar Cambios" : (isFormComplete() ? "Finalizar Encuesta" : "Continuar con la Encuesta"))
           ) : (
             <>
               Siguiente
