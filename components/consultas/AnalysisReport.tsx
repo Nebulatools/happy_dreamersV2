@@ -37,7 +37,13 @@ interface AnalysisResult {
     reportId: string
     createdAt: string
     adminName: string
-    processingTime?: string
+    processingTime?: string | number
+    sourcesUsed?: number
+    dataQuality?: {
+      allSourcesUsed: boolean
+      statsFromDate?: string
+      statsMethod?: string
+    }
   }
 }
 
@@ -252,7 +258,7 @@ Reporte ID: ${result.metadata?.reportId || "N/A"}
             Análisis Clínico
           </CardTitle>
           <CardDescription>
-            Evaluación basada en transcript + datos del niño + knowledge base
+            Evaluación basada en transcript + estadísticas unificadas + consultas anteriores + knowledge base RAG
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -288,7 +294,7 @@ Reporte ID: ${result.metadata?.reportId || "N/A"}
         </CardContent>
       </Card>
 
-      {/* Metadatos del reporte */}
+      {/* Metadatos del reporte mejorados */}
       {result.metadata && (
         <Card className="bg-muted/30">
           <CardHeader>
@@ -297,11 +303,12 @@ Reporte ID: ${result.metadata?.reportId || "N/A"}
               Información del Reporte
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="pt-0 space-y-4">
+            {/* Información básica */}
             <div className="grid grid-cols-2 gap-4 text-xs text-gray-500">
               <div>
                 <strong>ID del Reporte:</strong><br />
-                {result.metadata.reportId}
+                <code className="text-xs bg-gray-100 px-1 rounded">{result.metadata.reportId}</code>
               </div>
               <div>
                 <strong>Generado:</strong><br />
@@ -316,9 +323,74 @@ Reporte ID: ${result.metadata?.reportId || "N/A"}
               {result.metadata.processingTime && (
                 <div>
                   <strong>Tiempo de procesamiento:</strong><br />
-                  {result.metadata.processingTime}
+                  {typeof result.metadata.processingTime === 'number' 
+                    ? `${result.metadata.processingTime}ms`
+                    : result.metadata.processingTime}
                 </div>
               )}
+            </div>
+
+            {/* Calidad de datos */}
+            {result.metadata.dataQuality && (
+              <div className="border-t pt-3">
+                <h4 className="text-xs font-semibold mb-2 text-gray-700">Fuentes de Datos Utilizadas</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    {result.metadata.dataQuality.allSourcesUsed ? (
+                      <CheckCircle className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <AlertCircle className="h-3 w-3 text-yellow-600" />
+                    )}
+                    <span className="text-xs">
+                      {result.metadata.dataQuality.allSourcesUsed 
+                        ? 'Se utilizaron TODAS las fuentes disponibles'
+                        : `Se utilizaron ${result.metadata.sourcesUsed || 0} fuentes`
+                      }
+                    </span>
+                  </div>
+                  
+                  {result.metadata.dataQuality.statsFromDate && (
+                    <div className="text-xs text-gray-600">
+                      <strong>Estadísticas desde:</strong> {new Date(result.metadata.dataQuality.statsFromDate).toLocaleDateString("es-ES")}
+                    </div>
+                  )}
+                  
+                  {result.metadata.dataQuality.statsMethod && (
+                    <div className="text-xs text-gray-600">
+                      <strong>Método:</strong> 
+                      <Badge variant="outline" className="ml-1 text-xs">
+                        {result.metadata.dataQuality.statsMethod === 'unified_with_dashboard' 
+                          ? 'Unificado con Dashboard' 
+                          : result.metadata.dataQuality.statsMethod
+                        }
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Fuentes utilizadas */}
+            <div className="border-t pt-3">
+              <h4 className="text-xs font-semibold mb-2 text-gray-700">Componentes del Análisis</h4>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3 text-green-600" />
+                  Transcript actual
+                </div>
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3 text-green-600" />
+                  Estadísticas del niño
+                </div>
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3 text-green-600" />
+                  Consultas anteriores
+                </div>
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3 text-green-600" />
+                  Knowledge Base RAG
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

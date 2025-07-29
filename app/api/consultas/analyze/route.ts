@@ -8,8 +8,8 @@ import clientPromise from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { getMongoDBVectorStoreManager } from "@/lib/rag/vector-store-mongodb"
 import { OpenAI } from "openai"
-import { differenceInDays, differenceInMinutes, format, parseISO, getHours, getMinutes, subDays } from "date-fns"
-
+import { differenceInDays, format, parseISO, subDays } from "date-fns"
+import { processSleepStatistics } from "@/lib/sleep-calculations"
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("API:consultas:analyze:route")
@@ -20,6 +20,15 @@ const openai = new OpenAI({
 })
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now()
+  const processingSteps = {
+    transcript: false,
+    childStats: false,
+    ragContext: false,
+    consultationHistory: false,
+    aiAnalysis: false
+  }
+  
   try {
     // Verificar autenticación y permisos de admin
     const session = await getServerSession(authOptions)
@@ -35,26 +44,80 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
+    // 📊 LOG DE ENTRADA
+    logger.info("Iniciando análisis de consulta", {
+      userId,
+      childId,
+      transcriptLength: transcript.length,
+      adminId: session.user.id,
+      requestTimestamp: new Date().toISOString()
+    })
+
+    processingSteps.transcript = true
+
     // 1. Obtener datos del niño y estadísticas
+    const stepStartTime = Date.now()
     const childData = await getChildWithStats(userId, childId)
     if (!childData) {
+      logger.error("No se encontró información del niño", { userId, childId })
       return NextResponse.json({ 
         error: "No se pudo obtener la información del niño", 
       }, { status: 404 })
     }
+    
+    processingSteps.childStats = true
+    logger.info("Estadísticas del niño calculadas", {
+      childId,
+      childName: `${childData.firstName} ${childData.lastName}`,
+      ageInMonths: childData.ageInMonths,
+      totalEvents: childData.stats.totalEvents,
+      recentEvents: childData.stats.recentEvents,
+      avgSleepDuration: childData.stats.avgSleepDuration,
+      avgWakeTime: childData.stats.avgWakeTime,
+      statsFromDate: childData.statsFromDate?.toISOString(),
+      lastConsultationDate: childData.lastConsultationDate?.toISOString(),
+      calculationMethod: "unified_with_dashboard",
+      processingTime: Date.now() - stepStartTime
+    })
 
     // 2. Buscar información relevante en el knowledge base RAG
+    const ragStartTime = Date.now()
     const ragContext = await searchRAGKnowledge(transcript)
+    processingSteps.ragContext = true
+    
+    logger.info("Búsqueda RAG completada", {
+      ragResultsCount: ragContext.length,
+      sources: ragContext.map(r => r.source),
+      totalContentLength: ragContext.reduce((sum, r) => sum + r.content.length, 0),
+      processingTime: Date.now() - ragStartTime
+    })
 
     // 3. Obtener historial de consultas anteriores
+    const historyStartTime = Date.now()
     const consultationHistory = await getPreviousConsultations(childId)
+    processingSteps.consultationHistory = true
+    
+    logger.info("Historial de consultas obtenido", {
+      childId,
+      consultationsFound: consultationHistory.length,
+      consultationDates: consultationHistory.map(c => c.date),
+      processingTime: Date.now() - historyStartTime
+    })
 
     // 4. Generar análisis con IA
+    const aiStartTime = Date.now()
     const analysis = await generateIntelligentAnalysis({
       transcript,
       childData,
       ragContext,
       consultationHistory,
+    })
+    processingSteps.aiAnalysis = true
+    
+    logger.info("Análisis con IA completado", {
+      analysisLength: analysis.analysis?.length || 0,
+      recommendationsLength: analysis.recommendations?.length || 0,
+      processingTime: Date.now() - aiStartTime
     })
 
     // 5. Guardar el reporte en la base de datos
@@ -64,6 +127,32 @@ export async function POST(req: NextRequest) {
       transcript,
       analysis,
       adminId: session.user.id,
+    })
+
+    // 📊 LOG DE COMPLETITUD FINAL
+    const totalProcessingTime = Date.now() - startTime
+    logger.info("Análisis de consulta completado exitosamente", {
+      reportId,
+      totalProcessingTime,
+      stepsCompleted: processingSteps,
+      sourcesUsed: {
+        transcript: processingSteps.transcript,
+        childStatistics: processingSteps.childStats,
+        ragKnowledge: processingSteps.ragContext,
+        consultationHistory: processingSteps.consultationHistory,
+        aiAnalysis: processingSteps.aiAnalysis
+      },
+      dataQuality: {
+        transcriptLength: transcript.length,
+        statsEventsCount: childData.stats.totalEvents,
+        ragResultsCount: ragContext.length,
+        historyConsultationsCount: consultationHistory.length,
+        allSourcesUsed: Object.values(processingSteps).every(step => step)
+      },
+      performance: {
+        totalTime: totalProcessingTime,
+        avgTimePerStep: totalProcessingTime / Object.keys(processingSteps).length
+      }
     })
 
     return NextResponse.json({
@@ -76,10 +165,27 @@ export async function POST(req: NextRequest) {
         ageInMonths: childData.ageInMonths,
         totalEvents: childData.stats.totalEvents,
       },
+      metadata: {
+        processingTime: totalProcessingTime,
+        sourcesUsed: Object.values(processingSteps).filter(Boolean).length,
+        dataQuality: {
+          allSourcesUsed: Object.values(processingSteps).every(step => step),
+          statsFromDate: childData.statsFromDate?.toISOString(),
+          statsMethod: "unified_with_dashboard"
+        }
+      }
     })
 
   } catch (error) {
-    logger.error("Error en análisis de consulta:", error)
+    const totalProcessingTime = Date.now() - startTime
+    logger.error("Error en análisis de consulta", {
+      error: error instanceof Error ? error.message : "Error desconocido",
+      stack: error instanceof Error ? error.stack : undefined,
+      processingSteps,
+      totalProcessingTime,
+      failedAt: Object.entries(processingSteps).find(([_, completed]) => !completed)?.[0] || "unknown"
+    })
+    
     return NextResponse.json({ 
       error: "Error interno del servidor",
       details: error instanceof Error ? error.message : "Error desconocido",
@@ -87,7 +193,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Función para obtener datos del niño con estadísticas calculadas
+// Función para obtener datos del niño con estadísticas calculadas usando lógica unificada
 async function getChildWithStats(userId: string, childId: string) {
   try {
     const client = await clientPromise
@@ -115,9 +221,16 @@ async function getChildWithStats(userId: string, childId: string) {
     if (lastConsultation) {
       // Si hay consulta previa, usar desde esa fecha
       statsStartDate = new Date(lastConsultation.createdAt)
+      logger.info("📊 Usando estadísticas desde última consulta", {
+        lastConsultationDate: lastConsultation.createdAt,
+        statsFromDate: statsStartDate.toISOString()
+      })
     } else {
       // Si no hay consulta previa, usar últimos 30 días como fallback
       statsStartDate = subDays(now, 30)
+      logger.info("📊 Primera consulta - usando estadísticas de últimos 30 días", {
+        statsFromDate: statsStartDate.toISOString()
+      })
     }
 
     // Obtener todos los eventos del niño
@@ -125,12 +238,30 @@ async function getChildWithStats(userId: string, childId: string) {
       childId: new ObjectId(childId),
     }).sort({ startTime: -1 }).toArray()
 
-    // Calcular estadísticas desde la fecha determinada
-    const stats = calculateChildStats(events, statsStartDate)
+    logger.info("📅 Eventos del niño obtenidos", {
+      totalEvents: events.length,
+      eventTypes: [...new Set(events.map(e => e.eventType))],
+      dateRange: {
+        oldest: events[events.length - 1]?.startTime,
+        newest: events[0]?.startTime
+      }
+    })
+
+    // 🔧 USAR LÓGICA UNIFICADA DE SLEEP-CALCULATIONS
+    const stats = processSleepStatistics(events, statsStartDate)
     
     // Calcular edad en meses
     const birthDate = child.birthDate ? new Date(child.birthDate) : null
     const ageInMonths = birthDate ? Math.floor(differenceInDays(new Date(), birthDate) / 30.44) : null
+
+    logger.info("✅ Estadísticas calculadas con lógica unificada", {
+      avgSleepDuration: stats.avgSleepDuration,
+      avgWakeTime: stats.avgWakeTime,
+      totalEvents: stats.totalEvents,
+      recentEvents: stats.recentEvents,
+      dominantMood: stats.dominantMood,
+      method: "processSleepStatistics_unified"
+    })
 
     return {
       ...child,
@@ -146,52 +277,9 @@ async function getChildWithStats(userId: string, childId: string) {
   }
 }
 
-// Función para calcular estadísticas del niño
-function calculateChildStats(events: any[], statsFromDate: Date) {
-  const now = new Date()
-  const relevantEvents = events.filter(event => {
-    const eventDate = parseISO(event.startTime)
-    return eventDate >= statsFromDate && eventDate <= now
-  })
-
-  const sleepEvents = relevantEvents.filter(e => e.eventType === "sleep" && e.endTime)
-  const napEvents = relevantEvents.filter(e => e.eventType === "nap" && e.endTime)
-  
-  // Calcular duración promedio de sueño
-  const avgSleepDuration = sleepEvents.length > 0 
-    ? sleepEvents.reduce((sum, event) => {
-      return sum + differenceInMinutes(parseISO(event.endTime), parseISO(event.startTime))
-    }, 0) / sleepEvents.length
-    : 0
-
-  // Calcular hora de despertar promedio
-  const avgWakeTime = sleepEvents.length > 0
-    ? sleepEvents.reduce((sum, event) => {
-      const endTime = parseISO(event.endTime)
-      return sum + (getHours(endTime) * 60 + getMinutes(endTime))
-    }, 0) / sleepEvents.length
-    : 0
-
-  // Contar estados emocionales
-  const emotionalStates = relevantEvents.reduce((acc, event) => {
-    if (event.emotionalState) {
-      acc[event.emotionalState] = (acc[event.emotionalState] || 0) + 1
-    }
-    return acc
-  }, {} as Record<string, number>)
-
-  return {
-    totalEvents: events.length,
-    recentEvents: relevantEvents.length,
-    sleepEvents: sleepEvents.length,
-    napEvents: napEvents.length,
-    avgSleepDurationMinutes: Math.round(avgSleepDuration),
-    avgWakeTimeMinutes: Math.round(avgWakeTime),
-    emotionalStates,
-    dominantMood: Object.entries(emotionalStates)
-      .sort(([,a], [,b]) => b - a)[0]?.[0] || "unknown",
-  }
-}
+// FUNCIÓN ELIMINADA: calculateChildStats() 
+// Ahora usamos processSleepStatistics() de /lib/sleep-calculations.ts 
+// para mantener consistencia con el dashboard de sleep-statistics
 
 // Función para buscar en el knowledge base RAG
 async function searchRAGKnowledge(transcript: string) {
