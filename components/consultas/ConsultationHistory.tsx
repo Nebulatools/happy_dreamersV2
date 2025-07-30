@@ -114,9 +114,11 @@ export function ConsultationHistory({
   }
 
   // Truncar texto
-  const truncateText = (text: string, maxLength: number = 150) => {
-    if (text.length <= maxLength) return text
-    return text.substring(0, maxLength) + '...'
+  const truncateText = (text: string | any, maxLength: number = 150) => {
+    // Convertir a string si no lo es
+    const textStr = typeof text === 'string' ? text : JSON.stringify(text) || ''
+    if (textStr.length <= maxLength) return textStr
+    return textStr.substring(0, maxLength) + '...'
   }
 
   // Descargar consulta específica

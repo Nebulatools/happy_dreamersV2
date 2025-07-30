@@ -80,37 +80,11 @@ export async function POST(req: NextRequest) {
       processingTime: Date.now() - stepStartTime
     })
 
-    // 2. Buscar información relevante en el knowledge base RAG
-    const ragStartTime = Date.now()
-    const ragContext = await searchRAGKnowledge(transcript)
-    processingSteps.ragContext = true
-    
-    logger.info("Búsqueda RAG completada", {
-      ragResultsCount: ragContext.length,
-      sources: ragContext.map(r => r.source),
-      totalContentLength: ragContext.reduce((sum, r) => sum + r.content.length, 0),
-      processingTime: Date.now() - ragStartTime
-    })
-
-    // 3. Obtener historial de consultas anteriores
-    const historyStartTime = Date.now()
-    const consultationHistory = await getPreviousConsultations(childId)
-    processingSteps.consultationHistory = true
-    
-    logger.info("Historial de consultas obtenido", {
-      childId,
-      consultationsFound: consultationHistory.length,
-      consultationDates: consultationHistory.map(c => c.date),
-      processingTime: Date.now() - historyStartTime
-    })
-
-    // 4. Generar análisis con IA
+    // 2. Generar análisis SOLO del transcript (sin RAG, sin historial)
     const aiStartTime = Date.now()
-    const analysis = await generateIntelligentAnalysis({
+    const analysis = await generateTranscriptOnlyAnalysis({
       transcript,
       childData,
-      ragContext,
-      consultationHistory,
     })
     processingSteps.aiAnalysis = true
     
@@ -138,15 +112,12 @@ export async function POST(req: NextRequest) {
       sourcesUsed: {
         transcript: processingSteps.transcript,
         childStatistics: processingSteps.childStats,
-        ragKnowledge: processingSteps.ragContext,
-        consultationHistory: processingSteps.consultationHistory,
         aiAnalysis: processingSteps.aiAnalysis
       },
       dataQuality: {
         transcriptLength: transcript.length,
         statsEventsCount: childData.stats.totalEvents,
-        ragResultsCount: ragContext.length,
-        historyConsultationsCount: consultationHistory.length,
+        analysisMode: "transcript_only",
         allSourcesUsed: Object.values(processingSteps).every(step => step)
       },
       performance: {
@@ -339,56 +310,53 @@ async function getPreviousConsultations(childId: string) {
   }
 }
 
-// Función principal de análisis con IA
-async function generateIntelligentAnalysis({
+// Función para generar análisis SOLO del transcript (sin RAG, sin historial)
+async function generateTranscriptOnlyAnalysis({
   transcript,
   childData,
-  ragContext,
-  consultationHistory,
 }: {
   transcript: string
   childData: any
-  ragContext: any[]
-  consultationHistory: any[]
 }) {
-  const systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y desarrollo infantil, especialmente en patrones de sueño.
+  const systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y desarrollo infantil.
 
-INFORMACIÓN DEL NIÑO:
+INFORMACIÓN BÁSICA DEL NIÑO:
 - Nombre: ${childData.firstName} ${childData.lastName}
 - Edad: ${childData.ageInMonths} meses
-- Eventos totales registrados: ${childData.stats.totalEvents}
 
-ESTADÍSTICAS ${childData.lastConsultationDate 
-  ? `DESDE ÚLTIMA CONSULTA (${format(new Date(childData.lastConsultationDate), "dd/MM/yyyy")})` 
-  : 'DE LOS ÚLTIMOS 30 DÍAS (primera consulta)'}:
-- Eventos registrados: ${childData.stats.recentEvents}
-- Eventos de sueño nocturno: ${childData.stats.sleepEvents}
-- Siestas: ${childData.stats.napEvents}
-- Duración promedio de sueño: ${childData.stats.avgSleepDurationMinutes} minutos
-- Hora promedio de despertar: ${Math.floor(childData.stats.avgWakeTimeMinutes / 60)}:${(childData.stats.avgWakeTimeMinutes % 60).toString().padStart(2, "0")}
-- Estado emocional dominante: ${childData.stats.dominantMood}
-- Período analizado: ${format(new Date(childData.statsFromDate), "dd/MM/yyyy")} - ${format(new Date(), "dd/MM/yyyy")}
+INSTRUCCIONES ESPECÍFICAS:
+Analiza ÚNICAMENTE el transcript de esta consulta para extraer información clave que será usada para actualizar el plan del niño.
 
-CONOCIMIENTO ESPECIALIZADO:
-${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join("\n\n---\n\n")}
+ENFÓCATE ESPECÍFICAMENTE EN:
 
-${consultationHistory.length > 0 ? `
-CONSULTAS ANTERIORES:
-${consultationHistory.map(c => `- ${c.date}: ${c.summary}`).join("\n")}
-` : ""}
+✅ CAMBIOS DE HORARIOS EXPLÍCITOS:
+   - Hora de despertar (ej: "cambiar despertar a las 7:40 AM")
+   - Hora de acostarse/dormir (ej: "acostarse a las 8:00 PM") 
+   - Horarios de comidas específicos mencionados
+   - Horarios de siestas (hora y duración)
+   - Límites de tiempo de pantalla
+   - Cualquier horario específico que el médico recomiende cambiar
 
-INSTRUCCIONES:
-1. Analiza el transcript de la consulta combinándolo con los datos estadísticos del niño
-2. Las estadísticas reflejan el período desde la última consulta (o últimos 30 días si es la primera)
-3. Compara con consultas anteriores para identificar patrones de mejora o empeoramiento
-4. Utiliza el conocimiento especializado para respaldar tu análisis
-5. Proporciona un análisis detallado pero conciso considerando la evolución temporal
-6. Genera recomendaciones específicas y accionables basadas en los cambios observados
+✅ PROGRESO Y PROBLEMAS:
+   - Mejoras reportadas por los padres
+   - Dificultades actuales que persisten
+   - Nuevos problemas identificados
+
+✅ RECOMENDACIONES DEL MÉDICO:
+   - Cambios específicos recomendados
+   - Ajustes en rutinas
+   - Nuevas estrategias sugeridas
+
+⚠️ REGLAS IMPORTANTES:
+- Solo extrae lo que está EXPLÍCITAMENTE mencionado
+- Incluye horarios EXACTOS cuando se mencionen
+- NO agregues información externa
+- Enfócate en información ÚTIL para actualizar el plan
 
 Responde en el siguiente formato JSON:
 {
-  "analysis": "Análisis detallado de la situación actual del niño basado en el transcript y datos",
-  "recommendations": "Plan de mejoramiento específico con pasos concretos y timeline"
+  "analysis": "Análisis en texto plano de los puntos clave del transcript: cambios de horarios mencionados (con horarios exactos), progreso reportado por los padres, problemas identificados y recomendaciones específicas del médico. Escribe todo en párrafos normales, no en formato JSON u objeto.",
+  "recommendations": "Recomendaciones en texto plano extraídas del transcript, incluyendo todos los cambios específicos de horarios mencionados por el médico (despertar, dormir, comidas, siestas, etc.) con horarios exactos. Escribe en párrafos normales."
 }`
 
   try {
@@ -401,27 +369,30 @@ Responde en el siguiente formato JSON:
         },
         {
           role: "user",
-          content: `Transcript de la consulta:\n\n${transcript}`,
+          content: `TRANSCRIPT DE LA CONSULTA MÉDICA:
+
+${transcript}
+
+Analiza SOLO este transcript y extrae los cambios de horarios específicos, problemas identificados, progreso reportado y recomendaciones del médico.`,
         },
       ],
-      max_tokens: 1500,
-      temperature: 0.7,
+      max_tokens: 1200,
+      temperature: 0.2, // Temperatura muy baja para máxima precisión
     })
 
     const responseContent = completion.choices[0]?.message?.content || ""
     
     try {
-      // Intentar parsear como JSON
       return JSON.parse(responseContent)
-    } catch {
-      // Si no es JSON válido, estructurar la respuesta
+    } catch (parseError) {
+      logger.error("Error parseando respuesta de IA:", parseError)
       return {
         analysis: responseContent,
-        recommendations: "Ver análisis para recomendaciones específicas.",
+        recommendations: "Ver análisis para recomendaciones específicas."
       }
     }
   } catch (error) {
-    logger.error("Error generando análisis con IA:", error)
+    logger.error("Error generando análisis:", error)
     throw new Error("Error al procesar el análisis con IA")
   }
 }

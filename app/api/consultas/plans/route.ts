@@ -340,7 +340,13 @@ async function generateTranscriptBasedPlan(
     throw new Error("No se encontró información del niño")
   }
 
-  // 4. Generar nuevo plan enfocado en cambios del análisis
+  // 4. Extraer cambios específicos de horarios del transcript
+  const scheduleChanges = await extractScheduleChangesFromTranscript(
+    consultationReport.transcript,
+    child.firstName
+  )
+
+  // 5. Generar nuevo plan enfocado en cambios del análisis
   const aiPlan = await generatePlanWithAI({
     planType: "transcript_based",
     childData: child,
@@ -349,7 +355,8 @@ async function generateTranscriptBasedPlan(
       analysis: consultationReport.analysis,
       recommendations: consultationReport.recommendations,
       transcript: consultationReport.transcript
-    }
+    },
+    scheduleChanges
   })
 
   return {
@@ -372,6 +379,72 @@ async function generateTranscriptBasedPlan(
     updatedAt: new Date(),
     createdBy: new ObjectId(adminId),
     status: "active"
+  }
+}
+
+// Función para extraer cambios específicos de horarios del transcript
+async function extractScheduleChangesFromTranscript(transcript: string, childName: string) {
+  const systemPrompt = `Eres un especialista en análisis de transcripts médicos pediátricos.
+
+EXTRAE ÚNICAMENTE los cambios específicos de horarios mencionados en el transcript.
+
+Busca y extrae:
+1. Hora de despertar (ej: "cambiar despertar a las 7:40 AM")
+2. Hora de dormir/acostarse (ej: "acostarse a las 8:00 PM") 
+3. Horarios de comidas (desayuno, almuerzo, merienda, cena)
+4. Horarios de siestas
+5. Horarios de actividades específicas
+6. Límites de tiempo de pantalla
+7. Cualquier otro horario específico mencionado
+
+Si NO se menciona un horario específico, devuelve null para ese campo.
+
+Responde en el siguiente formato JSON:
+{
+  "wakeTime": "07:40" o null,
+  "bedtime": "20:00" o null,
+  "breakfast": "07:30" o null,
+  "lunch": "12:00" o null,
+  "snack": "16:00" o null,
+  "dinner": "19:30" o null,
+  "napTime": "14:00" o null,
+  "napDuration": 90 o null,
+  "screenTimeLimit": 90 o null,
+  "screenTimeCutoff": "18:30" o null,
+  "specificActivities": [
+    {"time": "08:00", "activity": "jugar", "duration": 60} o null
+  ],
+  "otherChanges": ["cualquier otro cambio de horario mencionado"]
+}`
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt,
+        },
+        {
+          role: "user",
+          content: `Extrae los cambios específicos de horarios del siguiente transcript para ${childName}:\n\n${transcript}`,
+        },
+      ],
+      max_tokens: 1000,
+      temperature: 0.3, // Temperatura baja para mayor precisión
+    })
+
+    const responseContent = completion.choices[0]?.message?.content || ""
+    
+    try {
+      return JSON.parse(responseContent)
+    } catch (parseError) {
+      logger.error("Error parseando extracción de horarios:", parseError)
+      return null
+    }
+  } catch (error) {
+    logger.error("Error en extracción de horarios:", error)
+    return null
   }
 }
 
@@ -467,7 +540,8 @@ async function generatePlanWithAI({
   ragContext,
   surveyData,
   previousPlan,
-  transcriptAnalysis
+  transcriptAnalysis,
+  scheduleChanges
 }: {
   planType: "initial" | "transcript_based"
   childData: any
@@ -475,6 +549,7 @@ async function generatePlanWithAI({
   surveyData?: any
   previousPlan?: any
   transcriptAnalysis?: any
+  scheduleChanges?: any
 }) {
   let systemPrompt = ""
 
@@ -549,15 +624,23 @@ ANÁLISIS DE LA ÚLTIMA SESIÓN:
 Análisis: ${transcriptAnalysis.analysis}
 Recomendaciones: ${transcriptAnalysis.recommendations}
 
-TRANSCRIPT DE LA SESIÓN:
-${transcriptAnalysis.transcript.substring(0, 500)}...
+${scheduleChanges ? `
+CAMBIOS ESPECÍFICOS DE HORARIOS EXTRAÍDOS DEL TRANSCRIPT:
+${JSON.stringify(scheduleChanges, null, 2)}
+
+⚠️ IMPORTANTE: Estos horarios específicos tienen PRIORIDAD sobre el plan anterior. Si se especifica un horario aquí, ÚSALO en lugar del horario del plan anterior.
+` : ''}
+
+TRANSCRIPT DE LA SESIÓN (COMPLETO):
+${transcriptAnalysis.transcript}
 
 INSTRUCCIONES:
-1. Revisa el plan anterior y el análisis de la sesión
-2. Identifica áreas de mejora basadas en el transcript
-3. Ajusta horarios si es necesario
-4. Mantén la estructura general pero haz mejoras específicas
-5. Enfócate en los problemas identificados en la sesión
+1. 🎯 PRIORIDAD MÁXIMA: Aplica todos los cambios específicos de horarios extraídos del transcript
+2. Si hay conflicto entre plan anterior y horarios extraídos, USA LOS HORARIOS EXTRAÍDOS
+3. Revisa el plan anterior como base, pero actualiza con los cambios específicos
+4. Mantén la estructura general pero aplica mejoras específicas de la sesión
+5. Enfócate en los problemas identificados y cambios solicitados en la consulta
+6. Si un horario no está en los cambios extraídos, mantén el del plan anterior
 
 Responde en el siguiente formato JSON:
 {

@@ -178,36 +178,31 @@ export function PlanManager({
       }
     }
     
-    // Priorizar el análisis reciente si existe
+    // SOLO permitir generar plan si hay análisis reciente Y no ha sido usado
     if (hasAnalysisResult && latestReportId) {
-      const nextPlanNumber = Math.max(...plans.map(p => p.planNumber)) + 1
-      return {
-        canGenerate: true,
-        planType: "transcript_based" as const,
-        buttonText: `Generar Plan ${nextPlanNumber}`,
-        description: "Crear un plan actualizado basado en el último análisis de transcript",
-        reportId: latestReportId
+      // Verificar si el análisis reciente ya fue usado para generar un plan
+      const isLatestReportAlreadyUsed = plans.some(plan => 
+        plan.transcriptAnalysis?.reportId?.toString() === latestReportId
+      )
+      
+      if (!isLatestReportAlreadyUsed) {
+        const nextPlanNumber = Math.max(...plans.map(p => p.planNumber)) + 1
+        return {
+          canGenerate: true,
+          planType: "transcript_based" as const,
+          buttonText: `Generar Plan ${nextPlanNumber}`,
+          description: "Crear un plan actualizado basado en el último análisis de transcript",
+          reportId: latestReportId
+        }
       }
     }
     
-    // Si no hay análisis reciente, pero hay reportes en el historial
-    if (historyReports && historyReports.length > 0) {
-      const nextPlanNumber = Math.max(...plans.map(p => p.planNumber)) + 1
-      const latestHistoryReport = historyReports[0] // El más reciente
-      return {
-        canGenerate: true,
-        planType: "transcript_based" as const,
-        buttonText: `Generar Plan ${nextPlanNumber}`,
-        description: "Crear un plan actualizado basado en el último reporte del historial",
-        reportId: latestHistoryReport._id
-      }
-    }
-    
+    // Si no hay análisis reciente nuevo, deshabilitar el botón
     return {
       canGenerate: false,
       planType: "transcript_based" as const,
-      buttonText: "Generar Plan Actualizado",
-      description: "Debe generar un análisis o tener reportes en el historial para crear un plan actualizado",
+      buttonText: "Sin análisis nuevos",
+      description: "Genere un nuevo análisis de transcript para crear un plan actualizado",
       reportId: null
     }
   }
