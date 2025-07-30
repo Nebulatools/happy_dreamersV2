@@ -63,12 +63,22 @@ export default function SurveyPage() {
       // Si no hay encuesta en la API, verificar localStorage
       const savedData = localStorage.getItem(`survey_${childId}`)
       if (savedData) {
-        const parsedData = JSON.parse(savedData)
-        setExistingSurvey(parsedData)
-        toast({
-          title: "Progreso recuperado",
-          description: "Hemos recuperado tu progreso anterior en la encuesta"
-        })
+        try {
+          const parsedData = JSON.parse(savedData)
+          // Si los datos guardados tienen la estructura nueva con formData
+          if (parsedData.formData) {
+            setExistingSurvey(parsedData.formData)
+          } else {
+            // Si es la estructura antigua, usar directamente
+            setExistingSurvey(parsedData)
+          }
+          toast({
+            title: "Progreso recuperado",
+            description: "Hemos recuperado tu progreso anterior en la encuesta"
+          })
+        } catch (error) {
+          logger.error("Error parseando datos guardados", error)
+        }
       }
     } catch (error) {
       logger.error("Error cargando encuesta", error)

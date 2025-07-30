@@ -7,7 +7,7 @@ import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Save, AlertCircle } from "lucide-react"
+import { ChevronLeft, ChevronRight, Save, AlertCircle, CheckCircle2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { SurveyProgress } from "./SurveyProgress"
 import { FamilyInfoStep } from "./steps/FamilyInfoStep"
@@ -18,6 +18,7 @@ import { PhysicalActivityStep } from "./steps/PhysicalActivityStep"
 import { RoutineHabitsStep } from "./steps/RoutineHabitsStep"
 import { useSurveyForm } from "./hooks/useSurveyForm"
 import { useSurveyValidation } from "./hooks/useSurveyValidation"
+import { useSurveyPersistence } from "./hooks/useSurveyPersistence"
 import type { SurveyData } from "@/types/models"
 
 // Componentes de pasos
@@ -41,6 +42,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
   const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showSaveIndicator, setShowSaveIndicator] = useState(false)
   
   const {
     formData,
@@ -51,7 +53,8 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
     markStepAsTouched,
     isStepValid,
     isFormComplete,
-    getStepData
+    getStepData,
+    setFormData
   } = useSurveyForm(initialData)
   
   const {
@@ -59,6 +62,19 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
     focusErrorField,
     shouldShowError
   } = useSurveyValidation()
+  
+  const {
+    saveToLocalStorage,
+    loadFromLocalStorage,
+    clearLocalStorage,
+    saveToServer,
+    lastSaveTime
+  } = useSurveyPersistence({
+    childId,
+    formData,
+    currentStep,
+    enabled: true
+  })
 
   // Calcular qué pasos están completos y cuáles tienen errores
   const completedSteps = useMemo(() => {
@@ -103,6 +119,28 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
     setCurrentStep(newStep)
   }
 
+  // Cargar datos guardados al iniciar
+  useEffect(() => {
+    if (!initialData && !isExisting) {
+      const savedData = loadFromLocalStorage()
+      if (savedData) {
+        setFormData(savedData.formData)
+        setCurrentStep(savedData.currentStep || 1)
+        toast({
+          title: "Progreso recuperado",
+          description: "Hemos recuperado tu progreso anterior en la encuesta"
+        })
+      }
+    }
+  }, [])
+
+  // Mostrar indicador de guardado
+  useEffect(() => {
+    setShowSaveIndicator(true)
+    const timer = setTimeout(() => setShowSaveIndicator(false), 2000)
+    return () => clearTimeout(timer)
+  }, [lastSaveTime])
+
   // Manejar envío del formulario
   const handleSubmit = async () => {
     if (!isFormComplete()) {
@@ -126,28 +164,39 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
     }
     
     setIsSubmitting(true)
+    
+    // Primero guardar en localStorage como respaldo
+    saveToLocalStorage()
+    
     try {
-      const response = await fetch("/api/survey", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ childId, surveyData: formData })
-      })
+      const result = await saveToServer(false) // false = guardado final
       
-      if (!response.ok) throw new Error("Error al guardar")
-      
-      toast({
-        title: isExisting ? "Cambios guardados" : "Encuesta completada",
-        description: isExisting 
-          ? "Los cambios se han guardado exitosamente"
-          : "Gracias por completar la encuesta"
-      })
-      
-      router.push("/dashboard")
+      if (result.success) {
+        toast({
+          title: isExisting ? "Cambios guardados" : "Encuesta completada",
+          description: isExisting 
+            ? "Los cambios se han guardado exitosamente"
+            : "Gracias por completar la encuesta. Los datos se han guardado correctamente.",
+          duration: 5000
+        })
+        
+        router.push("/dashboard")
+      } else {
+        // Si falla el servidor, los datos ya están en localStorage
+        toast({
+          title: "Error de conexión",
+          description: "No se pudo conectar con el servidor. Tu progreso se ha guardado localmente y se intentará enviar más tarde.",
+          variant: "destructive",
+          duration: 7000
+        })
+      }
     } catch (error) {
+      // En caso de error, los datos están seguros en localStorage
       toast({
-        title: "Error",
-        description: "No se pudo guardar la encuesta",
-        variant: "destructive"
+        title: "Error al guardar",
+        description: "Hubo un problema al guardar la encuesta. Tu progreso se ha guardado localmente.",
+        variant: "destructive",
+        duration: 7000
       })
     } finally {
       setIsSubmitting(false)
@@ -155,14 +204,26 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
   }
 
   // Guardar y continuar después
-  const handleSaveAndContinueLater = () => {
-    localStorage.setItem(`survey_${childId}`, JSON.stringify(formData))
-    localStorage.setItem(`survey_step_${childId}`, currentStep.toString())
+  const handleSaveAndContinueLater = async () => {
+    // Guardar en localStorage
+    saveToLocalStorage()
     
-    toast({
-      title: "Progreso guardado",
-      description: "Puedes continuar con la encuesta cuando quieras"
-    })
+    // Intentar guardar parcialmente en el servidor
+    const result = await saveToServer(true) // true = guardado parcial
+    
+    if (result.success) {
+      toast({
+        title: "Progreso guardado",
+        description: "Tu progreso se ha guardado en el servidor. Puedes continuar cuando quieras.",
+        duration: 4000
+      })
+    } else {
+      toast({
+        title: "Progreso guardado localmente",
+        description: "Tu progreso se ha guardado en tu dispositivo. Se sincronizará cuando vuelvas.",
+        duration: 4000
+      })
+    }
     
     router.push("/dashboard")
   }
@@ -201,7 +262,15 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
         onStepClick={handleStepChange}
       />
       
-      <Card className="p-6 md:p-8">
+      <Card className="p-6 md:p-8 relative">
+        {/* Indicador de guardado automático */}
+        {showSaveIndicator && (
+          <div className="absolute top-4 right-4 flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-full animate-fade-in">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Guardado automático</span>
+          </div>
+        )}
+        
         <StepComponent
           data={getStepData(currentStep)}
           onChange={(data) => updateStepData(currentStep, data)}
