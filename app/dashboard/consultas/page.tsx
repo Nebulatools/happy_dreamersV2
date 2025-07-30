@@ -7,13 +7,14 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Stethoscope, FileText, Mic, History } from "lucide-react"
+import { Loader2, Stethoscope, FileText, Mic, History, Calendar } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UserChildSelector } from "@/components/consultas/UserChildSelector"
 import { TranscriptInput } from "@/components/consultas/TranscriptInput"
 import { AnalysisReport } from "@/components/consultas/AnalysisReport"
 import { ConsultationHistory } from "@/components/consultas/ConsultationHistory"
+import { PlanManager } from "@/components/consultas/PlanManager"
 
 import { createLogger } from "@/lib/logger"
 
@@ -46,6 +47,7 @@ export default function ConsultasPage() {
   const [transcript, setTranscript] = useState("")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<any>(null)
+  const [activeTab, setActiveTab] = useState("transcript")
 
   // Verificar que el usuario es admin
   useEffect(() => {
@@ -100,6 +102,7 @@ export default function ConsultasPage() {
   const handleChildSelect = (child: Child) => {
     setSelectedChild(child)
     setAnalysisResult(null) // Reset analysis
+    setActiveTab("transcript") // Reset tab
   }
 
   // Procesar análisis
@@ -154,6 +157,9 @@ export default function ConsultasPage() {
         title: "Análisis completado",
         description: "Se ha generado el análisis y plan de mejoramiento.",
       })
+
+      // Auto-cambiar al tab de análisis
+      setActiveTab("analysis")
     } catch (error) {
       logger.error("Error:", error)
       toast({
@@ -208,11 +214,15 @@ export default function ConsultasPage() {
         {/* Panel Principal */}
         <div className="lg:col-span-2">
           {selectedUser && selectedChild ? (
-            <Tabs defaultValue="transcript" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-3">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="transcript">
                   <FileText className="h-4 w-4 mr-2" />
                   Transcript
+                </TabsTrigger>
+                <TabsTrigger value="plan">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Plan
                 </TabsTrigger>
                 <TabsTrigger value="analysis">
                   <Stethoscope className="h-4 w-4 mr-2" />
@@ -248,6 +258,16 @@ export default function ConsultasPage() {
                 </div>
               </TabsContent>
 
+              <TabsContent value="plan">
+                <PlanManager
+                  selectedUserId={selectedUser?._id}
+                  selectedChildId={selectedChild?._id}
+                  selectedChildName={selectedChild ? `${selectedChild.firstName} ${selectedChild.lastName}` : null}
+                  hasAnalysisResult={!!analysisResult}
+                  latestReportId={analysisResult?.reportId || null}
+                />
+              </TabsContent>
+
               <TabsContent value="analysis">
                 <AnalysisReport
                   result={analysisResult}
@@ -261,6 +281,7 @@ export default function ConsultasPage() {
                 <ConsultationHistory
                   selectedUserId={selectedUser?._id}
                   selectedChildId={selectedChild?._id}
+                  selectedChildName={selectedChild ? `${selectedChild.firstName} ${selectedChild.lastName}` : undefined}
                   visible={true}
                 />
               </TabsContent>

@@ -286,3 +286,63 @@ export interface SleepStatistics {
     consistency: "improving" | "stable" | "declining"
   }
 }
+
+// Plan personalizado para el niño
+export interface ChildPlan {
+  _id: ObjectId | string
+  childId: ObjectId | string
+  userId: ObjectId | string
+  planNumber: number // 0, 1, 2, 3...
+  planType: "initial" | "transcript_based"
+  
+  // Horarios estructurados del plan
+  schedule: {
+    bedtime: string      // "20:00"
+    wakeTime: string     // "07:00" 
+    meals: Array<{
+      time: string       // "12:00"
+      type: string       // "almuerzo", "cena", "desayuno", "merienda"
+      description: string
+    }>
+    activities: Array<{
+      time: string       // "17:00"
+      activity: string   // "jugar", "leer", "ejercicio"
+      duration: number   // minutos
+      description: string
+    }>
+    naps?: Array<{
+      time: string       // "14:00"
+      duration: number   // minutos
+      description?: string
+    }>
+  }
+  
+  // Detalles del plan
+  title: string          // "Plan Inicial para [Nombre]"
+  objectives: string[]   // Objetivos principales del plan
+  recommendations: string[] // Recomendaciones específicas
+  basedOn: "survey_stats_rag" | "transcript_analysis"
+  
+  // Metadata para Plan 0 (basado en survey + stats + RAG)
+  sourceData?: {
+    surveyDataUsed: boolean
+    childStatsUsed: boolean
+    ragSources: string[]  // Fuentes del knowledge base utilizadas
+    ageInMonths: number
+    totalEvents: number
+  }
+  
+  // Metadata para Planes 1+ (basados en transcript analysis)
+  transcriptAnalysis?: {
+    reportId: ObjectId | string  // ID del reporte de análisis usado
+    improvements: string[]       // Mejoras identificadas
+    adjustments: string[]        // Ajustes sugeridos
+    previousPlanNumber: number   // Plan anterior que se está actualizando
+  }
+  
+  // Información de auditoría
+  createdAt: Date
+  updatedAt: Date
+  createdBy: ObjectId | string // admin ID que creó el plan
+  status: "active" | "superseded" | "archived" // Estado del plan
+}

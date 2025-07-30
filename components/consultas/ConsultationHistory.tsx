@@ -53,12 +53,14 @@ interface ConsultationHistoryProps {
   selectedUserId?: string
   selectedChildId?: string
   visible?: boolean
+  selectedChildName?: string
 }
 
 export function ConsultationHistory({ 
   selectedUserId, 
   selectedChildId,
-  visible = true 
+  visible = true,
+  selectedChildName
 }: ConsultationHistoryProps) {
   const { toast } = useToast()
   
