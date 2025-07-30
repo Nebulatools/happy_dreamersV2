@@ -10,6 +10,7 @@ export interface SleepEvent {
   endTime?: string
   notes?: string
   emotionalState?: string
+  sleepDelay?: number // Tiempo en minutos para dormirse
 }
 
 export interface ProcessedSleepStats {
@@ -84,8 +85,9 @@ export function processSleepStatistics(
   // Separar diferentes tipos de eventos
   const nightSleep = relevantEvents.filter(e => e.eventType === 'sleep')
   const naps = relevantEvents.filter(e => e.eventType === 'nap')
-  const bedtimeEvents = relevantEvents.filter(e => e.eventType === 'bedtime')
-  const sleepEvents = relevantEvents.filter(e => e.eventType === 'sleep')
+  // Para compatibilidad con datos antiguos, incluir bedtime como sleep
+  const bedtimeEvents = relevantEvents.filter(e => e.eventType === 'bedtime' || e.eventType === 'sleep')
+  const sleepEvents = relevantEvents.filter(e => e.eventType === 'sleep' || e.eventType === 'bedtime')
 
   // Duración promedio del sueño nocturno usando inferencia
   const avgSleepDuration = calculateInferredSleepDuration(relevantEvents)
@@ -100,7 +102,7 @@ export function processSleepStatistics(
       }, 0) / naps.length
     : 0
 
-  // Hora promedio de acostarse (SOLO eventos bedtime NOCTURNOS)
+  // Hora promedio de acostarse (eventos bedtime y sleep nocturnos)
   const nocturnalBedtimeEvents = bedtimeEvents.filter(e => {
     const hour = parseISO(e.startTime).getHours()
     return hour >= 18 || hour <= 6 // Horario nocturno
@@ -110,14 +112,14 @@ export function processSleepStatistics(
     ? calculateAverageTime(nocturnalBedtimeEvents.map(e => parseISO(e.startTime)))
     : "--:--"
 
-  // Hora promedio de dormir (SOLO eventos sleep NOCTURNOS) 
+  // Hora promedio de dormir real (considerando el delay)
   const nocturnalSleepEvents = sleepEvents.filter(e => {
     const hour = parseISO(e.startTime).getHours()
     return hour >= 18 || hour <= 6 // Horario nocturno
   })
   
   const avgSleepTime = nocturnalSleepEvents.length > 0
-    ? calculateAverageTime(nocturnalSleepEvents.map(e => parseISO(e.startTime)))
+    ? calculateAverageSleepTime(nocturnalSleepEvents)
     : "--:--"
 
   // Hora promedio de levantarse usando inferencia
@@ -132,8 +134,8 @@ export function processSleepStatistics(
   const totalWakeups = calculateNightWakeups(relevantEvents)
   const avgWakeupsPerNight = nightSleep.length > 0 ? totalWakeups / nightSleep.length : 0
 
-  // Calcular diferencia entre bedtime y sleep time
-  const bedtimeToSleepDifference = calculateTimeDifference(avgBedtime, avgSleepTime)
+  // Calcular diferencia promedio entre acostarse y dormirse
+  const bedtimeToSleepDifference = calculateAverageSleepDelay(nocturnalSleepEvents)
 
   // Total de horas de sueño por día
   const totalSleepHours = (avgSleepDuration + avgNapDuration)
@@ -202,7 +204,11 @@ function calculateInferredSleepDuration(events: SleepEvent[]): number {
       const bedTime = parseISO(currentEvent.startTime)
       const wakeTime = parseISO(nextEvent.startTime)
       
-      let duration = differenceInMinutes(wakeTime, bedTime)
+      // Si es evento sleep con delay, ajustar el tiempo de inicio real
+      const sleepDelay = currentEvent.sleepDelay || 0
+      const actualSleepTime = new Date(bedTime.getTime() + sleepDelay * 60 * 1000)
+      
+      let duration = differenceInMinutes(wakeTime, actualSleepTime)
       
       if (duration < 0) {
         duration += 24 * 60
@@ -221,11 +227,15 @@ function calculateInferredSleepDuration(events: SleepEvent[]): number {
       const bedTime = parseISO(currentEvent.startTime)
       const nextEventTime = parseISO(nextEvent.startTime)
       
+      // Si es evento sleep con delay, ajustar el tiempo de inicio real
+      const sleepDelay = currentEvent.sleepDelay || 0
+      const actualSleepTime = new Date(bedTime.getTime() + sleepDelay * 60 * 1000)
+      
       // Solo si es al día siguiente o más tarde
-      if (nextEventTime.getTime() > bedTime.getTime()) {
+      if (nextEventTime.getTime() > actualSleepTime.getTime()) {
         // Inferir despertar 1 hora antes del primer evento del día siguiente
         const inferredWakeTime = new Date(nextEventTime.getTime() - 60 * 60 * 1000)
-        let duration = differenceInMinutes(inferredWakeTime, bedTime)
+        let duration = differenceInMinutes(inferredWakeTime, actualSleepTime)
         
         if (duration < 0) {
           duration += 24 * 60
@@ -335,45 +345,57 @@ function calculateTimeVariation(dates: Date[]): number {
 }
 
 /**
- * Calcula la diferencia entre dos horas en formato HH:MM
+ * Calcula el promedio de tiempo para dormirse basado en sleepDelay o diferencia bedtime-sleep
  */
-function calculateTimeDifference(bedtime: string, sleepTime: string): string {
-  if (bedtime === "--:--" || sleepTime === "--:--") {
-    return "--"
+function calculateAverageSleepDelay(sleepEvents: SleepEvent[]): string {
+  if (sleepEvents.length === 0) return "--"
+  
+  const delays: number[] = []
+  
+  sleepEvents.forEach(event => {
+    // Si tiene sleepDelay (nuevo formato), usarlo directamente
+    if (event.sleepDelay !== undefined && event.sleepDelay >= 0) {
+      delays.push(event.sleepDelay)
+    }
+    // Si es un evento bedtime antiguo, asumir 0 minutos
+    else if (event.eventType === 'bedtime') {
+      delays.push(0)
+    }
+  })
+  
+  if (delays.length === 0) return "--"
+  
+  const avgDelay = Math.round(delays.reduce((sum, d) => sum + d, 0) / delays.length)
+  
+  if (avgDelay === 0) {
+    return "0 min"
+  } else if (avgDelay < 60) {
+    return `${avgDelay} min`
+  } else {
+    const hours = Math.floor(avgDelay / 60)
+    const minutes = avgDelay % 60
+    return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`
   }
+}
 
-  try {
-    const [bedHour, bedMin] = bedtime.split(':').map(Number)
-    const [sleepHour, sleepMin] = sleepTime.split(':').map(Number)
+/**
+ * Calcula la hora promedio de dormir real (considerando el delay)
+ */
+function calculateAverageSleepTime(sleepEvents: SleepEvent[]): string {
+  if (sleepEvents.length === 0) return "--:--"
+  
+  const sleepTimes: Date[] = []
+  
+  sleepEvents.forEach(event => {
+    const startTime = parseISO(event.startTime)
+    const delay = event.sleepDelay || 0
     
-    const bedMinutes = bedHour * 60 + bedMin
-    const sleepMinutes = sleepHour * 60 + sleepMin
-    
-    let diffMinutes = sleepMinutes - bedMinutes
-    
-    // Si la diferencia es negativa, significa que cruzó medianoche
-    if (diffMinutes < 0) {
-      diffMinutes += 24 * 60 // Agregar 24 horas
-    }
-    
-    // Si la diferencia es muy grande (>8 horas), probablemente es error
-    if (diffMinutes > 8 * 60) {
-      return "???"
-    }
-    
-    const hours = Math.floor(diffMinutes / 60)
-    const minutes = diffMinutes % 60
-    
-    if (hours === 0) {
-      return `${minutes} min`
-    } else if (minutes === 0) {
-      return `${hours}h`
-    } else {
-      return `${hours}h ${minutes}m`
-    }
-  } catch {
-    return "???"
-  }
+    // Calcular hora real de sueño sumando el delay
+    const actualSleepTime = new Date(startTime.getTime() + delay * 60 * 1000)
+    sleepTimes.push(actualSleepTime)
+  })
+  
+  return calculateAverageTime(sleepTimes)
 }
 
 /**

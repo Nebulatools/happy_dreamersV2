@@ -1,4 +1,4 @@
-import { Moon, Sun, Activity, Bed } from "lucide-react"
+import { Moon, Sun, Activity } from "lucide-react"
 
 export interface EventType {
   id: string
@@ -6,6 +6,7 @@ export interface EventType {
   icon: any
   description: string
   hasEndTime: boolean
+  hasSleepDelay?: boolean
 }
 
 export const eventTypes: EventType[] = [
@@ -13,15 +14,9 @@ export const eventTypes: EventType[] = [
     id: "sleep",
     label: "Dormir",
     icon: Moon,
-    description: "Período de sueño",
+    description: "Momento de acostar y período de sueño",
     hasEndTime: false,
-  },
-  {
-    id: "bedtime",
-    label: "Acostarse", 
-    icon: Bed,
-    description: "Momento de acostarse a dormir",
-    hasEndTime: false,
+    hasSleepDelay: true,
   },
   {
     id: "nap", 

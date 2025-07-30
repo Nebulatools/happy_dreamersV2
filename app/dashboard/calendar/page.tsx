@@ -266,7 +266,8 @@ export default function CalendarPage() {
 
   const getEventTypeName = (type: string) => {
     const types: Record<string, string> = {
-      sleep: "Sueño nocturno",
+      sleep: "Dormir",
+      bedtime: "Dormir", // Para compatibilidad con datos antiguos
       nap: "Siesta",
       wake: "Despertar nocturno",
       meal: "Comida",

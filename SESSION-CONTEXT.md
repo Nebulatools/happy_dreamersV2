@@ -1,6 +1,6 @@
 # Session Context - Happy Dreamers UI Implementation
 
-*Last Updated: January 24, 2025 - Code Cleanup & Quality Improvements*
+*Last Updated: January 30, 2025 - Sleep Event Unification & Survey Persistence*
 
 ## 🎯 Current System State
 
@@ -33,6 +33,69 @@
 6. ✅ **Update this file at session end** - Document progress
 
 ## 🎯 MAJOR ACCOMPLISHMENTS THIS SESSION
+
+### ✅ **SLEEP EVENT UNIFICATION - DORMIR EVENT ENHANCED** (January 30, 2025)
+
+#### **Unificación de Eventos Acostarse y Dormir:**
+
+1. **✅ Eventos Unificados en un Solo Tipo**
+   - **Eliminado**: Evento "bedtime" (acostarse) removido completamente
+   - **Mejorado**: Evento "sleep" (dormir) ahora captura:
+     - Hora de acostar al niño
+     - Tiempo que tardó en dormirse (nuevo campo `sleepDelay`)
+     - Sin hora de fin (la duración se calcula con el evento despertar)
+
+2. **✅ Nuevo Componente SleepDelayInput**
+   - **Archivo**: `/components/events/SleepDelayInput.tsx`
+   - **Características**:
+     - Input numérico para minutos (0-120)
+     - Botones de acceso rápido: 5, 10, 15, 30, 45, 60 minutos
+     - Explicación clara para los padres
+     - Visualización del tiempo seleccionado
+
+3. **✅ Lógica de Cálculos Actualizada**
+   - **lib/sleep-calculations.ts**: 
+     - Considera `sleepDelay` en todos los cálculos
+     - Calcula duración real: (hora acostarse + delay) → hora despertar
+     - Mantiene compatibilidad con eventos antiguos
+   - **hooks/use-sleep-data.ts**:
+     - Procesamiento actualizado para nuevo formato
+     - Cálculo de tiempo promedio para dormirse
+
+4. **✅ Modal de Registro Mejorado**
+   - Campo de tiempo para dormirse solo aparece en evento "Dormir"
+   - Placeholder actualizado en notas para incitar más detalles
+   - Sin hora de fin para evento dormir (como debe ser)
+
+5. **✅ Compatibilidad Total**
+   - Eventos "bedtime" antiguos tratados como "sleep" con delay 0
+   - Visualizaciones actualizadas para mostrar "Tiempo promedio para dormirse"
+   - Calendario muestra "Dormir" para ambos tipos de eventos
+
+### ✅ **SURVEY PERSISTENCE SYSTEM** (January 30, 2025)
+
+#### **Sistema de Persistencia de Datos del Survey:**
+
+1. **✅ Hook de Persistencia Creado**
+   - **Archivo**: `/components/survey/hooks/useSurveyPersistence.ts`
+   - **Características**:
+     - Guardado automático en localStorage con debounce de 500ms
+     - Recuperación automática al cargar la página
+     - Estados de sincronización: idle, saving, saved, loading
+     - Manejo de errores con fallback
+
+2. **✅ Indicadores Visuales de Estado**
+   - **Estados de Guardado**:
+     - "Guardando..." con spinner durante el guardado
+     - "Guardado" con checkmark cuando se completa
+     - Animación de fade in/out suave
+   - **CSS Animaciones**: Nuevas clases para efectos visuales
+
+3. **✅ Integración Completa**
+   - SurveyWizard actualizado para usar el hook de persistencia
+   - Datos se guardan automáticamente mientras el usuario escribe
+   - Al recargar la página, el formulario recupera el estado anterior
+   - Funciona con todos los pasos del survey
 
 ### ✅ **SURVEY MODULE REFACTORING - MODULAR ARCHITECTURE** (January 30, 2025)
 
@@ -338,6 +401,20 @@
 
 ## 📋 NEXT SESSION PRIORITY
 
+### 🎯 **Próximas Mejoras Sugeridas:**
+
+#### **Opción 1: Completar Sistema de Eventos**
+- Agregar campo de notas detalladas para evento despertar
+- Visualización mejorada de patrones de sueño con el nuevo dato
+- Análisis de tiempo para dormirse por día de la semana
+- Alertas cuando el tiempo para dormirse excede umbrales
+
+#### **Opción 2: Mejoras en Survey**
+- Indicador de progreso por sección completada
+- Validación visual mejorada con resaltado de campos
+- Exportar/importar datos del survey
+- Integración con perfil del niño
+
 ### 🎯 **Sistema Completamente Funcional - Opciones para Continuar:**
 
 #### **Opción 1: Funcionalidades Avanzadas**
@@ -365,7 +442,25 @@
 
 ## 📁 Files Modified/Created This Session
 
-### **Latest Updates (Production-Ready Code Improvements - January 24, 2025 - Evening):**
+### **Latest Updates (Sleep Event Unification - January 30, 2025):**
+
+#### **Archivos Creados:**
+1. **✅ `/components/events/SleepDelayInput.tsx`** - Componente para capturar tiempo para dormirse
+2. **✅ `/components/survey/hooks/useSurveyPersistence.ts`** - Hook para persistencia del survey
+
+#### **Archivos Modificados:**
+1. **✅ `/lib/event-types.ts`** - Eliminado evento bedtime, actualizado sleep con hasSleepDelay
+2. **✅ `/components/events/EventRegistrationModal.tsx`** - Agregado campo sleepDelay y lógica
+3. **✅ `/lib/sleep-calculations.ts`** - Actualizada lógica para considerar sleepDelay
+4. **✅ `/hooks/use-sleep-data.ts`** - Actualizada para procesar nuevo formato
+5. **✅ `/components/events/CompactEventTypeSelector.tsx`** - Removido color de bedtime
+6. **✅ `/components/sleep-statistics/SleepConsistencyChart.tsx`** - Texto actualizado
+7. **✅ `/app/dashboard/calendar/page.tsx`** - Mapeo de nombres actualizado
+8. **✅ `/components/events/index.ts`** - Agregado export de SleepDelayInput
+9. **✅ `/components/survey/SurveyWizard.tsx`** - Integrado sistema de persistencia
+10. **✅ `/app/globals.css`** - Agregadas animaciones para indicadores de guardado
+
+### **Previous Updates (Production-Ready Code Improvements - January 24, 2025 - Evening):**
 
 #### **Eliminación Completa de Mock Data y Código de Producción:**
 

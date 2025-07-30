@@ -13,7 +13,8 @@ import { useToast } from "@/hooks/use-toast"
 import { CompactEventTypeSelector } from "./CompactEventTypeSelector"
 import { CompactEmotionalStateSelector } from "./CompactEmotionalStateSelector"
 import { TimeSelector } from "./TimeSelector"
-import { eventTypeHasEndTime } from "@/lib/event-types"
+import { eventTypeHasEndTime, getEventType } from "@/lib/event-types"
+import { SleepDelayInput } from "./SleepDelayInput"
 
 import { createLogger } from "@/lib/logger"
 
@@ -36,12 +37,10 @@ const getCurrentDateTimeISO = () => {
 const getEventTypeByTime = (date: Date) => {
   const hour = date.getHours()
   
-  if (hour >= 20 || hour < 6) {
-    return "sleep" // Dormir
+  if (hour >= 19 || hour < 6) {
+    return "sleep" // Dormir (incluye el rango anterior de bedtime)
   } else if (hour >= 12 && hour < 17) {
     return "nap" // Siesta
-  } else if (hour >= 19 && hour < 22) {
-    return "bedtime" // Acostarse
   } else {
     return "wake" // Despertar
   }
@@ -90,6 +89,7 @@ const eventFormSchema = z.object({
   }),
   endTime: z.string().optional(),
   duration: z.number().min(0).max(24).optional(),
+  sleepDelay: z.number().min(0).max(120).optional(),
   notes: z.string().optional(),
 }).refine((data) => {
   // Validar que la hora de fin sea después de la hora de inicio
@@ -136,6 +136,7 @@ export function EventRegistrationModal({
       emotionalState: "calm",
       startTime: getCurrentDateTimeISO(),
       eventType: getEventTypeByTime(new Date()),
+      sleepDelay: 0,
     },
   })
 
@@ -165,6 +166,7 @@ export function EventRegistrationModal({
         startTime: currentTime,
         eventType: getEventTypeByTime(now),
         endTime: defaultEndTime,
+        sleepDelay: 0,
       })
     }
   }, [isOpen, form])
@@ -177,6 +179,10 @@ export function EventRegistrationModal({
   
   // Determinar si el tipo de evento actual necesita hora de fin
   const shouldShowEndTime = eventType ? eventTypeHasEndTime(eventType) : false
+  
+  // Determinar si el tipo de evento actual necesita campo de sleep delay
+  const eventTypeInfo = eventType ? getEventType(eventType) : null
+  const shouldShowSleepDelay = eventTypeInfo?.hasSleepDelay || false
   
   // FECHA COMPARTIDA entre ambos TimeSelectors
   const [sharedDate, setSharedDate] = useState<string>(() => {
@@ -239,6 +245,7 @@ export function EventRegistrationModal({
           ...data,
           childId,
           duration: data.endTime ? calculateDuration(data.startTime, data.endTime) : data.duration || 0,
+          sleepDelay: data.sleepDelay || 0,
         }),
       })
       
@@ -381,6 +388,25 @@ export function EventRegistrationModal({
                   </span>
                 </div>
               )}
+              
+              {/* Campo de tiempo para dormirse - solo para evento sleep */}
+              {shouldShowSleepDelay && (
+                <FormField
+                  control={form.control}
+                  name="sleepDelay"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <SleepDelayInput
+                          value={field.value || 0}
+                          onChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
 
             {/* Notas */}
@@ -394,7 +420,10 @@ export function EventRegistrationModal({
                   </FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Añade detalles adicionales sobre este evento..."
+                      placeholder={shouldShowSleepDelay 
+                        ? "Añade cualquier detalle adicional: ¿Se despertó durante la noche? ¿Tuvo alguna dificultad para dormir? ¿Cómo fue la rutina de sueño?"
+                        : "Añade detalles adicionales sobre este evento..."
+                      }
                       className="bg-gray-50 border-gray-200 resize-none"
                       rows={4}
                       {...field}

@@ -12,7 +12,6 @@ interface CompactEventTypeSelectorProps {
 
 const eventTypeColors = {
   sleep: "text-blue-600 bg-blue-50",
-  bedtime: "text-indigo-600 bg-indigo-50", 
   nap: "text-orange-600 bg-orange-50",
   wake: "text-yellow-600 bg-yellow-50",
   activity: "text-purple-600 bg-purple-50",

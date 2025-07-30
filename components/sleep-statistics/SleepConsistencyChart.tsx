@@ -139,7 +139,7 @@ export default function SleepConsistencyChart({ childId, dateRange = "7-days" }:
           </span>
         </div>
         <div className="flex items-center justify-between">
-          <span>Diferencia (acostarse → dormir):</span>
+          <span>Tiempo promedio para dormirse:</span>
           <span className="font-medium text-[#FF6B7A]">
             {bedtimeToSleepDiff}
           </span>
