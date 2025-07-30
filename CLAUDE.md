@@ -269,17 +269,47 @@ For each security-sensitive change, document:
 - `"Commit current changes"`
 - `"What's the priority for next session?"`
 
+## 🚨 ARCHIVOS PROTEGIDOS - NO MODIFICAR
+
+Los siguientes archivos contienen lógica crítica de backend para el análisis de consultas y gestión de planes. **NO DEBEN SER MODIFICADOS** bajo ninguna circunstancia sin autorización explícita:
+
+### Archivos Backend Protegidos:
+- `/app/api/consultas/analyze/route.ts` - Análisis integral de consultas con IA
+- `/app/api/consultas/history/route.ts` - Gestión del historial de consultas
+- `/app/api/consultas/plans/route.ts` - Generación y gestión de planes personalizados
+
+### Archivos Frontend Protegidos:
+- `/components/consultas/ConsultationHistory.tsx` - Visualización de historial
+- `/components/consultas/PlanDisplay.tsx` - Visualización de planes
+- `/components/consultas/PlanManager.tsx` - Gestión de planes UI
+- `/app/dashboard/consultas/page.tsx` - Página principal de consultas
+
+### Razón de Protección:
+Estos archivos implementan lógica compleja de:
+- Análisis de conversaciones completas con IA
+- Extracción de acuerdos realistas entre médico y padres
+- Generación de planes basados en múltiples fuentes de datos
+- Visualización estructurada de información médica
+
+### Antes de cualquier cambio:
+1. **Verificar PROTECTED_FILES.md** - Consultar lista completa y detalles
+2. **Verificar si el cambio afecta estos archivos** - Usar grep o búsqueda
+3. **Si es necesario modificarlos, solicitar autorización explícita**
+4. **Documentar cualquier cambio crítico en SESSION-CONTEXT.md**
+
 ## 🧠 CRITICAL INSTRUCTIONS FOR CLAUDE
 
 ### Every Session:
 1. **READ CONTEXT FIRST** - SESSION-CONTEXT.md is critical
-2. **CHECK TODOS** - Understand current priorities
-3. **MAKE PLAN** - Get approval before coding
-4. **WORK INCREMENTALLY** - Small, simple changes
-5. **DOCUMENT PROGRESS** - Update files at session end
+2. **CHECK PROTECTED FILES** - Review PROTECTED_FILES.md before any changes
+3. **CHECK TODOS** - Understand current priorities
+4. **MAKE PLAN** - Get approval before coding
+5. **WORK INCREMENTALLY** - Small, simple changes
+6. **DOCUMENT PROGRESS** - Update files at session end
 
 ### Important Reminders:
 - **Do only what's asked** - Nothing more, nothing less
+- **Check protected files** - Never modify without authorization
 - **Prefer editing** existing files over creating new ones
 - **Keep changes simple** - Avoid massive refactors
 - **Wait for approval** - Don't proceed without user consent
