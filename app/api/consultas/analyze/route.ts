@@ -1,5 +1,5 @@
-// API para análisis inteligente de consultas
-// Combina transcript + estadísticas del niño + knowledge base RAG
+// API para análisis integral de consultas
+// Analiza conversación completa (padres + médico) para extraer acuerdos realistas
 
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
       processingTime: Date.now() - stepStartTime
     })
 
-    // 2. Generar análisis SOLO del transcript (sin RAG, sin historial)
+    // 2. Generar análisis INTEGRAL del transcript (conversación completa)
     const aiStartTime = Date.now()
     const analysis = await generateTranscriptOnlyAnalysis({
       transcript,
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
       dataQuality: {
         transcriptLength: transcript.length,
         statsEventsCount: childData.stats.totalEvents,
-        analysisMode: "transcript_only",
+        analysisMode: "comprehensive_conversation",
         allSourcesUsed: Object.values(processingSteps).every(step => step)
       },
       performance: {
@@ -310,7 +310,7 @@ async function getPreviousConsultations(childId: string) {
   }
 }
 
-// Función para generar análisis SOLO del transcript (sin RAG, sin historial)
+// Función para generar análisis COMPLETO del transcript analizando toda la conversación
 async function generateTranscriptOnlyAnalysis({
   transcript,
   childData,
@@ -324,39 +324,53 @@ INFORMACIÓN BÁSICA DEL NIÑO:
 - Nombre: ${childData.firstName} ${childData.lastName}
 - Edad: ${childData.ageInMonths} meses
 
-INSTRUCCIONES ESPECÍFICAS:
-Analiza ÚNICAMENTE el transcript de esta consulta para extraer información clave que será usada para actualizar el plan del niño.
+INSTRUCCIONES PARA ANÁLISIS INTEGRAL:
+Analiza TODO EL TRANSCRIPT de la consulta considerando la conversación COMPLETA entre padres y médico para extraer acuerdos realistas y viables que serán usados para actualizar el plan del niño.
 
-ENFÓCATE ESPECÍFICAMENTE EN:
+ANALIZA LA CONVERSACIÓN COMPLETA:
 
-✅ CAMBIOS DE HORARIOS EXPLÍCITOS:
-   - Hora de despertar (ej: "cambiar despertar a las 7:40 AM")
-   - Hora de acostarse/dormir (ej: "acostarse a las 8:00 PM") 
-   - Horarios de comidas específicos mencionados
-   - Horarios de siestas (hora y duración)
-   - Límites de tiempo de pantalla
-   - Cualquier horario específico que el médico recomiende cambiar
-
-✅ PROGRESO Y PROBLEMAS:
-   - Mejoras reportadas por los padres
-   - Dificultades actuales que persisten
-   - Nuevos problemas identificados
+✅ SITUACIÓN ACTUAL REPORTADA POR LOS PADRES:
+   - Horarios actuales que funcionan
+   - Problemas y limitaciones prácticas
+   - Progreso logrado desde la última consulta
+   - Dificultades persistentes
 
 ✅ RECOMENDACIONES DEL MÉDICO:
-   - Cambios específicos recomendados
-   - Ajustes en rutinas
+   - Cambios propuestos por el doctor
    - Nuevas estrategias sugeridas
+   - Ajustes en rutinas recomendados
 
-⚠️ REGLAS IMPORTANTES:
-- Solo extrae lo que está EXPLÍCITAMENTE mencionado
-- Incluye horarios EXACTOS cuando se mencionen
-- NO agregues información externa
-- Enfócate en información ÚTIL para actualizar el plan
+✅ ACUERDOS Y COMPROMISOS REALISTAS:
+   - Horarios FINALES acordados en la conversación
+   - Compromisos prácticos entre doctor y padres
+   - Soluciones viables para la familia
+   - Consideración de limitaciones familiares
+
+✅ CAMBIOS DE HORARIOS NEGOCIADOS:
+   - Hora de despertar acordada
+   - Hora de acostarse/dormir acordada
+   - Horarios de comidas VIABLES para la familia
+   - Horarios de siestas realistas
+   - Límites de tiempo de pantalla factibles
+   - Cualquier otro horario acordado en la conversación
+
+⚠️ REGLAS CRÍTICAS:
+- Analiza TODA la conversación, no solo las recomendaciones del doctor
+- Prioriza los ACUERDOS FINALES sobre recomendaciones iniciales
+- Considera limitaciones prácticas mencionadas por los padres
+- Si hay negociación, extrae el RESULTADO FINAL acordado
+- Los horarios deben ser REALISTAS y VIABLES para la familia
+- Si no hay acuerdo claro, menciona que necesita clarificación
+
+EJEMPLO DE ANÁLISIS INTEGRAL:
+- Si doctor dice "8:15 AM" y padres no objetan → usar 8:15 AM
+- Si doctor dice "8:15 AM" pero padre dice "imposible por trabajo" → buscar el compromiso acordado
+- Siempre basarse en lo que REALMENTE es factible según la conversación
 
 Responde en el siguiente formato JSON:
 {
-  "analysis": "Análisis en texto plano de los puntos clave del transcript: cambios de horarios mencionados (con horarios exactos), progreso reportado por los padres, problemas identificados y recomendaciones específicas del médico. Escribe todo en párrafos normales, no en formato JSON u objeto.",
-  "recommendations": "Recomendaciones en texto plano extraídas del transcript, incluyendo todos los cambios específicos de horarios mencionados por el médico (despertar, dormir, comidas, siestas, etc.) con horarios exactos. Escribe en párrafos normales."
+  "analysis": "Análisis integral de toda la conversación: situación actual reportada por los padres, progreso logrado, dificultades persistentes, recomendaciones del médico, y los acuerdos finales alcanzados. Incluye horarios específicos acordados y la viabilidad práctica de los cambios. Escribe en párrafos normales.",
+  "recommendations": "Recomendaciones finales basadas en los ACUERDOS COMPLETOS de la conversación, incluyendo todos los horarios VIABLES acordados entre doctor y padres (despertar, dormir, comidas, etc.) con horarios exactos. Considera limitaciones prácticas y soluciones realistas. Escribe en párrafos normales."
 }`
 
   try {
@@ -369,11 +383,18 @@ Responde en el siguiente formato JSON:
         },
         {
           role: "user",
-          content: `TRANSCRIPT DE LA CONSULTA MÉDICA:
+          content: `TRANSCRIPT COMPLETO DE LA CONSULTA MÉDICA:
 
 ${transcript}
 
-Analiza SOLO este transcript y extrae los cambios de horarios específicos, problemas identificados, progreso reportado y recomendaciones del médico.`,
+Analiza TODA esta conversación entre padres y médico para extraer:
+1. Situación actual reportada por los padres
+2. Progreso y dificultades mencionadas
+3. Recomendaciones del médico
+4. Acuerdos finales y horarios VIABLES acordados en la conversación
+5. Compromisos realistas alcanzados entre doctor y familia
+
+Enfócate en los RESULTADOS FINALES de la conversación, no solo en recomendaciones iniciales.`,
         },
       ],
       max_tokens: 1200,

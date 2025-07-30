@@ -382,28 +382,40 @@ async function generateTranscriptBasedPlan(
   }
 }
 
-// Función para extraer cambios específicos de horarios del transcript
+// Función para extraer cambios específicos de horarios del transcript analizando toda la conversación
 async function extractScheduleChangesFromTranscript(transcript: string, childName: string) {
   const systemPrompt = `Eres un especialista en análisis de transcripts médicos pediátricos.
 
-EXTRAE ÚNICAMENTE los cambios específicos de horarios mencionados en el transcript.
+ANALIZA TODA LA CONVERSACIÓN para extraer horarios ACORDADOS y VIABLES entre médico y padres.
 
-Busca y extrae:
-1. Hora de despertar (ej: "cambiar despertar a las 7:40 AM")
-2. Hora de dormir/acostarse (ej: "acostarse a las 8:00 PM") 
-3. Horarios de comidas (desayuno, almuerzo, merienda, cena)
-4. Horarios de siestas
-5. Horarios de actividades específicas
-6. Límites de tiempo de pantalla
-7. Cualquier otro horario específico mencionado
+INSTRUCCIONES CRÍTICAS:
+1. Analiza la conversación COMPLETA entre padres y médico
+2. Extrae los horarios FINALES acordados, no solo recomendaciones iniciales
+3. Considera limitaciones prácticas mencionadas por los padres
+4. Prioriza ACUERDOS REALISTAS sobre recomendaciones rígidas
+5. Si hay negociación, extrae el RESULTADO FINAL
 
-Si NO se menciona un horario específico, devuelve null para ese campo.
+BUSCA Y EXTRAE HORARIOS ACORDADOS PARA:
+1. Hora de despertar acordada en la conversación
+2. Hora de dormir/acostarse acordada
+3. Horarios de comidas VIABLES (desayuno, almuerzo, merienda, cena)
+4. Horarios de siestas realistas
+5. Horarios de actividades específicas acordadas
+6. Límites de tiempo de pantalla factibles
+7. Cualquier otro horario acordado
+
+EJEMPLO DE ANÁLISIS CORRECTO:
+- Doctor dice "desayuno a las 8:15 AM" y padres no objetan → extraer "08:15"
+- Doctor dice "8:15 AM" pero padre dice "imposible" → buscar el compromiso acordado
+- Si no hay horario específico acordado → devolver null
+
+Si NO se acuerda un horario específico en la conversación, devuelve null para ese campo.
 
 Responde en el siguiente formato JSON:
 {
-  "wakeTime": "07:40" o null,
+  "wakeTime": "07:00" o null,
   "bedtime": "20:00" o null,
-  "breakfast": "07:30" o null,
+  "breakfast": "08:15" o null,
   "lunch": "12:00" o null,
   "snack": "16:00" o null,
   "dinner": "19:30" o null,
@@ -414,7 +426,7 @@ Responde en el siguiente formato JSON:
   "specificActivities": [
     {"time": "08:00", "activity": "jugar", "duration": 60} o null
   ],
-  "otherChanges": ["cualquier otro cambio de horario mencionado"]
+  "otherChanges": ["cualquier otro cambio de horario acordado en la conversación"]
 }`
 
   try {
@@ -427,7 +439,11 @@ Responde en el siguiente formato JSON:
         },
         {
           role: "user",
-          content: `Extrae los cambios específicos de horarios del siguiente transcript para ${childName}:\n\n${transcript}`,
+          content: `Analiza TODA la conversación del siguiente transcript para ${childName} y extrae los horarios FINALES acordados entre médico y padres (no solo recomendaciones iniciales):
+
+${transcript}
+
+Enfócate en los ACUERDOS REALISTAS alcanzados en la conversación completa.`,
         },
       ],
       max_tokens: 1000,
