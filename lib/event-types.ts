@@ -1,4 +1,4 @@
-import { Moon, Sun, Activity } from "lucide-react"
+import { Moon, Sun, Activity, AlertCircle } from "lucide-react"
 
 export interface EventType {
   id: string
@@ -29,8 +29,15 @@ export const eventTypes: EventType[] = [
     id: "wake",
     label: "Despertar",
     icon: Sun,
-    description: "Momento de despertar",
+    description: "Momento de despertar por la mañana",
     hasEndTime: false,
+  },
+  {
+    id: "night_waking",
+    label: "Despertar nocturno",
+    icon: AlertCircle,
+    description: "Despertar durante la noche",
+    hasEndTime: true,
   },
   {
     id: "activity",

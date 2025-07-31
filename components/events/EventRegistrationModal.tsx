@@ -37,12 +37,16 @@ const getCurrentDateTimeISO = () => {
 const getEventTypeByTime = (date: Date) => {
   const hour = date.getHours()
   
-  if (hour >= 19 || hour < 6) {
-    return "sleep" // Dormir (incluye el rango anterior de bedtime)
+  if (hour >= 19 || hour < 5) {
+    return "sleep" // Dormir
+  } else if (hour >= 5 && hour < 10) {
+    return "wake" // Despertar matutino
   } else if (hour >= 12 && hour < 17) {
-    return "nap" // Siesta
+    return "nap" // Siesta  
+  } else if (hour >= 23 || hour < 5) {
+    return "night_waking" // Despertar nocturno
   } else {
-    return "wake" // Despertar
+    return "sleep" // Por defecto, dormir
   }
 }
 

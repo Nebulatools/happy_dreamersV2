@@ -233,6 +233,8 @@ export default function CalendarPage() {
     case "nap":
       return <Sun className="w-3 h-3" />
     case "wake":
+      return <Sun className="w-3 h-3" />
+    case "night_waking":
       return <AlertCircle className="w-3 h-3" />
     default:
       return null
@@ -246,7 +248,9 @@ export default function CalendarPage() {
     case "nap":
       return "bg-nap event-pill"
     case "wake":
-      return "bg-wake event-pill"
+      return "bg-nap event-pill"  // Usar color amarillo/naranja para despertar matutino
+    case "night_waking":
+      return "bg-wake event-pill"  // Usar color rojo para despertar nocturno
     default:
       return "bg-gray-400 event-pill"
     }
@@ -254,7 +258,7 @@ export default function CalendarPage() {
 
   const formatEventTime = (event: Event) => {
     const start = new Date(event.startTime)
-    if (event.eventType === "wake") {
+    if (event.eventType === "wake" || event.eventType === "sleep") {
       return format(start, "HH:mm")
     }
     if (event.endTime) {
@@ -269,7 +273,8 @@ export default function CalendarPage() {
       sleep: "Dormir",
       bedtime: "Dormir", // Para compatibilidad con datos antiguos
       nap: "Siesta",
-      wake: "Despertar nocturno",
+      wake: "Despertar",
+      night_waking: "Despertar nocturno",
       meal: "Comida",
       play: "Juego",
       activity: "Actividad física",
@@ -668,7 +673,7 @@ export default function CalendarPage() {
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded-full bg-nap" />
-          <span className="text-sm text-gray-600">Siesta</span>
+          <span className="text-sm text-gray-600">Siesta / Despertar</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded-full bg-wake" />

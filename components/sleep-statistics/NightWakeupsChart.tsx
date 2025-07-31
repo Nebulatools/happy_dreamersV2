@@ -3,8 +3,7 @@ import { useSleepData } from "@/hooks/use-sleep-data"
 import { AlertCircle } from "lucide-react"
 import { parseISO, differenceInMinutes, getDay } from "date-fns"
 
-// Función para procesar despertares nocturnos reales por día de la semana
-// USANDO LA MISMA LÓGICA QUE calculateAverageWakeups EN SleepMetricsGrid
+// Función para procesar despertares nocturnos por día de la semana
 function processNightWakeups(events: any[]) {
   // Inicializar datos por día de la semana (Lunes=1, Domingo=0)
   const weekData = [
@@ -19,71 +18,34 @@ function processNightWakeups(events: any[]) {
   
   if (!events || events.length === 0) return weekData
   
-  // COPIAR EXACTAMENTE LA LÓGICA DE calculateAverageWakeups
-  const sortedEvents = events.sort((a, b) => 
-    new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-  )
+  // Filtrar solo eventos de tipo night_waking
+  const nightWakingEvents = events.filter(event => event.eventType === 'night_waking')
   
-  console.log('DEBUG - processNightWakeups eventos ordenados:', sortedEvents.length)
+  console.log('DEBUG - processNightWakeups eventos night_waking:', nightWakingEvents.length)
   
-  for (let i = 0; i < sortedEvents.length; i++) {
-    const currentEvent = sortedEvents[i]
+  // Procesar cada despertar nocturno
+  nightWakingEvents.forEach(event => {
+    const eventDate = parseISO(event.startTime)
+    const dayOfWeek = getDay(eventDate)
+    const dayData = weekData.find(d => d.dayIndex === dayOfWeek)
     
-    // Si es evento de dormir (bedtime o sleep)
-    if (['bedtime', 'sleep', 'dormir'].includes(currentEvent.eventType)) {
-      const sleepStartTime = new Date(currentEvent.startTime)
-      let sessionWakeups = 0
+    if (dayData) {
+      dayData.count += 1
       
-      console.log('DEBUG - Procesando sleep event:', currentEvent.eventType, sleepStartTime.toLocaleString())
-      
-      // Buscar eventos wake después de este sleep
-      for (let j = i + 1; j < sortedEvents.length; j++) {
-        const nextEvent = sortedEvents[j]
-        const nextEventTime = new Date(nextEvent.startTime)
-        
-        console.log('DEBUG - Revisando siguiente evento:', nextEvent.eventType, nextEventTime.toLocaleString())
-        
-        // Si es el siguiente día y es otro evento de dormir, terminar sesión
-        if (['bedtime', 'sleep', 'dormir'].includes(nextEvent.eventType) && 
-            nextEventTime.getDate() !== sleepStartTime.getDate()) {
-          break
-        }
-        
-        // Contar eventos wake como despertares nocturnos
-        if (nextEvent.eventType === 'wake') {
-          const wakeHour = nextEventTime.getHours()
-          const wakeDuration = Math.abs(nextEventTime.getTime() - sleepStartTime.getTime()) / (1000 * 60 * 60)
-          
-          console.log('DEBUG - Wake encontrado:', {
-            sleepStart: sleepStartTime.toLocaleString(),
-            wakeTime: nextEventTime.toLocaleString(),
-            wakeHour: wakeHour,
-            duration: wakeDuration,
-            isNighttime: (wakeHour >= 0 && wakeHour <= 6) || wakeHour >= 23,
-            isValidDuration: wakeDuration > 0.5 && wakeDuration < 8
-          })
-          
-          // MISMA LÓGICA QUE calculateAverageWakeups
-          const isNighttime = (wakeHour >= 0 && wakeHour <= 6) || wakeHour >= 23
-          const isValidDuration = wakeDuration > 0.5 && wakeDuration < 8
-          
-          if (isNighttime && isValidDuration) {
-            // Obtener día de la semana del evento wake
-            const dayOfWeek = getDay(nextEventTime)
-            const dayData = weekData.find(d => d.dayIndex === dayOfWeek)
-            
-            if (dayData) {
-              dayData.count += 1
-              dayData.duration += 45 // Duración promedio
-              console.log('DEBUG - ¡Despertar nocturno contado para día:', dayData.day)
-            }
-          } else {
-            console.log('DEBUG - Wake ignorado (no es madrugada o es despertar final)')
-          }
-        }
+      // Si tiene endTime, calcular duración real
+      if (event.endTime) {
+        const duration = differenceInMinutes(
+          parseISO(event.endTime),
+          parseISO(event.startTime)
+        )
+        dayData.duration += duration
+      } else {
+        dayData.duration += 45 // Duración promedio si no hay endTime
       }
+      
+      console.log('DEBUG - Despertar nocturno contado para día:', dayData.day)
     }
-  }
+  })
   
   return weekData
 }

@@ -23,6 +23,7 @@ export interface ProcessedSleepStats {
   bedtimeToSleepDifference: string // Diferencia entre acostarse y dormir
   totalWakeups: number
   avgWakeupsPerNight: number
+  avgNightWakingDuration: number // promedio en minutos de despertares nocturnos
   totalSleepHours: number // por día
   totalEvents: number
   recentEvents: number
@@ -53,6 +54,7 @@ export function processSleepStatistics(
       bedtimeToSleepDifference: "--",
       totalWakeups: 0,
       avgWakeupsPerNight: 0,
+      avgNightWakingDuration: 0,
       totalSleepHours: 0,
       totalEvents: 0,
       recentEvents: 0,
@@ -133,6 +135,7 @@ export function processSleepStatistics(
   // Despertares nocturnos
   const totalWakeups = calculateNightWakeups(relevantEvents)
   const avgWakeupsPerNight = nightSleep.length > 0 ? totalWakeups / nightSleep.length : 0
+  const avgNightWakingDuration = calculateAverageNightWakingDuration(relevantEvents)
 
   // Calcular diferencia promedio entre acostarse y dormirse
   const bedtimeToSleepDifference = calculateAverageSleepDelay(nocturnalSleepEvents)
@@ -166,6 +169,7 @@ export function processSleepStatistics(
     bedtimeToSleepDifference,
     totalWakeups,
     avgWakeupsPerNight,
+    avgNightWakingDuration,
     totalSleepHours,
     totalEvents: events.length,
     recentEvents: recentEvents.length,
@@ -196,7 +200,7 @@ function calculateInferredSleepDuration(events: SleepEvent[]): number {
     const currentEvent = sortedEvents[i]
     const nextEvent = sortedEvents[i + 1]
     
-    // CASO 1: Par ideal bedtime/sleep → wake
+    // CASO 1: Par ideal bedtime/sleep → wake (despertar matutino)
     if (
       ['bedtime', 'sleep'].includes(currentEvent.eventType) &&
       nextEvent.eventType === 'wake'
@@ -399,77 +403,57 @@ function calculateAverageSleepTime(sleepEvents: SleepEvent[]): string {
 }
 
 /**
- * Calcula despertares nocturnos analizando secuencias sleep->wake
+ * Calcula despertares nocturnos contando eventos night_waking
  */
 function calculateNightWakeups(events: SleepEvent[]): number {
   if (events.length === 0) return 0
   
-  // Ordenar eventos por fecha
-  const sortedEvents = events.sort((a, b) => 
-    new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-  )
+  // Contar directamente los eventos de tipo 'night_waking'
+  const nightWakingEvents = events.filter(event => event.eventType === 'night_waking')
+  let totalWakeups = nightWakingEvents.length
   
-  let totalWakeups = 0
+  // También buscar menciones en notas de eventos de sueño como respaldo
+  const sleepEvents = events.filter(e => ['bedtime', 'sleep'].includes(e.eventType))
   
-  // Analizar secuencias de sueño nocturno
-  for (let i = 0; i < sortedEvents.length; i++) {
-    const currentEvent = sortedEvents[i]
+  sleepEvents.forEach(event => {
+    const notes = event.notes?.toLowerCase() || ''
+    const wakeupKeywords = [
+      'despertó', 'despierta', 'se despertó', 'lloró', 'pesadilla'
+    ]
     
-    // Si es evento de dormir (bedtime, sleep o dormir)
-    if (['bedtime', 'sleep', 'dormir'].includes(currentEvent.eventType)) {
-      const sleepStartTime = new Date(currentEvent.startTime)
-      let sessionWakeups = 0
-      
-      // Buscar eventos wake después de este sleep hasta el próximo sleep del día siguiente
-      for (let j = i + 1; j < sortedEvents.length; j++) {
-        const nextEvent = sortedEvents[j]
-        const nextEventTime = new Date(nextEvent.startTime)
-        
-        // Si es el siguiente día y es otro evento de dormir, terminar sesión
-        if (['bedtime', 'sleep', 'dormir'].includes(nextEvent.eventType) && 
-            nextEventTime.getDate() !== sleepStartTime.getDate()) {
-          break
-        }
-        
-        // Contar eventos wake como despertares nocturnos
-        if (nextEvent.eventType === 'wake') {
-          const wakeHour = nextEventTime.getHours()
-          const wakeDuration = Math.abs(nextEventTime.getTime() - sleepStartTime.getTime()) / (1000 * 60 * 60)
-          
-          // Solo contar como despertar nocturno si:
-          // 1. Ocurre en horario de madrugada (23:00-06:00)
-          // 2. Al menos 30 min después de dormir
-          // 3. No es el despertar final de la mañana (menos de 8 horas)
-          const isNighttime = (wakeHour >= 0 && wakeHour <= 6) || wakeHour >= 23
-          const isValidDuration = wakeDuration > 0.5 && wakeDuration < 8
-          
-          if (isNighttime && isValidDuration) {
-            sessionWakeups++
-          }
-        }
+    if (wakeupKeywords.some(keyword => notes.includes(keyword))) {
+      const numberMatch = notes.match(/(\d+)\s*(veces|vez)/)
+      if (numberMatch) {
+        totalWakeups += parseInt(numberMatch[1])
+      } else {
+        totalWakeups += 1 // Si hay mención, contar 1 adicional
       }
-      
-      // También buscar menciones en notas como respaldo
-      const notes = currentEvent.notes?.toLowerCase() || ''
-      const wakeupKeywords = [
-        'despertó', 'despierta', 'se despertó', 'lloró', 'pesadilla'
-      ]
-      
-      if (wakeupKeywords.some(keyword => notes.includes(keyword))) {
-        const numberMatch = notes.match(/(\d+)\s*(veces|vez)/)
-        if (numberMatch) {
-          sessionWakeups += parseInt(numberMatch[1])
-        } else if (sessionWakeups === 0) {
-          sessionWakeups = 1 // Si hay mención pero no eventos, contar 1
-        }
-      }
-      
-      totalWakeups += sessionWakeups
     }
-  }
+  })
   
   // Retornar el TOTAL de despertares nocturnos en el período
   return totalWakeups
+}
+
+/**
+ * Calcula la duración promedio de los despertares nocturnos
+ */
+function calculateAverageNightWakingDuration(events: SleepEvent[]): number {
+  const nightWakingEvents = events.filter(event => 
+    event.eventType === 'night_waking' && event.endTime
+  )
+  
+  if (nightWakingEvents.length === 0) return 0
+  
+  const totalDuration = nightWakingEvents.reduce((sum, event) => {
+    const duration = differenceInMinutes(
+      parseISO(event.endTime!), 
+      parseISO(event.startTime)
+    )
+    return sum + duration
+  }, 0)
+  
+  return Math.round(totalDuration / nightWakingEvents.length)
 }
 
 /**

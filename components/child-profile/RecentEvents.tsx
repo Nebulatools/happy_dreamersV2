@@ -1,10 +1,10 @@
 import React from "react"
-import { Sun, Moon, ChevronRight } from "lucide-react"
+import { Sun, Moon, ChevronRight, AlertCircle } from "lucide-react"
 import { useEventsCache } from "@/hooks/use-events-cache"
 
 interface SleepEvent {
   id: string
-  type: "sleep" | "wake"
+  type: "sleep" | "wake" | "night_waking" | "nap"
   timestamp: string
   date: string
 }
@@ -69,6 +69,10 @@ export default function RecentEvents({ childId }: RecentEventsProps) {
       return <Sun className="w-4 h-4" />
     case "sleep":
       return <Moon className="w-5 h-4" />
+    case "night_waking":
+      return <AlertCircle className="w-4 h-4" />
+    case "nap":
+      return <Sun className="w-4 h-4" />
     default:
       return <Sun className="w-4 h-4" />
     }
@@ -80,6 +84,10 @@ export default function RecentEvents({ childId }: RecentEventsProps) {
       return "Despertar"
     case "sleep":
       return "Hora de dormir"
+    case "night_waking":
+      return "Despertar nocturno"
+    case "nap":
+      return "Siesta"
     default:
       return "Evento"
     }

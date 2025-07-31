@@ -1,6 +1,6 @@
 # Session Context - Happy Dreamers UI Implementation
 
-*Last Updated: January 30, 2025 - Sleep Event Unification & Survey Persistence*
+*Last Updated: January 30, 2025 - Wake/Night_Waking Event Separation*
 
 ## 🎯 Current System State
 
@@ -33,6 +33,39 @@
 6. ✅ **Update this file at session end** - Document progress
 
 ## 🎯 MAJOR ACCOMPLISHMENTS THIS SESSION
+
+### ✅ **WAKE/NIGHT_WAKING EVENT SEPARATION** (January 30, 2025)
+
+#### **Separación de Eventos Despertar Matutino y Nocturno:**
+
+1. **✅ Corrección del Evento Wake**
+   - **Actualizado**: Evento "wake" ahora representa despertar matutino
+   - **Características**:
+     - Solo timestamp (sin duración)
+     - Usado para calcular duración total de sueño
+     - Color amarillo/naranja en visualizaciones
+
+2. **✅ Nuevo Tipo de Evento Night_Waking**
+   - **Implementado**: Evento "night_waking" para despertares nocturnos
+   - **Características**:
+     - Tiene hora de inicio y fin (cuando se levanta y vuelve a dormir)
+     - Icono AlertCircle
+     - Color rojo en visualizaciones
+     - Contado como interrupciones del sueño
+
+3. **✅ Archivos Actualizados**
+   - `/lib/event-types.ts` - Añadido night_waking con hasEndTime: true
+   - `/app/dashboard/calendar/page.tsx` - Colores y leyenda actualizados
+   - `/components/events/CompactEventTypeSelector.tsx` - Color mapping añadido
+   - `/components/events/EventRegistrationModal.tsx` - Auto-selección inteligente por hora
+   - `/lib/sleep-calculations.ts` - Lógica para contar night_waking como interrupciones
+   - `/components/child-profile/RecentEvents.tsx` - Soporte para nuevo tipo
+   - `/components/sleep-statistics/NightWakeupsChart.tsx` - Filtrado directo de night_waking
+
+4. **✅ Lógica de Cálculos Mejorada**
+   - Duración de sueño: (sleep + delay) → wake matutino
+   - Night_waking contado como interrupciones, no fin de sueño
+   - Cálculo de duración promedio de despertares nocturnos
 
 ### ✅ **SLEEP EVENT UNIFICATION - DORMIR EVENT ENHANCED** (January 30, 2025)
 

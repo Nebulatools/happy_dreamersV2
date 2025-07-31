@@ -14,6 +14,7 @@ const eventTypeColors = {
   sleep: "text-blue-600 bg-blue-50",
   nap: "text-orange-600 bg-orange-50",
   wake: "text-yellow-600 bg-yellow-50",
+  night_waking: "text-red-600 bg-red-50",
   activity: "text-purple-600 bg-purple-50",
 }
 
