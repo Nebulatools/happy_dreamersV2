@@ -58,9 +58,10 @@
     --gradient-button-to: 201 100% 70%;    /* #67C5FF */
     
     /* Colores de eventos */
-    --color-sleep: 201 56% 68%;            /* #7DBFE2 - Sueño nocturno */
+    --color-sleep: 201 56% 68%;            /* #7DBFE2 - Dormir/Acostarse */
     --color-nap: 37 90% 56%;               /* #F5A623 - Siesta */
-    --color-wake: 358 100% 78%;            /* #FF9194 - Despertar nocturno */
+    --color-wake: 48 100% 50%;             /* #FFD700 - Despertar matutino (amarillo sol) */
+    --color-night-wake: 358 100% 78%;     /* #FF9194 - Despertar nocturno */
     
     /* Colores principales Figma */
     --color-blue-primary: 218 56% 40%;     /* #2553A1 */
@@ -248,6 +249,10 @@
     background-color: hsl(var(--color-wake));
   }
   
+  .bg-night-wake {
+    background-color: hsl(var(--color-night-wake));
+  }
+  
   /* Event type colors with opacity */
   .bg-sleep\/10 {
     background-color: hsl(var(--color-sleep) / 0.1);
@@ -261,6 +266,10 @@
     background-color: hsl(var(--color-wake) / 0.1);
   }
   
+  .bg-night-wake\/10 {
+    background-color: hsl(var(--color-night-wake) / 0.1);
+  }
+  
   /* Event type border colors */
   .border-sleep {
     border-color: hsl(var(--color-sleep));
@@ -272,6 +281,10 @@
   
   .border-wake {
     border-color: hsl(var(--color-wake));
+  }
+  
+  .border-night-wake {
+    border-color: hsl(var(--color-night-wake));
   }
   
   /* Event pills */

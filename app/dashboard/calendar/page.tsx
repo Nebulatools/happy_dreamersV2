@@ -175,22 +175,111 @@ export default function CalendarPage() {
     let nightSleepTotal = 0
     let napTotal = 0
     let wakingsCount = 0
+    let nightsWithSleep = 0
+    let daysWithNaps = 0
 
-    periodEvents.forEach(event => {
-      if (event.eventType === "sleep") {
-        // Calcular duración si hay endTime
-        if (event.endTime) {
-          const duration = differenceInHours(new Date(event.endTime), new Date(event.startTime))
-          nightSleepTotal += duration
+    logger.info(`Calculando estadísticas para ${periodEvents.length} eventos en vista ${view}`)
+
+    // Ordenar eventos por tiempo para vincular sleep con wake
+    const sortedEvents = [...periodEvents].sort((a, b) => 
+      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    )
+
+    // Agrupar eventos por día para calcular promedios más precisos
+    const eventsByDay = periodEvents.reduce((acc, event) => {
+      const dayKey = format(new Date(event.startTime), "yyyy-MM-dd")
+      if (!acc[dayKey]) acc[dayKey] = []
+      acc[dayKey].push(event)
+      return acc
+    }, {} as Record<string, Event[]>)
+
+    // Calcular totales y contar días con eventos
+    Object.values(eventsByDay).forEach(dayEvents => {
+      let dayHasNightSleep = false
+      let dayHasNap = false
+
+      // Ordenar eventos del día por tiempo
+      const sortedDayEvents = [...dayEvents].sort((a, b) => 
+        new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      )
+
+      sortedDayEvents.forEach((event, index) => {
+        if (event.eventType === "sleep" || event.eventType === "bedtime") {
+          let duration = 0
+          
+          // Si tiene endTime, usar eso
+          if (event.endTime) {
+            const start = new Date(event.startTime)
+            const end = new Date(event.endTime)
+            duration = differenceInHours(end, start)
+            
+            // Validar que la duración sea razonable (menos de 24 horas)
+            if (duration > 24) {
+              logger.warn(`Duración de sueño inválida: ${duration} horas`, { event })
+              duration = 0
+            }
+          } else {
+            // Si no tiene endTime, buscar el siguiente evento wake
+            // Buscar en todos los eventos ordenados, no solo del día actual
+            const eventIndex = sortedEvents.findIndex(e => e._id === event._id)
+            if (eventIndex !== -1) {
+              // Buscar el siguiente evento wake
+              for (let i = eventIndex + 1; i < sortedEvents.length; i++) {
+                const nextEvent = sortedEvents[i]
+                if (nextEvent.eventType === "wake" && nextEvent.childId === event.childId) {
+                  const sleepStart = new Date(event.startTime)
+                  const wakeTime = new Date(nextEvent.startTime)
+                  
+                  // Calcular la diferencia en minutos y luego convertir a horas
+                  const diffMinutes = differenceInMinutes(wakeTime, sleepStart)
+                  duration = diffMinutes / 60
+                  
+                  // Validar que la duración sea razonable
+                  if (duration > 24) {
+                    logger.warn(`Duración de sueño calculada inválida: ${duration} horas`, { 
+                      sleepEvent: event, 
+                      wakeEvent: nextEvent,
+                      sleepTime: sleepStart.toISOString(),
+                      wakeTime: wakeTime.toISOString()
+                    })
+                    // No usar este wake event, buscar otro más cercano
+                    continue
+                  } else if (duration < 0) {
+                    // Si la duración es negativa, probablemente el wake es del día anterior
+                    logger.warn(`Duración negativa detectada, ignorando`, { 
+                      sleepEvent: event, 
+                      wakeEvent: nextEvent 
+                    })
+                    duration = 0
+                    break
+                  } else {
+                    // Duración válida encontrada
+                    break
+                  }
+                }
+              }
+            }
+          }
+          
+          if (duration > 0 && duration <= 24) {
+            nightSleepTotal += duration
+            dayHasNightSleep = true
+            logger.info(`Sueño registrado: ${duration.toFixed(2)} horas`)
+          }
+        } else if (event.eventType === "nap") {
+          if (event.endTime) {
+            const duration = differenceInHours(new Date(event.endTime), new Date(event.startTime))
+            napTotal += duration
+            dayHasNap = true
+          }
+        } else if (event.eventType === "night_waking") {
+          // Contar solo despertares nocturnos, no despertares matutinos (wake)
+          wakingsCount++
         }
-      } else if (event.eventType === "nap") {
-        if (event.endTime) {
-          const duration = differenceInHours(new Date(event.endTime), new Date(event.startTime))
-          napTotal += duration
-        }
-      } else if (event.eventType === "wake") {
-        wakingsCount++
-      }
+      })
+
+      if (dayHasNightSleep) nightsWithSleep++
+      if (dayHasNap) daysWithNaps++
     })
 
     // Calcular promedios según la vista
@@ -198,26 +287,38 @@ export default function CalendarPage() {
     let avgNap = 0
     
     if (view === "month") {
-      const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
-      avgNightSleep = nightSleepTotal / daysInMonth
-      avgNap = napTotal / daysInMonth
+      // Para mes: promedio basado en días con registros de sueño
+      avgNightSleep = nightsWithSleep > 0 ? nightSleepTotal / nightsWithSleep : 0
+      avgNap = daysWithNaps > 0 ? napTotal / daysWithNaps : 0
     } else if (view === "week") {
-      avgNightSleep = nightSleepTotal / 7
-      avgNap = napTotal / 7
+      // Para semana: promedio basado en días con registros
+      avgNightSleep = nightsWithSleep > 0 ? nightSleepTotal / nightsWithSleep : 0
+      avgNap = daysWithNaps > 0 ? napTotal / daysWithNaps : 0
     } else {
       // Para vista diaria, mostrar totales del día
       avgNightSleep = nightSleepTotal
       avgNap = napTotal
     }
 
-    // TODO: Calcular cambios respecto al mes anterior
+    logger.info(`Resumen de estadísticas:`, {
+      nightSleepTotal: nightSleepTotal.toFixed(2),
+      nightsWithSleep,
+      avgNightSleep: avgNightSleep.toFixed(2),
+      napTotal: napTotal.toFixed(2),
+      daysWithNaps,
+      avgNap: avgNap.toFixed(2),
+      wakingsCount,
+      view
+    })
+
+    // TODO: Calcular cambios respecto al período anterior
     setMonthlyStats({
       nightSleepHours: avgNightSleep,
       napHours: avgNap,
       nightWakings: wakingsCount,
-      nightSleepChange: 0.3, // Placeholder
+      nightSleepChange: 0, // TODO: Implementar comparación con período anterior
       napChange: 0,
-      wakingsChange: -2,
+      wakingsChange: 0,
     })
   }
 
@@ -248,9 +349,9 @@ export default function CalendarPage() {
     case "nap":
       return "bg-nap event-pill"
     case "wake":
-      return "bg-nap event-pill"  // Usar color amarillo/naranja para despertar matutino
+      return "bg-wake event-pill"  // Verde para despertar matutino
     case "night_waking":
-      return "bg-wake event-pill"  // Usar color rojo para despertar nocturno
+      return "bg-night-wake event-pill"  // Rojo para despertar nocturno
     default:
       return "bg-gray-400 event-pill"
     }
@@ -529,15 +630,15 @@ export default function CalendarPage() {
     // Determinar el color de fondo según el tipo
     const bgColorClass = type === "sleep" ? "bg-sleep/10" : 
       type === "nap" ? "bg-nap/10" : 
-        type === "wake" ? "bg-wake/10" : ""
+        type === "wake" ? "bg-night-wake/10" : ""
     
     const borderColorClass = type === "sleep" ? "border-sleep" : 
       type === "nap" ? "border-nap" : 
-        type === "wake" ? "border-wake" : ""
+        type === "wake" ? "border-night-wake" : ""
     
     const iconColorClass = type === "sleep" ? "bg-sleep" : 
       type === "nap" ? "bg-nap" : 
-        type === "wake" ? "bg-wake" : ""
+        type === "wake" ? "bg-night-wake" : ""
     
     return (
       <div className={cn("p-5 rounded-lg border", bgColorClass, borderColorClass)}>
@@ -669,14 +770,18 @@ export default function CalendarPage() {
       <div className="flex gap-6">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded-full bg-sleep" />
-          <span className="text-sm text-gray-600">Sueño nocturno</span>
+          <span className="text-sm text-gray-600">Dormir / Acostarse</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded-full bg-nap" />
-          <span className="text-sm text-gray-600">Siesta / Despertar</span>
+          <span className="text-sm text-gray-600">Siesta</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded-full bg-wake" />
+          <span className="text-sm text-gray-600">Despertar</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded-full bg-night-wake" />
           <span className="text-sm text-gray-600">Despertar nocturno</span>
         </div>
       </div>
@@ -712,8 +817,13 @@ export default function CalendarPage() {
               monthlyStats.nightSleepHours.toFixed(1),
               "horas",
               monthlyStats.nightSleepChange,
-              view === "month" ? "horas más que el mes pasado" : 
-              view === "week" ? "vs semana anterior" : "del día",
+              monthlyStats.nightSleepChange > 0 ? 
+                (view === "month" ? "horas más que el mes pasado" : 
+                 view === "week" ? "horas más vs semana anterior" : "horas del día") :
+              monthlyStats.nightSleepChange < 0 ?
+                (view === "month" ? "horas menos que el mes pasado" : 
+                 view === "week" ? "horas menos vs semana anterior" : "horas del día") :
+                "",
               "sleep"
             )}
             
@@ -722,8 +832,13 @@ export default function CalendarPage() {
               monthlyStats.napHours.toFixed(1),
               "horas",
               monthlyStats.napChange,
-              view === "month" ? "respecto al mes pasado" : 
-              view === "week" ? "vs semana anterior" : "del día",
+              monthlyStats.napChange > 0 ?
+                (view === "month" ? "horas más que el mes pasado" : 
+                 view === "week" ? "horas más vs semana anterior" : "horas del día") :
+              monthlyStats.napChange < 0 ?
+                (view === "month" ? "horas menos que el mes pasado" : 
+                 view === "week" ? "horas menos vs semana anterior" : "horas del día") :
+                "",
               "nap"
             )}
             
@@ -732,8 +847,13 @@ export default function CalendarPage() {
               monthlyStats.nightWakings.toString(),
               view === "day" ? "" : "total",
               monthlyStats.wakingsChange,
-              view === "month" ? "menos que el mes pasado" : 
-              view === "week" ? "vs semana anterior" : "del día",
+              monthlyStats.wakingsChange > 0 ?
+                (view === "month" ? "más que el mes pasado" : 
+                 view === "week" ? "más vs semana anterior" : "del día") :
+              monthlyStats.wakingsChange < 0 ?
+                (view === "month" ? "menos que el mes pasado" : 
+                 view === "week" ? "menos vs semana anterior" : "del día") :
+                "",
               "wake"
             )}
           </div>

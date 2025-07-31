@@ -15,6 +15,7 @@ import { CompactEmotionalStateSelector } from "./CompactEmotionalStateSelector"
 import { TimeSelector } from "./TimeSelector"
 import { eventTypeHasEndTime, getEventType } from "@/lib/event-types"
 import { SleepDelayInput } from "./SleepDelayInput"
+import { NightWakingDelayInput } from "./NightWakingDelayInput"
 
 import { createLogger } from "@/lib/logger"
 
@@ -393,7 +394,7 @@ export function EventRegistrationModal({
                 </div>
               )}
               
-              {/* Campo de tiempo para dormirse - solo para evento sleep */}
+              {/* Campo de tiempo para dormirse - para eventos sleep y night_waking */}
               {shouldShowSleepDelay && (
                 <FormField
                   control={form.control}
@@ -401,10 +402,17 @@ export function EventRegistrationModal({
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <SleepDelayInput
-                          value={field.value || 0}
-                          onChange={field.onChange}
-                        />
+                        {eventType === "night_waking" ? (
+                          <NightWakingDelayInput
+                            value={field.value || 0}
+                            onChange={field.onChange}
+                          />
+                        ) : (
+                          <SleepDelayInput
+                            value={field.value || 0}
+                            onChange={field.onChange}
+                          />
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -424,9 +432,12 @@ export function EventRegistrationModal({
                   </FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder={shouldShowSleepDelay 
-                        ? "Añade cualquier detalle adicional: ¿Se despertó durante la noche? ¿Tuvo alguna dificultad para dormir? ¿Cómo fue la rutina de sueño?"
-                        : "Añade detalles adicionales sobre este evento..."
+                      placeholder={
+                        eventType === "night_waking"
+                          ? "Añade cualquier detalle adicional: ¿Por qué se despertó? ¿Lloró mucho? ¿Necesitó consuelo? ¿Qué ayudó a calmarlo?"
+                          : shouldShowSleepDelay 
+                            ? "Añade cualquier detalle adicional: ¿Se despertó durante la noche? ¿Tuvo alguna dificultad para dormir? ¿Cómo fue la rutina de sueño?"
+                            : "Añade detalles adicionales sobre este evento..."
                       }
                       className="bg-gray-50 border-gray-200 resize-none"
                       rows={4}

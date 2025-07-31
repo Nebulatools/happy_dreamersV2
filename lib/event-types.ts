@@ -37,7 +37,8 @@ export const eventTypes: EventType[] = [
     label: "Despertar nocturno",
     icon: AlertCircle,
     description: "Despertar durante la noche",
-    hasEndTime: true,
+    hasEndTime: false,
+    hasSleepDelay: true,
   },
   {
     id: "activity",

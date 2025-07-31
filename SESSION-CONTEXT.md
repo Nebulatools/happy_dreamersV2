@@ -34,6 +34,35 @@
 
 ## 🎯 MAJOR ACCOMPLISHMENTS THIS SESSION
 
+### ✅ **CALENDAR IMPROVEMENTS & COLOR SYSTEM UPDATE** (January 30, 2025 - Evening)
+
+#### **Mejoras en el Calendario y Sistema de Colores:**
+
+1. **✅ Corrección de Estadísticas del Resumen**
+   - **Corregido**: Cálculo de despertares nocturnos ahora cuenta solo `night_waking`
+   - **Mejorado**: Promedio de sueño nocturno vincula eventos sleep con wake
+   - **Validación**: Duraciones mayores a 24 horas se ignoran
+   - **Precisión**: Promedios basados en días con datos, no días totales
+
+2. **✅ Sistema de 4 Colores Diferentes**
+   - **Dormir/Acostarse**: Azul (#7DBFE2)
+   - **Siesta**: Naranja (#F5A623)
+   - **Despertar**: Amarillo sol (#FFD700) - NUEVO COLOR
+   - **Despertar nocturno**: Rosa/Rojo (#FF9194)
+   - **CSS**: Nuevas clases `bg-wake`, `bg-night-wake` con variantes
+
+3. **✅ Leyenda del Calendario Actualizada**
+   - Cambiado "Sueño nocturno" → "Dormir / Acostarse"
+   - Separado "Siesta" y "Despertar" con sus propios colores
+   - 4 elementos en la leyenda con colores distintivos
+
+4. **✅ UX Mejorado para Despertar Nocturno**
+   - **Nuevo componente**: `NightWakingDelayInput.tsx`
+   - **Pregunta adaptada**: "¿Cuánto tiempo tardó en volver a dormirse?"
+   - **Botones rápidos**: 5, 10, 15, 30, 45, 60 minutos
+   - **Colores rojos**: Para distinguir del evento dormir
+   - **Placeholder específico**: Preguntas sobre por qué se despertó
+
 ### ✅ **WAKE/NIGHT_WAKING EVENT SEPARATION** (January 30, 2025)
 
 #### **Separación de Eventos Despertar Matutino y Nocturno:**
@@ -475,7 +504,18 @@
 
 ## 📁 Files Modified/Created This Session
 
-### **Latest Updates (Sleep Event Unification - January 30, 2025):**
+### **Latest Updates (Calendar & Color System - January 30, 2025 - Evening):**
+
+#### **Archivos Creados:**
+1. **✅ `/components/events/NightWakingDelayInput.tsx`** - Componente para tiempo de volver a dormir
+
+#### **Archivos Modificados:**
+1. **✅ `/app/globals.css`** - Actualizado color wake a amarillo sol, agregado bg-night-wake
+2. **✅ `/app/dashboard/calendar/page.tsx`** - Corregidos cálculos de estadísticas y colores
+3. **✅ `/lib/event-types.ts`** - Agregado hasSleepDelay a night_waking
+4. **✅ `/components/events/EventRegistrationModal.tsx`** - Integrado NightWakingDelayInput
+
+### **Previous Updates (Sleep Event Unification - January 30, 2025):**
 
 #### **Archivos Creados:**
 1. **✅ `/components/events/SleepDelayInput.tsx`** - Componente para capturar tiempo para dormirse
