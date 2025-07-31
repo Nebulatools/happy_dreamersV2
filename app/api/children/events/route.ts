@@ -84,8 +84,15 @@ export async function POST(req: NextRequest) {
       event.startTime = data.startTime
     }
     
-    // Solo agregar endTime si está presente
-    if (data.endTime) {
+    // Para eventos con sleepDelay, calcular endTime automáticamente
+    if ((data.eventType === "sleep" || data.eventType === "night_waking") && data.sleepDelay && data.sleepDelay > 0 && data.startTime) {
+      // Para sleep: el endTime es cuando finalmente se durmió
+      // Para night_waking: el endTime es cuando volvió a dormirse
+      const startDate = new Date(data.startTime)
+      const endDate = new Date(startDate.getTime() + (data.sleepDelay * 60 * 1000)) // sleepDelay está en minutos
+      event.endTime = endDate.toISOString()
+    } else if (data.endTime) {
+      // Solo agregar endTime si está presente y no es un evento con delay autocalculado
       event.endTime = data.endTime
     }
 

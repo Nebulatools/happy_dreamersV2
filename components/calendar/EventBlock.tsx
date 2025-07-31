@@ -29,13 +29,15 @@ interface EventBlockProps {
   hourHeight: number // Altura en píxeles por hora para calcular posición
   className?: string
   showTooltip?: boolean
+  onClick?: (event: Event) => void
 }
 
 export function EventBlock({ 
   event, 
   hourHeight, 
   className,
-  showTooltip = true 
+  showTooltip = true,
+  onClick 
 }: EventBlockProps) {
   // Calcular duración del evento
   const calculateEventDuration = () => {
@@ -44,7 +46,7 @@ export function EventBlock({
       const end = new Date(event.endTime)
       return differenceInMinutes(end, start)
     }
-    return 0 // Eventos puntuales (sleep, wake)
+    return 0 // Eventos puntuales (sleep, wake sin endTime)
   }
 
   // Calcular posición vertical según la hora
@@ -54,6 +56,7 @@ export function EventBlock({
     const minutes = eventDate.getMinutes()
     const totalMinutes = hours * 60 + minutes
     const pixelsPerMinute = hourHeight / 60
+    // Posición exacta basada en minutos
     return totalMinutes * pixelsPerMinute
   }
 
@@ -63,7 +66,7 @@ export function EventBlock({
     if (duration > 0) {
       // Eventos con duración: altura proporcional
       const pixelsPerMinute = hourHeight / 60
-      return Math.max(16, duration * pixelsPerMinute) // Mínimo 16px para altura reducida
+      return Math.max(20, duration * pixelsPerMinute) // Mínimo 20px para legibilidad
     }
     // Eventos puntuales: altura fija pequeña
     return 14
@@ -171,6 +174,7 @@ export function EventBlock({
         fontSize: '11px'
       }}
       title={showTooltip ? undefined : `${getEventTypeName()} - ${formatEventTime()}`}
+      onClick={() => onClick?.(event)}
     >
       {/* Contenido del bloque */}
       <div className="flex items-center gap-0.5 truncate w-full">

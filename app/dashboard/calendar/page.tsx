@@ -17,6 +17,11 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Edit,
+  Trash,
+  Save,
+  Loader2,
+  Clock,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useActiveChild } from "@/context/active-child-context"
@@ -28,6 +33,25 @@ import {
   EventBlock, 
   CompactEventBlock
 } from "@/components/calendar"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal"
 import {
   format,
   startOfMonth,
@@ -97,6 +121,14 @@ export default function CalendarPage() {
   })
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [children, setChildren] = useState([])
+  
+  // Estados para el diálogo de edición
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [editedEvent, setEditedEvent] = useState<Partial<Event>>({})
 
   // Suscribirse a invalidaciones de cache
   useEffect(() => {
@@ -404,6 +436,121 @@ export default function CalendarPage() {
     }
     return states[state] || state
   }
+  
+  // Función para manejar el clic en un evento
+  const handleEventClick = (event: Event) => {
+    setSelectedEvent(event)
+    setEditedEvent({
+      childId: event.childId,
+      eventType: event.eventType,
+      emotionalState: event.emotionalState,
+      startTime: event.startTime,
+      endTime: event.endTime || "",
+      notes: event.notes || "",
+    })
+    setIsEditing(false)
+    setIsDialogOpen(true)
+  }
+  
+  // Función para actualizar un evento
+  const updateEvent = async () => {
+    if (!selectedEvent || !editedEvent) return
+    
+    setIsSaving(true)
+    try {
+      // Datos a enviar - asegurar que childId siempre esté presente
+      const updateData = {
+        childId: activeChildId,
+        eventType: editedEvent.eventType,
+        emotionalState: editedEvent.emotionalState,
+        startTime: editedEvent.startTime,
+        endTime: editedEvent.endTime || null,
+        notes: editedEvent.notes || "",
+        createdAt: selectedEvent.createdAt,
+      }
+      
+      // Usar la URL con el ID en la ruta
+      const response = await fetch(`/api/children/events/${selectedEvent._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updateData),
+      })
+      
+      const responseData = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(responseData.message || responseData.error || "Error al actualizar el evento")
+      }
+      
+      // Recargar eventos para reflejar cambios
+      await fetchEvents()
+      
+      // Invalidar cache global
+      invalidateEvents()
+      
+      toast({
+        title: "Evento actualizado",
+        description: "El evento ha sido actualizado correctamente.",
+      })
+      
+      setIsEditing(false)
+      setIsDialogOpen(false)
+    } catch (error: any) {
+      logger.error("Error:", error)
+      toast({
+        title: "Error",
+        description: error?.message || "No se pudo actualizar el evento. Inténtalo de nuevo.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+  
+  // Función para eliminar un evento
+  const deleteEvent = async () => {
+    if (!selectedEvent || isSaving) return // Prevenir doble click
+    
+    setIsSaving(true)
+    try {
+      // Usar la URL con el ID en la ruta
+      const response = await fetch(`/api/children/events/${selectedEvent._id}`, {
+        method: "DELETE",
+      })
+      
+      const responseData = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(responseData.message || responseData.error || "Error al eliminar el evento")
+      }
+      
+      // Recargar eventos
+      await fetchEvents()
+      
+      // Invalidar cache global
+      invalidateEvents()
+      
+      toast({
+        title: "Evento eliminado",
+        description: "El evento ha sido eliminado correctamente.",
+      })
+      
+      setIsDialogOpen(false)
+      setSelectedEvent(null)
+      setShowDeleteModal(false)
+    } catch (error: any) {
+      logger.error("Error al eliminar evento:", error?.message || error)
+      toast({
+        title: "Error",
+        description: error?.message || "No se pudo eliminar el evento. Inténtalo de nuevo.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   const renderMonthView = () => {
     const monthStart = startOfMonth(date)
@@ -451,8 +598,9 @@ export default function CalendarPage() {
                       key={event._id}
                       className={cn(
                         getEventTypeColor(event.eventType),
-                        "flex items-center gap-1"
+                        "flex items-center gap-1 cursor-pointer hover:opacity-80"
                       )}
+                      onClick={() => handleEventClick(event)}
                     >
                       {getEventTypeIcon(event.eventType)}
                       <span className="text-xs truncate">
@@ -480,8 +628,9 @@ export default function CalendarPage() {
     const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
     const weekDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     
-    // Reducir altura por hora para que quepa en pantalla
-    const hourHeight = 30 // 30px por hora = 720px total para 24 horas
+    // Ajustar altura por hora para que quepa en pantalla
+    // Aumentamos ligeramente para mejor visualización de divisiones de 15 minutos
+    const hourHeight = 48 // 48px por hora = 1152px total para 24 horas
     
     return (
       <div className="mt-6 calendar-timeline">
@@ -519,32 +668,6 @@ export default function CalendarPage() {
                   
                   {/* Events Timeline Container */}
                   <div className="events-timeline-container">
-                    {/* Indicadores de período del día */}
-                    <div 
-                      className="timeline-period-indicator text-gray-600"
-                      style={{ top: `${3 * hourHeight}px` }}
-                    >
-                      AM
-                    </div>
-                    <div 
-                      className="timeline-period-indicator text-gray-600"
-                      style={{ top: `${9 * hourHeight}px` }}
-                    >
-                      Mañana
-                    </div>
-                    <div 
-                      className="timeline-period-indicator text-gray-600"
-                      style={{ top: `${15 * hourHeight}px` }}
-                    >
-                      Tarde
-                    </div>
-                    <div 
-                      className="timeline-period-indicator text-gray-600"
-                      style={{ top: `${21 * hourHeight}px` }}
-                    >
-                      PM
-                    </div>
-                    
                     {/* Hour grid lines */}
                     {Array.from({ length: 24 }, (_, hour) => (
                       <div key={hour}>
@@ -560,10 +683,18 @@ export default function CalendarPage() {
                           className="hour-grid-line"
                           style={{ top: `${hour * hourHeight}px` }}
                         />
-                        {/* Half-hour lines */}
+                        {/* Quarter-hour lines (15, 30, 45 minutes) */}
                         <div 
-                          className="hour-grid-line opacity-50"
+                          className="hour-grid-line opacity-30"
+                          style={{ top: `${hour * hourHeight + hourHeight / 4}px` }}
+                        />
+                        <div 
+                          className="hour-grid-line opacity-40"
                           style={{ top: `${hour * hourHeight + hourHeight / 2}px` }}
+                        />
+                        <div 
+                          className="hour-grid-line opacity-30"
+                          style={{ top: `${hour * hourHeight + (3 * hourHeight / 4)}px` }}
                         />
                       </div>
                     ))}
@@ -575,6 +706,7 @@ export default function CalendarPage() {
                         event={event}
                         hourHeight={hourHeight}
                         showTooltip={true}
+                        onClick={handleEventClick}
                       />
                     ))}
                     
@@ -599,7 +731,7 @@ export default function CalendarPage() {
 
   const renderDayView = () => {
     const dayEvents = getEventsForDay(date)
-    const hours = Array.from({ length: 24 }, (_, i) => i)
+    const hourHeight = 48 // Misma altura por hora que en vista semanal
     
     return (
       <div className="mt-6">
@@ -614,62 +746,79 @@ export default function CalendarPage() {
         </div>
         
         {/* Timeline de 24 horas */}
-        <div className="border rounded-lg bg-white">
-          {hours.map((hour) => {
-            const hourEvents = dayEvents.filter(event => {
-              const eventHour = new Date(event.startTime).getHours()
-              return eventHour === hour
-            })
+        <div className="calendar-timeline">
+          <div className="flex">
+            {/* Columna de horas */}
+            <TimelineColumn hourHeight={hourHeight} />
             
-            return (
-              <div key={hour} className="flex border-b last:border-b-0">
-                <div className="w-16 p-3 bg-gray-50 text-center text-sm font-medium text-gray-600">
-                  {hour.toString().padStart(2, '0')}:00
-                </div>
-                <div className="flex-1 p-3 min-h-[60px]">
-                  <div className="space-y-2">
-                    {hourEvents.map((event) => (
-                      <div
-                        key={event._id}
-                        className={cn(
-                          "p-3 rounded-lg",
-                          getEventTypeColor(event.eventType)
-                        )}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          {getEventTypeIcon(event.eventType)}
-                          <span className="font-medium">
-                            {getEventTypeName(event.eventType)}
-                          </span>
-                          <span className="text-sm text-gray-600">
-                            {formatEventTime(event)}
-                          </span>
-                        </div>
-                        {event.notes && (
-                          <div className="text-sm text-gray-600 mt-1">
-                            {event.notes}
-                          </div>
-                        )}
-                        <div className="text-xs text-gray-500 mt-1">
-                          Estado: {getEmotionalStateName(event.emotionalState)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+            {/* Columna de eventos del día */}
+            <div className="flex-1 relative border-l border-gray-200">
+              {/* Header del día */}
+              <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-center sticky top-0 z-10">
+                <div className="text-lg font-bold">
+                  {format(date, "d")}
                 </div>
               </div>
-            )
-          })}
-        </div>
-        
-        {dayEvents.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-lg mb-2">No hay eventos registrados</div>
-            <div className="text-gray-500 text-sm">
-              Agrega el primer evento del día
+              
+              {/* Container de eventos */}
+              <div className="events-timeline-container relative">
+                {/* Líneas de la grilla de horas */}
+                {Array.from({ length: 24 }, (_, hour) => (
+                  <div key={hour}>
+                    {/* Líneas principales de hora */}
+                    {hour % 4 === 0 && (
+                      <div 
+                        className="hour-grid-line-major"
+                        style={{ top: `${hour * hourHeight}px` }}
+                      />
+                    )}
+                    {/* Líneas regulares de hora */}
+                    <div 
+                      className="hour-grid-line"
+                      style={{ top: `${hour * hourHeight}px` }}
+                    />
+                    {/* Líneas de cuarto de hora (15, 30, 45 minutos) */}
+                    <div 
+                      className="hour-grid-line opacity-30"
+                      style={{ top: `${hour * hourHeight + hourHeight / 4}px` }}
+                    />
+                    <div 
+                      className="hour-grid-line opacity-40"
+                      style={{ top: `${hour * hourHeight + hourHeight / 2}px` }}
+                    />
+                    <div 
+                      className="hour-grid-line opacity-30"
+                      style={{ top: `${hour * hourHeight + (3 * hourHeight / 4)}px` }}
+                    />
+                  </div>
+                ))}
+                
+                {/* Eventos posicionados de manera absoluta */}
+                {dayEvents.map((event) => (
+                  <EventBlock
+                    key={event._id}
+                    event={event}
+                    hourHeight={hourHeight}
+                    showTooltip={true}
+                    onClick={handleEventClick}
+                  />
+                ))}
+                
+                {/* Estado vacío */}
+                {dayEvents.length === 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-gray-400 text-lg mb-2">No hay eventos registrados</div>
+                      <div className="text-gray-500 text-sm">
+                        Agrega el primer evento del día
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
     )
   }
@@ -726,6 +875,29 @@ export default function CalendarPage() {
     )
   }
 
+  // Opciones para el formulario de edición
+  const eventTypes = [
+    { id: "sleep", label: "Dormir" },
+    { id: "nap", label: "Siesta" },
+    { id: "wake", label: "Despertar" },
+    { id: "night_waking", label: "Despertar nocturno" },
+    { id: "meal", label: "Comida" },
+    { id: "play", label: "Juego" },
+    { id: "activity", label: "Actividad física" },
+    { id: "bath", label: "Baño" },
+    { id: "other", label: "Otro" },
+  ]
+
+  const emotionalStates = [
+    { id: "happy", label: "Feliz" },
+    { id: "calm", label: "Tranquilo" },
+    { id: "excited", label: "Emocionado" },
+    { id: "tired", label: "Cansado" },
+    { id: "irritable", label: "Irritable" },
+    { id: "sad", label: "Triste" },
+    { id: "anxious", label: "Ansioso" },
+  ]
+  
   if (!activeChildId) {
     return (
       <div className="max-w-7xl mx-auto p-6">
@@ -936,6 +1108,189 @@ export default function CalendarPage() {
           setEventModalOpen(false)
         }}
       />
+      
+      {/* Diálogo para mostrar/editar detalles del evento */}
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        setIsDialogOpen(open)
+        if (!open) setSelectedEvent(null) // Limpiar cuando se cierra
+      }}>
+        <DialogContent className="sm:max-w-[500px]">
+          {selectedEvent && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{isEditing ? "Editar evento" : getEventTypeName(selectedEvent.eventType)}</DialogTitle>
+                <DialogDescription>
+                  {isEditing ? "Modifica los detalles del evento" : "Detalles del evento"}
+                </DialogDescription>
+              </DialogHeader>
+              
+              {!isEditing ? (
+                // Modo visualización
+                <div className="space-y-4 py-4">
+                  <div className="grid gap-2">
+                    <div className="flex items-center">
+                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span className="text-sm">
+                        {format(new Date(selectedEvent.startTime), "PPpp", { locale: es })}
+                        {selectedEvent.endTime && (
+                          <> hasta {format(new Date(selectedEvent.endTime), "p", { locale: es })}</>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="font-medium mr-2">Estado emocional:</span>
+                      <span>{getEmotionalStateName(selectedEvent.emotionalState)}</span>
+                    </div>
+                    {selectedEvent.notes && (
+                      <div className="mt-2">
+                        <span className="font-medium">Notas:</span>
+                        <p className="text-sm mt-1">{selectedEvent.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                // Modo edición
+                <div className="py-4">
+                  <div className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="eventType">Tipo de evento</Label>
+                      <Select 
+                        value={editedEvent.eventType || ""}
+                        onValueChange={(value) => setEditedEvent({ ...editedEvent, eventType: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona un tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {eventTypes.map((type) => (
+                            <SelectItem key={type.id} value={type.id}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="emotionalState">Estado emocional</Label>
+                      <Select 
+                        value={editedEvent.emotionalState || ""}
+                        onValueChange={(value) => setEditedEvent({ ...editedEvent, emotionalState: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona un estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {emotionalStates.map((state) => (
+                            <SelectItem key={state.id} value={state.id}>
+                              {state.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="startTime">Hora de inicio</Label>
+                        <Input 
+                          type="datetime-local" 
+                          value={editedEvent.startTime?.replace("Z", "") || ""}
+                          onChange={(e) => setEditedEvent({ ...editedEvent, startTime: e.target.value })}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="endTime">Hora de finalización</Label>
+                        <Input 
+                          type="datetime-local" 
+                          value={editedEvent.endTime?.replace("Z", "") || ""}
+                          onChange={(e) => setEditedEvent({ ...editedEvent, endTime: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="notes">Notas</Label>
+                      <Textarea 
+                        value={editedEvent.notes || ""}
+                        onChange={(e) => setEditedEvent({ ...editedEvent, notes: e.target.value })}
+                        placeholder="Notas adicionales sobre el evento..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <DialogFooter className="flex justify-between">
+                {isEditing ? (
+                  <>
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => {
+                        console.log("Abriendo modal de eliminación")
+                        setShowDeleteModal(true)
+                      }}
+                      disabled={isSaving}
+                    >
+                      <Trash className="h-4 w-4 mr-2" />
+                      Eliminar
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
+                        Cancelar
+                      </Button>
+                      <Button onClick={updateEvent} disabled={isSaving}>
+                        {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                        Guardar cambios
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between w-full">
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => {
+                        console.log("Abriendo modal de eliminación desde vista")
+                        setShowDeleteModal(true)
+                      }}
+                    >
+                      <Trash className="h-4 w-4 mr-2" />
+                      Eliminar
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                        Cerrar
+                      </Button>
+                      <Button onClick={() => setIsEditing(true)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar evento
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Modal de confirmación de eliminación */}
+      {selectedEvent && (
+        <DeleteConfirmationModal
+          isOpen={showDeleteModal}
+          onClose={() => {
+            console.log("Cerrando modal de eliminación")
+            setShowDeleteModal(false)
+          }}
+          onConfirm={() => {
+            console.log("Confirmando eliminación")
+            deleteEvent()
+          }}
+          itemName={`evento de ${getEventTypeName(selectedEvent.eventType)}`}
+          isDeleting={isSaving}
+        />
+      )}
     </div>
   )
 }

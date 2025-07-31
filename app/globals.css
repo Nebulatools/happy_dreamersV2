@@ -348,7 +348,7 @@
   /* Day column in timeline view */
   .day-column-timeline {
     @apply flex-1 min-w-0 border-r border-gray-200 last:border-r-0 relative;
-    min-height: 720px; /* 24 hours * 30px */
+    min-height: 1152px; /* 24 hours * 48px */
   }
   
   /* Day column header in timeline */
@@ -359,7 +359,7 @@
   /* Events container within day column */
   .events-timeline-container {
     @apply relative flex-1;
-    height: 720px; /* 24 hours * 30px per hour */
+    height: 1152px; /* 24 hours * 48px per hour */
     background: linear-gradient(
       to bottom,
       hsl(48 100% 96%) 0%,        /* AM (0:00-6:00) - Amarillo muy claro */
@@ -390,11 +390,11 @@
   /* Timeline responsive breakpoints */
   @screen md {
     .day-column-timeline {
-      min-height: 720px; /* Mantener altura compacta */
+      min-height: 1152px; /* Mantener altura ajustada 48px por hora */
     }
     
     .events-timeline-container {
-      height: 720px;
+      height: 1152px;
     }
   }
   
