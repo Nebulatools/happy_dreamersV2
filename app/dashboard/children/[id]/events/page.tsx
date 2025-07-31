@@ -401,80 +401,115 @@ export default function ChildEventsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {/* Ordenar los eventos por fecha descendente (más recientes primero) */}
-              {events
-                .sort((a, b) => {
-                  const dateA = a.startTime ? new Date(a.startTime) : new Date(a.createdAt)
-                  const dateB = b.startTime ? new Date(b.startTime) : new Date(b.createdAt)
-                  return dateB.getTime() - dateA.getTime()
-                })
-                .map((event) => (
-                  <div
-                    key={event._id || `${event.childId}-${event.startTime}-${event.eventType}`}
-                    className="border rounded-lg p-4 hover:border-primary cursor-pointer transition-colors"
-                    onClick={() => handleEventClick(event)}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className={`px-2 py-1 rounded-full text-sm ${getEventColor(event.eventType)}`}>
-                        {getEventTypeName(event.eventType)}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          {event.startTime ? (
-                            <>
-                              <span>Inicio: {format(new Date(event.startTime), "dd/MM/yyyy HH:mm", { locale: es })}</span>
-                              {event.endTime && (
-                                <span>• Fin: {format(new Date(event.endTime), "dd/MM/yyyy HH:mm", { locale: es })}</span>
-                              )}
-                            </>
-                          ) : (
-                            <span>Registrado: {format(new Date(event.createdAt), "dd/MM/yyyy", { locale: es })}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        {event.eventType !== "extra_activities" && (
-                          <p className="font-medium">Estado: {getEmotionalStateName(event.emotionalState)}</p>
-                        )}
-                        {event.eventType === "extra_activities" && event.description && (
-                          <div className="mt-2">
-                            <p className="font-medium text-sm text-gray-700">Descripción:</p>
-                            <p className="text-sm mt-1 text-gray-600">{event.description}</p>
-                          </div>
-                        )}
-                        {event.notes && <p className="text-sm mt-1">{event.notes}</p>}
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation() // Evitar que se abra el diálogo completo
-                            handleEventClick(event)
-                            setIsEditing(true)
-                          }}
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-700">Fecha</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-700">Hora</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-700 hidden sm:table-cell">Duración</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-700">Tipo</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-700 hidden md:table-cell">Estado</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-700 hidden lg:table-cell">Notas</th>
+                    <th className="text-center py-3 px-4 font-medium text-sm text-gray-700">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {events
+                    .sort((a, b) => {
+                      const dateA = a.startTime ? new Date(a.startTime) : new Date(a.createdAt)
+                      const dateB = b.startTime ? new Date(b.startTime) : new Date(b.createdAt)
+                      return dateB.getTime() - dateA.getTime()
+                    })
+                    .map((event) => {
+                      const startDate = event.startTime ? new Date(event.startTime) : new Date(event.createdAt)
+                      const endDate = event.endTime ? new Date(event.endTime) : null
+                      const duration = startDate && endDate 
+                        ? Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60)) 
+                        : null
+                      
+                      const formatDuration = (minutes: number | null) => {
+                        if (!minutes) return "-"
+                        const hours = Math.floor(minutes / 60)
+                        const mins = minutes % 60
+                        if (hours > 0) {
+                          return `${hours}h ${mins}m`
+                        }
+                        return `${mins}m`
+                      }
+                      
+                      return (
+                        <tr
+                          key={event._id || `${event.childId}-${event.startTime}-${event.eventType}`}
+                          className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={() => handleEventClick(event)}
                         >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={(e) => {
-                            e.stopPropagation() // Evitar que se abra el diálogo completo
-                            console.log("Eliminando desde tarjeta:", event._id)
-                            setSelectedEvent(event)
-                            setShowDeleteModal(true)
-                          }}
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                          <td className="py-3 px-4 text-sm">
+                            {format(startDate, "dd/MM/yyyy", { locale: es })}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {event.startTime ? (
+                              <>
+                                {format(startDate, "HH:mm")}
+                                {endDate && ` - ${format(endDate, "HH:mm")}`}
+                              </>
+                            ) : (
+                              "-"
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-sm hidden sm:table-cell">
+                            {formatDuration(duration)}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getEventColor(event.eventType)}`}>
+                              {getEventTypeName(event.eventType)}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-sm hidden md:table-cell">
+                            {event.eventType !== "extra_activities" && getEmotionalStateName(event.emotionalState)}
+                          </td>
+                          <td className="py-3 px-4 text-sm hidden lg:table-cell">
+                            <span className="truncate block max-w-xs" title={event.notes || event.description || ""}>
+                              {event.notes || event.description 
+                                ? (event.notes || event.description || "").substring(0, 50) + ((event.notes || event.description || "").length > 50 ? "..." : "")
+                                : "-"
+                              }
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex justify-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleEventClick(event)
+                                  setIsEditing(true)
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  console.log("Eliminando desde tabla:", event._id)
+                                  setSelectedEvent(event)
+                                  setShowDeleteModal(true)
+                                }}
+                              >
+                                <Trash className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                </tbody>
+              </table>
             </div>
           </CardContent>
         </Card>
