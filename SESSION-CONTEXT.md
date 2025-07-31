@@ -1,6 +1,6 @@
 # Session Context - Happy Dreamers UI Implementation
 
-*Last Updated: July 31, 2025 - Corrección Crítica de Métricas de Sueño*
+*Last Updated: January 31, 2025 - Mejoras Visuales del Calendario de Sueño*
 
 ## 🎯 Current System State
 
@@ -33,6 +33,62 @@
 6. ✅ **Update this file at session end** - Document progress
 
 ## 🎯 MAJOR ACCOMPLISHMENTS THIS SESSION
+
+### ✅ **MEJORAS VISUALES DEL CALENDARIO DE SUEÑO** (January 31, 2025)
+
+#### **Implementación de Timeline Mejorado para Vista Semanal:**
+
+1. **✅ Timeline Vertical con Horas**
+   - **Nuevo Componente**: `TimelineColumn` muestra horas 00:00-23:00
+   - **Altura Optimizada**: 30px por hora (720px total) para caber en pantalla sin scroll
+   - **Versión Compacta**: Para dispositivos móviles con horas principales
+   - **Archivo**: `/components/calendar/TimelineColumn.tsx`
+
+2. **✅ Bloques de Eventos Dinámicos**
+   - **Nuevo Componente**: `EventBlock` con tamaños según duración
+   - **Eventos Puntuales**: Bloques delgados (14px) para sleep/wake
+   - **Eventos con Duración**: Altura proporcional al tiempo (siesta, despertar nocturno)
+   - **Contenido Adaptativo**: Muestra más o menos info según espacio disponible
+   - **Tooltips Mejorados**: Información completa al pasar el mouse
+   - **Archivo**: `/components/calendar/EventBlock.tsx`
+
+3. **✅ Indicadores Visuales AM/PM**
+   - **Gradiente de Fondo**: Colores sutiles para diferenciar períodos del día
+     - 0:00-6:00 AM: Amarillo muy claro (madrugada)
+     - 6:00-12:00: Azul muy claro (mañana)
+     - 12:00-18:00: Naranja muy claro (tarde)
+     - 18:00-24:00: Morado muy claro (noche)
+   - **Etiquetas de Texto**: "AM", "Mañana", "Tarde", "PM" en el timeline
+   - **CSS Actualizado**: Nuevas clases en `app/globals.css`
+
+4. **✅ Layout Optimizado**
+   - **Resumen Inferior por Defecto**: Eliminado LayoutToggle, resumen siempre abajo
+   - **Vista Compacta**: Todo el calendario visible sin scroll vertical
+   - **Cards Horizontales**: Estadísticas organizadas en fila
+   - **Mayor Información**: Más eventos visibles en menos espacio
+
+5. **✅ Mejoras de UX**
+   - **Posicionamiento Temporal Preciso**: Eventos ubicados exactamente según hora
+   - **Líneas de Guía**: Cada hora y media hora marcadas sutilmente
+   - **Día Actual Resaltado**: Fondo azul claro y texto "Hoy"
+   - **Estados Vacíos**: Mensaje claro cuando no hay eventos
+
+#### **Archivos Creados:**
+1. **✅ `/components/calendar/TimelineColumn.tsx`** - Columna de horas vertical
+2. **✅ `/components/calendar/EventBlock.tsx`** - Bloques de eventos mejorados
+3. **✅ `/components/calendar/LayoutToggle.tsx`** - Toggle de layout (creado pero no usado)
+4. **✅ `/components/calendar/index.ts`** - Exports centralizados
+
+#### **Archivos Modificados:**
+1. **✅ `/app/dashboard/calendar/page.tsx`** - Vista semanal completamente rediseñada
+2. **✅ `/app/globals.css`** - Estilos para timeline, gradientes AM/PM, alturas compactas
+
+#### **Beneficios de la Nueva Visualización:**
+- **Sin Scroll**: Todo el calendario de la semana visible en una pantalla
+- **Análisis Rápido**: Patrones de sueño identificables de un vistazo
+- **Duración Visual**: Largo de siestas y despertares claramente visible
+- **Contexto Temporal**: Fácil identificar si eventos ocurren AM/PM
+- **Información Rica**: Máxima información en mínimo espacio
 
 ### ✅ **CORRECCIÓN CRÍTICA DE MÉTRICAS DE SUEÑO** (July 31, 2025)
 

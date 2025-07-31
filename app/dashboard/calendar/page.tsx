@@ -22,6 +22,12 @@ import { useToast } from "@/hooks/use-toast"
 import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache, useEventsInvalidation } from "@/hooks/use-events-cache"
 import { EventRegistrationModal } from "@/components/events"
+import { 
+  TimelineColumn, 
+  CompactTimelineColumn, 
+  EventBlock, 
+  CompactEventBlock
+} from "@/components/calendar"
 import {
   format,
   startOfMonth,
@@ -474,64 +480,118 @@ export default function CalendarPage() {
     const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
     const weekDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     
+    // Reducir altura por hora para que quepa en pantalla
+    const hourHeight = 30 // 30px por hora = 720px total para 24 horas
+    
     return (
-      <div className="mt-6">
-        {/* Headers de días */}
-        <div className="grid grid-cols-7 gap-4 mb-4">
-          {weekDays.map((dayName, index) => {
-            const day = days[index]
-            const isDayToday = isToday(day)
-            
-            return (
-              <div key={dayName} className="text-center">
-                <div className="text-sm font-medium text-gray-600 mb-2">{dayName}</div>
-                <div className={cn(
-                  "text-lg font-semibold p-2 rounded-lg",
-                  isDayToday ? "bg-blue-100 text-blue-600" : "text-gray-900"
-                )}>
-                  {format(day, "d")}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-        
-        {/* Grid de eventos por día */}
-        <div className="grid grid-cols-7 gap-4">
-          {days.map((day) => {
-            const dayEvents = getEventsForDay(day)
-            
-            return (
-              <div key={day.toString()} className="border rounded-lg p-3 min-h-[200px] bg-white">
-                <div className="space-y-2">
-                  {dayEvents.map((event) => (
-                    <div
-                      key={event._id}
-                      className={cn(
-                        "p-2 rounded text-xs",
-                        getEventTypeColor(event.eventType)
-                      )}
+      <div className="mt-6 calendar-timeline">
+        <div className="week-view-timeline">
+          {/* Timeline Column */}
+          <div className="hidden md:block">
+            <TimelineColumn hourHeight={hourHeight} />
+          </div>
+          <div className="md:hidden">
+            <CompactTimelineColumn hourHeight={hourHeight} />
+          </div>
+          
+          {/* Days Grid */}
+          <div className="flex-1 flex">
+            {days.map((day, index) => {
+              const dayName = weekDays[index]
+              const dayEvents = getEventsForDay(day)
+              const isDayToday = isToday(day)
+              
+              return (
+                <div key={day.toString()} className="day-column-timeline">
+                  {/* Day Header */}
+                  <div className={cn(
+                    "day-header-timeline",
+                    isDayToday && "bg-blue-50 text-blue-600"
+                  )}>
+                    <div className="text-xs font-medium opacity-75">{dayName}</div>
+                    <div className="text-lg font-bold">
+                      {format(day, "d")}
+                    </div>
+                    {isDayToday && (
+                      <div className="text-xs font-medium">Hoy</div>
+                    )}
+                  </div>
+                  
+                  {/* Events Timeline Container */}
+                  <div className="events-timeline-container">
+                    {/* Indicadores de período del día */}
+                    <div 
+                      className="timeline-period-indicator text-gray-600"
+                      style={{ top: `${3 * hourHeight}px` }}
                     >
-                      <div className="flex items-center gap-1 mb-1">
-                        {getEventTypeIcon(event.eventType)}
-                        <span className="font-medium">
-                          {getEventTypeName(event.eventType)}
-                        </span>
-                      </div>
-                      <div className="text-xs">
-                        {formatEventTime(event)}
-                      </div>
+                      AM
                     </div>
-                  ))}
-                  {dayEvents.length === 0 && (
-                    <div className="text-xs text-gray-400 text-center mt-8">
-                      Sin eventos
+                    <div 
+                      className="timeline-period-indicator text-gray-600"
+                      style={{ top: `${9 * hourHeight}px` }}
+                    >
+                      Mañana
                     </div>
-                  )}
+                    <div 
+                      className="timeline-period-indicator text-gray-600"
+                      style={{ top: `${15 * hourHeight}px` }}
+                    >
+                      Tarde
+                    </div>
+                    <div 
+                      className="timeline-period-indicator text-gray-600"
+                      style={{ top: `${21 * hourHeight}px` }}
+                    >
+                      PM
+                    </div>
+                    
+                    {/* Hour grid lines */}
+                    {Array.from({ length: 24 }, (_, hour) => (
+                      <div key={hour}>
+                        {/* Major hour lines (every 4 hours) */}
+                        {hour % 4 === 0 && (
+                          <div 
+                            className="hour-grid-line-major"
+                            style={{ top: `${hour * hourHeight}px` }}
+                          />
+                        )}
+                        {/* Regular hour lines */}
+                        <div 
+                          className="hour-grid-line"
+                          style={{ top: `${hour * hourHeight}px` }}
+                        />
+                        {/* Half-hour lines */}
+                        <div 
+                          className="hour-grid-line opacity-50"
+                          style={{ top: `${hour * hourHeight + hourHeight / 2}px` }}
+                        />
+                      </div>
+                    ))}
+                    
+                    {/* Events positioned absolutely */}
+                    {dayEvents.map((event) => (
+                      <EventBlock
+                        key={event._id}
+                        event={event}
+                        hourHeight={hourHeight}
+                        showTooltip={true}
+                      />
+                    ))}
+                    
+                    {/* Empty state */}
+                    {dayEvents.length === 0 && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-xs text-gray-400 text-center">
+                          <div>Sin eventos</div>
+                          <div className="mt-1 opacity-75">este día</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       </div>
     )
@@ -738,32 +798,35 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Controles de vista */}
-      <div className="flex gap-2">
-        <Button
-          variant={view === "month" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setView("month")}
-          className={view === "month" ? "hd-gradient-button text-white" : ""}
-        >
-          Mensual
-        </Button>
-        <Button
-          variant={view === "week" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setView("week")}
-          className={view === "week" ? "hd-gradient-button text-white" : ""}
-        >
-          Semanal
-        </Button>
-        <Button
-          variant={view === "day" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setView("day")}
-          className={view === "day" ? "hd-gradient-button text-white" : ""}
-        >
-          Diario
-        </Button>
+      {/* Controles de vista y layout */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex gap-2">
+          <Button
+            variant={view === "month" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setView("month")}
+            className={view === "month" ? "hd-gradient-button text-white" : ""}
+          >
+            Mensual
+          </Button>
+          <Button
+            variant={view === "week" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setView("week")}
+            className={view === "week" ? "hd-gradient-button text-white" : ""}
+          >
+            Semanal
+          </Button>
+          <Button
+            variant={view === "day" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setView("day")}
+            className={view === "day" ? "hd-gradient-button text-white" : ""}
+          >
+            Diario
+          </Button>
+        </div>
+        
       </div>
 
       {/* Leyenda */}
@@ -786,9 +849,10 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Calendario */}
-        <Card className="lg:col-span-3 p-6">
+      {/* Layout con resumen inferior */}
+      <div className="space-y-6">
+        {/* Calendario Principal */}
+        <Card className="p-6">
           {isLoading ? (
             <div className="flex justify-center items-center h-96">
               <div className="text-center">
@@ -803,15 +867,16 @@ export default function CalendarPage() {
           )}
         </Card>
 
-        {/* Panel de Resumen */}
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">
+        {/* Panel de Resumen Inferior */}
+        <Card className="summary-panel-bottom p-6">
+          <h3 className="text-lg font-semibold mb-6">
             {view === "month" && "Resumen del mes"}
             {view === "week" && "Resumen de la semana"}
             {view === "day" && "Resumen del día"}
           </h3>
           
-          <div className="space-y-6">
+          {/* Cards horizontales en layout inferior */}
+          <div className="summary-cards-horizontal">
             {renderStatCard(
               view === "day" ? "Horas de sueño nocturno" : "Promedio de sueño nocturno",
               monthlyStats.nightSleepHours.toFixed(1),

@@ -322,4 +322,112 @@
   .step-circle-pending {
     @apply bg-gray-200 text-gray-500;
   }
+
+  /* === CALENDAR TIMELINE STYLES === */
+  
+  /* Timeline container */
+  .calendar-timeline {
+    @apply relative overflow-hidden;
+  }
+  
+  /* Timeline column */
+  .timeline-column {
+    @apply w-16 flex-shrink-0 bg-gray-50 border-r border-gray-200;
+  }
+  
+  /* Compact timeline column for tablets */
+  .timeline-column-compact {
+    @apply w-12 flex-shrink-0 bg-gray-50 border-r border-gray-200;
+  }
+  
+  /* Week view with timeline */
+  .week-view-timeline {
+    @apply flex overflow-x-auto;
+  }
+  
+  /* Day column in timeline view */
+  .day-column-timeline {
+    @apply flex-1 min-w-0 border-r border-gray-200 last:border-r-0 relative;
+    min-height: 720px; /* 24 hours * 30px */
+  }
+  
+  /* Day column header in timeline */
+  .day-header-timeline {
+    @apply h-16 bg-white border-b border-gray-200 flex flex-col items-center justify-center text-sm font-medium sticky top-0 z-10;
+  }
+  
+  /* Events container within day column */
+  .events-timeline-container {
+    @apply relative flex-1;
+    height: 720px; /* 24 hours * 30px per hour */
+    background: linear-gradient(
+      to bottom,
+      hsl(48 100% 96%) 0%,        /* AM (0:00-6:00) - Amarillo muy claro */
+      hsl(48 100% 96%) 25%,
+      hsl(201 80% 98%) 25%,       /* Día (6:00-12:00) - Azul muy claro */
+      hsl(201 80% 98%) 50%,
+      hsl(37 90% 98%) 50%,        /* Tarde (12:00-18:00) - Naranja muy claro */
+      hsl(37 90% 98%) 75%,
+      hsl(240 20% 98%) 75%,       /* PM/Noche (18:00-24:00) - Morado muy claro */
+      hsl(240 20% 98%) 100%
+    );
+  }
+  
+  /* Hour grid lines */
+  .hour-grid-line {
+    @apply absolute left-0 right-0 border-t border-gray-100;
+  }
+  
+  .hour-grid-line-major {
+    @apply absolute left-0 right-0 border-t-2 border-gray-200;
+  }
+  
+  /* Event positioning helpers */
+  .event-positioned {
+    @apply absolute left-1 right-1;
+  }
+  
+  /* Timeline responsive breakpoints */
+  @screen md {
+    .day-column-timeline {
+      min-height: 720px; /* Mantener altura compacta */
+    }
+    
+    .events-timeline-container {
+      height: 720px;
+    }
+  }
+  
+  @screen lg {
+    .timeline-column {
+      @apply w-20;
+    }
+  }
+  
+  /* Indicadores de período del día */
+  .timeline-period-indicator {
+    @apply absolute left-0 right-0 flex items-center justify-center text-xs font-medium opacity-50 pointer-events-none;
+  }
+  
+  /* Layout toggle styles */
+  .layout-toggle-button {
+    @apply p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors duration-200;
+  }
+  
+  .layout-toggle-active {
+    @apply bg-blue-50 border-blue-200 text-blue-600;
+  }
+  
+  /* Summary panel styles */
+  .summary-panel-lateral {
+    @apply w-full lg:w-80 flex-shrink-0;
+  }
+  
+  .summary-panel-bottom {
+    @apply w-full;
+  }
+  
+  .summary-cards-horizontal {
+    @apply grid grid-cols-1 md:grid-cols-3 gap-4;
+  }
 }
