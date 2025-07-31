@@ -57,16 +57,36 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Validación específica para actividades extra
+    if (data.eventType === "extra_activities" && (!data.description || data.description.length < 10)) {
+      logger.error("Descripción requerida para actividades extra")
+      return NextResponse.json(
+        { error: "La descripción es requerida para actividades extra (mínimo 10 caracteres)" },
+        { status: 400 }
+      )
+    }
+
     // Crear el objeto de evento con ID único
-    const event = {
+    const event: any = {
       _id: new ObjectId().toString(), // Generar un ID único para el evento
       childId: data.childId,
       eventType: data.eventType,
       emotionalState: data.emotionalState || "neutral",
-      startTime: data.startTime,
-      endTime: data.endTime || null,
       notes: data.notes || "",
+      description: data.description || null, // Campo para actividades extra
+      duration: data.duration || null,
+      sleepDelay: data.sleepDelay || null,
       createdAt: new Date().toISOString(),
+    }
+    
+    // Solo agregar startTime si está presente
+    if (data.startTime) {
+      event.startTime = data.startTime
+    }
+    
+    // Solo agregar endTime si está presente
+    if (data.endTime) {
+      event.endTime = data.endTime
     }
 
     logger.info("Evento a registrar:", event)

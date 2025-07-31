@@ -16,6 +16,7 @@ import { TimeSelector } from "./TimeSelector"
 import { eventTypeHasEndTime, getEventType } from "@/lib/event-types"
 import { SleepDelayInput } from "./SleepDelayInput"
 import { NightWakingDelayInput } from "./NightWakingDelayInput"
+import { ExtraActivitiesInput } from "./ExtraActivitiesInput"
 
 import { createLogger } from "@/lib/logger"
 
@@ -85,9 +86,8 @@ const eventFormSchema = z.object({
   emotionalState: z.string({
     required_error: "Por favor selecciona un estado emocional",
   }),
-  startTime: z.string({
-    required_error: "Por favor ingresa la hora de inicio",
-  }).refine(val => {
+  startTime: z.string().optional().refine((val) => {
+    if (!val) return true;
     return new Date(val) <= new Date()
   }, {
     message: "La fecha de inicio no puede ser en el futuro",
@@ -96,6 +96,8 @@ const eventFormSchema = z.object({
   duration: z.number().min(0).max(24).optional(),
   sleepDelay: z.number().min(0).max(120).optional(),
   notes: z.string().optional(),
+  description: z.string().optional(),
+  showStartTime: z.boolean().optional(),
 }).refine((data) => {
   // Validar que la hora de fin sea después de la hora de inicio
   if (data.endTime && data.startTime) {
@@ -105,6 +107,28 @@ const eventFormSchema = z.object({
 }, {
   message: "La hora de fin debe ser después de la hora de inicio",
   path: ["endTime"], // El error aparecerá en el campo endTime
+}).refine((data) => {
+  // Para actividades extra, la descripción es requerida
+  if (data.eventType === "extra_activities" && (!data.description || data.description.length < 10)) {
+    return false
+  }
+  return true
+}, {
+  message: "Por favor describe las actividades del día (mínimo 10 caracteres)",
+  path: ["description"],
+}).refine((data) => {
+  // Para eventos que no son extra_activities, startTime es requerido
+  if (data.eventType !== "extra_activities" && !data.startTime) {
+    return false
+  }
+  // Para extra_activities con showStartTime activado, startTime es requerido
+  if (data.eventType === "extra_activities" && data.showStartTime && !data.startTime) {
+    return false
+  }
+  return true
+}, {
+  message: "Por favor ingresa la hora de inicio",
+  path: ["startTime"],
 })
 
 type EventFormValues = z.infer<typeof eventFormSchema>
@@ -139,9 +163,11 @@ export function EventRegistrationModal({
     defaultValues: {
       notes: "",
       emotionalState: "calm",
-      startTime: getCurrentDateTimeISO(),
+      startTime: undefined, // No establecer valor por defecto
       eventType: getEventTypeByTime(new Date()),
       sleepDelay: 0,
+      description: "",
+      showStartTime: false,
     },
   })
 
@@ -165,13 +191,17 @@ export function EventRegistrationModal({
       // Actualizar fecha compartida
       setSharedDate(currentDate)
       
+      const defaultEventType = getEventTypeByTime(now)
+      
       form.reset({
         notes: "",
         emotionalState: "calm",
-        startTime: currentTime,
-        eventType: getEventTypeByTime(now),
-        endTime: defaultEndTime,
+        startTime: defaultEventType !== "extra_activities" ? currentTime : undefined,
+        eventType: defaultEventType,
+        endTime: defaultEventType !== "extra_activities" ? defaultEndTime : undefined,
         sleepDelay: 0,
+        description: "",
+        showStartTime: false,
       })
     }
   }, [isOpen, form])
@@ -180,6 +210,7 @@ export function EventRegistrationModal({
   const startTime = form.watch("startTime")
   const endTime = form.watch("endTime")
   const eventType = form.watch("eventType")
+  const showStartTime = form.watch("showStartTime")
   
   
   // Determinar si el tipo de evento actual necesita hora de fin
@@ -188,6 +219,9 @@ export function EventRegistrationModal({
   // Determinar si el tipo de evento actual necesita campo de sleep delay
   const eventTypeInfo = eventType ? getEventType(eventType) : null
   const shouldShowSleepDelay = eventTypeInfo?.hasSleepDelay || false
+  
+  // Determinar si es actividades extra
+  const isExtraActivities = eventType === "extra_activities"
   
   // FECHA COMPARTIDA entre ambos TimeSelectors
   const [sharedDate, setSharedDate] = useState<string>(() => {
@@ -219,7 +253,27 @@ export function EventRegistrationModal({
       // Establecer hora de fin por defecto si se necesita pero no existe
       form.setValue("endTime", getDefaultEndTime(startTime))
     }
+    
+    // Para actividades extra, establecer un estado emocional por defecto
+    if (eventType === "extra_activities" && !form.getValues("emotionalState")) {
+      form.setValue("emotionalState", "calm")
+    }
   }, [shouldShowEndTime, eventType, endTime, startTime, form])
+  
+  // Limpiar startTime cuando se cambia a extra_activities
+  useEffect(() => {
+    if (eventType === "extra_activities") {
+      if (!showStartTime) {
+        form.setValue("startTime", undefined)
+      } else if (showStartTime && !form.getValues("startTime")) {
+        // Cuando se activa el checkbox, establecer hora actual
+        form.setValue("startTime", getCurrentDateTimeISO())
+      }
+    } else if (eventType !== "extra_activities" && !form.getValues("startTime")) {
+      // Establecer startTime para otros tipos de evento si no existe
+      form.setValue("startTime", getCurrentDateTimeISO())
+    }
+  }, [eventType, showStartTime, form])
   
   // Calcular duración automáticamente cuando cambian las fechas
   useEffect(() => {
@@ -241,17 +295,26 @@ export function EventRegistrationModal({
 
     setIsLoading(true)
     try {
+      // Preparar los datos para enviar
+      const eventData: any = {
+        ...data,
+        childId,
+        duration: data.endTime && data.startTime ? calculateDuration(data.startTime, data.endTime) : data.duration || 0,
+        sleepDelay: data.sleepDelay || 0,
+        description: data.description || "",
+      }
+      
+      // Si es extra_activities y showStartTime es false, no enviar startTime
+      if (data.eventType === "extra_activities" && !data.showStartTime) {
+        delete eventData.startTime
+      }
+      
       const response = await fetch("/api/children/events", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...data,
-          childId,
-          duration: data.endTime ? calculateDuration(data.startTime, data.endTime) : data.duration || 0,
-          sleepDelay: data.sleepDelay || 0,
-        }),
+        body: JSON.stringify(eventData),
       })
       
       const responseData = await response.json()
@@ -317,46 +380,96 @@ export function EventRegistrationModal({
                 )}
               />
               
-              {/* Estado Emocional */}
+              {/* Estado Emocional - oculto para actividades extra */}
+              {!isExtraActivities && (
+                <FormField
+                  control={form.control}
+                  name="emotionalState"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <CompactEmotionalStateSelector
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+            
+            {/* Entrada de descripción para actividades extra */}
+            {isExtraActivities && (
               <FormField
                 control={form.control}
-                name="emotionalState"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel className="text-base font-medium text-gray-700">
+                      Descripción de Actividades
+                    </FormLabel>
                     <FormControl>
-                      <CompactEmotionalStateSelector
-                        value={field.value}
-                        onValueChange={field.onChange}
+                      <ExtraActivitiesInput
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        disabled={isLoading}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
+            )}
 
             {/* Selector de tiempo */}
             <div className="space-y-3">
-              {/* Hora de inicio */}
-              <FormField
-                control={form.control}
-                name="startTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <TimeSelector
-                        value={field.value}
-                        onChange={field.onChange}
-                        label="Hora de Inicio"
-                        color="blue"
-                        sharedDate={sharedDate}
-                        onDateChange={handleDateChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Checkbox para mostrar hora en actividades extra */}
+              {isExtraActivities && (
+                <FormField
+                  control={form.control}
+                  name="showStartTime"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                      </FormControl>
+                      <FormLabel className="text-sm font-normal cursor-pointer">
+                        Especificar hora aproximada
+                      </FormLabel>
+                    </FormItem>
+                  )}
+                />
+              )}
+              
+              {/* Hora de inicio - condicional para actividades extra */}
+              {(!isExtraActivities || showStartTime) && (
+                <FormField
+                  control={form.control}
+                  name="startTime"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <TimeSelector
+                          value={field.value || ""}
+                          onChange={field.onChange}
+                          label="Hora de Inicio"
+                          color="blue"
+                          sharedDate={sharedDate}
+                          onDateChange={handleDateChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               
               {/* Hora de fin - solo para siesta y actividad física */}
               {shouldShowEndTime && (

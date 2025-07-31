@@ -45,6 +45,7 @@ interface Event {
   startTime: string;
   endTime?: string;
   notes?: string;
+  description?: string;
   createdAt: string;
 }
 
@@ -159,8 +160,11 @@ export default function ChildEventsPage() {
       meal: "Comida",
       play: "Juego",
       activity: "Actividad física",
+      extra_activities: "Actividades Extra",
       bath: "Baño",
       other: "Otro",
+      wake: "Despertar",
+      night_waking: "Despertar nocturno",
     }
     return types[type] || type
   }
@@ -186,9 +190,12 @@ export default function ChildEventsPage() {
       nap: "bg-blue-100 text-blue-600",
       meal: "bg-green-200 text-green-800",
       play: "bg-yellow-200 text-yellow-800",
-      activity: "bg-orange-200 text-orange-800", 
+      activity: "bg-orange-200 text-orange-800",
+      extra_activities: "bg-indigo-200 text-indigo-800",
       bath: "bg-cyan-200 text-cyan-800",
       other: "bg-purple-200 text-purple-800",
+      wake: "bg-amber-200 text-amber-800",
+      night_waking: "bg-red-200 text-red-800",
     }
     return colors[type] || "bg-gray-200 text-gray-800"
   }
@@ -397,7 +404,11 @@ export default function ChildEventsPage() {
             <div className="space-y-6">
               {/* Ordenar los eventos por fecha descendente (más recientes primero) */}
               {events
-                .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+                .sort((a, b) => {
+                  const dateA = a.startTime ? new Date(a.startTime) : new Date(a.createdAt)
+                  const dateB = b.startTime ? new Date(b.startTime) : new Date(b.createdAt)
+                  return dateB.getTime() - dateA.getTime()
+                })
                 .map((event) => (
                   <div
                     key={event._id || `${event.childId}-${event.startTime}-${event.eventType}`}
@@ -410,16 +421,30 @@ export default function ChildEventsPage() {
                       </div>
                       <div className="text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
-                          <span>Inicio: {format(new Date(event.startTime), "dd/MM/yyyy HH:mm", { locale: es })}</span>
-                          {event.endTime && (
-                            <span>• Fin: {format(new Date(event.endTime), "dd/MM/yyyy HH:mm", { locale: es })}</span>
+                          {event.startTime ? (
+                            <>
+                              <span>Inicio: {format(new Date(event.startTime), "dd/MM/yyyy HH:mm", { locale: es })}</span>
+                              {event.endTime && (
+                                <span>• Fin: {format(new Date(event.endTime), "dd/MM/yyyy HH:mm", { locale: es })}</span>
+                              )}
+                            </>
+                          ) : (
+                            <span>Registrado: {format(new Date(event.createdAt), "dd/MM/yyyy", { locale: es })}</span>
                           )}
                         </div>
                       </div>
                     </div>
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="font-medium">Estado: {getEmotionalStateName(event.emotionalState)}</p>
+                        {event.eventType !== "extra_activities" && (
+                          <p className="font-medium">Estado: {getEmotionalStateName(event.emotionalState)}</p>
+                        )}
+                        {event.eventType === "extra_activities" && event.description && (
+                          <div className="mt-2">
+                            <p className="font-medium text-sm text-gray-700">Descripción:</p>
+                            <p className="text-sm mt-1 text-gray-600">{event.description}</p>
+                          </div>
+                        )}
                         {event.notes && <p className="text-sm mt-1">{event.notes}</p>}
                       </div>
                       <div className="flex space-x-2">

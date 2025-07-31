@@ -1,6 +1,6 @@
 # Session Context - Happy Dreamers UI Implementation
 
-*Last Updated: January 30, 2025 - Wake/Night_Waking Event Separation*
+*Last Updated: July 31, 2025 - Sistema de Actividades Extra Implementado*
 
 ## 🎯 Current System State
 
@@ -33,6 +33,62 @@
 6. ✅ **Update this file at session end** - Document progress
 
 ## 🎯 MAJOR ACCOMPLISHMENTS THIS SESSION
+
+### ✅ **SISTEMA DE ACTIVIDADES EXTRA IMPLEMENTADO** (July 31, 2025)
+
+#### **Transformación de "Actividad Física" en "Actividades Extra":**
+
+1. **✅ Nuevo Tipo de Evento: "Actividades Extra"**
+   - **Reemplazado**: Evento "activity" → "extra_activities" 
+   - **Propósito**: Capturar factores del día que pueden afectar el sueño
+   - **Características**:
+     - Campo de descripción libre requerido (mínimo 10 caracteres)
+     - Hora de inicio opcional con checkbox
+     - Sin estado emocional (no aplicable)
+     - Sin hora de fin (información contextual)
+     - Color distintivo: índigo (#6366F1)
+
+2. **✅ Componente de Entrada de Audio/Texto**
+   - **Archivo**: `/components/events/ExtraActivitiesInput.tsx`
+   - **Funcionalidades**:
+     - Textarea para descripción manual con placeholder explicativo
+     - Grabación de audio integrada (reutiliza lógica de consultas)
+     - Transcripción automática usando endpoint `/api/transcript`
+     - Controles de reproducción y limpieza de audio
+     - Diseño compacto adaptado para modal
+
+3. **✅ Modal de Registro Actualizado**
+   - **EventRegistrationModal.tsx**: Lógica condicional para actividades extra
+   - **Estados dinámicos**: Oculta selector emocional para este tipo
+   - **Checkbox opcional**: "Especificar hora aproximada"
+   - **Validación inteligente**: Requiere descripción, hora opcional
+   - **Auto-limpieza**: startTime se elimina cuando no se especifica
+
+4. **✅ Backend Actualizado**
+   - **API**: `/app/api/children/events/route.ts` maneja campo `description`
+   - **Validación**: Específica para actividades extra (descripción requerida)
+   - **Almacenamiento**: Eventos sin startTime para información contextual
+   - **Transcripción**: Endpoint ya no requiere permisos admin
+
+5. **✅ Visualización Mejorada**
+   - **Lista de eventos**: Muestra descripción en lugar de estado emocional
+   - **Fecha adaptiva**: "Registrado:" cuando no hay hora específica
+   - **Ordenamiento**: Usa createdAt cuando startTime no existe
+   - **Color distintivo**: Índigo para identificar fácilmente
+
+#### **Archivos Modificados:**
+1. **✅ `/lib/event-types.ts`** - Nuevo tipo extra_activities con requiresDescription
+2. **✅ `/components/events/ExtraActivitiesInput.tsx`** - NUEVO - Componente adaptado de TranscriptInput
+3. **✅ `/components/events/EventRegistrationModal.tsx`** - Lógica condicional completa
+4. **✅ `/app/api/children/events/route.ts`** - Soporte para campo description
+5. **✅ `/app/api/transcript/route.ts`** - Removido requisito de admin
+6. **✅ `/app/dashboard/children/[id]/events/page.tsx`** - Visualización actualizada
+
+#### **Casos de Uso Implementados:**
+- **Sin hora**: "Se hizo popó en el parque" → Guardado solo con descripción
+- **Con hora**: "Visitó a los abuelos a las 3pm" → Incluye timestamp
+- **Con audio**: Grabación → Transcripción automática → Guardado como texto
+- **Análisis**: Descripción disponible para procesamiento de IA
 
 ### ✅ **CALENDAR IMPROVEMENTS & COLOR SYSTEM UPDATE** (January 30, 2025 - Evening)
 

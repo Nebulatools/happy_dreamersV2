@@ -1,4 +1,4 @@
-import { Moon, Sun, Activity, AlertCircle } from "lucide-react"
+import { Moon, Sun, Activity, AlertCircle, MessageSquare } from "lucide-react"
 
 export interface EventType {
   id: string
@@ -7,6 +7,7 @@ export interface EventType {
   description: string
   hasEndTime: boolean
   hasSleepDelay?: boolean
+  requiresDescription?: boolean
 }
 
 export const eventTypes: EventType[] = [
@@ -41,11 +42,12 @@ export const eventTypes: EventType[] = [
     hasSleepDelay: true,
   },
   {
-    id: "activity",
-    label: "Actividad física",
-    icon: Activity,
-    description: "Actividad física o juego",
-    hasEndTime: true,
+    id: "extra_activities",
+    label: "Actividades Extra",
+    icon: MessageSquare,
+    description: "Factores del día que pueden afectar el sueño",
+    hasEndTime: false,
+    requiresDescription: true,
   },
 ]
 

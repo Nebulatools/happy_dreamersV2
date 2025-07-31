@@ -12,9 +12,9 @@ const logger = createLogger("API:transcript:route")
 
 export async function POST(req: NextRequest) {
   try {
-    // Verificar autenticación y permisos de admin
+    // Verificar autenticación (no requiere admin para transcribir)
     const session = await getServerSession(authOptions)
-    if (!session?.user || session.user.role !== "admin") {
+    if (!session?.user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
