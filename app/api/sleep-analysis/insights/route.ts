@@ -168,7 +168,7 @@ async function generateInsights({
   let insightId = 1
 
   // Si hay plan activo, generar insights de adherencia
-  if (activePlan) {
+  if (activePlan && stats.avgBedtime && stats.avgBedtime !== "--:--") {
     // Comparar hora de dormir
     const bedtimeAdherence = calculateBedtimeAdherence(stats, activePlan)
     if (bedtimeAdherence) {
@@ -178,11 +178,11 @@ async function generateInsights({
         category: 'schedule',
         priority: bedtimeAdherence.adherencePercentage < 70 ? 'high' : 'medium',
         title: bedtimeAdherence.adherencePercentage >= 80 
-          ? `¡Excelente adherencia al horario de dormir!`
-          : `Desviación en el horario de dormir`,
+          ? `¡Excelente adherencia!`
+          : `Horario variable`,
         description: bedtimeAdherence.adherencePercentage >= 80
-          ? `${child.firstName} está siguiendo el horario de dormir con ${bedtimeAdherence.adherencePercentage}% de precisión`
-          : `La hora promedio de dormir varía ${bedtimeAdherence.averageDifference} minutos del plan`,
+          ? `Siguiendo el horario con ${bedtimeAdherence.adherencePercentage}% de precisión`
+          : `Varía ${bedtimeAdherence.averageDifference} min del plan`,
         metric: {
           actual: stats.avgBedtime,
           expected: activePlan.schedule.bedtime,
@@ -199,50 +199,54 @@ async function generateInsights({
     }
 
     // Comparar hora de despertar
-    const wakeTimeAdherence = calculateWakeTimeAdherence(stats, activePlan)
-    if (wakeTimeAdherence) {
-      insights.push({
-        id: (insightId++).toString(),
-        type: wakeTimeAdherence.adherencePercentage >= 80 ? 'achievement' : 'deviation',
-        category: 'schedule',
-        priority: wakeTimeAdherence.adherencePercentage < 70 ? 'high' : 'medium',
-        title: wakeTimeAdherence.adherencePercentage >= 80 
-          ? `Consistencia en la hora de despertar`
-          : `Variación en la hora de despertar`,
-        description: wakeTimeAdherence.adherencePercentage >= 80
-          ? `Despertando consistentemente cerca de la hora planificada`
-          : `La hora de despertar varía ${wakeTimeAdherence.averageDifference} minutos del plan`,
-        metric: {
-          actual: stats.avgWakeTime,
-          expected: activePlan.schedule.wakeTime,
-          difference: `${wakeTimeAdherence.averageDifference} min`,
-          percentage: wakeTimeAdherence.adherencePercentage
-        },
-        icon: wakeTimeAdherence.adherencePercentage >= 80 ? '☀️' : '⏰',
-        actionable: wakeTimeAdherence.adherencePercentage < 80
-      })
+    if (stats.avgWakeTime && stats.avgWakeTime !== "--:--") {
+      const wakeTimeAdherence = calculateWakeTimeAdherence(stats, activePlan)
+      if (wakeTimeAdherence) {
+        insights.push({
+          id: (insightId++).toString(),
+          type: wakeTimeAdherence.adherencePercentage >= 80 ? 'achievement' : 'deviation',
+          category: 'schedule',
+          priority: wakeTimeAdherence.adherencePercentage < 70 ? 'high' : 'medium',
+          title: wakeTimeAdherence.adherencePercentage >= 80 
+            ? `Despertar consistente`
+            : `Despertar variable`,
+          description: wakeTimeAdherence.adherencePercentage >= 80
+            ? `Cerca de la hora planificada`
+            : `Varía ${wakeTimeAdherence.averageDifference} min`,
+          metric: {
+            actual: stats.avgWakeTime,
+            expected: activePlan.schedule.wakeTime,
+            difference: `${wakeTimeAdherence.averageDifference} min`,
+            percentage: wakeTimeAdherence.adherencePercentage
+          },
+          icon: wakeTimeAdherence.adherencePercentage >= 80 ? '☀️' : '⏰',
+          actionable: wakeTimeAdherence.adherencePercentage < 80
+        })
+      }
     }
   }
 
   // Insights de patrones (independientes del plan)
   
-  // Duración total del sueño
-  const sleepQuality = evaluateSleepQuality(stats, child)
-  insights.push({
-    id: (insightId++).toString(),
-    type: sleepQuality.isGood ? 'achievement' : 'pattern',
-    category: 'quality',
-    priority: sleepQuality.isGood ? 'low' : 'high',
-    title: sleepQuality.title,
-    description: sleepQuality.description,
-    metric: {
-      actual: `${stats.totalSleepHours.toFixed(1)} horas`,
-      expected: `${sleepQuality.recommendedHours} horas`,
-      difference: `${Math.abs(stats.totalSleepHours - sleepQuality.recommendedHours).toFixed(1)} horas`
-    },
-    icon: sleepQuality.isGood ? '😴' : '💤',
-    actionable: !sleepQuality.isGood
-  })
+  // Duración total del sueño (solo si hay datos válidos)
+  if (stats.totalSleepHours > 0) {
+    const sleepQuality = evaluateSleepQuality(stats, child)
+    insights.push({
+      id: (insightId++).toString(),
+      type: sleepQuality.isGood ? 'achievement' : 'pattern',
+      category: 'quality',
+      priority: sleepQuality.isGood ? 'low' : 'high',
+      title: sleepQuality.title,
+      description: sleepQuality.description,
+      metric: {
+        actual: `${stats.totalSleepHours.toFixed(1)} horas`,
+        expected: `${sleepQuality.recommendedHours} horas`,
+        difference: `${Math.abs(stats.totalSleepHours - sleepQuality.recommendedHours).toFixed(1)} horas`
+      },
+      icon: sleepQuality.isGood ? '😴' : '💤',
+      actionable: !sleepQuality.isGood
+    })
+  }
 
   // Consistencia de horarios
   if (stats.bedtimeVariation > 30) {
@@ -251,8 +255,8 @@ async function generateInsights({
       type: 'pattern',
       category: 'consistency',
       priority: stats.bedtimeVariation > 45 ? 'high' : 'medium',
-      title: 'Horarios de sueño irregulares',
-      description: `La hora de dormir varía ${Math.round(stats.bedtimeVariation)} minutos entre días`,
+      title: 'Horarios irregulares',
+      description: `Varía ${Math.round(stats.bedtimeVariation)} min entre días`,
       metric: {
         actual: `±${Math.round(stats.bedtimeVariation)} min`,
         expected: '±15 min',
@@ -277,8 +281,8 @@ async function generateInsights({
       type: 'pattern',
       category: 'quality',
       priority: wakeupSeverity,
-      title: `${stats.totalWakeups} despertares nocturnos en el período`,
-      description: `Promedio de ${stats.avgWakeupsPerNight.toFixed(1)} despertares por noche`,
+      title: `Despertares nocturnos`,
+      description: `${stats.avgWakeupsPerNight.toFixed(1)} por noche`,
       metric: {
         actual: stats.avgWakeupsPerNight.toFixed(1),
         expected: '0-1',
@@ -295,14 +299,14 @@ async function generateInsights({
 
   // Tiempo para dormirse
   const sleepDelayMinutes = parseSleepDelay(stats.bedtimeToSleepDifference)
-  if (sleepDelayMinutes > 20) {
+  if (sleepDelayMinutes > 20 && stats.bedtimeToSleepDifference !== "--") {
     insights.push({
       id: (insightId++).toString(),
       type: 'pattern',
       category: 'quality',
       priority: sleepDelayMinutes > 30 ? 'high' : 'medium',
-      title: 'Dificultad para conciliar el sueño',
-      description: `Tarda ${stats.bedtimeToSleepDifference} en dormirse después de acostarse`,
+      title: 'Tarda en dormirse',
+      description: `${stats.bedtimeToSleepDifference} después de acostarse`,
       metric: {
         actual: stats.bedtimeToSleepDifference,
         expected: '10-15 min',
@@ -419,13 +423,13 @@ function evaluateSleepQuality(stats: any, child: any) {
     isGood,
     recommendedHours,
     title: isGood 
-      ? 'Duración de sueño adecuada' 
+      ? 'Sueño adecuado' 
       : stats.totalSleepHours < recommendedHours 
-        ? 'Sueño insuficiente detectado'
-        : 'Exceso de sueño detectado',
+        ? 'Sueño insuficiente'
+        : 'Exceso de sueño',
     description: isGood
-      ? `${child.firstName} está durmiendo las horas recomendadas para su edad`
-      : `Se recomienda ${recommendedHours} horas de sueño total para la edad de ${child.firstName}`
+      ? `Duerme lo recomendado`
+      : `Recomendado: ${recommendedHours}h para su edad`
   }
 }
 
@@ -443,7 +447,7 @@ async function generateAIRecommendations({
 }) {
   const systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y sueño infantil.
 
-Genera 2-3 recomendaciones ESPECÍFICAS y ACCIONABLES basadas en los datos de sueño del niño.
+Genera 1-2 recomendaciones ESPECÍFICAS y ACCIONABLES basadas en los datos de sueño del niño.
 
 INFORMACIÓN DEL NIÑO:
 - Nombre: ${child.firstName}
@@ -469,8 +473,8 @@ ${insights.filter(i => i.type === 'deviation' || i.type === 'pattern')
 Genera recomendaciones en formato JSON:
 [
   {
-    "title": "Título corto y claro",
-    "description": "Descripción específica de qué hacer y cómo",
+    "title": "Título muy corto (3-4 palabras)",
+    "description": "Descripción breve (máximo 10 palabras)",
     "category": "schedule|quality|consistency|health",
     "priority": "high|medium|low",
     "action": {
@@ -481,10 +485,10 @@ Genera recomendaciones en formato JSON:
 ]
 
 Las recomendaciones deben ser:
-- Específicas para los problemas detectados
-- Prácticas y fáciles de implementar
-- Apropiadas para la edad del niño
-- Basadas en evidencia científica`
+- Título: Máximo 4 palabras
+- Descripción: Máximo 10 palabras
+- Específicas y prácticas
+- Apropiadas para la edad`
 
   try {
     const completion = await openai.chat.completions.create({
@@ -496,7 +500,7 @@ Las recomendaciones deben ser:
         },
         {
           role: "user",
-          content: "Genera 2-3 recomendaciones específicas basadas en los datos proporcionados."
+          content: "Genera 1-2 recomendaciones específicas basadas en los datos proporcionados. Títulos máximo 4 palabras, descripciones máximo 10 palabras."
         }
       ],
       max_tokens: 800,

@@ -3,20 +3,9 @@
 import React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Info,
-  ChevronRight,
-  Target,
-  AlertTriangle,
-  CheckCircle,
-  Lightbulb,
-  Calendar
-} from "lucide-react"
+import { Calendar } from "lucide-react"
 import { useSleepInsights, SleepInsight } from "@/hooks/use-sleep-insights"
 import { cn } from "@/lib/utils"
 
@@ -29,38 +18,20 @@ export default function SleepInsightsCard({ childId, dateRange }: SleepInsightsC
   const { insights, loading, error, metadata } = useSleepInsights(childId, dateRange)
   const [showAll, setShowAll] = React.useState(false)
 
-  // Limitar insights mostrados inicialmente
-  const displayedInsights = showAll ? insights : insights.slice(0, 6)
+  // Limitar insights mostrados inicialmente a 4
+  const displayedInsights = showAll ? insights : insights.slice(0, 4)
 
-  // Función para obtener el ícono según el tipo
-  const getTypeIcon = (type: SleepInsight['type']) => {
-    switch (type) {
-      case 'achievement':
-        return <CheckCircle className="h-4 w-4" />
-      case 'deviation':
-        return <AlertTriangle className="h-4 w-4" />
-      case 'pattern':
-        return <TrendingUp className="h-4 w-4" />
-      case 'recommendation':
-        return <Lightbulb className="h-4 w-4" />
-      case 'adherence':
-        return <Target className="h-4 w-4" />
-      default:
-        return <Info className="h-4 w-4" />
-    }
-  }
-
-  // Función para obtener el color según la prioridad
+  // Función para obtener el color según la prioridad (más sutil)
   const getPriorityColor = (priority: SleepInsight['priority']) => {
     switch (priority) {
       case 'high':
-        return 'text-red-600 bg-red-50 border-red-200'
+        return 'bg-red-50 border-red-100'
       case 'medium':
-        return 'text-yellow-600 bg-yellow-50 border-yellow-200'
+        return 'bg-yellow-50 border-yellow-100'
       case 'low':
-        return 'text-green-600 bg-green-50 border-green-200'
+        return 'bg-green-50 border-green-100'
       default:
-        return 'text-gray-600 bg-gray-50 border-gray-200'
+        return 'bg-gray-50 border-gray-100'
     }
   }
 
@@ -137,7 +108,7 @@ export default function SleepInsightsCard({ childId, dateRange }: SleepInsightsC
               </p>
             )}
           </div>
-          {insights.length > 6 && (
+          {insights.length > 4 && (
             <Button 
               variant="outline" 
               size="sm"
@@ -150,106 +121,56 @@ export default function SleepInsightsCard({ childId, dateRange }: SleepInsightsC
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2">
           {displayedInsights.map((insight) => (
             <div
               key={insight.id}
               className={cn(
-                "relative p-4 rounded-lg border transition-all duration-200 hover:shadow-md",
+                "relative p-3 rounded-lg border transition-all duration-200 hover:shadow-sm",
                 getPriorityColor(insight.priority)
               )}
             >
               {/* Header del insight */}
-              <div className="flex items-start gap-3 mb-3">
-                <div className="flex-shrink-0">
-                  <span className="text-2xl">{insight.icon}</span>
-                </div>
+              <div className="flex items-start gap-2">
+                <span className="text-xl">{insight.icon}</span>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    {getTypeIcon(insight.type)}
-                    <h4 className="font-semibold text-sm">{insight.title}</h4>
-                  </div>
-                  <p className="text-sm opacity-90">
+                  <h4 className="font-semibold text-sm mb-1 line-clamp-1">{insight.title}</h4>
+                  <p className="text-xs text-gray-600 line-clamp-1">
                     {insight.description}
                   </p>
                 </div>
               </div>
 
-              {/* Métricas si existen */}
-              {insight.metric && (
-                <div className="mt-3 space-y-2">
+              {/* Métricas si existen y son válidas */}
+              {insight.metric && insight.metric.actual !== '--:--' && (
+                <div className="mt-2">
                   {insight.metric.percentage !== undefined && (
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span>Adherencia</span>
+                    <div className="mb-2">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-600">Adherencia</span>
                         <span className="font-medium">{insight.metric.percentage}%</span>
                       </div>
                       <Progress 
                         value={insight.metric.percentage} 
-                        className="h-2"
+                        className="h-1.5"
                       />
                     </div>
                   )}
                   
-                  <div className={cn(
-                    "flex items-center justify-between text-xs p-2 rounded",
-                    getMetricStyle(insight.type)
-                  )}>
-                    <div className="flex items-center gap-2">
-                      <span>Real:</span>
-                      <span className="font-medium">{insight.metric.actual}</span>
+                  {insight.metric.expected && (
+                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                      <span className="font-medium text-gray-900">{insight.metric.actual}</span>
+                      <span>vs</span>
+                      <span>{insight.metric.expected}</span>
                     </div>
-                    {insight.metric.expected && (
-                      <>
-                        <ChevronRight className="h-3 w-3" />
-                        <div className="flex items-center gap-2">
-                          <span>Plan:</span>
-                          <span className="font-medium">{insight.metric.expected}</span>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  )}
                 </div>
               )}
 
-              {/* Acción si existe */}
-              {insight.actionable && insight.action && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-3 w-full justify-start text-xs"
-                  onClick={() => {
-                    // Aquí puedes implementar la navegación o acción específica
-                    console.log('Action clicked:', insight.action)
-                  }}
-                >
-                  {insight.action.label}
-                  <ChevronRight className="h-3 w-3 ml-1" />
-                </Button>
-              )}
-
-              {/* Badge de categoría */}
-              <Badge 
-                variant="outline" 
-                className="absolute top-2 right-2 text-xs"
-              >
-                {insight.category}
-              </Badge>
             </div>
           ))}
         </div>
 
-        {/* Mensaje cuando hay plan activo */}
-        {metadata?.hasPlan && insights.length > 0 && (
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-center gap-2 text-blue-700">
-              <Info className="h-4 w-4" />
-              <p className="text-sm">
-                Los insights están basados en la comparación con el Plan {metadata.planNumber} activo
-              </p>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   )
