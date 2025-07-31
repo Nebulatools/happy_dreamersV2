@@ -71,6 +71,7 @@ export function processSleepStatistics(
   let relevantEvents = events
   if (statsFromDate) {
     relevantEvents = events.filter(event => {
+      if (!event.startTime) return false
       const eventDate = parseISO(event.startTime)
       return eventDate >= statsFromDate
     })
@@ -80,16 +81,17 @@ export function processSleepStatistics(
   const now = new Date()
   const weekAgo = subDays(now, 7)
   const recentEvents = events.filter(event => {
+    if (!event.startTime) return false
     const eventDate = parseISO(event.startTime)
     return eventDate >= weekAgo
   })
 
-  // Separar diferentes tipos de eventos
-  const nightSleep = relevantEvents.filter(e => e.eventType === 'sleep')
-  const naps = relevantEvents.filter(e => e.eventType === 'nap')
+  // Separar diferentes tipos de eventos (y filtrar solo los que tienen startTime)
+  const nightSleep = relevantEvents.filter(e => e.eventType === 'sleep' && e.startTime)
+  const naps = relevantEvents.filter(e => e.eventType === 'nap' && e.startTime)
   // Para compatibilidad con datos antiguos, incluir bedtime como sleep
-  const bedtimeEvents = relevantEvents.filter(e => e.eventType === 'bedtime' || e.eventType === 'sleep')
-  const sleepEvents = relevantEvents.filter(e => e.eventType === 'sleep' || e.eventType === 'bedtime')
+  const bedtimeEvents = relevantEvents.filter(e => (e.eventType === 'bedtime' || e.eventType === 'sleep') && e.startTime)
+  const sleepEvents = relevantEvents.filter(e => (e.eventType === 'sleep' || e.eventType === 'bedtime') && e.startTime)
 
   // Duración promedio del sueño nocturno usando inferencia
   const avgSleepDuration = calculateInferredSleepDuration(relevantEvents)

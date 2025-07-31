@@ -25,6 +25,8 @@ function processNightWakeups(events: any[]) {
   
   // Procesar cada despertar nocturno
   nightWakingEvents.forEach(event => {
+    if (!event.startTime) return
+    
     const eventDate = parseISO(event.startTime)
     const dayOfWeek = getDay(eventDate)
     const dayData = weekData.find(d => d.dayIndex === dayOfWeek)
@@ -33,7 +35,7 @@ function processNightWakeups(events: any[]) {
       dayData.count += 1
       
       // Si tiene endTime, calcular duración real
-      if (event.endTime) {
+      if (event.endTime && event.startTime) {
         const duration = differenceInMinutes(
           parseISO(event.endTime),
           parseISO(event.startTime)

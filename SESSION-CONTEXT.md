@@ -1,6 +1,6 @@
 # Session Context - Happy Dreamers UI Implementation
 
-*Last Updated: July 31, 2025 - Sistema de Actividades Extra Implementado*
+*Last Updated: July 31, 2025 - Corrección Crítica de Métricas de Sueño*
 
 ## 🎯 Current System State
 
@@ -33,6 +33,41 @@
 6. ✅ **Update this file at session end** - Document progress
 
 ## 🎯 MAJOR ACCOMPLISHMENTS THIS SESSION
+
+### ✅ **CORRECCIÓN CRÍTICA DE MÉTRICAS DE SUEÑO** (July 31, 2025)
+
+#### **Problema Identificado y Resuelto:**
+
+1. **✅ Error de Cálculo de Parseiso Corregido**
+   - **Problema**: Eventos sin startTime causaban error "Cannot read properties of undefined (reading 'split')"
+   - **Causa**: Modificaciones para soportar eventos de actividad extra sin hora rompieron funciones existentes
+   - **Solución**: Agregada validación de startTime en todas las funciones que usan parseISO
+   - **Archivos corregidos**: dashboard/page.tsx, hooks/use-sleep-data.ts, lib/sleep-calculations.ts, components/sleep-statistics/
+
+2. **✅ Despertares Nocturnos Funcionando Correctamente**
+   - **Problema**: Conteo de despertares nocturnos mostraba cero
+   - **Causa**: Función calculateNightWakeups solo buscaba eventos 'wake', no 'night_waking'
+   - **Solución**: Agregado procesamiento directo de eventos 'night_waking' + inclusión en filtros principales
+   - **Resultado**: Cards de "Despertares nocturnos" ahora muestran datos reales
+
+3. **✅ Métricas de Duración de Sueño Corregidas**
+   - **Problema**: Duración cambió de 11h a 12h20m, calidad bajó a 50%
+   - **Causa**: Eventos 'night_waking' interfiriendo con calculateInferredSleepDuration
+   - **Solución**: Excluir eventos 'night_waking' de cálculos de duración, mantener solo para conteo
+   - **Lógica**: Despertares nocturnos = interrupciones, NO afectan duración total de sueño
+
+#### **Archivos Modificados en Esta Corrección:**
+1. **✅ `/app/dashboard/page.tsx`** - Validaciones de startTime en todas las funciones parseISO
+2. **✅ `/hooks/use-sleep-data.ts`** - Corrección completa de filtros y funciones de cálculo
+3. **✅ `/lib/sleep-calculations.ts`** - Validaciones de startTime agregadas
+4. **✅ `/components/sleep-statistics/NightWakeupsChart.tsx`** - Validación antes de parseISO
+5. **✅ `/components/child-profile/SleepMetricsGrid.tsx`** - Filtros actualizados para recentMoods
+
+#### **Lógica de Negocio Correcta Implementada:**
+- **Eventos sin startTime**: Filtrados automáticamente de cálculos de sueño
+- **Eventos night_waking**: Contados como despertares, excluidos de duración total
+- **Cálculo de duración**: Basado en secuencia sleep → wake, sin interferencia de interrupciones
+- **Calidad de sueño**: Basada en duración total (9-11h = 90%, 8-12h = 70%, fuera = 50%)
 
 ### ✅ **SISTEMA DE ACTIVIDADES EXTRA IMPLEMENTADO** (July 31, 2025)
 

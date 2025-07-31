@@ -145,7 +145,7 @@ export default function DashboardPage() {
 
   const getDayQuality = (date: Date) => {
     const dayEvents = events.filter(event => 
-      isSameDay(parseISO(event.startTime), date)
+      event.startTime && isSameDay(parseISO(event.startTime), date)
     )
     
     if (dayEvents.length === 0) return null
@@ -259,6 +259,9 @@ export default function DashboardPage() {
     
     // Filtrar eventos del período
     const periodEvents = events.filter(event => {
+      // Solo procesar eventos que tengan startTime definido
+      if (!event.startTime) return false
+      
       const eventDate = parseISO(event.startTime)
       return eventDate >= startDate && eventDate <= now && 
              (event.eventType === "sleep" || event.eventType === "nap") && 
@@ -269,6 +272,9 @@ export default function DashboardPage() {
     const groupedData = new Map()
     
     periodEvents.forEach(event => {
+      // Validación adicional de seguridad
+      if (!event.startTime) return
+      
       const eventDate = parseISO(event.startTime)
       let groupKey: string
       
@@ -288,7 +294,7 @@ export default function DashboardPage() {
         })
       }
       
-      const duration = differenceInMinutes(parseISO(event.endTime!), parseISO(event.startTime))
+      const duration = differenceInMinutes(parseISO(event.endTime!), eventDate)
       const group = groupedData.get(groupKey)
       group.totalMinutes += duration
       group.events.push(event)
@@ -310,7 +316,7 @@ export default function DashboardPage() {
   }
 
   const recentMoods = events
-    .filter(e => e.emotionalState)
+    .filter(e => e.emotionalState && e.startTime)
     .slice(-5)
     .reverse()
 
@@ -454,6 +460,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="space-y-4">
                 {recentMoods.length > 0 ? recentMoods.map((event) => {
+                  if (!event.startTime) return null
                   const eventDate = parseISO(event.startTime)
                   const isToday = isSameDay(eventDate, new Date())
                   const daysDiff = Math.floor((Date.now() - eventDate.getTime()) / (1000 * 60 * 60 * 24))
@@ -607,7 +614,7 @@ export default function DashboardPage() {
                         {event.notes}
                       </p>
                       <p className="text-xs text-[#666666] mt-2">
-                        {format(parseISO(event.startTime), "d MMM, HH:mm", { locale: es })}
+                        {event.startTime ? format(parseISO(event.startTime), "d MMM, HH:mm", { locale: es }) : 'Sin hora'}
                       </p>
                     </div>
                   ))
