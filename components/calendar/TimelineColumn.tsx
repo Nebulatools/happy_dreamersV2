@@ -13,7 +13,7 @@ interface TimelineColumnProps {
 
 export function TimelineColumn({ 
   className,
-  hourHeight = 30 // Altura reducida para caber en pantalla
+  hourHeight = 25 // Altura optimizada para vista completa sin scroll
 }: TimelineColumnProps) {
   // Generar array de 24 horas
   const hours = Array.from({ length: 24 }, (_, i) => i)
@@ -21,31 +21,24 @@ export function TimelineColumn({
   return (
     <div className={cn("flex flex-col border-r border-gray-200 bg-gray-50", className)}>
       {/* Header vacío para alinear con los días */}
-      <div className="h-16 border-b border-gray-200 bg-white" />
+      <div className="h-12 border-b border-gray-200 bg-white" />
       
       {/* Timeline de horas */}
       <div className="flex-1 relative">
         {hours.map((hour) => (
           <div
             key={hour}
-            className="relative border-b border-gray-100 text-center"
+            className="relative text-center"
             style={{ height: `${hourHeight}px` }}
           >
-            {/* Línea de hora principal cada 4 horas */}
-            {hour % 4 === 0 && (
-              <div className="absolute left-0 right-0 top-0 border-t-2 border-gray-300" />
+            {/* Mostrar solo etiquetas de horas principales (cada 3 horas) */}
+            {hour % 3 === 0 && (
+              <div className="absolute -top-2 left-0 right-0 z-10">
+                <span className="inline-block bg-gray-50 px-1 text-xs font-medium text-gray-700 rounded">
+                  {hour.toString().padStart(2, '0')}:00
+                </span>
+              </div>
             )}
-            
-            {/* Etiqueta de hora */}
-            <div className="sticky top-0 inline-block bg-gray-50 px-1 py-0.5 text-xs font-medium text-gray-600 rounded shadow-sm">
-              {hour.toString().padStart(2, '0')}:00
-            </div>
-            
-            {/* Líneas de media hora (más sutiles) */}
-            <div 
-              className="absolute left-2 right-2 border-t border-gray-200"
-              style={{ top: `${hourHeight / 2}px` }}
-            />
           </div>
         ))}
       </div>
@@ -56,7 +49,7 @@ export function TimelineColumn({
 // Componente compacto para móviles/tablets
 export function CompactTimelineColumn({ 
   className,
-  hourHeight = 30 
+  hourHeight = 25 
 }: TimelineColumnProps) {
   // Solo mostrar horas principales (cada 4 horas)
   const mainHours = [0, 4, 8, 12, 16, 20]

@@ -348,18 +348,18 @@
   /* Day column in timeline view */
   .day-column-timeline {
     @apply flex-1 min-w-0 border-r border-gray-200 last:border-r-0 relative;
-    min-height: 1152px; /* 24 hours * 48px */
+    min-height: 600px; /* 24 hours * 25px */
   }
   
   /* Day column header in timeline */
   .day-header-timeline {
-    @apply h-16 bg-white border-b border-gray-200 flex flex-col items-center justify-center text-sm font-medium sticky top-0 z-10;
+    @apply h-12 bg-white border-b border-gray-200 flex flex-col items-center justify-center text-sm font-medium sticky top-0 z-10;
   }
   
   /* Events container within day column */
   .events-timeline-container {
     @apply relative flex-1;
-    height: 1152px; /* 24 hours * 48px per hour */
+    height: 600px; /* 24 hours * 25px per hour */
     background: linear-gradient(
       to bottom,
       hsl(48 100% 96%) 0%,        /* AM (0:00-6:00) - Amarillo muy claro */
@@ -390,11 +390,11 @@
   /* Timeline responsive breakpoints */
   @screen md {
     .day-column-timeline {
-      min-height: 1152px; /* Mantener altura ajustada 48px por hora */
+      min-height: 600px; /* Mantener altura ajustada 25px por hora */
     }
     
     .events-timeline-container {
-      height: 1152px;
+      height: 600px;
     }
   }
   

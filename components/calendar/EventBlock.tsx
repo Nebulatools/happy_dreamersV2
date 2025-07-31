@@ -66,19 +66,19 @@ export function EventBlock({
     if (duration > 0) {
       // Eventos con duración: altura proporcional
       const pixelsPerMinute = hourHeight / 60
-      return Math.max(20, duration * pixelsPerMinute) // Mínimo 20px para legibilidad
+      return Math.max(18, duration * pixelsPerMinute) // Mínimo 18px para mejor visibilidad
     }
     // Eventos puntuales: altura fija pequeña
-    return 14
+    return 12
   }
 
   // Calcular ancho del bloque
   const calculateBlockWidth = () => {
     const duration = calculateEventDuration()
     if (duration > 0) {
-      return 'w-full' // Eventos con duración ocupan todo el ancho
+      return 'left-0.5 right-0.5' // Eventos con duración ocupan casi todo el ancho
     }
-    return 'w-3/4' // Eventos puntuales más angostos
+    return 'left-1 right-1' // Eventos puntuales con margen normal
   }
 
   // Obtener icono según tipo de evento
@@ -103,15 +103,15 @@ export function EventBlock({
     switch (event.eventType) {
       case 'sleep':
       case 'bedtime':
-        return 'bg-sleep border-sleep text-white'
+        return 'bg-sleep border-sleep text-white font-semibold'
       case 'nap':
-        return 'bg-nap border-nap text-white'
+        return 'bg-nap border-nap text-white font-semibold'
       case 'wake':
-        return 'bg-wake border-wake text-black'
+        return 'bg-wake border-wake text-gray-900 font-semibold'
       case 'night_waking':
-        return 'bg-night-wake border-night-wake text-white'
+        return 'bg-night-wake border-night-wake text-white font-semibold'
       default:
-        return 'bg-gray-400 border-gray-400 text-white'
+        return 'bg-gray-400 border-gray-400 text-white font-semibold'
     }
   }
 
@@ -135,6 +135,16 @@ export function EventBlock({
       return `${format(start, "HH:mm")}-${format(end, "HH:mm")}`
     }
     return format(start, "HH:mm")
+  }
+  
+  // Formatear tiempo compacto para mostrar en el bloque
+  const formatCompactTime = () => {
+    const start = new Date(event.startTime)
+    if (event.endTime) {
+      const end = new Date(event.endTime)
+      return `${format(start, "H:mm")}-${format(end, "H:mm")}`
+    }
+    return format(start, "H:mm")
   }
 
   // Obtener información para tooltip
@@ -160,8 +170,8 @@ export function EventBlock({
   return (
     <div
       className={cn(
-        "absolute left-1 right-1 rounded-md border flex items-center justify-start px-1 py-0.5",
-        "shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer",
+        "absolute rounded-md border flex items-center justify-start px-1.5 py-0.5",
+        "shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer",
         "group relative z-10",
         eventColor,
         blockWidth,
@@ -171,30 +181,34 @@ export function EventBlock({
         top: `${topPosition}px`,
         height: `${blockHeight}px`,
         minHeight: '14px',
-        fontSize: '11px'
+        fontSize: '11px',
+        borderWidth: '1.5px'
       }}
       title={showTooltip ? undefined : `${getEventTypeName()} - ${formatEventTime()}`}
       onClick={() => onClick?.(event)}
     >
       {/* Contenido del bloque */}
       <div className="flex items-center gap-0.5 truncate w-full">
-        {blockHeight >= 20 && getEventIcon()}
-        <span className="font-medium truncate">
-          {blockHeight >= 30 ? (
-            // Si hay espacio, mostrar nombre y hora
-            <div>
-              <div className="truncate text-xs">{getEventTypeName()}</div>
-              <div className="opacity-90" style={{ fontSize: '10px' }}>{format(new Date(event.startTime), "HH:mm")}</div>
+        {blockHeight >= 16 && getEventIcon()}
+        <span className="font-medium truncate" style={{ fontSize: '11px' }}>
+          {event.endTime && blockHeight >= 24 ? (
+            // Si tiene duración y espacio suficiente, mostrar rango completo
+            <div className="leading-tight">
+              <div className="truncate">{getEventTypeName()}</div>
+              <div className="opacity-80 text-xs">{formatEventTime()}</div>
             </div>
-          ) : blockHeight >= 20 ? (
-            // Si es mediano, nombre corto y hora
-            <span className="flex items-center gap-1">
-              <span className="truncate">{getEventTypeName().substring(0, 3)}</span>
-              <span className="opacity-75">{format(new Date(event.startTime), "HH:mm")}</span>
+          ) : event.endTime && blockHeight >= 18 ? (
+            // Si tiene duración pero menos espacio, solo horas
+            formatEventTime()
+          ) : blockHeight >= 16 ? (
+            // Eventos puntuales o poco espacio
+            <span className="flex items-center gap-0.5">
+              <span>{getEventTypeName().substring(0, 3)}</span>
+              <span className="opacity-75">{format(new Date(event.startTime), "H:mm")}</span>
             </span>
           ) : (
-            // Si es muy pequeño, solo la hora
-            format(new Date(event.startTime), "HH:mm")
+            // Muy poco espacio
+            formatCompactTime()
           )}
         </span>
       </div>

@@ -1,6 +1,6 @@
 # Session Context - Happy Dreamers UI Implementation
 
-*Last Updated: July 31, 2025 - Corrección de Discrepancia en Datos de Sueño*
+*Last Updated: July 31, 2025 - Mejoras Significativas al Calendario de Sueño*
 
 ## 🎯 Current System State
 
@@ -34,7 +34,78 @@
 
 ## 🎯 MAJOR ACCOMPLISHMENTS THIS SESSION
 
-### ✅ **CORRECCIÓN DE DISCREPANCIA EN DATOS DE SUEÑO - MÉTRICAS PRECISAS** (July 31, 2025 - Sesión Actual)
+### ✅ **MEJORAS SIGNIFICATIVAS AL CALENDARIO DE SUEÑO** (July 31, 2025 - Sesión Actual)
+
+#### **Mejoras Implementadas en el Calendario:**
+
+1. **✅ Filtros Movidos a Header Dinámico**
+   - **Implementado**: Sistema de header dinámico usando `usePageHeaderConfig`
+   - **Características**:
+     - Navegación de fechas (anterior/siguiente)
+     - Filtros de vista (Mensual/Semanal/Diario)
+     - Botón de registro de eventos compacto
+   - **Consistente**: Igual que la página de estadísticas de sueño
+   - **Espacio ahorrado**: Todo el control superior ahora en el header
+
+2. **✅ Resumen Semanal Compacto en la Parte Superior**
+   - **Reposicionado**: Resumen movido de abajo hacia arriba
+   - **Diseño compacto**: Card única con métricas inline
+   - **Métricas mostradas**:
+     - Promedio de sueño nocturno
+     - Total de siestas
+     - Despertares nocturnos
+   - **Visualización**: Íconos con valores en formato horizontal
+
+3. **✅ Vista Semanal Optimizada Sin Scroll**
+   - **Altura reducida**: De 40px a 25px por hora (600px total)
+   - **Horas principales**: Mostradas cada 3 horas para menos ruido visual
+   - **CSS actualizado**: `globals.css` con nuevas alturas
+   - **Resultado**: Vista completa de la semana sin scroll vertical
+
+4. **✅ Vista Mensual con Más Información**
+   - **Celdas más pequeñas**: Reducido padding para más contenido
+   - **Eventos visibles**: Hasta 4 eventos por celda
+   - **Altura mínima**: 600px para el calendario completo
+   - **Leyenda compacta**: Movida inline con el contenido
+
+5. **✅ Botón de Registro Más Discreto**
+   - **Diseño icon-only**: Solo el ícono Plus (8x8px)
+   - **Tooltip informativo**: "Registrar nuevo evento"
+   - **No interfiere**: Con la barra de búsqueda del header
+   - **Mantiene funcionalidad**: Abre el mismo modal
+
+6. **✅ Eventos con Hora de Inicio y Fin Visibles**
+   - **Formato mejorado**: Muestra "H:mm-H:mm" para eventos con duración
+   - **Función formatCompactTime**: Agregada en EventBlock
+   - **Lógica condicional**: 
+     - Eventos con duración: rango completo
+     - Eventos puntuales: solo hora
+   - **Mejor información**: Usuarios ven duración de un vistazo
+
+7. **✅ Eventos Más Visibles y Legibles**
+   - **Alturas mínimas aumentadas**:
+     - Eventos con duración: 18px mínimo
+     - Eventos puntuales: 12px mínimo
+   - **Tipografía mejorada**: 
+     - Tamaño 11px (antes 10px)
+     - font-semibold para mejor legibilidad
+   - **Bordes más definidos**: 1.5px de grosor
+   - **Colores con contraste**: Clases con font-semibold
+
+#### **Archivos Modificados en Esta Sesión:**
+1. **✅ `/app/dashboard/calendar/page.tsx`** - Reorganización completa con header dinámico
+2. **✅ `/app/globals.css`** - Alturas de timeline actualizadas a 600px
+3. **✅ `/components/calendar/TimelineColumn.tsx`** - Optimizado para mostrar horas cada 3
+4. **✅ `/components/calendar/EventBlock.tsx`** - Mejorada visibilidad y formato de tiempo
+
+#### **Impacto de las Mejoras:**
+- **✅ Más Espacio Útil**: Controles en header liberan espacio para contenido
+- **✅ Sin Scroll Necesario**: Vista semanal completa en una pantalla
+- **✅ Información Clara**: Eventos muestran duración completa
+- **✅ Mejor UX**: Botón de registro no interfiere con otros elementos
+- **✅ Consistencia**: Mismo patrón de header que otras páginas
+
+### ✅ **CORRECCIÓN DE DISCREPANCIA EN DATOS DE SUEÑO - MÉTRICAS PRECISAS** (July 31, 2025 - Sesión Anterior)
 
 #### **Problema Crítico Identificado y Resuelto:**
 
