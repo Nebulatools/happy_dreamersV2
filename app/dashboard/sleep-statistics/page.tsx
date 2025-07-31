@@ -10,6 +10,7 @@ import SleepConsistencyChart from "@/components/sleep-statistics/SleepConsistenc
 import NightWakeupsChart from "@/components/sleep-statistics/NightWakeupsChart"
 import SleepDistributionChart from "@/components/sleep-statistics/SleepDistributionChart"
 import SleepDataStorytellingCard from "@/components/sleep-statistics/SleepDataStorytellingCard"
+import SleepInsightsCard from "@/components/sleep-statistics/SleepInsightsCard"
 // import SleepComparison from "@/components/sleep-statistics/SleepComparison"
 import { useActiveChild } from "@/context/active-child-context"
 import { useToast } from "@/hooks/use-toast"
@@ -72,21 +73,14 @@ export default function SleepStatisticsPage() {
         </div>
       )}
 
-      {/* Card de Análisis y Recomendaciones - MOVIDO AQUÍ */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-[#2F2F2F]">
-            Análisis y recomendaciones
-          </h2>
-          <Button variant="outline" className="border-[#628BE6] text-[#628BE6] hover:hd-gradient-button hover:text-white hover:border-transparent">
-            Ver todas
-          </Button>
+      {/* Card de Análisis y Recomendaciones */}
+      {activeChildId ? (
+        <SleepInsightsCard childId={activeChildId} dateRange={dateRange} />
+      ) : (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
+          <p className="text-gray-500">Por favor selecciona un niño desde el menú superior para ver análisis y recomendaciones</p>
         </div>
-        
-        <div className="text-center py-8 text-gray-500">
-          <p>Cards de análisis próximamente...</p>
-        </div>
-      </div>
+      )}
 
       {/* Nuevo componente de Data Storytelling */}
       {activeChildId ? (

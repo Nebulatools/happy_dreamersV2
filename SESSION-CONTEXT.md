@@ -7,7 +7,7 @@
 ### Project Overview
 - **Tech Stack**: Next.js 15.2.4, React 19, TypeScript 5, MongoDB, NextAuth.js
 - **Primary Focus**: Complete UI implementation of Happy Dreamers platform based on Figma designs
-- **Status**: **99% COMPLETADO** - Todas las páginas principales de Figma implementadas
+- **Status**: **99% COMPLETADO** - Todas las páginas principales de Figma implementadas + Sistema de Análisis y Recomendaciones
 
 ### System Architecture
 - **Frontend**: Next.js with App Router, shadcn/ui components, Tailwind CSS
@@ -33,6 +33,69 @@
 6. ✅ **Update this file at session end** - Document progress
 
 ## 🎯 MAJOR ACCOMPLISHMENTS THIS SESSION
+
+### ✅ **IMPLEMENTACIÓN DE ANÁLISIS Y RECOMENDACIONES CON COMPARACIÓN DE PLAN** (January 31, 2025)
+
+#### **Sistema de Insights de Sueño Implementado:**
+
+1. **✅ API Endpoint para Análisis de Sueño**
+   - **Archivo**: `/app/api/sleep-analysis/insights/route.ts`
+   - **Características**:
+     - Obtiene el plan activo del niño (ChildPlan)
+     - Compara datos reales vs horarios planificados
+     - Calcula porcentajes de adherencia
+     - Genera insights categorizados por tipo y prioridad
+     - Integración con OpenAI para recomendaciones personalizadas
+   - **Tipos de insights**: adherence, deviation, pattern, achievement, recommendation
+
+2. **✅ Hook Personalizado para Datos**
+   - **Archivo**: `/hooks/use-sleep-insights.ts`
+   - **Funcionalidad**:
+     - Maneja fetching de insights con parámetros
+     - Estados de loading y error
+     - Metadata sobre el análisis (tiene plan, número de plan)
+     - Función de refetch para actualización
+
+3. **✅ Componente SleepInsightsCard**
+   - **Archivo**: `/components/sleep-statistics/SleepInsightsCard.tsx`
+   - **Diseño**:
+     - Grid responsivo (1-3 columnas según pantalla)
+     - Cards con indicadores visuales por prioridad
+     - Progress bars para porcentajes de adherencia
+     - Métricas comparativas (real vs plan)
+     - Botón "Ver todas" para expandir insights
+   - **Colores por prioridad**: Rojo (high), Amarillo (medium), Verde (low)
+
+4. **✅ Integración en Página de Estadísticas**
+   - **Actualizado**: `/app/dashboard/sleep-statistics/page.tsx`
+   - **Reemplazado**: Placeholder "Cards de análisis próximamente..."
+   - **Funcional**: Con selector de período y niño activo
+
+#### **Características Implementadas:**
+
+1. **Comparación con Plan Activo**:
+   - Adherencia a hora de dormir con porcentaje
+   - Adherencia a hora de despertar con porcentaje
+   - Diferencias en minutos mostradas claramente
+   - Indicadores visuales (🌟 para logros, ⚠️ para desviaciones)
+
+2. **Análisis de Patrones**:
+   - Duración total del sueño vs recomendado por edad
+   - Consistencia de horarios (variación en minutos)
+   - Despertares nocturnos y su impacto
+   - Tiempo para conciliar el sueño
+
+3. **Recomendaciones con IA**:
+   - 2-3 recomendaciones personalizadas por niño
+   - Basadas en problemas detectados
+   - Accionables y apropiadas para la edad
+   - Con botones de acción para más información
+
+4. **Diseño Responsivo**:
+   - Funciona en móvil, tablet y desktop
+   - Máximo 6-9 insights para no saturar
+   - Tooltips y detalles expandibles
+   - Mensaje informativo cuando hay plan activo
 
 ### ✅ **MEJORAS SIGNIFICATIVAS AL CALENDARIO DE SUEÑO** (July 31, 2025 - Sesión Actual)
 
@@ -1348,7 +1411,32 @@
 ### Current Git Branch
 - **Branch**: devpraulio (active development branch)
 - **Main Branch**: main (for production PRs)
-- **Ready for Commit**: Event modal system ready for production merge
+- **Ready for Commit**: Sleep Analysis and Recommendations system ready for production merge
+
+## FILES CREATED/MODIFIED THIS SESSION:
+1. **Created**: `/app/api/sleep-analysis/insights/route.ts`
+   - New API endpoint for generating sleep insights with plan comparison
+   - Calculates adherence percentages between actual sleep and active plan
+   - Integrates OpenAI for personalized recommendations
+
+2. **Created**: `/hooks/use-sleep-insights.ts`
+   - Custom hook for fetching sleep insights
+   - Manages loading, error, and data states
+   - Provides metadata about the analysis
+
+3. **Created**: `/components/sleep-statistics/SleepInsightsCard.tsx`
+   - Main UI component for displaying insights
+   - Responsive grid layout with priority-based coloring
+   - Progress bars for adherence metrics
+   - Expandable view for more than 6 insights
+
+4. **Modified**: `/app/dashboard/sleep-statistics/page.tsx`
+   - Imported and integrated SleepInsightsCard component
+   - Replaced placeholder with functional component
+
+5. **Modified**: `/SESSION-CONTEXT.md`
+   - Documented Sleep Analysis and Recommendations implementation
+   - Added details about plan comparison functionality
 
 ---
-*Updated by Claude AI - Happy Dreamers Implementation - **EVENT SYSTEM 100% COMPLETE** - Ready for Next Enhancement Phase*
+*Updated by Claude AI - Happy Dreamers Implementation - **SLEEP ANALYSIS & RECOMMENDATIONS COMPLETE** - Ready for Next Enhancement Phase*
