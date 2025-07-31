@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ChildAvatar } from "@/components/ui/child-avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
 import { 
   Users, TrendingUp, AlertTriangle, Calendar, 
   Moon, Activity, BarChart3, CheckCircle,
   FileText, MessageSquare, Filter, ChevronRight,
-  Clock, AlertCircle,
+  Clock, AlertCircle, Search,
 } from "lucide-react"
 import {
   format,
@@ -79,6 +81,8 @@ export default function AdminStatistics() {
   const [period, setPeriod] = useState("week")
   const [isLoading, setIsLoading] = useState(true)
   const [showAllPatients, setShowAllPatients] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [activeTab, setActiveTab] = useState("urgencia")
   
   // Estados para el nuevo sistema de triage
   const [criticalAlerts, setCriticalAlerts] = useState<ChildAlert[]>([])
@@ -209,171 +213,11 @@ export default function AdminStatistics() {
             {getGreeting()}, Dr. {session?.user?.name?.split(" ")[0] || "Admin"}!
           </h1>
           <p className="text-[#666666]">
-            Casos que requieren tu atención hoy.
+            Aquí está el resumen de tus pacientes y casos que requieren atención.
           </p>
         </div>
 
-        {/* Sistema de Triage - Sección Principal */}
-        <div className="space-y-6">
-          {/* ACCIÓN URGENTE (Alertas Críticas) */}
-          {criticalAlerts.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 bg-red-100 rounded-full flex items-center justify-center">
-                  <AlertTriangle className="h-5 w-5 text-red-600" />
-                </div>
-                <h2 className="text-xl font-semibold text-[#2F2F2F]">ACCIÓN URGENTE</h2>
-                <Badge className="bg-red-100 text-red-700 hover:bg-red-100">
-                  {criticalAlerts.length} {criticalAlerts.length === 1 ? "caso" : "casos"}
-                </Badge>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {criticalAlerts.map((alert) => (
-                  <Card key={alert.childId} className="bg-white shadow-sm border-red-200 hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => handlePatientClick(alert.childId)}>
-                    <CardContent className="p-6">
-                      <div className="space-y-4">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="text-lg font-semibold text-[#2F2F2F]">{alert.childName}</h3>
-                            <p className="text-sm text-[#666666]">Padre/Madre: {alert.parentName}</p>
-                          </div>
-                          <div className="h-10 w-10 bg-red-100 rounded-xl flex items-center justify-center">
-                            <AlertCircle className="h-5 w-5 text-red-600" />
-                          </div>
-                        </div>
-                        
-                        <div className="bg-red-50 rounded-lg p-3">
-                          <p className="text-sm text-[#3A3A3A] leading-relaxed">
-                            <span className="font-medium">Diagnóstico Clave de Zuli:</span> {alert.diagnosis}
-                          </p>
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-[#666666]">{alert.lastUpdate}</span>
-                          <Button 
-                            size="sm" 
-                            className="bg-red-600 hover:bg-red-700 text-white"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleCreatePlan(alert.childId)
-                            }}
-                          >
-                            Revisar y Crear Plan
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* NECESITAN REVISIÓN (Alertas de Advertencia) */}
-          {warningAlerts.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <AlertCircle className="h-5 w-5 text-yellow-600" />
-                </div>
-                <h2 className="text-xl font-semibold text-[#2F2F2F]">NECESITAN REVISIÓN</h2>
-                <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">
-                  {warningAlerts.length} {warningAlerts.length === 1 ? "caso" : "casos"}
-                </Badge>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {warningAlerts.map((alert) => (
-                  <Card key={alert.childId} className="bg-white shadow-sm border-yellow-200 hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => handlePatientClick(alert.childId)}>
-                    <CardContent className="p-5">
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="text-base font-semibold text-[#2F2F2F]">{alert.childName}</h3>
-                            <p className="text-xs text-[#666666]">Padre/Madre: {alert.parentName}</p>
-                          </div>
-                          <div className="h-8 w-8 bg-yellow-100 rounded-lg flex items-center justify-center">
-                            <Clock className="h-4 w-4 text-yellow-600" />
-                          </div>
-                        </div>
-                        
-                        <div className="bg-yellow-50 rounded-lg p-2.5">
-                          <p className="text-xs text-[#3A3A3A] leading-relaxed">
-                            <span className="font-medium">Observación Clave:</span> {alert.diagnosis}
-                          </p>
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-[#666666]">{alert.lastUpdate}</span>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="text-yellow-700 border-yellow-300 hover:bg-yellow-50 text-xs"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleReviewLog(alert.childId)
-                            }}
-                          >
-                            Revisar Bitácora
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Link discreto para ver todos los pacientes */}
-        <div className="flex justify-center mt-6">
-          <Button 
-            variant="ghost" 
-            className="text-[#4A90E2] hover:bg-[#F0F7FF] text-sm"
-            onClick={() => setShowAllPatients(!showAllPatients)}
-          >
-            {showAllPatients ? "Ocultar todos los pacientes" : "Ver todos los pacientes"}
-            <ChevronRight className={`h-4 w-4 ml-2 transition-transform ${showAllPatients ? "rotate-90" : ""}`} />
-          </Button>
-        </div>
-
-        {/* Lista de todos los pacientes (mostrar solo si está expandido) */}
-        {showAllPatients && okPatients.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-              <h2 className="text-lg font-medium text-[#666666]">Pacientes sin alertas</h2>
-              <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
-                {okPatients.length} {okPatients.length === 1 ? "paciente" : "pacientes"}
-              </Badge>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {okPatients.map((patient) => (
-                <Card key={patient.childId} className="bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => handlePatientClick(patient.childId)}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-sm font-medium text-[#2F2F2F]">{patient.childName}</h3>
-                        <p className="text-xs text-[#666666]">{patient.diagnosis}</p>
-                      </div>
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Métricas Simplificadas */}
+        {/* Métricas Simplificadas - Movidas arriba */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Total de Pacientes */}
           <Card className="bg-white shadow-sm border-0">
@@ -456,47 +300,279 @@ export default function AdminStatistics() {
           </Card>
         </div>
 
-        {/* Pacientes de Hoy */}
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold text-[#2F2F2F] mb-4">Pacientes de Hoy</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {todayPatients.length > 0 ? todayPatients.map((child) => (
-              <Card key={child._id} className="bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => handlePatientClick(child._id)}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <ChildAvatar 
-                      name={`${child.firstName} ${child.lastName}`}
-                      className="h-10 w-10"
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm text-[#3A3A3A] font-medium">
-                        {child.firstName} {child.lastName}
-                      </p>
-                      <p className="text-xs text-[#666666]">
-                        {child.birthDate ? 
-                          `${Math.floor((Date.now() - new Date(child.birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} años` 
-                          : "Edad no especificada"
-                        }
-                      </p>
-                    </div>
-                    <Badge className="bg-blue-50 text-blue-700 text-xs">
-                      Activo hoy
-                    </Badge>
+        {/* Sistema de Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-white/50">
+            <TabsTrigger 
+              value="urgencia" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            >
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              Pacientes en Urgencia
+              {(criticalAlerts.length + warningAlerts.length) > 0 && (
+                <Badge className="ml-2 bg-red-100 text-red-700 h-5 px-1.5">
+                  {criticalAlerts.length + warningAlerts.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="hoy"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Pacientes de Hoy
+              {todayPatients.length > 0 && (
+                <Badge className="ml-2 bg-blue-100 text-blue-700 h-5 px-1.5">
+                  {todayPatients.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="todos"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Todos los Pacientes
+              <Badge className="ml-2 bg-gray-100 text-gray-700 h-5 px-1.5">
+                {metrics.totalPatients}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+          
+          {/* Tab de Pacientes en Urgencia */}
+          <TabsContent value="urgencia" className="mt-6 space-y-6">
+            {/* ACCIÓN URGENTE (Alertas Críticas) */}
+            {criticalAlerts.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 bg-red-100 rounded-full flex items-center justify-center">
+                    <AlertTriangle className="h-5 w-5 text-red-600" />
                   </div>
-                </CardContent>
-              </Card>
-            )) : (
-              <Card className="col-span-full">
-                <CardContent className="py-10">
-                  <div className="text-center">
-                    <p className="text-[#666666]">No hay pacientes con actividad hoy.</p>
+                  <h2 className="text-xl font-semibold text-[#2F2F2F]">ACCIÓN URGENTE</h2>
+                  <Badge className="bg-red-100 text-red-700 hover:bg-red-100">
+                    {criticalAlerts.length} {criticalAlerts.length === 1 ? "caso" : "casos"}
+                  </Badge>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {criticalAlerts.map((alert) => (
+                    <Card key={alert.childId} className="bg-white shadow-sm border-red-200 hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => handlePatientClick(alert.childId)}>
+                      <CardContent className="p-6">
+                        <div className="space-y-4">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3 className="text-lg font-semibold text-[#2F2F2F]">{alert.childName}</h3>
+                              <p className="text-sm text-[#666666]">Padre/Madre: {alert.parentName}</p>
+                            </div>
+                            <div className="h-10 w-10 bg-red-100 rounded-xl flex items-center justify-center">
+                              <AlertCircle className="h-5 w-5 text-red-600" />
+                            </div>
+                          </div>
+                          
+                          <div className="bg-red-50 rounded-lg p-3">
+                            <p className="text-sm text-[#3A3A3A] leading-relaxed">
+                              <span className="font-medium">Diagnóstico Clave de Zuli:</span> {alert.diagnosis}
+                            </p>
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-[#666666]">{alert.lastUpdate}</span>
+                            <Button 
+                              size="sm" 
+                              className="bg-red-600 hover:bg-red-700 text-white"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleCreatePlan(alert.childId)
+                              }}
+                            >
+                              Revisar y Crear Plan
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* NECESITAN REVISIÓN (Alertas de Advertencia) */}
+            {warningAlerts.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <AlertCircle className="h-5 w-5 text-yellow-600" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-[#2F2F2F]">NECESITAN REVISIÓN</h2>
+                  <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">
+                    {warningAlerts.length} {warningAlerts.length === 1 ? "caso" : "casos"}
+                  </Badge>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {warningAlerts.map((alert) => (
+                    <Card key={alert.childId} className="bg-white shadow-sm border-yellow-200 hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => handlePatientClick(alert.childId)}>
+                      <CardContent className="p-5">
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3 className="text-base font-semibold text-[#2F2F2F]">{alert.childName}</h3>
+                              <p className="text-xs text-[#666666]">Padre/Madre: {alert.parentName}</p>
+                            </div>
+                            <div className="h-8 w-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                              <Clock className="h-4 w-4 text-yellow-600" />
+                            </div>
+                          </div>
+                          
+                          <div className="bg-yellow-50 rounded-lg p-2.5">
+                            <p className="text-xs text-[#3A3A3A] leading-relaxed">
+                              <span className="font-medium">Observación Clave:</span> {alert.diagnosis}
+                            </p>
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-[#666666]">{alert.lastUpdate}</span>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-yellow-700 border-yellow-300 hover:bg-yellow-50 text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleReviewLog(alert.childId)
+                              }}
+                            >
+                              Revisar Bitácora
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Mensaje si no hay urgencias */}
+            {criticalAlerts.length === 0 && warningAlerts.length === 0 && (
+              <Card className="bg-white shadow-sm border-0">
+                <CardContent className="py-16">
+                  <div className="text-center space-y-3">
+                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
+                    <h3 className="text-lg font-medium text-[#2F2F2F]">Sin casos urgentes</h3>
+                    <p className="text-[#666666]">Todos los pacientes están estables por el momento.</p>
                   </div>
                 </CardContent>
               </Card>
             )}
-          </div>
-        </div>
+          </TabsContent>
+          
+          {/* Tab de Pacientes de Hoy */}
+          <TabsContent value="hoy" className="mt-6">
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-[#2F2F2F]">Pacientes con Citas Hoy</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {todayPatients.length > 0 ? todayPatients.map((child) => (
+                  <Card key={child._id} className="bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => handlePatientClick(child._id)}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <ChildAvatar 
+                          name={`${child.firstName} ${child.lastName}`}
+                          className="h-10 w-10"
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm text-[#3A3A3A] font-medium">
+                            {child.firstName} {child.lastName}
+                          </p>
+                          <p className="text-xs text-[#666666]">
+                            {child.birthDate ? 
+                              `${Math.floor((Date.now() - new Date(child.birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} años` 
+                              : "Edad no especificada"
+                            }
+                          </p>
+                        </div>
+                        <Badge className="bg-blue-50 text-blue-700 text-xs">
+                          Activo hoy
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )) : (
+                  <Card className="col-span-full">
+                    <CardContent className="py-16">
+                      <div className="text-center space-y-3">
+                        <Calendar className="h-12 w-12 text-gray-400 mx-auto" />
+                        <h3 className="text-lg font-medium text-[#2F2F2F]">Sin citas programadas</h3>
+                        <p className="text-[#666666]">No hay pacientes con citas para hoy.</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+          
+          {/* Tab de Todos los Pacientes */}
+          <TabsContent value="todos" className="mt-6">
+            <div className="space-y-4">
+              {/* Barra de búsqueda */}
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    type="text"
+                    placeholder="Buscar paciente por nombre..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 bg-white"
+                  />
+                </div>
+                <Badge className="bg-gray-100 text-gray-700">
+                  {okPatients.filter(p => 
+                    p.childName.toLowerCase().includes(searchTerm.toLowerCase())
+                  ).length} pacientes
+                </Badge>
+              </div>
+              
+              {/* Lista de pacientes */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {okPatients
+                  .filter(patient => 
+                    patient.childName.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                  .map((patient) => (
+                    <Card key={patient.childId} className="bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => handlePatientClick(patient.childId)}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-sm font-medium text-[#2F2F2F]">{patient.childName}</h3>
+                            <p className="text-xs text-[#666666]">{patient.diagnosis}</p>
+                          </div>
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+              
+              {/* Mensaje si no hay resultados */}
+              {okPatients.filter(p => 
+                p.childName.toLowerCase().includes(searchTerm.toLowerCase())
+              ).length === 0 && (
+                <Card className="bg-white shadow-sm border-0">
+                  <CardContent className="py-10">
+                    <div className="text-center">
+                      <p className="text-[#666666]">No se encontraron pacientes con ese nombre.</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

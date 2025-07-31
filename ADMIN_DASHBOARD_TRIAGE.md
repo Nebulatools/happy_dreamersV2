@@ -2,7 +2,7 @@
 
 ## Visión General
 
-El Dashboard Administrativo de Happy Dreamers ha sido rediseñado con un enfoque en **triage médico**, permitiendo a la doctora identificar rápidamente qué pacientes necesitan atención inmediata y cuáles están progresando adecuadamente.
+El Dashboard Administrativo de Happy Dreamers ha sido rediseñado con un enfoque en **triage médico** y **organización por tabs**, permitiendo a la doctora identificar rápidamente qué pacientes necesitan atención inmediata y acceder a información organizada por categorías.
 
 ## 🎯 Objetivo Principal
 
@@ -62,9 +62,10 @@ Transformar el dashboard de una vista de estadísticas generales a una herramien
 - Progreso consistente
 - Sin desviaciones significativas
 
-## 📊 Métricas Simplificadas
+## 📊 Nueva Estructura del Dashboard
 
-Solo se muestran 3 métricas esenciales:
+### Métricas Superiores
+Las 3 métricas esenciales ahora aparecen en la parte superior:
 
 1. **Total de Pacientes**
    - Número total de niños registrados
@@ -77,6 +78,30 @@ Solo se muestran 3 métricas esenciales:
 3. **Resumen de Alertas**
    - Conteo visual: 🔴 X | 🟡 Y | 🟢 Z
    - Estado actualizado en tiempo real
+
+### Sistema de Tabs
+Debajo de las métricas, la información se organiza en 3 pestañas:
+
+#### Tab 1: Pacientes en Urgencia
+- **Icono**: AlertTriangle
+- **Contenido**: Alertas críticas (🔴) y de advertencia (🟡)
+- **Badge**: Muestra cantidad total de casos urgentes
+- **Organización**: Críticas primero, luego advertencias
+- **Estado vacío**: "Sin casos urgentes" cuando todo está bien
+
+#### Tab 2: Pacientes de Hoy
+- **Icono**: Calendar
+- **Contenido**: Pacientes con citas programadas
+- **Badge**: Cantidad de pacientes activos hoy
+- **Visualización**: Cards con avatar y edad
+- **Estado vacío**: "Sin citas programadas"
+
+#### Tab 3: Todos los Pacientes
+- **Icono**: Users
+- **Contenido**: Lista completa de pacientes registrados
+- **Badge**: Total de pacientes en el sistema
+- **Búsqueda**: Input para filtrar por nombre en tiempo real
+- **Grid responsive**: Se adapta a diferentes tamaños de pantalla
 
 ## 🔄 Flujo de Trabajo
 
@@ -163,18 +188,22 @@ interface DashboardMetrics {
 1. **Eficiencia Mejorada**
    - 80% menos tiempo identificando casos urgentes
    - Acciones directas desde el dashboard
+   - Navegación por tabs reduce el scroll
 
 2. **Mejor Atención al Paciente**
    - Casos críticos nunca pasan desapercibidos
    - Intervención temprana en patrones problemáticos
+   - Búsqueda rápida de pacientes específicos
 
 3. **Reducción de Carga Cognitiva**
    - Solo información relevante y accionable
    - Diseño limpio y enfocado
+   - Información organizada por categorías
 
 4. **Flujo de Trabajo Optimizado**
    - De la identificación a la acción en 2 clicks
    - Sin navegación innecesaria
+   - Acceso rápido entre diferentes vistas
 
 ## 📱 Responsive Design
 
