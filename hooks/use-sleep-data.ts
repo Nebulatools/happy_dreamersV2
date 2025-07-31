@@ -231,7 +231,17 @@ function calculateAverageTime(dates: Date[]): string {
 function calculateTimeVariation(dates: Date[]): number {
   if (dates.length <= 1) return 0
   
-  const times = dates.map(date => date.getHours() * 60 + date.getMinutes())
+  const times = dates.map(date => {
+    let minutes = date.getHours() * 60 + date.getMinutes()
+    
+    // AJUSTAR horas de madrugada (00:00-06:00) para cálculo nocturno
+    if (date.getHours() >= 0 && date.getHours() <= 6) {
+      minutes += 24 * 60 // Sumar 24 horas para que quede al final del día anterior
+    }
+    
+    return minutes
+  })
+  
   const avg = times.reduce((a, b) => a + b, 0) / times.length
   const variance = times.reduce((sum, time) => sum + Math.pow(time - avg, 2), 0) / times.length
   
@@ -249,6 +259,11 @@ function calculateInferredSleepDuration(events: any[]): number {
     )
   
   const sleepDurations: number[] = []
+  
+  console.log(`DEBUG - Procesando ${sortedEvents.length} eventos para cálculo de duración:`)
+  sortedEvents.forEach((e, i) => {
+    console.log(`  ${i}: ${e.eventType} - ${new Date(e.startTime).toLocaleString()} ${e.sleepDelay ? `(delay: ${e.sleepDelay}min)` : ''}`)
+  })
   
   for (let i = 0; i < sortedEvents.length - 1; i++) {
     const currentEvent = sortedEvents[i]
@@ -273,8 +288,12 @@ function calculateInferredSleepDuration(events: any[]): number {
         duration += 24 * 60
       }
       
-      if (duration >= 120 && duration <= 960) {
+      // Rango más amplio: 1-18 horas (60-1080 minutos)
+      if (duration >= 60 && duration <= 1080) {
         sleepDurations.push(duration)
+        console.log(`DEBUG - Duración válida encontrada: ${duration} min (${(duration/60).toFixed(1)}h)`)
+      } else {
+        console.log(`DEBUG - Duración inválida descartada: ${duration} min (${(duration/60).toFixed(1)}h)`)
       }
     }
     
@@ -301,8 +320,12 @@ function calculateInferredSleepDuration(events: any[]): number {
           duration += 24 * 60
         }
         
-        if (duration >= 300 && duration <= 900) { // 5-15 horas para sueño inferido
+        // Rango más amplio para sueño inferido: 4-18 horas (240-1080 minutos)
+        if (duration >= 240 && duration <= 1080) {
           sleepDurations.push(duration)
+          console.log(`DEBUG - Duración inferida válida: ${duration} min (${(duration/60).toFixed(1)}h)`)
+        } else {
+          console.log(`DEBUG - Duración inferida inválida: ${duration} min (${(duration/60).toFixed(1)}h)`)
         }
       }
     }

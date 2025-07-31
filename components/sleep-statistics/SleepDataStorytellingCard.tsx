@@ -5,6 +5,7 @@ import { AlertTriangle, Eye, EyeOff, Moon, Clock, TrendingUp, TrendingDown, Info
 import { useSleepData } from '@/hooks/use-sleep-data'
 import { format, parseISO, subDays, startOfDay, isAfter, isBefore, differenceInMinutes } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { processSleepStatistics } from '@/lib/sleep-calculations'
 
 interface SleepDayMetrics {
   date: string
@@ -25,12 +26,12 @@ interface SleepDataStorytellingCardProps {
   className?: string
 }
 
-// 🎨 Configuración de colores y umbrales mejorada
+// 🎨 Configuración de colores y umbrales mejorada - Rangos más realistas para niños
 const SLEEP_THRESHOLDS = {
-  insufficient: { min: 0, max: 8.5, color: 'bg-red-500', label: 'Insuficiente (<8.5h)' },
-  low: { min: 8.5, max: 9.5, color: 'bg-orange-500', label: 'Bajo (8.5-9.5h)' },
-  optimal: { min: 9.5, max: 11.5, color: 'bg-green-500', label: 'Óptimo (9.5-11.5h)' },
-  excellent: { min: 11.5, max: 14, color: 'bg-blue-500', label: 'Excelente (>11.5h)' }
+  insufficient: { min: 0, max: 7, color: 'bg-red-500', label: 'Insuficiente (<7h)' },
+  low: { min: 7, max: 8.5, color: 'bg-orange-500', label: 'Bajo (7-8.5h)' },
+  optimal: { min: 8.5, max: 12, color: 'bg-green-500', label: 'Óptimo (8.5-12h)' },
+  excellent: { min: 12, max: 16, color: 'bg-blue-500', label: 'Excelente (12-16h)' }
 }
 
 const getQualityFromHours = (hours: number): keyof typeof SLEEP_THRESHOLDS => {
@@ -52,7 +53,7 @@ export default function SleepDataStorytellingCard({
   const [hoveredDay, setHoveredDay] = useState<string | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
 
-  // 📊 Procesar datos reales usando la misma lógica que sleep-calculations.ts
+  // 📊 Procesar datos reales usando la función unificada de cálculos
   const processedData = useMemo(() => {
     if (!sleepData || !sleepData.events || sleepData.events.length === 0) return []
     
@@ -68,10 +69,8 @@ export default function SleepDataStorytellingCard({
     const daysCount = getDaysCount()
     const days: SleepDayMetrics[] = []
     
-    // Obtener todos los eventos de sueño ordenados por fecha
-    const allEvents = sleepData.events.sort((a, b) => 
-      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-    )
+    // Obtener todos los eventos de sueño
+    const allEvents = sleepData.events
     
     console.log(`🔍 Total eventos disponibles: ${allEvents.length}`)
     console.log(`📋 Tipos de eventos:`, allEvents.reduce((acc, e) => {
@@ -79,94 +78,62 @@ export default function SleepDataStorytellingCard({
       return acc
     }, {} as Record<string, number>))
     
-    // Procesar cada día en el rango usando la lógica de sleep-calculations.ts
+    // Procesar cada día individualmente con la función unificada
     for (let i = 0; i < daysCount; i++) {
       const date = subDays(new Date(), daysCount - 1 - i)
       const dayStart = startOfDay(date)
       const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
       
-      // Usar la misma lógica de inferencia que sleep-calculations.ts
-      let nightSleepHours = 0
-      let napHours = 0
-      let wakeups = 0
-      let bedtime = sleepData.avgBedtime
-      let wakeTime = sleepData.avgWakeTime
+      // Filtrar eventos de este día específico
+      const dayEvents = allEvents.filter(event => {
+        if (!event.startTime) return false
+        const eventDate = parseISO(event.startTime)
+        return eventDate >= dayStart && eventDate < dayEnd
+      })
       
-      // Buscar pares sleep/bedtime -> wake para este día
-      for (let j = 0; j < allEvents.length - 1; j++) {
-        const currentEvent = allEvents[j]
-        const nextEvent = allEvents[j + 1]
-        
-        if (!currentEvent.startTime || !nextEvent.startTime) continue
-        
-        const currentEventDate = parseISO(currentEvent.startTime)
-        const nextEventDate = parseISO(nextEvent.startTime)
-        
-        // Verificar si el evento sleep/bedtime está en el día que estamos procesando
-        const isCurrentDayEvent = currentEventDate >= dayStart && currentEventDate < dayEnd
-        
-        if (isCurrentDayEvent) {
-          // CASO 1: Par bedtime/sleep → wake
-          if (
-            ['bedtime', 'sleep'].includes(currentEvent.eventType) &&
-            nextEvent.eventType === 'wake'
-          ) {
-            const sleepTime = currentEventDate
-            const wakeEventTime = nextEventDate
-            const sleepDelay = currentEvent.sleepDelay || 0
-            const actualSleepTime = new Date(sleepTime.getTime() + sleepDelay * 60 * 1000)
-            
-            let duration = differenceInMinutes(wakeEventTime, actualSleepTime)
-            if (duration < 0) duration += 24 * 60 // Cruzar medianoche
-            
-            console.log(`⏰ Par encontrado - Día ${format(date, 'dd/MM')}: ${format(actualSleepTime, 'HH:mm')} → ${format(wakeEventTime, 'HH:mm')} = ${duration} min (${(duration/60).toFixed(1)}h)`)
-            
-            if (duration >= 120 && duration <= 960) { // 2-16 horas válidas
-              nightSleepHours = duration / 60
-              bedtime = format(sleepTime, 'HH:mm')
-              wakeTime = format(wakeEventTime, 'HH:mm')
-            }
-          }
-          
-          // CASO 2: Eventos nap con endTime
-          else if (currentEvent.eventType === 'nap' && currentEvent.endTime) {
-            const napStart = currentEventDate
-            const napEnd = parseISO(currentEvent.endTime)
-            const duration = differenceInMinutes(napEnd, napStart)
-            
-            if (duration > 0 && duration <= 240) { // Máximo 4 horas de siesta
-              napHours += duration / 60
-            }
-          }
-          
-          // CASO 3: Contar night_waking events
-          else if (currentEvent.eventType === 'night_waking') {
-            wakeups++
-          }
-        }
-      }
+      // Incluir también el evento wake del día siguiente si existe
+      const nextDayStart = new Date(dayEnd)
+      const nextDayEnd = new Date(nextDayStart.getTime() + 12 * 60 * 60 * 1000) // Hasta mediodía del siguiente día
       
-      const totalHours = nightSleepHours + napHours
+      const wakeEvents = allEvents.filter(event => {
+        if (!event.startTime || event.eventType !== 'wake') return false
+        const eventDate = parseISO(event.startTime)
+        return eventDate >= nextDayStart && eventDate < nextDayEnd
+      })
       
-      console.log(`📊 Día ${format(date, 'dd/MM')} - Total: ${totalHours.toFixed(1)}h (Noche: ${nightSleepHours.toFixed(1)}h + Siesta: ${napHours.toFixed(1)}h)`)
+      // Combinar eventos del día con posibles wake del día siguiente
+      const eventsToProcess = [...dayEvents, ...wakeEvents].sort((a, b) => 
+        new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      )
       
-      // Determinar calidad basada en horas totales reales
+      // Usar la función unificada para procesar los eventos de este día
+      const dayStats = processSleepStatistics(eventsToProcess)
+      
+      console.log(`📊 Día ${format(date, 'dd/MM')} - Estadísticas unificadas:`, {
+        avgSleepDuration: dayStats.avgSleepDuration.toFixed(1),
+        avgNapDuration: dayStats.avgNapDuration.toFixed(1),
+        totalSleepHours: dayStats.totalSleepHours.toFixed(1),
+        avgBedtime: dayStats.avgBedtime,
+        avgWakeTime: dayStats.avgWakeTime,
+        totalWakeups: dayStats.totalWakeups
+      })
+      
+      // Construir métricas del día con valores reales calculados
+      const totalHours = dayStats.totalSleepHours
       const quality = getQualityFromHours(totalHours)
-      
-      // Detectar anomalías basadas en datos reales
-      const hasAnomaly = quality === 'insufficient' || quality === 'low' || wakeups > 3
+      const hasAnomaly = quality === 'insufficient' || quality === 'low' || dayStats.avgWakeupsPerNight > 3
       
       days.push({
         date: date.toISOString(),
         totalHours: Math.round(totalHours * 10) / 10,
-        nightSleepHours: Math.round(nightSleepHours * 10) / 10,
-        napHours: Math.round(napHours * 10) / 10,
+        nightSleepHours: Math.round(dayStats.avgSleepDuration * 10) / 10,
+        napHours: Math.round(dayStats.avgNapDuration * 10) / 10,
         quality,
         consistency: hasAnomaly ? 'poor' : 'good',
         hasAnomaly,
-        wakeups,
-        bedtime,
-        wakeTime
+        wakeups: Math.round(dayStats.totalWakeups),
+        bedtime: dayStats.avgBedtime !== '--:--' ? dayStats.avgBedtime : undefined,
+        wakeTime: dayStats.avgWakeTime !== '--:--' ? dayStats.avgWakeTime : undefined
       })
     }
     

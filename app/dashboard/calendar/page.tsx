@@ -52,6 +52,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal"
+import { processSleepStatistics } from "@/lib/sleep-calculations"
 import {
   format,
   startOfMonth,
@@ -120,6 +121,7 @@ export default function CalendarPage() {
     wakingsChange: 0,
   })
   const [eventModalOpen, setEventModalOpen] = useState(false)
+  const [selectedDateForEvent, setSelectedDateForEvent] = useState<Date | null>(null)
   const [children, setChildren] = useState([])
   
   // Estados para el diálogo de edición
@@ -210,150 +212,38 @@ export default function CalendarPage() {
   }
 
   const calculateMonthlyStats = (periodEvents: Event[]) => {
-    let nightSleepTotal = 0
-    let napTotal = 0
-    let wakingsCount = 0
-    let nightsWithSleep = 0
-    let daysWithNaps = 0
-
     logger.info(`Calculando estadísticas para ${periodEvents.length} eventos en vista ${view}`)
 
-    // Ordenar eventos por tiempo para vincular sleep con wake
-    const sortedEvents = [...periodEvents].sort((a, b) => 
-      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-    )
+    // Convertir eventos al formato esperado por processSleepStatistics
+    const sleepEvents = periodEvents.map(event => ({
+      _id: event._id,
+      eventType: event.eventType,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      notes: event.notes,
+      emotionalState: event.emotionalState,
+      sleepDelay: event.sleepDelay
+    }))
 
-    // Agrupar eventos por día para calcular promedios más precisos
-    const eventsByDay = periodEvents.reduce((acc, event) => {
-      const dayKey = format(new Date(event.startTime), "yyyy-MM-dd")
-      if (!acc[dayKey]) acc[dayKey] = []
-      acc[dayKey].push(event)
-      return acc
-    }, {} as Record<string, Event[]>)
+    // Usar la función unificada de cálculo de estadísticas
+    const stats = processSleepStatistics(sleepEvents)
 
-    // Calcular totales y contar días con eventos
-    Object.values(eventsByDay).forEach(dayEvents => {
-      let dayHasNightSleep = false
-      let dayHasNap = false
-
-      // Ordenar eventos del día por tiempo
-      const sortedDayEvents = [...dayEvents].sort((a, b) => 
-        new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-      )
-
-      sortedDayEvents.forEach((event, index) => {
-        if (event.eventType === "sleep" || event.eventType === "bedtime") {
-          let duration = 0
-          
-          // Si tiene endTime, usar eso
-          if (event.endTime) {
-            const start = new Date(event.startTime)
-            const end = new Date(event.endTime)
-            duration = differenceInHours(end, start)
-            
-            // Validar que la duración sea razonable (menos de 24 horas)
-            if (duration > 24) {
-              logger.warn(`Duración de sueño inválida: ${duration} horas`, { event })
-              duration = 0
-            }
-          } else {
-            // Si no tiene endTime, buscar el siguiente evento wake
-            // Buscar en todos los eventos ordenados, no solo del día actual
-            const eventIndex = sortedEvents.findIndex(e => e._id === event._id)
-            if (eventIndex !== -1) {
-              // Buscar el siguiente evento wake
-              for (let i = eventIndex + 1; i < sortedEvents.length; i++) {
-                const nextEvent = sortedEvents[i]
-                if (nextEvent.eventType === "wake" && nextEvent.childId === event.childId) {
-                  const sleepStart = new Date(event.startTime)
-                  const wakeTime = new Date(nextEvent.startTime)
-                  
-                  // Calcular la diferencia en minutos y luego convertir a horas
-                  const diffMinutes = differenceInMinutes(wakeTime, sleepStart)
-                  duration = diffMinutes / 60
-                  
-                  // Validar que la duración sea razonable
-                  if (duration > 24) {
-                    logger.warn(`Duración de sueño calculada inválida: ${duration} horas`, { 
-                      sleepEvent: event, 
-                      wakeEvent: nextEvent,
-                      sleepTime: sleepStart.toISOString(),
-                      wakeTime: wakeTime.toISOString()
-                    })
-                    // No usar este wake event, buscar otro más cercano
-                    continue
-                  } else if (duration < 0) {
-                    // Si la duración es negativa, probablemente el wake es del día anterior
-                    logger.warn(`Duración negativa detectada, ignorando`, { 
-                      sleepEvent: event, 
-                      wakeEvent: nextEvent 
-                    })
-                    duration = 0
-                    break
-                  } else {
-                    // Duración válida encontrada
-                    break
-                  }
-                }
-              }
-            }
-          }
-          
-          if (duration > 0 && duration <= 24) {
-            nightSleepTotal += duration
-            dayHasNightSleep = true
-            logger.info(`Sueño registrado: ${duration.toFixed(2)} horas`)
-          }
-        } else if (event.eventType === "nap") {
-          if (event.endTime) {
-            const duration = differenceInHours(new Date(event.endTime), new Date(event.startTime))
-            napTotal += duration
-            dayHasNap = true
-          }
-        } else if (event.eventType === "night_waking") {
-          // Contar solo despertares nocturnos, no despertares matutinos (wake)
-          wakingsCount++
-        }
-      })
-
-      if (dayHasNightSleep) nightsWithSleep++
-      if (dayHasNap) daysWithNaps++
-    })
-
-    // Calcular promedios según la vista
-    let avgNightSleep = 0
-    let avgNap = 0
-    
-    if (view === "month") {
-      // Para mes: promedio basado en días con registros de sueño
-      avgNightSleep = nightsWithSleep > 0 ? nightSleepTotal / nightsWithSleep : 0
-      avgNap = daysWithNaps > 0 ? napTotal / daysWithNaps : 0
-    } else if (view === "week") {
-      // Para semana: promedio basado en días con registros
-      avgNightSleep = nightsWithSleep > 0 ? nightSleepTotal / nightsWithSleep : 0
-      avgNap = daysWithNaps > 0 ? napTotal / daysWithNaps : 0
-    } else {
-      // Para vista diaria, mostrar totales del día
-      avgNightSleep = nightSleepTotal
-      avgNap = napTotal
-    }
-
-    logger.info(`Resumen de estadísticas:`, {
-      nightSleepTotal: nightSleepTotal.toFixed(2),
-      nightsWithSleep,
-      avgNightSleep: avgNightSleep.toFixed(2),
-      napTotal: napTotal.toFixed(2),
-      daysWithNaps,
-      avgNap: avgNap.toFixed(2),
-      wakingsCount,
+    logger.info(`Resumen de estadísticas unificadas:`, {
+      avgSleepDuration: stats.avgSleepDuration.toFixed(2),
+      avgNapDuration: stats.avgNapDuration.toFixed(2),
+      totalSleepHours: stats.totalSleepHours.toFixed(2),
+      avgWakeupsPerNight: stats.avgWakeupsPerNight.toFixed(2),
+      totalWakeups: stats.totalWakeups,
+      avgBedtime: stats.avgBedtime,
+      avgWakeTime: stats.avgWakeTime,
       view
     })
 
-    // TODO: Calcular cambios respecto al período anterior
+    // Mapear las estadísticas al formato esperado por el calendario
     setMonthlyStats({
-      nightSleepHours: avgNightSleep,
-      napHours: avgNap,
-      nightWakings: wakingsCount,
+      nightSleepHours: stats.avgSleepDuration,
+      napHours: stats.avgNapDuration,
+      nightWakings: Math.round(stats.totalWakeups), // Total de despertares en el período
       nightSleepChange: 0, // TODO: Implementar comparación con período anterior
       napChange: 0,
       wakingsChange: 0,
@@ -437,6 +327,12 @@ export default function CalendarPage() {
     return states[state] || state
   }
   
+  // Función para manejar el clic en un día del calendario
+  const handleDayClick = (day: Date) => {
+    setSelectedDateForEvent(day)
+    setEventModalOpen(true)
+  }
+
   // Función para manejar el clic en un evento
   const handleEventClick = (event: Event) => {
     setSelectedEvent(event)
@@ -583,10 +479,11 @@ export default function CalendarPage() {
               <div 
                 key={day.toString()} 
                 className={cn(
-                  "calendar-cell rounded-lg relative",
+                  "calendar-cell rounded-lg relative cursor-pointer hover:bg-gray-50 transition-colors",
                   !isCurrentMonth && "bg-gray-50 text-gray-400",
                   isDayToday && "bg-blue-50 border-2 border-[#4A90E2]"
                 )}
+                onClick={() => handleDayClick(day)}
               >
                 <div className="absolute top-2 right-2 text-sm font-medium">
                   {format(day, "d")}
@@ -598,9 +495,12 @@ export default function CalendarPage() {
                       key={event._id}
                       className={cn(
                         getEventTypeColor(event.eventType),
-                        "flex items-center gap-1 cursor-pointer hover:opacity-80"
+                        "flex items-center gap-1 cursor-pointer hover:opacity-80 z-10 relative"
                       )}
-                      onClick={() => handleEventClick(event)}
+                      onClick={(e) => {
+                        e.stopPropagation() // Evitar que se propague al clic del día
+                        handleEventClick(event)
+                      }}
                     >
                       {getEventTypeIcon(event.eventType)}
                       <span className="text-xs truncate">
@@ -653,10 +553,13 @@ export default function CalendarPage() {
               return (
                 <div key={day.toString()} className="day-column-timeline">
                   {/* Day Header */}
-                  <div className={cn(
-                    "day-header-timeline",
-                    isDayToday && "bg-blue-50 text-blue-600"
-                  )}>
+                  <div 
+                    className={cn(
+                      "day-header-timeline cursor-pointer hover:bg-gray-50 transition-colors",
+                      isDayToday && "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                    )}
+                    onClick={() => handleDayClick(day)}
+                  >
                     <div className="text-xs font-medium opacity-75">{dayName}</div>
                     <div className="text-lg font-bold">
                       {format(day, "d")}
@@ -667,7 +570,10 @@ export default function CalendarPage() {
                   </div>
                   
                   {/* Events Timeline Container */}
-                  <div className="events-timeline-container">
+                  <div 
+                    className="events-timeline-container cursor-pointer hover:bg-gray-50/50 transition-colors"
+                    onClick={() => handleDayClick(day)}
+                  >
                     {/* Hour grid lines */}
                     {Array.from({ length: 24 }, (_, hour) => (
                       <div key={hour}>
@@ -706,13 +612,15 @@ export default function CalendarPage() {
                         event={event}
                         hourHeight={hourHeight}
                         showTooltip={true}
-                        onClick={handleEventClick}
+                        onClick={(clickedEvent) => {
+                          handleEventClick(clickedEvent)
+                        }}
                       />
                     ))}
                     
                     {/* Empty state */}
                     {dayEvents.length === 0 && (
-                      <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="text-xs text-gray-400 text-center">
                           <div>Sin eventos</div>
                           <div className="mt-1 opacity-75">este día</div>
@@ -754,14 +662,20 @@ export default function CalendarPage() {
             {/* Columna de eventos del día */}
             <div className="flex-1 relative border-l border-gray-200">
               {/* Header del día */}
-              <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-center sticky top-0 z-10">
+              <div 
+                className="h-16 bg-white border-b border-gray-200 flex items-center justify-center sticky top-0 z-10 cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => handleDayClick(date)}
+              >
                 <div className="text-lg font-bold">
                   {format(date, "d")}
                 </div>
               </div>
               
               {/* Container de eventos */}
-              <div className="events-timeline-container relative">
+              <div 
+                className="events-timeline-container relative cursor-pointer hover:bg-gray-50/50 transition-colors"
+                onClick={() => handleDayClick(date)}
+              >
                 {/* Líneas de la grilla de horas */}
                 {Array.from({ length: 24 }, (_, hour) => (
                   <div key={hour}>
@@ -800,17 +714,19 @@ export default function CalendarPage() {
                     event={event}
                     hourHeight={hourHeight}
                     showTooltip={true}
-                    onClick={handleEventClick}
+                    onClick={(clickedEvent) => {
+                      handleEventClick(clickedEvent)
+                    }}
                   />
                 ))}
                 
                 {/* Estado vacío */}
                 {dayEvents.length === 0 && (
-                  <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="text-center">
                       <div className="text-gray-400 text-lg mb-2">No hay eventos registrados</div>
                       <div className="text-gray-500 text-sm">
-                        Agrega el primer evento del día
+                        Haz clic para agregar el primer evento del día
                       </div>
                     </div>
                   </div>
@@ -962,7 +878,10 @@ export default function CalendarPage() {
           {/* Botón Registrar Evento */}
           <Button 
             className="hd-gradient-button text-white"
-            onClick={() => setEventModalOpen(true)}
+            onClick={() => {
+              setSelectedDateForEvent(null) // No preseleccionar fecha cuando se usa el botón
+              setEventModalOpen(true)
+            }}
           >
             <Plus className="w-4 h-4 mr-2" />
             Registrar Evento
@@ -1100,12 +1019,17 @@ export default function CalendarPage() {
       {/* Modal de registro de evento */}
       <EventRegistrationModal
         isOpen={eventModalOpen}
-        onClose={() => setEventModalOpen(false)}
+        onClose={() => {
+          setEventModalOpen(false)
+          setSelectedDateForEvent(null) // Limpiar fecha seleccionada al cerrar
+        }}
         childId={activeChildId || undefined}
         children={children}
+        selectedDate={selectedDateForEvent || undefined}
         onEventCreated={() => {
           invalidateEvents() // Invalidar cache global
           setEventModalOpen(false)
+          setSelectedDateForEvent(null) // Limpiar fecha seleccionada
         }}
       />
       

@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { Loader2, Clock, Moon, Sun } from "lucide-react"
+import { isToday } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -31,6 +32,17 @@ const getCurrentDateTimeISO = () => {
   const day = String(now.getDate()).padStart(2, "0")
   const hours = String(now.getHours()).padStart(2, "0")
   const minutes = String(Math.round(now.getMinutes() / 10) * 10).padStart(2, "0")
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+// Función auxiliar para formatear una fecha específica en formato ISO para input datetime-local
+const getDateTimeISO = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  const hours = String(date.getHours()).padStart(2, "0")
+  const minutes = String(Math.round(date.getMinutes() / 10) * 10).padStart(2, "0")
   
   return `${year}-${month}-${day}T${hours}:${minutes}`
 }
@@ -145,6 +157,7 @@ interface EventRegistrationModalProps {
   childId?: string;
   children?: Child[];
   onEventCreated?: () => void;
+  selectedDate?: Date;
 }
 
 export function EventRegistrationModal({
@@ -153,6 +166,7 @@ export function EventRegistrationModal({
   childId,
   children = [],
   onEventCreated,
+  selectedDate,
 }: EventRegistrationModalProps) {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
@@ -183,20 +197,34 @@ export function EventRegistrationModal({
   // Reset form cuando se abre/cierra el modal
   useEffect(() => {
     if (isOpen) {
-      const now = new Date()
-      const currentTime = getCurrentDateTimeISO()
-      const defaultEndTime = getDefaultEndTime(currentTime)
-      const currentDate = now.toISOString().split('T')[0]
+      // Usar la fecha seleccionada o la fecha actual
+      const targetDate = selectedDate || new Date()
+      
+      // Si es una fecha seleccionada específica, usar la hora actual pero en esa fecha
+      // Si es la fecha actual, usar la fecha y hora actual
+      let baseDateTime: string
+      if (selectedDate && !isToday(selectedDate)) {
+        // Para fechas pasadas, usar las 19:00 como hora por defecto (hora típica de dormir)
+        const defaultTime = new Date(selectedDate)
+        defaultTime.setHours(19, 0, 0, 0)
+        baseDateTime = getDateTimeISO(defaultTime)
+      } else {
+        // Para hoy o sin fecha específica, usar la hora actual
+        baseDateTime = getCurrentDateTimeISO()
+      }
+      
+      const defaultEndTime = getDefaultEndTime(baseDateTime)
+      const dateForShared = targetDate.toISOString().split('T')[0]
       
       // Actualizar fecha compartida
-      setSharedDate(currentDate)
+      setSharedDate(dateForShared)
       
-      const defaultEventType = getEventTypeByTime(now)
+      const defaultEventType = getEventTypeByTime(targetDate)
       
       form.reset({
         notes: "",
         emotionalState: "calm",
-        startTime: defaultEventType !== "extra_activities" ? currentTime : undefined,
+        startTime: defaultEventType !== "extra_activities" ? baseDateTime : undefined,
         eventType: defaultEventType,
         endTime: defaultEventType !== "extra_activities" ? defaultEndTime : undefined,
         sleepDelay: 0,
@@ -204,7 +232,7 @@ export function EventRegistrationModal({
         showStartTime: false,
       })
     }
-  }, [isOpen, form])
+  }, [isOpen, selectedDate, form])
   
   // Observar cambios en el formulario
   const startTime = form.watch("startTime")

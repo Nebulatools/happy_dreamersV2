@@ -1,6 +1,6 @@
 # Session Context - Happy Dreamers UI Implementation
 
-*Last Updated: January 31, 2025 - SleepDataStorytellingCard Componente Mejorado y Optimizado*
+*Last Updated: January 31, 2025 - Corrección de Cálculos de Sueño en Calendario y SleepDataStorytellingCard*
 
 ## 🎯 Current System State
 
@@ -34,7 +34,65 @@
 
 ## 🎯 MAJOR ACCOMPLISHMENTS THIS SESSION
 
-### ✅ **REFACTORING COMPLETO Y OPTIMIZACIÓN DEL SleepDataStorytellingCard** (January 31, 2025 - Sesión Actual)
+### ✅ **CORRECCIÓN CRÍTICA DE CÁLCULOS DE SUEÑO - UNIFICACIÓN DE LÓGICA** (January 31, 2025 - Sesión Actual)
+
+#### **Problema Crítico Identificado y Resuelto:**
+
+1. **✅ Discrepancia en Cálculos de Sueño Entre Componentes**
+   - **Problema**: Calendario mostraba 0 horas promedio, SleepDataStorytellingCard mostraba datos incorrectos
+   - **Síntomas**: Solo 2 días (25 y 27 julio) mostraban correctamente, resto con 0-1 horas
+   - **Root Cause**: Diferentes algoritmos de cálculo en cada componente
+   - **Calendario**: Búsqueda lineal estricta que fallaba con eventos interrumpidos
+   - **SleepDataStorytellingCard**: Lógica propia defectuosa que usaba promedios como defaults
+
+2. **✅ Unificación de Lógica de Cálculos**
+   - **Solución**: Todos los componentes ahora usan `processSleepStatistics` de `lib/sleep-calculations.ts`
+   - **Calendario**: Reemplazada función `calculateMonthlyStats` con lógica unificada
+   - **SleepDataStorytellingCard**: Reemplazada lógica customizada con procesamiento por día
+   - **Beneficio**: Consistencia total entre todas las vistas de la aplicación
+
+3. **✅ Correcciones en Calendario (calendar/page.tsx)**
+   - **Antes**: Solo encontraba pares sleep→wake directos, fallaba con interrupciones
+   - **Ahora**: Usa inferencia sofisticada que maneja:
+     - Eventos `night_waking` entre sleep y wake
+     - Wake events fuera de orden cronológico
+     - Inferencia de wake times desde actividades posteriores
+   - **Resultado**: Todos los días calculan correctamente (no más 0 horas)
+
+4. **✅ Correcciones en SleepDataStorytellingCard**
+   - **Antes**: Usaba avgBedtime/avgWakeTime como defaults para TODOS los días
+   - **Ahora**: Procesa cada día individualmente con sus propios eventos
+   - **Características**:
+     - Incluye wake events del día siguiente (hasta mediodía)
+     - Calcula bedtime/wake específicos por día
+     - Muestra "--:--" cuando no hay datos (no defaults globales)
+   - **Resultado**: Cada día muestra sus horarios reales, no 20:28/8:00 para todos
+
+5. **✅ Mejoras en la Lógica de Inferencia**
+   - **Sleep Delay**: Correctamente aplicado en todos los cálculos
+   - **Midnight Crossover**: Manejo correcto de eventos que cruzan medianoche
+   - **Validación de Rangos**: Ampliados de 2-16h a 1-18h para ser más realistas
+   - **Event Pairing**: Encuentra pares válidos incluso con eventos intermedios
+
+#### **Archivos Modificados en Esta Sesión:**
+1. **✅ `/app/dashboard/calendar/page.tsx`** 
+   - Importado `processSleepStatistics`
+   - Reemplazada función `calculateMonthlyStats` completa
+   - Mapeo correcto de estadísticas unificadas
+
+2. **✅ `/components/sleep-statistics/SleepDataStorytellingCard.tsx`**
+   - Importado `processSleepStatistics`
+   - Reemplazada toda la lógica de processedData (líneas 56-141)
+   - Procesamiento individual por día con datos reales
+
+#### **Impacto de las Mejoras:**
+- **✅ Consistencia Total**: Calendario, dashboard y gráficos muestran los mismos valores
+- **✅ Cálculos Precisos**: Todos los días calculan correctamente, incluso con interrupciones
+- **✅ Horarios Reales**: Cada día muestra sus propios horarios, no promedios globales
+- **✅ Manejo de Edge Cases**: Funciona con night_waking, eventos faltantes, etc.
+- **✅ Mejor UX**: Datos confiables y consistentes en toda la aplicación
+
+### ✅ **REFACTORING COMPLETO Y OPTIMIZACIÓN DEL SleepDataStorytellingCard** (January 31, 2025 - Sesión Anterior)
 
 #### **Problema Inicial Identificado y Resuelto:**
 
