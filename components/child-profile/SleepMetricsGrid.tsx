@@ -38,10 +38,10 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
     return [
       {
         title: "Tiempo total de sueño (promedio)",
-        value: formatDuration(sleepData.avgSleepDuration),
+        value: formatDuration(sleepData.totalSleepHours),
         icon: <Clock className="w-3 h-3" />,
-        status: getSleepDurationStatus(sleepData.avgSleepDuration),
-        change: `${sleepData.avgSleepDuration.toFixed(1)} horas promedio`,
+        status: getSleepDurationStatus(sleepData.totalSleepHours),
+        change: `${sleepData.totalSleepHours.toFixed(1)} horas promedio`,
         iconBg: "bg-[#B7F1C0]",
       },
       {
@@ -62,12 +62,12 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
       },
       {
         title: "Calidad del sueño",
-        value: `${Math.round((sleepData.avgSleepDuration >= 9 && sleepData.avgSleepDuration <= 11) ? 90 : 
-                             (sleepData.avgSleepDuration >= 8 && sleepData.avgSleepDuration <= 12) ? 70 : 50)}%`,
+        value: `${Math.round((sleepData.totalSleepHours >= 9 && sleepData.totalSleepHours <= 11) ? 90 : 
+                             (sleepData.totalSleepHours >= 8 && sleepData.totalSleepHours <= 12) ? 70 : 50)}%`,
         icon: <Heart className="w-4 h-4" />,
-        status: getSleepQualityStatus((sleepData.avgSleepDuration >= 9 && sleepData.avgSleepDuration <= 11) ? 90 : 
-                                   (sleepData.avgSleepDuration >= 8 && sleepData.avgSleepDuration <= 12) ? 70 : 50),
-        change: "Basado en duración del sueño",
+        status: getSleepQualityStatus((sleepData.totalSleepHours >= 9 && sleepData.totalSleepHours <= 11) ? 90 : 
+                                   (sleepData.totalSleepHours >= 8 && sleepData.totalSleepHours <= 12) ? 70 : 50),
+        change: "Basado en duración total del sueño",
         iconBg: "bg-[#FFC4C4]",
       },
     ]

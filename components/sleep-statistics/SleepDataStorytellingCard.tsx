@@ -28,13 +28,15 @@ interface SleepDataStorytellingCardProps {
 
 // 🎨 Configuración de colores y umbrales mejorada - Rangos más realistas para niños
 const SLEEP_THRESHOLDS = {
+  'no-data': { min: -1, max: 0, color: 'bg-gray-300', label: 'Sin datos' },
   insufficient: { min: 0, max: 7, color: 'bg-red-500', label: 'Insuficiente (<7h)' },
   low: { min: 7, max: 8.5, color: 'bg-orange-500', label: 'Bajo (7-8.5h)' },
   optimal: { min: 8.5, max: 12, color: 'bg-green-500', label: 'Óptimo (8.5-12h)' },
   excellent: { min: 12, max: 16, color: 'bg-blue-500', label: 'Excelente (12-16h)' }
 }
 
-const getQualityFromHours = (hours: number): keyof typeof SLEEP_THRESHOLDS => {
+const getQualityFromHours = (hours: number, hasData: boolean): keyof typeof SLEEP_THRESHOLDS => {
+  if (!hasData) return 'no-data'
   if (hours < SLEEP_THRESHOLDS.insufficient.max) return 'insufficient'
   if (hours < SLEEP_THRESHOLDS.low.max) return 'low' 
   if (hours < SLEEP_THRESHOLDS.optimal.max) return 'optimal'
@@ -120,8 +122,10 @@ export default function SleepDataStorytellingCard({
       
       // Construir métricas del día con valores reales calculados
       const totalHours = dayStats.totalSleepHours
-      const quality = getQualityFromHours(totalHours)
-      const hasAnomaly = quality === 'insufficient' || quality === 'low' || dayStats.avgWakeupsPerNight > 3
+      // Verificar si tenemos datos completos (al menos hora de acostarse O despertar)
+      const hasCompleteData = dayStats.avgBedtime !== '--:--' || dayStats.avgWakeTime !== '--:--' || totalHours > 0
+      const quality = getQualityFromHours(totalHours, hasCompleteData)
+      const hasAnomaly = hasCompleteData && (quality === 'insufficient' || quality === 'low' || dayStats.avgWakeupsPerNight > 3)
       
       days.push({
         date: date.toISOString(),
@@ -149,6 +153,7 @@ export default function SleepDataStorytellingCard({
       totalDays: processedData.length,
       anomalies: anomalies.length,
       qualityDistribution: {
+        'no-data': processedData.filter(d => d.quality === 'no-data').length,
         insufficient: processedData.filter(d => d.quality === 'insufficient').length,
         low: processedData.filter(d => d.quality === 'low').length,
         optimal: processedData.filter(d => d.quality === 'optimal').length,
@@ -166,16 +171,18 @@ export default function SleepDataStorytellingCard({
       barWidth: 'w-8',
       showLabels: true,
       tooltipWidth: 'min-w-56',
-      maxHeight: 240
+      maxHeight: 240,
+      gap: 'gap-1',
+      justify: 'justify-start'
     }
     
     switch (dateRange) {
       case '7-days':
-        return { ...config, barWidth: 'w-12', showLabels: true }
+        return { ...config, barWidth: 'flex-1 max-w-[3rem]', showLabels: true, gap: 'gap-2', justify: 'justify-between' }
       case '30-days':
-        return { ...config, barWidth: 'w-4', showLabels: false }
+        return { ...config, barWidth: 'w-4', showLabels: false, gap: 'gap-1', justify: 'justify-start' }
       case '90-days':
-        return { ...config, barWidth: 'w-1.5', showLabels: false, tooltipWidth: 'min-w-48' }
+        return { ...config, barWidth: 'w-1.5', showLabels: false, tooltipWidth: 'min-w-48', gap: 'gap-0.5', justify: 'justify-start' }
       default:
         return config
     }
@@ -255,7 +262,7 @@ export default function SleepDataStorytellingCard({
 
       {/* 📊 Gráfico principal mejorado */}
       <div className="relative bg-gray-50 rounded-lg p-4 pl-12 pr-4">
-        <div className="flex items-end gap-1 relative overflow-x-auto pb-6" style={{ height: `${vizConfig.maxHeight}px` }}>
+        <div className={`flex items-end ${vizConfig.gap} ${vizConfig.justify} relative overflow-x-auto pb-6`} style={{ height: `${vizConfig.maxHeight}px` }}>
           {/* 📏 Líneas de referencia horizontales */}
           {Array.from({ length: 8 }, (_, i) => {
             const value = (maxHours * (7 - i)) / 7
@@ -297,13 +304,19 @@ export default function SleepDataStorytellingCard({
                   // Ajustar si se sale de la pantalla
                   const tooltipWidth = 224 // min-w-56 = 224px
                   const tooltipHeight = 200 // altura estimada
+                  const margin = 20 // Margen de seguridad para bordes
                   
-                  if (x + tooltipWidth > window.innerWidth) {
-                    x = e.clientX - tooltipWidth - 12 // Mover a la izquierda del cursor
+                  // Ajuste horizontal con margen de seguridad
+                  if (x + tooltipWidth + margin > window.innerWidth) {
+                    x = Math.max(margin, e.clientX - tooltipWidth - 12) // Mover a la izquierda del cursor
                   }
                   
-                  if (y < 0) {
+                  // Ajuste vertical con margen de seguridad
+                  if (y < margin) {
                     y = e.clientY + 24 // Mover abajo del cursor
+                  }
+                  if (y + tooltipHeight + margin > window.innerHeight) {
+                    y = Math.max(margin, e.clientY - tooltipHeight - 12) // Mover arriba del cursor
                   }
                   
                   setTooltipPosition({ x, y })
@@ -318,13 +331,19 @@ export default function SleepDataStorytellingCard({
                     // Ajustar si se sale de la pantalla
                     const tooltipWidth = 224
                     const tooltipHeight = 200
+                    const margin = 20 // Margen de seguridad para bordes
                     
-                    if (x + tooltipWidth > window.innerWidth) {
-                      x = e.clientX - tooltipWidth - 12 // Mover a la izquierda del cursor
+                    // Ajuste horizontal con margen de seguridad
+                    if (x + tooltipWidth + margin > window.innerWidth) {
+                      x = Math.max(margin, e.clientX - tooltipWidth - 12) // Mover a la izquierda del cursor
                     }
                     
-                    if (y < 0) {
+                    // Ajuste vertical con margen de seguridad
+                    if (y < margin) {
                       y = e.clientY + 24 // Mover abajo del cursor
+                    }
+                    if (y + tooltipHeight + margin > window.innerHeight) {
+                      y = Math.max(margin, e.clientY - tooltipHeight - 12) // Mover arriba del cursor
                     }
                     
                     setTooltipPosition({ x, y })
@@ -516,6 +535,7 @@ export default function SleepDataStorytellingCard({
                 </div>
                 
                 <div className={`text-xs pt-2 border-t border-gray-100 text-center font-medium ${
+                  day.quality === 'no-data' ? 'text-gray-500' :
                   day.quality === 'insufficient' ? 'text-red-600' :
                   day.quality === 'low' ? 'text-orange-600' : 
                   day.quality === 'optimal' ? 'text-green-600' : 'text-blue-600'

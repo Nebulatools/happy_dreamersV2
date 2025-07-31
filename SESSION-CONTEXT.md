@@ -1,6 +1,6 @@
 # Session Context - Happy Dreamers UI Implementation
 
-*Last Updated: January 31, 2025 - Corrección de Cálculos de Sueño en Calendario y SleepDataStorytellingCard*
+*Last Updated: July 31, 2025 - Corrección de Discrepancia en Datos de Sueño*
 
 ## 🎯 Current System State
 
@@ -34,7 +34,43 @@
 
 ## 🎯 MAJOR ACCOMPLISHMENTS THIS SESSION
 
-### ✅ **CORRECCIÓN CRÍTICA DE CÁLCULOS DE SUEÑO - UNIFICACIÓN DE LÓGICA** (January 31, 2025 - Sesión Actual)
+### ✅ **CORRECCIÓN DE DISCREPANCIA EN DATOS DE SUEÑO - MÉTRICAS PRECISAS** (July 31, 2025 - Sesión Actual)
+
+#### **Problema Crítico Identificado y Resuelto:**
+
+1. **✅ Discrepancia entre Estadísticas de Sueño y Calendario**
+   - **Problema**: La página de Estadísticas mostraba "11h 4m" como "Tiempo total de sueño (promedio)"
+   - **Síntomas**: El calendario mostraba "10.9h" como "Promedio de sueño nocturno"
+   - **Root Cause**: SleepMetricsGrid usaba incorrectamente `avgSleepDuration` (solo nocturno) en lugar de `totalSleepHours`
+   - **Análisis**: 
+     - `avgSleepDuration` = Solo sueño nocturno (10.9h)
+     - `avgNapDuration` = Solo siestas
+     - `totalSleepHours` = avgSleepDuration + avgNapDuration (total real)
+
+2. **✅ Corrección en SleepMetricsGrid.tsx**
+   - **Línea 41**: Cambiado de `formatDuration(sleepData.avgSleepDuration)` a `formatDuration(sleepData.totalSleepHours)`
+   - **Línea 43**: Status ahora usa `getSleepDurationStatus(sleepData.totalSleepHours)`
+   - **Línea 44**: Change text actualizado a `${sleepData.totalSleepHours.toFixed(1)} horas promedio`
+   - **Resultado**: Ahora muestra correctamente el total de sueño (nocturno + siestas)
+
+3. **✅ Corrección de Calidad de Sueño**
+   - **Problema secundario**: La calidad de sueño también usaba `avgSleepDuration`
+   - **Líneas 65-70**: Actualizado todo el cálculo para usar `totalSleepHours`
+   - **Cambio en descripción**: "Basado en duración total del sueño"
+   - **Resultado**: La calidad ahora se calcula con el sueño total, no solo nocturno
+
+4. **✅ Verificación de Consistencia**
+   - **SleepDataStorytellingCard**: ✅ Ya usa correctamente `totalSleepHours` para "Promedio Diario"
+   - **Calendar**: ✅ Correctamente muestra `avgSleepDuration` como "sueño nocturno"
+   - **use-sleep-comparison**: ⚠️ Tiene inconsistencia de nombres pero está deshabilitado
+
+#### **Impacto de las Correcciones:**
+- **✅ Datos Precisos**: Las métricas ahora reflejan correctamente lo que dicen sus etiquetas
+- **✅ Consistencia Total**: No más confusión entre sueño total vs nocturno
+- **✅ UX Mejorada**: Los usuarios ven información coherente en todas las páginas
+- **✅ Cálculos Correctos**: La calidad de sueño ahora considera el descanso total del niño
+
+### ✅ **CORRECCIÓN CRÍTICA DE CÁLCULOS DE SUEÑO - UNIFICACIÓN DE LÓGICA** (January 31, 2025 - Sesión Anterior)
 
 #### **Problema Crítico Identificado y Resuelto:**
 
@@ -923,7 +959,16 @@
 
 ## 📁 Files Modified/Created This Session
 
-### **Latest Updates (Calendar & Color System - January 30, 2025 - Evening):**
+### **Latest Updates (Sleep Data Accuracy - July 31, 2025):**
+
+#### **Archivos Modificados:**
+1. **✅ `/components/child-profile/SleepMetricsGrid.tsx`** - Corregido para usar totalSleepHours en lugar de avgSleepDuration
+   - Línea 41: Actualizado valor para mostrar sueño total
+   - Líneas 43-44: Status y change text actualizados
+   - Líneas 65-70: Cálculo de calidad de sueño corregido
+2. **✅ `/SESSION-CONTEXT.md`** - Documentación actualizada con las correcciones
+
+### **Previous Updates (Calendar & Color System - January 30, 2025 - Evening):**
 
 #### **Archivos Creados:**
 1. **✅ `/components/events/NightWakingDelayInput.tsx`** - Componente para tiempo de volver a dormir
