@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { AlertTriangle, Eye, EyeOff, Moon, Clock, TrendingUp, TrendingDown, Info } from 'lucide-react'
 import { useSleepData } from '@/hooks/use-sleep-data'
-import { format, parseISO, subDays, startOfDay, isAfter, isBefore } from 'date-fns'
+import { format, parseISO, subDays, startOfDay, isAfter, isBefore, differenceInMinutes } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 interface SleepDayMetrics {
@@ -52,9 +52,9 @@ export default function SleepDataStorytellingCard({
   const [hoveredDay, setHoveredDay] = useState<string | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
 
-  // 📊 Generar datos simulados basados en métricas reales del hook
+  // 📊 Procesar datos reales de eventos de sueño
   const processedData = useMemo(() => {
-    if (!sleepData || sleepData.totalSleepHours === 0) return []
+    if (!sleepData || !sleepData.events || sleepData.events.length === 0) return []
     
     const getDaysCount = () => {
       switch (dateRange) {
@@ -68,33 +68,84 @@ export default function SleepDataStorytellingCard({
     const daysCount = getDaysCount()
     const days: SleepDayMetrics[] = []
     
-    // 🎯 Usar datos reales como base para generar variación realista
-    const baseTotal = sleepData.totalSleepHours || 10
-    const baseNight = sleepData.avgSleepDuration || 8.5
-    const baseNap = sleepData.avgNapDuration || 1.5
-    const avgWakeups = sleepData.avgWakeupsPerNight || 1
+    // Obtener todos los eventos de sueño
+    const allEvents = sleepData.events
     
+    // Procesar cada día en el rango
     for (let i = 0; i < daysCount; i++) {
       const date = subDays(new Date(), daysCount - 1 - i)
+      const dayStart = startOfDay(date)
+      const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
       
-      // 📈 Generar variación natural (+/-20% del promedio)
-      const variationFactor = 0.8 + (Math.random() * 0.4) // 0.8 a 1.2
-      const dayVariation = 0.9 + (Math.random() * 0.2) // 0.9 a 1.1
+      // Filtrar eventos para este día específico
+      const dayEvents = allEvents.filter(event => {
+        if (!event.startTime) return false
+        const eventDate = parseISO(event.startTime)
+        return eventDate >= dayStart && eventDate < dayEnd
+      })
       
-      const nightSleepHours = Math.max(6, Math.min(12, baseNight * variationFactor))
-      const napHours = Math.max(0, Math.min(3, baseNap * dayVariation))
+      // Calcular métricas reales para este día
+      const sleepEvents = dayEvents.filter(e => ['sleep', 'bedtime'].includes(e.eventType))
+      const napEvents = dayEvents.filter(e => e.eventType === 'nap')
+      const wakeEvents = dayEvents.filter(e => e.eventType === 'wake')
+      const nightWakingEvents = dayEvents.filter(e => e.eventType === 'night_waking')
+      
+      // Calcular duración del sueño nocturno para este día
+      let nightSleepHours = 0
+      if (sleepEvents.length > 0) {
+        const sleepEvent = sleepEvents[0]
+        // Buscar evento wake correspondiente
+        const wakeEvent = wakeEvents.find(w => {
+          const wakeTime = parseISO(w.startTime)
+          const sleepTime = parseISO(sleepEvent.startTime)
+          return wakeTime > sleepTime
+        })
+        
+        if (wakeEvent) {
+          const sleepTime = parseISO(sleepEvent.startTime)
+          const wakeTime = parseISO(wakeEvent.startTime)
+          const sleepDelay = sleepEvent.sleepDelay || 0
+          const actualSleepTime = new Date(sleepTime.getTime() + sleepDelay * 60 * 1000)
+          
+          let duration = differenceInMinutes(wakeTime, actualSleepTime)
+          if (duration < 0) duration += 24 * 60 // Cruzar medianoche
+          
+          if (duration >= 120 && duration <= 960) { // 2-16 horas válidas
+            nightSleepHours = duration / 60
+          }
+        }
+      }
+      
+      // Calcular duración de siestas para este día
+      let napHours = 0
+      napEvents.forEach(napEvent => {
+        if (napEvent.endTime && napEvent.startTime) {
+          const duration = differenceInMinutes(parseISO(napEvent.endTime), parseISO(napEvent.startTime))
+          if (duration > 0 && duration <= 240) { // Máximo 4 horas de siesta
+            napHours += duration / 60
+          }
+        }
+      })
+      
       const totalHours = nightSleepHours + napHours
       
-      // 🏆 Determinar calidad basada en horas totales
+      // Determinar calidad basada en horas totales reales
       const quality = getQualityFromHours(totalHours)
       
-      // 🚨 Detectar anomalías (días problemáticos)
-      const wakeups = Math.max(0, Math.round(avgWakeups * (0.5 + Math.random() * 1.5)))
+      // Contar despertares nocturnos reales
+      const wakeups = nightWakingEvents.length
+      
+      // Detectar anomalías basadas en datos reales
       const hasAnomaly = quality === 'insufficient' || quality === 'low' || wakeups > 3
       
-      // ⏰ Simular horarios consistentes con variación
-      const bedtimeBase = sleepData.avgBedtime !== '--:--' ? sleepData.avgBedtime : '20:30'
-      const wakeTimeBase = sleepData.avgWakeTime !== '--:--' ? sleepData.avgWakeTime : '07:00'
+      // Obtener horarios reales para este día
+      const bedtime = sleepEvents.length > 0 
+        ? format(parseISO(sleepEvents[0].startTime), 'HH:mm')
+        : sleepData.avgBedtime
+      
+      const wakeTime = wakeEvents.length > 0
+        ? format(parseISO(wakeEvents[0].startTime), 'HH:mm')
+        : sleepData.avgWakeTime
       
       days.push({
         date: date.toISOString(),
@@ -105,8 +156,8 @@ export default function SleepDataStorytellingCard({
         consistency: hasAnomaly ? 'poor' : 'good',
         hasAnomaly,
         wakeups,
-        bedtime: bedtimeBase,
-        wakeTime: wakeTimeBase
+        bedtime,
+        wakeTime
       })
     }
     
@@ -121,18 +172,13 @@ export default function SleepDataStorytellingCard({
     const stats = {
       totalDays: processedData.length,
       anomalies: anomalies.length,
-      averageHours: processedData.length > 0 
-        ? processedData.reduce((sum, day) => sum + day.totalHours, 0) / processedData.length 
-        : 0,
       qualityDistribution: {
         insufficient: processedData.filter(d => d.quality === 'insufficient').length,
         low: processedData.filter(d => d.quality === 'low').length,
         optimal: processedData.filter(d => d.quality === 'optimal').length,
         excellent: processedData.filter(d => d.quality === 'excellent').length,
       },
-      averageWakeups: processedData.length > 0
-        ? processedData.reduce((sum, day) => sum + day.wakeups, 0) / processedData.length
-        : 0
+      averageWakeups: sleepData?.avgWakeupsPerNight || 0
     }
     
     return { filteredData, stats }
@@ -346,7 +392,7 @@ export default function SleepDataStorytellingCard({
       {/* 📈 Estadísticas mejoradas y responsive */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 pt-4 border-t border-gray-100">
         <div className="text-center p-3 bg-gray-50 rounded-lg">
-          <div className="text-xl md:text-2xl font-bold text-[#2F2F2F]">{stats.averageHours.toFixed(1)}h</div>
+          <div className="text-xl md:text-2xl font-bold text-[#2F2F2F]">{sleepData?.totalSleepHours.toFixed(1) || '0.0'}h</div>
           <div className="text-xs md:text-sm text-gray-600">Promedio Diario</div>
         </div>
         <div className="text-center p-3 bg-green-50 rounded-lg">
@@ -406,8 +452,8 @@ export default function SleepDataStorytellingCard({
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Despertares/noche:</span>
-              <span className={`font-medium ${stats.averageWakeups > 2 ? 'text-red-600' : 'text-green-700'}`}>
-                {stats.averageWakeups.toFixed(1)}
+              <span className={`font-medium ${(sleepData?.avgWakeupsPerNight || 0) > 2 ? 'text-red-600' : 'text-green-700'}`}>
+                {sleepData?.avgWakeupsPerNight.toFixed(1) || '0.0'}
               </span>
             </div>
           </div>
