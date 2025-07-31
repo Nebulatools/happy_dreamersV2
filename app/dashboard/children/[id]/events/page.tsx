@@ -417,13 +417,31 @@ export default function ChildEventsPage() {
                 <tbody>
                   {events
                     .sort((a, b) => {
-                      const dateA = a.startTime ? new Date(a.startTime) : new Date(a.createdAt)
-                      const dateB = b.startTime ? new Date(b.startTime) : new Date(b.createdAt)
+                      // Función helper para crear fechas seguras
+                      const getSafeDate = (event: any) => {
+                        const startDate = event.startTime ? new Date(event.startTime) : null
+                        const createdDate = event.createdAt ? new Date(event.createdAt) : null
+                        
+                        // Verificar que las fechas sean válidas
+                        if (startDate && !isNaN(startDate.getTime())) return startDate
+                        if (createdDate && !isNaN(createdDate.getTime())) return createdDate
+                        return new Date() // Fallback a fecha actual
+                      }
+                      
+                      const dateA = getSafeDate(a)
+                      const dateB = getSafeDate(b)
                       return dateB.getTime() - dateA.getTime()
                     })
                     .map((event) => {
-                      const startDate = event.startTime ? new Date(event.startTime) : new Date(event.createdAt)
-                      const endDate = event.endTime ? new Date(event.endTime) : null
+                      // Validar y crear fechas seguras
+                      const createSafeDate = (dateString?: string) => {
+                        if (!dateString) return null
+                        const date = new Date(dateString)
+                        return isNaN(date.getTime()) ? null : date
+                      }
+                      
+                      const startDate = createSafeDate(event.startTime) || createSafeDate(event.createdAt) || new Date()
+                      const endDate = createSafeDate(event.endTime)
                       const duration = startDate && endDate 
                         ? Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60)) 
                         : null
@@ -537,10 +555,23 @@ export default function ChildEventsPage() {
                     <div className="flex items-center">
                       <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
                       <span className="text-sm">
-                        {format(new Date(selectedEvent.startTime), "PPpp", { locale: es })}
-                        {selectedEvent.endTime && (
-                          <> hasta {format(new Date(selectedEvent.endTime), "p", { locale: es })}</>
-                        )}
+                        {(() => {
+                          const startDate = selectedEvent.startTime ? new Date(selectedEvent.startTime) : null
+                          const endDate = selectedEvent.endTime ? new Date(selectedEvent.endTime) : null
+                          
+                          if (!startDate || isNaN(startDate.getTime())) {
+                            return "Fecha no disponible"
+                          }
+                          
+                          return (
+                            <>
+                              {format(startDate, "PPpp", { locale: es })}
+                              {endDate && !isNaN(endDate.getTime()) && (
+                                <> hasta {format(endDate, "p", { locale: es })}</>
+                              )}
+                            </>
+                          )
+                        })()}
                       </span>
                     </div>
                     <div className="flex items-center">
