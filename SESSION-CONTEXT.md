@@ -1,6 +1,6 @@
 # Session Context - Happy Dreamers UI Implementation
 
-*Last Updated: July 31, 2025 - Mejoras Significativas al Calendario de Sueño*
+*Last Updated: July 31, 2025 - Mejoras Completas del Calendario y Vista Diaria*
 
 ## 🎯 Current System State
 
@@ -104,6 +104,54 @@
 - **✅ Información Clara**: Eventos muestran duración completa
 - **✅ Mejor UX**: Botón de registro no interfiere con otros elementos
 - **✅ Consistencia**: Mismo patrón de header que otras páginas
+
+### ✅ **CORRECCIÓN DE BUGS Y MEJORAS DE UX EN CALENDARIO** (July 31, 2025 - Sesión Actual)
+
+#### **Bugs Corregidos:**
+
+1. **✅ Modales Superpuestos Solucionado**
+   - **Problema**: Al hacer click en un día con eventos, se abrían ambos modales (registro y edición)
+   - **Solución**: Agregado `e.stopPropagation()` en EventBlock
+   - **Resultado**: Click en espacio vacío → modal de registro, click en evento → modal de edición
+
+2. **✅ Z-Index de Eventos Arreglado**
+   - **Problema**: Eventos se superponían con header del día al hacer scroll
+   - **Solución**: Header con z-20, eventos sin z-index específico
+   - **Resultado**: Eventos pasan correctamente por debajo del header
+
+3. **✅ Título del Calendario Removido**
+   - **Cambio**: Eliminado "Calendario de Sueño" del header para más espacio
+   - **Archivo**: `/app/dashboard/calendar/page.tsx` - title: ""
+
+4. **✅ Colores de Fondo Simplificados**
+   - **Antes**: 4 colores para diferentes horas
+   - **Ahora**: 2 colores naturales:
+     - Día (6am-7pm): Amarillo claro
+     - Noche (7pm-6am): Azul oscuro
+   - **Archivo**: `/app/globals.css`
+
+### ✅ **VISTA DIARIA OPTIMIZADA** (July 31, 2025 - Sesión Actual)
+
+#### **Mejoras en Vista Diaria:**
+
+1. **✅ Vista Sin Scroll**
+   - **Altura reducida**: hourHeight de 40px a 25px
+   - **Layout optimizado**: maxHeight calculado dinámicamente
+   - **Card ajustado**: Altura específica para vista diaria
+
+2. **✅ Timeline con Todas las Horas**
+   - **Nuevo**: TimelineColumn acepta prop `hourInterval`
+   - **Vista diaria**: Muestra TODAS las horas (00:00-23:00)
+   - **Vista semanal**: Mantiene cada 3 horas
+   - **Jerarquía visual**: Horas principales (0,6,12,18) en negrita
+
+3. **✅ Mejoras Visuales**
+   - **Columna más ancha**: w-20 para vista diaria
+   - **Horas principales**: Negrita y tamaño mayor
+   - **Horas secundarias**: Gris claro y tamaño normal
+   - **Archivos modificados**: 
+     - `/components/calendar/TimelineColumn.tsx`
+     - `/app/dashboard/calendar/page.tsx`
 
 ### ✅ **CORRECCIÓN DE DISCREPANCIA EN DATOS DE SUEÑO - MÉTRICAS PRECISAS** (July 31, 2025 - Sesión Anterior)
 

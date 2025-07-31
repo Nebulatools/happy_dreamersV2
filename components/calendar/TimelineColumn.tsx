@@ -9,17 +9,19 @@ import { cn } from '@/lib/utils'
 interface TimelineColumnProps {
   className?: string
   hourHeight?: number // Altura en píxeles por hora
+  hourInterval?: number // Intervalo de horas a mostrar (1 = todas, 3 = cada 3 horas, etc.)
 }
 
 export function TimelineColumn({ 
   className,
-  hourHeight = 25 // Altura optimizada para vista completa sin scroll
+  hourHeight = 25, // Altura optimizada para vista completa sin scroll
+  hourInterval = 3 // Por defecto muestra cada 3 horas
 }: TimelineColumnProps) {
   // Generar array de 24 horas
   const hours = Array.from({ length: 24 }, (_, i) => i)
 
   return (
-    <div className={cn("flex flex-col border-r border-gray-200 bg-gray-50", className)}>
+    <div className={cn("flex flex-col border-r border-gray-200 bg-gray-50", hourInterval === 1 ? "w-20" : "w-16", className)}>
       {/* Header vacío para alinear con los días */}
       <div className="h-12 border-b border-gray-200 bg-white" />
       
@@ -28,16 +30,22 @@ export function TimelineColumn({
         {hours.map((hour) => (
           <div
             key={hour}
-            className="relative text-center"
+            className="relative flex items-center justify-end pr-2"
             style={{ height: `${hourHeight}px` }}
           >
-            {/* Mostrar solo etiquetas de horas principales (cada 3 horas) */}
-            {hour % 3 === 0 && (
-              <div className="absolute -top-2 left-0 right-0 z-10">
-                <span className="inline-block bg-gray-50 px-1 text-xs font-medium text-gray-700 rounded">
-                  {hour.toString().padStart(2, '0')}:00
-                </span>
-              </div>
+            {/* Mostrar etiquetas según el intervalo especificado */}
+            {hour % hourInterval === 0 && (
+              <span 
+                className={cn(
+                  "text-xs",
+                  // Horas principales (0, 6, 12, 18) en negrita y más grandes
+                  hour % 6 === 0 
+                    ? "font-bold text-gray-800 text-sm" 
+                    : "font-normal text-gray-500"
+                )}
+              >
+                {hour.toString().padStart(2, '0')}:00
+              </span>
             )}
           </div>
         ))}

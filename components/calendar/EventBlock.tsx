@@ -172,7 +172,7 @@ export function EventBlock({
       className={cn(
         "absolute rounded-md border flex items-center justify-start px-1.5 py-0.5",
         "shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer",
-        "group relative z-10",
+        "group relative",
         eventColor,
         blockWidth,
         className
@@ -185,7 +185,10 @@ export function EventBlock({
         borderWidth: '1.5px'
       }}
       title={showTooltip ? undefined : `${getEventTypeName()} - ${formatEventTime()}`}
-      onClick={() => onClick?.(event)}
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick?.(event)
+      }}
     >
       {/* Contenido del bloque */}
       <div className="flex items-center gap-0.5 truncate w-full">

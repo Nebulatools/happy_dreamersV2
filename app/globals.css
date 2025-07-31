@@ -353,7 +353,7 @@
   
   /* Day column header in timeline */
   .day-header-timeline {
-    @apply h-12 bg-white border-b border-gray-200 flex flex-col items-center justify-center text-sm font-medium sticky top-0 z-10;
+    @apply h-12 bg-white border-b border-gray-200 flex flex-col items-center justify-center text-sm font-medium sticky top-0 z-20;
   }
   
   /* Events container within day column */
@@ -362,14 +362,12 @@
     height: 600px; /* 24 hours * 25px per hour */
     background: linear-gradient(
       to bottom,
-      hsl(48 100% 96%) 0%,        /* AM (0:00-6:00) - Amarillo muy claro */
-      hsl(48 100% 96%) 25%,
-      hsl(201 80% 98%) 25%,       /* Día (6:00-12:00) - Azul muy claro */
-      hsl(201 80% 98%) 50%,
-      hsl(37 90% 98%) 50%,        /* Tarde (12:00-18:00) - Naranja muy claro */
-      hsl(37 90% 98%) 75%,
-      hsl(240 20% 98%) 75%,       /* PM/Noche (18:00-24:00) - Morado muy claro */
-      hsl(240 20% 98%) 100%
+      hsl(220 40% 85%) 0%,        /* Noche (0:00-6:00) - Azul oscuro */
+      hsl(220 40% 85%) 25%,       /* 25% = 6 horas de 24 */
+      hsl(48 100% 94%) 25%,       /* Día (6:00-19:00) - Amarillo claro */
+      hsl(48 100% 94%) 79.17%,    /* 79.17% = 19 horas de 24 */
+      hsl(220 40% 85%) 79.17%,    /* Noche (19:00-24:00) - Azul oscuro */
+      hsl(220 40% 85%) 100%
     );
   }
   

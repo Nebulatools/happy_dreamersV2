@@ -224,7 +224,7 @@ export default function CalendarPage() {
   ), [date, view])
 
   usePageHeaderConfig({
-    title: "Calendario de Sueño",
+    title: "",
     actions: headerActions,
     showSearch: true,
     showChildSelector: true,
@@ -724,34 +724,34 @@ export default function CalendarPage() {
 
   const renderDayView = () => {
     const dayEvents = getEventsForDay(date)
-    const hourHeight = 40 // Misma altura optimizada que en vista semanal
+    const hourHeight = 25 // Reducida para que quepa en pantalla sin scroll
     
     return (
-      <div className="mt-6">
-        {/* Header del día */}
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">
+      <div className="h-full flex flex-col">
+        {/* Header del día - más compacto */}
+        <div className="text-center mb-4">
+          <h2 className="text-xl font-bold text-gray-900">
             {format(date, "EEEE, d 'de' MMMM", { locale: es })}
           </h2>
           {isToday(date) && (
-            <div className="text-blue-600 font-medium mt-1">Hoy</div>
+            <div className="text-blue-600 font-medium text-sm">Hoy</div>
           )}
         </div>
         
         {/* Timeline de 24 horas */}
-        <div className="calendar-timeline">
-          <div className="flex">
+        <div className="calendar-timeline flex-1" style={{ maxHeight: "calc(100vh - 350px)" }}>
+          <div className="flex h-full">
             {/* Columna de horas */}
-            <TimelineColumn hourHeight={hourHeight} />
+            <TimelineColumn hourHeight={hourHeight} hourInterval={1} />
             
             {/* Columna de eventos del día */}
             <div className="flex-1 relative border-l border-gray-200">
-              {/* Header del día */}
+              {/* Header del día - más pequeño */}
               <div 
-                className="h-16 bg-white border-b border-gray-200 flex items-center justify-center sticky top-0 z-10 cursor-pointer hover:bg-gray-50 transition-colors"
+                className="h-12 bg-white border-b border-gray-200 flex items-center justify-center sticky top-0 z-20 cursor-pointer hover:bg-gray-50 transition-colors"
                 onClick={() => handleDayClick(date)}
               >
-                <div className="text-lg font-bold">
+                <div className="text-base font-bold">
                   {format(date, "d")}
                 </div>
               </div>
@@ -764,31 +764,20 @@ export default function CalendarPage() {
                 {/* Líneas de la grilla de horas */}
                 {Array.from({ length: 24 }, (_, hour) => (
                   <div key={hour}>
-                    {/* Líneas principales de hora */}
-                    {hour % 4 === 0 && (
+                    {/* Líneas principales de hora (cada 3 horas) */}
+                    {hour % 3 === 0 && (
                       <div 
                         className="hour-grid-line-major"
                         style={{ top: `${hour * hourHeight}px` }}
                       />
                     )}
                     {/* Líneas regulares de hora */}
-                    <div 
-                      className="hour-grid-line"
-                      style={{ top: `${hour * hourHeight}px` }}
-                    />
-                    {/* Líneas de cuarto de hora (15, 30, 45 minutos) */}
-                    <div 
-                      className="hour-grid-line opacity-30"
-                      style={{ top: `${hour * hourHeight + hourHeight / 4}px` }}
-                    />
-                    <div 
-                      className="hour-grid-line opacity-40"
-                      style={{ top: `${hour * hourHeight + hourHeight / 2}px` }}
-                    />
-                    <div 
-                      className="hour-grid-line opacity-30"
-                      style={{ top: `${hour * hourHeight + (3 * hourHeight / 4)}px` }}
-                    />
+                    {hour % 3 !== 0 && (
+                      <div 
+                        className="hour-grid-line"
+                        style={{ top: `${hour * hourHeight}px` }}
+                      />
+                    )}
                   </div>
                 ))}
                 
@@ -945,7 +934,7 @@ export default function CalendarPage() {
 
       {/* Calendario Principal */}
       <div className="px-6 pb-6">
-        <Card className="p-4" style={{ minHeight: "600px" }}>
+        <Card className={`p-4 ${view === 'day' ? 'h-[calc(100vh-320px)]' : ''}`} style={{ minHeight: view === 'day' ? 'auto' : '600px' }}>
           {isLoading ? (
             <div className="flex justify-center items-center h-96">
               <div className="text-center">
