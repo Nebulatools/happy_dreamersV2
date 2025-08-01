@@ -78,11 +78,21 @@ export async function GET(req: NextRequest) {
       logger.warn("No se encontró plan activo para el niño", { childId })
     }
 
-    // 2. Obtener datos del niño
-    const child = await db.collection("children").findOne({
-      _id: new ObjectId(childId),
-      parentId: session.user.id
-    })
+    // 2. Obtener datos del niño con verificación de permisos
+    let child
+    
+    if (session.user.role === "admin") {
+      // Los admins pueden ver cualquier niño
+      child = await db.collection("children").findOne({
+        _id: new ObjectId(childId)
+      })
+    } else {
+      // Los usuarios normales solo pueden ver sus propios niños
+      child = await db.collection("children").findOne({
+        _id: new ObjectId(childId),
+        parentId: session.user.id
+      })
+    }
 
     if (!child) {
       return NextResponse.json({ 
