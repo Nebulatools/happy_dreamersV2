@@ -1,6 +1,6 @@
 # Session Context - Happy Dreamers UI Implementation
 
-*Last Updated: August 1, 2025 - Mejora del Flujo UX de Selección de Pacientes + Fix de Pre-carga*
+*Last Updated: August 1, 2025 - Simplificación del Flujo de Consultas*
 
 ## 🎯 Current System State
 
@@ -58,6 +58,31 @@
 - **Problema**: La página de consultas requería que usuario Y niño estuvieran seleccionados
 - **Solución**: Ahora detecta cuando solo hay usuario y muestra el paso 2 para seleccionar niño
 - **Resultado**: Flujo más natural sin necesidad de seleccionar todo antes de entrar
+
+## 🎨 Simplificación del Flujo de Consultas (August 1, 2025 - Parte 2)
+
+### Cambios Implementados:
+1. **Eliminación del Wizard**:
+   - Reemplazado por tabs de navegación libre
+   - Sin pasos secuenciales numerados
+   - Opciones: Transcript | Plan | Análisis | Historial
+
+2. **Estado Vacío Intuitivo**:
+   - Mensaje claro cuando no hay selección
+   - Indicador visual apuntando al selector del header
+   - Sin duplicación de funcionalidad
+
+3. **Código Eliminado**:
+   - UserChildSelector (redundante)
+   - ConsultationWizard (reemplazado por tabs)
+   - Lógica compleja de pasos y estados
+
+### Resultado Final:
+- ✅ Flujo directo cuando hay selección (99% de casos)
+- ✅ Sin redundancia de selectores
+- ✅ Navegación libre entre opciones
+- ✅ Interfaz más limpia y profesional
+- ✅ Mejor aprovechamiento del selector global
 
 ## 🧠 Critical Reminders for Next AI Session
 
