@@ -69,7 +69,7 @@ export function ConsultationTabs({
                 size="sm"
                 onClick={() => onTabChange(tab.id)}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 h-10",
+                  "relative flex items-center gap-2 px-4 py-2 h-10",
                   "hover:bg-accent hover:text-accent-foreground",
                   "transition-colors duration-200",
                   isActive && "bg-primary/10 text-primary font-medium"
@@ -77,9 +77,6 @@ export function ConsultationTabs({
               >
                 <Icon className="h-4 w-4" />
                 <span>{tab.label}</span>
-                {isActive && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                )}
               </Button>
             )
           })}
