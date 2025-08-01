@@ -15,6 +15,7 @@ import { AnalysisReport } from "@/components/consultas/AnalysisReport"
 import { ConsultationHistory } from "@/components/consultas/ConsultationHistory"
 import { PlanManager } from "@/components/consultas/PlanManager"
 import { ConsultationWizard } from "@/components/consultas/ConsultationWizard"
+import { useActiveChild } from "@/context/active-child-context"
 
 import { createLogger } from "@/lib/logger"
 
@@ -39,6 +40,7 @@ interface Child {
 export default function ConsultasPage() {
   const { data: session } = useSession()
   const { toast } = useToast()
+  const { activeUserId, activeUserName, activeChildId } = useActiveChild()
   
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [userChildren, setUserChildren] = useState<Child[]>([])
@@ -51,6 +53,7 @@ export default function ConsultasPage() {
   // Estado del wizard
   const [currentStep, setCurrentStep] = useState(1)
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
+  const [globalSelectionLoaded, setGlobalSelectionLoaded] = useState(false)
 
   // Verificar que el usuario es admin
   useEffect(() => {
@@ -63,6 +66,50 @@ export default function ConsultasPage() {
       return
     }
   }, [session, toast])
+
+  // Cargar selección global al iniciar
+  useEffect(() => {
+    if (!globalSelectionLoaded && activeUserId && activeUserName) {
+      // Crear objeto User desde la selección global
+      const globalUser: User = {
+        _id: activeUserId,
+        name: activeUserName,
+        email: "", // No tenemos el email en el contexto
+        role: "user"
+      }
+      
+      setSelectedUser(globalUser)
+      
+      // Cargar los niños del usuario seleccionado
+      loadUserChildren(activeUserId)
+      
+      // Si hay niño seleccionado, marcar ambos pasos como completados
+      if (activeChildId) {
+        setCompletedSteps(new Set([1, 2]))
+        setCurrentStep(3)
+      } else {
+        // Si solo hay usuario, marcar paso 1 y mostrar paso 2
+        setCompletedSteps(new Set([1]))
+        setCurrentStep(2)
+      }
+      
+      setGlobalSelectionLoaded(true)
+    }
+  }, [activeUserId, activeUserName, activeChildId, globalSelectionLoaded])
+
+  // Efecto adicional para manejar cuando se selecciona un niño después
+  useEffect(() => {
+    if (globalSelectionLoaded && activeChildId && userChildren.length > 0) {
+      const activeChild = userChildren.find(child => child._id === activeChildId)
+      if (activeChild && !selectedChild) {
+        setSelectedChild(activeChild)
+        setCompletedSteps(prev => new Set([...prev, 2]))
+        if (currentStep === 2) {
+          setCurrentStep(3)
+        }
+      }
+    }
+  }, [activeChildId, userChildren, globalSelectionLoaded, selectedChild, currentStep])
 
   // Cargar niños cuando se selecciona un usuario
   const loadUserChildren = async (userId: string) => {
@@ -81,7 +128,24 @@ export default function ConsultasPage() {
       const children = Array.isArray(data) ? data : (data?.children || data?.data?.children || [])
       
       setUserChildren(children)
-      setSelectedChild(null) // Reset child selection
+      
+      // Si tenemos un niño activo del contexto global, seleccionarlo automáticamente
+      if (activeChildId) {
+        const activeChild = children.find((child: Child) => child._id === activeChildId)
+        if (activeChild) {
+          setSelectedChild(activeChild)
+          // Si encontramos el niño, asegurar que el paso 2 esté marcado como completado
+          if (globalSelectionLoaded) {
+            setCompletedSteps(prev => new Set([...prev, 2]))
+            if (currentStep === 2) {
+              setCurrentStep(3)
+            }
+          }
+        }
+      } else {
+        setSelectedChild(null) // Reset child selection
+      }
+      
       setAnalysisResult(null) // Reset analysis
     } catch (error) {
       logger.error("Error:", error)
@@ -341,12 +405,26 @@ export default function ConsultasPage() {
         {selectedUser && selectedChild && currentStep > 2 && (
           <Card className="border-primary/20 bg-primary/5">
             <CardContent className="py-4">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-primary rounded-full"></div>
-                <span className="text-sm font-medium">
-                  Consulta para <strong>{selectedChild.firstName} {selectedChild.lastName}</strong> 
-                  {" "}de <strong>{selectedUser.name}</strong>
-                </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                  <span className="text-sm font-medium">
+                    Consulta para <strong>{selectedChild.firstName} {selectedChild.lastName}</strong> 
+                    {" "}de <strong>{selectedUser.name}</strong>
+                  </span>
+                </div>
+                {globalSelectionLoaded && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setCurrentStep(1)
+                      setGlobalSelectionLoaded(false)
+                    }}
+                  >
+                    Cambiar paciente
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
