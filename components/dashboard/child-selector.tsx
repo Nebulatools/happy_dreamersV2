@@ -103,7 +103,7 @@ export function ChildSelector() {
 
       setLoading(false)
     } catch (error) {
-      logger.error("Error:", error)
+      logger.error("Error cargando niños:", error instanceof Error ? error.message : "Error desconocido")
       // No mostrar toast si el error es de autorización durante logout
       if (session && session.user) {
         toast({

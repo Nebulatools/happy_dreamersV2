@@ -11,7 +11,6 @@ import {
   Moon, 
   Sun, 
   Utensils, 
-  Gamepad2, 
   Target, 
   CheckCircle,
   Moon as Nap,
@@ -34,17 +33,6 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
     return `${displayHour}:${minute} ${period}`
   }
 
-  // Función para obtener ícono según el tipo de actividad
-  const getActivityIcon = (activity: string) => {
-    const activityLower = activity.toLowerCase()
-    if (activityLower.includes('jugar') || activityLower.includes('juego')) {
-      return <Gamepad2 className="h-4 w-4" />
-    }
-    if (activityLower.includes('leer') || activityLower.includes('libro')) {
-      return <Calendar className="h-4 w-4" />
-    }
-    return <CheckCircle className="h-4 w-4" />
-  }
 
   // Función para obtener ícono según el tipo de comida
   const getMealIcon = (type: string) => {
@@ -82,17 +70,6 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
       })
     })
 
-    // Agregar actividades
-    plan.schedule.activities.forEach(activity => {
-      events.push({
-        time: activity.time,
-        type: 'activity',
-        title: activity.activity.charAt(0).toUpperCase() + activity.activity.slice(1),
-        description: activity.description,
-        duration: activity.duration,
-        icon: getActivityIcon(activity.activity)
-      })
-    })
 
     // Agregar siestas
     if (plan.schedule.naps) {

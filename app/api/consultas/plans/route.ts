@@ -400,9 +400,8 @@ BUSCA Y EXTRAE HORARIOS ACORDADOS PARA:
 2. Hora de dormir/acostarse acordada
 3. Horarios de comidas VIABLES (desayuno, almuerzo, merienda, cena)
 4. Horarios de siestas realistas
-5. Horarios de actividades específicas acordadas
-6. Límites de tiempo de pantalla factibles
-7. Cualquier otro horario acordado
+5. Límites de tiempo de pantalla factibles
+6. Cualquier otro horario acordado
 
 EJEMPLO DE ANÁLISIS CORRECTO:
 - Doctor dice "desayuno a las 8:15 AM" y padres no objetan → extraer "08:15"
@@ -423,9 +422,6 @@ Responde en el siguiente formato JSON:
   "napDuration": 90 o null,
   "screenTimeLimit": 90 o null,
   "screenTimeCutoff": "18:30" o null,
-  "specificActivities": [
-    {"time": "08:00", "activity": "jugar", "duration": 60} o null
-  ],
   "otherChanges": ["cualquier otro cambio de horario acordado en la conversación"]
 }`
 
@@ -523,7 +519,6 @@ async function searchRAGForPlan(ageInMonths: number | null) {
     const searchQueries = [
       `rutina de sueño para niños de ${ageInMonths} meses`,
       "horarios de comida infantil",
-      "actividades para desarrollo infantil",
       "siestas apropiadas por edad",
       "rutinas de acostarse"
     ]
@@ -595,7 +590,7 @@ ${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join
 
 INSTRUCCIONES:
 1. Crea un plan DETALLADO con horarios específicos
-2. Incluye horarios para: dormir, despertar, comidas, actividades y siestas
+2. Incluye horarios para: dormir, despertar, comidas y siestas (NO incluir actividades)
 3. Adapta las recomendaciones a la edad del niño
 4. Proporciona objetivos claros y medibles
 5. Incluye recomendaciones específicas para los padres
@@ -611,10 +606,7 @@ Responde en el siguiente formato JSON:
       {"time": "16:00", "type": "merienda", "description": "Descripción de la merienda"},
       {"time": "19:00", "type": "cena", "description": "Descripción de la cena"}
     ],
-    "activities": [
-      {"time": "08:00", "activity": "jugar", "duration": 30, "description": "Descripción de la actividad"},
-      {"time": "17:00", "activity": "leer", "duration": 20, "description": "Descripción de la actividad"}
-    ],
+    "activities": [],
     "naps": [
       {"time": "14:00", "duration": 60, "description": "Siesta de la tarde"}
     ]
@@ -664,7 +656,7 @@ Responde en el siguiente formato JSON:
     "bedtime": "20:00",
     "wakeTime": "07:00",
     "meals": [...],
-    "activities": [...],
+    "activities": [],
     "naps": [...]
   },
   "objectives": [
