@@ -15,8 +15,6 @@ import { ConsultationHistory } from "@/components/consultas/ConsultationHistory"
 import { PlanManager } from "@/components/consultas/PlanManager"
 import { ConsultationTabs } from "@/components/consultas/ConsultationTabs"
 import { useActiveChild } from "@/context/active-child-context"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { ArrowUp } from "lucide-react"
 
 import { createLogger } from "@/lib/logger"
