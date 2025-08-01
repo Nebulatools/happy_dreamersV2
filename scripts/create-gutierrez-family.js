@@ -1,5 +1,6 @@
-// Script para crear familia Gutierrez con 3 niños con eventos realistas
+// Script COMPLETO para crear familia Gutierrez con 4 niños (incluyendo bebé Isabella), eventos realistas Y encuestas completadas
 // Ejecutar con: node scripts/create-gutierrez-family.js
+// MANEJA TODO: Registro de niños, encuestas completas, eventos realistas con fechas ISO correctas
 
 const { MongoClient, ObjectId } = require('mongodb');
 
@@ -9,12 +10,12 @@ require('dotenv').config();
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/happy_dreamers';
 const USER_ID = '688ce146d2d5ff9616549d86';
 
-// Datos de los 3 niños Gutierrez con perfiles únicos
+// Datos de los 4 niños (3 Gutierrez + Isabella Lopez) con perfiles únicos
 const children = [
   {
     firstName: "Alejandro",
     lastName: "Gutierrez",
-    birthDate: new Date('2021-06-15'), // ~4 años
+    birthDate: '2021-06-15', // ~4 años - Como STRING para compatibilidad con API
     gender: "male",
     surveyData: {
       rutinaHabitos: {
@@ -54,7 +55,7 @@ const children = [
   {
     firstName: "Valentina",
     lastName: "Gutierrez",
-    birthDate: new Date('2022-12-03'), // ~2 años
+    birthDate: '2022-12-03', // ~2 años - Como STRING para compatibilidad con API
     gender: "female",
     surveyData: {
       rutinaHabitos: {
@@ -94,7 +95,7 @@ const children = [
   {
     firstName: "Matias",
     lastName: "Gutierrez",
-    birthDate: new Date('2024-01-20'), // ~1 año
+    birthDate: '2024-01-20', // ~1 año - Como STRING para compatibilidad con API
     gender: "male",
     surveyData: {
       rutinaHabitos: {
@@ -130,6 +131,46 @@ const children = [
         estadoAnimoDiurno: "Muy tranquilo y observador"
       }
     }
+  },
+  {
+    firstName: "Isabella",
+    lastName: "Lopez",
+    birthDate: '2024-12-01', // 4 meses (bebé) - Como STRING para compatibilidad con API
+    gender: "female",
+    surveyData: {
+      rutinaHabitos: {
+        horaDormir: "19:30",
+        horaDespertar: "06:00",
+        rutinaAntesAcostarse: "Baño, masaje, biberón/pecho, canción suave",
+        haceSiestas: true,
+        duracionSiesta: 45, // Siestas más cortas e irregulares
+        horaSiesta: "09:00", // Primera siesta de la mañana
+        dondeDuermeNoche: "Habitación con padres (cuna)",
+        dondeDuermeSiesta: "Su cuna o cochecito",
+        tiempoEnDormirse: 5, // Bebés se duermen rápido si están cansados
+        despiertaNoche: "Frecuentemente",
+        vecesDespierta: 3 // Bebés de 4 meses despiertan mucho
+      },
+      alimentacion: {
+        tipoAlimentacion: "Lactancia materna exclusiva",
+        horarioComidas: "A demanda (cada 2-3 horas)",
+        cenaHora: "18:30", // Última toma antes de dormir
+        problemasApetito: false,
+        alergias: "Ninguna"
+      },
+      actividadFisica: {
+        tiempoJuegoLibre: 30, // Tiempo despierto muy limitado
+        actividadesEstructuradas: "Tummy time, sonajeros, música suave",
+        tiempoPantalla: 0, // Sin pantallas a los 4 meses
+        actividadFisicaDiaria: false
+      },
+      saludGeneral: {
+        medicamentos: "Vitamina D (gotas)",
+        problemasRespiratorios: false,
+        problemasDigestivos: true, // Cólicos comunes a esta edad
+        estadoAnimoDiurno: "Tranquila pero con períodos de llanto (cólicos)"
+      }
+    }
   }
 ];
 
@@ -163,6 +204,199 @@ function generateTimeWithVariation(baseTime, variationMinutes = 30) {
   return `${finalHours.toString().padStart(2, '0')}:${finalMins.toString().padStart(2, '0')}`;
 }
 
+// Estados emocionales más apropiados para bebés
+const babyEmotionalStates = ["calm", "fussy", "sleepy", "content", "cranky"];
+
+// Función especial para generar eventos de bebé (Isabella)
+function generateBabyEvents(childId, childData, startDate, endDate) {
+  const events = [];
+  const current = new Date(startDate);
+  
+  while (current <= endDate) {
+    const currentDate = new Date(current);
+    
+    // PATRÓN TÍPICO DE BEBÉ DE 4 MESES:
+    // - Despierta cada 2-4 horas para comer
+    // - 3-4 siestas por día
+    // - Despertares nocturnos frecuentes
+    // - Horarios menos predecibles
+    
+    // 1. Despertar matutino (6:00 ± 30 min)
+    const wakeHour = 6 + Math.floor(Math.random() * 3) - 1; // 5-7 AM
+    const wakeMin = Math.floor(Math.random() * 60);
+    const wakeTime = new Date(currentDate);
+    wakeTime.setHours(wakeHour, wakeMin, 0, 0);
+    
+    if (wakeTime >= startDate && wakeTime <= endDate) {
+      events.push({
+        _id: new ObjectId(),
+        childId: new ObjectId(childId),
+        eventType: "wake",
+        startTime: wakeTime.toISOString(),
+        emotionalState: Math.random() > 0.6 ? "calm" : "fussy",
+        notes: [
+          "Despertó llorando - hambre",
+          "Despertó tranquila",
+          "Necesitó cambio de pañal",
+          "Despertó pidiendo comida",
+          "Lloró un poco al despertar"
+        ][Math.floor(Math.random() * 5)],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    }
+
+    // 2. Múltiples siestas durante el día (bebés de 4 meses duermen mucho)
+    const napTimes = [
+      { hour: 9, duration: 45 },   // Siesta matutina
+      { hour: 12, duration: 60 },  // Siesta del mediodía
+      { hour: 15, duration: 30 },  // Siesta tarde
+      { hour: 17, duration: 20 }   // Micro-siesta tarde
+    ];
+    
+    napTimes.forEach((napInfo, index) => {
+      // No todas las siestas ocurren todos los días (bebés son impredecibles)
+      if (Math.random() > 0.2) { // 80% probabilidad por siesta
+        const napStart = new Date(currentDate);
+        const napHour = napInfo.hour + Math.floor(Math.random() * 3) - 1; // ±1 hora variación
+        const napMin = Math.floor(Math.random() * 60);
+        napStart.setHours(napHour, napMin, 0, 0);
+        
+        const durationVariation = Math.floor(Math.random() * 31) - 15; // ±15 min
+        const finalDuration = Math.max(10, napInfo.duration + durationVariation);
+        
+        const napEnd = new Date(napStart);
+        napEnd.setMinutes(napEnd.getMinutes() + finalDuration);
+        
+        if (napStart >= startDate && napStart <= endDate) {
+          events.push({
+            _id: new ObjectId(),
+            childId: new ObjectId(childId),
+            eventType: "nap",
+            startTime: napStart.toISOString(),
+            endTime: napEnd.toISOString(),
+            emotionalState: Math.random() > 0.7 ? "sleepy" : "calm",
+            sleepDelay: Math.floor(Math.random() * 15), // 0-15 min para dormirse
+            notes: [
+              "Siesta corta pero reparadora",
+              "Se durmió en brazos",
+              "Siesta en cochecito",
+              "Lloró un poco antes de dormir",
+              "Durmió profundamente",
+              "Siesta interrumpida por ruido"
+            ][Math.floor(Math.random() * 6)],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
+        }
+      }
+    });
+
+    // 3. Hora de dormir nocturna (19:30 ± 30 min)
+    const bedHour = 19 + Math.floor(Math.random() * 3) - 1; // 18-20
+    const bedMin = Math.floor(Math.random() * 60);
+    const bedTime = new Date(currentDate);
+    bedTime.setHours(bedHour, bedMin, 0, 0);
+    
+    if (bedTime >= startDate && bedTime <= endDate) {
+      events.push({
+        _id: new ObjectId(),
+        childId: new ObjectId(childId),
+        eventType: "sleep",
+        startTime: bedTime.toISOString(),
+        emotionalState: Math.random() > 0.5 ? "sleepy" : Math.random() > 0.3 ? "calm" : "fussy",
+        sleepDelay: Math.floor(Math.random() * 20), // 0-20 min (bebés se duermen rápido)
+        notes: [
+          "Se durmió mamando/con biberón",
+          "Necesitó mecerse para dormir",
+          "Se durmió fácilmente",
+          "Lloró un poco por cólicos",
+          "Rutina de sueño exitosa",
+          "Tuvo gases antes de dormir"
+        ][Math.floor(Math.random() * 6)],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    }
+
+    // 4. Despertares nocturnos múltiples (bebés de 4 meses despiertan mucho)
+    const nightWakeCount = 2 + Math.floor(Math.random() * 3); // 2-4 despertares por noche
+    
+    for (let i = 0; i < nightWakeCount; i++) {
+      const wakeHour = 21 + Math.floor(Math.random() * 8); // Entre 21:00 y 05:00
+      const wakeMin = Math.floor(Math.random() * 60);
+      const nightWake = new Date(currentDate);
+      
+      if (wakeHour >= 24) {
+        nightWake.setDate(nightWake.getDate() + 1);
+        nightWake.setHours(wakeHour - 24, wakeMin, 0, 0);
+      } else {
+        nightWake.setHours(wakeHour, wakeMin, 0, 0);
+      }
+      
+      if (nightWake >= startDate && nightWake <= endDate) {
+        events.push({
+          _id: new ObjectId(),
+          childId: new ObjectId(childId),
+          eventType: "night_waking",
+          startTime: nightWake.toISOString(),
+          emotionalState: Math.random() > 0.3 ? "fussy" : "cranky",
+          sleepDelay: Math.floor(Math.random() * 60) + 10, // 10-70 min para volver a dormir
+          notes: [
+            "Despertó con hambre - tomó pecho/biberón",
+            "Necesitó cambio de pañal",
+            "Cólicos - lloró mucho",
+            "Solo necesitó consuelo",
+            "Gases - necesitó ayuda para eructar",
+            "Despertó sobresaltada",
+            "Lloró hasta que lo cargaron",
+            "Necesitó mecerse para volver a dormir"
+          ][Math.floor(Math.random() * 8)],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      }
+    }
+
+    // 5. Actividades extra relacionadas con bebés (menos frecuentes)
+    if (Math.random() > 0.85) { // 15% probabilidad por día
+      const extraTime = new Date(currentDate);
+      extraTime.setHours(10 + Math.floor(Math.random() * 8), Math.floor(Math.random() * 60), 0, 0);
+      
+      if (extraTime >= startDate && extraTime <= endDate) {
+        const babyActivities = [
+          "Vacunas - estuvo irritable todo el día",
+          "Día muy caluroso - durmió inquieta",
+          "Visita de familiares - sobreestimulada",
+          "Primer baño en tina - le gustó mucho",
+          "Cólicos intensos - lloró varias horas",
+          "Cambio de fórmula - se adaptó bien",
+          "Salida al parque - durmió en cochecito",
+          "Revisión pediátrica - todo normal",
+          "Primeros sonrisas sociales - muy feliz",
+          "Dentición temprana - babea mucho"
+        ];
+        
+        events.push({
+          _id: new ObjectId(),
+          childId: new ObjectId(childId),
+          eventType: "extra_activities", 
+          startTime: extraTime.toISOString(),
+          emotionalState: babyEmotionalStates[Math.floor(Math.random() * babyEmotionalStates.length)],
+          description: babyActivities[Math.floor(Math.random() * babyActivities.length)],
+          notes: "Evento especial que podría afectar el sueño del bebé",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      }
+    }
+
+    current.setDate(current.getDate() + 1);
+  }
+  
+  return events;
+}
+
 // Función para generar eventos realistas basados en los tipos reales
 function generateRealisticEvents(childId, childData, startDate, endDate) {
   const events = [];
@@ -189,7 +423,7 @@ function generateRealisticEvents(childId, childData, startDate, endDate) {
         _id: new ObjectId(),
         childId: new ObjectId(childId),
         eventType: "wake",
-        startTime: wakeDateTime,
+        startTime: wakeDateTime.toISOString(), // CONVERTIR A ISO STRING
         emotionalState: Math.random() > 0.7 ? "fussy" : Math.random() > 0.4 ? "calm" : "happy",
         notes: [
           "Despertó naturalmente",
@@ -198,8 +432,8 @@ function generateRealisticEvents(childId, childData, startDate, endDate) {
           "Durmió hasta tarde",
           "Despertó de buen humor"
         ][Math.floor(Math.random() * 5)],
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: new Date().toISOString(), // CONVERTIR A ISO STRING
+        updatedAt: new Date().toISOString() // CONVERTIR A ISO STRING
       });
     }
 
@@ -222,8 +456,8 @@ function generateRealisticEvents(childId, childData, startDate, endDate) {
           _id: new ObjectId(),
           childId: new ObjectId(childId),
           eventType: "nap",
-          startTime: napStart,
-          endTime: napEnd,
+          startTime: napStart.toISOString(), // CONVERTIR A ISO STRING
+          endTime: napEnd.toISOString(), // CONVERTIR A ISO STRING
           emotionalState: Math.random() > 0.6 ? "calm" : "tired",
           sleepDelay: Math.floor(Math.random() * 20), // 0-20 minutos para dormirse
           notes: [
@@ -233,8 +467,8 @@ function generateRealisticEvents(childId, childData, startDate, endDate) {
             "Siesta corta",
             "Despertó con hambre"
           ][Math.floor(Math.random() * 5)],
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: new Date().toISOString(), // CONVERTIR A ISO STRING
+          updatedAt: new Date().toISOString() // CONVERTIR A ISO STRING
         });
       }
     }
@@ -250,7 +484,7 @@ function generateRealisticEvents(childId, childData, startDate, endDate) {
         _id: new ObjectId(),
         childId: new ObjectId(childId),
         eventType: "sleep",
-        startTime: bedDateTime,
+        startTime: bedDateTime.toISOString(), // CONVERTIR A ISO STRING
         emotionalState: Math.random() > 0.6 ? "calm" : Math.random() > 0.3 ? "tired" : "fussy",
         sleepDelay: sleepDelay + Math.floor(Math.random() * 21) - 10, // ±10 minutos de variación
         notes: [
@@ -260,8 +494,8 @@ function generateRealisticEvents(childId, childData, startDate, endDate) {
           "Rutina normal de sueño",
           "Pidió agua antes de dormir"
         ][Math.floor(Math.random() * 5)],
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: new Date().toISOString(), // CONVERTIR A ISO STRING
+        updatedAt: new Date().toISOString() // CONVERTIR A ISO STRING
       });
     }
 
@@ -285,7 +519,7 @@ function generateRealisticEvents(childId, childData, startDate, endDate) {
           _id: new ObjectId(),
           childId: new ObjectId(childId),
           eventType: "night_waking",
-          startTime: nightWakeDateTime,
+          startTime: nightWakeDateTime.toISOString(), // CONVERTIR A ISO STRING
           emotionalState: Math.random() > 0.5 ? "fussy" : "cranky",
           sleepDelay: Math.floor(Math.random() * 45) + 5, // 5-50 minutos para volver a dormir
           notes: [
@@ -296,8 +530,8 @@ function generateRealisticEvents(childId, childData, startDate, endDate) {
             "Se calmó solo",
             "Necesitó cambio de pañal"
           ][Math.floor(Math.random() * 6)],
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: new Date().toISOString(), // CONVERTIR A ISO STRING
+          updatedAt: new Date().toISOString() // CONVERTIR A ISO STRING
         });
       }
     }
@@ -327,12 +561,12 @@ function generateRealisticEvents(childId, childData, startDate, endDate) {
           _id: new ObjectId(),
           childId: new ObjectId(childId),
           eventType: "extra_activities",
-          startTime: extraTime,
+          startTime: extraTime.toISOString(), // CONVERTIR A ISO STRING
           emotionalState: emotionalStates[Math.floor(Math.random() * emotionalStates.length)],
           description: activities[Math.floor(Math.random() * activities.length)],
           notes: "Actividad que podría afectar el sueño de hoy",
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: new Date().toISOString(), // CONVERTIR A ISO STRING
+          updatedAt: new Date().toISOString() // CONVERTIR A ISO STRING
         });
       }
     }
@@ -341,6 +575,15 @@ function generateRealisticEvents(childId, childData, startDate, endDate) {
   }
   
   return events;
+}
+
+// Función para verificar si un niño ya existe
+async function findExistingChild(db, firstName, lastName, parentId) {
+  return await db.collection('children').findOne({
+    firstName: firstName,
+    lastName: lastName,
+    parentId: parentId
+  });
 }
 
 async function createGutierrezFamily() {
@@ -353,7 +596,7 @@ async function createGutierrezFamily() {
     
     const db = client.db();
     
-    console.log('👶 Creando familia Gutierrez...');
+    console.log('👶 Creando familia COMPLETA con 4 niños (3 Gutierrez + Isabella Lopez bebé)...');
     
     // Fechas para los eventos (1 mayo - 31 julio 2025)
     const startDate = new Date('2025-05-01');
@@ -364,57 +607,134 @@ async function createGutierrezFamily() {
     for (let i = 0; i < children.length; i++) {
       const childData = children[i];
       
-      // Crear el niño
-      const childDoc = {
-        ...childData,
-        parentId: USER_ID,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
+      console.log(`\n🧒 Procesando ${childData.firstName} ${childData.lastName}...`);
       
-      const childResult = await db.collection('children').insertOne(childDoc);
-      const childId = childResult.insertedId.toString();
+      // 1. VERIFICAR SI EL NIÑO YA EXISTE
+      const existingChild = await findExistingChild(db, childData.firstName, childData.lastName, USER_ID);
       
-      console.log(`✅ Niño creado: ${childData.firstName} ${childData.lastName} (ID: ${childId})`);
+      let childId;
+      let childObjectId;
+      
+      if (existingChild) {
+        // NIÑO EXISTENTE - ACTUALIZAR
+        console.log(`✅ Niño encontrado - actualizando datos: ${childData.firstName} ${childData.lastName} (ID: ${existingChild._id})`);
+        childId = existingChild._id.toString();
+        childObjectId = existingChild._id;
+        
+        // Actualizar datos básicos
+        await db.collection('children').updateOne(
+          { _id: existingChild._id },
+          { 
+            $set: { 
+              birthDate: childData.birthDate, // Actualizar fecha si cambió
+              updatedAt: new Date()
+            } 
+          }
+        );
+        console.log(`🔄 Datos básicos actualizados para ${childData.firstName}`);
+        
+      } else {
+        // NIÑO NUEVO - CREAR
+        console.log(`🆕 Niño nuevo - creando: ${childData.firstName} ${childData.lastName}`);
+        const childDoc = {
+          firstName: childData.firstName,
+          lastName: childData.lastName,
+          birthDate: childData.birthDate,
+          parentId: USER_ID,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        
+        const childResult = await db.collection('children').insertOne(childDoc);
+        childId = childResult.insertedId.toString();
+        childObjectId = childResult.insertedId;
+        console.log(`✅ Niño creado: ${childData.firstName} ${childData.lastName} (ID: ${childId})`);
+      }
+      
       createdChildren.push({ ...childData, _id: childId });
       
-      // Generar eventos realistas para este niño
+      // 2. ACTUALIZAR LA ENCUESTA (SOLO EMBEBIDA EN CHILDREN - NO COLECCIÓN SEPARADA)
+      console.log(`📝 Guardando encuesta completa para ${childData.firstName}...`);
+      await db.collection('children').updateOne(
+        { _id: childObjectId },
+        { 
+          $set: { 
+            surveyData: childData.surveyData, // Los datos de la encuesta
+            surveyUpdatedAt: new Date('2025-07-28T19:43:43.604Z'), // Fecha de completado
+            updatedAt: new Date()
+          } 
+        }
+      );
+      console.log(`✅ Encuesta completada y guardada en ${childData.firstName}`);
+      
+      // 3. GENERAR/ACTUALIZAR EVENTOS REALISTAS (usar función especial para bebés)
       console.log(`📅 Generando eventos realistas para ${childData.firstName}...`);
-      const events = generateRealisticEvents(childId, childData, startDate, endDate);
+      const isBaby = childData.firstName === "Isabella" && childData.lastName === "Lopez";
+      const events = isBaby 
+        ? generateBabyEvents(childId, childData, startDate, endDate)
+        : generateRealisticEvents(childId, childData, startDate, endDate);
       
       if (events.length > 0) {
-        // Insertar eventos en la colección separada
+        // Limpiar eventos existentes del niño y insertar nuevos
+        await db.collection('events').deleteMany({ childId: childObjectId });
         await db.collection('events').insertMany(events);
-        console.log(`✅ ${events.length} eventos creados en colección separada`);
+        console.log(`✅ ${events.length} eventos ${existingChild ? 'actualizados' : 'creados'} en colección separada`);
         
         // También embeber eventos en el documento del niño
         await db.collection('children').updateOne(
-          { _id: childResult.insertedId },
+          { _id: childObjectId },
           { 
             $set: { 
               events: events,
-              surveyUpdatedAt: new Date('2025-07-28T19:43:43.604Z'),
               updatedAt: new Date()
             } 
           }
         );
         console.log(`✅ Eventos embebidos en documento de ${childData.firstName}`);
       }
+      
+      console.log(`🎉 ${childData.firstName} ${childData.lastName} ${existingChild ? 'actualizado' : 'creado'} completamente!`);
     }
     
-    console.log('\n🎉 ¡Familia Gutierrez creada exitosamente!');
-    console.log(`👶 Niños creados: ${createdChildren.length}`);
+    console.log('\n🎉 ¡Familia completa procesada exitosamente!');
+    console.log(`👶 Niños procesados: ${createdChildren.length}`);
+    console.log(`📝 Encuestas completadas: ${createdChildren.length}`);
     console.log(`📅 Período de datos: 1 mayo 2025 - 31 julio 2025`);
     console.log(`👤 Usuario: ${USER_ID}`);
     
-    console.log('\n📋 Resumen de la familia Gutierrez:');
+    console.log('\n📋 Resumen final de la familia (3 Gutierrez + 1 Lopez):');
     createdChildren.forEach((child, index) => {
-      const age = Math.floor((new Date() - child.birthDate) / (365.25 * 24 * 60 * 60 * 1000));
-      console.log(`${index + 1}. ${child.firstName} ${child.lastName} (${child.gender}, ~${age} años)`);
-      console.log(`   - Duerme: ${child.surveyData.rutinaHabitos.horaDormir} - ${child.surveyData.rutinaHabitos.horaDespertar}`);
-      console.log(`   - Siestas: ${child.surveyData.rutinaHabitos.haceSiestas ? 'Sí (' + child.surveyData.rutinaHabitos.horaSiesta + ')' : 'No'}`);
-      console.log(`   - Perfil: ${child.surveyData.saludGeneral.estadoAnimoDiurno}`);
+      // Calcular edad desde string de fecha
+      const birthDate = new Date(child.birthDate);
+      const isBaby = child.firstName === "Isabella";
+      
+      if (isBaby) {
+        const ageMonths = Math.floor((new Date() - birthDate) / (30.44 * 24 * 60 * 60 * 1000));
+        console.log(`${index + 1}. ${child.firstName} ${child.lastName} (${child.gender}, ${ageMonths} meses - BEBÉ)`);
+        console.log(`   - Duerme: ${child.surveyData.rutinaHabitos.horaDormir} - ${child.surveyData.rutinaHabitos.horaDespertar}`);
+        console.log(`   - Siestas: Múltiples (típico de bebé de 4 meses)`);
+        console.log(`   - Despertares nocturnos: ${child.surveyData.rutinaHabitos.vecesDespierta} veces promedio`);
+        console.log(`   - Alimentación: ${child.surveyData.alimentacion.tipoAlimentacion}`);
+        console.log(`   - Perfil: ${child.surveyData.saludGeneral.estadoAnimoDiurno}`);
+      } else {
+        const age = Math.floor((new Date() - birthDate) / (365.25 * 24 * 60 * 60 * 1000));
+        console.log(`${index + 1}. ${child.firstName} ${child.lastName} (${child.gender}, ~${age} años)`);
+        console.log(`   - Duerme: ${child.surveyData.rutinaHabitos.horaDormir} - ${child.surveyData.rutinaHabitos.horaDespertar}`);
+        console.log(`   - Siestas: ${child.surveyData.rutinaHabitos.haceSiestas ? 'Sí (' + child.surveyData.rutinaHabitos.horaSiesta + ')' : 'No'}`);
+        console.log(`   - Perfil: ${child.surveyData.saludGeneral.estadoAnimoDiurno}`);
+      }
+      console.log(`   - Encuesta: ✅ Completada`);
     });
+    
+    console.log('\n✨ TODO LISTO! Ahora las encuestas aparecerán como completadas:');
+    console.log('   - http://localhost:3000/dashboard/children/new (registro funciona)');
+    console.log('   - http://localhost:3000/dashboard/survey?childId=<ID> (✅ encuestas completadas)');
+    console.log('   - Generación de planes funcionará correctamente');
+    console.log('\n🔧 CAMBIOS REALIZADOS:');
+    console.log('   - ✅ Verificación de niños existentes (no duplica)');
+    console.log('   - ✅ Encuestas guardadas SOLO en children.surveyData (API las encuentra)');
+    console.log('   - ✅ Eventos regenerados con fechas ISO correctas');
+    console.log('   - ✅ Lógica inteligente: actualiza existentes, crea nuevos');
     
   } catch (error) {
     console.error('❌ Error creando familia Gutierrez:', error);
