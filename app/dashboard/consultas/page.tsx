@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, Stethoscope, FileText, Mic, History, Calendar } from "lucide-react"
 import { useSession } from "next-auth/react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UserChildSelector } from "@/components/consultas/UserChildSelector"
 import { TranscriptInput } from "@/components/consultas/TranscriptInput"
 import { AnalysisReport } from "@/components/consultas/AnalysisReport"
 import { ConsultationHistory } from "@/components/consultas/ConsultationHistory"
 import { PlanManager } from "@/components/consultas/PlanManager"
+import { ConsultationWizard } from "@/components/consultas/ConsultationWizard"
 
 import { createLogger } from "@/lib/logger"
 
@@ -47,7 +47,10 @@ export default function ConsultasPage() {
   const [transcript, setTranscript] = useState("")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<any>(null)
-  const [activeTab, setActiveTab] = useState("transcript")
+  
+  // Estado del wizard
+  const [currentStep, setCurrentStep] = useState(1)
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
 
   // Verificar que el usuario es admin
   useEffect(() => {
@@ -96,13 +99,20 @@ export default function ConsultasPage() {
   const handleUserSelect = (user: User) => {
     setSelectedUser(user)
     loadUserChildren(user._id)
+    
+    // Marcar paso 1 como completado y avanzar al paso 2
+    setCompletedSteps(prev => new Set([...prev, 1]))
+    setCurrentStep(2)
   }
 
   // Manejar selección de niño
   const handleChildSelect = (child: Child) => {
     setSelectedChild(child)
     setAnalysisResult(null) // Reset analysis
-    setActiveTab("transcript") // Reset tab
+    
+    // Marcar paso 2 como completado y avanzar al paso 3
+    setCompletedSteps(prev => new Set([...prev, 2]))
+    setCurrentStep(3)
   }
 
   // Procesar análisis
@@ -158,8 +168,9 @@ export default function ConsultasPage() {
         description: "Se ha generado el análisis y plan de mejoramiento.",
       })
 
-      // Auto-cambiar al tab de análisis
-      setActiveTab("analysis")
+      // Marcar paso 3 como completado y cambiar al tab de análisis
+      setCompletedSteps(prev => new Set([...prev, 3]))
+      setCurrentStep(5)
     } catch (error) {
       logger.error("Error:", error)
       toast({
@@ -169,6 +180,22 @@ export default function ConsultasPage() {
       })
     } finally {
       setIsAnalyzing(false)
+    }
+  }
+
+  // Manejar click en pasos del wizard
+  const handleStepClick = (step: number) => {
+    // Paso 1 siempre disponible
+    if (step === 1) {
+      setCurrentStep(1)
+    } 
+    // Paso 2 solo si hay usuario seleccionado
+    else if (step === 2 && selectedUser) {
+      setCurrentStep(2)
+    } 
+    // Pasos 3-6 disponibles si hay usuario y niño seleccionados
+    else if (step > 2 && selectedUser && selectedChild) {
+      setCurrentStep(step)
     }
   }
 
@@ -186,121 +213,148 @@ export default function ConsultasPage() {
     )
   }
 
-  return (
-    <div className="container py-8 space-y-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Stethoscope className="h-8 w-8" />
-          Consultas Especializadas
-        </h1>
-        <p className="text-muted-foreground">
-          Realiza consultas combinando transcripts con datos del niño y knowledge base
-        </p>
-      </div>
+  // Renderizar contenido basado en el paso actual
+  const renderStepContent = () => {
+    // Pasos 1 y 2: Selección de usuario y niño
+    if (currentStep === 1 || currentStep === 2) {
+      return (
+        <UserChildSelector
+          selectedUser={selectedUser}
+          selectedChild={selectedChild}
+          onUserSelect={handleUserSelect}
+          onChildSelect={handleChildSelect}
+          userChildren={userChildren}
+          loading={loadingChildren}
+          mode="wizard"
+          currentStep={currentStep}
+        />
+      )
+    }
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Panel de Selección */}
-        <div className="lg:col-span-1 space-y-4">
-          <UserChildSelector
-            selectedUser={selectedUser}
-            selectedChild={selectedChild}
-            onUserSelect={handleUserSelect}
-            onChildSelect={handleChildSelect}
-            userChildren={userChildren}
-            loading={loadingChildren}
-          />
-        </div>
+    // Pasos 3-6: Tabs de funcionalidad
+    if (!selectedUser || !selectedChild) {
+      return (
+        <Card>
+          <CardContent className="py-16">
+            <div className="text-center">
+              <Stethoscope className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Completa los pasos anteriores</h3>
+              <p className="text-muted-foreground">
+                Primero selecciona un usuario y un niño para continuar.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )
+    }
 
-        {/* Panel Principal */}
-        <div className="lg:col-span-2">
-          {selectedUser && selectedChild ? (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="transcript">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Transcript
-                </TabsTrigger>
-                <TabsTrigger value="plan">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Plan
-                </TabsTrigger>
-                <TabsTrigger value="analysis">
+    switch (currentStep) {
+      case 3: // Transcript
+        return (
+          <>
+            <TranscriptInput
+              value={transcript}
+              onChange={setTranscript}
+              disabled={isAnalyzing}
+            />
+            
+            <div className="flex justify-center mt-6">
+              <Button 
+                onClick={handleAnalyze}
+                disabled={!transcript.trim() || isAnalyzing}
+                size="lg"
+                className="min-w-[200px]"
+              >
+                {isAnalyzing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
                   <Stethoscope className="h-4 w-4 mr-2" />
-                  Análisis
-                </TabsTrigger>
-                <TabsTrigger value="history">
-                  <History className="h-4 w-4 mr-2" />
-                  Historial
-                </TabsTrigger>
-              </TabsList>
+                )}
+                {isAnalyzing ? "Analizando..." : "Generar Análisis Completo"}
+              </Button>
+            </div>
+          </>
+        )
 
-              <TabsContent value="transcript" className="space-y-4">
-                <TranscriptInput
-                  value={transcript}
-                  onChange={setTranscript}
-                  disabled={isAnalyzing}
-                />
-                
-                <div className="flex justify-center">
-                  <Button 
-                    onClick={handleAnalyze}
-                    disabled={!transcript.trim() || isAnalyzing}
-                    size="lg"
-                    className="min-w-[200px]"
-                  >
-                    {isAnalyzing ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Stethoscope className="h-4 w-4 mr-2" />
-                    )}
-                    {isAnalyzing ? "Analizando..." : "Generar Análisis Completo"}
-                  </Button>
-                </div>
-              </TabsContent>
+      case 4: // Plan
+        return (
+          <PlanManager
+            selectedUserId={selectedUser._id}
+            selectedChildId={selectedChild._id}
+            selectedChildName={`${selectedChild.firstName} ${selectedChild.lastName}`}
+            hasAnalysisResult={!!analysisResult}
+            latestReportId={analysisResult?.reportId || null}
+          />
+        )
 
-              <TabsContent value="plan">
-                <PlanManager
-                  selectedUserId={selectedUser?._id}
-                  selectedChildId={selectedChild?._id}
-                  selectedChildName={selectedChild ? `${selectedChild.firstName} ${selectedChild.lastName}` : null}
-                  hasAnalysisResult={!!analysisResult}
-                  latestReportId={analysisResult?.reportId || null}
-                />
-              </TabsContent>
+      case 5: // Análisis
+        return (
+          <AnalysisReport
+            result={analysisResult}
+            isLoading={isAnalyzing}
+            userName={selectedUser.name}
+            childName={`${selectedChild.firstName} ${selectedChild.lastName}`}
+          />
+        )
 
-              <TabsContent value="analysis">
-                <AnalysisReport
-                  result={analysisResult}
-                  isLoading={isAnalyzing}
-                  userName={selectedUser?.name}
-                  childName={selectedChild ? `${selectedChild.firstName} ${selectedChild.lastName}` : undefined}
-                />
-              </TabsContent>
+      case 6: // Historial
+        return (
+          <ConsultationHistory
+            selectedUserId={selectedUser._id}
+            selectedChildId={selectedChild._id}
+            selectedChildName={`${selectedChild.firstName} ${selectedChild.lastName}`}
+            visible={true}
+          />
+        )
 
-              <TabsContent value="history">
-                <ConsultationHistory
-                  selectedUserId={selectedUser?._id}
-                  selectedChildId={selectedChild?._id}
-                  selectedChildName={selectedChild ? `${selectedChild.firstName} ${selectedChild.lastName}` : undefined}
-                  visible={true}
-                />
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <Card>
-              <CardContent className="py-16">
-                <div className="text-center">
-                  <Stethoscope className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Selecciona un Usuario y Niño</h3>
-                  <p className="text-muted-foreground">
-                    Para comenzar una consulta, primero selecciona un usuario y luego el niño específico.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+      default:
+        return null
+    }
+  }
+
+  return (
+    <>
+      {/* Wizard Header */}
+      <ConsultationWizard
+        currentStep={currentStep}
+        completedSteps={completedSteps}
+        onStepClick={handleStepClick}
+        hasUser={!!selectedUser}
+        hasChild={!!selectedChild}
+        userName={selectedUser?.name}
+        childName={selectedChild ? `${selectedChild.firstName} ${selectedChild.lastName}` : undefined}
+      />
+
+      {/* Main Content */}
+      <div className="container py-8 space-y-6">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Stethoscope className="h-8 w-8" />
+            Consultas Especializadas
+          </h1>
+          <p className="text-muted-foreground">
+            Realiza consultas combinando transcripts con datos del niño y knowledge base
+          </p>
         </div>
+
+        {/* Información de contexto cuando usuario y niño están seleccionados */}
+        {selectedUser && selectedChild && currentStep > 2 && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-primary rounded-full"></div>
+                <span className="text-sm font-medium">
+                  Consulta para <strong>{selectedChild.firstName} {selectedChild.lastName}</strong> 
+                  {" "}de <strong>{selectedUser.name}</strong>
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Contenido del paso actual */}
+        {renderStepContent()}
       </div>
-    </div>
+    </>
   )
 }
