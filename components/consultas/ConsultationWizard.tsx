@@ -15,6 +15,7 @@ import {
   Check,
   ChevronRight
 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 interface WizardStep {
   id: number
@@ -73,18 +74,27 @@ export function ConsultationWizard({
   return (
     <div className="w-full bg-white border-b">
       <div className="container mx-auto px-4 py-6">
-        {/* Breadcrumb de selección actual */}
+        {/* Breadcrumb de selección actual con indicador de pre-selección */}
         {(userName || childName) && (
-          <div className="mb-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
+          <div className="mb-4">
+            <div className="flex items-center gap-2 text-sm">
               {userName && (
                 <>
+                  <Users className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium text-foreground">{userName}</span>
-                  {childName && <ChevronRight className="h-4 w-4" />}
+                  {childName && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                 </>
               )}
               {childName && (
-                <span className="font-medium text-foreground">{childName}</span>
+                <>
+                  <Baby className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium text-foreground">{childName}</span>
+                </>
+              )}
+              {completedSteps.has(1) && completedSteps.has(2) && currentStep > 2 && (
+                <Badge variant="secondary" className="ml-2 text-xs">
+                  Selección del sistema
+                </Badge>
               )}
             </div>
           </div>

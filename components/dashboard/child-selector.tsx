@@ -15,6 +15,7 @@ import { useSession } from "next-auth/react"
 import { createLogger } from "@/lib/logger"
 import { extractChildrenFromResponse } from "@/lib/api-response-utils"
 import { ChildAvatar } from "@/components/ui/child-avatar"
+import { PatientQuickSelector } from "@/components/dashboard/patient-quick-selector"
 
 const logger = createLogger("child-selector")
 
@@ -28,7 +29,13 @@ type Child = {
 
 export function ChildSelector() {
   const [children, setChildren] = useState<Child[]>([])
-  const { activeChildId, setActiveChildId, isInitialized } = useActiveChild()
+  const { 
+    activeChildId, 
+    setActiveChildId, 
+    activeUserId,
+    activeUserName,
+    isInitialized 
+  } = useActiveChild()
   const [loading, setLoading] = useState(true)
   
   // Estado local para forzar el valor del dropdown
@@ -39,8 +46,6 @@ export function ChildSelector() {
   
   // Para admins que seleccionan usuarios
   const isAdmin = session?.user?.role === "admin"
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
-  const [selectedUserName, setSelectedUserName] = useState<string | null>(null)
 
   // Función para cargar los niños desde la API
   const fetchChildren = async (userId?: string | null) => {
@@ -56,8 +61,8 @@ export function ChildSelector() {
       
       // Construir la URL adecuada según si es admin y hay un usuario seleccionado
       let url = "/api/children"
-      if (isAdmin && (userId || selectedUserId)) {
-        url = `/api/children?userId=${userId || selectedUserId}`
+      if (isAdmin && (userId || activeUserId)) {
+        url = `/api/children?userId=${userId || activeUserId}`
       }
       
       logger.info(`Fetching children from ${url}`)
@@ -133,62 +138,27 @@ export function ChildSelector() {
     }
   }
 
-  // Efecto simplificado que se ejecuta solo cuando cambia la sesión o el contexto admin
+  // Efecto simplificado para cargar niños
   useEffect(() => {
     if (!session || !session.user) {
       setLoading(false)
       setChildren([])
-      setActiveChildId(null)
       return
     }
 
     if (isAdmin) {
-      const savedUserId = localStorage.getItem("admin_selected_user_id")
-      const savedUserName = localStorage.getItem("admin_selected_user_name")
-      
-      if (savedUserId !== selectedUserId) {
-        setSelectedUserId(savedUserId)
-        setSelectedUserName(savedUserName)
-        if (savedUserId) {
-          fetchChildren(savedUserId)
-        } else {
-          setChildren([])
-          setActiveChildId(null)
-        }
+      // Para admins, solo cargar si hay un usuario seleccionado
+      if (activeUserId) {
+        fetchChildren(activeUserId)
+      } else {
+        setChildren([])
+        setLoading(false)
       }
     } else {
+      // Para usuarios normales, cargar sus propios niños
       fetchChildren()
     }
-  }, [session?.user?.id, isAdmin])
-
-  // Efecto separado para cambios en localStorage (solo para admins)
-  useEffect(() => {
-    if (!isAdmin) return
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "admin_selected_user_id") {
-        const newUserId = e.newValue
-        const newUserName = localStorage.getItem("admin_selected_user_name")
-        
-        if (newUserId !== selectedUserId) {
-          setSelectedUserId(newUserId)
-          setSelectedUserName(newUserName)
-          if (newUserId) {
-            fetchChildren(newUserId)
-          } else {
-            setChildren([])
-            setActiveChildId(null)
-          }
-        }
-      }
-    }
-
-    window.addEventListener("storage", handleStorageChange)
-    
-    return () => {
-      window.removeEventListener("storage", handleStorageChange)
-    }
-  }, [isAdmin, selectedUserId])
+  }, [session?.user?.id, isAdmin, activeUserId])
 
   // Obtener el nombre del niño activo
   const getActiveChildName = () => {
@@ -199,8 +169,8 @@ export function ChildSelector() {
 
   const handleAddChild = () => {
     // Si es admin y hay un usuario seleccionado, redirigir con el parentId
-    if (isAdmin && selectedUserId) {
-      router.push(`/dashboard/children/new?parentId=${selectedUserId}`)
+    if (isAdmin && activeUserId) {
+      router.push(`/dashboard/children/new?parentId=${activeUserId}`)
     } else {
       router.push("/dashboard/children/new")
     }
@@ -231,29 +201,17 @@ export function ChildSelector() {
     }
   }, [isInitialized])
 
-  // Renderizar componente con estructura consistente para evitar saltos visuales
+  // Si es admin, usar el nuevo PatientQuickSelector
+  if (isAdmin) {
+    return <PatientQuickSelector className="min-w-[280px]" />
+  }
+
+  // Para usuarios normales, mantener el selector original
   return (
     <div className="flex items-center gap-2">
-      {/* Información del usuario seleccionado (solo para admins) */}
-      {isAdmin && (
-        <div className="text-sm flex items-center min-h-[24px]">
-          {selectedUserName ? (
-            <>
-              <UserCheck className="mr-1 h-3 w-3" />
-              <span className="text-muted-foreground">{selectedUserName}</span>
-            </>
-          ) : (
-            <span className="text-amber-600 flex items-center">
-              <UserCheck className="mr-2 h-4 w-4" />
-              <span>Selecciona un paciente</span>
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Selector de niños - Diseño exacto de Figma */}
+      {/* Selector de niños para usuarios normales */}
       <div className="flex items-center">
-        {!isAdmin || (isAdmin && selectedUserId) ? (
+        {children.length > 0 ? (
           <div className="flex items-center bg-[#F0F7FF] rounded-xl px-4 py-2 h-12 min-w-[131px]">
             {/* Avatar del niño */}
             <div className="flex-shrink-0">
@@ -302,7 +260,18 @@ export function ChildSelector() {
               </Select>
             </div>
           </div>
-        ) : null}
+        ) : (
+          // Mostrar botón para agregar niño si no hay niños
+          <Button
+            onClick={handleAddChild}
+            variant="outline"
+            size="sm"
+            className="h-12"
+          >
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Agregar niño
+          </Button>
+        )}
       </div>
     </div>
   )

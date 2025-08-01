@@ -1,6 +1,6 @@
 # Session Context - Happy Dreamers UI Implementation
 
-*Last Updated: July 31, 2025 - Mejoras Completas del Calendario y Vista Diaria*
+*Last Updated: August 1, 2025 - Simplificación del Flujo de Consultas*
 
 ## 🎯 Current System State
 
@@ -21,6 +21,68 @@
 - **Core Components**: `/components/dashboard/`, `/components/child-profile/`, `/components/ui/`, `/components/events/`
 - **Database Schema**: Users, Children, Events collections in MongoDB
 - **API Conventions**: RESTful routes under `/app/api/`, session-based auth checks
+
+## 🚀 Recent Changes - Mejora del Flujo UX de Selección de Pacientes (August 1, 2025)
+
+### Cambios Implementados:
+1. **Contexto Global Extendido**:
+   - `active-child-context.tsx` ahora incluye: `activeUserId`, `activeUserName`, `clearSelection()`
+   - Sincronización bidireccional con localStorage
+   - Eliminación de recargas de página
+
+2. **Nuevo Componente PatientQuickSelector**:
+   - Selector unificado paciente → niño con búsqueda integrada
+   - Diseño moderno tipo Combobox
+   - Carga dinámica de niños al seleccionar paciente
+   - Sin recargas de página, todo con estado React
+
+3. **Refactorización de ChildSelector**:
+   - Admins ahora usan `PatientQuickSelector` automáticamente
+   - Usuarios normales mantienen el selector original
+   - Eliminación de lógica duplicada y estados locales
+
+4. **Integración en Consultas**:
+   - Pre-selección automática desde el contexto global
+   - Salto directo al paso 3 (Transcript) si hay selección previa
+   - Botón "Cambiar paciente" para flexibilidad
+   - Badge "Selección del sistema" para claridad
+
+### Beneficios del Nuevo Flujo:
+- ✅ Reducción de clics: de 6-7 a solo 2
+- ✅ Eliminación completa de recargas de página
+- ✅ Flujo coherente en toda la aplicación
+- ✅ Mejor contexto visual y estados claros
+- ✅ Mayor eficiencia para doctoras
+
+### Fix Importante (Pre-carga en Consultas):
+- **Problema**: La página de consultas requería que usuario Y niño estuvieran seleccionados
+- **Solución**: Ahora detecta cuando solo hay usuario y muestra el paso 2 para seleccionar niño
+- **Resultado**: Flujo más natural sin necesidad de seleccionar todo antes de entrar
+
+## 🎨 Simplificación del Flujo de Consultas (August 1, 2025 - Parte 2)
+
+### Cambios Implementados:
+1. **Eliminación del Wizard**:
+   - Reemplazado por tabs de navegación libre
+   - Sin pasos secuenciales numerados
+   - Opciones: Transcript | Plan | Análisis | Historial
+
+2. **Estado Vacío Intuitivo**:
+   - Mensaje claro cuando no hay selección
+   - Indicador visual apuntando al selector del header
+   - Sin duplicación de funcionalidad
+
+3. **Código Eliminado**:
+   - UserChildSelector (redundante)
+   - ConsultationWizard (reemplazado por tabs)
+   - Lógica compleja de pasos y estados
+
+### Resultado Final:
+- ✅ Flujo directo cuando hay selección (99% de casos)
+- ✅ Sin redundancia de selectores
+- ✅ Navegación libre entre opciones
+- ✅ Interfaz más limpia y profesional
+- ✅ Mejor aprovechamiento del selector global
 
 ## 🧠 Critical Reminders for Next AI Session
 

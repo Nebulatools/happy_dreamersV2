@@ -7,26 +7,20 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Stethoscope, FileText, Mic, History, Calendar } from "lucide-react"
+import { Loader2, Stethoscope } from "lucide-react"
 import { useSession } from "next-auth/react"
-import { UserChildSelector } from "@/components/consultas/UserChildSelector"
 import { TranscriptInput } from "@/components/consultas/TranscriptInput"
 import { AnalysisReport } from "@/components/consultas/AnalysisReport"
 import { ConsultationHistory } from "@/components/consultas/ConsultationHistory"
 import { PlanManager } from "@/components/consultas/PlanManager"
-import { ConsultationWizard } from "@/components/consultas/ConsultationWizard"
+import { ConsultationTabs } from "@/components/consultas/ConsultationTabs"
+import { useActiveChild } from "@/context/active-child-context"
+import { ArrowUp } from "lucide-react"
 
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("page")
 
-
-interface User {
-  _id: string
-  name: string
-  email: string
-  role: string
-}
 
 interface Child {
   _id: string
@@ -39,18 +33,14 @@ interface Child {
 export default function ConsultasPage() {
   const { data: session } = useSession()
   const { toast } = useToast()
+  const { activeUserId, activeUserName, activeChildId } = useActiveChild()
   
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [userChildren, setUserChildren] = useState<Child[]>([])
-  const [selectedChild, setSelectedChild] = useState<Child | null>(null)
-  const [loadingChildren, setLoadingChildren] = useState(false)
+  const [activeTab, setActiveTab] = useState("transcript")
   const [transcript, setTranscript] = useState("")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<any>(null)
-  
-  // Estado del wizard
-  const [currentStep, setCurrentStep] = useState(1)
-  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
+  const [childData, setChildData] = useState<Child | null>(null)
+  const [loadingChild, setLoadingChild] = useState(true)
 
   // Verificar que el usuario es admin
   useEffect(() => {
@@ -64,63 +54,45 @@ export default function ConsultasPage() {
     }
   }, [session, toast])
 
-  // Cargar niños cuando se selecciona un usuario
-  const loadUserChildren = async (userId: string) => {
-    try {
-      setLoadingChildren(true)
-      const response = await fetch(`/api/children?userId=${userId}`)
-      
-      if (!response.ok) {
-        throw new Error("Error al cargar los niños del usuario")
+  // Cargar datos del niño seleccionado
+  useEffect(() => {
+    const loadChildData = async () => {
+      if (!activeChildId || !activeUserId) {
+        setLoadingChild(false)
+        return
       }
-      
-      const data = await response.json()
-      
-      // La API regresa un objeto con estructura { children: [], success: true }
-      // Para admins consultando niños de otro usuario viene en data.data.children
-      const children = Array.isArray(data) ? data : (data?.children || data?.data?.children || [])
-      
-      setUserChildren(children)
-      setSelectedChild(null) // Reset child selection
-      setAnalysisResult(null) // Reset analysis
-    } catch (error) {
-      logger.error("Error:", error)
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los niños del usuario.",
-        variant: "destructive",
-      })
-    } finally {
-      setLoadingChildren(false)
+
+      try {
+        const response = await fetch(`/api/children?userId=${activeUserId}`)
+        if (!response.ok) throw new Error("Error al cargar datos del niño")
+        
+        const data = await response.json()
+        const children = Array.isArray(data) ? data : (data?.children || data?.data?.children || [])
+        const child = children.find((c: Child) => c._id === activeChildId)
+        
+        setChildData(child || null)
+      } catch (error) {
+        logger.error("Error:", error)
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los datos del niño.",
+          variant: "destructive",
+        })
+      } finally {
+        setLoadingChild(false)
+      }
     }
-  }
 
-  // Manejar selección de usuario
-  const handleUserSelect = (user: User) => {
-    setSelectedUser(user)
-    loadUserChildren(user._id)
-    
-    // Marcar paso 1 como completado y avanzar al paso 2
-    setCompletedSteps(prev => new Set([...prev, 1]))
-    setCurrentStep(2)
-  }
+    loadChildData()
+  }, [activeChildId, activeUserId, toast])
 
-  // Manejar selección de niño
-  const handleChildSelect = (child: Child) => {
-    setSelectedChild(child)
-    setAnalysisResult(null) // Reset analysis
-    
-    // Marcar paso 2 como completado y avanzar al paso 3
-    setCompletedSteps(prev => new Set([...prev, 2]))
-    setCurrentStep(3)
-  }
 
   // Procesar análisis
   const handleAnalyze = async () => {
-    if (!selectedUser || !selectedChild || !transcript.trim()) {
+    if (!activeUserId || !activeChildId || !transcript.trim()) {
       toast({
         title: "Información incompleta",
-        description: "Selecciona un usuario, niño y proporciona un transcript.",
+        description: "Asegúrate de tener un paciente seleccionado y proporciona un transcript.",
         variant: "destructive",
       })
       return
@@ -136,8 +108,8 @@ export default function ConsultasPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          userId: selectedUser._id,
-          childId: selectedChild._id,
+          userId: activeUserId,
+          childId: activeChildId,
           transcript: transcript.trim(),
         }),
       })
@@ -168,9 +140,8 @@ export default function ConsultasPage() {
         description: "Se ha generado el análisis y plan de mejoramiento.",
       })
 
-      // Marcar paso 3 como completado y cambiar al tab de análisis
-      setCompletedSteps(prev => new Set([...prev, 3]))
-      setCurrentStep(5)
+      // Cambiar al tab de análisis
+      setActiveTab("analysis")
     } catch (error) {
       logger.error("Error:", error)
       toast({
@@ -183,21 +154,6 @@ export default function ConsultasPage() {
     }
   }
 
-  // Manejar click en pasos del wizard
-  const handleStepClick = (step: number) => {
-    // Paso 1 siempre disponible
-    if (step === 1) {
-      setCurrentStep(1)
-    } 
-    // Paso 2 solo si hay usuario seleccionado
-    else if (step === 2 && selectedUser) {
-      setCurrentStep(2)
-    } 
-    // Pasos 3-6 disponibles si hay usuario y niño seleccionados
-    else if (step > 2 && selectedUser && selectedChild) {
-      setCurrentStep(step)
-    }
-  }
 
   if (session?.user.role !== "admin") {
     return (
@@ -213,43 +169,16 @@ export default function ConsultasPage() {
     )
   }
 
-  // Renderizar contenido basado en el paso actual
-  const renderStepContent = () => {
-    // Pasos 1 y 2: Selección de usuario y niño
-    if (currentStep === 1 || currentStep === 2) {
-      return (
-        <UserChildSelector
-          selectedUser={selectedUser}
-          selectedChild={selectedChild}
-          onUserSelect={handleUserSelect}
-          onChildSelect={handleChildSelect}
-          userChildren={userChildren}
-          loading={loadingChildren}
-          mode="wizard"
-          currentStep={currentStep}
-        />
-      )
+  // Renderizar contenido basado en el tab activo
+  const renderTabContent = () => {
+    if (!activeUserId || !activeChildId || !childData) {
+      return null
     }
 
-    // Pasos 3-6: Tabs de funcionalidad
-    if (!selectedUser || !selectedChild) {
-      return (
-        <Card>
-          <CardContent className="py-16">
-            <div className="text-center">
-              <Stethoscope className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Completa los pasos anteriores</h3>
-              <p className="text-muted-foreground">
-                Primero selecciona un usuario y un niño para continuar.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )
-    }
+    const childName = childData ? `${childData.firstName} ${childData.lastName}` : ""
 
-    switch (currentStep) {
-      case 3: // Transcript
+    switch (activeTab) {
+      case "transcript":
         return (
           <>
             <TranscriptInput
@@ -276,33 +205,33 @@ export default function ConsultasPage() {
           </>
         )
 
-      case 4: // Plan
+      case "plan":
         return (
           <PlanManager
-            selectedUserId={selectedUser._id}
-            selectedChildId={selectedChild._id}
-            selectedChildName={`${selectedChild.firstName} ${selectedChild.lastName}`}
+            selectedUserId={activeUserId}
+            selectedChildId={activeChildId}
+            selectedChildName={childName}
             hasAnalysisResult={!!analysisResult}
             latestReportId={analysisResult?.reportId || null}
           />
         )
 
-      case 5: // Análisis
+      case "analysis":
         return (
           <AnalysisReport
             result={analysisResult}
             isLoading={isAnalyzing}
-            userName={selectedUser.name}
-            childName={`${selectedChild.firstName} ${selectedChild.lastName}`}
+            userName={activeUserName || ""}
+            childName={childName}
           />
         )
 
-      case 6: // Historial
+      case "history":
         return (
           <ConsultationHistory
-            selectedUserId={selectedUser._id}
-            selectedChildId={selectedChild._id}
-            selectedChildName={`${selectedChild.firstName} ${selectedChild.lastName}`}
+            selectedUserId={activeUserId}
+            selectedChildId={activeChildId}
+            selectedChildName={childName}
             visible={true}
           />
         )
@@ -312,49 +241,64 @@ export default function ConsultasPage() {
     }
   }
 
-  return (
-    <>
-      {/* Wizard Header */}
-      <ConsultationWizard
-        currentStep={currentStep}
-        completedSteps={completedSteps}
-        onStepClick={handleStepClick}
-        hasUser={!!selectedUser}
-        hasChild={!!selectedChild}
-        userName={selectedUser?.name}
-        childName={selectedChild ? `${selectedChild.firstName} ${selectedChild.lastName}` : undefined}
-      />
+  // Si hay selección, mostrar tabs
+  if (activeUserId && activeChildId && !loadingChild) {
+    return (
+      <>
+        {/* Tabs de navegación */}
+        <ConsultationTabs
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          userName={activeUserName || ""}
+          childName={childData ? `${childData.firstName} ${childData.lastName}` : ""}
+        />
 
-      {/* Main Content */}
-      <div className="container py-8 space-y-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Stethoscope className="h-8 w-8" />
-            Consultas Especializadas
-          </h1>
-          <p className="text-muted-foreground">
-            Realiza consultas combinando transcripts con datos del niño y knowledge base
-          </p>
+        {/* Contenido principal */}
+        <div className="container py-8 space-y-6">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              <Stethoscope className="h-8 w-8" />
+              Consultas Especializadas
+            </h1>
+            <p className="text-muted-foreground">
+              Realiza consultas combinando transcripts con datos del niño y knowledge base
+            </p>
+          </div>
+
+          {/* Contenido del tab activo */}
+          {renderTabContent()}
         </div>
+      </>
+    )
+  }
 
-        {/* Información de contexto cuando usuario y niño están seleccionados */}
-        {selectedUser && selectedChild && currentStep > 2 && (
-          <Card className="border-primary/20 bg-primary/5">
-            <CardContent className="py-4">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-primary rounded-full"></div>
-                <span className="text-sm font-medium">
-                  Consulta para <strong>{selectedChild.firstName} {selectedChild.lastName}</strong> 
-                  {" "}de <strong>{selectedUser.name}</strong>
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Contenido del paso actual */}
-        {renderStepContent()}
+  // Estado vacío cuando no hay selección
+  return (
+    <div className="container py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <Stethoscope className="h-8 w-8" />
+          Consultas Especializadas
+        </h1>
+        <p className="text-muted-foreground">
+          Realiza consultas combinando transcripts con datos del niño y knowledge base
+        </p>
       </div>
-    </>
+
+      <Card className="max-w-md mx-auto">
+        <CardContent className="py-16 text-center">
+          <Stethoscope className="h-16 w-16 mx-auto text-muted-foreground mb-6" />
+          <h3 className="text-xl font-semibold mb-2">
+            Selecciona un paciente para comenzar
+          </h3>
+          <p className="text-muted-foreground mb-6">
+            Usa el selector en la parte superior para elegir un paciente y niño
+          </p>
+          <div className="flex justify-center">
+            <ArrowUp className="h-8 w-8 text-muted-foreground animate-bounce" />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
