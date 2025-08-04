@@ -1,0 +1,45 @@
+{
+  "date": "2025-08-04T20:04:48.281Z",
+  "metrics": {
+    "consoleLogCount": 0,
+    "loggerUsage": 0,
+    "chartFiles": 16,
+    "baseChartUsage": 0,
+    "errorBoundaries": 0,
+    "aiStaticImports": 0,
+    "aiDynamicImports": 0,
+    "radixPackages": 27,
+    "totalDependencies": 75,
+    "progress": 14
+  },
+  "recommendations": [
+    {
+      "done": true,
+      "task": "Completar eliminación de console.log"
+    },
+    {
+      "done": false,
+      "task": "Migrar todos los charts a BaseChart"
+    },
+    {
+      "done": false,
+      "task": "Convertir todos los imports AI a dinámicos"
+    },
+    {
+      "done": false,
+      "task": "Consolidar paquetes Radix UI"
+    },
+    {
+      "done": false,
+      "task": "Implementar memoización en componentes"
+    },
+    {
+      "done": false,
+      "task": "Agregar índices a MongoDB"
+    },
+    {
+      "done": false,
+      "task": "Implementar code splitting por rutas"
+    }
+  ]
+}

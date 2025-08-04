@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react"
 import { differenceInMinutes, parseISO, subDays } from "date-fns"
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger('useSleepData')
 
 export interface SleepEvent {
   _id: string
@@ -62,7 +65,7 @@ export function useSleepData(childId: string | null, dateRange: string = "7-days
         
         const filterDate = subDays(now, daysToSubtract)
         
-        console.log(`DEBUG - Filtrando eventos desde: ${filterDate.toLocaleDateString()} (${daysToSubtract} días)`)
+        logger.debug('Filtrando eventos', { desde: filterDate.toLocaleDateString(), dias: daysToSubtract })
         
         const sleepEvents = allEvents.filter((e: any) => {
           // Solo procesar eventos que tengan startTime definido
@@ -73,7 +76,7 @@ export function useSleepData(childId: string | null, dateRange: string = "7-days
           return ['sleep', 'nap', 'bedtime', 'wake', 'night_waking'].includes(e.eventType) && date >= filterDate
         })
         
-        console.log(`DEBUG - Eventos encontrados: ${allEvents.length} total, ${sleepEvents.length} filtrados`)
+        logger.debug('Eventos procesados', { total: allEvents.length, filtrados: sleepEvents.length })
         
         // Calcular métricas
         const processedData = processSleepData(sleepEvents)
@@ -129,7 +132,7 @@ function processSleepData(events: any[]): SleepData {
     : 0
 
   // Hora promedio de acostarse (eventos bedtime y sleep nocturnos)
-  console.log('DEBUG - Eventos bedtime/sleep encontrados:', bedtimeEvents.map(e => ({
+  logger.debug('Eventos bedtime/sleep', bedtimeEvents.map(e => ({
     eventType: e.eventType,
     startTime: e.startTime,
     hour: new Date(e.startTime).getHours(),
@@ -142,14 +145,14 @@ function processSleepData(events: any[]): SleepData {
     return hour >= 18 || hour <= 6 // Horario nocturno
   })
   
-  console.log('DEBUG - Eventos nocturnos:', nocturnalBedtimeEvents.length)
+  logger.debug('Eventos nocturnos', { count: nocturnalBedtimeEvents.length })
   
   const avgBedtime = nocturnalBedtimeEvents.length > 0
     ? calculateAverageTime(nocturnalBedtimeEvents.map(e => parseISO(e.startTime)))
     : "--:--"
 
   // Hora promedio de dormir real (considerando el delay)
-  console.log('DEBUG - Eventos sleep encontrados:', sleepEvents.map(e => ({
+  logger.debug('Eventos sleep', sleepEvents.map(e => ({
     eventType: e.eventType,
     startTime: e.startTime,
     hour: new Date(e.startTime).getHours(),
@@ -162,7 +165,7 @@ function processSleepData(events: any[]): SleepData {
     return hour >= 18 || hour <= 6 // Horario nocturno
   })
   
-  console.log('DEBUG - Eventos sleep nocturnos:', nocturnalSleepEvents.length)
+  logger.debug('Eventos sleep nocturnos', { count: nocturnalSleepEvents.length })
   
   const avgSleepTime = nocturnalSleepEvents.length > 0
     ? calculateAverageSleepTime(nocturnalSleepEvents)
@@ -260,9 +263,9 @@ function calculateInferredSleepDuration(events: any[]): number {
   
   const sleepDurations: number[] = []
   
-  console.log(`DEBUG - Procesando ${sortedEvents.length} eventos para cálculo de duración:`)
+  logger.debug('Procesando eventos para duración', { count: sortedEvents.length })
   sortedEvents.forEach((e, i) => {
-    console.log(`  ${i}: ${e.eventType} - ${new Date(e.startTime).toLocaleString()} ${e.sleepDelay ? `(delay: ${e.sleepDelay}min)` : ''}`)
+    logger.debug(`Evento ${i}`, { tipo: e.eventType, inicio: new Date(e.startTime).toLocaleString(), delay: e.sleepDelay })
   })
   
   for (let i = 0; i < sortedEvents.length - 1; i++) {
@@ -291,9 +294,9 @@ function calculateInferredSleepDuration(events: any[]): number {
       // Rango más amplio: 1-18 horas (60-1080 minutos)
       if (duration >= 60 && duration <= 1080) {
         sleepDurations.push(duration)
-        console.log(`DEBUG - Duración válida encontrada: ${duration} min (${(duration/60).toFixed(1)}h)`)
+        logger.debug('Duración válida', { minutos: duration, horas: (duration/60).toFixed(1) })
       } else {
-        console.log(`DEBUG - Duración inválida descartada: ${duration} min (${(duration/60).toFixed(1)}h)`)
+        logger.debug('Duración inválida', { minutos: duration, horas: (duration/60).toFixed(1) })
       }
     }
     
@@ -323,9 +326,9 @@ function calculateInferredSleepDuration(events: any[]): number {
         // Rango más amplio para sueño inferido: 4-18 horas (240-1080 minutos)
         if (duration >= 240 && duration <= 1080) {
           sleepDurations.push(duration)
-          console.log(`DEBUG - Duración inferida válida: ${duration} min (${(duration/60).toFixed(1)}h)`)
+          logger.debug('Duración inferida válida', { minutos: duration, horas: (duration/60).toFixed(1) })
         } else {
-          console.log(`DEBUG - Duración inferida inválida: ${duration} min (${(duration/60).toFixed(1)}h)`)
+          logger.debug('Duración inferida inválida', { minutos: duration, horas: (duration/60).toFixed(1) })
         }
       }
     }
@@ -454,7 +457,7 @@ function calculateNightWakeups(events: any[]): number {
   const nightWakingEvents = sortedEvents.filter(e => e.eventType === 'night_waking')
   totalWakeups += nightWakingEvents.length
   
-  console.log('DEBUG - Eventos night_waking encontrados:', nightWakingEvents.length)
+  logger.debug('Eventos night_waking', { count: nightWakingEvents.length })
   
   // MÉTODO 2: Analizar secuencias de sueño nocturno para eventos wake
   for (let i = 0; i < sortedEvents.length; i++) {
@@ -513,7 +516,7 @@ function calculateNightWakeups(events: any[]): number {
     }
   }
   
-  console.log('DEBUG - Total despertares nocturnos calculados:', totalWakeups)
+  logger.debug('Total despertares nocturnos', { count: totalWakeups })
   
   // Retornar el TOTAL de despertares nocturnos en el período
   return totalWakeups

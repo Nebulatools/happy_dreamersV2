@@ -13,12 +13,11 @@ import { createReactAgent } from "@langchain/langgraph/prebuilt"
 import { ChatOpenAI } from "@langchain/openai"
 import { DynamicStructuredTool } from "@langchain/core/tools"
 import { z } from "zod"
+import { createLogger } from "@/lib/logger"
 import { StateGraph, Annotation, START, END } from "@langchain/langgraph"
 import { BaseMessage, HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages"
 
-import { createLogger } from "@/lib/logger"
-
-const logger = createLogger("API:rag:chat:route")
+const logger = createLogger('RAGChatAPI')
 
 
 // 🤖 DEFINICIÓN DEL ESTADO DEL MULTI-AGENT SYSTEM
@@ -71,10 +70,10 @@ const childDataTool = new DynamicStructuredTool({
   }),
   func: async ({ childId, userId, dataType }) => {
     try {
-      console.log(`🔍 childDataTool llamado con: childId=${childId}, userId=${userId}, dataType=${dataType}`)
+      logger.debug('childDataTool invocado', { childId, userId, dataType })
       
       if (!childId || childId === "null" || childId === "") {
-        console.log("❌ No hay childId válido")
+        logger.warn('childId inválido o no proporcionado')
         return "Por favor selecciona un niño específico para obtener sus estadísticas"
       }
 
@@ -87,21 +86,21 @@ const childDataTool = new DynamicStructuredTool({
       })
       
       if (!childDoc) {
-        console.log("❌ No se encontró el niño en la base de datos")
+        logger.warn('Niño no encontrado en la base de datos', { childId })
         return "No se encontró información del niño"
       }
       
-      console.log(`👶 Niño encontrado: ${childDoc.firstName} ${childDoc.lastName}`)
+      logger.info('Niño encontrado', { name: `${childDoc.firstName} ${childDoc.lastName}` })
       
       const events = childDoc.events || []
-      console.log(`📊 Eventos totales encontrados: ${events.length}`)
+      logger.debug('Eventos encontrados', { count: events.length })
       
       // 🧮 PROCESAR ESTADÍSTICAS COMO EN SLEEP-STATISTICS
       const sleepStats = await processSleepStatistics(events)
       
       return buildProcessedStatsContext(childDoc, sleepStats)
     } catch (error) {
-      console.log("❌ Error en childDataTool:", error)
+      logger.error('Error en childDataTool', error)
       return "Error al acceder a las estadísticas del niño"
     }
   },
@@ -149,7 +148,7 @@ Responde solo: DATOS_ESPECIFICOS o INFORMACION_GENERAL`
   // Convertir análisis a decisión de agente
   const agentType = analysis === "DATOS_ESPECIFICOS" ? "DB" : "RAG"
   
-  console.log(`🤖 ROUTER: Pregunta="${state.question}" → Análisis="${analysis}" → Decisión="${agentType}"`)
+  logger.info('Router de agente', { question: state.question, analysis, agentType })
   
   return {
     agentType,
@@ -278,12 +277,12 @@ export async function POST(req: NextRequest) {
         
         if (child && child.parentId) {
           parentUserId = child.parentId
-          console.log(`👶 Niño encontrado: ${child.firstName} ${child.lastName}, Parent ID: ${parentUserId}`)
+          logger.info('Niño encontrado', { name: `${child.firstName} ${child.lastName}`, parentId: parentUserId })
         } else {
-          console.log(`❌ No se encontró niño con ID: ${childId}`)
+          logger.warn('Niño no encontrado', { childId })
         }
       } catch (error) {
-        console.log(`❌ Error obteniendo parent ID:`, error)
+        logger.error('Error obteniendo parent ID', error)
       }
     }
 

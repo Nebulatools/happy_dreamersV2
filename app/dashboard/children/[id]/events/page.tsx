@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { createLogger } from "@/lib/logger"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Loader2, PlusCircle, Edit, Trash, Save, ChevronLeft, Clock } from "lucide-react"
@@ -32,9 +33,7 @@ import { useEventsCache, useEventsInvalidation } from "@/hooks/use-events-cache"
 import { EventRegistrationModal } from "@/components/events"
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal"
 
-import { createLogger } from "@/lib/logger"
-
-const logger = createLogger("page")
+const logger = createLogger("EventsPage")
 
 
 interface Event {
@@ -514,7 +513,7 @@ export default function ChildEventsPage() {
                                 className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  console.log("Eliminando desde tabla:", event._id)
+                                  // Acción de eliminación - logging removido por seguridad
                                   setSelectedEvent(event)
                                   setShowDeleteModal(true)
                                 }}
@@ -665,7 +664,7 @@ export default function ChildEventsPage() {
                     <Button 
                       variant="destructive" 
                       onClick={() => {
-                        console.log("Abriendo modal de eliminación")
+                        // Modal de eliminación abierto
                         setShowDeleteModal(true)
                       }}
                       disabled={isSaving}
@@ -688,7 +687,7 @@ export default function ChildEventsPage() {
                     <Button 
                       variant="destructive" 
                       onClick={() => {
-                        console.log("Abriendo modal de eliminación desde vista")
+                        // Modal de eliminación abierto desde vista
                         setShowDeleteModal(true)
                       }}
                     >
@@ -729,11 +728,11 @@ export default function ChildEventsPage() {
         <DeleteConfirmationModal
           isOpen={showDeleteModal}
           onClose={() => {
-            console.log("Cerrando modal de eliminación")
+            // Cerrando modal
             setShowDeleteModal(false)
           }}
           onConfirm={() => {
-            console.log("Confirmando eliminación")
+            // Confirmación de eliminación
             deleteEvent()
           }}
           itemName={`evento de ${getEventTypeName(selectedEvent.eventType)}`}

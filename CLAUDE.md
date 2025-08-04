@@ -60,6 +60,30 @@ Happy Dreamers is a comprehensive sleep tracking and AI consultation platform fo
 2. **SESSION-CONTEXT.md** - Current state, next session critical
 3. **tasks/TODO.md** - Actionable items and progress
 4. **SESSION-DEBUG.md** - Technical debugging history
+5. **docs/** - Comprehensive architecture documentation (for deep analysis when needed)
+
+## 📚 Architecture Documentation (/docs/)
+
+The `/docs/` folder contains comprehensive documentation about the entire application architecture. Use these resources for deep analysis when required:
+
+### Available Documentation:
+- **ARCHITECTURE.md** - Complete system design, patterns, and architectural decisions
+- **API_REFERENCE.md** - All API endpoints, request/response formats, authentication
+- **DATABASE.md** - MongoDB schemas, relationships, indexes, and patterns
+- **COMPONENTS.md** - Component library, usage patterns, and UI guidelines
+- **AI_INTEGRATION.md** - RAG system, OpenAI integration, LangChain implementation
+- **SECURITY.md** - Security practices, authentication flow, data protection
+- **TESTING.md** - Testing strategies, test patterns, coverage requirements
+- **DEPLOYMENT.md** - Vercel deployment, environment variables, CI/CD
+- **DEVELOPMENT.md** - Development workflow, coding standards, best practices
+- **TROUBLESHOOTING.md** - Common issues, solutions, debugging techniques
+
+### When to Use:
+- **Deep Analysis Required**: When user requests comprehensive understanding
+- **Complex Feature Implementation**: Before implementing major features
+- **Architecture Changes**: When modifying system structure
+- **Problem Solving**: When encountering complex issues
+- **NOT for every session**: Regular development uses SESSION-CONTEXT.md
 
 ## 🎯 Happy Dreamers Code Standards
 

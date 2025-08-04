@@ -4,6 +4,7 @@
 "use client"
 
 import React, { useState, useEffect, useMemo } from "react"
+import { createLogger } from "@/lib/logger"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { 
@@ -80,9 +81,7 @@ import {
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 
-import { createLogger } from "@/lib/logger"
-
-const logger = createLogger("page")
+const logger = createLogger("CalendarPage")
 
 
 interface Event {
@@ -1086,7 +1085,7 @@ export default function CalendarPage() {
                     <Button 
                       variant="destructive" 
                       onClick={() => {
-                        console.log("Abriendo modal de eliminación")
+                        // Modal de eliminación abierto
                         setShowDeleteModal(true)
                       }}
                       disabled={isSaving}
@@ -1109,7 +1108,7 @@ export default function CalendarPage() {
                     <Button 
                       variant="destructive" 
                       onClick={() => {
-                        console.log("Abriendo modal de eliminación desde vista")
+                        // Modal de eliminación abierto desde vista
                         setShowDeleteModal(true)
                       }}
                     >
@@ -1138,11 +1137,11 @@ export default function CalendarPage() {
         <DeleteConfirmationModal
           isOpen={showDeleteModal}
           onClose={() => {
-            console.log("Cerrando modal de eliminación")
+            // Cerrando modal
             setShowDeleteModal(false)
           }}
           onConfirm={() => {
-            console.log("Confirmando eliminación")
+            // Confirmación de eliminación
             deleteEvent()
           }}
           itemName={`evento de ${getEventTypeName(selectedEvent.eventType)}`}
