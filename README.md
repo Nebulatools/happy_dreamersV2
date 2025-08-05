@@ -48,6 +48,12 @@ Una aplicación integral para el seguimiento y análisis del sueño infantil, co
 - **date-fns** - Manipulación de fechas
 - **Recharts** - Visualización de datos
 
+### Testing & CI/CD
+- **Jest** - Framework de testing
+- **React Testing Library** - Testing de componentes React
+- **GitHub Actions** - Pipeline CI/CD automatizado
+- **Vercel** - Deployment y hosting
+
 ## 🚀 Instalación y Configuración
 
 ### Prerrequisitos
@@ -236,6 +242,57 @@ El sistema utiliza **LangGraph** para implementar múltiples agentes especializa
 - Métricas detalladas de sueño
 - Recomendaciones personalizadas
 - PDFs profesionales para médicos
+
+## 🧪 Testing
+
+### Ejecutar Tests
+```bash
+# Ejecutar todos los tests
+npm test
+
+# Ejecutar en modo watch
+npm run test:watch
+
+# Generar reporte de cobertura
+npm run test:coverage
+
+# Ejecutar tests en CI
+npm run test:ci
+```
+
+### Estructura de Tests
+```
+__tests__/
+├── components/     # Tests de componentes React
+├── hooks/          # Tests de hooks personalizados
+├── lib/            # Tests de utilidades y validaciones
+└── api/            # Tests de endpoints API
+```
+
+## 🚀 CI/CD Pipeline
+
+### GitHub Actions Workflows
+
+#### Pipeline Principal (`ci.yml`)
+- ✅ Linting y type checking
+- ✅ Tests con cobertura
+- ✅ Build de producción
+- ✅ Escaneo de seguridad
+- ✅ Deploy automático a Vercel
+
+#### Validaciones de PR (`pr-checks.yml`)
+- ✅ Validación de título de PR
+- ✅ Verificación de bundle size
+- ✅ Lighthouse CI para métricas
+- ✅ Review de dependencias
+
+### Configurar CI/CD
+1. Configurar secrets en GitHub:
+   - `VERCEL_TOKEN`
+   - `VERCEL_ORG_ID`
+   - `VERCEL_PROJECT_ID`
+2. Habilitar GitHub Actions en el repositorio
+3. Los workflows se ejecutarán automáticamente
 
 ## 🎨 Diseño y UX
 
