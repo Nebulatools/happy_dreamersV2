@@ -7,6 +7,7 @@ import React, { ReactNode } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, AlertCircle, LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { colors, spacing, typography, animations, happyDreamersTokens, getChartColor } from "@/lib/design-system"
 
 interface BaseChartProps {
   title: string
@@ -109,7 +110,7 @@ export function BaseChart({
   title,
   description,
   icon: Icon,
-  iconColor = "text-[#628BE6]",
+  iconColor = `text-[${colors.brand.mediumBlue}]`,
   loading = false,
   error = false,
   children,
@@ -220,47 +221,47 @@ export function BaseChart({
   )
 }
 
-// Constantes de diseño para gráficos
+// Constantes de diseño para gráficos - Migrado al sistema de diseño
 export const CHART_COLORS = {
-  primary: '#628BE6',
-  primaryLight: '#67C5FF',
-  secondary: '#FFB84D',
+  primary: colors.brand.mediumBlue,
+  primaryLight: colors.brand.lightBlue,
+  secondary: colors.chart.tertiary,
   secondaryLight: '#FFDD85',
-  success: '#4ECDC4',
-  warning: '#FFE66D',
-  danger: '#FF6B6B',
-  info: '#4E89E3',
-  purple: '#A78BFA',
+  success: colors.status.success,
+  warning: colors.status.warning,
+  danger: colors.status.error,
+  info: colors.status.info,
+  purple: colors.chart.primary,
   pink: '#F472B6',
-  gray: '#9CA3AF',
-  // Paleta para múltiples series
+  gray: colors.gray[400],
+  // Paleta para múltiples series - usa la función getChartColor
   palette: [
-    '#628BE6',
-    '#FFB84D', 
-    '#4ECDC4',
-    '#A78BFA',
-    '#FF6B6B',
-    '#FFE66D',
-    '#F472B6',
-    '#67C5FF',
+    colors.chart.primary,
+    colors.chart.secondary,
+    colors.chart.tertiary,
+    colors.chart.quaternary,
+    colors.chart.quinary,
+    colors.chart.senary,
+    colors.brand.mediumBlue,
+    colors.brand.lightBlue,
   ]
 }
 
-// Dimensiones estándar
-export const CHART_DIMENSIONS = {
-  small: 200,
-  medium: 300,
-  large: 400,
-  responsive: '100%',
-}
+// Dimensiones estándar - Usa las del sistema de diseño
+export const CHART_DIMENSIONS = happyDreamersTokens.chartDimensions
 
-// Configuración común para Recharts
+// Configuración común para Recharts - Usa el sistema de diseño
 export const CHART_CONFIG = {
-  margin: { top: 5, right: 10, left: 10, bottom: 5 },
-  animationDuration: 1000,
+  margin: { 
+    top: parseInt(spacing[1]), 
+    right: parseInt(spacing[2.5]), 
+    left: parseInt(spacing[2.5]), 
+    bottom: parseInt(spacing[1]) 
+  },
+  animationDuration: parseInt(animations.duration[1000]),
   strokeWidth: 2,
-  fontSize: 12,
-  fontFamily: 'Inter, system-ui, sans-serif',
+  fontSize: parseInt(typography.fontSize.xs[0]),
+  fontFamily: typography.fontFamily.sans.join(', '),
 }
 
 // Utilidad para formatear valores en gráficos
