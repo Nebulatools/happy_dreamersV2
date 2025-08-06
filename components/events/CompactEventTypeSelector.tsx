@@ -16,6 +16,10 @@ const eventTypeColors = {
   wake: "text-yellow-600 bg-yellow-50",
   night_waking: "text-red-600 bg-red-50",
   activity: "text-purple-600 bg-purple-50",
+  feeding: "text-green-600 bg-green-50",
+  night_feeding: "text-emerald-600 bg-emerald-50",
+  medication: "text-pink-600 bg-pink-50",
+  extra_activities: "text-indigo-600 bg-indigo-50",
 }
 
 export function CompactEventTypeSelector({ value, onValueChange }: CompactEventTypeSelectorProps) {

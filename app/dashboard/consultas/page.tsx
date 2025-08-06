@@ -18,6 +18,7 @@ import { useActiveChild } from "@/context/active-child-context"
 import { ArrowUp } from "lucide-react"
 
 import { createLogger } from "@/lib/logger"
+import { ConsultasErrorBoundary } from "@/components/consultas/ConsultasErrorBoundary"
 
 const logger = createLogger("page")
 
@@ -173,12 +174,14 @@ export default function ConsultasPage() {
 
   // Renderizar contenido basado en el tab activo
   const renderTabContent = () => {
+    // Validaciones defensivas mejoradas
     if (!activeUserId || !activeChildId) {
+      logger.debug("No hay usuario o niño seleccionado")
       return null
     }
 
     // Verificación defensiva para childData
-    if (loadingChild || !childData) {
+    if (loadingChild) {
       return (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -187,7 +190,16 @@ export default function ConsultasPage() {
       )
     }
 
-    const childName = `${childData.firstName} ${childData.lastName}`
+    if (!childData) {
+      logger.warn("childData es null después de cargar")
+      return (
+        <div className="flex items-center justify-center py-8 text-amber-600">
+          <span>No se pudieron cargar los datos del niño. Por favor, intenta nuevamente.</span>
+        </div>
+      )
+    }
+
+    const childName = `${childData.firstName || ''} ${childData.lastName || ''}`.trim() || 'Niño'
 
     try {
       switch (activeTab) {
@@ -265,35 +277,46 @@ export default function ConsultasPage() {
   // Si hay selección, mostrar tabs
   if (activeUserId && activeChildId && !loadingChild) {
     return (
-      <>
-        {/* Tabs de navegación */}
-        <ConsultationTabs
-          activeTab={activeTab}
-          onTabChange={(newTab) => {
-            // Prevenir cambios de tab durante análisis o carga
-            if (isAnalyzing || loadingChild) return
-            setActiveTab(newTab)
-          }}
-          userName={activeUserName || ""}
-          childName={childData ? `${childData.firstName} ${childData.lastName}` : ""}
-        />
+      <ConsultasErrorBoundary>
+        <>
+          {/* Tabs de navegación */}
+          <ConsultationTabs
+            activeTab={activeTab}
+            onTabChange={(newTab) => {
+              // Prevenir cambios de tab durante análisis o carga
+              if (isAnalyzing || loadingChild) return
+              
+              // Log para debug
+              logger.debug(`Cambiando de tab: ${activeTab} -> ${newTab}`)
+              
+              // Validar que el nuevo tab es válido
+              if (['transcript', 'plan', 'analysis', 'history'].includes(newTab)) {
+                setActiveTab(newTab)
+              } else {
+                logger.warn(`Tab inválido: ${newTab}`)
+              }
+            }}
+            userName={activeUserName || ""}
+            childName={childData ? `${childData.firstName || ''} ${childData.lastName || ''}`.trim() : "Cargando..."}
+          />
 
-        {/* Contenido principal */}
-        <div className="container py-8 space-y-6">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Stethoscope className="h-8 w-8" />
-              Consultas Especializadas
-            </h1>
-            <p className="text-muted-foreground">
-              Realiza consultas combinando transcripts con datos del niño y knowledge base
-            </p>
+          {/* Contenido principal */}
+          <div className="container py-8 space-y-6">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold flex items-center gap-2">
+                <Stethoscope className="h-8 w-8" />
+                Consultas Especializadas
+              </h1>
+              <p className="text-muted-foreground">
+                Realiza consultas combinando transcripts con datos del niño y knowledge base
+              </p>
+            </div>
+
+            {/* Contenido del tab activo */}
+            {renderTabContent()}
           </div>
-
-          {/* Contenido del tab activo */}
-          {renderTabContent()}
-        </div>
-      </>
+        </>
+      </ConsultasErrorBoundary>
     )
   }
 

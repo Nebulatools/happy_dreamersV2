@@ -9,6 +9,7 @@ import RecentEvents from "@/components/child-profile/RecentEvents"
 import { EventRegistrationModal } from "@/components/events"
 import { useActiveChild } from "@/context/active-child-context"
 import { useEventsInvalidation } from "@/hooks/use-events-cache"
+import { ChildAgeBadge } from "@/components/ui/child-age-badge"
 
 import { createLogger } from "@/lib/logger"
 import { extractChildrenFromResponse } from "@/lib/api-response-utils"
@@ -186,9 +187,13 @@ export default function ChildProfilePage() {
               </div>
 
               <div className="flex items-center space-x-6 text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <User className="w-4 h-4" />
-                  <span>{calculateAge(child.birthDate)} años</span>
+                <div className="flex items-center">
+                  <ChildAgeBadge 
+                    birthDate={child.birthDate}
+                    useContext={false}
+                    size="lg"
+                    variant="secondary"
+                  />
                 </div>
                 <div className="flex items-center space-x-2">
                   <Calendar className="w-4 h-4" />
