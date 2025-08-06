@@ -127,6 +127,37 @@ export default function AdminStatistics() {
       const mockCriticalAlerts: ChildAlert[] = []
       const mockWarningAlerts: ChildAlert[] = []
       
+      // Calcular pacientes con planes de seguimiento activos
+      let activeToday = 0
+      const today = new Date()
+      const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+      
+      // Para cada niño, verificar si ha tenido actividad reciente
+      for (const child of allChildren) {
+        try {
+          // Verificar eventos recientes (últimos 7 días)
+          const eventsResponse = await fetch(`/api/children/events?childId=${child._id}`)
+          if (eventsResponse.ok) {
+            const eventsData = await eventsResponse.json()
+            const events = eventsData.events || []
+            
+            // Contar como activo si tiene eventos en los últimos 7 días
+            const hasRecentActivity = events.some((event: any) => {
+              if (!event.startTime && !event.createdAt) return false
+              const eventDate = new Date(event.startTime || event.createdAt)
+              return eventDate >= sevenDaysAgo
+            })
+            
+            if (hasRecentActivity) {
+              activeToday++
+            }
+          }
+        } catch (error) {
+          // Si hay error al cargar eventos de un niño, continuar con el siguiente
+          logger.warn(`Error loading events for child ${child._id}:`, error)
+        }
+      }
+
       // Convertir todos los niños a pacientes "ok" para mostrar en la lista
       const okPatients: ChildAlert[] = allChildren.map(child => ({
         childId: child._id,
@@ -147,7 +178,7 @@ export default function AdminStatistics() {
       // Actualizar métricas con datos reales
       setMetrics({
         totalPatients: totalPatients,
-        activeToday: 0, // TODO: Calcular activos hoy cuando tengamos la API
+        activeToday: activeToday, // Pacientes con actividad reciente (últimos 7 días)
         alerts: {
           critical: 0,
           warning: 0,
@@ -240,12 +271,12 @@ export default function AdminStatistics() {
             </CardContent>
           </Card>
 
-          {/* Activos Hoy */}
+          {/* Planes de Seguimiento Activos */}
           <Card className="bg-white shadow-sm border-0">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <p className="text-sm text-[#666666]">Activos Hoy</p>
+                  <p className="text-sm text-[#666666]">Planes de Seguimiento Activos</p>
                   <p className="text-3xl font-bold text-[#2F2F2F]">{metrics.activeToday}</p>
                 </div>
                 <div className="h-10 w-10 bg-green-100 rounded-xl flex items-center justify-center">
@@ -254,9 +285,9 @@ export default function AdminStatistics() {
               </div>
               <div className="mt-4 flex items-center gap-2">
                 <Badge className="bg-green-50 text-green-700 hover:bg-green-50">
-                  {Math.round((metrics.activeToday / metrics.totalPatients) * 100) || 0}% de tasa
+                  {Math.round((metrics.activeToday / metrics.totalPatients) * 100) || 0}% con actividad reciente
                 </Badge>
-                <span className="text-xs text-[#666666]">vs. ayer</span>
+                <span className="text-xs text-[#666666]">últimos 7 días</span>
               </div>
             </CardContent>
           </Card>

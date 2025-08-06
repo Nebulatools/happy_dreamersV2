@@ -37,12 +37,20 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
     
     return [
       {
-        title: "Tiempo total de sueño (promedio)",
-        value: formatDuration(sleepData.totalSleepHours),
-        icon: <Clock className="w-3 h-3" />,
-        status: getSleepDurationStatus(sleepData.totalSleepHours),
-        change: `${sleepData.totalSleepHours.toFixed(1)} horas promedio`,
+        title: "Sueño nocturno (promedio)",
+        value: formatDuration(sleepData.avgSleepDuration),
+        icon: <Moon className="w-4 h-4" />,
+        status: getSleepDurationStatus(sleepData.avgSleepDuration),
+        change: `${sleepData.avgSleepDuration.toFixed(1)}h nocturno`,
         iconBg: "bg-[#B7F1C0]",
+      },
+      {
+        title: "Siestas (promedio)",
+        value: formatDuration(sleepData.avgNapDuration),
+        icon: <Clock className="w-3 h-3" />,
+        status: getNapDurationStatus(sleepData.avgNapDuration),
+        change: `${sleepData.avgNapDuration.toFixed(1)}h en siestas`,
+        iconBg: "bg-[#FFE7B3]",
       },
       {
         title: "Hora de acostarse (promedio)",
@@ -118,8 +126,16 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
     return { label: "Mala", variant: "poor" }
   }
 
+  function getNapDurationStatus(hours: number): { label: string; variant: "good" | "consistent" | "average" | "poor" } {
+    if (hours >= 1 && hours <= 2.5) return { label: "Óptimo", variant: "good" }
+    if (hours >= 0.5 && hours < 1) return { label: "Corto", variant: "consistent" }
+    if (hours > 2.5 && hours <= 4) return { label: "Largo", variant: "average" }
+    if (hours === 0) return { label: "Sin siestas", variant: "average" }
+    return { label: "Excesivo", variant: "poor" }
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
       {loading ? (
         <div className="col-span-full flex justify-center items-center h-32">
           <p className="text-gray-500">Cargando métricas...</p>

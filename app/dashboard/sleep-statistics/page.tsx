@@ -8,6 +8,7 @@ import SleepMetricsGrid from "@/components/child-profile/SleepMetricsGrid"
 import SleepDurationChart from "@/components/sleep-statistics/SleepDurationChart"
 import SleepConsistencyChart from "@/components/sleep-statistics/SleepConsistencyChart"
 import NightWakeupsChart from "@/components/sleep-statistics/NightWakeupsChart"
+import NightWakeupsEvolutionChart from "@/components/sleep-statistics/NightWakeupsEvolutionChart"
 import SleepDistributionChart from "@/components/sleep-statistics/SleepDistributionChart"
 import SleepDataStorytellingCard from "@/components/sleep-statistics/SleepDataStorytellingCard"
 import SleepInsightsCard from "@/components/sleep-statistics/SleepInsightsCard"
@@ -103,6 +104,15 @@ export default function SleepStatisticsPage() {
       ) : (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
           <p className="text-gray-500">Selecciona un niño para ver los gráficos detallados</p>
+        </div>
+      )}
+
+      {/* Evolución de despertares nocturnos */}
+      {activeChildId ? (
+        <NightWakeupsEvolutionChart childId={activeChildId} dateRange={dateRange} />
+      ) : (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
+          <p className="text-gray-500">Selecciona un niño para ver la evolución de despertares nocturnos</p>
         </div>
       )}
 

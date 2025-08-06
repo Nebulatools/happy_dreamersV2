@@ -18,6 +18,7 @@ import { eventTypeHasEndTime, getEventType } from "@/lib/event-types"
 import { SleepDelayInput } from "./SleepDelayInput"
 import { NightWakingDelayInput } from "./NightWakingDelayInput"
 import { ExtraActivitiesInput } from "./ExtraActivitiesInput"
+import { NightFeedingStateSelector } from "./NightFeedingStateSelector"
 
 import { createLogger } from "@/lib/logger"
 
@@ -110,6 +111,7 @@ const eventFormSchema = z.object({
   notes: z.string().optional(),
   description: z.string().optional(),
   showStartTime: z.boolean().optional(),
+  nightFeedingState: z.string().optional(),
 }).refine((data) => {
   // Validar que la hora de fin sea después de la hora de inicio
   if (data.endTime && data.startTime) {
@@ -141,6 +143,15 @@ const eventFormSchema = z.object({
 }, {
   message: "Por favor ingresa la hora de inicio",
   path: ["startTime"],
+}).refine((data) => {
+  // Para tomas nocturnas, el estado es requerido
+  if (data.eventType === "night_feeding" && !data.nightFeedingState) {
+    return false
+  }
+  return true
+}, {
+  message: "Por favor selecciona si el niño estaba dormido o despierto",
+  path: ["nightFeedingState"],
 })
 
 type EventFormValues = z.infer<typeof eventFormSchema>
@@ -330,6 +341,7 @@ export function EventRegistrationModal({
         duration: data.endTime && data.startTime ? calculateDuration(data.startTime, data.endTime) : data.duration || 0,
         sleepDelay: data.sleepDelay || 0,
         description: data.description || "",
+        nightFeedingState: data.nightFeedingState || "",
       }
       
       // Si es extra_activities y showStartTime es false, no enviar startTime
@@ -562,6 +574,25 @@ export function EventRegistrationModal({
               )}
             </div>
 
+            {/* Selector especial para tomas nocturnas */}
+            {eventType === "night_feeding" && (
+              <FormField
+                control={form.control}
+                name="nightFeedingState"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <NightFeedingStateSelector
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             {/* Notas */}
             <FormField
               control={form.control}
@@ -574,11 +605,13 @@ export function EventRegistrationModal({
                   <FormControl>
                     <Textarea
                       placeholder={
-                        eventType === "night_waking"
-                          ? "Añade cualquier detalle adicional: ¿Por qué se despertó? ¿Lloró mucho? ¿Necesitó consuelo? ¿Qué ayudó a calmarlo?"
-                          : shouldShowSleepDelay 
-                            ? "Añade cualquier detalle adicional: ¿Se despertó durante la noche? ¿Tuvo alguna dificultad para dormir? ¿Cómo fue la rutina de sueño?"
-                            : "Añade detalles adicionales sobre este evento..."
+                        eventType === "night_feeding"
+                          ? "Detalles de la toma nocturna: ¿Qué comió/bebió? ¿Cuánto? ¿Cómo fue el proceso? ¿Volvió a dormir fácilmente?"
+                          : eventType === "night_waking"
+                            ? "Añade cualquier detalle adicional: ¿Por qué se despertó? ¿Lloró mucho? ¿Necesitó consuelo? ¿Qué ayudó a calmarlo?"
+                            : shouldShowSleepDelay 
+                              ? "Añade cualquier detalle adicional: ¿Se despertó durante la noche? ¿Tuvo alguna dificultad para dormir? ¿Cómo fue la rutina de sueño?"
+                              : "Añade detalles adicionales sobre este evento..."
                       }
                       className="bg-gray-50 border-gray-200 resize-none"
                       rows={4}

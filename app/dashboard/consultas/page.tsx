@@ -140,8 +140,10 @@ export default function ConsultasPage() {
         description: "Se ha generado el análisis y plan de mejoramiento.",
       })
 
-      // Cambiar al tab de análisis
-      setActiveTab("analysis")
+      // Cambiar al tab de análisis después de un pequeño delay
+      setTimeout(() => {
+        setActiveTab("analysis")
+      }, 100)
     } catch (error) {
       logger.error("Error:", error)
       toast({
@@ -171,13 +173,24 @@ export default function ConsultasPage() {
 
   // Renderizar contenido basado en el tab activo
   const renderTabContent = () => {
-    if (!activeUserId || !activeChildId || !childData) {
+    if (!activeUserId || !activeChildId) {
       return null
     }
 
-    const childName = childData ? `${childData.firstName} ${childData.lastName}` : ""
+    // Verificación defensiva para childData
+    if (loadingChild || !childData) {
+      return (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          <span>Cargando datos del niño...</span>
+        </div>
+      )
+    }
 
-    switch (activeTab) {
+    const childName = `${childData.firstName} ${childData.lastName}`
+
+    try {
+      switch (activeTab) {
       case "transcript":
         return (
           <>
@@ -238,6 +251,14 @@ export default function ConsultasPage() {
 
       default:
         return null
+      }
+    } catch (error) {
+      logger.error("Error rendering tab content:", error)
+      return (
+        <div className="flex items-center justify-center py-8 text-red-600">
+          <span>Error al cargar el contenido. Por favor, recarga la página.</span>
+        </div>
+      )
     }
   }
 
@@ -248,7 +269,11 @@ export default function ConsultasPage() {
         {/* Tabs de navegación */}
         <ConsultationTabs
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={(newTab) => {
+            // Prevenir cambios de tab durante análisis o carga
+            if (isAnalyzing || loadingChild) return
+            setActiveTab(newTab)
+          }}
           userName={activeUserName || ""}
           childName={childData ? `${childData.firstName} ${childData.lastName}` : ""}
         />

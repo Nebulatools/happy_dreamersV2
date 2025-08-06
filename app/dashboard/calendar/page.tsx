@@ -111,7 +111,7 @@ export default function CalendarPage() {
   const { refreshTrigger, subscribe } = useEventsCache(activeChildId)
   const invalidateEvents = useEventsInvalidation()
   const [date, setDate] = useState<Date>(new Date())
-  const [view, setView] = useState<"month" | "week" | "day">("month")
+  const [view, setView] = useState<"month" | "week" | "day">("week")
   const [isLoading, setIsLoading] = useState(true)
   const [events, setEvents] = useState<Event[]>([])
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStats>({

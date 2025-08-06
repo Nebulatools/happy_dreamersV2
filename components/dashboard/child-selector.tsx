@@ -122,17 +122,26 @@ export function ChildSelector() {
     }
   }
 
-  // Función para formatear la fecha de nacimiento
-  const formatBirthDate = (birthDate: string) => {
+  // Función para calcular la edad del niño
+  const getChildAge = (birthDate: string) => {
     if (!birthDate) return ""
     
     try {
-      const date = new Date(birthDate)
-      const day = date.getDate().toString().padStart(2, "0")
-      const month = (date.getMonth() + 1).toString().padStart(2, "0") 
-      const year = date.getFullYear().toString().slice(-2) // Solo los últimos 2 dígitos del año
+      const birth = new Date(birthDate)
+      const today = new Date()
+      const diffTime = today.getTime() - birth.getTime()
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
       
-      return ` (${day}/${month}/${year})`
+      if (diffDays < 30) {
+        return `${diffDays}d`
+      } else if (diffDays < 365) {
+        const months = Math.floor(diffDays / 30)
+        return `${months}m`
+      } else {
+        const years = Math.floor(diffDays / 365)
+        const remainingMonths = Math.floor((diffDays % 365) / 30)
+        return remainingMonths > 0 ? `${years}a ${remainingMonths}m` : `${years}a`
+      }
     } catch (error) {
       return ""
     }
@@ -165,6 +174,12 @@ export function ChildSelector() {
     if (!activeChildId) return ""
     const activeChild = children.find(child => child._id === activeChildId)
     return activeChild ? `${activeChild.firstName} ${activeChild.lastName}` : ""
+  }
+
+  // Obtener datos completos del niño activo
+  const getActiveChildData = () => {
+    if (!activeChildId) return null
+    return children.find(child => child._id === activeChildId) || null
   }
 
   const handleAddChild = () => {
@@ -230,14 +245,32 @@ export function ChildSelector() {
               >
                 <SelectTrigger className="h-auto p-0 border-none bg-transparent hover:bg-transparent focus:ring-0 focus:ring-offset-0 shadow-none [&>svg]:hidden">
                   <div className="flex items-center justify-between w-full">
-                    <SelectValue 
-                      placeholder={
-                        loading ? "Cargando..." : 
-                          children.length === 0 ? "Sin niños" : 
-                            "Seleccionar"
-                      }
-                      className="text-[#2553A1] font-medium text-base"
-                    />
+                    <div className="flex flex-col items-start">
+                      {(() => {
+                        const activeChild = getActiveChildData()
+                        if (loading) {
+                          return <span className="text-[#2553A1] font-medium text-base">Cargando...</span>
+                        }
+                        if (children.length === 0) {
+                          return <span className="text-[#2553A1] font-medium text-base">Sin niños</span>
+                        }
+                        if (activeChild) {
+                          return (
+                            <>
+                              <span className="text-[#2553A1] font-medium text-base">
+                                {activeChild.firstName}
+                              </span>
+                              {activeChild.birthDate && (
+                                <span className="text-xs text-[#666666] leading-none">
+                                  {getChildAge(activeChild.birthDate)}
+                                </span>
+                              )}
+                            </>
+                          )
+                        }
+                        return <span className="text-[#2553A1] font-medium text-base">Seleccionar</span>
+                      })()}
+                    </div>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className="h-3 w-3 text-[#2553A1] ml-2 flex-shrink-0"
@@ -253,7 +286,14 @@ export function ChildSelector() {
                 <SelectContent>
                   {children.map((child) => (
                     <SelectItem key={child._id} value={child._id}>
-                      {child.firstName}
+                      <div className="flex flex-col">
+                        <span>{child.firstName}</span>
+                        {child.birthDate && (
+                          <span className="text-xs text-gray-500">
+                            {getChildAge(child.birthDate)}
+                          </span>
+                        )}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>

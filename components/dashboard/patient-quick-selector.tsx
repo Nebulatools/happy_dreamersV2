@@ -181,21 +181,28 @@ export function PatientQuickSelector({
     })
   }
 
-  // Formatear edad del niño
+  // Formatear edad del niño (formato compacto)
   const getChildAge = (birthDate?: string) => {
     if (!birthDate) return ""
     
-    const birth = new Date(birthDate)
-    const today = new Date()
-    const monthsDiff = (today.getFullYear() - birth.getFullYear()) * 12 + 
-                      (today.getMonth() - birth.getMonth())
-    
-    if (monthsDiff < 12) {
-      return `${monthsDiff} meses`
-    } else {
-      const years = Math.floor(monthsDiff / 12)
-      const months = monthsDiff % 12
-      return months > 0 ? `${years} años ${months} meses` : `${years} años`
+    try {
+      const birth = new Date(birthDate)
+      const today = new Date()
+      const diffTime = today.getTime() - birth.getTime()
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+      
+      if (diffDays < 30) {
+        return `${diffDays}d`
+      } else if (diffDays < 365) {
+        const months = Math.floor(diffDays / 30)
+        return `${months}m`
+      } else {
+        const years = Math.floor(diffDays / 365)
+        const remainingMonths = Math.floor((diffDays % 365) / 30)
+        return remainingMonths > 0 ? `${years}a ${remainingMonths}m` : `${years}a`
+      }
+    } catch (error) {
+      return ""
     }
   }
 
@@ -225,9 +232,16 @@ export function PatientQuickSelector({
                 name={`${activeChild.firstName} ${activeChild.lastName}`}
                 className="mr-2 h-5 w-5"
               />
-              <span className="truncate">
-                {activeChild.firstName} - {activeUserName}
-              </span>
+              <div className="flex flex-col items-start truncate">
+                <span className="truncate text-sm">
+                  {activeChild.firstName} - {activeUserName}
+                </span>
+                {activeChild.birthDate && (
+                  <span className="text-xs text-gray-500">
+                    {getChildAge(activeChild.birthDate)}
+                  </span>
+                )}
+              </div>
             </span>
           ) : activeUserId && !activeChild ? (
             <span className="flex items-center">

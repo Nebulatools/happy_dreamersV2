@@ -1,4 +1,4 @@
-import { Moon, Sun, Activity, AlertCircle, MessageSquare } from "lucide-react"
+import { Moon, Sun, Activity, AlertCircle, MessageSquare, Utensils, Pill } from "lucide-react"
 
 export interface EventType {
   id: string
@@ -40,6 +40,29 @@ export const eventTypes: EventType[] = [
     description: "Despertar durante la noche",
     hasEndTime: false,
     hasSleepDelay: true,
+  },
+  {
+    id: "feeding",
+    label: "Alimentación",
+    icon: Utensils,
+    description: "Comida, biberón, lactancia",
+    hasEndTime: true,
+  },
+  {
+    id: "night_feeding",
+    label: "Tomas Nocturnas",
+    icon: Utensils,
+    description: "Alimentación durante la noche",
+    hasEndTime: true,
+    requiresDescription: true,
+  },
+  {
+    id: "medication",
+    label: "Medicamentos",
+    icon: Pill,
+    description: "Administración de medicamentos",
+    hasEndTime: false,
+    requiresDescription: true,
   },
   {
     id: "extra_activities",
