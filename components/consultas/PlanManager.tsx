@@ -4,6 +4,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger('PlanManager')
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
@@ -64,7 +67,7 @@ export function PlanManager({
       const data = await response.json()
       setHistoryReports(data.consultations || [])
     } catch (error) {
-      console.error('Error cargando historial:', error)
+      logger.error('Error cargando historial', error)
       setHistoryReports([])
     } finally {
       setLoadingHistory(false)

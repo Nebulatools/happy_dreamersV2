@@ -1,6 +1,9 @@
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('SleepDataStorytellingCard')
 import { AlertTriangle, Eye, EyeOff, Moon, Clock, TrendingUp, TrendingDown, Info } from 'lucide-react'
 import { useSleepData } from '@/hooks/use-sleep-data'
 import { format, parseISO, subDays, startOfDay, isAfter, isBefore, differenceInMinutes } from 'date-fns'
@@ -74,8 +77,8 @@ export default function SleepDataStorytellingCard({
     // Obtener todos los eventos de sueño
     const allEvents = sleepData.events
     
-    console.log(`🔍 Total eventos disponibles: ${allEvents.length}`)
-    console.log(`📋 Tipos de eventos:`, allEvents.reduce((acc, e) => {
+    logger.debug('Procesando eventos', { total: allEvents.length })
+    logger.debug('Tipos de eventos', allEvents.reduce((acc, e) => {
       acc[e.eventType] = (acc[e.eventType] || 0) + 1
       return acc
     }, {} as Record<string, number>))
@@ -111,7 +114,7 @@ export default function SleepDataStorytellingCard({
       // Usar la función unificada para procesar los eventos de este día
       const dayStats = processSleepStatistics(eventsToProcess)
       
-      console.log(`📊 Día ${format(date, 'dd/MM')} - Estadísticas unificadas:`, {
+      logger.debug(`Estadísticas del día ${format(date, 'dd/MM')}`, {
         avgSleepDuration: dayStats.avgSleepDuration.toFixed(1),
         avgNapDuration: dayStats.avgNapDuration.toFixed(1),
         totalSleepHours: dayStats.totalSleepHours.toFixed(1),

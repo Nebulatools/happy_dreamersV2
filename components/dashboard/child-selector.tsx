@@ -155,18 +155,15 @@ export function ChildSelector() {
       return
     }
 
+    // ✅ PARA ADMINS: No ejecutar lógica aquí, PatientQuickSelector se encarga
     if (isAdmin) {
-      // Para admins, solo cargar si hay un usuario seleccionado
-      if (activeUserId) {
-        fetchChildren(activeUserId)
-      } else {
-        setChildren([])
-        setLoading(false)
-      }
-    } else {
-      // Para usuarios normales, cargar sus propios niños
-      fetchChildren()
+      setLoading(false)
+      setChildren([])
+      return
     }
+
+    // Para usuarios normales, cargar sus propios niños
+    fetchChildren()
   }, [session?.user?.id, isAdmin, activeUserId])
 
   // Obtener el nombre del niño activo

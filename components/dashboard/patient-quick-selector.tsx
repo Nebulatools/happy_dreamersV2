@@ -100,9 +100,17 @@ export function PatientQuickSelector({
     fetchUsers()
   }, [toast])
 
+  // ✅ NUEVO: Cargar niños del usuario activo al inicializar (para refresh)
+  useEffect(() => {
+    if (activeUserId && users.length > 0) {
+      logger.info(`Inicializando: cargando niños para usuario ${activeUserId}`)
+      loadUserChildren(activeUserId)
+    }
+  }, [activeUserId, users.length])
+
   // Cargar niños de un usuario cuando se expande
-  const loadUserChildren = async (userId: string) => {
-    if (userChildren[userId]) return // Ya cargados
+  const loadUserChildren = async (userId: string): Promise<Child[]> => {
+    if (userChildren[userId]) return userChildren[userId] // Ya cargados
     
     try {
       setLoadingChildren(userId)
@@ -113,10 +121,14 @@ export function PatientQuickSelector({
       }
       
       const data = await response.json()
+      const children = Array.isArray(data) ? data : (data?.children || data?.data?.children || [])
+      
       setUserChildren(prev => ({
         ...prev,
-        [userId]: Array.isArray(data) ? data : (data?.children || data?.data?.children || [])
+        [userId]: children
       }))
+      
+      return children
     } catch (error) {
       logger.error("Error:", error)
       toast({
@@ -124,6 +136,7 @@ export function PatientQuickSelector({
         description: "No se pudieron cargar los niños del usuario.",
         variant: "destructive",
       })
+      return []
     } finally {
       setLoadingChildren(null)
     }
@@ -150,21 +163,28 @@ export function PatientQuickSelector({
 
   // Manejar selección de usuario
   const handleUserSelect = async (user: User) => {
+    logger.info(`Admin seleccionando usuario: ${user.name} (${user._id})`)
+    logger.info(`ActiveChildId anterior: ${activeChildId}`)
+    
     setActiveUserId(user._id)
     setActiveUserName(user.name)
     setActiveChildId(null) // Limpiar selección de niño
     
-    // Cargar niños del usuario
-    await loadUserChildren(user._id)
+    logger.info('ActiveChildId limpiado a null')
     
-    // Si el usuario solo tiene un niño, seleccionarlo automáticamente
-    const children = userChildren[user._id] || []
+    // ✅ NOTIFICAR INMEDIATAMENTE que se limpió la selección
+    onSelectionChange?.(user._id, null)
+    
+    // Cargar niños del usuario
+    const children = await loadUserChildren(user._id)
+    
+    logger.info(`Niños cargados para ${user.name}: ${children.length}`)
+    
+    // Si hay un solo niño, seleccionarlo automáticamente
     if (children.length === 1) {
+      logger.info(`Auto-seleccionando único niño: ${children[0].firstName}`)
       handleChildSelect(children[0])
     }
-    
-    // Notificar cambio
-    onSelectionChange?.(user._id, null)
   }
 
   // Manejar selección de niño

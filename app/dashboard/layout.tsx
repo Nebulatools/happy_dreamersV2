@@ -9,6 +9,7 @@ import { ActiveChildProvider } from "@/context/active-child-context"
 import { PageHeaderProvider } from "@/context/page-header-context"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { Header } from "@/components/dashboard/header"
+import ErrorBoundary from "@/components/ErrorBoundary"
 
 export default async function DashboardLayout({
   children,
@@ -24,15 +25,25 @@ export default async function DashboardLayout({
   return (
     <ActiveChildProvider>
       <PageHeaderProvider>
-        <div className="min-h-screen w-full">
-          <Sidebar />
-          <div className="flex flex-col lg:ml-[256px]">
-            <Header />
-            <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
-              {children}
-            </main>
+        <ErrorBoundary 
+          context="dashboard" 
+          showDetails={process.env.NODE_ENV === 'development'}
+        >
+          <div className="min-h-screen w-full">
+            <Sidebar />
+            <div className="flex flex-col lg:ml-[256px]">
+              <Header />
+              <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
+                <ErrorBoundary 
+                  context="página" 
+                  showDetails={process.env.NODE_ENV === 'development'}
+                >
+                  {children}
+                </ErrorBoundary>
+              </main>
+            </div>
           </div>
-        </div>
+        </ErrorBoundary>
       </PageHeaderProvider>
     </ActiveChildProvider>
   )

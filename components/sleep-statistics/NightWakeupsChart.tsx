@@ -2,6 +2,9 @@ import React from "react"
 import { useSleepData } from "@/hooks/use-sleep-data"
 import { AlertCircle } from "lucide-react"
 import { parseISO, differenceInMinutes, getDay } from "date-fns"
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger("NightWakeupsChart")
 
 // Función para procesar despertares nocturnos por día de la semana
 function processNightWakeups(events: any[]) {
@@ -21,7 +24,7 @@ function processNightWakeups(events: any[]) {
   // Filtrar solo eventos de tipo night_waking
   const nightWakingEvents = events.filter(event => event.eventType === 'night_waking')
   
-  console.log('DEBUG - processNightWakeups eventos night_waking:', nightWakingEvents.length)
+  logger.debug('Procesando eventos night_waking', { count: nightWakingEvents.length })
   
   // Procesar cada despertar nocturno
   nightWakingEvents.forEach(event => {
@@ -45,7 +48,7 @@ function processNightWakeups(events: any[]) {
         dayData.duration += 45 // Duración promedio si no hay endTime
       }
       
-      console.log('DEBUG - Despertar nocturno contado para día:', dayData.day)
+      logger.debug('Despertar nocturno registrado', { day: dayData.day })
     }
   })
   

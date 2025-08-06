@@ -1,6 +1,7 @@
 import React from "react"
 import { useSleepData } from "@/hooks/use-sleep-data"
 import { Clock } from "lucide-react"
+import { BaseChart, CHART_COLORS } from "@/components/charts"
 
 interface SleepDurationChartProps {
   childId: string
@@ -10,52 +11,20 @@ interface SleepDurationChartProps {
 export default function SleepDurationChart({ childId, dateRange = "7-days" }: SleepDurationChartProps) {
   const { data, loading, error } = useSleepData(childId, dateRange)
 
-  if (loading) {
-    return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-[#2F2F2F]">
-            Duración del sueño
-          </h3>
-          <Clock className="w-5 h-5 text-[#628BE6]" />
-        </div>
-        <div className="h-64 flex items-center justify-center text-gray-500">
-          <p>Cargando datos...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error || !data) {
-    return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-[#2F2F2F]">
-            Duración del sueño
-          </h3>
-          <Clock className="w-5 h-5 text-[#628BE6]" />
-        </div>
-        <div className="h-64 flex items-center justify-center text-red-500">
-          <p>Error al cargar datos</p>
-        </div>
-      </div>
-    )
-  }
-
   // Crear gráfico simple con barras CSS
-  const maxHours = Math.max(data.avgSleepDuration, data.avgNapDuration, 10)
-  const sleepPercentage = (data.avgSleepDuration / maxHours) * 100
-  const napPercentage = (data.avgNapDuration / maxHours) * 100
+  const maxHours = data ? Math.max(data.avgSleepDuration, data.avgNapDuration, 10) : 10
+  const sleepPercentage = data ? (data.avgSleepDuration / maxHours) * 100 : 0
+  const napPercentage = data ? (data.avgNapDuration / maxHours) * 100 : 0
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-[#2F2F2F]">
-          Duración del sueño
-        </h3>
-        <Clock className="w-5 h-5 text-[#628BE6]" />
-      </div>
-      
+    <BaseChart
+      title="Duración del sueño"
+      icon={Clock}
+      loading={loading}
+      error={error}
+      noData={!data}
+      height={300}
+    >
       {/* Gráfico simple con barras */}
       <div className="h-64 flex items-end justify-center space-x-8 mb-4">
         {/* Barra de sueño nocturno */}
@@ -67,7 +36,7 @@ export default function SleepDurationChart({ childId, dateRange = "7-days" }: Sl
             />
           </div>
           <p className="mt-2 text-sm font-medium text-gray-700">Nocturno</p>
-          <p className="text-xs text-gray-500">{data.avgSleepDuration.toFixed(1)}h</p>
+          <p className="text-xs text-gray-500">{data?.avgSleepDuration?.toFixed(1) || '0.0'}h</p>
         </div>
         
         {/* Barra de siestas */}
@@ -79,7 +48,7 @@ export default function SleepDurationChart({ childId, dateRange = "7-days" }: Sl
             />
           </div>
           <p className="mt-2 text-sm font-medium text-gray-700">Siestas</p>
-          <p className="text-xs text-gray-500">{data.avgNapDuration.toFixed(1)}h</p>
+          <p className="text-xs text-gray-500">{data?.avgNapDuration?.toFixed(1) || '0.0'}h</p>
         </div>
       </div>
       
@@ -100,10 +69,10 @@ export default function SleepDurationChart({ childId, dateRange = "7-days" }: Sl
         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
           <span className="font-medium">Total diario:</span>
           <span className="font-bold text-[#2F2F2F]">
-            {data.totalSleepHours.toFixed(1)} horas
+            {data?.totalSleepHours?.toFixed(1) || '0.0'} horas
           </span>
         </div>
       </div>
-    </div>
+    </BaseChart>
   )
 }
