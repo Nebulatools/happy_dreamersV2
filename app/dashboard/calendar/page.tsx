@@ -110,8 +110,30 @@ export default function CalendarPage() {
   const { refreshTrigger, subscribe } = useEventsCache(activeChildId)
   const invalidateEvents = useEventsInvalidation()
   const [date, setDate] = useState<Date>(new Date())
-  const [view, setView] = useState<"month" | "week" | "day">("week")
+  
+  // Estado para vista del calendario con localStorage
+  const [view, setView] = useState<"month" | "week" | "day">(() => {
+    // Intentar cargar la preferencia desde localStorage
+    if (typeof window !== "undefined") {
+      const savedView = localStorage.getItem("calendar-view-preference")
+      if (savedView && ["month", "week", "day"].includes(savedView)) {
+        return savedView as "month" | "week" | "day"
+      }
+    }
+    // Default a vista semanal
+    return "week"
+  })
   const [isLoading, setIsLoading] = useState(true)
+  
+  // Función para cambiar la vista y guardar en localStorage
+  const handleViewChange = (newView: "month" | "week" | "day") => {
+    setView(newView)
+    // Guardar preferencia en localStorage
+    if (typeof window !== "undefined") {
+      localStorage.setItem("calendar-view-preference", newView)
+      logger.info(`Vista del calendario guardada: ${newView}`)
+    }
+  }
   const [events, setEvents] = useState<Event[]>([])
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStats>({
     nightSleepHours: 0,
@@ -185,7 +207,7 @@ export default function CalendarPage() {
         <Button
           variant={view === "month" ? "default" : "ghost"}
           size="sm"
-          onClick={() => setView("month")}
+          onClick={() => handleViewChange("month")}
           className={`text-xs md:text-sm ${view === "month" ? "hd-gradient-button text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
         >
           Mensual
@@ -193,7 +215,7 @@ export default function CalendarPage() {
         <Button
           variant={view === "week" ? "default" : "ghost"}
           size="sm"
-          onClick={() => setView("week")}
+          onClick={() => handleViewChange("week")}
           className={`text-xs md:text-sm ${view === "week" ? "hd-gradient-button text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
         >
           Semanal
@@ -201,7 +223,7 @@ export default function CalendarPage() {
         <Button
           variant={view === "day" ? "default" : "ghost"}
           size="sm"
-          onClick={() => setView("day")}
+          onClick={() => handleViewChange("day")}
           className={`text-xs md:text-sm ${view === "day" ? "hd-gradient-button text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
         >
           Diario
