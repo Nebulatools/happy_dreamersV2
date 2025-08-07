@@ -128,33 +128,53 @@ export default function AdminStatistics() {
       const mockWarningAlerts: ChildAlert[] = []
       
       // Calcular pacientes con planes de seguimiento activos
+      // Según feedback Dra. Mariana: mostrar pacientes en planes activos, no solo con actividad reciente
       let activeToday = 0
       const today = new Date()
       const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+      const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
       
-      // Para cada niño, verificar si ha tenido actividad reciente
+      // Para cada niño, verificar si tiene un plan de seguimiento activo
       for (const child of allChildren) {
         try {
-          // Verificar eventos recientes (últimos 7 días)
+          // 1. Verificar si tiene un plan activo (consultas recientes)
+          const consultasResponse = await fetch(`/api/consultas/plans?childId=${child._id}`)
+          let hasPlan = false
+          
+          if (consultasResponse.ok) {
+            const consultasData = await consultasResponse.json()
+            const plans = consultasData.plans || []
+            
+            // Considerar activo si tiene un plan creado en los últimos 30 días
+            hasPlan = plans.some((plan: any) => {
+              const planDate = new Date(plan.createdAt || plan.date)
+              return planDate >= thirtyDaysAgo
+            })
+          }
+          
+          // 2. También verificar eventos recientes como indicador de seguimiento activo
           const eventsResponse = await fetch(`/api/children/events?childId=${child._id}`)
+          let hasRecentActivity = false
+          
           if (eventsResponse.ok) {
             const eventsData = await eventsResponse.json()
             const events = eventsData.events || []
             
-            // Contar como activo si tiene eventos en los últimos 7 días
-            const hasRecentActivity = events.some((event: any) => {
+            // Actividad en los últimos 7 días indica seguimiento activo
+            hasRecentActivity = events.some((event: any) => {
               if (!event.startTime && !event.createdAt) return false
               const eventDate = new Date(event.startTime || event.createdAt)
               return eventDate >= sevenDaysAgo
             })
-            
-            if (hasRecentActivity) {
-              activeToday++
-            }
+          }
+          
+          // Contar como activo si tiene plan O actividad reciente
+          if (hasPlan || hasRecentActivity) {
+            activeToday++
           }
         } catch (error) {
-          // Si hay error al cargar eventos de un niño, continuar con el siguiente
-          logger.warn(`Error loading events for child ${child._id}:`, error)
+          // Si hay error al cargar datos de un niño, continuar con el siguiente
+          logger.warn(`Error loading data for child ${child._id}:`, error)
         }
       }
 
@@ -178,7 +198,7 @@ export default function AdminStatistics() {
       // Actualizar métricas con datos reales
       setMetrics({
         totalPatients: totalPatients,
-        activeToday: activeToday, // Pacientes con actividad reciente (últimos 7 días)
+        activeToday: activeToday, // Pacientes con planes de seguimiento activos o actividad reciente
         alerts: {
           critical: 0,
           warning: 0,
@@ -285,9 +305,11 @@ export default function AdminStatistics() {
               </div>
               <div className="mt-4 flex items-center gap-2">
                 <Badge className="bg-green-50 text-green-700 hover:bg-green-50">
-                  {Math.round((metrics.activeToday / metrics.totalPatients) * 100) || 0}% con actividad reciente
+                  {Math.round((metrics.activeToday / metrics.totalPatients) * 100) || 0}% en seguimiento
                 </Badge>
-                <span className="text-xs text-[#666666]">últimos 7 días</span>
+                <span className="text-xs text-[#666666]" title="Pacientes con planes activos o actividad reciente">
+                  planes activos o actividad en 7 días
+                </span>
               </div>
             </CardContent>
           </Card>

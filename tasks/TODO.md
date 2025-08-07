@@ -1,6 +1,36 @@
 # Happy Dreamers - Task Status & Next Priorities
 
-*Actualizado: January 24, 2025*
+*Actualizado: January 7, 2025*
+
+## ✅ SPRINTS COMPLETADOS - Feedback Dra. Mariana
+
+### ✅ **Sprint 2 - FUNCIONALIDAD MÉDICA (P1) - COMPLETADO 100%**
+- [x] **P1.3** Desglose sueño nocturno vs siestas
+  - Eliminada card "Calidad de Sueño" sin datos reales
+  - Nuevo componente SleepBreakdownCard implementado
+  - Clasificación automática nocturno/siesta
+- [x] **P1.4** Lógica "Activos Hoy" con planes activos
+  - AdminStatistics actualizado con nueva lógica
+  - Considera planes de consultas + actividad reciente
+
+### ✅ **Sprint 3 - P2.1 SIMPLIFICAR CICLO DORMIR/DESPERTAR - COMPLETADO 100%**
+- [x] **SimpleSleepToggle** - Botón principal de registro en tiempo real
+- [x] **SleepDelayCapture** - Modal inteligente para capturar delays
+- [x] **ManualSleepEntry** - Registro manual para eventos pasados
+- [x] **TimeAdjuster** - Selector de hora intuitivo
+- [x] **Integración Dashboard** - SimpleSleepToggle integrado en página principal
+
+## 🎯 PRÓXIMAS PRIORIDADES - Sprint 3 Restante
+
+### **P2.2 - Priorizar Métrica Hora de Despertar**
+- [ ] Reorganizar dashboard con hora de despertar prominente
+- [ ] Crear componente WakeTimeConsistencyChart
+- [ ] Actualizar SleepMetricsGrid con nuevo orden
+
+### **P2.3 - Vista Semanal como Default en Calendario**
+- [ ] Cambiar DEFAULT_VIEW a 'week' en calendar/page.tsx
+- [ ] Guardar preferencia en localStorage
+- [ ] Sincronizar con perfil de usuario
 
 ## 🎯 SESSION ACCOMPLISHMENTS - COMPLETED ✅
 

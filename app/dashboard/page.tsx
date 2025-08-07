@@ -11,6 +11,7 @@ import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache } from "@/hooks/use-events-cache"
 import AdminStatistics from "@/components/dashboard/AdminStatistics"
 import SleepMetricsGrid from "@/components/child-profile/SleepMetricsGrid"
+import SimpleSleepToggle from "@/components/events/SimpleSleepToggle"
 import { 
   Moon, Sun, Activity, TrendingUp, Calendar, MessageSquare, 
   Lightbulb, ChevronLeft, ChevronRight, Send, X,
@@ -357,6 +358,22 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="col-span-full bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
               <p className="text-gray-500">Por favor selecciona un niño desde el menú superior para ver las métricas</p>
+            </div>
+          </div>
+        )}
+
+        {/* Registro de Sueño Simplificado */}
+        {activeChildId && child && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1">
+              <SimpleSleepToggle 
+                childId={activeChildId}
+                childName={child.firstName}
+                onEventRegistered={loadChildData}
+              />
+            </div>
+            <div className="lg:col-span-2">
+              {/* Aquí podríamos agregar información adicional o dejar espacio para otros componentes */}
             </div>
           </div>
         )}

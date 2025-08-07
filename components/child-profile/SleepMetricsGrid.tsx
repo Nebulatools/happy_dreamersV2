@@ -1,5 +1,5 @@
 import React from "react"
-import { Clock, Moon, AlertCircle, Heart } from "lucide-react"
+import { Clock, Moon, AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { differenceInMinutes, parseISO, subDays } from "date-fns"
 import { useEventsCache } from "@/hooks/use-events-cache"
@@ -68,16 +68,6 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
         change: `${sleepData.totalWakeups} despertares en período`,
         iconBg: "bg-[#FFE442]",
       },
-      {
-        title: "Calidad del sueño",
-        value: `${Math.round((sleepData.totalSleepHours >= 9 && sleepData.totalSleepHours <= 11) ? 90 : 
-                             (sleepData.totalSleepHours >= 8 && sleepData.totalSleepHours <= 12) ? 70 : 50)}%`,
-        icon: <Heart className="w-4 h-4" />,
-        status: getSleepQualityStatus((sleepData.totalSleepHours >= 9 && sleepData.totalSleepHours <= 11) ? 90 : 
-                                   (sleepData.totalSleepHours >= 8 && sleepData.totalSleepHours <= 12) ? 70 : 50),
-        change: "Basado en duración total del sueño",
-        iconBg: "bg-[#FFC4C4]",
-      },
     ]
   }, [sleepData])
 
@@ -119,12 +109,6 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
     return { label: "Muy frecuente", variant: "poor" }
   }
 
-  function getSleepQualityStatus(quality: number): { label: string; variant: "good" | "consistent" | "average" | "poor" } {
-    if (quality >= 80) return { label: "Excelente", variant: "good" }
-    if (quality >= 60) return { label: "Buena", variant: "consistent" }
-    if (quality >= 40) return { label: "Regular", variant: "average" }
-    return { label: "Mala", variant: "poor" }
-  }
 
   function getNapDurationStatus(hours: number): { label: string; variant: "good" | "consistent" | "average" | "poor" } {
     if (hours >= 1 && hours <= 2.5) return { label: "Óptimo", variant: "good" }
@@ -135,7 +119,7 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {loading ? (
         <div className="col-span-full flex justify-center items-center h-32">
           <p className="text-gray-500">Cargando métricas...</p>

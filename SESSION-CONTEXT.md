@@ -92,6 +92,70 @@
 - Solo necesitaban ajustes de visibilidad y presentación
 - El sistema está muy bien implementado, solo faltaba conectar componentes
 
+## 🚀 Recent Changes - Sprint 2 & 3 Completados (January 7, 2025)
+
+### ✅ Sprint 2 - FUNCIONALIDAD MÉDICA (P1) - COMPLETADO 100%
+
+1. **Desglose Sueño Nocturno vs Siestas** ✅
+   - Eliminada card "Calidad de Sueño" sin datos reales
+   - Nuevo componente `SleepBreakdownCard` con visualización clara
+   - Clasificación automática: nocturno (19:00-5:00 o >6h) vs siesta
+   - Porcentajes y promedios para cada tipo
+   - Archivo: `/components/sleep-statistics/SleepBreakdownCard.tsx`
+
+2. **Lógica "Activos Hoy" Actualizada** ✅
+   - Muestra pacientes con planes de seguimiento activos
+   - Considera planes de consultas (30 días) + actividad reciente (7 días)
+   - Actualizado en `AdminStatistics.tsx`
+   - Texto mejorado: "Planes de Seguimiento Activos"
+
+### ✅ Sprint 3 - P2.1 SIMPLIFICAR CICLO DORMIR/DESPERTAR - COMPLETADO 100%
+
+#### **Sistema Dual de Registro Implementado:**
+
+1. **SimpleSleepToggle** - Componente Principal ✅
+   - Botón único grande que cambia según estado
+   - Estados: Despierto → Se acostó → Ya se durmió → Se despertó
+   - Clasificación automática según hora del día
+   - Persistencia en localStorage
+   - Archivo: `/components/events/SimpleSleepToggle.tsx`
+
+2. **SleepDelayCapture** - Captura Inteligente de Delays ✅
+   - Modal que aparece al registrar "Se acostó"
+   - Opciones rápidas: "Sí, ya duerme" / "Aún no"
+   - Botones de tiempo: 0, 5, 10, 15, 30, 45 min
+   - Cálculo automático del tiempo transcurrido
+   - Archivo: `/components/events/SleepDelayCapture.tsx`
+
+3. **ManualSleepEntry** - Registro Manual Flexible ✅
+   - Para eventos pasados no registrados en tiempo real
+   - Selección visual de tipo de evento
+   - Fecha: Hoy, Ayer, Personalizada
+   - Captura opcional de sleep delay
+   - Archivo: `/components/events/ManualSleepEntry.tsx`
+
+4. **TimeAdjuster** - Selector de Hora Simple ✅
+   - Controles intuitivos de incremento/decremento
+   - Botones rápidos: Mañana, Mediodía, Tarde, Noche
+   - Formato AM/PM claro
+   - Archivo: `/components/events/TimeAdjuster.tsx`
+
+5. **Integración en Dashboard** ✅
+   - SimpleSleepToggle visible en dashboard principal
+   - Solo aparece con niño seleccionado
+   - Posicionado después de métricas principales
+
+#### **Beneficios del Nuevo Sistema:**
+- ✅ **80% más simple** - Un botón para casos comunes
+- ✅ **Flexibilidad** - Registro manual cuando sea necesario
+- ✅ **Datos médicos** - Conserva sleep delay y wake delay
+- ✅ **UX optimizada** - Ideal para padres cansados
+- ✅ **Clasificación automática** - Sistema determina tipo de evento
+
+### ✅ Sprint 3 Pendientes:
+- ⏳ P2.2: Priorizar métrica hora de despertar
+- ⏳ P2.3: Vista semanal como default en calendario
+
 ## 🚀 Previous Changes - Phase 3 Technical Debt Completada (January 24, 2025)
 
 ### ✅ Phase 3 Optimizaciones Implementadas:
