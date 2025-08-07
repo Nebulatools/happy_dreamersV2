@@ -28,7 +28,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache, useEventsInvalidation } from "@/hooks/use-events-cache"
-import { EventRegistrationModal } from "@/components/events"
+import { EventRegistrationModal, QuickEventSelector } from "@/components/events"
 import { 
   TimelineColumn, 
   CompactTimelineColumn, 
@@ -122,6 +122,7 @@ export default function CalendarPage() {
     wakingsChange: 0,
   })
   const [eventModalOpen, setEventModalOpen] = useState(false)
+  const [quickSelectorOpen, setQuickSelectorOpen] = useState(false)
   const [selectedDateForEvent, setSelectedDateForEvent] = useState<Date | null>(null)
   const [children, setChildren] = useState([])
   
@@ -213,7 +214,7 @@ export default function CalendarPage() {
         className="hd-gradient-button text-white h-8 w-8"
         onClick={() => {
           setSelectedDateForEvent(null)
-          setEventModalOpen(true)
+          setQuickSelectorOpen(true)
         }}
         title="Registrar nuevo evento"
       >
@@ -241,9 +242,9 @@ export default function CalendarPage() {
     fetchEvents()
   }, [activeChildId, date, view, refreshTrigger])
 
-  // Cargar lista de niños para el modal
+  // Cargar lista de niños para el modal o el quick selector
   useEffect(() => {
-    if (eventModalOpen) {
+    if (eventModalOpen || quickSelectorOpen) {
       fetch("/api/children")
         .then(res => res.json())
         .then(data => {
@@ -253,7 +254,7 @@ export default function CalendarPage() {
         })
         .catch(error => logger.error("Error al cargar niños", error))
     }
-  }, [eventModalOpen])
+  }, [eventModalOpen, quickSelectorOpen])
 
   const fetchEvents = async () => {
     if (!activeChildId) {
@@ -949,7 +950,23 @@ export default function CalendarPage() {
         </Card>
       </div>
 
-      {/* Modal de registro de evento */}
+      {/* Selector rápido de eventos */}
+      <QuickEventSelector
+        isOpen={quickSelectorOpen}
+        onClose={() => {
+          setQuickSelectorOpen(false)
+          setSelectedDateForEvent(null) // Limpiar fecha seleccionada al cerrar
+        }}
+        childId={activeChildId || ""}
+        children={children}
+        onEventCreated={() => {
+          invalidateEvents() // Invalidar cache global
+          setQuickSelectorOpen(false)
+          setSelectedDateForEvent(null) // Limpiar fecha seleccionada
+        }}
+      />
+      
+      {/* Modal de registro de evento (mantenido para compatibilidad) */}
       <EventRegistrationModal
         isOpen={eventModalOpen}
         onClose={() => {

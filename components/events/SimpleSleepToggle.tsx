@@ -10,6 +10,7 @@ import { es } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
 import { SleepDelayCapture } from "./SleepDelayCapture"
 import { ManualSleepEntry } from "./ManualSleepEntry"
+import { QuickEventSelector } from "./QuickEventSelector"
 
 // Tipos de estado del sueño
 export type SleepStatus = 'awake' | 'going_to_sleep' | 'sleeping' | 'night_waking'
@@ -25,6 +26,7 @@ interface SimpleSleepToggleProps {
   childId: string
   childName: string
   onEventRegistered?: () => void
+  hideOtherEventsButton?: boolean
 }
 
 // Función para obtener el estado del botón según el estado actual
@@ -130,12 +132,14 @@ function saveState(state: SleepState) {
 export default function SimpleSleepToggle({ 
   childId, 
   childName,
-  onEventRegistered 
+  onEventRegistered,
+  hideOtherEventsButton = false
 }: SimpleSleepToggleProps) {
   const { toast } = useToast()
   const [state, setState] = useState<SleepState>(() => loadState(childId))
   const [showDelayCapture, setShowDelayCapture] = useState(false)
   const [showManualEntry, setShowManualEntry] = useState(false)
+  const [showQuickSelector, setShowQuickSelector] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   
   const buttonConfig = getButtonConfig(state)
@@ -373,48 +377,87 @@ export default function SimpleSleepToggle({
   }
   
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 space-y-4">
+    <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-3xl shadow-2xl border border-blue-100/50 p-8 space-y-6">
+      {/* Decoración de fondo */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-200/20 to-purple-200/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-purple-200/20 to-pink-200/20 rounded-full blur-3xl" />
+      
       {/* Header con nombre del niño */}
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-lg font-semibold text-gray-800">
-          Registro de Sueño - {childName}
-        </h3>
+      <div className="relative flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
+            <Moon className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">
+              Registro Rápido de Sueño
+            </h3>
+            <p className="text-sm text-gray-600">{childName}</p>
+          </div>
+        </div>
         {state.status === 'sleeping' && (
-          <Badge variant="default" className="bg-blue-100 text-blue-700">
+          <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 px-4 py-2 text-sm font-semibold shadow-lg">
+            <Clock className="w-4 h-4 mr-2" />
             Durmiendo {formatDuration(sleepDuration)}
           </Badge>
         )}
       </div>
       
-      {/* Botón principal grande */}
-      <Button
-        onClick={handleMainButtonClick}
-        disabled={isLoading}
-        className={cn(
-          "w-full h-24 text-white text-xl font-bold shadow-lg transform transition-all duration-200",
-          "hover:scale-[1.02] active:scale-[0.98]",
-          buttonConfig.color
+      {/* Botón principal grande mejorado */}
+      <div className="relative">
+        <Button
+          onClick={handleMainButtonClick}
+          disabled={isLoading}
+          className={cn(
+            "relative w-full h-32 text-white text-2xl font-bold shadow-2xl",
+            "transform transition-all duration-300 rounded-2xl",
+            "hover:scale-[1.03] hover:shadow-3xl active:scale-[0.98]",
+            "flex items-center justify-center gap-4",
+            buttonConfig.color
+          )}
+        >
+          <div className="absolute inset-0 bg-white/10 rounded-2xl" />
+          <ButtonIcon className="w-12 h-12 drop-shadow-lg" />
+          <div className="flex flex-col items-start">
+            <span className="text-2xl font-bold">
+              {isLoading ? "Registrando..." : buttonConfig.text}
+            </span>
+            <span className="text-sm opacity-90 font-normal">
+              {buttonConfig.description}
+            </span>
+          </div>
+        </Button>
+        
+        {/* Efecto de brillo animado */}
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-shimmer pointer-events-none" />
+      </div>
+      
+      {/* Botones secundarios mejorados */}
+      <div className="relative flex gap-3">
+        <Button
+          variant="outline"
+          size="lg"
+          onClick={() => setShowManualEntry(true)}
+          className={cn(
+            "bg-white/80 backdrop-blur-sm border-2 border-gray-200 hover:bg-white hover:border-gray-300 transition-all duration-200",
+            hideOtherEventsButton ? "w-full" : "flex-1"
+          )}
+        >
+          <Edit2 className="w-5 h-5 mr-2" />
+          Registro Manual
+        </Button>
+        {!hideOtherEventsButton && (
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => setShowQuickSelector(true)}
+            className="flex-1 bg-white/80 backdrop-blur-sm border-2 border-gray-200 hover:bg-white hover:border-gray-300 transition-all duration-200"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Otros Eventos
+          </Button>
         )}
-      >
-        <ButtonIcon className="w-8 h-8 mr-3" />
-        {isLoading ? "Registrando..." : buttonConfig.text}
-      </Button>
-      
-      {/* Descripción del estado */}
-      <p className="text-sm text-gray-600 text-center">
-        {buttonConfig.description}
-      </p>
-      
-      {/* Botón secundario para registro manual */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setShowManualEntry(true)}
-        className="w-full text-gray-600 hover:text-gray-800"
-      >
-        <Edit2 className="w-4 h-4 mr-2" />
-        Registrar evento pasado
-      </Button>
+      </div>
       
       {/* Modal de captura de delay */}
       {showDelayCapture && state.bedtimeRegistered && (
@@ -437,6 +480,24 @@ export default function SimpleSleepToggle({
           onEventRegistered={() => {
             onEventRegistered?.()
             setShowManualEntry(false)
+          }}
+        />
+      )}
+      
+      {/* Selector rápido de eventos */}
+      {showQuickSelector && (
+        <QuickEventSelector
+          isOpen={showQuickSelector}
+          onClose={() => setShowQuickSelector(false)}
+          childId={childId}
+          children={[{
+            _id: childId,
+            firstName: childName,
+            lastName: ""
+          }]}
+          onEventCreated={() => {
+            onEventRegistered?.()
+            setShowQuickSelector(false)
           }}
         />
       )}

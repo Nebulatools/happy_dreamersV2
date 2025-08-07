@@ -362,19 +362,14 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Registro de Sueño Simplificado */}
+        {/* Registro de Sueño Simplificado - POSICIÓN PROMINENTE */}
         {activeChildId && child && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1">
-              <SimpleSleepToggle 
-                childId={activeChildId}
-                childName={child.firstName}
-                onEventRegistered={loadChildData}
-              />
-            </div>
-            <div className="lg:col-span-2">
-              {/* Aquí podríamos agregar información adicional o dejar espacio para otros componentes */}
-            </div>
+          <div className="mb-8">
+            <SimpleSleepToggle 
+              childId={activeChildId}
+              childName={child.firstName}
+              onEventRegistered={loadChildData}
+            />
           </div>
         )}
 
