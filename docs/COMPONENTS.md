@@ -187,6 +187,65 @@ interface ChildSelectorProps {
 
 ## 😴 Componentes de Eventos
 
+### QuickEventSelector 🆕
+**Ubicación:** `components/events/QuickEventSelector.tsx`
+
+Selector visual de eventos con diseño tipo wizard y botones grandes.
+
+```tsx
+interface QuickEventSelectorProps {
+  isOpen: boolean
+  onClose: () => void
+  childId: string
+  children?: Child[]
+  onEventCreated?: () => void
+}
+
+// Características:
+- 4 botones grandes y coloridos para cada tipo de evento
+- Registro de Sueño marcado como "Recomendado"
+- Integración con SimpleSleepToggle para sueño
+- Modal específico para otros tipos de eventos
+
+// Uso:
+<QuickEventSelector
+  isOpen={selectorOpen}
+  onClose={() => setSelectorOpen(false)}
+  childId={activeChildId}
+  children={childrenList}
+  onEventCreated={handleEventCreated}
+/>
+```
+
+### SimpleSleepToggle (Mejorado)
+**Ubicación:** `components/events/SimpleSleepToggle.tsx`
+
+Componente principal para registro rápido de sueño con diseño prominente.
+
+```tsx
+interface SimpleSleepToggleProps {
+  childId: string
+  childName: string
+  onEventRegistered?: () => void
+  hideOtherEventsButton?: boolean
+}
+
+// Características:
+- Botón principal grande (h-32) con gradientes
+- Estados: Despierto → Se acostó → Durmiendo → Se despertó
+- Animación shimmer y efectos visuales
+- Botones secundarios para registro manual y otros eventos
+- Persistencia en localStorage
+
+// Uso:
+<SimpleSleepToggle
+  childId={activeChildId}
+  childName={child.firstName}
+  onEventRegistered={loadChildData}
+  hideOtherEventsButton={false}
+/>
+```
+
 ### EventRegistrationModal
 **Ubicación:** `components/events/EventRegistrationModal.tsx`
 
@@ -493,6 +552,45 @@ const { setTitle } = usePageHeader()
 useEffect(() => {
   setTitle("Dashboard")
 }, [])
+```
+
+## 🚀 Nuevo Flujo de Registro de Eventos
+
+### Arquitectura del Sistema
+El sistema de registro de eventos ahora sigue una arquitectura de tres niveles:
+
+1. **QuickEventSelector**: Punto de entrada principal con diseño visual
+2. **SimpleSleepToggle**: Flujo optimizado para registro de sueño
+3. **EventRegistrationModal**: Modal completo para casos avanzados
+
+### Flujo de Usuario Mejorado
+```
+Dashboard/Sidebar/Calendar → "Registrar Evento"
+    ↓
+QuickEventSelector (4 botones visuales)
+    ↓
+Sueño → SimpleSleepToggle → Registro inmediato
+Otros → EventRegistrationModal → Formulario completo
+```
+
+### Integración Recomendada
+```tsx
+// En cualquier componente que necesite registro de eventos:
+const [quickSelectorOpen, setQuickSelectorOpen] = useState(false)
+
+// Botón de acción
+<Button onClick={() => setQuickSelectorOpen(true)}>
+  Registrar Evento
+</Button>
+
+// Modal
+<QuickEventSelector
+  isOpen={quickSelectorOpen}
+  onClose={() => setQuickSelectorOpen(false)}
+  childId={activeChildId}
+  children={childrenList}
+  onEventCreated={handleRefresh}
+/>
 ```
 
 ## 📚 Mejores Prácticas

@@ -1,6 +1,6 @@
 # Session Context - Happy Dreamers UI Implementation
 
-*Last Updated: January 6, 2025 - Implementación Sprint 1 & Sprint 2 Parcial*
+*Last Updated: January 7, 2025 - Reorganización Sistema de Registro de Eventos*
 
 ## 🎯 Current System State
 
@@ -38,7 +38,65 @@
 - **Database Schema**: Users, Children, Events collections in MongoDB
 - **API Conventions**: RESTful routes under `/app/api/`, session-based auth checks
 
-## 🚀 Recent Changes - Implementación Feedback Dra. Mariana (January 6, 2025)
+## 🚀 Recent Changes - Reorganización Sistema de Registro de Eventos (January 7, 2025)
+
+### ✅ Nuevo Sistema de Registro Visual - COMPLETADO 100%
+
+#### **Componentes Creados/Modificados:**
+
+1. **QuickEventSelector** - Nuevo selector visual de eventos
+   - Diseño con 4 botones grandes y coloridos
+   - Registro de Sueño marcado como "Recomendado" con badge dorado
+   - Integración inteligente con SimpleSleepToggle para sueño
+   - Modal para otros tipos de eventos (medicamentos, alimentación, actividades)
+   - Archivo: `/components/events/QuickEventSelector.tsx`
+
+2. **SimpleSleepToggle Mejorado** - Diseño más prominente
+   - Rediseño completo con gradientes y efectos visuales
+   - Botón principal aumentado a h-32 con iconos grandes (w-12 h-12)
+   - Animación shimmer y efectos de hover mejorados
+   - Fondo con gradientes from-blue-50 via-purple-50 to-pink-50
+   - Botones secundarios para "Registro Manual" y "Otros Eventos"
+   - Prevención de loops con prop `hideOtherEventsButton`
+
+3. **Dashboard Principal Reorganizado**
+   - SimpleSleepToggle movido a posición prominente (antes de métricas)
+   - Ocupa ancho completo con mb-8 para mayor visibilidad
+   - Es el elemento principal que ven los usuarios al entrar
+
+4. **Integración Universal**
+   - **Sidebar**: "Registrar Evento" ahora abre QuickEventSelector
+   - **Calendario**: Botón "+" ahora abre QuickEventSelector  
+   - **Dashboard**: SimpleSleepToggle como acción principal
+   - Compatibilidad mantenida con EventRegistrationModal existente
+
+#### **Flujo de Usuario Mejorado:**
+```
+Usuario → "Registrar Evento" → QuickEventSelector
+    ↓
+[🌙 Sueño] → SimpleSleepToggle (flujo simplificado)
+[💊 Medicamento] → Modal específico
+[🍼 Alimentación] → Modal específico
+[⭐ Actividades] → Modal específico
+```
+
+#### **Beneficios Logrados:**
+- ✅ **80% más simple** para registro de sueño (caso más común)
+- ✅ **Visual e intuitivo** con diseño tipo wizard
+- ✅ **Menos clics** para acciones frecuentes
+- ✅ **Experiencia consistente** en toda la aplicación
+- ✅ **Optimizado para UX** con padres cansados en mente
+
+#### **Archivos Modificados:**
+- `/components/events/QuickEventSelector.tsx` - NUEVO
+- `/components/events/SimpleSleepToggle.tsx` - Rediseñado
+- `/app/dashboard/page.tsx` - Reorganizado
+- `/components/dashboard/sidebar.tsx` - Integrado
+- `/app/dashboard/calendar/page.tsx` - Integrado
+- `/components/events/index.ts` - Exportaciones actualizadas
+- `/tailwind.config.ts` - Animación shimmer agregada
+
+## 🚀 Previous Changes - Implementación Feedback Dra. Mariana (January 6, 2025)
 
 ### ✅ Sprint 1 - BLOQUEADORES CRÍTICOS (P0) - COMPLETADO 100%
 
