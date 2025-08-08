@@ -50,17 +50,20 @@ Happy Dreamers is a comprehensive sleep tracking and AI consultation platform fo
 - [ ] **Ask for feedback** - Before major decisions
 
 #### At Session End (REQUIRED):
-- [ ] **Update SESSION-CONTEXT.md** - What was accomplished
+- [ ] **Update SESSION-CONTEXT.md** - What was accomplished (MAX 500 LINES)
+- [ ] **Archive old context** - Move to /session-archive/ if needed
+- [ ] **Clean up markdowns** - Remove obsolete files
 - [ ] **Update SESSION-DEBUG.md** - Technical details if needed
 - [ ] **Commit with descriptive message** - Clear commit format
 - [ ] **Report session results** - What's ready for next time
 
 ### Documentation Priority
 1. **CLAUDE.md** - This file (BRAIN & ORCHESTRATOR)
-2. **SESSION-CONTEXT.md** - Current state, next session critical
+2. **SESSION-CONTEXT.md** - Current state (MAX 500 LINES)
 3. **tasks/TODO.md** - Actionable items and progress
 4. **SESSION-DEBUG.md** - Technical debugging history
 5. **docs/** - Comprehensive architecture documentation (for deep analysis when needed)
+6. **reference/** - Reference documentation (workflow, survey, consultas, etc.)
 
 ## 📚 Architecture Documentation (/docs/)
 
@@ -84,6 +87,41 @@ The `/docs/` folder contains comprehensive documentation about the entire applic
 - **Architecture Changes**: When modifying system structure
 - **Problem Solving**: When encountering complex issues
 - **NOT for every session**: Regular development uses SESSION-CONTEXT.md
+
+## 🔄 Context Management Rules - CRITICAL
+
+### Session Context Limits
+- **SESSION-CONTEXT.md**: MAXIMUM 500 lines
+- **Information Age**: Archive after 1 week
+- **No Duplication**: Reference /docs/ instead of copying
+
+### Weekly Context Rotation
+- **Every Monday**: Archive old context to /session-archive/YYYY-MM/
+- **Keep Recent**: Only last 2-3 sessions in main file
+- **Use References**: Link to docs instead of duplicating content
+
+### File Organization
+```
+/session-archive/     # Historical session contexts
+  /2025-01/          # January 2025 contexts
+  /2024-12/          # December 2024 contexts
+  
+/reference/          # Reference documentation
+  workflow.md        # Technical workflow
+  survey.md          # Survey structure
+  CONSULTAS.md       # Consultation system
+  ADMIN_DASHBOARD_TRIAGE.md  # Admin dashboard
+
+/docs/              # Permanent architecture docs
+  [All architecture documentation]
+```
+
+### Session End Checklist
+- [ ] Check SESSION-CONTEXT.md line count (<500)
+- [ ] Remove information older than 1 week
+- [ ] Archive old context to /session-archive/
+- [ ] Update only with current session info
+- [ ] Reference docs instead of duplicating
 
 ## 🎯 Happy Dreamers Code Standards
 
