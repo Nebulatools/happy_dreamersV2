@@ -36,8 +36,16 @@ components/
 │   ├── header.tsx
 │   └── ...
 ├── events/            # Gestión de eventos
+│   ├── SimpleSleepToggle.tsx       # Registro sueño + alimentación
+│   ├── FeedingModal.tsx            # Modal alimentación (nuevo)
+│   ├── GuidedNotesField.tsx        # Notas con placeholders (nuevo)
 │   ├── EventRegistrationModal.tsx
 │   ├── EventTypeSelector.tsx
+│   ├── EmotionalStateSelector.tsx
+│   ├── TimeAdjuster.tsx
+│   ├── SleepDelayCapture.tsx
+│   ├── ManualSleepEntry.tsx
+│   ├── QuickEventSelector.tsx
 │   └── ...
 ├── consultas/         # Sistema de consultas
 │   ├── ConsultationWizard.tsx
@@ -217,10 +225,10 @@ interface QuickEventSelectorProps {
 />
 ```
 
-### SimpleSleepToggle (Mejorado)
+### SimpleSleepToggle (Mejorado + Alimentación)
 **Ubicación:** `components/events/SimpleSleepToggle.tsx`
 
-Componente principal para registro rápido de sueño con diseño prominente.
+Componente principal para registro rápido de sueño y alimentación con diseño prominente.
 
 ```tsx
 interface SimpleSleepToggleProps {
@@ -233,8 +241,10 @@ interface SimpleSleepToggleProps {
 // Características:
 - Botón principal grande (h-32) con gradientes
 - Estados: Despierto → Se acostó → Durmiendo → Se despertó
+- Botón de Alimentación prominente (verde, h-24)
 - Animación shimmer y efectos visuales
 - Botones secundarios para registro manual y otros eventos
+- Integración con FeedingModal
 - Persistencia en localStorage
 
 // Uso:
@@ -287,20 +297,61 @@ interface EventTypeSelectorProps {
 
 ```tsx
 interface EmotionalStateSelectorProps {
-  value: EmotionalState
-  onChange: (state: EmotionalState) => void
-  compact?: boolean
+  value?: string
+  onValueChange: (value: string) => void
 }
 
-// Estados emocionales:
-- CALM: Tranquilo
-- HAPPY: Feliz
-- ANXIOUS: Ansioso
-- IRRITABLE: Irritable
-- SAD: Triste
-- ENERGETIC: Enérgico
-- TIRED: Cansado
-- FRUSTRATED: Frustrado
+// Estados emocionales (Feedback Dra. Mariana):
+- calm: Tranquilo 😊
+- restless: Inquieto 😕
+- agitated: Alterado 😣
+```
+
+### FeedingModal (Nuevo - Feedback Dra. Mariana)
+**Ubicación:** `components/events/FeedingModal.tsx`
+
+Modal especializado para registro de alimentación con lógica nocturna.
+
+```tsx
+interface FeedingModalProps {
+  isOpen: boolean
+  onClose: () => void
+  childId: string
+  childName: string
+  onEventRegistered: () => void
+}
+
+// Características:
+- Subtipos: Pecho, Biberón, Sólidos
+- Detección automática de horario nocturno (23-5h)
+- Pregunta de estado del bebé para tomas nocturnas:
+  * Dormido (dream feed)
+  * Despierto
+- Integración con TimeAdjuster
+- Notas con placeholders contextuales
+```
+
+### GuidedNotesField (Nuevo - Feedback Dra. Mariana)
+**Ubicación:** `components/events/GuidedNotesField.tsx`
+
+Campo de notas con placeholders guiados según tipo de evento.
+
+```tsx
+interface GuidedNotesFieldProps {
+  eventType: string
+  value: string
+  onChange: (value: string) => void
+  label?: string
+  className?: string
+  required?: boolean
+}
+
+// Placeholders específicos por evento:
+- sleep: "¿Cómo se durmió? ¿Lo arrullaron, tomó pecho...?"
+- night_waking: "¿Qué pasó durante el despertar? ¿Lloró mucho...?"
+- feeding: "¿Cantidad? ¿Cómo fue la toma? ¿Se quedó satisfecho?"
+- medication: "¿Qué medicamento? ¿Dosis? ¿Razón?"
+- extra_activities: "Describe el evento que puede afectar el sueño..."
 ```
 
 ### TimeSelector

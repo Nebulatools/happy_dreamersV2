@@ -28,12 +28,19 @@
   3. **Estado bebé nocturno**: Pregunta automática para tomas entre 23-5h (dream feed vs despierto)
   4. **GuidedNotesField**: Placeholders contextuales específicos por tipo de evento
   5. **Estados emocionales verificados**: Tranquilo, Inquieto, Alterado (ya existían correctamente)
+
+### Fixes de Errores Críticos
+- **Error TimeAdjuster**: Corregido prop naming (time → value) y agregada validación defensiva
+- **Error FeedingModal**: Validación de Date en función isNightTime
+- **ErrorBoundary**: Resueltos crashes por valores undefined
+
 - **Archivos creados**:
-  - `/components/events/FeedingModal.tsx`
-  - `/components/events/GuidedNotesField.tsx`
+  - `/components/events/FeedingModal.tsx` - Modal de alimentación con lógica nocturna
+  - `/components/events/GuidedNotesField.tsx` - Campo de notas con placeholders guiados
 - **Archivos modificados**:
-  - `/components/events/SimpleSleepToggle.tsx`
-- **Resultado**: 100% del feedback de la Dra. Mariana implementado exitosamente
+  - `/components/events/SimpleSleepToggle.tsx` - Agregado botón de alimentación
+  - `/components/events/TimeAdjuster.tsx` - Validación defensiva para valores undefined
+- **Resultado**: 100% del feedback implementado y errores críticos resueltos
 
 ## 🚀 Sprint Actual - Sistema Completado
 
