@@ -43,7 +43,8 @@ function processSleepBreakdown(events: any[], dateRange: string) {
       totalHours: 0,
       nightSleepCount: 0,
       napCount: 0,
-      daysInPeriod: daysInPeriod
+      daysInPeriod: daysInPeriod,
+      actualDaysWithData: 0
     }
   }
   
@@ -56,6 +57,34 @@ function processSleepBreakdown(events: any[], dateRange: string) {
   let totalNapMinutes = 0
   let nightSleepCount = 0
   let napCount = 0
+  
+  // CRÍTICO: Contar días únicos con sueño nocturno Y días con siestas por separado
+  const uniqueNightsWithSleep = new Set<string>()
+  const uniqueDaysWithNaps = new Set<string>()
+  
+  // Primero identificar noches con sueño nocturno
+  sortedEvents.forEach(event => {
+    if (event.startTime) {
+      const date = new Date(event.startTime)
+      const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+      
+      // Para sueño nocturno, contar eventos bedtime/sleep en horario nocturno
+      if ((event.eventType === 'bedtime' || event.eventType === 'sleep')) {
+        const hour = date.getHours()
+        if (hour >= 18 || hour <= 6) { // Horario nocturno
+          uniqueNightsWithSleep.add(dateKey)
+        }
+      }
+      
+      // Para siestas, contar días con eventos de siesta
+      if (event.eventType === 'nap') {
+        uniqueDaysWithNaps.add(dateKey)
+      }
+    }
+  })
+  
+  const nightsWithSleep = uniqueNightsWithSleep.size || 1 // Mínimo 1 para evitar división por 0
+  const daysWithNaps = uniqueDaysWithNaps.size || 1 // Mínimo 1 para evitar división por 0
   
   // Procesar siestas explícitas
   const napEvents = sortedEvents.filter(e => e.eventType === 'nap' && e.startTime && e.endTime)
@@ -162,25 +191,37 @@ function processSleepBreakdown(events: any[], dateRange: string) {
     }
   })
   
-  // Calcular PROMEDIOS DIARIOS
-  const avgNightSleepMinutesPerDay = totalNightSleepMinutes / daysInPeriod
-  const avgNapMinutesPerDay = totalNapMinutes / daysInPeriod
-  const avgTotalMinutesPerDay = avgNightSleepMinutesPerDay + avgNapMinutesPerDay
+  // Calcular PROMEDIOS REALES - Promedio cuando realmente duerme, no distribuido
+  // Sueño nocturno: promedio por noche cuando hay sueño nocturno
+  const avgNightSleepMinutesPerNight = nightSleepCount > 0 
+    ? totalNightSleepMinutes / nightSleepCount  // Dividir entre número de noches con sueño
+    : 0
+  
+  // Siestas: promedio por día cuando hay siestas  
+  const avgNapMinutesPerDayWithNaps = napCount > 0
+    ? totalNapMinutes / daysWithNaps  // Dividir entre días con siestas
+    : 0
+  
+  // Total: suma de promedio nocturno + promedio de siestas
+  const avgTotalMinutesPerDay = avgNightSleepMinutesPerNight + avgNapMinutesPerDayWithNaps
   
   // Convertir a horas
-  const avgNightSleepHoursPerDay = avgNightSleepMinutesPerDay / 60
-  const avgNapHoursPerDay = avgNapMinutesPerDay / 60
-  const avgTotalHoursPerDay = avgTotalMinutesPerDay / 60
+  const avgNightSleepHours = avgNightSleepMinutesPerNight / 60
+  const avgNapHours = avgNapMinutesPerDayWithNaps / 60
+  const avgTotalHours = avgTotalMinutesPerDay / 60
   
   return {
-    nightSleepHours: avgNightSleepHoursPerDay,
-    napHours: avgNapHoursPerDay,
-    nightSleepPercentage: avgTotalMinutesPerDay > 0 ? (avgNightSleepMinutesPerDay / avgTotalMinutesPerDay) * 100 : 0,
-    napPercentage: avgTotalMinutesPerDay > 0 ? (avgNapMinutesPerDay / avgTotalMinutesPerDay) * 100 : 0,
-    totalHours: avgTotalHoursPerDay,
+    nightSleepHours: avgNightSleepHours,
+    napHours: avgNapHours,
+    nightSleepPercentage: avgTotalMinutesPerDay > 0 ? (avgNightSleepMinutesPerNight / avgTotalMinutesPerDay) * 100 : 0,
+    napPercentage: avgTotalMinutesPerDay > 0 ? (avgNapMinutesPerDayWithNaps / avgTotalMinutesPerDay) * 100 : 0,
+    totalHours: avgTotalHours,
     nightSleepCount: nightSleepCount,
     napCount: napCount,
-    daysInPeriod: daysInPeriod
+    daysInPeriod: daysInPeriod,
+    actualDaysWithData: nightsWithSleep, // Usar noches con sueño como referencia principal
+    nightsWithSleep: nightsWithSleep,
+    daysWithNaps: daysWithNaps
   }
 }
 
@@ -195,7 +236,10 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
     totalHours: 0,
     nightSleepCount: 0,
     napCount: 0,
-    daysInPeriod: 7
+    daysInPeriod: 7,
+    actualDaysWithData: 0,
+    nightsWithSleep: 0,
+    daysWithNaps: 0
   })
 
   // Suscribirse a invalidaciones de cache
@@ -364,7 +408,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
                 <div className="flex items-center justify-between bg-white/70 rounded-lg p-3">
                   <div className="flex items-center gap-2">
                     <Moon className="w-5 h-5 text-indigo-600" />
-                    <span className="font-medium text-gray-700">Nocturno/día:</span>
+                    <span className="font-medium text-gray-700">Promedio nocturno:</span>
                   </div>
                   <div className="text-right">
                     <span className="font-bold text-indigo-600 text-lg">
@@ -380,7 +424,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
                 <div className="flex items-center justify-between bg-white/70 rounded-lg p-3">
                   <div className="flex items-center gap-2">
                     <Sun className="w-5 h-5 text-orange-500" />
-                    <span className="font-medium text-gray-700">Siestas/día:</span>
+                    <span className="font-medium text-gray-700">Promedio siestas:</span>
                   </div>
                   <div className="text-right">
                     <span className="font-bold text-orange-500 text-lg">
@@ -411,12 +455,15 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
               <div className="flex flex-col justify-between">
                 {/* Total de Sueño */}
                 <div className="bg-white/70 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Promedio Total por Día</p>
+                  <p className="text-sm text-gray-600 mb-1">Promedio Total Diario</p>
                   <p className="text-3xl font-bold text-gray-900">
                     {formatDuration(breakdown.totalHours)}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    En {breakdown.daysInPeriod} días: {breakdown.nightSleepCount} noches, {breakdown.napCount} siestas
+                    Basado en {breakdown.nightSleepCount} {breakdown.nightSleepCount === 1 ? 'noche' : 'noches'} y {breakdown.napCount} {breakdown.napCount === 1 ? 'siesta' : 'siestas'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    ({breakdown.nightsWithSleep} {breakdown.nightsWithSleep === 1 ? 'noche' : 'noches'} con sueño, {breakdown.daysWithNaps} {breakdown.daysWithNaps === 1 ? 'día' : 'días'} con siestas)
                   </p>
                 </div>
 

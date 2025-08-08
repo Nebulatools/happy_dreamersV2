@@ -1,5 +1,5 @@
 # Session Context - Happy Dreamers 🌙
-*Última actualización: 8 de Enero, 2025*
+*Última actualización: 27 de Enero, 2025*
 
 ## 🎯 Estado Actual del Sistema
 
@@ -18,22 +18,21 @@
 - **Feedback Médico**: Sprints 1-3 implementados
 - **Branch Actual**: devpraulio
 
-## 📝 Última Sesión (8 Enero 2025)
+## 📝 Última Sesión (27 Enero 2025)
 
-### Fix Crítico - Cálculo de Promedio de Sueño Nocturno
-- **Problema identificado**: Promedio mostraba ~3h en lugar de ~10h para sueño nocturno
-- **Causa raíz**: Emparejamiento incorrecto de eventos sleep→wake entre días diferentes
+### Fix Crítico - Cálculo de Promedio Diario de Sueño en EnhancedSleepMetricsCard
+- **Problema identificado**: Promedio diario mostraba 3h 27min → 6h 20min en lugar de ~10h esperadas
+- **Causa raíz DOBLE**:
+  1. **Primera corrección**: Dividía entre días fijos del período (7/30/90) en lugar de días con datos
+  2. **Segunda corrección**: Dividía entre TODOS los días con eventos en lugar de días con sueño real
 - **Solución implementada**:
-  - Reescrito `calculateInferredSleepDuration` con lógica día por día
-  - Solo empareja eventos wake dentro de 24h del sleep
-  - Límite de sleepDelay a máximo 180 minutos
-  - Mejor logging para debug
+  - Contar días con sueño nocturno y días con siestas por separado
+  - Sueño nocturno: totalMinutes ÷ nightsWithSleep (no todos los días)
+  - Siestas: totalMinutes ÷ daysWithNaps
+  - UI actualizada para mostrar "Promedio nocturno" y "Promedio siestas" claramente
 - **Archivos modificados**:
-  - `/hooks/use-sleep-data.ts`
-  - `/lib/sleep-calculations.ts`
   - `/components/sleep-statistics/EnhancedSleepMetricsCard.tsx`
-  - Creado `/scripts/fix-sleep-delay.js` para limpiar datos históricos
-- **Resultado**: Cálculos de sueño ahora muestran valores correctos (~10h)
+- **Resultado**: Promedios ahora muestran valores médicamente correctos (~10h nocturno cuando duerme)
 
 ## 🚀 Sprint Actual - Sistema Completado
 

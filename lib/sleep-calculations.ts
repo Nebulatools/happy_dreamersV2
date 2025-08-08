@@ -220,7 +220,7 @@ function calculateInferredSleepDuration(events: SleepEvent[]): number {
       continue
     }
     
-    // Buscar el evento wake más cercano dentro de las próximas 24 horas
+    // Buscar el evento wake más cercano dentro de las próximas 18 horas (máximo razonable para sueño nocturno)
     let wakeEvent: SleepEvent | null = null
     let wakeEventIndex = -1
     
@@ -229,8 +229,8 @@ function calculateInferredSleepDuration(events: SleepEvent[]): number {
       const nextEventTime = parseISO(nextEvent.startTime)
       const timeDiff = nextEventTime.getTime() - bedTime.getTime()
       
-      // Si han pasado más de 24 horas, dejar de buscar
-      if (timeDiff > 24 * 60 * 60 * 1000) {
+      // Si han pasado más de 18 horas, dejar de buscar (sueño nocturno máximo razonable)
+      if (timeDiff > 18 * 60 * 60 * 1000) {
         break
       }
       
@@ -241,9 +241,13 @@ function calculateInferredSleepDuration(events: SleepEvent[]): number {
         break
       }
       
-      // Si encontramos otro evento sleep/bedtime, significa que no hay wake para el evento actual
+      // Si encontramos otro evento sleep/bedtime nocturno, significa que no hay wake para el evento actual
       if (['bedtime', 'sleep'].includes(nextEvent.eventType)) {
-        break
+        const nextEventHour = nextEventTime.getHours()
+        // Solo romper si es otro evento nocturno (no una siesta)
+        if (nextEventHour >= 18 || nextEventHour <= 6) {
+          break
+        }
       }
     }
     
@@ -269,14 +273,14 @@ function calculateInferredSleepDuration(events: SleepEvent[]): number {
         processedSleepEvents.add(i)
       }
     } else {
-      // Si no hay wake pero es un evento nocturno reciente, asumir 8 horas
+      // Si no hay wake pero es un evento nocturno reciente, asumir duración basada en edad típica
       const now = new Date()
       const daysSinceSleep = (now.getTime() - bedTime.getTime()) / (24 * 60 * 60 * 1000)
       
       if (daysSinceSleep <= 2) { // Solo para eventos de los últimos 2 días
-        const rawSleepDelay = currentEvent.sleepDelay || 0
-        const sleepDelay = Math.min(rawSleepDelay, 180)
-        const assumedDuration = (8 * 60) - sleepDelay // 8 horas menos el delay
+        // Para niños, asumir 10-11 horas de sueño nocturno típico
+        // NO restar el sleepDelay porque ya se aplicó al calcular actualSleepTime
+        const assumedDuration = 10 * 60 // 10 horas es típico para niños
         
         if (assumedDuration >= 120) {
           sleepDurations.push(assumedDuration)
