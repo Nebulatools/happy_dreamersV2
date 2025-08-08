@@ -81,7 +81,9 @@ function processSleepBreakdown(events: any[], dateRange: string) {
       const wakeTime = parseISO(nextEvent.startTime)
       
       // Si el evento tiene sleepDelay, ajustar el tiempo real de sueño
-      const sleepDelay = currentEvent.sleepDelay || 0
+      // Limitar sleepDelay a máximo 180 minutos para evitar cálculos incorrectos
+      const rawSleepDelay = currentEvent.sleepDelay || 0
+      const sleepDelay = Math.min(rawSleepDelay, 180) // Máximo 3 horas
       const actualSleepTime = new Date(bedTime.getTime() + sleepDelay * 60 * 1000)
       
       // LÓGICA SIMPLIFICADA: Si la hora de wake es menor que bedtime, wake es al día siguiente
@@ -120,7 +122,9 @@ function processSleepBreakdown(events: any[], dateRange: string) {
       // Solo si es horario nocturno (después de 6pm o antes de 6am)
       if (bedHour >= 18 || bedHour <= 6) {
         // Asumir 8 horas de sueño si no hay evento wake
-        const sleepDelay = currentEvent.sleepDelay || 0
+        // Limitar sleepDelay a máximo 180 minutos para evitar cálculos incorrectos
+        const rawSleepDelay = currentEvent.sleepDelay || 0
+        const sleepDelay = Math.min(rawSleepDelay, 180) // Máximo 3 horas
         const assumedDuration = (8 * 60) - sleepDelay // 8 horas menos el delay
         
         if (assumedDuration > 0) {

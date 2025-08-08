@@ -20,26 +20,20 @@
 
 ## 📝 Última Sesión (8 Enero 2025)
 
-### Limpieza y Reorganización de Documentación
-- **Eliminados 8 archivos obsoletos** de optimización (agosto 2025)
-- **Nueva estructura de carpetas** creada:
-  - `/session-archive/` - Contextos históricos
-  - `/reference/` - Documentación de referencia
-- **SESSION-CONTEXT.md reducido** de 1,941 a ~500 líneas
-- **Archivos movidos a /reference/**:
-  - workflow.md, survey.md, CONSULTAS.md, ADMIN_DASHBOARD_TRIAGE.md
-
-### Archivos Eliminados
-```
-OPTIMIZATION-ROADMAP.md
-OPTIMIZATION-SUMMARY.md
-PHASE3-OPTIMIZATION-SUMMARY.md
-COMPONENT-COMPLEXITY-ANALYSIS.md
-TESTING-ANALYSIS.md
-modificaciones.md
-FUNCIONALIDAD-ENCUESTA-COMPLETADA.md
-figma-screens-documentation.md
-```
+### Fix Crítico - Cálculo de Promedio de Sueño Nocturno
+- **Problema identificado**: Promedio mostraba ~3h en lugar de ~10h para sueño nocturno
+- **Causa raíz**: Emparejamiento incorrecto de eventos sleep→wake entre días diferentes
+- **Solución implementada**:
+  - Reescrito `calculateInferredSleepDuration` con lógica día por día
+  - Solo empareja eventos wake dentro de 24h del sleep
+  - Límite de sleepDelay a máximo 180 minutos
+  - Mejor logging para debug
+- **Archivos modificados**:
+  - `/hooks/use-sleep-data.ts`
+  - `/lib/sleep-calculations.ts`
+  - `/components/sleep-statistics/EnhancedSleepMetricsCard.tsx`
+  - Creado `/scripts/fix-sleep-delay.js` para limpiar datos históricos
+- **Resultado**: Cálculos de sueño ahora muestran valores correctos (~10h)
 
 ## 🚀 Sprint Actual - Sistema Completado
 

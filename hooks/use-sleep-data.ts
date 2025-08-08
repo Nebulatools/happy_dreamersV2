@@ -254,81 +254,108 @@ function calculateTimeVariation(dates: Date[]): number {
 function calculateInferredSleepDuration(events: any[]): number {
   if (events.length === 0) return 0
   
-  // Filtrar y ordenar eventos por fecha (excluir night_waking para cálculos de duración)
-  const sortedEvents = events
+  // Filtrar eventos relevantes (excluir night_waking para cálculos de duración)
+  const relevantEvents = events
     .filter(e => e.startTime && e.eventType !== 'night_waking')
     .sort((a, b) => 
       new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
     )
   
+  if (relevantEvents.length === 0) return 0
+  
+  logger.debug('Procesando eventos para duración', { count: relevantEvents.length })
+  
+  // Agrupar eventos por día para evitar emparejamientos incorrectos
   const sleepDurations: number[] = []
+  const processedSleepEvents = new Set<number>() // Para evitar procesar el mismo evento dos veces
   
-  logger.debug('Procesando eventos para duración', { count: sortedEvents.length })
-  sortedEvents.forEach((e, i) => {
-    logger.debug(`Evento ${i}`, { tipo: e.eventType, inicio: new Date(e.startTime).toLocaleString(), delay: e.sleepDelay })
-  })
-  
-  for (let i = 0; i < sortedEvents.length - 1; i++) {
-    const currentEvent = sortedEvents[i]
-    const nextEvent = sortedEvents[i + 1]
+  for (let i = 0; i < relevantEvents.length; i++) {
+    const currentEvent = relevantEvents[i]
     
-    // CASO 1: Par ideal bedtime/sleep → wake
-    if (
-      ['bedtime', 'sleep'].includes(currentEvent.eventType) &&
-      nextEvent.eventType === 'wake' &&
-      currentEvent.startTime && nextEvent.startTime
-    ) {
-      const bedTime = parseISO(currentEvent.startTime)
-      const wakeTime = parseISO(nextEvent.startTime)
+    // Solo procesar eventos de tipo sleep/bedtime que no hayan sido procesados
+    if (!['bedtime', 'sleep'].includes(currentEvent.eventType) || processedSleepEvents.has(i)) {
+      continue
+    }
+    
+    const bedTime = parseISO(currentEvent.startTime)
+    const bedTimeHour = bedTime.getHours()
+    
+    // Solo procesar eventos nocturnos (después de 18:00 o antes de 6:00)
+    if (bedTimeHour < 18 && bedTimeHour >= 6) {
+      continue
+    }
+    
+    // Buscar el evento wake más cercano dentro de las próximas 24 horas
+    let wakeEvent = null
+    let wakeEventIndex = -1
+    
+    for (let j = i + 1; j < relevantEvents.length; j++) {
+      const nextEvent = relevantEvents[j]
+      const nextEventTime = parseISO(nextEvent.startTime)
+      const timeDiff = nextEventTime.getTime() - bedTime.getTime()
       
-      // Si es evento sleep con delay, ajustar el tiempo de inicio real
-      const sleepDelay = currentEvent.sleepDelay || 0
+      // Si han pasado más de 24 horas, dejar de buscar
+      if (timeDiff > 24 * 60 * 60 * 1000) {
+        break
+      }
+      
+      // Si encontramos un evento wake, es nuestro candidato
+      if (nextEvent.eventType === 'wake') {
+        wakeEvent = nextEvent
+        wakeEventIndex = j
+        break
+      }
+      
+      // Si encontramos otro evento sleep/bedtime, significa que no hay wake para el evento actual
+      if (['bedtime', 'sleep'].includes(nextEvent.eventType)) {
+        break
+      }
+    }
+    
+    // Calcular duración del sueño
+    if (wakeEvent) {
+      const wakeTime = parseISO(wakeEvent.startTime)
+      
+      // Aplicar sleepDelay si existe
+      const rawSleepDelay = currentEvent.sleepDelay || 0
+      const sleepDelay = Math.min(rawSleepDelay, 180) // Máximo 3 horas
       const actualSleepTime = new Date(bedTime.getTime() + sleepDelay * 60 * 1000)
       
       let duration = differenceInMinutes(wakeTime, actualSleepTime)
       
+      // Si la duración es negativa (wake antes que sleep), probablemente wake es del día siguiente
       if (duration < 0) {
         duration += 24 * 60
       }
       
-      // Rango más amplio: 1-18 horas (60-1080 minutos)
-      if (duration >= 60 && duration <= 1080) {
+      // Validar que la duración sea razonable (2-16 horas)
+      if (duration >= 120 && duration <= 960) {
         sleepDurations.push(duration)
-        logger.debug('Duración válida', { minutos: duration, horas: (duration/60).toFixed(1) })
-      } else {
-        logger.debug('Duración inválida', { minutos: duration, horas: (duration/60).toFixed(1) })
+        processedSleepEvents.add(i)
+        logger.debug('Par sleep-wake encontrado', { 
+          sleep: bedTime.toLocaleString(),
+          wake: wakeTime.toLocaleString(),
+          duracion: (duration/60).toFixed(1) + 'h',
+          sleepDelay: sleepDelay + 'min'
+        })
       }
-    }
-    
-    // CASO 2: Si no hay wake, inferir desde sleep nocturno → primer evento del día siguiente
-    else if (
-      ['bedtime', 'sleep'].includes(currentEvent.eventType) &&
-      ['nap', 'activity'].includes(nextEvent.eventType) &&
-      currentEvent.startTime && nextEvent.startTime
-    ) {
-      const bedTime = parseISO(currentEvent.startTime)
-      const nextEventTime = parseISO(nextEvent.startTime)
+    } else {
+      // Si no hay wake pero es un evento nocturno reciente, asumir 8 horas
+      const now = new Date()
+      const daysSinceSleep = (now.getTime() - bedTime.getTime()) / (24 * 60 * 60 * 1000)
       
-      // Si es evento sleep con delay, ajustar el tiempo de inicio real
-      const sleepDelay = currentEvent.sleepDelay || 0
-      const actualSleepTime = new Date(bedTime.getTime() + sleepDelay * 60 * 1000)
-      
-      // Solo si es al día siguiente o más tarde
-      if (nextEventTime.getTime() > actualSleepTime.getTime()) {
-        // Inferir despertar 1 hora antes del primer evento del día siguiente
-        const inferredWakeTime = new Date(nextEventTime.getTime() - 60 * 60 * 1000)
-        let duration = differenceInMinutes(inferredWakeTime, actualSleepTime)
+      if (daysSinceSleep <= 2) { // Solo para eventos de los últimos 2 días
+        const rawSleepDelay = currentEvent.sleepDelay || 0
+        const sleepDelay = Math.min(rawSleepDelay, 180)
+        const assumedDuration = (8 * 60) - sleepDelay // 8 horas menos el delay
         
-        if (duration < 0) {
-          duration += 24 * 60
-        }
-        
-        // Rango más amplio para sueño inferido: 4-18 horas (240-1080 minutos)
-        if (duration >= 240 && duration <= 1080) {
-          sleepDurations.push(duration)
-          logger.debug('Duración inferida válida', { minutos: duration, horas: (duration/60).toFixed(1) })
-        } else {
-          logger.debug('Duración inferida inválida', { minutos: duration, horas: (duration/60).toFixed(1) })
+        if (assumedDuration >= 120) {
+          sleepDurations.push(assumedDuration)
+          processedSleepEvents.add(i)
+          logger.debug('Sueño sin wake (asumiendo 8h)', { 
+            sleep: bedTime.toLocaleString(),
+            duracionAsumida: (assumedDuration/60).toFixed(1) + 'h'
+          })
         }
       }
     }
@@ -338,6 +365,11 @@ function calculateInferredSleepDuration(events: any[]): number {
   
   // Calcular promedio en horas
   const averageMinutes = sleepDurations.reduce((sum, duration) => sum + duration, 0) / sleepDurations.length
+  logger.debug('Promedio de sueño calculado', { 
+    noches: sleepDurations.length,
+    promedioHoras: (averageMinutes/60).toFixed(1) 
+  })
+  
   return averageMinutes / 60
 }
 
