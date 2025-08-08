@@ -65,6 +65,7 @@
     "dotenv": "^16.4.5",
     "embla-carousel-react": "8.5.1",
     "faiss-node": "^0.5.1",
+    "framer-motion": "^12.23.12",
     "gcp-metadata": "latest",
     "input-otp": "1.4.1",
     "jspdf": "^3.0.1",

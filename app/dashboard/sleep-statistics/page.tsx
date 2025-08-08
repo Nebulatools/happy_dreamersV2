@@ -4,14 +4,13 @@ import { useState, useMemo } from "react"
 import { Download, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { usePageHeaderConfig } from "@/context/page-header-context"
-import SleepMetricsGrid from "@/components/child-profile/SleepMetricsGrid"
+import EnhancedSleepMetricsCard from "@/components/sleep-statistics/EnhancedSleepMetricsCard"
 import SleepDurationChart from "@/components/sleep-statistics/SleepDurationChart"
 import SleepConsistencyChart from "@/components/sleep-statistics/SleepConsistencyChart"
 import NightWakeupsEvolutionChart from "@/components/sleep-statistics/NightWakeupsEvolutionChart"
 import SleepDistributionChart from "@/components/sleep-statistics/SleepDistributionChart"
 import SleepDataStorytellingCard from "@/components/sleep-statistics/SleepDataStorytellingCard"
 import SleepInsightsCard from "@/components/sleep-statistics/SleepInsightsCard"
-import SleepBreakdownCard from "@/components/sleep-statistics/SleepBreakdownCard"
 // import SleepComparison from "@/components/sleep-statistics/SleepComparison"
 import { useActiveChild } from "@/context/active-child-context"
 import { useToast } from "@/hooks/use-toast"
@@ -65,21 +64,12 @@ export default function SleepStatisticsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Métricas Principales */}
+      {/* Nueva Card de Métricas Mejorada - Incluye todo lo prioritario */}
       {activeChildId ? (
-        <SleepMetricsGrid childId={activeChildId} dateRange={dateRange} />
+        <EnhancedSleepMetricsCard childId={activeChildId} dateRange={dateRange} />
       ) : (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
           <p className="text-gray-500">Por favor selecciona un niño desde el menú superior para ver las estadísticas</p>
-        </div>
-      )}
-
-      {/* Desglose de Sueño Nocturno vs Siestas */}
-      {activeChildId ? (
-        <SleepBreakdownCard childId={activeChildId} dateRange={dateRange} />
-      ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-          <p className="text-gray-500">Por favor selecciona un niño para ver el desglose de sueño</p>
         </div>
       )}
 
