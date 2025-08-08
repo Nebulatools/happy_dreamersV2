@@ -25,7 +25,10 @@ type FeedingType = 'breast' | 'bottle' | 'solids'
 type BabyState = 'awake' | 'asleep' | null
 
 // Función para determinar si es horario nocturno
-const isNightTime = (time: Date): boolean => {
+const isNightTime = (time: Date | null | undefined): boolean => {
+  if (!time || !(time instanceof Date) || isNaN(time.getTime())) {
+    return false
+  }
   const hour = time.getHours()
   return hour >= 23 || hour < 5
 }
@@ -42,7 +45,7 @@ export function FeedingModal({
   
   // Estados del formulario
   const [feedingType, setFeedingType] = useState<FeedingType>('breast')
-  const [feedingTime, setFeedingTime] = useState(new Date())
+  const [feedingTime, setFeedingTime] = useState<Date>(() => new Date())
   const [babyState, setBabyState] = useState<BabyState>(null)
   const [notes, setNotes] = useState("")
   

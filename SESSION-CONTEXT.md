@@ -18,21 +18,22 @@
 - **Feedback Médico**: Sprints 1-3 implementados
 - **Branch Actual**: devpraulio
 
-## 📝 Última Sesión (27 Enero 2025)
+## 📝 Última Sesión (08 Febrero 2025)
 
-### Fix Crítico - Cálculo de Promedio Diario de Sueño en EnhancedSleepMetricsCard
-- **Problema identificado**: Promedio diario mostraba 3h 27min → 6h 20min en lugar de ~10h esperadas
-- **Causa raíz DOBLE**:
-  1. **Primera corrección**: Dividía entre días fijos del período (7/30/90) en lugar de días con datos
-  2. **Segunda corrección**: Dividía entre TODOS los días con eventos en lugar de días con sueño real
-- **Solución implementada**:
-  - Contar días con sueño nocturno y días con siestas por separado
-  - Sueño nocturno: totalMinutes ÷ nightsWithSleep (no todos los días)
-  - Siestas: totalMinutes ÷ daysWithNaps
-  - UI actualizada para mostrar "Promedio nocturno" y "Promedio siestas" claramente
+### Implementación Feedback Dra. Mariana - Sistema de Registro de Eventos
+- **Objetivo**: Implementar modificaciones según feedback médico para registro de eventos
+- **Cambios principales implementados**:
+  1. **Alimentación como evento primario**: Botón verde prominente en SimpleSleepToggle
+  2. **FeedingModal creado**: Modal especializado con subtipos (pecho, biberón, sólidos)
+  3. **Estado bebé nocturno**: Pregunta automática para tomas entre 23-5h (dream feed vs despierto)
+  4. **GuidedNotesField**: Placeholders contextuales específicos por tipo de evento
+  5. **Estados emocionales verificados**: Tranquilo, Inquieto, Alterado (ya existían correctamente)
+- **Archivos creados**:
+  - `/components/events/FeedingModal.tsx`
+  - `/components/events/GuidedNotesField.tsx`
 - **Archivos modificados**:
-  - `/components/sleep-statistics/EnhancedSleepMetricsCard.tsx`
-- **Resultado**: Promedios ahora muestran valores médicamente correctos (~10h nocturno cuando duerme)
+  - `/components/events/SimpleSleepToggle.tsx`
+- **Resultado**: 100% del feedback de la Dra. Mariana implementado exitosamente
 
 ## 🚀 Sprint Actual - Sistema Completado
 
