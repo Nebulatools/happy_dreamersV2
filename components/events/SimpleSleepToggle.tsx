@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Moon, Sun, Clock, Edit2, Plus } from "lucide-react"
+import { Moon, Sun, Clock, Edit2, Plus, Utensils } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast"
 import { SleepDelayCapture } from "./SleepDelayCapture"
 import { ManualSleepEntry } from "./ManualSleepEntry"
 import { QuickEventSelector } from "./QuickEventSelector"
+import { FeedingModal } from "./FeedingModal"
 
 // Tipos de estado del sueño
 export type SleepStatus = 'awake' | 'going_to_sleep' | 'sleeping' | 'night_waking'
@@ -140,6 +141,7 @@ export default function SimpleSleepToggle({
   const [showDelayCapture, setShowDelayCapture] = useState(false)
   const [showManualEntry, setShowManualEntry] = useState(false)
   const [showQuickSelector, setShowQuickSelector] = useState(false)
+  const [showFeedingModal, setShowFeedingModal] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   
   const buttonConfig = getButtonConfig(state)
@@ -432,31 +434,50 @@ export default function SimpleSleepToggle({
         <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-shimmer pointer-events-none" />
       </div>
       
-      {/* Botones secundarios mejorados */}
-      <div className="relative flex gap-3">
+      {/* Eventos principales: Alimentación como botón prominente */}
+      <div className="grid grid-cols-2 gap-3">
+        <Button
+          onClick={() => setShowFeedingModal(true)}
+          className="h-24 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transform transition-all duration-200 hover:scale-[1.02] rounded-xl"
+        >
+          <div className="flex items-center gap-3">
+            <Utensils className="w-8 h-8" />
+            <div className="text-left">
+              <div className="font-bold text-lg">ALIMENTACIÓN</div>
+              <div className="text-xs opacity-90">Toma o comida</div>
+            </div>
+          </div>
+        </Button>
+        
+        {/* Botón de Otros Eventos */}
+        {!hideOtherEventsButton && (
+          <Button
+            variant="outline"
+            onClick={() => setShowQuickSelector(true)}
+            className="h-24 bg-white/80 backdrop-blur-sm border-2 border-gray-200 hover:bg-white hover:border-gray-300 transition-all duration-200"
+          >
+            <div className="flex items-center gap-3">
+              <Plus className="w-6 h-6" />
+              <div className="text-left">
+                <div className="font-semibold">Otros Eventos</div>
+                <div className="text-xs text-gray-600">Medicamentos, actividades</div>
+              </div>
+            </div>
+          </Button>
+        )}
+      </div>
+      
+      {/* Botón de Registro Manual */}
+      <div className="relative">
         <Button
           variant="outline"
           size="lg"
           onClick={() => setShowManualEntry(true)}
-          className={cn(
-            "bg-white/80 backdrop-blur-sm border-2 border-gray-200 hover:bg-white hover:border-gray-300 transition-all duration-200",
-            hideOtherEventsButton ? "w-full" : "flex-1"
-          )}
+          className="w-full bg-white/80 backdrop-blur-sm border-2 border-gray-200 hover:bg-white hover:border-gray-300 transition-all duration-200"
         >
           <Edit2 className="w-5 h-5 mr-2" />
           Registro Manual
         </Button>
-        {!hideOtherEventsButton && (
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => setShowQuickSelector(true)}
-            className="flex-1 bg-white/80 backdrop-blur-sm border-2 border-gray-200 hover:bg-white hover:border-gray-300 transition-all duration-200"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Otros Eventos
-          </Button>
-        )}
       </div>
       
       {/* Modal de captura de delay */}
@@ -498,6 +519,20 @@ export default function SimpleSleepToggle({
           onEventCreated={() => {
             onEventRegistered?.()
             setShowQuickSelector(false)
+          }}
+        />
+      )}
+      
+      {/* Modal de Alimentación */}
+      {showFeedingModal && (
+        <FeedingModal
+          isOpen={showFeedingModal}
+          onClose={() => setShowFeedingModal(false)}
+          childId={childId}
+          childName={childName}
+          onEventRegistered={() => {
+            onEventRegistered?.()
+            setShowFeedingModal(false)
           }}
         />
       )}
