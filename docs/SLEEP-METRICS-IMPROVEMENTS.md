@@ -1,6 +1,6 @@
 # Mejoras al Dashboard de Estadísticas de Sueño
 
-## Fecha: Enero 2025
+## Fecha: Enero 2025 (Actualizado: 27 Enero 2025)
 
 ### 🎯 Objetivo
 Mejorar el dashboard de estadísticas de sueño según feedback de la Dra. Mariana, optimizando el espacio y corrigiendo los cálculos de sueño nocturno.
@@ -34,20 +34,28 @@ if (wakeTimeInMinutes <= bedTimeInMinutes && bedHour >= 18) {
 }
 ```
 
-### 📈 Cálculo de Promedios
+### 📈 Cálculo de Promedios - ACTUALIZADO (27 Enero 2025)
 
-El sistema ahora:
-1. Procesa eventos: `bedtime`, `sleep`, `wake`, `nap`
-2. Considera `sleepDelay` (tiempo para dormirse)
-3. Calcula totales del período
-4. Divide entre días para obtener promedios diarios
+#### ⚠️ Corrección Crítica del Cálculo
+El sistema fue **completamente rediseñado** para mostrar promedios médicamente útiles:
 
-### Ejemplo de Cálculo:
-- Acostarse: 21:00
-- Despertar: 8:00 AM
-- Cálculo: (24:00 - 21:00) + 8:00 = 3h + 8h = **11 horas**
-- En 30 días con 10 noches registradas = 110h total
-- Promedio: 110h / 30 días = **3.67h/día**
+**ANTES (Incorrecto)**:
+1. Dividía entre días fijos del período (7, 30, 90)
+2. Luego dividía entre todos los días con cualquier evento
+3. Resultado: promedios diluidos no representativos (3-6 horas)
+
+**AHORA (Correcto)**:
+1. Cuenta días con sueño nocturno real
+2. Cuenta días con siestas por separado
+3. Calcula: Promedio nocturno = Total nocturno ÷ Noches con sueño
+4. Calcula: Promedio siestas = Total siestas ÷ Días con siestas
+5. Resultado: promedios reales cuando el niño duerme (~9-10 horas)
+
+### Ejemplo de Cálculo Corregido:
+- 10 noches con sueño de 10 horas cada una = 100 horas total
+- **Cálculo anterior**: 100h ÷ 30 días = 3.33h/día ❌
+- **Cálculo actual**: 100h ÷ 10 noches = 10h/noche ✅
+- UI muestra: "Promedio nocturno: 10h" (basado en 10 noches)
 
 ### 🎨 Mejoras de UX
 
