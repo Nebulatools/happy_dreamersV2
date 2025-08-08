@@ -19,20 +19,25 @@ export function TimeAdjuster({
   className,
   showQuickButtons = true 
 }: TimeAdjusterProps) {
-  const [hours, setHours] = useState(value.getHours())
-  const [minutes, setMinutes] = useState(value.getMinutes())
-  const [isAM, setIsAM] = useState(value.getHours() < 12)
+  // Valor por defecto si value es undefined o inválido
+  const safeValue = value instanceof Date && !isNaN(value.getTime()) ? value : new Date()
+  
+  const [hours, setHours] = useState(safeValue.getHours())
+  const [minutes, setMinutes] = useState(safeValue.getMinutes())
+  const [isAM, setIsAM] = useState(safeValue.getHours() < 12)
   
   // Actualizar cuando cambie el valor externo
   useEffect(() => {
-    setHours(value.getHours())
-    setMinutes(value.getMinutes())
-    setIsAM(value.getHours() < 12)
+    const safeValue = value instanceof Date && !isNaN(value.getTime()) ? value : new Date()
+    setHours(safeValue.getHours())
+    setMinutes(safeValue.getMinutes())
+    setIsAM(safeValue.getHours() < 12)
   }, [value])
   
   // Actualizar la fecha cuando cambien los valores
   useEffect(() => {
-    const newDate = new Date(value)
+    const baseDate = value instanceof Date && !isNaN(value.getTime()) ? value : new Date()
+    const newDate = new Date(baseDate)
     newDate.setHours(hours)
     newDate.setMinutes(minutes)
     onChange(newDate)

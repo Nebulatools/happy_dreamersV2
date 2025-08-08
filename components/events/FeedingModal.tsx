@@ -215,7 +215,7 @@ export function FeedingModal({
           <div>
             <Label>Hora de la alimentación</Label>
             <TimeAdjuster
-              time={feedingTime}
+              value={feedingTime}
               onChange={setFeedingTime}
               className="mt-2"
             />
