@@ -20,29 +20,30 @@
 
 ## 📝 Última Sesión (12 Enero 2025)
 
-### Rediseño del Calendario - Nueva Vista Mensual y Reorganización UI
-- **Objetivo**: Mejorar visualización mensual para ver evolución de horarios y reorganizar controles
+### Nueva Visualización de Evolución de Despertares Nocturnos con Eje Temporal
+- **Objetivo**: Mejorar el componente de Evolución de Despertares Nocturnos agregando eje Y temporal (9PM-6AM)
 - **Cambios principales implementados**:
-  1. **Nueva Vista Mensual - Gráfica de Líneas**:
-     - Componente `MonthLineChart` con Recharts
-     - Eje Y: Horas del día (0-24), Eje X: Días del mes (1-31)
-     - Cada evento como línea de color (morado=dormir, verde=despertar, naranja=siesta, rojo=despertar nocturno)
-     - Tooltips interactivos con detalles de eventos
-  2. **Líneas de Referencia Mejoradas**:
-     - Hora de dormir ideal: Línea morada (#B794F4) con texto bold
-     - Hora de despertar ideal: Línea verde (#68D391) con texto bold
-     - Conexión automática con el plan activo del niño
-  3. **Reorganización de UI**:
-     - Header simplificado: Solo título "Calendario" y botón "Registrar evento"
-     - Área de resumen ampliada con controles de navegación y selector de vista
-     - Mejor distribución del espacio en pantalla
+  1. **Nueva Visualización con ScatterChart**:
+     - Eje Y: Horas de la noche (21:00 - 06:00) con formato 24h
+     - Eje X: Días del período seleccionado (7, 30 o 90 días)
+     - Cada despertar como punto en el gráfico
+     - Tamaño del punto indica duración (8-24px)
+  2. **Mejoras Visuales**:
+     - Líneas de referencia: Medianoche (morado #8b5cf6) y 3 AM (naranja #f97316)
+     - Tooltips personalizados con fecha, hora, número de despertar y duración
+     - Contadores de despertares por día arriba del gráfico
+     - Título del eje Y posicionado fuera del área de etiquetas
+  3. **Optimización de Layout**:
+     - Márgenes ajustados para mejor aprovechamiento del espacio
+     - Alineación perfecta de contadores con días (marginLeft: 85px)
+     - Altura aumentada a 380px para mejor visualización
+     - Tipografía consistente de 12px en todos los ejes
+  4. **Nueva Estadística**:
+     - "Hora más frecuente" de despertares agregada a las métricas
 
-- **Archivos creados**:
-  - `/components/calendar/MonthLineChart.tsx` - Gráfica de líneas para vista mensual
 - **Archivos modificados**:
-  - `/app/dashboard/calendar/page.tsx` - Reorganización de controles y nueva vista
-  - `/components/calendar/index.ts` - Export del nuevo componente
-- **Resultado**: Vista mensual mejorada con visualización clara de evolución de horarios
+  - `/components/sleep-statistics/NightWakeupsEvolutionChart.tsx` - Reescritura completa con ScatterChart
+- **Resultado**: Visualización intuitiva que permite identificar patrones temporales de despertares nocturnos
 
 ## 🚀 Sprint Actual - Sistema Completado
 
