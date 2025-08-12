@@ -18,32 +18,32 @@
 - **Feedback Médico**: Sprints 1-3 implementados
 - **Branch Actual**: devpraulio
 
-## 📝 Última Sesión (12 Enero 2025)
+## 📝 Última Sesión (12 Agosto 2025)
 
-### Nueva Visualización de Evolución de Despertares Nocturnos con Eje Temporal
-- **Objetivo**: Mejorar el componente de Evolución de Despertares Nocturnos agregando eje Y temporal (9PM-6AM)
+### Navegación Día por Día en Calendario Semanal
+- **Objetivo**: Implementar navegación día por día en la vista semanal del calendario
+- **Problema identificado**: La navegación solo funcionaba cada 7 días debido a lógica de semana completa
 - **Cambios principales implementados**:
-  1. **Nueva Visualización con ScatterChart**:
-     - Eje Y: Horas de la noche (21:00 - 06:00) con formato 24h
-     - Eje X: Días del período seleccionado (7, 30 o 90 días)
-     - Cada despertar como punto en el gráfico
-     - Tamaño del punto indica duración (8-24px)
-  2. **Mejoras Visuales**:
-     - Líneas de referencia: Medianoche (morado #8b5cf6) y 3 AM (naranja #f97316)
-     - Tooltips personalizados con fecha, hora, número de despertar y duración
-     - Contadores de despertares por día arriba del gráfico
-     - Título del eje Y posicionado fuera del área de etiquetas
-  3. **Optimización de Layout**:
-     - Márgenes ajustados para mejor aprovechamiento del espacio
-     - Alineación perfecta de contadores con días (marginLeft: 85px)
-     - Altura aumentada a 380px para mejor visualización
-     - Tipografía consistente de 12px en todos los ejes
-  4. **Nueva Estadística**:
-     - "Hora más frecuente" de despertares agregada a las métricas
+  1. **Nueva Lógica de Vista Semanal**:
+     - Cambio de `startOfWeek/endOfWeek` a 7 días consecutivos desde fecha actual
+     - Navegación día por día funcional con flechas laterales
+     - Cálculo dinámico de nombres de días basado en fecha real
+  2. **Mejoras en UI**:
+     - Flechas de navegación integradas en el calendario (no en header)
+     - Flecha izquierda antes del primer día, flecha derecha después del último
+     - Tooltips descriptivos: "Día anterior" y "Día siguiente"
+  3. **Actualizaciones de Funcionalidad**:
+     - Header muestra rango correcto de fechas (ej: "15 Ene - 21 Ene")
+     - Filtrado de eventos actualizado para 7 días consecutivos
+     - Responsive design mantenido para dispositivos móviles
+  4. **Lógica Corregida**:
+     - `setDate(subDays(date, 1))` para retroceder un día
+     - `setDate(addDays(date, 1))` para avanzar un día
+     - Ventana móvil de 7 días consecutivos
 
 - **Archivos modificados**:
-  - `/components/sleep-statistics/NightWakeupsEvolutionChart.tsx` - Reescritura completa con ScatterChart
-- **Resultado**: Visualización intuitiva que permite identificar patrones temporales de despertares nocturnos
+  - `/app/dashboard/calendar/page.tsx` - Función `renderWeekView()` completamente refactorizada
+- **Resultado**: Navegación fluida día por día manteniendo contexto de 7 días visibles
 
 ## 🚀 Sprint Actual - Sistema Completado
 

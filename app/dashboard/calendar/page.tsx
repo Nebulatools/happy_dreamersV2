@@ -322,8 +322,8 @@ export default function CalendarPage() {
                  eventDate.getFullYear() === date.getFullYear()
         })
       } else if (view === "week") {
-        const weekStart = startOfWeek(date, { weekStartsOn: 1 })
-        const weekEnd = endOfWeek(date, { weekStartsOn: 1 })
+        const weekStart = startOfDay(date)
+        const weekEnd = endOfDay(addDays(date, 6))
         filteredEvents = eventsData.filter((event: Event) => {
           const eventDate = new Date(event.startTime)
           return eventDate >= weekStart && eventDate <= weekEnd
@@ -679,10 +679,9 @@ export default function CalendarPage() {
   }
 
   const renderWeekView = () => {
-    const weekStart = startOfWeek(date, { weekStartsOn: 1 })
-    const weekEnd = endOfWeek(date, { weekStartsOn: 1 })
-    const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
-    const weekDays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+    // Mostrar 7 días consecutivos desde la fecha actual (para navegación día por día)
+    const days = Array.from({ length: 7 }, (_, i) => addDays(date, i))
+    const allWeekDays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
     
     // Altura optimizada para que todo quepa en una pantalla sin scroll
     const hourHeight = 25 // 25px * 24 horas = 600px total
@@ -698,10 +697,29 @@ export default function CalendarPage() {
             <CompactTimelineColumn hourHeight={hourHeight} />
           </div>
           
-          {/* Days Grid */}
+          {/* Days Grid con flechas de navegación día por día */}
           <div className="flex-1 flex">
+            {/* Flecha izquierda para retroceder un día */}
+            <div className="flex-shrink-0 relative">
+              <div className="h-12 border-b border-gray-200 flex items-center justify-center sticky top-0 z-20 bg-white">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 hover:bg-gray-100"
+                  onClick={() => setDate(subDays(date, 1))}
+                  title="Día anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="h-[600px] bg-gray-50/50 border-r border-gray-200 w-10 flex items-center justify-center">
+                <ChevronLeft className="h-4 w-4 text-gray-400" />
+              </div>
+            </div>
+            
+            {/* Días de la semana */}
             {days.map((day, index) => {
-              const dayName = weekDays[index]
+              const dayName = allWeekDays[day.getDay()] // Usar el día real de la semana
               const dayEvents = getEventsForDay(day)
               const isDayToday = isToday(day)
               
@@ -772,6 +790,24 @@ export default function CalendarPage() {
                 </div>
               )
             })}
+            
+            {/* Flecha derecha para avanzar un día */}
+            <div className="flex-shrink-0 relative">
+              <div className="h-12 border-b border-gray-200 flex items-center justify-center sticky top-0 z-20 bg-white">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 hover:bg-gray-100"
+                  onClick={() => setDate(addDays(date, 1))}
+                  title="Día siguiente"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="h-[600px] bg-gray-50/50 border-l border-gray-200 w-10 flex items-center justify-center">
+                <ChevronRight className="h-4 w-4 text-gray-400" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -954,7 +990,7 @@ export default function CalendarPage() {
               
               <span className="font-semibold text-base min-w-[160px] text-center text-gray-800">
                 {view === "month" && format(date, "MMMM yyyy", { locale: es })}
-                {view === "week" && `Semana del ${format(startOfWeek(date, { weekStartsOn: 1 }), "d MMM", { locale: es })}`}
+                {view === "week" && `${format(date, "d MMM", { locale: es })} - ${format(addDays(date, 6), "d MMM", { locale: es })}`}
                 {view === "day" && format(date, "d 'de' MMMM yyyy", { locale: es })}
               </span>
               
