@@ -18,32 +18,33 @@
 - **Feedback Médico**: Sprints 1-3 implementados
 - **Branch Actual**: devpraulio
 
-## 📝 Última Sesión (12 Agosto 2025)
+## 📝 Última Sesión (27 Enero 2025)
 
-### Navegación Día por Día en Calendario Semanal
-- **Objetivo**: Implementar navegación día por día en la vista semanal del calendario
-- **Problema identificado**: La navegación solo funcionaba cada 7 días debido a lógica de semana completa
-- **Cambios principales implementados**:
-  1. **Nueva Lógica de Vista Semanal**:
-     - Cambio de `startOfWeek/endOfWeek` a 7 días consecutivos desde fecha actual
-     - Navegación día por día funcional con flechas laterales
-     - Cálculo dinámico de nombres de días basado en fecha real
-  2. **Mejoras en UI**:
-     - Flechas de navegación integradas en el calendario (no en header)
-     - Flecha izquierda antes del primer día, flecha derecha después del último
-     - Tooltips descriptivos: "Día anterior" y "Día siguiente"
-  3. **Actualizaciones de Funcionalidad**:
-     - Header muestra rango correcto de fechas (ej: "15 Ene - 21 Ene")
-     - Filtrado de eventos actualizado para 7 días consecutivos
-     - Responsive design mantenido para dispositivos móviles
-  4. **Lógica Corregida**:
-     - `setDate(subDays(date, 1))` para retroceder un día
-     - `setDate(addDays(date, 1))` para avanzar un día
-     - Ventana móvil de 7 días consecutivos
+### Sistema Dual de Registro de Eventos - Implementación Completa
+- **Objetivo**: Implementar sistema de registro según requisitos médicos con modo simple y manual
+- **Logros principales**:
+  1. **Arquitectura Dual Implementada**:
+     - Modo Simple (principal): Ciclo unificado dormir/despertar
+     - Modo Manual (preservado): Acceso completo a todos los eventos
+     - Context API para gestión de modos
+  2. **Ciclo Unificado de Sueño**:
+     - UN SOLO BOTÓN que alterna estados
+     - Auto-clasificación siesta/nocturno por horario
+     - Registro preciso de hora acostarse + delay
+  3. **Correcciones Críticas**:
+     - Fix: RangeError en manejo de fechas
+     - Fix: Clasificación correcta sleep/nap según horario
+     - Fix: Cálculo preciso de tiempos con latencia
+  4. **UX Mejorada**:
+     - Botón dinámico con colores según hora
+     - Alimentación como evento primario
+     - Campos médicos críticos integrados
 
-- **Archivos modificados**:
-  - `/app/dashboard/calendar/page.tsx` - Función `renderWeekView()` completamente refactorizada
-- **Resultado**: Navegación fluida día por día manteniendo contexto de 7 días visibles
+- **Archivos principales creados/modificados**:
+  - `/components/events/primary/` - Nuevos componentes modo simple
+  - `/contexts/EventRegistrationModeContext.tsx` - Gestión de modos
+  - `/docs/EVENT_REGISTRATION_SYSTEM.md` - Documentación completa
+- **Resultado**: Sistema 100% funcional con requisitos médicos implementados
 
 ## 🚀 Sprint Actual - Sistema Completado
 

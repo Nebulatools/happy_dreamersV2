@@ -130,7 +130,7 @@ function saveState(state: SleepState) {
   }
 }
 
-export default function SimpleSleepToggle({ 
+export function SimpleSleepToggle({ 
   childId, 
   childName,
   onEventRegistered,
@@ -539,3 +539,6 @@ export default function SimpleSleepToggle({
     </div>
   )
 }
+
+// Export default para compatibilidad con imports existentes
+export default SimpleSleepToggle

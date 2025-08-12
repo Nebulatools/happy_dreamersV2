@@ -11,7 +11,8 @@ import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache } from "@/hooks/use-events-cache"
 import AdminStatistics from "@/components/dashboard/AdminStatistics"
 import SleepMetricsGrid from "@/components/child-profile/SleepMetricsGrid"
-import SimpleSleepToggle from "@/components/events/SimpleSleepToggle"
+import { EventRegistrationDualMode } from "@/components/events/EventRegistrationDualMode"
+import { EventRegistrationModeProvider } from "@/contexts/EventRegistrationModeContext"
 import { 
   Moon, Sun, Activity, TrendingUp, Calendar, MessageSquare, 
   Lightbulb, ChevronLeft, ChevronRight, Send, X,
@@ -362,15 +363,17 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Registro de Sueño Simplificado - POSICIÓN PROMINENTE */}
+        {/* Registro de Eventos Dual - POSICIÓN PROMINENTE */}
         {activeChildId && child && (
-          <div className="mb-8">
-            <SimpleSleepToggle 
-              childId={activeChildId}
-              childName={child.firstName}
-              onEventRegistered={loadChildData}
-            />
-          </div>
+          <EventRegistrationModeProvider>
+            <div className="mb-8">
+              <EventRegistrationDualMode 
+                childId={activeChildId}
+                childName={child.firstName}
+                onEventRegistered={loadChildData}
+              />
+            </div>
+          </EventRegistrationModeProvider>
         )}
 
         {/* Grid de contenido principal */}
