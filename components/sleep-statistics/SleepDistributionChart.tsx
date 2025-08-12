@@ -99,28 +99,43 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
           <div className="relative mt-6 h-8 bg-gray-200 rounded-full overflow-hidden">
             {/* Bloques de períodos despierto del día */}
             {data.awakePeriods.map((period, index) => {
-              // Solo mostrar en timeline si tiene horarios reales (no es promedio)
-              if (!period.durationFormatted.includes('promedio')) {
+              let startPercent: number
+              let durationPercent: number
+              
+              // Si es promedio, usar horarios típicos para cada período
+              if (period.durationFormatted.includes('promedio')) {
+                // Definir horarios típicos para cada período del día
+                const typicalStartHours: Record<string, number> = {
+                  'mañana': 7,    // 7:00 AM
+                  'mediodía': 11, // 11:00 AM  
+                  'tarde': 15,    // 3:00 PM
+                  'noche': 19     // 7:00 PM
+                }
+                
+                const startHour = typicalStartHours[period.period] || 7
+                startPercent = (startHour / 24) * 100
+                durationPercent = (period.duration / (24 * 60)) * 100
+              } else {
+                // Usar horarios reales si no es promedio
                 const startHour = parseISO(period.startTime).getHours()
                 const startMinutes = parseISO(period.startTime).getMinutes()
-                const startPercent = ((startHour + startMinutes/60) / 24) * 100
-                const durationPercent = (period.duration / (24 * 60)) * 100
-                
-                return (
-                  <div
-                    key={index}
-                    className="absolute h-full"
-                    style={{
-                      left: `${startPercent}%`,
-                      width: `${durationPercent}%`,
-                      backgroundColor: getWindowColor(period.duration),
-                      opacity: 0.7
-                    }}
-                    title={`${period.period}: ${period.durationFormatted}`}
-                  />
-                )
+                startPercent = ((startHour + startMinutes/60) / 24) * 100
+                durationPercent = (period.duration / (24 * 60)) * 100
               }
-              return null
+              
+              return (
+                <div
+                  key={index}
+                  className="absolute h-full"
+                  style={{
+                    left: `${startPercent}%`,
+                    width: `${durationPercent}%`,
+                    backgroundColor: getWindowColor(period.duration),
+                    opacity: period.durationFormatted.includes('promedio') ? 0.5 : 0.7
+                  }}
+                  title={`${period.period}: ${period.durationFormatted}`}
+                />
+              )
             })}
           </div>
         </div>
