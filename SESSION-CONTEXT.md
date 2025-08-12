@@ -18,29 +18,31 @@
 - **Feedback Médico**: Sprints 1-3 implementados
 - **Branch Actual**: devpraulio
 
-## 📝 Última Sesión (08 Febrero 2025)
+## 📝 Última Sesión (12 Enero 2025)
 
-### Implementación Feedback Dra. Mariana - Sistema de Registro de Eventos
-- **Objetivo**: Implementar modificaciones según feedback médico para registro de eventos
+### Rediseño del Calendario - Nueva Vista Mensual y Reorganización UI
+- **Objetivo**: Mejorar visualización mensual para ver evolución de horarios y reorganizar controles
 - **Cambios principales implementados**:
-  1. **Alimentación como evento primario**: Botón verde prominente en SimpleSleepToggle
-  2. **FeedingModal creado**: Modal especializado con subtipos (pecho, biberón, sólidos)
-  3. **Estado bebé nocturno**: Pregunta automática para tomas entre 23-5h (dream feed vs despierto)
-  4. **GuidedNotesField**: Placeholders contextuales específicos por tipo de evento
-  5. **Estados emocionales verificados**: Tranquilo, Inquieto, Alterado (ya existían correctamente)
-
-### Fixes de Errores Críticos
-- **Error TimeAdjuster**: Corregido prop naming (time → value) y agregada validación defensiva
-- **Error FeedingModal**: Validación de Date en función isNightTime
-- **ErrorBoundary**: Resueltos crashes por valores undefined
+  1. **Nueva Vista Mensual - Gráfica de Líneas**:
+     - Componente `MonthLineChart` con Recharts
+     - Eje Y: Horas del día (0-24), Eje X: Días del mes (1-31)
+     - Cada evento como línea de color (morado=dormir, verde=despertar, naranja=siesta, rojo=despertar nocturno)
+     - Tooltips interactivos con detalles de eventos
+  2. **Líneas de Referencia Mejoradas**:
+     - Hora de dormir ideal: Línea morada (#B794F4) con texto bold
+     - Hora de despertar ideal: Línea verde (#68D391) con texto bold
+     - Conexión automática con el plan activo del niño
+  3. **Reorganización de UI**:
+     - Header simplificado: Solo título "Calendario" y botón "Registrar evento"
+     - Área de resumen ampliada con controles de navegación y selector de vista
+     - Mejor distribución del espacio en pantalla
 
 - **Archivos creados**:
-  - `/components/events/FeedingModal.tsx` - Modal de alimentación con lógica nocturna
-  - `/components/events/GuidedNotesField.tsx` - Campo de notas con placeholders guiados
+  - `/components/calendar/MonthLineChart.tsx` - Gráfica de líneas para vista mensual
 - **Archivos modificados**:
-  - `/components/events/SimpleSleepToggle.tsx` - Agregado botón de alimentación
-  - `/components/events/TimeAdjuster.tsx` - Validación defensiva para valores undefined
-- **Resultado**: 100% del feedback implementado y errores críticos resueltos
+  - `/app/dashboard/calendar/page.tsx` - Reorganización de controles y nueva vista
+  - `/components/calendar/index.ts` - Export del nuevo componente
+- **Resultado**: Vista mensual mejorada con visualización clara de evolución de horarios
 
 ## 🚀 Sprint Actual - Sistema Completado
 
