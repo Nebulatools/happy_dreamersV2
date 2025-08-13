@@ -24,10 +24,28 @@ interface PlanDisplayProps {
 }
 
 export function PlanDisplay({ plan }: PlanDisplayProps) {
-  // Función para formatear hora
+  // Validación defensiva
+  if (!plan) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-muted-foreground">
+          No hay datos del plan disponibles
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Función para formatear hora con validación
   const formatTime = (time: string) => {
-    const [hour, minute] = time.split(':')
+    if (!time || typeof time !== 'string') return 'N/A'
+    
+    const parts = time.split(':')
+    if (parts.length !== 2) return time
+    
+    const [hour, minute] = parts
     const hourNum = parseInt(hour)
+    if (isNaN(hourNum)) return time
+    
     const period = hourNum >= 12 ? 'PM' : 'AM'
     const displayHour = hourNum > 12 ? hourNum - 12 : hourNum === 0 ? 12 : hourNum
     return `${displayHour}:${minute} ${period}`

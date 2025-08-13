@@ -44,8 +44,17 @@ function processNightWakeups(events: any[]) {
           parseISO(event.startTime)
         )
         dayData.duration += duration
-      } else {
-        dayData.duration += 45 // Duración promedio si no hay endTime
+      } 
+      // Si tiene nightWakingDelay (nuevo campo), usarlo
+      else if (event.nightWakingDelay) {
+        dayData.duration += event.nightWakingDelay
+      }
+      // Si tiene duration directamente
+      else if (event.duration) {
+        dayData.duration += event.duration
+      }
+      else {
+        dayData.duration += 30 // Duración promedio más realista si no hay datos
       }
       
       logger.debug('Despertar nocturno registrado', { day: dayData.day })
@@ -67,6 +76,36 @@ export default function NightWakeupsChart({ childId, dateRange = "7-days" }: Nig
   // Calcular datos antes de los returns condicionales
   const totalWakeups = sleepData?.totalWakeups || 0
   const avgWakeupsPerNight = sleepData?.avgWakeupsPerNight || 0
+  
+  // Calcular duración promedio de despertares (si hay datos)
+  const avgWakeupDuration = React.useMemo(() => {
+    if (!sleepData?.events || sleepData.events.length === 0) return 0
+    
+    const nightWakingEvents = sleepData.events.filter((e: any) => e.eventType === 'night_waking')
+    if (nightWakingEvents.length === 0) return 0
+    
+    let totalDuration = 0
+    let eventsWithDuration = 0
+    
+    nightWakingEvents.forEach((event: any) => {
+      let duration = 0
+      
+      if (event.endTime && event.startTime) {
+        duration = differenceInMinutes(parseISO(event.endTime), parseISO(event.startTime))
+      } else if (event.nightWakingDelay) {
+        duration = event.nightWakingDelay
+      } else if (event.duration) {
+        duration = event.duration
+      }
+      
+      if (duration > 0) {
+        totalDuration += duration
+        eventsWithDuration++
+      }
+    })
+    
+    return eventsWithDuration > 0 ? Math.round(totalDuration / eventsWithDuration) : 0
+  }, [sleepData])
   
   // Simular distribución por día de la semana (ya que los datos reales están centralizados)
   const wakeupsData = React.useMemo(() => {
@@ -181,6 +220,17 @@ export default function NightWakeupsChart({ childId, dateRange = "7-days" }: Nig
             {avgWakeupsPerNight.toFixed(1)} veces
           </span>
         </div>
+        {avgWakeupDuration > 0 && (
+          <div className="flex items-center justify-between">
+            <span>Duración promedio:</span>
+            <span className="font-medium text-[#FF9F40]">
+              {avgWakeupDuration < 60 
+                ? `${avgWakeupDuration} min`
+                : `${Math.floor(avgWakeupDuration / 60)}h ${avgWakeupDuration % 60}m`
+              }
+            </span>
+          </div>
+        )}
         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
           <span>Evaluación:</span>
           <span className={`font-medium ${getWakeupLevel(avgWakeupsPerNight).color}`}>

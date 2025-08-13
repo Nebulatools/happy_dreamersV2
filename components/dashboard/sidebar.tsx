@@ -15,7 +15,7 @@ import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useActiveChild } from "@/context/active-child-context"
 import { LayoutDashboard, Calendar, BarChart3, Users, PlusCircle, Settings, Menu, MessageSquare, List, Stethoscope, ClipboardList, HelpCircle, Mail } from "lucide-react"
-import { EventRegistrationModal } from "@/components/events"
+import { EventRegistrationModal, QuickEventSelector } from "@/components/events"
 import { useEventsInvalidation } from "@/hooks/use-events-cache"
 import { createLogger } from "@/lib/logger"
 
@@ -38,6 +38,7 @@ export function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [eventModalOpen, setEventModalOpen] = useState(false)
+  const [quickSelectorOpen, setQuickSelectorOpen] = useState(false)
   const [children, setChildren] = useState([])
   const { activeChildId } = useActiveChild()
   const invalidateEvents = useEventsInvalidation()
@@ -88,7 +89,7 @@ export function Sidebar({ className }: { className?: string }) {
       href: "#",
       icon: <PlusCircle className="h-5 w-5" />,
       role: ["parent", "user"], // Para parents y users
-      onClick: () => setEventModalOpen(true),
+      onClick: () => setQuickSelectorOpen(true),
       disabled: !activeChildId,
     },
     {
@@ -121,9 +122,9 @@ export function Sidebar({ className }: { className?: string }) {
     },
   ]
 
-  // Cargar children cuando se abre el modal
+  // Cargar children cuando se abre el modal o el quick selector
   useEffect(() => {
-    if (eventModalOpen && session?.user?.email) {
+    if ((eventModalOpen || quickSelectorOpen) && session?.user?.email) {
       fetch("/api/children")
         .then(res => res.json())
         .then(data => {
@@ -221,7 +222,19 @@ export function Sidebar({ className }: { className?: string }) {
         </div>
       </div>
 
-      {/* Event Registration Modal */}
+      {/* Quick Event Selector */}
+      <QuickEventSelector
+        isOpen={quickSelectorOpen}
+        onClose={() => setQuickSelectorOpen(false)}
+        childId={activeChildId || ""}
+        children={children}
+        onEventCreated={() => {
+          invalidateEvents() // Invalidar cache de eventos en todas las páginas
+          setQuickSelectorOpen(false)
+        }}
+      />
+      
+      {/* Event Registration Modal (mantenido para compatibilidad) */}
       <EventRegistrationModal
         isOpen={eventModalOpen}
         onClose={() => setEventModalOpen(false)}

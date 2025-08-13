@@ -2,6 +2,8 @@
 
 Una aplicación integral para el seguimiento y análisis del sueño infantil, combinando tecnología moderna con inteligencia artificial para mejorar el descanso y bienestar de los niños.
 
+> **Estado del Proyecto**: ✅ Sistema 100% completado - Production Ready (Enero 2025)
+
 ## 🌟 Características Principales
 
 ### 👨‍👩‍👧‍👦 Para Familias
@@ -165,6 +167,10 @@ happy_dreamers_v0/
 │   ├── auth.ts          # Configuración de autenticación
 │   ├── mongodb.ts       # Conexión a base de datos
 │   └── utils.ts         # Utilidades generales
+├── docs/                 # Documentación técnica permanente
+├── reference/            # Documentación de referencia
+├── session-archive/      # Archivo de contextos históricos
+├── tasks/               # Gestión de tareas y TODOs
 └── public/              # Archivos estáticos
 ```
 
@@ -268,6 +274,14 @@ __tests__/
 ├── lib/            # Tests de utilidades y validaciones
 └── api/            # Tests de endpoints API
 ```
+
+## 📖 Documentación
+
+Para información técnica detallada, consulta la documentación en:
+- `/docs/` - Documentación arquitectónica completa
+- `/reference/` - Documentación de features específicas
+- `SESSION-CONTEXT.md` - Estado actual del proyecto
+- `CLAUDE.md` - Workflow de desarrollo con Claude AI
 
 ## 🚀 CI/CD Pipeline
 

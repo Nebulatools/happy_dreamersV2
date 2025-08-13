@@ -28,12 +28,13 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache, useEventsInvalidation } from "@/hooks/use-events-cache"
-import { EventRegistrationModal } from "@/components/events"
+import { EventRegistrationModal, QuickEventSelector } from "@/components/events"
 import { 
   TimelineColumn, 
   CompactTimelineColumn, 
   EventBlock, 
-  CompactEventBlock
+  CompactEventBlock,
+  MonthLineChart
 } from "@/components/calendar"
 import {
   Dialog,
@@ -110,8 +111,31 @@ export default function CalendarPage() {
   const { refreshTrigger, subscribe } = useEventsCache(activeChildId)
   const invalidateEvents = useEventsInvalidation()
   const [date, setDate] = useState<Date>(new Date())
-  const [view, setView] = useState<"month" | "week" | "day">("week")
+  const [activePlan, setActivePlan] = useState<any>(null)
+  
+  // Estado para vista del calendario con localStorage
+  const [view, setView] = useState<"month" | "week" | "day">(() => {
+    // Intentar cargar la preferencia desde localStorage
+    if (typeof window !== "undefined") {
+      const savedView = localStorage.getItem("calendar-view-preference")
+      if (savedView && ["month", "week", "day"].includes(savedView)) {
+        return savedView as "month" | "week" | "day"
+      }
+    }
+    // Default a vista semanal
+    return "week"
+  })
   const [isLoading, setIsLoading] = useState(true)
+  
+  // Función para cambiar la vista y guardar en localStorage
+  const handleViewChange = (newView: "month" | "week" | "day") => {
+    setView(newView)
+    // Guardar preferencia en localStorage
+    if (typeof window !== "undefined") {
+      localStorage.setItem("calendar-view-preference", newView)
+      logger.info(`Vista del calendario guardada: ${newView}`)
+    }
+  }
   const [events, setEvents] = useState<Event[]>([])
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStats>({
     nightSleepHours: 0,
@@ -122,6 +146,7 @@ export default function CalendarPage() {
     wakingsChange: 0,
   })
   const [eventModalOpen, setEventModalOpen] = useState(false)
+  const [quickSelectorOpen, setQuickSelectorOpen] = useState(false)
   const [selectedDateForEvent, setSelectedDateForEvent] = useState<Date | null>(null)
   const [children, setChildren] = useState([])
   
@@ -133,97 +158,26 @@ export default function CalendarPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [editedEvent, setEditedEvent] = useState<Partial<Event>>({})
 
-  // Configurar el header dinámico con useMemo para estabilizar las acciones
+  // Configurar el header dinámico - simplificado con solo botón de agregar
   const headerActions = useMemo(() => (
     <div className="flex items-center gap-2">
-      {/* Navegación de fecha */}
-      <div className="flex items-center gap-1">
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-8 w-8"
-          onClick={() => {
-            if (view === "month") {
-              setDate(subMonths(date, 1))
-            } else if (view === "week") {
-              setDate(subWeeks(date, 1))
-            } else {
-              setDate(subDays(date, 1))
-            }
-          }}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        
-        <span className="font-medium text-sm min-w-[140px] text-center">
-          {view === "month" && format(date, "MMMM yyyy", { locale: es })}
-          {view === "week" && `Sem. ${format(startOfWeek(date, { weekStartsOn: 1 }), "d MMM", { locale: es })}`}
-          {view === "day" && format(date, "d MMM yyyy", { locale: es })}
-        </span>
-        
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-8 w-8"
-          onClick={() => {
-            if (view === "month") {
-              setDate(addMonths(date, 1))
-            } else if (view === "week") {
-              setDate(addWeeks(date, 1))
-            } else {
-              setDate(addDays(date, 1))
-            }
-          }}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* Filtros de vista */}
-      <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1">
-        <Button
-          variant={view === "month" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setView("month")}
-          className={`text-xs md:text-sm ${view === "month" ? "hd-gradient-button text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
-        >
-          Mensual
-        </Button>
-        <Button
-          variant={view === "week" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setView("week")}
-          className={`text-xs md:text-sm ${view === "week" ? "hd-gradient-button text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
-        >
-          Semanal
-        </Button>
-        <Button
-          variant={view === "day" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setView("day")}
-          className={`text-xs md:text-sm ${view === "day" ? "hd-gradient-button text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
-        >
-          Diario
-        </Button>
-      </div>
-
-      {/* Botón de registrar evento - solo ícono para ahorrar espacio */}
+      {/* Botón de registrar evento */}
       <Button 
-        size="icon"
-        className="hd-gradient-button text-white h-8 w-8"
+        size="sm"
+        className="hd-gradient-button text-white"
         onClick={() => {
           setSelectedDateForEvent(null)
-          setEventModalOpen(true)
+          setQuickSelectorOpen(true)
         }}
-        title="Registrar nuevo evento"
       >
-        <Plus className="w-4 h-4" />
+        <Plus className="w-4 h-4 mr-2" />
+        Registrar evento
       </Button>
     </div>
-  ), [date, view])
+  ), [])
 
   usePageHeaderConfig({
-    title: "",
+    title: "Calendario",
     actions: headerActions,
     showSearch: true,
     showChildSelector: true,
@@ -239,11 +193,99 @@ export default function CalendarPage() {
   // Cargar datos cuando cambia el niño activo, fecha o vista
   useEffect(() => {
     fetchEvents()
+    if (activeChildId) {
+      fetchActivePlan()
+    }
   }, [activeChildId, date, view, refreshTrigger])
+  
+  // Función para obtener el plan activo del niño
+  const fetchActivePlan = async () => {
+    try {
+      // Primero obtener el userId del padre
+      const sessionRes = await fetch('/api/auth/session')
+      const sessionData = await sessionRes.json()
+      
+      if (!sessionData?.user?.id) {
+        logger.error('No se pudo obtener el usuario de la sesión')
+        return
+      }
+      
+      // Obtener los planes del niño
+      const response = await fetch(`/api/consultas/plans?childId=${activeChildId}&userId=${sessionData.user.id}`)
+      
+      if (!response.ok) {
+        logger.error('Error al obtener planes:', response.status)
+        // Si no hay planes, usar valores por defecto basados en edad promedio
+        setActivePlan({
+          schedule: {
+            bedtime: "20:00",
+            wakeTime: "07:00"
+          }
+        })
+        return
+      }
+      
+      const data = await response.json()
+      
+      if (data.success && data.plans && data.plans.length > 0) {
+        // Buscar el plan activo (el de mayor planNumber con status 'active')
+        const activePlan = data.plans
+          .filter((plan: any) => plan.status === 'active')
+          .sort((a: any, b: any) => b.planNumber - a.planNumber)[0]
+        
+        if (activePlan) {
+          setActivePlan(activePlan)
+          logger.info('Plan activo obtenido:', {
+            planNumber: activePlan.planNumber,
+            bedtime: activePlan.schedule?.bedtime,
+            wakeTime: activePlan.schedule?.wakeTime
+          })
+        } else {
+          // Si no hay planes activos, buscar el más reciente
+          const latestPlan = data.plans
+            .sort((a: any, b: any) => b.planNumber - a.planNumber)[0]
+          
+          if (latestPlan) {
+            setActivePlan(latestPlan)
+            logger.info('Usando plan más reciente (no activo):', {
+              planNumber: latestPlan.planNumber,
+              bedtime: latestPlan.schedule?.bedtime,
+              wakeTime: latestPlan.schedule?.wakeTime
+            })
+          } else {
+            // Valores por defecto si no hay ningún plan
+            setActivePlan({
+              schedule: {
+                bedtime: "20:00",
+                wakeTime: "07:00"
+              }
+            })
+          }
+        }
+      } else {
+        // Valores por defecto si no hay planes
+        setActivePlan({
+          schedule: {
+            bedtime: "20:00",
+            wakeTime: "07:00"
+          }
+        })
+      }
+    } catch (error) {
+      logger.error('Error al obtener plan activo:', error)
+      // En caso de error, usar valores por defecto
+      setActivePlan({
+        schedule: {
+          bedtime: "20:00",
+          wakeTime: "07:00"
+        }
+      })
+    }
+  }
 
-  // Cargar lista de niños para el modal
+  // Cargar lista de niños para el modal o el quick selector
   useEffect(() => {
-    if (eventModalOpen) {
+    if (eventModalOpen || quickSelectorOpen) {
       fetch("/api/children")
         .then(res => res.json())
         .then(data => {
@@ -253,7 +295,7 @@ export default function CalendarPage() {
         })
         .catch(error => logger.error("Error al cargar niños", error))
     }
-  }, [eventModalOpen])
+  }, [eventModalOpen, quickSelectorOpen])
 
   const fetchEvents = async () => {
     if (!activeChildId) {
@@ -280,8 +322,8 @@ export default function CalendarPage() {
                  eventDate.getFullYear() === date.getFullYear()
         })
       } else if (view === "week") {
-        const weekStart = startOfWeek(date, { weekStartsOn: 1 })
-        const weekEnd = endOfWeek(date, { weekStartsOn: 1 })
+        const weekStart = startOfDay(date)
+        const weekEnd = endOfDay(addDays(date, 6))
         filteredEvents = eventsData.filter((event: Event) => {
           const eventDate = new Date(event.startTime)
           return eventDate >= weekStart && eventDate <= weekEnd
@@ -546,6 +588,21 @@ export default function CalendarPage() {
     }
   }
 
+  const renderMonthLineView = () => {
+    return (
+      <div className="h-full flex flex-col">
+        <MonthLineChart 
+          events={events}
+          currentDate={date}
+          onEventClick={handleEventClick}
+          className="h-full"
+          idealBedtime={activePlan?.schedule?.bedtime}
+          idealWakeTime={activePlan?.schedule?.wakeTime}
+        />
+      </div>
+    )
+  }
+
   const renderMonthView = () => {
     const monthStart = startOfMonth(date)
     const monthEnd = endOfMonth(date)
@@ -622,10 +679,9 @@ export default function CalendarPage() {
   }
 
   const renderWeekView = () => {
-    const weekStart = startOfWeek(date, { weekStartsOn: 1 })
-    const weekEnd = endOfWeek(date, { weekStartsOn: 1 })
-    const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
-    const weekDays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+    // Mostrar 7 días consecutivos desde la fecha actual (para navegación día por día)
+    const days = Array.from({ length: 7 }, (_, i) => addDays(date, i))
+    const allWeekDays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
     
     // Altura optimizada para que todo quepa en una pantalla sin scroll
     const hourHeight = 25 // 25px * 24 horas = 600px total
@@ -641,10 +697,29 @@ export default function CalendarPage() {
             <CompactTimelineColumn hourHeight={hourHeight} />
           </div>
           
-          {/* Days Grid */}
+          {/* Days Grid con flechas de navegación día por día */}
           <div className="flex-1 flex">
+            {/* Flecha izquierda para retroceder un día */}
+            <div className="flex-shrink-0 relative">
+              <div className="h-12 border-b border-gray-200 flex items-center justify-center sticky top-0 z-20 bg-white">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 hover:bg-gray-100"
+                  onClick={() => setDate(subDays(date, 1))}
+                  title="Día anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="h-[600px] bg-gray-50/50 border-r border-gray-200 w-10 flex items-center justify-center">
+                <ChevronLeft className="h-4 w-4 text-gray-400" />
+              </div>
+            </div>
+            
+            {/* Días de la semana */}
             {days.map((day, index) => {
-              const dayName = weekDays[index]
+              const dayName = allWeekDays[day.getDay()] // Usar el día real de la semana
               const dayEvents = getEventsForDay(day)
               const isDayToday = isToday(day)
               
@@ -715,6 +790,24 @@ export default function CalendarPage() {
                 </div>
               )
             })}
+            
+            {/* Flecha derecha para avanzar un día */}
+            <div className="flex-shrink-0 relative">
+              <div className="h-12 border-b border-gray-200 flex items-center justify-center sticky top-0 z-20 bg-white">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 hover:bg-gray-100"
+                  onClick={() => setDate(addDays(date, 1))}
+                  title="Día siguiente"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="h-[600px] bg-gray-50/50 border-l border-gray-200 w-10 flex items-center justify-center">
+                <ChevronRight className="h-4 w-4 text-gray-400" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -871,9 +964,84 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Resumen superior compacto */}
+      {/* Resumen con controles de navegación */}
       <div className="px-6">
         <Card className="p-3 md:p-4 bg-gray-50 border-gray-200">
+          {/* Primera fila: Navegación y selector de vista */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 pb-3 border-b border-gray-200">
+            {/* Navegación de fecha */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => {
+                  if (view === "month") {
+                    setDate(subMonths(date, 1))
+                  } else if (view === "week") {
+                    setDate(subWeeks(date, 1))
+                  } else {
+                    setDate(subDays(date, 1))
+                  }
+                }}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              
+              <span className="font-semibold text-base min-w-[160px] text-center text-gray-800">
+                {view === "month" && format(date, "MMMM yyyy", { locale: es })}
+                {view === "week" && `${format(date, "d MMM", { locale: es })} - ${format(addDays(date, 6), "d MMM", { locale: es })}`}
+                {view === "day" && format(date, "d 'de' MMMM yyyy", { locale: es })}
+              </span>
+              
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => {
+                  if (view === "month") {
+                    setDate(addMonths(date, 1))
+                  } else if (view === "week") {
+                    setDate(addWeeks(date, 1))
+                  } else {
+                    setDate(addDays(date, 1))
+                  }
+                }}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Selector de vista */}
+            <div className="flex items-center gap-1 bg-white rounded-lg p-1 border border-gray-200">
+              <Button
+                variant={view === "month" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => handleViewChange("month")}
+                className={`text-xs md:text-sm ${view === "month" ? "hd-gradient-button text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
+              >
+                Mensual
+              </Button>
+              <Button
+                variant={view === "week" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => handleViewChange("week")}
+                className={`text-xs md:text-sm ${view === "week" ? "hd-gradient-button text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
+              >
+                Semanal
+              </Button>
+              <Button
+                variant={view === "day" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => handleViewChange("day")}
+                className={`text-xs md:text-sm ${view === "day" ? "hd-gradient-button text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
+              >
+                Diario
+              </Button>
+            </div>
+          </div>
+
+          {/* Segunda fila: Métricas */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             {/* Título del resumen */}
             <h3 className="text-sm font-semibold text-gray-700">
@@ -933,7 +1101,7 @@ export default function CalendarPage() {
 
       {/* Calendario Principal */}
       <div className="px-6 pb-6">
-        <Card className={`p-4 ${view === 'day' ? 'h-[calc(100vh-320px)]' : ''}`} style={{ minHeight: view === 'day' ? 'auto' : '600px' }}>
+        <Card className={`p-4 ${view === 'month' ? 'h-[600px]' : view === 'day' ? 'h-[calc(100vh-320px)]' : ''}`} style={{ minHeight: '500px' }}>
           {isLoading ? (
             <div className="flex justify-center items-center h-96">
               <div className="text-center">
@@ -942,14 +1110,30 @@ export default function CalendarPage() {
               </div>
             </div>
           ) : (
-            view === "month" ? renderMonthView() :
+            view === "month" ? renderMonthLineView() :
             view === "week" ? renderWeekView() :
             renderDayView()
           )}
         </Card>
       </div>
 
-      {/* Modal de registro de evento */}
+      {/* Selector rápido de eventos */}
+      <QuickEventSelector
+        isOpen={quickSelectorOpen}
+        onClose={() => {
+          setQuickSelectorOpen(false)
+          setSelectedDateForEvent(null) // Limpiar fecha seleccionada al cerrar
+        }}
+        childId={activeChildId || ""}
+        children={children}
+        onEventCreated={() => {
+          invalidateEvents() // Invalidar cache global
+          setQuickSelectorOpen(false)
+          setSelectedDateForEvent(null) // Limpiar fecha seleccionada
+        }}
+      />
+      
+      {/* Modal de registro de evento (mantenido para compatibilidad) */}
       <EventRegistrationModal
         isOpen={eventModalOpen}
         onClose={() => {

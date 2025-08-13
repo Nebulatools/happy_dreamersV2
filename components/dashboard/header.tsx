@@ -20,6 +20,7 @@ import { signOut } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { ChildSelector } from "@/components/dashboard/child-selector"
 import { usePageHeader } from "@/context/page-header-context"
+import { ChildAgeFromContext } from "@/components/ui/child-age-badge"
 
 import { createLogger } from "@/lib/logger"
 
@@ -115,8 +116,10 @@ export function Header() {
           
           {/* Child Selector con diseño de Figma */}
           {config.showChildSelector !== false && (
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <ChildSelector />
+              {/* Edad del niño - Siempre visible como solicitó la Dra. Mariana */}
+              <ChildAgeFromContext />
             </div>
           )}
           

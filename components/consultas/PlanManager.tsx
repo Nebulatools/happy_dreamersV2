@@ -42,10 +42,13 @@ export function PlanManager({
 
   // Cargar planes y reportes del historial cuando se selecciona un niño
   useEffect(() => {
+    // Validar que tenemos los IDs necesarios
     if (selectedUserId && selectedChildId) {
+      logger.debug(`Cargando planes para usuario: ${selectedUserId}, niño: ${selectedChildId}`)
       loadPlans()
       loadHistoryReports()
     } else {
+      logger.debug("Limpiando estado - no hay usuario o niño seleccionado")
       setPlans([])
       setHistoryReports([])
       setSelectedPlanIndex(null)
@@ -152,11 +155,16 @@ export function PlanManager({
       // Actualizar la lista de planes
       await loadPlans()
       
+      // Verificar que el resultado tiene la estructura esperada
+      const planNumber = result?.plan?.planNumber ?? 'Nuevo'
+      const childNameForToast = selectedChildName || 'el niño'
+      
       toast({
         title: "Plan generado exitosamente",
-        description: `Se ha creado el ${planType === "initial" ? "Plan Inicial" : `Plan ${result.plan.planNumber}`} para ${selectedChildName}.`,
+        description: `Se ha creado el ${planType === "initial" ? "Plan Inicial" : `Plan ${planNumber}`} para ${childNameForToast}.`,
       })
     } catch (error) {
+      logger.error("Error generando plan:", error)
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "No se pudo generar el plan.",
@@ -352,8 +360,11 @@ export function PlanManager({
       </Card>
 
       {/* Mostrar plan seleccionado */}
-      {selectedPlanIndex !== null && plans[selectedPlanIndex] && (
-        <PlanDisplay plan={plans[selectedPlanIndex]} />
+      {selectedPlanIndex !== null && plans && plans.length > selectedPlanIndex && plans[selectedPlanIndex] && (
+        <PlanDisplay 
+          plan={plans[selectedPlanIndex]} 
+          key={plans[selectedPlanIndex]._id?.toString() || `plan-${selectedPlanIndex}`}
+        />
       )}
     </div>
   )

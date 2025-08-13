@@ -66,6 +66,7 @@
     "dotenv": "^16.4.5",
     "embla-carousel-react": "8.5.1",
     "faiss-node": "^0.5.1",
+    "framer-motion": "^12.23.12",
     "gcp-metadata": "latest",
     "googleapis": "^155.0.1",
     "input-otp": "1.4.1",

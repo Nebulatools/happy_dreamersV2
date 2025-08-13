@@ -13,6 +13,14 @@ export interface SleepEvent {
   sleepDelay?: number
 }
 
+export interface AwakePeriod {
+  startTime: string // ISO string
+  endTime: string // ISO string
+  duration: number // en minutos
+  durationFormatted: string // "2h 30min"
+  period: string // "mañana", "mediodía", "tarde", "noche"
+}
+
 export interface SleepData {
   avgSleepDuration: number // en horas
   avgNapDuration: number // en horas
@@ -24,6 +32,9 @@ export interface SleepData {
   totalWakeups: number
   avgWakeupsPerNight: number
   totalSleepHours: number // por día
+  nightSleepHours: number // horas de sueño nocturno
+  napHours: number // horas de siestas
+  awakePeriods: AwakePeriod[] // períodos despierto
   events: SleepEvent[]
 }
 
@@ -79,7 +90,7 @@ export function useSleepData(childId: string | null, dateRange: string = "7-days
         logger.debug('Eventos procesados', { total: allEvents.length, filtrados: sleepEvents.length })
         
         // Calcular métricas
-        const processedData = processSleepData(sleepEvents)
+        const processedData = processSleepData(sleepEvents, allEvents, dateRange)
         setData(processedData)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido')
@@ -94,7 +105,7 @@ export function useSleepData(childId: string | null, dateRange: string = "7-days
   return { data, loading, error }
 }
 
-function processSleepData(events: any[]): SleepData {
+function processSleepData(events: any[], allEvents: any[], dateRange: string = "7-days"): SleepData {
   if (events.length === 0) {
     return {
       avgSleepDuration: 0,
@@ -107,6 +118,9 @@ function processSleepData(events: any[]): SleepData {
       totalWakeups: 0,
       avgWakeupsPerNight: 0,
       totalSleepHours: 0,
+      nightSleepHours: 0,
+      napHours: 0,
+      awakePeriods: [],
       events: []
     }
   }
@@ -188,6 +202,9 @@ function processSleepData(events: any[]): SleepData {
 
   // Total de horas de sueño por día
   const totalSleepHours = (avgSleepDuration + avgNapDuration)
+  
+  // Calcular períodos despierto
+  const awakePeriods = calculateAwakePeriods(allEvents, dateRange)
 
   return {
     avgSleepDuration,
@@ -200,6 +217,9 @@ function processSleepData(events: any[]): SleepData {
     totalWakeups,
     avgWakeupsPerNight,
     totalSleepHours,
+    nightSleepHours: avgSleepDuration,
+    napHours: avgNapDuration,
+    awakePeriods,
     events
   }
 }
@@ -254,81 +274,108 @@ function calculateTimeVariation(dates: Date[]): number {
 function calculateInferredSleepDuration(events: any[]): number {
   if (events.length === 0) return 0
   
-  // Filtrar y ordenar eventos por fecha (excluir night_waking para cálculos de duración)
-  const sortedEvents = events
+  // Filtrar eventos relevantes (excluir night_waking para cálculos de duración)
+  const relevantEvents = events
     .filter(e => e.startTime && e.eventType !== 'night_waking')
     .sort((a, b) => 
       new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
     )
   
+  if (relevantEvents.length === 0) return 0
+  
+  logger.debug('Procesando eventos para duración', { count: relevantEvents.length })
+  
+  // Agrupar eventos por día para evitar emparejamientos incorrectos
   const sleepDurations: number[] = []
+  const processedSleepEvents = new Set<number>() // Para evitar procesar el mismo evento dos veces
   
-  logger.debug('Procesando eventos para duración', { count: sortedEvents.length })
-  sortedEvents.forEach((e, i) => {
-    logger.debug(`Evento ${i}`, { tipo: e.eventType, inicio: new Date(e.startTime).toLocaleString(), delay: e.sleepDelay })
-  })
-  
-  for (let i = 0; i < sortedEvents.length - 1; i++) {
-    const currentEvent = sortedEvents[i]
-    const nextEvent = sortedEvents[i + 1]
+  for (let i = 0; i < relevantEvents.length; i++) {
+    const currentEvent = relevantEvents[i]
     
-    // CASO 1: Par ideal bedtime/sleep → wake
-    if (
-      ['bedtime', 'sleep'].includes(currentEvent.eventType) &&
-      nextEvent.eventType === 'wake' &&
-      currentEvent.startTime && nextEvent.startTime
-    ) {
-      const bedTime = parseISO(currentEvent.startTime)
-      const wakeTime = parseISO(nextEvent.startTime)
+    // Solo procesar eventos de tipo sleep/bedtime que no hayan sido procesados
+    if (!['bedtime', 'sleep'].includes(currentEvent.eventType) || processedSleepEvents.has(i)) {
+      continue
+    }
+    
+    const bedTime = parseISO(currentEvent.startTime)
+    const bedTimeHour = bedTime.getHours()
+    
+    // Solo procesar eventos nocturnos (después de 18:00 o antes de 6:00)
+    if (bedTimeHour < 18 && bedTimeHour >= 6) {
+      continue
+    }
+    
+    // Buscar el evento wake más cercano dentro de las próximas 24 horas
+    let wakeEvent = null
+    let wakeEventIndex = -1
+    
+    for (let j = i + 1; j < relevantEvents.length; j++) {
+      const nextEvent = relevantEvents[j]
+      const nextEventTime = parseISO(nextEvent.startTime)
+      const timeDiff = nextEventTime.getTime() - bedTime.getTime()
       
-      // Si es evento sleep con delay, ajustar el tiempo de inicio real
-      const sleepDelay = currentEvent.sleepDelay || 0
+      // Si han pasado más de 24 horas, dejar de buscar
+      if (timeDiff > 24 * 60 * 60 * 1000) {
+        break
+      }
+      
+      // Si encontramos un evento wake, es nuestro candidato
+      if (nextEvent.eventType === 'wake') {
+        wakeEvent = nextEvent
+        wakeEventIndex = j
+        break
+      }
+      
+      // Si encontramos otro evento sleep/bedtime, significa que no hay wake para el evento actual
+      if (['bedtime', 'sleep'].includes(nextEvent.eventType)) {
+        break
+      }
+    }
+    
+    // Calcular duración del sueño
+    if (wakeEvent) {
+      const wakeTime = parseISO(wakeEvent.startTime)
+      
+      // Aplicar sleepDelay si existe
+      const rawSleepDelay = currentEvent.sleepDelay || 0
+      const sleepDelay = Math.min(rawSleepDelay, 180) // Máximo 3 horas
       const actualSleepTime = new Date(bedTime.getTime() + sleepDelay * 60 * 1000)
       
       let duration = differenceInMinutes(wakeTime, actualSleepTime)
       
+      // Si la duración es negativa (wake antes que sleep), probablemente wake es del día siguiente
       if (duration < 0) {
         duration += 24 * 60
       }
       
-      // Rango más amplio: 1-18 horas (60-1080 minutos)
-      if (duration >= 60 && duration <= 1080) {
+      // Validar que la duración sea razonable (2-16 horas)
+      if (duration >= 120 && duration <= 960) {
         sleepDurations.push(duration)
-        logger.debug('Duración válida', { minutos: duration, horas: (duration/60).toFixed(1) })
-      } else {
-        logger.debug('Duración inválida', { minutos: duration, horas: (duration/60).toFixed(1) })
+        processedSleepEvents.add(i)
+        logger.debug('Par sleep-wake encontrado', { 
+          sleep: bedTime.toLocaleString(),
+          wake: wakeTime.toLocaleString(),
+          duracion: (duration/60).toFixed(1) + 'h',
+          sleepDelay: sleepDelay + 'min'
+        })
       }
-    }
-    
-    // CASO 2: Si no hay wake, inferir desde sleep nocturno → primer evento del día siguiente
-    else if (
-      ['bedtime', 'sleep'].includes(currentEvent.eventType) &&
-      ['nap', 'activity'].includes(nextEvent.eventType) &&
-      currentEvent.startTime && nextEvent.startTime
-    ) {
-      const bedTime = parseISO(currentEvent.startTime)
-      const nextEventTime = parseISO(nextEvent.startTime)
+    } else {
+      // Si no hay wake pero es un evento nocturno reciente, asumir 8 horas
+      const now = new Date()
+      const daysSinceSleep = (now.getTime() - bedTime.getTime()) / (24 * 60 * 60 * 1000)
       
-      // Si es evento sleep con delay, ajustar el tiempo de inicio real
-      const sleepDelay = currentEvent.sleepDelay || 0
-      const actualSleepTime = new Date(bedTime.getTime() + sleepDelay * 60 * 1000)
-      
-      // Solo si es al día siguiente o más tarde
-      if (nextEventTime.getTime() > actualSleepTime.getTime()) {
-        // Inferir despertar 1 hora antes del primer evento del día siguiente
-        const inferredWakeTime = new Date(nextEventTime.getTime() - 60 * 60 * 1000)
-        let duration = differenceInMinutes(inferredWakeTime, actualSleepTime)
+      if (daysSinceSleep <= 2) { // Solo para eventos de los últimos 2 días
+        const rawSleepDelay = currentEvent.sleepDelay || 0
+        const sleepDelay = Math.min(rawSleepDelay, 180)
+        const assumedDuration = (8 * 60) - sleepDelay // 8 horas menos el delay
         
-        if (duration < 0) {
-          duration += 24 * 60
-        }
-        
-        // Rango más amplio para sueño inferido: 4-18 horas (240-1080 minutos)
-        if (duration >= 240 && duration <= 1080) {
-          sleepDurations.push(duration)
-          logger.debug('Duración inferida válida', { minutos: duration, horas: (duration/60).toFixed(1) })
-        } else {
-          logger.debug('Duración inferida inválida', { minutos: duration, horas: (duration/60).toFixed(1) })
+        if (assumedDuration >= 120) {
+          sleepDurations.push(assumedDuration)
+          processedSleepEvents.add(i)
+          logger.debug('Sueño sin wake (asumiendo 8h)', { 
+            sleep: bedTime.toLocaleString(),
+            duracionAsumida: (assumedDuration/60).toFixed(1) + 'h'
+          })
         }
       }
     }
@@ -338,6 +385,11 @@ function calculateInferredSleepDuration(events: any[]): number {
   
   // Calcular promedio en horas
   const averageMinutes = sleepDurations.reduce((sum, duration) => sum + duration, 0) / sleepDurations.length
+  logger.debug('Promedio de sueño calculado', { 
+    noches: sleepDurations.length,
+    promedioHoras: (averageMinutes/60).toFixed(1) 
+  })
+  
   return averageMinutes / 60
 }
 
@@ -520,4 +572,208 @@ function calculateNightWakeups(events: any[]): number {
   
   // Retornar el TOTAL de despertares nocturnos en el período
   return totalWakeups
+}
+
+// Función para calcular los períodos despierto entre sueños
+function calculateAwakePeriods(events: any[], dateRange: string = "7-days"): AwakePeriod[] {
+  if (events.length === 0) return []
+  
+  // Filtrar y ordenar eventos relevantes por fecha
+  const relevantEvents = events
+    .filter(e => e.startTime && ['sleep', 'nap', 'bedtime', 'wake'].includes(e.eventType))
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+  
+  if (relevantEvents.length < 2) return []
+  
+  const awakePeriods: AwakePeriod[] = []
+  
+  // Determinar rango de fechas a procesar
+  const now = new Date()
+  let daysToProcess = 7
+  
+  if (dateRange === "30-days") {
+    daysToProcess = 30
+  } else if (dateRange === "90-days") {
+    daysToProcess = 90
+  }
+  
+  const filterDate = subDays(now, daysToProcess)
+  
+  // Procesar eventos en el rango de fechas
+  const rangeEvents = relevantEvents.filter(e => {
+    const eventDate = new Date(e.startTime)
+    return eventDate >= filterDate && eventDate <= now
+  })
+  
+  logger.debug('Eventos en el rango para períodos despierto', { count: rangeEvents.length, days: daysToProcess })
+  
+  // Agrupar eventos por día para procesamiento más preciso
+  const eventsByDay = new Map<string, any[]>()
+  
+  rangeEvents.forEach(event => {
+    const date = new Date(event.startTime).toDateString()
+    if (!eventsByDay.has(date)) {
+      eventsByDay.set(date, [])
+    }
+    eventsByDay.get(date)!.push(event)
+  })
+  
+  // Procesar cada día individualmente
+  eventsByDay.forEach((dayEvents, date) => {
+    const sortedDayEvents = dayEvents.sort((a, b) => 
+      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    )
+    
+    // Buscar pares de eventos en el mismo día
+    for (let i = 0; i < sortedDayEvents.length - 1; i++) {
+      const currentEvent = sortedDayEvents[i]
+      const nextEvent = sortedDayEvents[i + 1]
+      
+      // Si encontramos un despertar seguido de un sueño/siesta
+      if (currentEvent.eventType === 'wake' && 
+          ['sleep', 'nap', 'bedtime'].includes(nextEvent.eventType)) {
+        
+        const wakeTime = parseISO(currentEvent.startTime)
+        const sleepTime = parseISO(nextEvent.startTime)
+        const durationMinutes = differenceInMinutes(sleepTime, wakeTime)
+        
+        // Solo incluir períodos válidos (entre 30 minutos y 8 horas)
+        if (durationMinutes >= 30 && durationMinutes <= 480) {
+          const period = getPeriodOfDay(wakeTime)
+          
+          awakePeriods.push({
+            startTime: currentEvent.startTime,
+            endTime: nextEvent.startTime,
+            duration: durationMinutes,
+            durationFormatted: formatDuration(durationMinutes),
+            period
+          })
+        }
+      }
+      // Si es un sleep/nap seguido de otro sleep/nap, inferir despertar
+      else if (['sleep', 'nap', 'bedtime'].includes(currentEvent.eventType) && 
+               ['sleep', 'nap', 'bedtime'].includes(nextEvent.eventType)) {
+        
+        // Verificar que no sea un evento nocturno seguido de siesta del día siguiente
+        const currentDate = new Date(currentEvent.startTime).toDateString()
+        const nextDate = new Date(nextEvent.startTime).toDateString()
+        
+        if (currentDate === nextDate) {
+          // Asumir que el niño se despertó al final del primer sueño
+          const assumedWakeTime = currentEvent.endTime || 
+            new Date(new Date(currentEvent.startTime).getTime() + 2 * 60 * 60 * 1000).toISOString() // Asumir 2 horas si no hay endTime
+          const nextSleepTime = parseISO(nextEvent.startTime)
+          const wakeTimeDate = parseISO(assumedWakeTime)
+          const durationMinutes = differenceInMinutes(nextSleepTime, wakeTimeDate)
+          
+          // Solo incluir períodos válidos
+          if (durationMinutes >= 30 && durationMinutes <= 480) {
+            const period = getPeriodOfDay(wakeTimeDate)
+            
+            awakePeriods.push({
+              startTime: assumedWakeTime,
+              endTime: nextEvent.startTime,
+              duration: durationMinutes,
+              durationFormatted: formatDuration(durationMinutes),
+              period
+            })
+          }
+        }
+      }
+    }
+    
+    // Si solo hay un evento de siesta/sueño en el día, inferir período matutino
+    if (sortedDayEvents.length === 1 && ['nap', 'sleep', 'bedtime'].includes(sortedDayEvents[0].eventType)) {
+      const firstSleepEvent = sortedDayEvents[0]
+      const firstSleepTime = parseISO(firstSleepEvent.startTime)
+      const assumedWakeTime = new Date(firstSleepTime)
+      assumedWakeTime.setHours(7, 0, 0, 0) // Asumir despertar a las 7 AM
+      
+      const durationMinutes = differenceInMinutes(firstSleepTime, assumedWakeTime)
+      
+      if (durationMinutes >= 30 && durationMinutes <= 480) {
+        awakePeriods.push({
+          startTime: assumedWakeTime.toISOString(),
+          endTime: firstSleepEvent.startTime,
+          duration: durationMinutes,
+          durationFormatted: formatDuration(durationMinutes),
+          period: 'mañana'
+        })
+      }
+    }
+  })
+  
+  
+  // Ordenar períodos por fecha y hora
+  awakePeriods.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+  
+  // Si tenemos múltiples días, calcular promedios por período del día
+  if (daysToProcess > 1 && awakePeriods.length > 0) {
+    const periodGroups = new Map<string, number[]>()
+    
+    // Agrupar duraciones por período del día
+    awakePeriods.forEach(period => {
+      if (!periodGroups.has(period.period)) {
+        periodGroups.set(period.period, [])
+      }
+      periodGroups.get(period.period)!.push(period.duration)
+    })
+    
+    // Calcular promedios y crear períodos promedio
+    const averagePeriods: AwakePeriod[] = []
+    const periodOrder = ['mañana', 'mediodía', 'tarde', 'noche']
+    
+    periodOrder.forEach(periodName => {
+      const durations = periodGroups.get(periodName)
+      if (durations && durations.length > 0) {
+        const avgDuration = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+        const minDuration = Math.min(...durations)
+        const maxDuration = Math.max(...durations)
+        
+        averagePeriods.push({
+          startTime: new Date().toISOString(), // Placeholder
+          endTime: new Date().toISOString(), // Placeholder
+          duration: avgDuration,
+          durationFormatted: `${formatDuration(avgDuration)} (promedio de ${durations.length} días)`,
+          period: periodName
+        })
+      }
+    })
+    
+    // Retornar promedios si tenemos datos de múltiples días
+    return averagePeriods.length > 0 ? averagePeriods : awakePeriods
+  }
+  
+  return awakePeriods
+}
+
+// Función auxiliar para determinar el período del día
+function getPeriodOfDay(date: Date): string {
+  const hour = date.getHours()
+  
+  if (hour >= 6 && hour < 12) {
+    return 'mañana'
+  } else if (hour >= 12 && hour < 15) {
+    return 'mediodía'
+  } else if (hour >= 15 && hour < 19) {
+    return 'tarde'
+  } else {
+    return 'noche'
+  }
+}
+
+// Función auxiliar para formatear duración
+function formatDuration(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes} min`
+  }
+  
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  
+  if (mins === 0) {
+    return `${hours}h`
+  }
+  
+  return `${hours}h ${mins}min`
 }

@@ -4,10 +4,9 @@ import { useState, useMemo } from "react"
 import { Download, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { usePageHeaderConfig } from "@/context/page-header-context"
-import SleepMetricsGrid from "@/components/child-profile/SleepMetricsGrid"
+import EnhancedSleepMetricsCard from "@/components/sleep-statistics/EnhancedSleepMetricsCard"
 import SleepDurationChart from "@/components/sleep-statistics/SleepDurationChart"
 import SleepConsistencyChart from "@/components/sleep-statistics/SleepConsistencyChart"
-import NightWakeupsChart from "@/components/sleep-statistics/NightWakeupsChart"
 import NightWakeupsEvolutionChart from "@/components/sleep-statistics/NightWakeupsEvolutionChart"
 import SleepDistributionChart from "@/components/sleep-statistics/SleepDistributionChart"
 import SleepDataStorytellingCard from "@/components/sleep-statistics/SleepDataStorytellingCard"
@@ -65,9 +64,9 @@ export default function SleepStatisticsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Métricas Principales */}
+      {/* Nueva Card de Métricas Mejorada - Incluye todo lo prioritario */}
       {activeChildId ? (
-        <SleepMetricsGrid childId={activeChildId} dateRange={dateRange} />
+        <EnhancedSleepMetricsCard childId={activeChildId} dateRange={dateRange} />
       ) : (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
           <p className="text-gray-500">Por favor selecciona un niño desde el menú superior para ver las estadísticas</p>
@@ -92,27 +91,21 @@ export default function SleepStatisticsPage() {
         </div>
       )}
 
-      {/* Segunda fila de gráficos - Solo los que no están integrados en el nuevo componente */}
-      {activeChildId ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Despertares nocturnos */}
-          <NightWakeupsChart childId={activeChildId} dateRange={dateRange} />
-
-          {/* Distribución del sueño */}
-          <SleepDistributionChart childId={activeChildId} dateRange={dateRange} />
-        </div>
-      ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-          <p className="text-gray-500">Selecciona un niño para ver los gráficos detallados</p>
-        </div>
-      )}
-
-      {/* Evolución de despertares nocturnos */}
+      {/* Evolución de despertares nocturnos - Después del análisis del sueño */}
       {activeChildId ? (
         <NightWakeupsEvolutionChart childId={activeChildId} dateRange={dateRange} />
       ) : (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
           <p className="text-gray-500">Selecciona un niño para ver la evolución de despertares nocturnos</p>
+        </div>
+      )}
+
+      {/* Distribución del sueño - Al final */}
+      {activeChildId ? (
+        <SleepDistributionChart childId={activeChildId} dateRange={dateRange} />
+      ) : (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
+          <p className="text-gray-500">Selecciona un niño para ver la distribución del sueño</p>
         </div>
       )}
 

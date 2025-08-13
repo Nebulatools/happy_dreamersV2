@@ -52,6 +52,33 @@ export function calculateAgeFormatted(birthDate: string | Date): string {
 }
 
 /**
+ * Convierte una fecha local a ISO string manteniendo la zona horaria local
+ * Evita el problema de que toISOString() convierte a UTC y puede cambiar el día
+ * @param date - Fecha a convertir
+ * @returns String ISO en zona horaria local
+ */
+export function toLocalISOString(date: Date): string {
+  // Obtener los componentes de la fecha en hora local
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  const milliseconds = String(date.getMilliseconds()).padStart(3, '0')
+  
+  // Obtener el offset de la zona horaria
+  const offset = -date.getTimezoneOffset()
+  const offsetHours = Math.floor(Math.abs(offset) / 60)
+  const offsetMinutes = Math.abs(offset) % 60
+  const offsetSign = offset >= 0 ? '+' : '-'
+  const offsetString = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`
+  
+  // Construir el string ISO con zona horaria local
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${offsetString}`
+}
+
+/**
  * Valida si una fecha de nacimiento es válida para un niño
  * @param birthDate - Fecha de nacimiento a validar
  * @returns true si la fecha es válida (no futura y no mayor a 18 años)

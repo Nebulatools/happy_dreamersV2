@@ -1,5 +1,5 @@
 import React from "react"
-import { Clock, Moon, AlertCircle, Heart } from "lucide-react"
+import { Clock, Moon, AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { differenceInMinutes, parseISO, subDays } from "date-fns"
 import { useEventsCache } from "@/hooks/use-events-cache"
@@ -15,6 +15,7 @@ interface SleepMetric {
   }
   change: string
   iconBg: string
+  priority?: boolean // Marca si la métrica es prioritaria
 }
 
 interface SleepMetricsGridProps {
@@ -35,7 +36,17 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
   const sleepMetrics = React.useMemo(() => {
     if (!sleepData) return []
     
+    // Nuevo orden según prioridad Dra. Mariana: Despertar -> Sueño -> Acostarse -> Despertares
     return [
+      {
+        title: "Hora de despertar (promedio)",
+        value: sleepData.avgWakeTime,
+        icon: <Clock className="w-4 h-4" />,
+        status: getWakeTimeStatus(sleepData.avgWakeTime),
+        change: `Hora promedio de despertar matutino`,
+        iconBg: "bg-gradient-to-br from-orange-100 to-yellow-100",
+        priority: true, // Marca esta métrica como prioritaria
+      },
       {
         title: "Sueño nocturno (promedio)",
         value: formatDuration(sleepData.avgSleepDuration),
@@ -43,14 +54,6 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
         status: getSleepDurationStatus(sleepData.avgSleepDuration),
         change: `${sleepData.avgSleepDuration.toFixed(1)}h nocturno`,
         iconBg: "bg-[#B7F1C0]",
-      },
-      {
-        title: "Siestas (promedio)",
-        value: formatDuration(sleepData.avgNapDuration),
-        icon: <Clock className="w-3 h-3" />,
-        status: getNapDurationStatus(sleepData.avgNapDuration),
-        change: `${sleepData.avgNapDuration.toFixed(1)}h en siestas`,
-        iconBg: "bg-[#FFE7B3]",
       },
       {
         title: "Hora de acostarse (promedio)",
@@ -67,16 +70,6 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
         status: getWakeupsStatus(sleepData.totalWakeups),
         change: `${sleepData.totalWakeups} despertares en período`,
         iconBg: "bg-[#FFE442]",
-      },
-      {
-        title: "Calidad del sueño",
-        value: `${Math.round((sleepData.totalSleepHours >= 9 && sleepData.totalSleepHours <= 11) ? 90 : 
-                             (sleepData.totalSleepHours >= 8 && sleepData.totalSleepHours <= 12) ? 70 : 50)}%`,
-        icon: <Heart className="w-4 h-4" />,
-        status: getSleepQualityStatus((sleepData.totalSleepHours >= 9 && sleepData.totalSleepHours <= 11) ? 90 : 
-                                   (sleepData.totalSleepHours >= 8 && sleepData.totalSleepHours <= 12) ? 70 : 50),
-        change: "Basado en duración total del sueño",
-        iconBg: "bg-[#FFC4C4]",
       },
     ]
   }, [sleepData])
@@ -119,12 +112,6 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
     return { label: "Muy frecuente", variant: "poor" }
   }
 
-  function getSleepQualityStatus(quality: number): { label: string; variant: "good" | "consistent" | "average" | "poor" } {
-    if (quality >= 80) return { label: "Excelente", variant: "good" }
-    if (quality >= 60) return { label: "Buena", variant: "consistent" }
-    if (quality >= 40) return { label: "Regular", variant: "average" }
-    return { label: "Mala", variant: "poor" }
-  }
 
   function getNapDurationStatus(hours: number): { label: string; variant: "good" | "consistent" | "average" | "poor" } {
     if (hours >= 1 && hours <= 2.5) return { label: "Óptimo", variant: "good" }
@@ -134,8 +121,40 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
     return { label: "Excesivo", variant: "poor" }
   }
 
+  function getWakeTimeStatus(avgWakeTime: string): { label: string; variant: "good" | "consistent" | "average" | "poor" } {
+    if (avgWakeTime === "--:--") {
+      return { label: "Sin datos", variant: "poor" }
+    }
+
+    // Extraer la hora para análisis (formato HH:MM)
+    const [hours, minutes] = avgWakeTime.split(":").map(Number)
+    const wakeTimeInMinutes = hours * 60 + minutes
+
+    // Evaluar horarios ideales para niños
+    // 6:00-7:30 AM = Ideal
+    // 5:30-6:00 AM o 7:30-8:30 AM = Bueno  
+    // 5:00-5:30 AM o 8:30-9:00 AM = Aceptable
+    // Fuera de estos rangos = Necesita ajuste
+
+    if (wakeTimeInMinutes >= 6 * 60 && wakeTimeInMinutes <= 7.5 * 60) { // 6:00-7:30
+      return { label: "Ideal", variant: "good" }
+    } else if (
+      (wakeTimeInMinutes >= 5.5 * 60 && wakeTimeInMinutes < 6 * 60) || // 5:30-6:00
+      (wakeTimeInMinutes > 7.5 * 60 && wakeTimeInMinutes <= 8.5 * 60)   // 7:30-8:30
+    ) {
+      return { label: "Bueno", variant: "consistent" }
+    } else if (
+      (wakeTimeInMinutes >= 5 * 60 && wakeTimeInMinutes < 5.5 * 60) ||  // 5:00-5:30
+      (wakeTimeInMinutes > 8.5 * 60 && wakeTimeInMinutes <= 9 * 60)     // 8:30-9:00
+    ) {
+      return { label: "Aceptable", variant: "average" }
+    } else {
+      return { label: "Necesita ajuste", variant: "poor" }
+    }
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {loading ? (
         <div className="col-span-full flex justify-center items-center h-32">
           <p className="text-gray-500">Cargando métricas...</p>
@@ -154,6 +173,17 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
           key={index}
           className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02] cursor-pointer"
         >
+          {/* Badge de métrica prioritaria */}
+          {metric.priority && (
+            <div className="bg-gradient-to-r from-orange-50 to-yellow-50 px-4 py-2 border-b border-orange-100">
+              <div className="flex items-center justify-center">
+                <div className="bg-gradient-to-r from-orange-400 to-yellow-500 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                  🌅 Métrica Prioritaria
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* Contenido principal */}
           <div className="p-6">
             <div className="flex items-start justify-between mb-6">
