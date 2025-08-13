@@ -10,6 +10,7 @@ import { es } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
 import { SimpleSleepDelaySelector } from "./SimpleSleepDelaySelector"
 import { GuidedNotesField } from "../shared/GuidedNotesField"
+import { toLocalISOString } from "@/lib/date-utils"
 
 // Estados del ciclo unificado según Dr. Mariana
 export type UnifiedSleepState = 'awake' | 'sleeping'
@@ -19,6 +20,11 @@ export interface SleepCycleState {
   sleepStartTime: Date | null
   lastWakeTime: Date | null
   childId: string
+  currentEventId: string | null // ID del evento actual de sueño/siesta
+  currentEventType: 'sleep' | 'nap' | null // Tipo del evento actual
+  currentNightWakingId: string | null // ID del despertar nocturno actual
+  isInNightWaking: boolean // Si estamos en medio de un despertar nocturno
+  normalWakeTime: string // Hora normal de despertar del plan (ej: "07:00")
 }
 
 interface UnifiedSleepCycleProps {
@@ -43,6 +49,7 @@ export function UnifiedSleepCycle({
   const [emotionalState, setEmotionalState] = useState<'calm' | 'restless' | 'upset'>('calm')
   const [notes, setNotes] = useState("")
   const [bedtimeTimestamp, setBedtimeTimestamp] = useState<Date | null>(null)
+  const [activePlan, setActivePlan] = useState<any>(null)
   
   // Estado del ciclo
   const [cycleState, setCycleState] = useState<SleepCycleState>(() => {
@@ -54,7 +61,10 @@ export function UnifiedSleepCycle({
         return {
           ...parsed,
           sleepStartTime: parsed.sleepStartTime ? new Date(parsed.sleepStartTime) : null,
-          lastWakeTime: parsed.lastWakeTime ? new Date(parsed.lastWakeTime) : null
+          lastWakeTime: parsed.lastWakeTime ? new Date(parsed.lastWakeTime) : null,
+          currentNightWakingId: parsed.currentNightWakingId || null,
+          isInNightWaking: parsed.isInNightWaking || false,
+          normalWakeTime: parsed.normalWakeTime || "07:00"
         }
       }
     }
@@ -62,9 +72,62 @@ export function UnifiedSleepCycle({
       status: 'awake',
       sleepStartTime: null,
       lastWakeTime: null,
-      childId
+      childId,
+      currentEventId: null,
+      currentEventType: null,
+      currentNightWakingId: null,
+      isInNightWaking: false,
+      normalWakeTime: "07:00" // Default si no hay plan
     }
   })
+
+  // Obtener plan activo del niño
+  useEffect(() => {
+    const fetchActivePlan = async () => {
+      try {
+        // Obtener el userId del padre
+        const sessionRes = await fetch('/api/auth/session')
+        const sessionData = await sessionRes.json()
+        
+        if (!sessionData?.user?.id) {
+          console.log('No se pudo obtener el usuario de la sesión')
+          return
+        }
+        
+        // Obtener los planes del niño
+        const response = await fetch(`/api/consultas/plans?childId=${childId}&userId=${sessionData.user.id}`)
+        
+        if (!response.ok) {
+          console.log('Error al obtener planes:', response.status)
+          return
+        }
+        
+        const data = await response.json()
+        
+        if (data.success && data.plans && data.plans.length > 0) {
+          // Buscar el plan activo (el de mayor planNumber con status 'active')
+          const plan = data.plans
+            .filter((p: any) => p.status === 'active')
+            .sort((a: any, b: any) => b.planNumber - a.planNumber)[0]
+          
+          if (plan) {
+            setActivePlan(plan)
+            // Actualizar normalWakeTime del plan
+            if (plan.schedule?.wakeTime) {
+              setCycleState(prev => ({
+                ...prev,
+                normalWakeTime: plan.schedule.wakeTime
+              }))
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error al obtener plan activo:', error)
+      }
+    }
+    
+    fetchActivePlan()
+  }, [childId])
 
   // Guardar estado en localStorage cuando cambie
   useEffect(() => {
@@ -124,8 +187,8 @@ export function UnifiedSleepCycle({
         const eventData = {
           childId,
           eventType: eventTypeToUse, // Usar 'sleep' para nocturno o 'nap' para siesta
-          startTime: actualSleepTime.toISOString(), // Hora real en que se durmió
-          bedtime: actualBedtime.toISOString(), // Hora en que se acostó
+          startTime: toLocalISOString(actualSleepTime), // Hora real en que se durmió (zona horaria local)
+          bedtime: toLocalISOString(actualBedtime), // Hora en que se acostó (zona horaria local)
           sleepDelay,
           emotionalState,
           notes: notes || `${childName} se acostó a las ${format(actualBedtime, 'HH:mm', { locale: es })} y se durmió a las ${format(actualSleepTime, 'HH:mm', { locale: es })}. ${sleepType === 'nocturnal' ? 'Sueño nocturno' : 'Siesta'}`,
@@ -141,11 +204,17 @@ export function UnifiedSleepCycle({
 
         if (!response.ok) throw new Error('Error al registrar sueño')
 
-        // Actualizar estado
+        // Obtener el ID del evento creado
+        const responseData = await response.json()
+        const createdEventId = responseData.event?._id
+
+        // Actualizar estado guardando el ID del evento y su tipo
         setCycleState(prev => ({
           ...prev,
           status: 'sleeping',
-          sleepStartTime: actualSleepTime // Guardar la hora real en que se durmió
+          sleepStartTime: actualSleepTime, // Guardar la hora real en que se durmió
+          currentEventId: createdEventId,
+          currentEventType: eventTypeToUse as 'sleep' | 'nap'
         }))
 
         toast({
@@ -168,43 +237,164 @@ export function UnifiedSleepCycle({
         }
 
         const sleepDuration = differenceInMinutes(now, cycleState.sleepStartTime)
-        const sleepType = getSleepType(cycleState.sleepStartTime.getHours())
-        const wasNap = sleepType === 'nap'
+        const wasNap = cycleState.currentEventType === 'nap'
         
-        const eventData = {
-          childId,
-          eventType: 'wake',
-          startTime: now.toISOString(),
-          relatedSleepStart: cycleState.sleepStartTime.toISOString(),
-          sleepDuration,
-          sleepType,
-          wasNap, // Indicar si fue de siesta o sueño nocturno
-          notes: notes || `${childName} se despertó después de ${Math.floor(sleepDuration / 60)}h ${sleepDuration % 60}min de ${wasNap ? 'siesta' : 'sueño nocturno'}`
+        // Si fue una siesta, actualizar el evento existente con endTime
+        if (wasNap && cycleState.currentEventId) {
+          const updateData = {
+            id: cycleState.currentEventId,
+            childId,
+            eventType: 'nap',
+            startTime: toLocalISOString(cycleState.sleepStartTime),
+            endTime: toLocalISOString(now), // Añadir hora de fin (zona horaria local)
+            emotionalState: emotionalState || 'calm',
+            notes: notes || `${childName} durmió siesta de ${Math.floor(sleepDuration / 60)}h ${sleepDuration % 60}min`,
+            sleepDuration,
+            createdAt: toLocalISOString(cycleState.sleepStartTime) // Mantener la fecha de creación original
+          }
+
+          const response = await fetch('/api/children/events', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updateData)
+          })
+
+          if (!response.ok) throw new Error('Error al actualizar siesta')
+
+          toast({
+            title: "✅ Siesta completada",
+            description: `${childName} durmió ${Math.floor(sleepDuration / 60)}h ${sleepDuration % 60}min`
+          })
+
+        } else {
+          // Para sueño nocturno, determinar si es despertar nocturno o definitivo
+          const currentHour = now.getHours()
+          const currentMinutes = now.getMinutes()
+          const currentTimeString = `${String(currentHour).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}`
+          
+          // Comparar con la hora normal de despertar
+          const isNightWaking = currentTimeString < cycleState.normalWakeTime
+          
+          if (cycleState.isInNightWaking && cycleState.currentNightWakingId) {
+            // Estamos volviendo a dormir después de un despertar nocturno
+            // Actualizar el evento night_waking con endTime
+            const updateData = {
+              id: cycleState.currentNightWakingId,
+              childId,
+              eventType: 'night_waking',
+              startTime: toLocalISOString(cycleState.lastWakeTime!),
+              endTime: toLocalISOString(now),
+              emotionalState: emotionalState || 'calm',
+              notes: notes || `${childName} volvió a dormir después de ${differenceInMinutes(now, cycleState.lastWakeTime!)} minutos despierto`,
+              createdAt: toLocalISOString(cycleState.lastWakeTime!)
+            }
+            
+            const response = await fetch('/api/children/events', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(updateData)
+            })
+            
+            if (!response.ok) throw new Error('Error al actualizar despertar nocturno')
+            
+            // Actualizar estado: volver a dormir
+            setCycleState(prev => ({
+              ...prev,
+              status: 'sleeping',
+              isInNightWaking: false,
+              currentNightWakingId: null
+            }))
+            
+            toast({
+              title: "🌙 Volvió a dormir",
+              description: `${childName} se volvió a dormir después de estar despierto ${differenceInMinutes(now, cycleState.lastWakeTime!)} minutos`
+            })
+            
+          } else if (isNightWaking) {
+            // Es un despertar nocturno (antes de la hora normal)
+            // Crear nuevo evento night_waking
+            const eventData = {
+              childId,
+              eventType: 'night_waking',
+              startTime: toLocalISOString(now),
+              relatedSleepStart: toLocalISOString(cycleState.sleepStartTime),
+              emotionalState: emotionalState || 'restless',
+              notes: notes || `${childName} se despertó a las ${format(now, 'HH:mm', { locale: es })} (despertar nocturno)`
+            }
+            
+            const response = await fetch('/api/children/events', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(eventData)
+            })
+            
+            if (!response.ok) throw new Error('Error al registrar despertar nocturno')
+            
+            const responseData = await response.json()
+            const nightWakingId = responseData.event?._id
+            
+            // Actualizar estado: despertar nocturno
+            setCycleState(prev => ({
+              ...prev,
+              status: 'awake',
+              isInNightWaking: true,
+              currentNightWakingId: nightWakingId,
+              lastWakeTime: now
+            }))
+            
+            toast({
+              title: "🌃 Despertar nocturno",
+              description: `${childName} se despertó a las ${format(now, 'HH:mm', { locale: es })}`
+            })
+            
+          } else {
+            // Es el despertar definitivo (después de la hora normal)
+            // Actualizar el evento sleep con endTime
+            const updateData = {
+              id: cycleState.currentEventId,
+              childId,
+              eventType: 'sleep',
+              startTime: toLocalISOString(cycleState.sleepStartTime),
+              endTime: toLocalISOString(now),
+              emotionalState: emotionalState || 'calm',
+              notes: notes || `${childName} durmió ${Math.floor(sleepDuration / 60)}h ${sleepDuration % 60}min`,
+              sleepDuration,
+              createdAt: toLocalISOString(cycleState.sleepStartTime)
+            }
+            
+            const response = await fetch('/api/children/events', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(updateData)
+            })
+            
+            if (!response.ok) throw new Error('Error al actualizar sueño nocturno')
+            
+            // Actualizar estado: despertar definitivo
+            setCycleState(prev => ({
+              ...prev,
+              status: 'awake',
+              sleepStartTime: null,
+              lastWakeTime: now,
+              currentEventId: null,
+              currentEventType: null,
+              isInNightWaking: false,
+              currentNightWakingId: null
+            }))
+            
+            toast({
+              title: "☀️ Buenos días",
+              description: `${childName} durmió ${Math.floor(sleepDuration / 60)}h ${sleepDuration % 60}min`
+            })
+          }
+          
+          // No resetear el estado aquí porque ya se maneja en cada caso
+          setNotes("")
+          onEventRegistered?.()
+          setIsLoading(false)
+          return
         }
 
-        const response = await fetch('/api/children/events', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(eventData)
-        })
-
-        if (!response.ok) throw new Error('Error al registrar despertar')
-
-        // Actualizar estado
-        setCycleState(prev => ({
-          ...prev,
-          status: 'awake',
-          sleepStartTime: null,
-          lastWakeTime: now
-        }))
-
-        toast({
-          title: "☀️ Despertar registrado",
-          description: `${childName} durmió ${Math.floor(sleepDuration / 60)}h ${sleepDuration % 60}min`
-        })
-
-        setNotes("")
-        onEventRegistered?.()
       }
     } catch (error: any) {
       toast({
@@ -223,6 +413,20 @@ export function UnifiedSleepCycle({
     const hour = now.getHours()
     
     if (cycleState.status === 'awake') {
+      // Si estamos en un despertar nocturno
+      if (cycleState.isInNightWaking) {
+        const wakeMinutes = cycleState.lastWakeTime 
+          ? differenceInMinutes(now, cycleState.lastWakeTime)
+          : 0
+        
+        return {
+          text: 'VOLVER A DORMIR',
+          icon: Moon,
+          color: 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700',
+          description: `Despierto hace ${wakeMinutes} minutos (despertar nocturno)`
+        }
+      }
+      
       // Determinar texto según la hora del día
       const isNapTime = hour >= 10 && hour < 19
       const buttonText = isNapTime ? 'INICIAR SIESTA' : 'SE DURMIÓ'
@@ -242,11 +446,16 @@ export function UnifiedSleepCycle({
       const hours = Math.floor(sleepMinutes / 60)
       const minutes = sleepMinutes % 60
       
+      // Si está durmiendo durante la noche, mostrar información adicional
+      const isSleepingAtNight = cycleState.currentEventType === 'sleep'
+      
       return {
         text: 'SE DESPERTÓ',
         icon: Sun,
-        color: 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600',
-        description: `Durmiendo ${hours}h ${minutes}min`
+        color: isSleepingAtNight
+          ? 'bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600'
+          : 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600',
+        description: `${isSleepingAtNight ? '💤 ' : ''}Durmiendo ${hours}h ${minutes}min`
       }
     }
   }

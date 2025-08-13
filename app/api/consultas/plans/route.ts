@@ -22,9 +22,9 @@ const openai = new OpenAI({
 // GET: Obtener todos los planes de un niño
 export async function GET(req: NextRequest) {
   try {
-    // Verificar autenticación y permisos de admin
+    // Verificar autenticación
     const session = await getServerSession(authOptions)
-    if (!session?.user || session.user.role !== "admin") {
+    if (!session?.user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
@@ -38,10 +38,20 @@ export async function GET(req: NextRequest) {
       }, { status: 400 })
     }
 
+    // Permitir acceso si es admin O si es el padre del niño
+    const isAdmin = session.user.role === "admin"
+    const isParent = session.user.id === userId
+    
+    if (!isAdmin && !isParent) {
+      return NextResponse.json({ error: "No autorizado para ver estos planes" }, { status: 403 })
+    }
+
     logger.info("Obteniendo planes del niño", {
       childId,
       userId,
-      adminId: session.user.id
+      requesterId: session.user.id,
+      isAdmin,
+      isParent
     })
 
     const client = await clientPromise

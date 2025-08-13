@@ -1,5 +1,48 @@
 # Registro de Modificaciones - Happy Dreamers 🌙
 
+## 13 de Agosto, 2025 - Mejoras Sistema de Sueño
+
+### 🐛 Bugs Corregidos
+
+#### 1. **Fix: Registro de Siestas**
+- **Problema**: Las siestas creaban dos eventos separados (nap + wake)
+- **Solución**: Implementar actualización del mismo evento con endTime
+- **Archivo**: `/components/events/primary/UnifiedSleepCycle.tsx`
+- **Impacto**: Estadísticas de siesta ahora calculan duración correctamente
+
+#### 2. **Fix: Zona Horaria**
+- **Problema**: Eventos aparecían en día siguiente por conversión UTC
+- **Solución**: Nueva función `toLocalISOString()` que mantiene zona horaria local
+- **Archivo**: `/lib/date-utils.ts`
+- **Impacto**: Eventos aparecen en el día correcto en calendario
+
+#### 3. **Fix: Error 401 en Calendario**
+- **Problema**: Padres no podían ver planes de sueño (requería admin)
+- **Solución**: Permitir acceso a padres para sus propios hijos
+- **Archivo**: `/app/api/consultas/plans/route.ts`
+- **Impacto**: Calendario carga correctamente para todos los usuarios
+
+### ✨ Nuevas Funcionalidades
+
+#### 1. **Sueño Nocturno con Despertares Nocturnos**
+- **Descripción**: Sistema completo para manejar despertares durante la noche
+- **Características**:
+  - Detección automática de despertar nocturno vs definitivo
+  - Eventos `night_waking` con duración
+  - Botón "VOLVER A DORMIR" durante despertares
+  - Múltiples despertares en una noche
+- **Archivos**: `/components/events/primary/UnifiedSleepCycle.tsx`
+- **Lógica**: Si despierta < hora normal → Despertar nocturno, Si >= hora normal → Despertar definitivo
+
+### 📊 Cambios en Estructura de Datos
+
+#### SleepCycleState - Nuevos campos:
+- `currentNightWakingId`: ID del despertar nocturno actual
+- `isInNightWaking`: Si está en despertar nocturno
+- `normalWakeTime`: Hora normal del plan (ej: "07:00")
+
+---
+
 ## 12 Enero 2025 - Rediseño del Calendario y Nueva Vista Mensual
 
 ### 1. Nueva Vista Mensual - Gráfica de Líneas
