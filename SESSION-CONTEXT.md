@@ -20,6 +20,17 @@
 
 ## 📝 Última Sesión (13 Agosto 2025)
 
+### Fix Gráfica de Despertares Nocturnos - COMPLETADO
+- **Problema**: Puntos rojos mal posicionados, no alineados con días del calendario
+- **Causa**: Overlay con coordenadas manuales incompatibles con ResponsiveContainer
+- **Solución**: Vuelta al sistema nativo de Recharts con mejoras
+- **Implementado**:
+  1. **Posicionamiento correcto**: Sistema nativo de coordenadas de Recharts
+  2. **Tamaño variable**: Basado en `sleepDelay` (5-60 min → 4-12px radius)
+  3. **Sin líneas conectoras**: `stroke="transparent"` y `strokeWidth={0}`
+  4. **Tooltip mejorado**: Hora y duración específica para cada despertar
+  5. **Datos corregidos**: Cambio de `event.duration` a `event.sleepDelay`
+
 ### Mejoras Críticas en Sistema de Sueño - COMPLETADO
 - **Objetivo**: Corregir bugs y mejorar lógica de siestas y sueño nocturno
 - **Logros principales**:

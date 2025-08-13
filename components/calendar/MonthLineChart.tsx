@@ -3,7 +3,7 @@
 
 "use client"
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { 
   LineChart, 
   Line, 
@@ -131,11 +131,18 @@ export function MonthLineChart({
   // Custom tooltip para mostrar detalles del evento
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      // Tooltip general del día
+      const nightWakingEventsForDay = payload[0]?.payload?.night_waking_events || []
+      
       return (
         <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
           <p className="font-semibold text-sm mb-2">Día {label}</p>
+          
+          {/* Información existente de otros eventos */}
           {payload.map((entry: any, index: number) => {
             const eventType = entry.dataKey
+            if (eventType === 'night_waking') return null // Skip, se maneja aparte
+            
             const events = entry.payload[`${eventType}_events`] || []
             const hours = Math.floor(entry.value)
             const minutes = Math.round((entry.value - hours) * 60)
@@ -161,6 +168,23 @@ export function MonthLineChart({
               </div>
             )
           })}
+          
+          {/* Información detallada de despertares nocturnos */}
+          {nightWakingEventsForDay.length > 0 && (
+            <div className="mb-1 pt-2 border-t border-gray-100">
+              <p className="text-sm font-medium" style={{ color: EVENT_COLORS.night_waking }}>
+                Despertares nocturnos
+              </p>
+              <p className="text-xs text-gray-600 mb-1">
+                {nightWakingEventsForDay.length} evento{nightWakingEventsForDay.length > 1 ? 's' : ''}
+              </p>
+              {nightWakingEventsForDay.map((event: Event, index: number) => (
+                <p key={index} className="text-xs text-gray-500">
+                  {format(new Date(event.startTime), 'HH:mm')} - Duración: {event.sleepDelay || 5} min
+                </p>
+              ))}
+            </div>
+          )}
         </div>
       )
     }
@@ -213,6 +237,42 @@ export function MonthLineChart({
   
   const idealBedtimeHours = convertTimeToHours(idealBedtime)
   const idealWakeTimeHours = convertTimeToHours(idealWakeTime)
+  
+  
+  // Custom dot para night_waking con tamaño variable
+  const NightWakingDot = (props: any) => {
+    const { cx, cy, payload, dataKey } = props
+    
+    if (dataKey !== 'night_waking') return null
+    
+    const events = payload[`${dataKey}_events`] || []
+    if (!events || events.length === 0) return null
+    
+    // Para múltiples eventos en el mismo día, usar el primer evento para posicionamiento
+    // y calcular un tamaño promedio
+    const totalSleepDelay = events.reduce((sum: number, event: Event) => sum + (event.sleepDelay || 5), 0)
+    const avgSleepDelay = totalSleepDelay / events.length
+    
+    // Calcular tamaño basado en duración promedio (5-60 min → 4-12px radius)
+    const radius = Math.max(4, Math.min(12, (avgSleepDelay / 5) + 3))
+    
+    return (
+      <circle
+        cx={cx}
+        cy={cy}
+        r={radius}
+        fill={EVENT_COLORS.night_waking}
+        stroke="#fff"
+        strokeWidth={2}
+        className="cursor-pointer hover:opacity-80 transition-all"
+        onClick={() => {
+          if (events && events[0] && onEventClick) {
+            onEventClick(events[0])
+          }
+        }}
+      />
+    )
+  }
   
   return (
     <div className={cn("w-full h-full", className)}>
@@ -321,14 +381,15 @@ export function MonthLineChart({
             />
           )}
           
+          {/* Puntos individuales para night_waking sin líneas conectoras */}
           {eventTypes.includes('night_waking') && (
             <Line
               type="monotone"
               dataKey="night_waking"
-              stroke={EVENT_COLORS.night_waking}
-              strokeWidth={2}
-              dot={<CustomDot />}
-              connectNulls
+              stroke="transparent"
+              strokeWidth={0}
+              dot={<NightWakingDot />}
+              connectNulls={false}
               name="night_waking"
             />
           )}
