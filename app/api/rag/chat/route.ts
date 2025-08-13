@@ -9,28 +9,158 @@ import { ObjectId } from "mongodb"
 import { getMongoDBVectorStoreManager } from "@/lib/rag/vector-store-mongodb"
 import { getDoctorSystemPrompt } from "@/lib/rag/doctor-personality"
 import { differenceInDays, differenceInMinutes, parseISO, subDays } from "date-fns"
-import { createReactAgent } from "@langchain/langgraph/prebuilt"
 import { ChatOpenAI } from "@langchain/openai"
 import { DynamicStructuredTool } from "@langchain/core/tools"
 import { z } from "zod"
 import { createLogger } from "@/lib/logger"
-import { StateGraph, Annotation, START, END } from "@langchain/langgraph"
-import { BaseMessage, HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages"
+import { SystemMessage, HumanMessage } from "@langchain/core/messages"
+import { getChildPlanContext, getAllPlansContext } from "@/lib/rag/plan-context-builder"
+import { checkRateLimit } from "@/lib/rag/rate-limiter"
 
 const logger = createLogger('RAGChatAPI')
 
+// 🎛️ CONFIGURACIÓN DE LOGGING PROFESIONAL
+const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+const DEBUG_ENABLED = process.env.DEBUG_RAG === 'true'
+const VERBOSE_LOGGING = !IS_PRODUCTION || DEBUG_ENABLED
 
-// 🤖 DEFINICIÓN DEL ESTADO DEL MULTI-AGENT SYSTEM
-const MultiAgentState = Annotation.Root({
-  question: Annotation<string>,
-  agentType: Annotation<string>,
-  ragResults: Annotation<any>,
-  childData: Annotation<any>,
-  finalAnswer: Annotation<string>,
-  conversationHistory: Annotation<any[]>,
-  routingDecision: Annotation<string>,
-  performance: Annotation<{ startTime: number; endTime?: number; agent: string }>,
-})
+// Helper para logging condicional
+const logInfo = (...args: any[]) => {
+  if (VERBOSE_LOGGING) logger.info(...args)
+}
+const logDebug = (...args: any[]) => {
+  if (DEBUG_ENABLED) logger.debug(...args)
+}
+
+// 📦 CACHE INTELIGENTE PARA RAG (Optimización Profesional)
+const ragCache = new Map<string, { result: any, timestamp: number, hitCount: number }>()
+const CACHE_TTL = 15 * 60 * 1000 // 15 minutos
+const MAX_CACHE_SIZE = 100 // Máximo 100 entradas en cache
+
+// Función para limpiar cache automáticamente
+function cleanExpiredCache() {
+  const now = Date.now()
+  for (const [key, value] of ragCache.entries()) {
+    if (now - value.timestamp > CACHE_TTL) {
+      ragCache.delete(key)
+    }
+  }
+  
+  // Si el cache está muy grande, eliminar las entradas menos usadas
+  if (ragCache.size > MAX_CACHE_SIZE) {
+    const entries = Array.from(ragCache.entries())
+      .sort((a, b) => a[1].hitCount - b[1].hitCount)
+    
+    // Eliminar el 20% de las entradas menos usadas
+    const toDelete = Math.floor(entries.length * 0.2)
+    for (let i = 0; i < toDelete; i++) {
+      ragCache.delete(entries[i][0])
+    }
+  }
+}
+
+// 🗓️ HELPER PARA CONVERTIR NOMBRES DE MESES
+function getMonthIndex(monthName: string): number {
+  const months = {
+    'january': 0, 'enero': 0,
+    'february': 1, 'febrero': 1,
+    'march': 2, 'marzo': 2,
+    'april': 3, 'abril': 3,
+    'may': 4, 'mayo': 4,
+    'june': 5, 'junio': 5,
+    'july': 6, 'julio': 6,
+    'august': 7, 'agosto': 7,
+    'september': 8, 'septiembre': 8,
+    'october': 9, 'octubre': 9,
+    'november': 10, 'noviembre': 10,
+    'december': 11, 'diciembre': 11
+  };
+  return months[monthName.toLowerCase()] ?? -1;
+}
+
+// 📅 FUNCIÓN PARA FILTRAR EVENTOS POR PERIODO
+function filterEventsByPeriod(events: any[], period?: string): any[] {
+  if (!period || period === 'all') {
+    logger.info(`Sin filtro de periodo - usando todos los eventos: ${events.length}`)
+    return events;
+  }
+  
+  const now = new Date();
+  let filteredEvents: any[] = [];
+  
+  if (period.includes('-')) {
+    // Formato: "july-2025", "june-2024"
+    const [monthName, yearStr] = period.split('-');
+    const monthIndex = getMonthIndex(monthName);
+    const targetYear = parseInt(yearStr);
+    
+    if (monthIndex === -1) {
+      logger.warn(`Mes no reconocido: ${monthName}`);
+      return events;
+    }
+    
+    filteredEvents = events.filter(event => {
+      const eventDate = new Date(event.startTime);
+      return eventDate.getMonth() === monthIndex && 
+             eventDate.getFullYear() === targetYear;
+    });
+    
+    logger.info(`Filtrado por ${monthName} ${yearStr}: ${filteredEvents.length} eventos de ${events.length} totales`);
+    
+  } else if (period === 'last-7-days') {
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    filteredEvents = events.filter(event => 
+      new Date(event.startTime) >= sevenDaysAgo
+    );
+    logger.info(`Filtrado últimos 7 días: ${filteredEvents.length} eventos`);
+    
+  } else if (period === 'current-month') {
+    filteredEvents = events.filter(event => {
+      const eventDate = new Date(event.startTime);
+      return eventDate.getMonth() === now.getMonth() && 
+             eventDate.getFullYear() === now.getFullYear();
+    });
+    logger.info(`Filtrado mes actual: ${filteredEvents.length} eventos`);
+    
+  } else if (period === 'since-current-plan') {
+    // Este caso especial se maneja en el tool, aquí solo retornamos todos los eventos
+    logger.info(`Periodo since-current-plan - se procesará en el tool con fecha del plan actual`);
+    return events;
+  } else {
+    logger.warn(`Periodo no reconocido: ${period}`);
+    return events;
+  }
+  
+  return filteredEvents;
+}
+
+// 🔍 HELPER PARA EXTRAER KEYWORDS RELEVANTES PARA RAG
+function extractRelevantKeywords(question: string): string {
+  // Mantener la pregunta original pero reformular para RAG si es muy específica
+  const lowerQuestion = question.toLowerCase()
+  
+  // Si la pregunta es muy específica sobre el niño, agregar contexto médico
+  if (lowerQuestion.includes('mi niño') || lowerQuestion.includes('mi hijo') || 
+      lowerQuestion.includes('alejandro') || lowerQuestion.includes('cómo está')) {
+    return question + " desarrollo infantil sueño pediátrico"
+  }
+  
+  // Si pregunta sobre plan, agregar contexto
+  if (lowerQuestion.includes('plan')) {
+    return question + " plan sueño rutina infantil"
+  }
+  
+  // Para estadísticas, agregar contexto de sueño
+  if (lowerQuestion.includes('estadísticas') || lowerQuestion.includes('duerme') || 
+      lowerQuestion.includes('horas')) {
+    return question + " sueño infantil estadísticas"
+  }
+  
+  // Por defecto, usar la pregunta original
+  return question
+}
+
+// ✅ SISTEMA SIMPLIFICADO - YA NO NECESITAMOS MULTI-AGENT STATE COMPLEJO
 
 // 🎯 DEFINICIÓN DE HERRAMIENTAS PARA LOS AGENTES
 const ragSearchTool = new DynamicStructuredTool({
@@ -41,30 +171,55 @@ const ragSearchTool = new DynamicStructuredTool({
   }),
   func: async ({ query }) => {
     try {
-      logger.info(`🔍 Buscando en RAG: "${query}"`)
+      // 📦 VERIFICAR CACHE PRIMERO (Optimización Profesional)
+      const cacheKey = `rag:${query.toLowerCase().trim()}`
+      const cached = ragCache.get(cacheKey)
+      
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        cached.hitCount++
+        logInfo(`📦 Cache HIT para: "${query}" (usado ${cached.hitCount} veces)`)
+        return cached.result
+      }
+      
+      logInfo(`🔍 Buscando en RAG: "${query}"`)
+      
+      // Limpiar cache automáticamente cada vez que hacemos búsqueda nueva
+      cleanExpiredCache()
       
       const vectorStore = getMongoDBVectorStoreManager()
       const results = await vectorStore.searchSimilar(query, 3)
       
       if (results.length === 0) {
-        logger.info(`❌ No se encontraron documentos relevantes para: "${query}"`)
+        logInfo(`❌ No se encontraron documentos relevantes para: "${query}"`)
         return "No se encontró información relevante en los documentos"
       }
 
-      // 📋 LOGGING DETALLADO DE DOCUMENTOS ENCONTRADOS
-      logger.info(`✅ Encontrados ${results.length} documentos relevantes para: "${query}"`)
-      results.forEach((doc: any, i: number) => {
-        const metadata = doc.metadata as any
-        const source = metadata.source || 'Fuente desconocida'
-        const similarity = doc.score ? ` (similitud: ${(doc.score * 100).toFixed(1)}%)` : ''
-        logger.info(`   📄 ${i + 1}. ${source}${similarity}`)
-        logger.info(`      📝 Preview: ${doc.pageContent.substring(0, 100)}...`)
-      })
+      // 📋 LOGGING DETALLADO DE DOCUMENTOS ENCONTRADOS (SIEMPRE EN DESARROLLO)
+      logInfo(`✅ Encontrados ${results.length} documentos relevantes para: "${query}"`)
+      
+      // Mostrar fuentes SIEMPRE en desarrollo para debugging
+      if (VERBOSE_LOGGING) {
+        results.forEach((doc: any, i: number) => {
+          const metadata = doc.metadata as any
+          const source = metadata.source || 'Fuente desconocida'
+          const similarity = doc.score ? ` (similitud: ${(doc.score * 100).toFixed(1)}%)` : ''
+          logger.info(`   📄 ${i + 1}. ${source}${similarity}`)
+          logger.info(`      📝 Preview: ${doc.pageContent.substring(0, 100)}...`)
+        })
+      }
 
       const ragContext = results.map((doc: any, i: number) => {
         const metadata = doc.metadata as any
         return `Fuente: ${metadata.source}\nContenido: ${doc.pageContent}`
       }).join("\n\n---\n\n")
+
+      // 📦 GUARDAR EN CACHE (Optimización Profesional)
+      ragCache.set(cacheKey, {
+        result: ragContext,
+        timestamp: Date.now(),
+        hitCount: 1
+      })
+      logInfo(`💾 Resultado guardado en cache para: "${query}"`)
 
       return ragContext
     } catch (error) {
@@ -76,15 +231,16 @@ const ragSearchTool = new DynamicStructuredTool({
 
 const childDataTool = new DynamicStructuredTool({
   name: "child_data_search",
-  description: "Busca estadísticas procesadas del niño: promedios de sueño, patrones, métricas calculadas",
+  description: "Busca estadísticas procesadas del niño: promedios de sueño, patrones, métricas calculadas para un periodo específico",
   schema: z.object({
     childId: z.string().describe("ID del niño"),
     userId: z.string().describe("ID del usuario padre"),
     dataType: z.string().describe("Tipo de datos: 'stats', 'patterns', 'metrics'"),
+    period: z.string().optional().describe("Periodo detectado: 'july-2025', 'june-2025', 'august-2024', 'last-7-days', 'current-month', 'all'"),
   }),
-  func: async ({ childId, userId, dataType }) => {
+  func: async ({ childId, userId, dataType, period }) => {
     try {
-      logger.debug('childDataTool invocado', { childId, userId, dataType })
+      logDebug('childDataTool invocado', { childId, userId, dataType, period })
       
       if (!childId || childId === "null" || childId === "") {
         logger.warn('childId inválido o no proporcionado')
@@ -104,15 +260,45 @@ const childDataTool = new DynamicStructuredTool({
         return "No se encontró información del niño"
       }
       
-      logger.info('Niño encontrado', { name: `${childDoc.firstName} ${childDoc.lastName}` })
+      logInfo('Niño encontrado', { name: `${childDoc.firstName} ${childDoc.lastName}` })
       
       const events = childDoc.events || []
-      logger.debug('Eventos encontrados', { count: events.length })
+      logDebug('Eventos encontrados', { count: events.length })
       
-      // 🧮 PROCESAR ESTADÍSTICAS COMO EN SLEEP-STATISTICS
-      const sleepStats = await processSleepStatistics(events)
+      // 📅 FILTRAR EVENTOS POR PERIODO SI SE ESPECIFICÓ
+      let filteredEvents = filterEventsByPeriod(events, period)
       
-      return buildProcessedStatsContext(childDoc, sleepStats)
+      // 🎯 LÓGICA ESPECIAL PARA ESTADÍSTICAS COHERENTES CON PLANES
+      if (period === 'since-current-plan') {
+        // Obtener fecha del plan actual para filtrar eventos desde que empezó
+        const currentPlanDate = await getCurrentPlanDate(childId, userId)
+        if (currentPlanDate) {
+          filteredEvents = events.filter(event => 
+            new Date(event.startTime) >= currentPlanDate
+          )
+          logInfo(`📊 Estadísticas desde plan actual (${currentPlanDate.toLocaleDateString()}): ${filteredEvents.length} eventos`)
+        } else {
+          // Si no hay plan actual, usar últimos 30 días
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+          filteredEvents = events.filter(event => 
+            new Date(event.startTime) >= thirtyDaysAgo
+          )
+          logInfo(`📊 No hay plan actual - usando últimos 30 días: ${filteredEvents.length} eventos`)
+        }
+      }
+      
+      // 🧮 PROCESAR ESTADÍSTICAS CON EVENTOS FILTRADOS
+      const sleepStats = await processSleepStatistics(filteredEvents)
+      
+      // 🏗️ CONSTRUIR CONTEXTO CON INFORMACIÓN DEL PERIODO
+      let context = buildProcessedStatsContext(childDoc, sleepStats)
+      
+      if (period && period !== 'all') {
+        context += `\n📅 PERIODO ANALIZADO: ${period}\n`
+        context += `📊 Eventos en este periodo: ${filteredEvents.length} de ${events.length} totales\n`
+      }
+      
+      return context
     } catch (error) {
       logger.error('Error en childDataTool', error)
       return "Error al acceder a las estadísticas del niño"
@@ -120,151 +306,591 @@ const childDataTool = new DynamicStructuredTool({
   },
 })
 
-// 🧠 AGENTE ROUTER INTELIGENTE CON ANÁLISIS CONTEXTUAL
-const routerAgent = async (state: typeof MultiAgentState.State) => {
-  const llm = new ChatOpenAI({
-    modelName: "gpt-4o-mini", 
-    temperature: 0,
-    maxTokens: 50,
-  })
+const childPlanTool = new DynamicStructuredTool({
+  name: "child_plan_search",
+  description: "Obtiene información del plan de sueño activo del niño: horarios, actividades, recomendaciones específicas",
+  schema: z.object({
+    childId: z.string().describe("ID del niño"),
+    userId: z.string().describe("ID del usuario padre"),
+    infoType: z.string().describe("Tipo de información: 'full_plan', 'schedule', 'recommendations', 'summary'"),
+  }),
+  func: async ({ childId, userId, infoType }) => {
+    try {
+      logger.debug('childPlanTool invocado', { childId, userId, infoType })
+      
+      if (!childId || childId === "null" || childId === "") {
+        logger.warn('childId inválido para obtener plan')
+        return "Por favor selecciona un niño específico para obtener su plan de sueño"
+      }
 
-  // Primero, analizar si la pregunta es sobre datos específicos del niño
-  const analysisPrompt = `Tu trabajo es clasificar esta pregunta:
+      // Obtener el contexto completo del plan del niño
+      const planContext = await getChildPlanContext(childId, userId)
+      
+      if (planContext.includes("no tiene un plan")) {
+        return "Este niño no tiene un plan de sueño activo. Se recomienda generar un plan inicial."
+      }
 
-PREGUNTA: "${state.question}"
+      // Filtrar información según el tipo solicitado
+      if (infoType === 'schedule') {
+        // Extraer solo la sección de horarios
+        const scheduleMatch = planContext.match(/⏰ HORARIOS ESTABLECIDOS:(.*?)(?=\n\n|💡|📊|===)/s)
+        return scheduleMatch ? `⏰ HORARIOS ESTABLECIDOS:${scheduleMatch[1]}` : "No hay horarios definidos en el plan"
+      } else if (infoType === 'recommendations') {
+        // Extraer solo las recomendaciones
+        const recMatch = planContext.match(/💡 RECOMENDACIONES ESPECÍFICAS:(.*?)(?=\n\n|📊|===)/s)
+        return recMatch ? `💡 RECOMENDACIONES ESPECÍFICAS:${recMatch[1]}` : "No hay recomendaciones específicas en el plan"
+      } else if (infoType === 'summary') {
+        // Extraer solo información básica
+        const summaryMatch = planContext.match(/=== PLAN ACTUAL DEL NIÑO ===(.*?)(?=⏰|💡|📊)/s)
+        return summaryMatch ? `=== RESUMEN DEL PLAN ===${summaryMatch[1]}` : "No se pudo obtener resumen del plan"
+      }
+      
+      // Por defecto, devolver el contexto completo
+      return planContext
+    } catch (error) {
+      logger.error('Error en childPlanTool', error)
+      return "Error al acceder al plan de sueño del niño"
+    }
+  },
+})
 
-REGLA SIMPLE: 
-- Si la pregunta busca información que EXISTE EN UNA BASE DE DATOS sobre un niño específico → DATOS_ESPECIFICOS
-- Si la pregunta busca conocimiento médico general que está en DOCUMENTOS → INFORMACION_GENERAL
-
-CONTEXTO: Estamos en un sistema médico donde hay un niño seleccionado con datos registrados (eventos, estadísticas, métricas, patrones de sueño, etc.).
-
-La pregunta "¿qué estadísticas tienes?" claramente busca las estadísticas calculadas de ESE niño específico que están en la base de datos.
-
-EJEMPLOS CLAROS:
-- "¿qué estadísticas tienes?" = DATOS_ESPECIFICOS (busca estadísticas del niño en BD)
-- "¿cuántas horas durmió?" = DATOS_ESPECIFICOS (busca datos registrados)
-- "¿cuál es su promedio de sueño?" = DATOS_ESPECIFICOS (busca métricas calculadas)
-- "¿cómo mejorar el sueño?" = INFORMACION_GENERAL (busca conocimiento médico)
-- "¿qué técnicas usar?" = INFORMACION_GENERAL (busca consejos generales)
-
-Para esta pregunta específica, ¿busca datos de la BD del niño o conocimiento médico general?
-
-Responde solo: DATOS_ESPECIFICOS o INFORMACION_GENERAL`
-
-  const analysisResponse = await llm.invoke([
-    new SystemMessage(analysisPrompt),
-    new HumanMessage(state.question),
-  ])
-
-  const analysis = analysisResponse.content.toString().trim()
+// 🧠 SUPER AGENTE COMPREHENSIVO - COMBINA TODO AUTOMÁTICAMENTE
+const superComprehensiveAgent = async (
+  question: string, 
+  conversationHistory: any[], 
+  childId: string, 
+  userId: string
+) => {
+  const startTime = Date.now()
   
-  // Convertir análisis a decisión de agente
-  const agentType = analysis === "DATOS_ESPECIFICOS" ? "DB" : "RAG"
+  logInfo(`🚀 Super Agente ejecutándose para: "${question}"`)
   
-  logger.info('Router de agente', { question: state.question, analysis, agentType })
+  // 1. DETECCIÓN INTELIGENTE DE PERIODO PARA ESTADÍSTICAS
+  let period = detectPeriodFromQuestion(question)
+  let usesPlanBasedPeriod = false
   
-  return {
-    agentType,
-    routingDecision: `Router analizó: ${analysis} → ${agentType}`,
-    performance: { startTime: Date.now(), agent: agentType },
+  // 🎯 LÓGICA INTELIGENTE: Si no hay período específico, usar estadísticas coherentes con el plan
+  if (!period) {
+    const isPlanProgressQuestion = await detectPlanProgressQuestionWithAI(question)
+    if (isPlanProgressQuestion) {
+      period = "since-current-plan" // Estadísticas desde el plan actual para ver cómo va
+      usesPlanBasedPeriod = true
+      logInfo(`🤖 AI detectó pregunta sobre progreso del plan - usando estadísticas desde el plan actual`)
+    } else {
+      period = "last-30-days" // Por defecto si no es sobre progreso del plan
+      logInfo(`🤖 AI detectó pregunta general - usando últimos 30 días`)
+    }
   }
-}
-
-// 🔍 AGENTE RAG ESPECIALIZADO
-const ragAgent = async (state: typeof MultiAgentState.State) => {
+  
+  logInfo(`📅 Periodo detectado para estadísticas: ${period} ${usesPlanBasedPeriod ? '(coherente con plan)' : ''}`)
+  
+  // 2. EJECUCIÓN PARALELA DE TODOS LOS TOOLS
+  logInfo(`⚡ Ejecutando todos los tools en paralelo...`)
+  
+  const [ragResults, statistics, currentPlan, plansHistory] = await Promise.all([
+    // RAG - Búsqueda contextual
+    ragSearchTool.func({ 
+      query: extractRelevantKeywords(question) 
+    }).catch(err => {
+      logger.error("Error en RAG:", err)
+      return "Error obteniendo información médica"
+    }),
+    
+    // Estadísticas con periodo inteligente
+    childDataTool.func({ 
+      childId, 
+      userId, 
+      dataType: "stats",
+      period 
+    }).catch(err => {
+      logger.error("Error en estadísticas:", err)
+      return "Error obteniendo estadísticas del niño"
+    }),
+    
+    // Plan actual
+    childPlanTool.func({ 
+      childId, 
+      userId, 
+      infoType: "full_plan" 
+    }).catch(err => {
+      logger.error("Error en plan actual:", err)
+      return "Error obteniendo plan actual"
+    }),
+    
+    // Historial de planes
+    getAllPlansContext(childId, userId).catch(err => {
+      logger.error("Error en historial de planes:", err)
+      return "Error obteniendo historial de planes"
+    })
+  ])
+  
+  logInfo(`✅ Todos los tools completados, sintetizando respuesta...`)
+  
+  // 3. CONSTRUCCIÓN DE CONTEXTO PARA GPT
+  const conversationContext = conversationHistory && conversationHistory.length > 0
+    ? `Contexto conversacional: ${conversationHistory.slice(-4).map(msg => `${msg.role}: ${msg.content}`).join(' | ')}`
+    : "Sin contexto previo."
+  
+  // 4. SÍNTESIS INTELIGENTE CON GPT
   const llm = new ChatOpenAI({
     modelName: "gpt-4o-mini",
     temperature: 0.7,
+    maxTokens: 1000
   })
+  
+  const synthesisPrompt = `Eres la Dra. Mariana, pediatra especialista en sueño infantil.
 
-  const agent = createReactAgent({
-    llm,
-    tools: [ragSearchTool],
-    stateModifier: `Eres la Dra. Mariana, especialista en pediatría. 
-    Usa SOLO la herramienta rag_search para buscar información en documentos especializados.
-    Responde de forma concisa y directa. Si no encuentras información específica, dilo claramente.`,
-  })
+PREGUNTA DEL USUARIO: "${question}"
+${conversationContext}
 
-  const messages = [new HumanMessage(state.question)]
-  const result = await agent.invoke({ messages })
+INFORMACIÓN DISPONIBLE:
+
+📊 ESTADÍSTICAS DEL NIÑO (${period}):
+${statistics}
+
+📋 PLAN ACTUAL:
+${currentPlan}
+
+📈 EVOLUCIÓN DE PLANES:
+${plansHistory}
+
+📚 CONOCIMIENTO MÉDICO:
+${ragResults}
+
+INSTRUCCIONES:
+- Responde de forma profesional y empática
+- USA SOLO la información relevante para la pregunta específica
+- Si pregunta sobre estadísticas, enfócate en los datos pero contextualiza con el plan
+- Si pregunta sobre el plan, enfócate en el plan pero relaciona con estadísticas si es útil
+- Si es pregunta general ("¿cómo está?"), combina todo lo relevante
+- Compara con planes anteriores cuando sea útil para mostrar progreso
+- Máximo 3 párrafos, sé conciso y directo
+- Si no tienes información específica, dilo claramente`
+
+  const response = await llm.invoke([
+    new SystemMessage(synthesisPrompt),
+    new HumanMessage(question),
+  ])
+  
+  const executionTime = Date.now() - startTime
+  logInfo(`🎯 Super Agente completado en ${executionTime}ms`)
   
   return {
-    finalAnswer: result.messages[result.messages.length - 1].content,
-    performance: { ...state.performance, endTime: Date.now() },
+    finalAnswer: response.content,
+    performance: { 
+      startTime, 
+      endTime: Date.now(), 
+      agent: "SUPER_COMPREHENSIVE",
+      executionTime 
+    }
   }
 }
 
-// 👶 AGENTE DE DATOS DEL NIÑO
-const childDataAgent = async (state: typeof MultiAgentState.State, childId: string, userId: string) => {
+// 🎯 ROUTER INTELIGENTE - DECIDE QUÉ AGENTES USAR (100% PROMPTING)
+async function intelligentAgentRouter(question: string): Promise<{
+  agents: string[],
+  reasoning: string,
+  period?: string
+}> {
+  try {
+    const llm = new ChatOpenAI({
+      modelName: "gpt-4o-mini",
+      temperature: 0.1,
+      maxTokens: 200
+    })
+
+    const routerPrompt = `Eres un experto en sueño infantil que decide qué información necesitas para responder preguntas.
+
+PREGUNTA DEL USUARIO: "${question}"
+
+AGENTES DISPONIBLES:
+1. "plan_progress" - Plan actual + estadísticas desde que empezó el plan (para evaluar efectividad)
+2. "medical_rag" - Conocimiento médico especializado en sueño infantil
+3. "statistics" - Estadísticas por período específico (julio, junio, semana, etc.)
+4. "general_insights" - Vista integral del niño (últimos 30 días + plan como contexto)
+5. "plan_context" - Solo información del plan actual (horarios, objetivos)
+
+EJEMPLOS DE DECISIONES:
+- "¿Funciona el plan?" → ["plan_progress"] 
+- "¿Consejos para mejorar sueño?" → ["medical_rag", "plan_context"]
+- "¿Estadísticas de julio?" → ["statistics"] + period="july-2025"
+- "¿Cómo está mi niño?" → ["general_insights"]
+- "¿Es normal que despierte?" → ["medical_rag", "general_insights"]
+- "¿Qué ajustes hacer al plan?" → ["plan_progress", "medical_rag"]
+
+INSTRUCCIONES:
+- Selecciona SOLO los agentes necesarios para la pregunta específica
+- Si menciona un período (julio, junio, semana), usar "statistics" con ese período
+- Si pregunta sobre efectividad/progreso del plan, usar "plan_progress"
+- Si pide consejos médicos, incluir "medical_rag"
+- Si es pregunta general, usar "general_insights"
+
+Responde en JSON exacto:
+{
+  "agents": ["agent1", "agent2"],
+  "reasoning": "explicación breve",
+  "period": "july-2025" (solo si aplica)
+}`
+
+    const response = await llm.invoke([
+      new SystemMessage(routerPrompt),
+      new HumanMessage("Decide qué agentes usar")
+    ])
+
+    const result = response.content.toString().trim()
+    
+    try {
+      return JSON.parse(result)
+    } catch (parseError) {
+      logger.error("Error parsing router response:", parseError)
+      // Fallback inteligente
+      return {
+        agents: ["general_insights"],
+        reasoning: "Fallback a vista general por error en parsing"
+      }
+    }
+
+  } catch (error) {
+    logger.error("Error en router inteligente:", error)
+    // Fallback seguro
+    return {
+      agents: ["general_insights"],
+      reasoning: "Fallback por error en AI router"
+    }
+  }
+}
+
+// 🔍 FUNCIÓN INTELIGENTE PARA DETECTAR PERIODO EN LA PREGUNTA
+function detectPeriodFromQuestion(question: string): string | null {
+  const lowerQuestion = question.toLowerCase()
+  const currentYear = new Date().getFullYear()
+  
+  // Detección de meses específicos (esto sí se mantiene porque es preciso)
+  const monthPatterns = {
+    'enero': `january-${currentYear}`,
+    'febrero': `february-${currentYear}`,
+    'marzo': `march-${currentYear}`,
+    'abril': `april-${currentYear}`,
+    'mayo': `may-${currentYear}`,
+    'junio': `june-${currentYear}`,
+    'julio': `july-${currentYear}`,
+    'agosto': `august-${currentYear}`,
+    'septiembre': `september-${currentYear}`,
+    'octubre': `october-${currentYear}`,
+    'noviembre': `november-${currentYear}`,
+    'diciembre': `december-${currentYear}`
+  }
+  
+  // Buscar mes específico primero (esto es preciso)
+  for (const [month, period] of Object.entries(monthPatterns)) {
+    if (lowerQuestion.includes(month)) {
+      logInfo(`📅 Mes específico detectado: ${month} → ${period}`)
+      return period
+    }
+  }
+  
+  // Períodos relativos claros
+  if (lowerQuestion.includes('este mes') || lowerQuestion.includes('mes actual')) {
+    return 'current-month'
+  }
+  
+  if (lowerQuestion.includes('semana') || lowerQuestion.includes('últimos días')) {
+    return 'last-7-days'
+  }
+  
+  if (lowerQuestion.includes('evolución') || lowerQuestion.includes('últimos meses')) {
+    return 'last-90-days'
+  }
+  
+  // No hay período específico detectado - AI decidirá el contexto
+  return null
+}
+
+// 🎯 AGENTE ESPECIALIZADO: PROGRESO DEL PLAN
+async function planProgressAgent(childId: string, userId: string): Promise<string> {
+  try {
+    logInfo(`🎯 Ejecutando PlanProgressAgent`)
+    
+    // 1. Obtener plan actual
+    const currentPlan = await childPlanTool.func({ 
+      childId, 
+      userId, 
+      infoType: "full_plan" 
+    })
+    
+    // 2. Obtener fecha del plan para estadísticas coherentes
+    const planDate = await getCurrentPlanDate(childId, userId)
+    
+    // 3. Obtener estadísticas desde el plan actual
+    let statistics
+    if (planDate) {
+      statistics = await childDataTool.func({ 
+        childId, 
+        userId, 
+        dataType: "stats",
+        period: "since-current-plan"
+      })
+    } else {
+      statistics = await childDataTool.func({ 
+        childId, 
+        userId, 
+        dataType: "stats",
+        period: "last-30-days"
+      })
+    }
+    
+    return `=== PROGRESO DEL PLAN ===
+${currentPlan}
+
+=== ESTADÍSTICAS DESDE EL PLAN ===
+${statistics}
+
+=== ANÁLISIS ===
+Datos para evaluar efectividad del plan actual`
+    
+  } catch (error) {
+    logger.error("Error en PlanProgressAgent:", error)
+    return "Error obteniendo progreso del plan"
+  }
+}
+
+// 🧠 AGENTE ESPECIALIZADO: CONOCIMIENTO MÉDICO
+async function medicalRAGAgent(question: string): Promise<string> {
+  try {
+    logInfo(`🧠 Ejecutando MedicalRAGAgent`)
+    
+    const ragResults = await ragSearchTool.func({ 
+      query: extractRelevantKeywords(question)
+    })
+    
+    return `=== CONOCIMIENTO MÉDICO ESPECIALIZADO ===
+${ragResults}
+
+=== ANÁLISIS ===
+Información médica relevante para la consulta`
+    
+  } catch (error) {
+    logger.error("Error en MedicalRAGAgent:", error)
+    return "Error obteniendo conocimiento médico"
+  }
+}
+
+// 📊 AGENTE ESPECIALIZADO: ESTADÍSTICAS POR PERÍODO
+async function statisticsAgent(childId: string, userId: string, period: string): Promise<string> {
+  try {
+    logInfo(`📊 Ejecutando StatisticsAgent con período: ${period}`)
+    
+    const statistics = await childDataTool.func({ 
+      childId, 
+      userId, 
+      dataType: "stats",
+      period
+    })
+    
+    return `=== ESTADÍSTICAS DEL PERÍODO: ${period.toUpperCase()} ===
+${statistics}
+
+=== ANÁLISIS ===
+Datos específicos del período solicitado`
+    
+  } catch (error) {
+    logger.error("Error en StatisticsAgent:", error)
+    return "Error obteniendo estadísticas del período"
+  }
+}
+
+// 🌍 AGENTE ESPECIALIZADO: VISTA INTEGRAL
+async function generalInsightsAgent(childId: string, userId: string): Promise<string> {
+  try {
+    logInfo(`🌍 Ejecutando GeneralInsightsAgent`)
+    
+    // Ejecutar en paralelo para eficiencia
+    const [statistics, currentPlan, plansHistory] = await Promise.all([
+      childDataTool.func({ 
+        childId, 
+        userId, 
+        dataType: "stats",
+        period: "last-30-days"
+      }),
+      childPlanTool.func({ 
+        childId, 
+        userId, 
+        infoType: "full_plan" 
+      }),
+      getAllPlansContext(childId, userId)
+    ])
+    
+    return `=== VISTA INTEGRAL DEL NIÑO ===
+${statistics}
+
+=== PLAN COMO CONTEXTO ===
+${currentPlan}
+
+=== EVOLUCIÓN ===
+${plansHistory}
+
+=== ANÁLISIS ===
+Visión completa del estado actual del niño`
+    
+  } catch (error) {
+    logger.error("Error en GeneralInsightsAgent:", error)
+    return "Error obteniendo vista integral"
+  }
+}
+
+// 📋 AGENTE ESPECIALIZADO: CONTEXTO DEL PLAN
+async function planContextAgent(childId: string, userId: string): Promise<string> {
+  try {
+    logInfo(`📋 Ejecutando PlanContextAgent`)
+    
+    const currentPlan = await childPlanTool.func({ 
+      childId, 
+      userId, 
+      infoType: "full_plan" 
+    })
+    
+    return `=== CONTEXTO DEL PLAN ACTUAL ===
+${currentPlan}
+
+=== ANÁLISIS ===
+Información específica del plan de sueño actual`
+    
+  } catch (error) {
+    logger.error("Error en PlanContextAgent:", error)
+    return "Error obteniendo contexto del plan"
+  }
+}
+
+// 📅 FUNCIÓN PARA OBTENER FECHA DEL PLAN ACTUAL
+async function getCurrentPlanDate(childId: string, userId: string): Promise<Date | null> {
+  try {
+    const { db } = await connectToDatabase()
+    
+    const currentPlan = await db.collection("child_plans").findOne({
+      childId: new ObjectId(childId),
+      userId: new ObjectId(userId),
+      status: "active"
+    }, {
+      sort: { planNumber: -1 } // El más reciente
+    })
+    
+    if (currentPlan && currentPlan.createdAt) {
+      logInfo(`✅ Plan actual encontrado - creado el: ${currentPlan.createdAt}`)
+      return new Date(currentPlan.createdAt)
+    }
+    
+    logInfo(`❌ No se encontró plan actual para el niño`)
+    return null
+  } catch (error) {
+    logger.error("Error obteniendo fecha del plan actual:", error)
+    return null
+  }
+}
+
+// 🎯 ORQUESTADOR INTELIGENTE - NUEVA ARQUITECTURA CON AGENTES ESPECIALIZADOS
+const intelligentOrchestrator = async (
+  question: string, 
+  conversationHistory: any[], 
+  childId: string, 
+  userId: string
+) => {
+  const startTime = Date.now()
+  
+  logInfo(`🎯 Orquestador Inteligente ejecutándose para: "${question}"`)
+  
+  // 1. ROUTER INTELIGENTE DECIDE QUÉ AGENTES USAR
+  const routing = await intelligentAgentRouter(question)
+  
+  logInfo(`🤖 Router AI decidió usar agentes: [${routing.agents.join(', ')}]`)
+  logInfo(`💭 Razón: ${routing.reasoning}`)
+  
+  // 2. EJECUTAR AGENTES SELECCIONADOS EN PARALELO
+  const agentPromises: Promise<string>[] = []
+  
+  for (const agentName of routing.agents) {
+    switch (agentName) {
+      case 'plan_progress':
+        agentPromises.push(planProgressAgent(childId, userId))
+        break
+      case 'medical_rag':
+        agentPromises.push(medicalRAGAgent(question))
+        break
+      case 'statistics':
+        const period = routing.period || detectPeriodFromQuestion(question) || 'last-30-days'
+        agentPromises.push(statisticsAgent(childId, userId, period))
+        break
+      case 'general_insights':
+        agentPromises.push(generalInsightsAgent(childId, userId))
+        break
+      case 'plan_context':
+        agentPromises.push(planContextAgent(childId, userId))
+        break
+      default:
+        logInfo(`⚠️ Agente desconocido: ${agentName}, usando general_insights`)
+        agentPromises.push(generalInsightsAgent(childId, userId))
+    }
+  }
+  
+  logInfo(`⚡ Ejecutando ${agentPromises.length} agentes en paralelo...`)
+  
+  // 3. OBTENER RESULTADOS DE TODOS LOS AGENTES
+  const agentResults = await Promise.all(agentPromises)
+  
+  logInfo(`✅ Todos los agentes completados, sintetizando respuesta...`)
+  
+  // 4. CONSTRUCCIÓN DE CONTEXTO PARA GPT
+  const conversationContext = conversationHistory && conversationHistory.length > 0
+    ? `Contexto conversacional: ${conversationHistory.slice(-4).map(msg => `${msg.role}: ${msg.content}`).join(' | ')}`
+    : "Sin contexto previo."
+  
+  // 5. SÍNTESIS INTELIGENTE CON GPT
   const llm = new ChatOpenAI({
     modelName: "gpt-4o-mini",
-    temperature: 0.3,
+    temperature: 0.7,
+    maxTokens: 1000
   })
-
-  const agent = createReactAgent({
-    llm,
-    tools: [childDataTool],
-    stateModifier: `Eres la Dra. Mariana, especialista en análisis de datos infantiles.
-    
-    SIEMPRE usa la herramienta child_data_search para obtener las estadísticas específicas del niño.
-    
-    Cuando te pregunten sobre estadísticas o datos:
-    - Usa child_data_search con dataType: "stats" para obtener métricas procesadas
-    - Presenta los datos de forma clara y profesional
-    - Incluye promedios, patrones y tendencias relevantes
-    - Si no hay datos suficientes, explica qué se necesita para generar estadísticas
-    
-    Responde de forma directa y basada en datos reales del niño.`,
-  })
-
-  const messages = [
-    new SystemMessage(`Datos disponibles: childId=${childId}, userId=${userId}`),
-    new HumanMessage(state.question),
-  ]
   
-  const result = await agent.invoke({ messages })
+  const combinedInformation = agentResults.join('\n\n')
+  
+  const synthesisPrompt = `Eres la Dra. Mariana, pediatra especialista en sueño infantil.
+
+PREGUNTA DEL USUARIO: "${question}"
+${conversationContext}
+
+INFORMACIÓN RECOPILADA POR AGENTES ESPECIALIZADOS:
+${combinedInformation}
+
+INSTRUCCIONES:
+- Responde de forma profesional y empática
+- Usa TODA la información relevante proporcionada por los agentes
+- Integra los datos de manera coherente para dar una respuesta completa
+- Si hay múltiples fuentes, combínalas inteligentemente
+- Máximo 3 párrafos, sé conciso y directo
+- Si no tienes información específica, dilo claramente
+- Enfócate en responder exactamente lo que se preguntó`
+
+  const response = await llm.invoke([
+    new SystemMessage(synthesisPrompt),
+    new HumanMessage(question),
+  ])
+  
+  const executionTime = Date.now() - startTime
+  logInfo(`🎯 Orquestador completado en ${executionTime}ms con agentes: [${routing.agents.join(', ')}]`)
   
   return {
-    finalAnswer: result.messages[result.messages.length - 1].content,
-    performance: { ...state.performance, endTime: Date.now() },
+    finalAnswer: response.content,
+    performance: { 
+      startTime, 
+      endTime: Date.now(), 
+      agent: "INTELLIGENT_ORCHESTRATOR",
+      agents: routing.agents,
+      reasoning: routing.reasoning,
+      executionTime 
+    }
   }
 }
 
-// 🎯 FUNCIÓN DE ROUTING CON TIPOS EXPLÍCITOS
-const routeToAgent = (state: { agentType: string }): "RAG_ONLY" | "CHILD_DATA_ONLY" => {
-  return state.agentType === "DB" ? "CHILD_DATA_ONLY" : "RAG_ONLY"
-}
-
-// 🏗️ CONSTRUCCIÓN DEL GRAFO CON SINTAXIS CORRECTA
-const buildMultiAgentGraph = (childId: string, userId: string) => {
-  const workflow = new StateGraph(MultiAgentState)
-
-  // 1. Agregar nodos
-  workflow.addNode("router", routerAgent)
-  workflow.addNode("RAG_ONLY", ragAgent)
-  workflow.addNode("CHILD_DATA_ONLY", (state) => childDataAgent(state, childId, userId))
-
-  // 2. Definir punto de entrada
-  workflow.setEntryPoint("router")
-
-  // 3. Definir branching condicional
-  workflow.addConditionalEdges(
-    "router", // El nodo de origen para la decisión
-    routeToAgent, // La función que decide la ruta
-    {
-      "RAG_ONLY": "RAG_ONLY",           // Si la función devuelve "RAG_ONLY", ir a este nodo
-      "CHILD_DATA_ONLY": "CHILD_DATA_ONLY", // Si devuelve "CHILD_DATA_ONLY", ir a este nodo
-    }
-  )
-
-  // 4. Definir los puntos finales
-  workflow.addEdge("RAG_ONLY", END)
-  workflow.addEdge("CHILD_DATA_ONLY", END)
-
-  // 5. Compilar
-  return workflow.compile()
-}
+// ✅ NUEVA ARQUITECTURA CON ORQUESTADOR INTELIGENTE IMPLEMENTADA
 
 export async function POST(req: NextRequest) {
   try {
@@ -273,16 +899,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
+    // 🚦 VERIFICAR RATE LIMIT (Protección Profesional)
+    const rateLimitCheck = checkRateLimit(session.user.id)
+    if (!rateLimitCheck.allowed) {
+      const waitTime = Math.ceil((rateLimitCheck.resetTime - Date.now()) / 1000)
+      logger.warn(`⛔ Rate limit excedido para usuario ${session.user.email} - Espera ${waitTime}s`)
+      
+      return NextResponse.json({ 
+        error: "Demasiadas solicitudes. Por favor espera un momento.",
+        retryAfter: waitTime,
+        remaining: rateLimitCheck.remaining
+      }, { 
+        status: 429,
+        headers: {
+          'Retry-After': waitTime.toString(),
+          'X-RateLimit-Remaining': rateLimitCheck.remaining.toString(),
+          'X-RateLimit-Reset': new Date(rateLimitCheck.resetTime).toISOString()
+        }
+      })
+    }
+
     const { message, childId, conversationHistory = [] } = await req.json()
 
     if (!message) {
       return NextResponse.json({ error: "Mensaje requerido" }, { status: 400 })
     }
 
-    // 💬 LOGGING DE PREGUNTA RECIBIDA
-    logger.info(`💬 Nueva pregunta recibida: "${message}"`)
-    logger.info(`👶 ChildId: ${childId || 'No especificado'}`)
-    logger.info(`👤 Usuario: ${session.user.email || session.user.id}`)
+    // 💬 LOGGING DE PREGUNTA RECIBIDA (Solo en desarrollo/debug)
+    logInfo(`💬 Nueva pregunta recibida: "${message}"`)
+    logDebug(`👶 ChildId: ${childId || 'No especificado'}`)
+    logDebug(`👤 Usuario: ${session.user.email || session.user.id}`)
 
     // 🔍 OBTENER EL PARENT ID CORRECTO DEL NIÑO
     let parentUserId = session.user.id // Default para usuarios normales
@@ -296,7 +942,7 @@ export async function POST(req: NextRequest) {
         
         if (child && child.parentId) {
           parentUserId = child.parentId
-          logger.info('Niño encontrado', { name: `${child.firstName} ${child.lastName}`, parentId: parentUserId })
+          logInfo('Niño encontrado', { name: `${child.firstName} ${child.lastName}`, parentId: parentUserId })
         } else {
           logger.warn('Niño no encontrado', { childId })
         }
@@ -305,43 +951,39 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 🚀 CREAR Y EJECUTAR EL SISTEMA MULTI-AGENTE CON PARENT ID CORRECTO
-    const multiAgentGraph = buildMultiAgentGraph(childId || "", parentUserId)
+    // 🎯 EJECUTAR ORQUESTADOR INTELIGENTE CON AGENTES ESPECIALIZADOS
+    logInfo(`🎯 Ejecutando Orquestador Inteligente para: "${message}"`)
     
-    const initialState = {
-      question: message,
-      agentType: "",
-      ragResults: null,
-      childData: null,
-      finalAnswer: "",
+    const result = await intelligentOrchestrator(
+      message,
       conversationHistory,
-      routingDecision: "",
-      performance: { startTime: Date.now(), agent: "" },
-    }
-
-    // 🎯 EJECUTAR EL GRAFO
-    const result = await multiAgentGraph.invoke(initialState)
+      childId || "",
+      parentUserId
+    )
 
     // 📊 CALCULAR MÉTRICAS DE PERFORMANCE
-    const executionTime = result.performance?.endTime ? 
-      result.performance.endTime - result.performance.startTime : 0
+    const executionTime = result.performance?.executionTime || 0
 
     // 🎭 OBTENER CONTEXTO DEL NIÑO PARA RESPUESTA (con parent ID correcto)
     const childContext = childId ? await getChildContextForResponse(childId, parentUserId) : null
 
-    // 📝 LOGGING DE RESPUESTA FINAL
-    logger.info(`✅ Respuesta generada por agente: ${result.performance?.agent || "unknown"}`)
-    logger.info(`⏱️  Tiempo de ejecución: ${executionTime}ms`)
-    logger.info(`💡 Respuesta: ${result.finalAnswer.substring(0, 200)}...`)
+    // 📝 LOGGING DE RESPUESTA FINAL (Siempre mostrar en desarrollo, condensado en producción)
+    if (VERBOSE_LOGGING) {
+      logger.info(`✅ Respuesta generada por: ${result.performance?.agent || "SUPER_COMPREHENSIVE"}`)
+      logger.info(`⏱️  Tiempo de ejecución: ${executionTime}ms`)
+      logger.info(`💡 Respuesta: ${result.finalAnswer.substring(0, 200)}...`)
+    } else {
+      // En producción, solo un log condensado
+      logger.info(`✅ ${result.performance?.agent || "SUPER"} | ${executionTime}ms | ${message.substring(0, 50)}...`)
+    }
 
     return NextResponse.json({
       response: result.finalAnswer,
-      agentUsed: result.performance?.agent || "unknown",
-      routingDecision: result.routingDecision,
+      agentUsed: result.performance?.agent || "SUPER_COMPREHENSIVE",
       executionTime: `${executionTime}ms`,
       childContext,
       performance: {
-        agent: result.performance?.agent,
+        agent: result.performance?.agent || "SUPER_COMPREHENSIVE",
         duration: executionTime,
       },
     })

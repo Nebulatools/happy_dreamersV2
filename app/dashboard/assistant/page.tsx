@@ -25,6 +25,7 @@ import {
 import { useActiveChild } from "@/context/active-child-context"
 import { cn } from "@/lib/utils"
 import { GoogleDriveSync } from "@/components/rag/google-drive-sync"
+import { ChildPlan } from "@/types/models"
 
 import { createLogger } from "@/lib/logger"
 
@@ -60,7 +61,10 @@ const quickSuggestions = [
 export default function AssistantPage() {
   const { data: session } = useSession()
   const { activeChildId } = useActiveChild()
+  const sessionId = useRef<string>(crypto.randomUUID())
   const [childData, setChildData] = useState<Child | null>(null)
+  const [currentPlan, setCurrentPlan] = useState<ChildPlan | null>(null)
+  const [loadingPlan, setLoadingPlan] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -82,11 +86,18 @@ export default function AssistantPage() {
 
   const isAdmin = session?.user?.role === "admin"
 
+  // Reiniciar sessionId cuando se monta el componente (nueva sesión)
+  useEffect(() => {
+    sessionId.current = crypto.randomUUID()
+    logger.info(`Nueva sesión del asistente iniciada: ${sessionId.current}`)
+  }, [])
+
   // Cargar información del niño activo
   useEffect(() => {
     const fetchActiveChild = async () => {
       if (!activeChildId) {
         setChildData(null)
+        setCurrentPlan(null)
         return
       }
 
@@ -96,17 +107,55 @@ export default function AssistantPage() {
           const result = await response.json()
           const child = result.data || result
           setChildData(child)
+          
+          // Cargar el plan activo del niño
+          await loadActivePlan(activeChildId, child.parentId)
         } else {
           setChildData(null)
+          setCurrentPlan(null)
         }
       } catch (error) {
         logger.error("Error cargando información del niño:", error)
         setChildData(null)
+        setCurrentPlan(null)
       }
     }
 
     fetchActiveChild()
   }, [activeChildId])
+
+  // Función para cargar el plan activo del niño
+  const loadActivePlan = async (childId: string, userId: string) => {
+    try {
+      setLoadingPlan(true)
+      const response = await fetch(`/api/consultas/plans?childId=${childId}&userId=${userId}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        const plans = data.plans || []
+        
+        // Buscar el plan activo (status: "active") o el más reciente
+        const activePlan = plans.find((plan: ChildPlan) => plan.status === "active") || 
+                          plans[plans.length - 1] // El último si no hay activo
+        
+        setCurrentPlan(activePlan || null)
+        
+        if (activePlan) {
+          logger.info(`Plan activo cargado: Plan ${activePlan.planNumber}`)
+        } else {
+          logger.info("No se encontró plan activo para este niño")
+        }
+      } else {
+        logger.warn("Error cargando planes del niño")
+        setCurrentPlan(null)
+      }
+    } catch (error) {
+      logger.error("Error cargando plan activo:", error)
+      setCurrentPlan(null)
+    } finally {
+      setLoadingPlan(false)
+    }
+  }
 
   // Auto-scroll a mensajes nuevos
   useEffect(() => {
@@ -230,7 +279,7 @@ export default function AssistantPage() {
     try {
 
       const conversationHistory = messages
-        .slice(-10)
+        .slice(-6)  // Optimizado: solo últimos 6 mensajes (más eficiente)
         .filter(msg => msg.id !== "welcome")
         .map(msg => ({
           role: msg.role,
@@ -246,6 +295,8 @@ export default function AssistantPage() {
           message: input,
           childId: childData?._id,
           conversationHistory: conversationHistory,
+          sessionId: sessionId.current,
+          currentPlan: currentPlan,
         }),
       })
 
@@ -351,12 +402,29 @@ export default function AssistantPage() {
             </div>
             <div>
               <h3 className="font-semibold text-base">Tu Coach de Sueño Virtual</h3>
-              <p className="text-xs text-gray-500">
-                {childData 
-                  ? `Consultando sobre ${childData.firstName}` 
-                  : "Selecciona un niño para comenzar"
-                }
-              </p>
+              <div className="text-xs text-gray-500 space-y-1">
+                <p>
+                  {childData 
+                    ? `Consultando sobre ${childData.firstName}` 
+                    : "Selecciona un niño para comenzar"
+                  }
+                </p>
+                {childData && (
+                  <div className="flex items-center gap-2">
+                    {loadingPlan ? (
+                      <span className="text-gray-400">Cargando plan...</span>
+                    ) : currentPlan ? (
+                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                        Plan {currentPlan.planNumber} Activo
+                      </span>
+                    ) : (
+                      <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
+                        Sin plan activo
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <Button variant="ghost" size="icon">
