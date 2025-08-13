@@ -17,8 +17,49 @@ import { createLogger } from "@/lib/logger"
 import { StateGraph, Annotation, START, END } from "@langchain/langgraph"
 import { BaseMessage, HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages"
 import { getChildPlanContext } from "@/lib/rag/plan-context-builder"
+import { checkRateLimit } from "@/lib/rag/rate-limiter"
 
 const logger = createLogger('RAGChatAPI')
+
+// 🎛️ CONFIGURACIÓN DE LOGGING PROFESIONAL
+const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+const DEBUG_ENABLED = process.env.DEBUG_RAG === 'true'
+const VERBOSE_LOGGING = !IS_PRODUCTION || DEBUG_ENABLED
+
+// Helper para logging condicional
+const logInfo = (...args: any[]) => {
+  if (VERBOSE_LOGGING) logger.info(...args)
+}
+const logDebug = (...args: any[]) => {
+  if (DEBUG_ENABLED) logger.debug(...args)
+}
+
+// 📦 CACHE INTELIGENTE PARA RAG (Optimización Profesional)
+const ragCache = new Map<string, { result: any, timestamp: number, hitCount: number }>()
+const CACHE_TTL = 15 * 60 * 1000 // 15 minutos
+const MAX_CACHE_SIZE = 100 // Máximo 100 entradas en cache
+
+// Función para limpiar cache automáticamente
+function cleanExpiredCache() {
+  const now = Date.now()
+  for (const [key, value] of ragCache.entries()) {
+    if (now - value.timestamp > CACHE_TTL) {
+      ragCache.delete(key)
+    }
+  }
+  
+  // Si el cache está muy grande, eliminar las entradas menos usadas
+  if (ragCache.size > MAX_CACHE_SIZE) {
+    const entries = Array.from(ragCache.entries())
+      .sort((a, b) => a[1].hitCount - b[1].hitCount)
+    
+    // Eliminar el 20% de las entradas menos usadas
+    const toDelete = Math.floor(entries.length * 0.2)
+    for (let i = 0; i < toDelete; i++) {
+      ragCache.delete(entries[i][0])
+    }
+  }
+}
 
 // 🗓️ HELPER PARA CONVERTIR NOMBRES DE MESES
 function getMonthIndex(monthName: string): number {
@@ -112,30 +153,55 @@ const ragSearchTool = new DynamicStructuredTool({
   }),
   func: async ({ query }) => {
     try {
-      logger.info(`🔍 Buscando en RAG: "${query}"`)
+      // 📦 VERIFICAR CACHE PRIMERO (Optimización Profesional)
+      const cacheKey = `rag:${query.toLowerCase().trim()}`
+      const cached = ragCache.get(cacheKey)
+      
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        cached.hitCount++
+        logInfo(`📦 Cache HIT para: "${query}" (usado ${cached.hitCount} veces)`)
+        return cached.result
+      }
+      
+      logInfo(`🔍 Buscando en RAG: "${query}"`)
+      
+      // Limpiar cache automáticamente cada vez que hacemos búsqueda nueva
+      cleanExpiredCache()
       
       const vectorStore = getMongoDBVectorStoreManager()
       const results = await vectorStore.searchSimilar(query, 3)
       
       if (results.length === 0) {
-        logger.info(`❌ No se encontraron documentos relevantes para: "${query}"`)
+        logInfo(`❌ No se encontraron documentos relevantes para: "${query}"`)
         return "No se encontró información relevante en los documentos"
       }
 
-      // 📋 LOGGING DETALLADO DE DOCUMENTOS ENCONTRADOS
-      logger.info(`✅ Encontrados ${results.length} documentos relevantes para: "${query}"`)
-      results.forEach((doc: any, i: number) => {
-        const metadata = doc.metadata as any
-        const source = metadata.source || 'Fuente desconocida'
-        const similarity = doc.score ? ` (similitud: ${(doc.score * 100).toFixed(1)}%)` : ''
-        logger.info(`   📄 ${i + 1}. ${source}${similarity}`)
-        logger.info(`      📝 Preview: ${doc.pageContent.substring(0, 100)}...`)
-      })
+      // 📋 LOGGING DETALLADO DE DOCUMENTOS ENCONTRADOS (SIEMPRE EN DESARROLLO)
+      logInfo(`✅ Encontrados ${results.length} documentos relevantes para: "${query}"`)
+      
+      // Mostrar fuentes SIEMPRE en desarrollo para debugging
+      if (VERBOSE_LOGGING) {
+        results.forEach((doc: any, i: number) => {
+          const metadata = doc.metadata as any
+          const source = metadata.source || 'Fuente desconocida'
+          const similarity = doc.score ? ` (similitud: ${(doc.score * 100).toFixed(1)}%)` : ''
+          logger.info(`   📄 ${i + 1}. ${source}${similarity}`)
+          logger.info(`      📝 Preview: ${doc.pageContent.substring(0, 100)}...`)
+        })
+      }
 
       const ragContext = results.map((doc: any, i: number) => {
         const metadata = doc.metadata as any
         return `Fuente: ${metadata.source}\nContenido: ${doc.pageContent}`
       }).join("\n\n---\n\n")
+
+      // 📦 GUARDAR EN CACHE (Optimización Profesional)
+      ragCache.set(cacheKey, {
+        result: ragContext,
+        timestamp: Date.now(),
+        hitCount: 1
+      })
+      logInfo(`💾 Resultado guardado en cache para: "${query}"`)
 
       return ragContext
     } catch (error) {
@@ -156,7 +222,7 @@ const childDataTool = new DynamicStructuredTool({
   }),
   func: async ({ childId, userId, dataType, period }) => {
     try {
-      logger.debug('childDataTool invocado', { childId, userId, dataType, period })
+      logDebug('childDataTool invocado', { childId, userId, dataType, period })
       
       if (!childId || childId === "null" || childId === "") {
         logger.warn('childId inválido o no proporcionado')
@@ -176,10 +242,10 @@ const childDataTool = new DynamicStructuredTool({
         return "No se encontró información del niño"
       }
       
-      logger.info('Niño encontrado', { name: `${childDoc.firstName} ${childDoc.lastName}` })
+      logInfo('Niño encontrado', { name: `${childDoc.firstName} ${childDoc.lastName}` })
       
       const events = childDoc.events || []
-      logger.debug('Eventos encontrados', { count: events.length })
+      logDebug('Eventos encontrados', { count: events.length })
       
       // 📅 FILTRAR EVENTOS POR PERIODO SI SE ESPECIFICÓ
       const filteredEvents = filterEventsByPeriod(events, period)
@@ -264,40 +330,20 @@ const routerAgent = async (state: typeof MultiAgentState.State) => {
     ? `Contexto de conversación reciente: ${state.conversationHistory.slice(-3).map(msg => `${msg.role}: ${msg.content}`).join(' | ')}`
     : "Sin contexto previo."
 
-  // Primero, analizar si la pregunta es sobre datos específicos del niño
-  const analysisPrompt = `Tu trabajo es clasificar esta pregunta considerando el contexto conversacional:
+  // Análisis comprimido para clasificación de pregunta
+  const analysisPrompt = `Clasifica esta pregunta con contexto:
 
-PREGUNTA ACTUAL: "${state.question}"
+PREGUNTA: "${state.question}"
 ${conversationContext}
 
-REGLAS DE CLASIFICACIÓN: 
-- Si la pregunta busca información que EXISTE EN UNA BASE DE DATOS sobre un niño específico → DATOS_ESPECIFICOS
-- Si la pregunta busca información sobre PLAN DE SUEÑO del niño (horarios, recomendaciones) → PLAN_ESPECIFICO
-- Si la pregunta busca conocimiento médico general que está en DOCUMENTOS → INFORMACION_GENERAL
+REGLAS:
+- BD del niño (estadísticas, horas, promedios) → DATOS_ESPECIFICOS
+- Plan de sueño (horarios, recomendaciones del plan) → PLAN_ESPECIFICO  
+- Conocimiento médico general (técnicas, consejos) → INFORMACION_GENERAL
 
-DETECCIÓN DE CONTINUACIONES: Si la pregunta parece ser una continuación de algo mencionado antes:
-- "¿Es suficiente?" → Busca números/datos en contexto → probablemente DATOS_ESPECIFICOS
-- "¿Y para su edad?" → Busca edad/desarrollo en contexto → mantiene categoría anterior
-- "¿Qué más?" → Expande tema anterior → mantiene categoría anterior
-- "¿Es apropiado?" → Evalúa algo mencionado → mantiene categoría anterior
-- "¿Está siguiendo eso?" → Se refiere a plan mencionado → PLAN_ESPECIFICO
-
-CONTEXTO: Estamos en un sistema médico donde hay un niño seleccionado con:
-1. Datos registrados (eventos, estadísticas, métricas)
-2. Plan de sueño activo (horarios, actividades, recomendaciones)
-3. Documentos médicos especializados
-
-EJEMPLOS CLAROS:
-- "¿qué estadísticas tienes?" = DATOS_ESPECIFICOS (busca estadísticas del niño en BD)
-- "¿cuántas horas durmió?" = DATOS_ESPECIFICOS (busca datos registrados)
-- "¿cuál es su promedio de sueño?" = DATOS_ESPECIFICOS (busca métricas calculadas)
-- "¿cuál es el plan actual?" = PLAN_ESPECIFICO (busca plan del niño)
-- "¿a qué hora debe acostarse según el plan?" = PLAN_ESPECIFICO (busca horarios del plan)
-- "¿qué recomendaciones tiene el plan?" = PLAN_ESPECIFICO (busca recomendaciones)
-- "¿cómo mejorar el sueño?" = INFORMACION_GENERAL (busca conocimiento médico)
-- "¿qué técnicas usar para la lactancia?" = INFORMACION_GENERAL (busca consejos generales)
-
-Para esta pregunta específica, considerando el contexto conversacional, ¿busca datos de la BD, plan específico, o conocimiento médico general?
+CONTINUACIONES:
+- "¿Es suficiente?", "¿Y para su edad?" → mantiene categoría previa
+- "¿Está siguiendo eso?" → PLAN_ESPECIFICO
 
 Responde solo: DATOS_ESPECIFICOS, PLAN_ESPECIFICO o INFORMACION_GENERAL`
 
@@ -342,18 +388,12 @@ const ragAgent = async (state: typeof MultiAgentState.State) => {
     // Tomar las últimas 4 interacciones para contexto
     const recentHistory = state.conversationHistory.slice(-4)
     
-    // Agregar un mensaje de sistema con el contexto
+    // Contexto conversacional comprimido
     messages.push(new SystemMessage(
-      `Contexto de la conversación previa:
-      ${recentHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+      `Contexto: ${recentHistory.map(msg => `${msg.role}: ${msg.content}`).join(' | ')}
       
-      IMPORTANTE: Si la pregunta actual parece ser una continuación de la conversación previa, 
-      debes reformular la búsqueda para incluir el contexto completo.
-      
-      Por ejemplo:
-      - Si antes se preguntó sobre "lactancia" y ahora preguntan "¿y si tiene 3 años?"
-      - Debes buscar: "lactancia en niños de 3 años" o "destete a los 3 años"
-      - NO busques solo "3 años"`
+      Si la pregunta continúa la conversación, reformula la búsqueda:
+      Ej: "lactancia" + "¿y si tiene 3 años?" → buscar "lactancia niños 3 años"`
     ))
   }
   
@@ -363,17 +403,12 @@ const ragAgent = async (state: typeof MultiAgentState.State) => {
   const agent = createReactAgent({
     llm,
     tools: [ragSearchTool],
-    stateModifier: `Eres la Dra. Mariana, especialista en pediatría.
+    stateModifier: `Dra. Mariana - Pediatra.
     
-    CONTEXTO IMPORTANTE: Si la pregunta parece ser una continuación de la conversación previa, 
-    reformula internamente la consulta para incluir el contexto completo antes de buscar.
+    Si la pregunta continúa conversación previa, reformula búsqueda incluyendo contexto.
+    Ej: "lactancia" + "¿3 años?" → "lactancia niños 3 años"
     
-    Ejemplos de reformulación:
-    - Conversación previa sobre "lactancia" + pregunta "¿y si tiene 3 años?" = Buscar "lactancia niños 3 años"
-    - Conversación previa sobre "sueño" + pregunta "¿cuántas horas?" = Buscar "horas de sueño apropiadas"
-    
-    Usa la herramienta rag_search con consultas completas que incluyan el contexto necesario.
-    Responde de forma concisa y directa basada en la información encontrada.`,
+    Usa rag_search con consulta completa. Responde conciso basado en información encontrada.`,
   })
 
   const result = await agent.invoke({ messages })
@@ -408,45 +443,15 @@ const childDataAgent = async (state: typeof MultiAgentState.State, childId: stri
   const agent = createReactAgent({
     llm,
     tools: [childDataTool],
-    stateModifier: `Eres la Dra. Mariana, especialista en análisis de datos infantiles.
+    stateModifier: `Dra. Mariana - Análisis datos infantiles.
     
-    SIEMPRE usa la herramienta child_data_search para obtener las estadísticas específicas del niño.
+    REGLAS:
+    - Usa child_data_search siempre
+    - Detecta periodo: "julio"→"july-${new Date().getFullYear()}", "julio 2024"→"july-2024", sin mes→"all"
+    - Mantén coherencia conversacional: "¿es suficiente?" mantiene periodo previo
+    - Presenta datos clara y profesionalmente
     
-    🗓️ DETECCIÓN INTELIGENTE DE PERIODOS:
-    Hoy es ${new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}.
-    Año actual: ${new Date().getFullYear()}
-
-    Cuando el usuario pregunte por estadísticas con referencias temporales, DEBES extraer inteligentemente el periodo:
-
-    REGLAS DE EXTRACCIÓN:
-    - "julio" o "en julio" → period: "july-${new Date().getFullYear()}" (julio del AÑO ACTUAL)
-    - "julio 2024" → period: "july-2024" (julio del año especificado)
-    - "junio" o "en junio" → period: "june-${new Date().getFullYear()}"
-    - "agosto" → period: "august-${new Date().getFullYear()}"
-    - "el mes pasado" → Calcula el mes anterior al actual
-    - "esta semana" → period: "last-7-days"
-    - "este mes" → period: "current-month"
-    - Sin mención de tiempo → period: "all" (todas las estadísticas)
-
-    EJEMPLOS CLAROS:
-    - "estadísticas de julio" → Usa period: "july-${new Date().getFullYear()}"
-    - "¿cómo durmió en junio?" → Usa period: "june-${new Date().getFullYear()}"
-    - "datos de marzo 2024" → Usa period: "march-2024"
-    - "estadísticas" (sin mes) → Usa period: "all"
-
-    CONTEXTO CONVERSACIONAL: Si la conversación previa menciona datos específicos:
-    - Si antes mencionaste "durmió 8 horas" y preguntan "¿es suficiente?", mantén el periodo anterior
-    - Si preguntan "¿y para su edad?", usa el mismo periodo mencionado antes
-    - Si preguntan "¿qué más?", expande información del mismo periodo
-    
-    Cuando uses child_data_search:
-    - SIEMPRE pasa el periodo detectado al tool
-    - Usa dataType: "stats" para métricas procesadas
-    - Presenta los datos de forma clara y profesional
-    - Incluye promedios, patrones y tendencias del periodo específico
-    - MANTÉN coherencia con lo discutido previamente
-    
-    Responde de forma directa basado en datos reales del periodo solicitado.`,
+    Hoy: ${new Date().toLocaleDateString('es')}`,
   })
 
   const result = await agent.invoke({ messages })
@@ -481,25 +486,15 @@ const childPlanAgent = async (state: typeof MultiAgentState.State, childId: stri
   const agent = createReactAgent({
     llm,
     tools: [childPlanTool],
-    stateModifier: `Eres la Dra. Mariana, especialista en planes de sueño infantil.
+    stateModifier: `Dra. Mariana - Planes de sueño infantil.
     
-    SIEMPRE usa la herramienta child_plan_search para obtener información del plan activo del niño.
+    REGLAS:
+    - Usa child_plan_search siempre
+    - Mantén coherencia conversacional: no repitas info mencionada
+    - infoType: "schedule" (horarios), "recommendations" (recomendaciones), "summary" (resumen), "full_plan" (completo)
+    - Si sin plan activo, sugiere generar uno
     
-    CONTEXTO IMPORTANTE: Mantén coherencia y continuidad con la conversación previa:
-    - Si ya mencionaste información del plan anteriormente, no la repitas completa
-    - Si preguntan algo relacionado con lo que ya se discutió, responde contextualmente
-    - Si preguntan "¿está siguiendo el plan?", relaciona con datos o patrones mencionados antes
-    - Si preguntan "¿qué más del plan?", expande información complementaria
-    - Si preguntan "¿es apropiado?", evalúa considerando el contexto discutido
-    
-    Cuando te pregunten sobre el plan:
-    - Para horarios específicos, usa infoType: "schedule"
-    - Para recomendaciones, usa infoType: "recommendations" 
-    - Para resumen general, usa infoType: "summary"
-    - Para información completa, usa infoType: "full_plan"
-    
-    Responde de forma directa basándote en el plan específico del niño, manteniendo coherencia conversacional.
-    Si el niño no tiene plan activo, sugiere generar uno.`,
+    Responde directo basado en plan específico del niño.`,
   })
 
   const result = await agent.invoke({ messages })
@@ -561,16 +556,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
+    // 🚦 VERIFICAR RATE LIMIT (Protección Profesional)
+    const rateLimitCheck = checkRateLimit(session.user.id)
+    if (!rateLimitCheck.allowed) {
+      const waitTime = Math.ceil((rateLimitCheck.resetTime - Date.now()) / 1000)
+      logger.warn(`⛔ Rate limit excedido para usuario ${session.user.email} - Espera ${waitTime}s`)
+      
+      return NextResponse.json({ 
+        error: "Demasiadas solicitudes. Por favor espera un momento.",
+        retryAfter: waitTime,
+        remaining: rateLimitCheck.remaining
+      }, { 
+        status: 429,
+        headers: {
+          'Retry-After': waitTime.toString(),
+          'X-RateLimit-Remaining': rateLimitCheck.remaining.toString(),
+          'X-RateLimit-Reset': new Date(rateLimitCheck.resetTime).toISOString()
+        }
+      })
+    }
+
     const { message, childId, conversationHistory = [] } = await req.json()
 
     if (!message) {
       return NextResponse.json({ error: "Mensaje requerido" }, { status: 400 })
     }
 
-    // 💬 LOGGING DE PREGUNTA RECIBIDA
-    logger.info(`💬 Nueva pregunta recibida: "${message}"`)
-    logger.info(`👶 ChildId: ${childId || 'No especificado'}`)
-    logger.info(`👤 Usuario: ${session.user.email || session.user.id}`)
+    // 💬 LOGGING DE PREGUNTA RECIBIDA (Solo en desarrollo/debug)
+    logInfo(`💬 Nueva pregunta recibida: "${message}"`)
+    logDebug(`👶 ChildId: ${childId || 'No especificado'}`)
+    logDebug(`👤 Usuario: ${session.user.email || session.user.id}`)
 
     // 🔍 OBTENER EL PARENT ID CORRECTO DEL NIÑO
     let parentUserId = session.user.id // Default para usuarios normales
@@ -584,7 +599,7 @@ export async function POST(req: NextRequest) {
         
         if (child && child.parentId) {
           parentUserId = child.parentId
-          logger.info('Niño encontrado', { name: `${child.firstName} ${child.lastName}`, parentId: parentUserId })
+          logInfo('Niño encontrado', { name: `${child.firstName} ${child.lastName}`, parentId: parentUserId })
         } else {
           logger.warn('Niño no encontrado', { childId })
         }
@@ -617,10 +632,15 @@ export async function POST(req: NextRequest) {
     // 🎭 OBTENER CONTEXTO DEL NIÑO PARA RESPUESTA (con parent ID correcto)
     const childContext = childId ? await getChildContextForResponse(childId, parentUserId) : null
 
-    // 📝 LOGGING DE RESPUESTA FINAL
-    logger.info(`✅ Respuesta generada por agente: ${result.performance?.agent || "unknown"}`)
-    logger.info(`⏱️  Tiempo de ejecución: ${executionTime}ms`)
-    logger.info(`💡 Respuesta: ${result.finalAnswer.substring(0, 200)}...`)
+    // 📝 LOGGING DE RESPUESTA FINAL (Siempre mostrar en desarrollo, condensado en producción)
+    if (VERBOSE_LOGGING) {
+      logger.info(`✅ Respuesta generada por agente: ${result.performance?.agent || "unknown"}`)
+      logger.info(`⏱️  Tiempo de ejecución: ${executionTime}ms`)
+      logger.info(`💡 Respuesta: ${result.finalAnswer.substring(0, 200)}...`)
+    } else {
+      // En producción, solo un log condensado
+      logger.info(`✅ ${result.performance?.agent || "?"} | ${executionTime}ms | ${message.substring(0, 50)}...`)
+    }
 
     return NextResponse.json({
       response: result.finalAnswer,
