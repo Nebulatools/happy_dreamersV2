@@ -173,3 +173,65 @@ export async function getChildPlanContext(childId: string, userId: string): Prom
     return "Error al obtener el plan del niño."
   }
 }
+
+/**
+ * Obtiene el historial completo de planes del niño para contexto evolutivo
+ */
+export async function getAllPlansContext(childId: string, userId: string): Promise<string> {
+  try {
+    const { db } = await connectToDatabase()
+    
+    const plans = await db.collection("child_plans")
+      .find({
+        childId: new ObjectId(childId),
+        userId: new ObjectId(userId)
+      })
+      .sort({ planNumber: -1 }) // Más reciente primero
+      .limit(3) // Máximo 3 planes para eficiencia
+      .toArray()
+
+    if (plans.length === 0) {
+      return "No hay planes registrados para este niño."
+    }
+
+    logger.info(`Historial de planes encontrado: ${plans.length} planes para childId: ${childId}`)
+
+    // Formatear evolución de planes de manera concisa
+    let context = "=== EVOLUCIÓN DE PLANES ===\n"
+    
+    plans.forEach((plan, index) => {
+      const isActive = plan.status === "active"
+      const status = isActive ? "(ACTIVO)" : "(ANTERIOR)"
+      
+      context += `\n📋 PLAN ${plan.planNumber} ${status}:\n`
+      context += `• Tipo: ${plan.planType === 'initial' ? 'Plan Inicial' : 'Plan Basado en Análisis'}\n`
+      
+      if (plan.schedule) {
+        if (plan.schedule.bedtime) {
+          context += `• Hora de dormir: ${plan.schedule.bedtime}\n`
+        }
+        if (plan.schedule.wakeTime) {
+          context += `• Hora de despertar: ${plan.schedule.wakeTime}\n`
+        }
+        if (plan.schedule.naps?.length > 0) {
+          context += `• Siestas: ${plan.schedule.naps.length} programadas\n`
+        }
+      }
+      
+      // Solo mostrar 2 recomendaciones principales para eficiencia
+      if (plan.recommendations && plan.recommendations.length > 0) {
+        context += `• Recomendaciones principales:\n`
+        plan.recommendations.slice(0, 2).forEach(rec => {
+          context += `  - ${rec}\n`
+        })
+      }
+    })
+    
+    context += "\n=== FIN EVOLUCIÓN ===\n"
+    
+    return context
+  } catch (error) {
+    logger.error("Error obteniendo historial de planes:", error)
+    return "Error al obtener el historial de planes del niño."
+  }
+}
