@@ -16,9 +16,80 @@ import { z } from "zod"
 import { createLogger } from "@/lib/logger"
 import { StateGraph, Annotation, START, END } from "@langchain/langgraph"
 import { BaseMessage, HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages"
+import { getChildPlanContext } from "@/lib/rag/plan-context-builder"
 
 const logger = createLogger('RAGChatAPI')
 
+// 🗓️ HELPER PARA CONVERTIR NOMBRES DE MESES
+function getMonthIndex(monthName: string): number {
+  const months = {
+    'january': 0, 'enero': 0,
+    'february': 1, 'febrero': 1,
+    'march': 2, 'marzo': 2,
+    'april': 3, 'abril': 3,
+    'may': 4, 'mayo': 4,
+    'june': 5, 'junio': 5,
+    'july': 6, 'julio': 6,
+    'august': 7, 'agosto': 7,
+    'september': 8, 'septiembre': 8,
+    'october': 9, 'octubre': 9,
+    'november': 10, 'noviembre': 10,
+    'december': 11, 'diciembre': 11
+  };
+  return months[monthName.toLowerCase()] ?? -1;
+}
+
+// 📅 FUNCIÓN PARA FILTRAR EVENTOS POR PERIODO
+function filterEventsByPeriod(events: any[], period?: string): any[] {
+  if (!period || period === 'all') {
+    logger.info(`Sin filtro de periodo - usando todos los eventos: ${events.length}`)
+    return events;
+  }
+  
+  const now = new Date();
+  let filteredEvents: any[] = [];
+  
+  if (period.includes('-')) {
+    // Formato: "july-2025", "june-2024"
+    const [monthName, yearStr] = period.split('-');
+    const monthIndex = getMonthIndex(monthName);
+    const targetYear = parseInt(yearStr);
+    
+    if (monthIndex === -1) {
+      logger.warn(`Mes no reconocido: ${monthName}`);
+      return events;
+    }
+    
+    filteredEvents = events.filter(event => {
+      const eventDate = new Date(event.startTime);
+      return eventDate.getMonth() === monthIndex && 
+             eventDate.getFullYear() === targetYear;
+    });
+    
+    logger.info(`Filtrado por ${monthName} ${yearStr}: ${filteredEvents.length} eventos de ${events.length} totales`);
+    
+  } else if (period === 'last-7-days') {
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    filteredEvents = events.filter(event => 
+      new Date(event.startTime) >= sevenDaysAgo
+    );
+    logger.info(`Filtrado últimos 7 días: ${filteredEvents.length} eventos`);
+    
+  } else if (period === 'current-month') {
+    filteredEvents = events.filter(event => {
+      const eventDate = new Date(event.startTime);
+      return eventDate.getMonth() === now.getMonth() && 
+             eventDate.getFullYear() === now.getFullYear();
+    });
+    logger.info(`Filtrado mes actual: ${filteredEvents.length} eventos`);
+    
+  } else {
+    logger.warn(`Periodo no reconocido: ${period}`);
+    return events;
+  }
+  
+  return filteredEvents;
+}
 
 // 🤖 DEFINICIÓN DEL ESTADO DEL MULTI-AGENT SYSTEM
 const MultiAgentState = Annotation.Root({
@@ -76,15 +147,16 @@ const ragSearchTool = new DynamicStructuredTool({
 
 const childDataTool = new DynamicStructuredTool({
   name: "child_data_search",
-  description: "Busca estadísticas procesadas del niño: promedios de sueño, patrones, métricas calculadas",
+  description: "Busca estadísticas procesadas del niño: promedios de sueño, patrones, métricas calculadas para un periodo específico",
   schema: z.object({
     childId: z.string().describe("ID del niño"),
     userId: z.string().describe("ID del usuario padre"),
     dataType: z.string().describe("Tipo de datos: 'stats', 'patterns', 'metrics'"),
+    period: z.string().optional().describe("Periodo detectado: 'july-2025', 'june-2025', 'august-2024', 'last-7-days', 'current-month', 'all'"),
   }),
-  func: async ({ childId, userId, dataType }) => {
+  func: async ({ childId, userId, dataType, period }) => {
     try {
-      logger.debug('childDataTool invocado', { childId, userId, dataType })
+      logger.debug('childDataTool invocado', { childId, userId, dataType, period })
       
       if (!childId || childId === "null" || childId === "") {
         logger.warn('childId inválido o no proporcionado')
@@ -109,13 +181,72 @@ const childDataTool = new DynamicStructuredTool({
       const events = childDoc.events || []
       logger.debug('Eventos encontrados', { count: events.length })
       
-      // 🧮 PROCESAR ESTADÍSTICAS COMO EN SLEEP-STATISTICS
-      const sleepStats = await processSleepStatistics(events)
+      // 📅 FILTRAR EVENTOS POR PERIODO SI SE ESPECIFICÓ
+      const filteredEvents = filterEventsByPeriod(events, period)
       
-      return buildProcessedStatsContext(childDoc, sleepStats)
+      // 🧮 PROCESAR ESTADÍSTICAS CON EVENTOS FILTRADOS
+      const sleepStats = await processSleepStatistics(filteredEvents)
+      
+      // 🏗️ CONSTRUIR CONTEXTO CON INFORMACIÓN DEL PERIODO
+      let context = buildProcessedStatsContext(childDoc, sleepStats)
+      
+      if (period && period !== 'all') {
+        context += `\n📅 PERIODO ANALIZADO: ${period}\n`
+        context += `📊 Eventos en este periodo: ${filteredEvents.length} de ${events.length} totales\n`
+      }
+      
+      return context
     } catch (error) {
       logger.error('Error en childDataTool', error)
       return "Error al acceder a las estadísticas del niño"
+    }
+  },
+})
+
+const childPlanTool = new DynamicStructuredTool({
+  name: "child_plan_search",
+  description: "Obtiene información del plan de sueño activo del niño: horarios, actividades, recomendaciones específicas",
+  schema: z.object({
+    childId: z.string().describe("ID del niño"),
+    userId: z.string().describe("ID del usuario padre"),
+    infoType: z.string().describe("Tipo de información: 'full_plan', 'schedule', 'recommendations', 'summary'"),
+  }),
+  func: async ({ childId, userId, infoType }) => {
+    try {
+      logger.debug('childPlanTool invocado', { childId, userId, infoType })
+      
+      if (!childId || childId === "null" || childId === "") {
+        logger.warn('childId inválido para obtener plan')
+        return "Por favor selecciona un niño específico para obtener su plan de sueño"
+      }
+
+      // Obtener el contexto completo del plan del niño
+      const planContext = await getChildPlanContext(childId, userId)
+      
+      if (planContext.includes("no tiene un plan")) {
+        return "Este niño no tiene un plan de sueño activo. Se recomienda generar un plan inicial."
+      }
+
+      // Filtrar información según el tipo solicitado
+      if (infoType === 'schedule') {
+        // Extraer solo la sección de horarios
+        const scheduleMatch = planContext.match(/⏰ HORARIOS ESTABLECIDOS:(.*?)(?=\n\n|💡|📊|===)/s)
+        return scheduleMatch ? `⏰ HORARIOS ESTABLECIDOS:${scheduleMatch[1]}` : "No hay horarios definidos en el plan"
+      } else if (infoType === 'recommendations') {
+        // Extraer solo las recomendaciones
+        const recMatch = planContext.match(/💡 RECOMENDACIONES ESPECÍFICAS:(.*?)(?=\n\n|📊|===)/s)
+        return recMatch ? `💡 RECOMENDACIONES ESPECÍFICAS:${recMatch[1]}` : "No hay recomendaciones específicas en el plan"
+      } else if (infoType === 'summary') {
+        // Extraer solo información básica
+        const summaryMatch = planContext.match(/=== PLAN ACTUAL DEL NIÑO ===(.*?)(?=⏰|💡|📊)/s)
+        return summaryMatch ? `=== RESUMEN DEL PLAN ===${summaryMatch[1]}` : "No se pudo obtener resumen del plan"
+      }
+      
+      // Por defecto, devolver el contexto completo
+      return planContext
+    } catch (error) {
+      logger.error('Error en childPlanTool', error)
+      return "Error al acceder al plan de sueño del niño"
     }
   },
 })
@@ -128,29 +259,47 @@ const routerAgent = async (state: typeof MultiAgentState.State) => {
     maxTokens: 50,
   })
 
+  // Construir contexto de conversación para el router
+  const conversationContext = state.conversationHistory && state.conversationHistory.length > 0 
+    ? `Contexto de conversación reciente: ${state.conversationHistory.slice(-3).map(msg => `${msg.role}: ${msg.content}`).join(' | ')}`
+    : "Sin contexto previo."
+
   // Primero, analizar si la pregunta es sobre datos específicos del niño
-  const analysisPrompt = `Tu trabajo es clasificar esta pregunta:
+  const analysisPrompt = `Tu trabajo es clasificar esta pregunta considerando el contexto conversacional:
 
-PREGUNTA: "${state.question}"
+PREGUNTA ACTUAL: "${state.question}"
+${conversationContext}
 
-REGLA SIMPLE: 
+REGLAS DE CLASIFICACIÓN: 
 - Si la pregunta busca información que EXISTE EN UNA BASE DE DATOS sobre un niño específico → DATOS_ESPECIFICOS
+- Si la pregunta busca información sobre PLAN DE SUEÑO del niño (horarios, recomendaciones) → PLAN_ESPECIFICO
 - Si la pregunta busca conocimiento médico general que está en DOCUMENTOS → INFORMACION_GENERAL
 
-CONTEXTO: Estamos en un sistema médico donde hay un niño seleccionado con datos registrados (eventos, estadísticas, métricas, patrones de sueño, etc.).
+DETECCIÓN DE CONTINUACIONES: Si la pregunta parece ser una continuación de algo mencionado antes:
+- "¿Es suficiente?" → Busca números/datos en contexto → probablemente DATOS_ESPECIFICOS
+- "¿Y para su edad?" → Busca edad/desarrollo en contexto → mantiene categoría anterior
+- "¿Qué más?" → Expande tema anterior → mantiene categoría anterior
+- "¿Es apropiado?" → Evalúa algo mencionado → mantiene categoría anterior
+- "¿Está siguiendo eso?" → Se refiere a plan mencionado → PLAN_ESPECIFICO
 
-La pregunta "¿qué estadísticas tienes?" claramente busca las estadísticas calculadas de ESE niño específico que están en la base de datos.
+CONTEXTO: Estamos en un sistema médico donde hay un niño seleccionado con:
+1. Datos registrados (eventos, estadísticas, métricas)
+2. Plan de sueño activo (horarios, actividades, recomendaciones)
+3. Documentos médicos especializados
 
 EJEMPLOS CLAROS:
 - "¿qué estadísticas tienes?" = DATOS_ESPECIFICOS (busca estadísticas del niño en BD)
 - "¿cuántas horas durmió?" = DATOS_ESPECIFICOS (busca datos registrados)
 - "¿cuál es su promedio de sueño?" = DATOS_ESPECIFICOS (busca métricas calculadas)
+- "¿cuál es el plan actual?" = PLAN_ESPECIFICO (busca plan del niño)
+- "¿a qué hora debe acostarse según el plan?" = PLAN_ESPECIFICO (busca horarios del plan)
+- "¿qué recomendaciones tiene el plan?" = PLAN_ESPECIFICO (busca recomendaciones)
 - "¿cómo mejorar el sueño?" = INFORMACION_GENERAL (busca conocimiento médico)
-- "¿qué técnicas usar?" = INFORMACION_GENERAL (busca consejos generales)
+- "¿qué técnicas usar para la lactancia?" = INFORMACION_GENERAL (busca consejos generales)
 
-Para esta pregunta específica, ¿busca datos de la BD del niño o conocimiento médico general?
+Para esta pregunta específica, considerando el contexto conversacional, ¿busca datos de la BD, plan específico, o conocimiento médico general?
 
-Responde solo: DATOS_ESPECIFICOS o INFORMACION_GENERAL`
+Responde solo: DATOS_ESPECIFICOS, PLAN_ESPECIFICO o INFORMACION_GENERAL`
 
   const analysisResponse = await llm.invoke([
     new SystemMessage(analysisPrompt),
@@ -160,7 +309,14 @@ Responde solo: DATOS_ESPECIFICOS o INFORMACION_GENERAL`
   const analysis = analysisResponse.content.toString().trim()
   
   // Convertir análisis a decisión de agente
-  const agentType = analysis === "DATOS_ESPECIFICOS" ? "DB" : "RAG"
+  let agentType: string
+  if (analysis === "DATOS_ESPECIFICOS") {
+    agentType = "DB"
+  } else if (analysis === "PLAN_ESPECIFICO") {
+    agentType = "PLAN"
+  } else {
+    agentType = "RAG"
+  }
   
   logger.info('Router de agente', { question: state.question, analysis, agentType })
   
@@ -171,22 +327,55 @@ Responde solo: DATOS_ESPECIFICOS o INFORMACION_GENERAL`
   }
 }
 
-// 🔍 AGENTE RAG ESPECIALIZADO
+// 🔍 AGENTE RAG ESPECIALIZADO CON CONTEXTO DE CONVERSACIÓN
 const ragAgent = async (state: typeof MultiAgentState.State) => {
   const llm = new ChatOpenAI({
     modelName: "gpt-4o-mini",
     temperature: 0.7,
   })
 
+  // Construir mensajes con contexto de conversación
+  const messages = []
+  
+  // Agregar historial de conversación si existe
+  if (state.conversationHistory && state.conversationHistory.length > 0) {
+    // Tomar las últimas 4 interacciones para contexto
+    const recentHistory = state.conversationHistory.slice(-4)
+    
+    // Agregar un mensaje de sistema con el contexto
+    messages.push(new SystemMessage(
+      `Contexto de la conversación previa:
+      ${recentHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+      
+      IMPORTANTE: Si la pregunta actual parece ser una continuación de la conversación previa, 
+      debes reformular la búsqueda para incluir el contexto completo.
+      
+      Por ejemplo:
+      - Si antes se preguntó sobre "lactancia" y ahora preguntan "¿y si tiene 3 años?"
+      - Debes buscar: "lactancia en niños de 3 años" o "destete a los 3 años"
+      - NO busques solo "3 años"`
+    ))
+  }
+  
+  // Agregar la pregunta actual
+  messages.push(new HumanMessage(state.question))
+
   const agent = createReactAgent({
     llm,
     tools: [ragSearchTool],
-    stateModifier: `Eres la Dra. Mariana, especialista en pediatría. 
-    Usa SOLO la herramienta rag_search para buscar información en documentos especializados.
-    Responde de forma concisa y directa. Si no encuentras información específica, dilo claramente.`,
+    stateModifier: `Eres la Dra. Mariana, especialista en pediatría.
+    
+    CONTEXTO IMPORTANTE: Si la pregunta parece ser una continuación de la conversación previa, 
+    reformula internamente la consulta para incluir el contexto completo antes de buscar.
+    
+    Ejemplos de reformulación:
+    - Conversación previa sobre "lactancia" + pregunta "¿y si tiene 3 años?" = Buscar "lactancia niños 3 años"
+    - Conversación previa sobre "sueño" + pregunta "¿cuántas horas?" = Buscar "horas de sueño apropiadas"
+    
+    Usa la herramienta rag_search con consultas completas que incluyan el contexto necesario.
+    Responde de forma concisa y directa basada en la información encontrada.`,
   })
 
-  const messages = [new HumanMessage(state.question)]
   const result = await agent.invoke({ messages })
   
   return {
@@ -202,6 +391,20 @@ const childDataAgent = async (state: typeof MultiAgentState.State, childId: stri
     temperature: 0.3,
   })
 
+  const messages = [
+    new SystemMessage(`Datos disponibles: childId=${childId}, userId=${userId}`)
+  ]
+  
+  // Agregar contexto de conversación si existe
+  if (state.conversationHistory && state.conversationHistory.length > 0) {
+    const recentHistory = state.conversationHistory.slice(-4)
+    messages.push(new SystemMessage(
+      `Contexto de conversación: ${recentHistory.map(msg => `${msg.role}: ${msg.content}`).join(' | ')}`
+    ))
+  }
+  
+  messages.push(new HumanMessage(state.question))
+
   const agent = createReactAgent({
     llm,
     tools: [childDataTool],
@@ -209,20 +412,96 @@ const childDataAgent = async (state: typeof MultiAgentState.State, childId: stri
     
     SIEMPRE usa la herramienta child_data_search para obtener las estadísticas específicas del niño.
     
-    Cuando te pregunten sobre estadísticas o datos:
-    - Usa child_data_search con dataType: "stats" para obtener métricas procesadas
-    - Presenta los datos de forma clara y profesional
-    - Incluye promedios, patrones y tendencias relevantes
-    - Si no hay datos suficientes, explica qué se necesita para generar estadísticas
+    🗓️ DETECCIÓN INTELIGENTE DE PERIODOS:
+    Hoy es ${new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}.
+    Año actual: ${new Date().getFullYear()}
+
+    Cuando el usuario pregunte por estadísticas con referencias temporales, DEBES extraer inteligentemente el periodo:
+
+    REGLAS DE EXTRACCIÓN:
+    - "julio" o "en julio" → period: "july-${new Date().getFullYear()}" (julio del AÑO ACTUAL)
+    - "julio 2024" → period: "july-2024" (julio del año especificado)
+    - "junio" o "en junio" → period: "june-${new Date().getFullYear()}"
+    - "agosto" → period: "august-${new Date().getFullYear()}"
+    - "el mes pasado" → Calcula el mes anterior al actual
+    - "esta semana" → period: "last-7-days"
+    - "este mes" → period: "current-month"
+    - Sin mención de tiempo → period: "all" (todas las estadísticas)
+
+    EJEMPLOS CLAROS:
+    - "estadísticas de julio" → Usa period: "july-${new Date().getFullYear()}"
+    - "¿cómo durmió en junio?" → Usa period: "june-${new Date().getFullYear()}"
+    - "datos de marzo 2024" → Usa period: "march-2024"
+    - "estadísticas" (sin mes) → Usa period: "all"
+
+    CONTEXTO CONVERSACIONAL: Si la conversación previa menciona datos específicos:
+    - Si antes mencionaste "durmió 8 horas" y preguntan "¿es suficiente?", mantén el periodo anterior
+    - Si preguntan "¿y para su edad?", usa el mismo periodo mencionado antes
+    - Si preguntan "¿qué más?", expande información del mismo periodo
     
-    Responde de forma directa y basada en datos reales del niño.`,
+    Cuando uses child_data_search:
+    - SIEMPRE pasa el periodo detectado al tool
+    - Usa dataType: "stats" para métricas procesadas
+    - Presenta los datos de forma clara y profesional
+    - Incluye promedios, patrones y tendencias del periodo específico
+    - MANTÉN coherencia con lo discutido previamente
+    
+    Responde de forma directa basado en datos reales del periodo solicitado.`,
+  })
+
+  const result = await agent.invoke({ messages })
+  
+  return {
+    finalAnswer: result.messages[result.messages.length - 1].content,
+    performance: { ...state.performance, endTime: Date.now() },
+  }
+}
+
+// 📋 AGENTE DEL PLAN DEL NIÑO
+const childPlanAgent = async (state: typeof MultiAgentState.State, childId: string, userId: string) => {
+  const llm = new ChatOpenAI({
+    modelName: "gpt-4o-mini",
+    temperature: 0.3,
   })
 
   const messages = [
-    new SystemMessage(`Datos disponibles: childId=${childId}, userId=${userId}`),
-    new HumanMessage(state.question),
+    new SystemMessage(`Plan del niño disponible: childId=${childId}, userId=${userId}`)
   ]
   
+  // Agregar contexto de conversación si existe
+  if (state.conversationHistory && state.conversationHistory.length > 0) {
+    const recentHistory = state.conversationHistory.slice(-4)
+    messages.push(new SystemMessage(
+      `Contexto de conversación: ${recentHistory.map(msg => `${msg.role}: ${msg.content}`).join(' | ')}`
+    ))
+  }
+  
+  messages.push(new HumanMessage(state.question))
+
+  const agent = createReactAgent({
+    llm,
+    tools: [childPlanTool],
+    stateModifier: `Eres la Dra. Mariana, especialista en planes de sueño infantil.
+    
+    SIEMPRE usa la herramienta child_plan_search para obtener información del plan activo del niño.
+    
+    CONTEXTO IMPORTANTE: Mantén coherencia y continuidad con la conversación previa:
+    - Si ya mencionaste información del plan anteriormente, no la repitas completa
+    - Si preguntan algo relacionado con lo que ya se discutió, responde contextualmente
+    - Si preguntan "¿está siguiendo el plan?", relaciona con datos o patrones mencionados antes
+    - Si preguntan "¿qué más del plan?", expande información complementaria
+    - Si preguntan "¿es apropiado?", evalúa considerando el contexto discutido
+    
+    Cuando te pregunten sobre el plan:
+    - Para horarios específicos, usa infoType: "schedule"
+    - Para recomendaciones, usa infoType: "recommendations" 
+    - Para resumen general, usa infoType: "summary"
+    - Para información completa, usa infoType: "full_plan"
+    
+    Responde de forma directa basándote en el plan específico del niño, manteniendo coherencia conversacional.
+    Si el niño no tiene plan activo, sugiere generar uno.`,
+  })
+
   const result = await agent.invoke({ messages })
   
   return {
@@ -232,8 +511,14 @@ const childDataAgent = async (state: typeof MultiAgentState.State, childId: stri
 }
 
 // 🎯 FUNCIÓN DE ROUTING CON TIPOS EXPLÍCITOS
-const routeToAgent = (state: { agentType: string }): "RAG_ONLY" | "CHILD_DATA_ONLY" => {
-  return state.agentType === "DB" ? "CHILD_DATA_ONLY" : "RAG_ONLY"
+const routeToAgent = (state: { agentType: string }): "RAG_ONLY" | "CHILD_DATA_ONLY" | "CHILD_PLAN_ONLY" => {
+  if (state.agentType === "DB") {
+    return "CHILD_DATA_ONLY"
+  } else if (state.agentType === "PLAN") {
+    return "CHILD_PLAN_ONLY"
+  } else {
+    return "RAG_ONLY"
+  }
 }
 
 // 🏗️ CONSTRUCCIÓN DEL GRAFO CON SINTAXIS CORRECTA
@@ -244,6 +529,7 @@ const buildMultiAgentGraph = (childId: string, userId: string) => {
   workflow.addNode("router", routerAgent)
   workflow.addNode("RAG_ONLY", ragAgent)
   workflow.addNode("CHILD_DATA_ONLY", (state) => childDataAgent(state, childId, userId))
+  workflow.addNode("CHILD_PLAN_ONLY", (state) => childPlanAgent(state, childId, userId))
 
   // 2. Definir punto de entrada
   workflow.setEntryPoint("router")
@@ -255,12 +541,14 @@ const buildMultiAgentGraph = (childId: string, userId: string) => {
     {
       "RAG_ONLY": "RAG_ONLY",           // Si la función devuelve "RAG_ONLY", ir a este nodo
       "CHILD_DATA_ONLY": "CHILD_DATA_ONLY", // Si devuelve "CHILD_DATA_ONLY", ir a este nodo
+      "CHILD_PLAN_ONLY": "CHILD_PLAN_ONLY", // Si devuelve "CHILD_PLAN_ONLY", ir a este nodo
     }
   )
 
   // 4. Definir los puntos finales
   workflow.addEdge("RAG_ONLY", END)
   workflow.addEdge("CHILD_DATA_ONLY", END)
+  workflow.addEdge("CHILD_PLAN_ONLY", END)
 
   // 5. Compilar
   return workflow.compile()
