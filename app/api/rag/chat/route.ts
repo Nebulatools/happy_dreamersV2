@@ -41,12 +41,25 @@ const ragSearchTool = new DynamicStructuredTool({
   }),
   func: async ({ query }) => {
     try {
+      logger.info(`🔍 Buscando en RAG: "${query}"`)
+      
       const vectorStore = getMongoDBVectorStoreManager()
       const results = await vectorStore.searchSimilar(query, 3)
       
       if (results.length === 0) {
+        logger.info(`❌ No se encontraron documentos relevantes para: "${query}"`)
         return "No se encontró información relevante en los documentos"
       }
+
+      // 📋 LOGGING DETALLADO DE DOCUMENTOS ENCONTRADOS
+      logger.info(`✅ Encontrados ${results.length} documentos relevantes para: "${query}"`)
+      results.forEach((doc: any, i: number) => {
+        const metadata = doc.metadata as any
+        const source = metadata.source || 'Fuente desconocida'
+        const similarity = doc.score ? ` (similitud: ${(doc.score * 100).toFixed(1)}%)` : ''
+        logger.info(`   📄 ${i + 1}. ${source}${similarity}`)
+        logger.info(`      📝 Preview: ${doc.pageContent.substring(0, 100)}...`)
+      })
 
       const ragContext = results.map((doc: any, i: number) => {
         const metadata = doc.metadata as any
@@ -55,6 +68,7 @@ const ragSearchTool = new DynamicStructuredTool({
 
       return ragContext
     } catch (error) {
+      logger.error(`❌ Error buscando en RAG para "${query}":`, error)
       return "Error al buscar en los documentos"
     }
   },
@@ -265,6 +279,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Mensaje requerido" }, { status: 400 })
     }
 
+    // 💬 LOGGING DE PREGUNTA RECIBIDA
+    logger.info(`💬 Nueva pregunta recibida: "${message}"`)
+    logger.info(`👶 ChildId: ${childId || 'No especificado'}`)
+    logger.info(`👤 Usuario: ${session.user.email || session.user.id}`)
+
     // 🔍 OBTENER EL PARENT ID CORRECTO DEL NIÑO
     let parentUserId = session.user.id // Default para usuarios normales
     
@@ -309,6 +328,11 @@ export async function POST(req: NextRequest) {
 
     // 🎭 OBTENER CONTEXTO DEL NIÑO PARA RESPUESTA (con parent ID correcto)
     const childContext = childId ? await getChildContextForResponse(childId, parentUserId) : null
+
+    // 📝 LOGGING DE RESPUESTA FINAL
+    logger.info(`✅ Respuesta generada por agente: ${result.performance?.agent || "unknown"}`)
+    logger.info(`⏱️  Tiempo de ejecución: ${executionTime}ms`)
+    logger.info(`💡 Respuesta: ${result.finalAnswer.substring(0, 200)}...`)
 
     return NextResponse.json({
       response: result.finalAnswer,

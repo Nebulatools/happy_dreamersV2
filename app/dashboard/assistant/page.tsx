@@ -24,6 +24,7 @@ import {
 } from "lucide-react"
 import { useActiveChild } from "@/context/active-child-context"
 import { cn } from "@/lib/utils"
+import { GoogleDriveSync } from "@/components/rag/google-drive-sync"
 
 import { createLogger } from "@/lib/logger"
 
@@ -320,7 +321,7 @@ export default function AssistantPage() {
 
       {/* Tabs Container */}
       <Tabs defaultValue="chat" className="w-full">
-        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-3' : 'grid-cols-1'}`}>
           <TabsTrigger value="chat" className="flex items-center gap-2">
             <Bot className="w-4 h-4" />
             Chat
@@ -328,7 +329,13 @@ export default function AssistantPage() {
           {isAdmin && (
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
-              Configuración IA
+              Documentos
+            </TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger value="drive" className="flex items-center gap-2">
+              <Upload className="w-4 h-4" />
+              Google Drive
             </TabsTrigger>
           )}
         </TabsList>
@@ -498,17 +505,17 @@ export default function AssistantPage() {
           </Card>
         </TabsContent>
 
-        {/* Settings Tab - Solo para Admins */}
+        {/* Documentos Tab - Solo para Admins */}
         {isAdmin && (
           <TabsContent value="settings">
             <Card className="h-[calc(100vh-16rem)] flex flex-col overflow-hidden">
               <div className="p-6 border-b">
                 <h2 className="text-lg font-semibold text-[#2F2F2F] flex items-center gap-2">
-                  <Settings className="w-5 h-5" />
-                  Gestión de Documentos RAG
+                  <FileText className="w-5 h-5" />
+                  Gestión de Documentos Individuales
                 </h2>
                 <p className="text-sm text-gray-600 mt-1">
-                  Administra los documentos que usa el asistente para generar respuestas
+                  Sube documentos individuales que usa el asistente para generar respuestas
                 </p>
               </div>
 
@@ -527,12 +534,12 @@ export default function AssistantPage() {
                     ref={fileInputRef}
                     type="file"
                     multiple
-                    accept=".pdf,.txt,.doc,.docx"
+                    accept=".pdf,.txt,.md,.docx,.pptx,.xlsx,.png,.jpg,.jpeg,.zip"
                     onChange={handleFileUpload}
                     className="hidden"
                   />
                   <p className="text-xs text-gray-500 mt-2">
-                    Formatos soportados: PDF, TXT, DOC, DOCX
+                    Formatos soportados: PDF, TXT, MD, DOCX, PPTX, XLSX, PNG, JPG, ZIP
                   </p>
                 </div>
 
@@ -582,6 +589,27 @@ export default function AssistantPage() {
                     </div>
                   )}
                 </div>
+              </ScrollArea>
+            </Card>
+          </TabsContent>
+        )}
+
+        {/* Google Drive Tab - Solo para Admins */}
+        {isAdmin && (
+          <TabsContent value="drive">
+            <Card className="h-[calc(100vh-16rem)] overflow-hidden">
+              <div className="p-6 border-b">
+                <h2 className="text-lg font-semibold text-[#2F2F2F] flex items-center gap-2">
+                  <Upload className="w-5 h-5" />
+                  Sincronización con Google Drive
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Sincroniza automáticamente documentos desde Google Drive para el RAG
+                </p>
+              </div>
+              
+              <ScrollArea className="flex-1 p-6">
+                <GoogleDriveSync />
               </ScrollArea>
             </Card>
           </TabsContent>
