@@ -80,10 +80,16 @@ export function EventBlock({
   showTooltip = true,
   onClick 
 }: EventBlockProps) {
+  // Validar que el evento tenga datos mínimos necesarios
+  if (!event.startTime || event.startTime === '') {
+    console.warn('EventBlock: evento sin startTime válido', event)
+    return null // No renderizar eventos sin fecha de inicio
+  }
+
   // Calcular duración del evento
   const calculateEventDuration = () => {
     try {
-      if (event.endTime && event.startTime) {
+      if (event.endTime && event.endTime !== '' && event.startTime && event.startTime !== '') {
         const start = parseLocalISODate(event.startTime)
         const end = parseLocalISODate(event.endTime)
         
@@ -105,6 +111,11 @@ export function EventBlock({
 
   // Calcular posición vertical según la hora
   const calculateVerticalPosition = () => {
+    // Validar que startTime exista y no esté vacío
+    if (!event.startTime || event.startTime === '') {
+      return 0 // Posición por defecto
+    }
+    
     // Extraer hora y minutos directamente del string ISO
     // Esto evita problemas de conversión de timezone
     const timeMatch = event.startTime.match(/T(\d{2}):(\d{2})/)
@@ -204,7 +215,7 @@ export function EventBlock({
   // Formatear tiempo del evento
   const formatEventTime = () => {
     try {
-      if (!event.startTime) return '--:--'
+      if (!event.startTime || event.startTime === '') return '--:--'
       
       const start = parseLocalISODate(event.startTime)
       // Validar que la fecha sea válida antes de formatear
@@ -213,7 +224,7 @@ export function EventBlock({
         return '--:--'
       }
       
-      if (event.endTime) {
+      if (event.endTime && event.endTime !== '') {
         const end = parseLocalISODate(event.endTime)
         if (isNaN(end.getTime())) {
           console.error('formatEventTime: fecha de fin inválida', event.endTime)
@@ -231,7 +242,7 @@ export function EventBlock({
   // Formatear tiempo compacto para mostrar en el bloque
   const formatCompactTime = () => {
     try {
-      if (!event.startTime) return '--:--'
+      if (!event.startTime || event.startTime === '') return '--:--'
       
       const start = parseLocalISODate(event.startTime)
       // Validar que la fecha sea válida antes de formatear
@@ -240,7 +251,7 @@ export function EventBlock({
         return '--:--'
       }
       
-      if (event.endTime) {
+      if (event.endTime && event.endTime !== '') {
         const end = parseLocalISODate(event.endTime)
         if (isNaN(end.getTime())) {
           console.error('formatCompactTime: fecha de fin inválida', event.endTime)
@@ -379,7 +390,7 @@ export function CompactEventBlock({
   // Formatear hora con validación
   const formatTime = () => {
     try {
-      if (!event.startTime) return '--:--'
+      if (!event.startTime || event.startTime === '') return '--:--'
       
       const date = parseLocalISODate(event.startTime)
       if (isNaN(date.getTime())) {
