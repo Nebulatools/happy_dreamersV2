@@ -15,12 +15,17 @@ import { cn } from '@/lib/utils'
 
 // Función auxiliar para parsear fechas ISO locales correctamente
 function parseLocalISODate(isoString: string): Date {
-  // Si la fecha ya tiene timezone, parseISO la manejará correctamente
-  // Si no tiene timezone, asumimos que es hora local
-  if (isoString.includes('+') || isoString.includes('-')) {
-    return parseISO(isoString)
+  // IMPORTANTE: No usar parseISO con timezone porque convierte a UTC
+  // En lugar de eso, extraemos la parte local del string (antes del timezone)
+  // y creamos la fecha directamente para mantener la hora local correcta
+  
+  if (isoString.includes('T')) {
+    // Extraer la parte YYYY-MM-DDTHH:mm:ss (ignorar timezone y milisegundos)
+    // Esto mantiene la hora tal como está en el string sin conversión
+    const localPart = isoString.split(/[+-Z]/)[0].split('.')[0]
+    return new Date(localPart)
   }
-  // Para fechas sin timezone, crear Date directamente para mantener hora local
+  // Para fechas sin T (poco probable), usar Date directamente
   return new Date(isoString)
 }
 
@@ -62,22 +67,33 @@ export function EventBlock({
 
   // Calcular posición vertical según la hora
   const calculateVerticalPosition = () => {
-    // Parsear la fecha correctamente considerando el timezone
+    // Extraer hora y minutos directamente del string ISO
+    // Esto evita problemas de conversión de timezone
+    const timeMatch = event.startTime.match(/T(\d{2}):(\d{2})/)
+    
+    if (timeMatch) {
+      const hours = parseInt(timeMatch[1], 10)
+      const minutes = parseInt(timeMatch[2], 10)
+      
+      // Calcular minutos totales desde medianoche
+      const totalMinutes = hours * 60 + minutes
+      
+      // Calcular píxeles basados en la altura por hora
+      const pixelsPerMinute = hourHeight / 60
+      
+      // Posición exacta basada en minutos
+      const position = totalMinutes * pixelsPerMinute
+      
+      return position
+    }
+    
+    // Fallback: usar el método anterior si no se puede extraer del string
     const eventDate = parseLocalISODate(event.startTime)
-    // Usar métodos locales para obtener la hora correcta
     const hours = eventDate.getHours()
     const minutes = eventDate.getMinutes()
-    
-    // Calcular minutos totales desde medianoche
     const totalMinutes = hours * 60 + minutes
-    
-    // Calcular píxeles basados en la altura por hora
     const pixelsPerMinute = hourHeight / 60
-    
-    // Posición exacta basada en minutos
-    const position = totalMinutes * pixelsPerMinute
-    
-    return position
+    return totalMinutes * pixelsPerMinute
   }
 
   // Calcular altura del bloque según duración

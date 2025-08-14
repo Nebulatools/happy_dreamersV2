@@ -142,7 +142,7 @@ export function SleepButton({
         eventType: pendingEventData.eventType,
         startTime: pendingEventData.startTime,
         emotionalState: emotionalState || 'tranquilo',
-        notes: notes || (pendingEventData.eventType === 'nap' ? 'Inicio de siesta' : 'Se fue a dormir'),
+        notes: notes || '', // No poner texto por defecto, dejar vacío si usuario no escribe
         sleepDelay: delay // Incluir el delay desde el principio
       }
       

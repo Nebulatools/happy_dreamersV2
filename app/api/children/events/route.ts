@@ -40,6 +40,26 @@ function calculateSleepDuration(startTime: string, endTime: string, sleepDelay: 
   }
 }
 
+/**
+ * Convierte minutos a formato legible (Ej: "2h 30min")
+ * @param minutes - Duración en minutos
+ * @returns String legible de la duración
+ */
+function formatDurationReadable(minutes: number | null): string {
+  if (!minutes || minutes === 0) return ''
+  
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  
+  if (hours === 0) {
+    return `${mins}min`
+  } else if (mins === 0) {
+    return `${hours}h`
+  } else {
+    return `${hours}h ${mins}min`
+  }
+}
+
 // POST /api/children/events - registrar un nuevo evento para un niño
 export async function POST(req: NextRequest) {
   try {
@@ -100,8 +120,9 @@ export async function POST(req: NextRequest) {
       childId: data.childId,
       eventType: data.eventType,
       emotionalState: data.emotionalState || "neutral",
-      notes: data.notes || "",
+      notes: data.notes || "", // Dejar vacío si no se proporciona
       duration: data.duration || null, // Se calculará automáticamente si es posible
+      durationReadable: "", // Se calculará si hay duration
       sleepDelay: data.sleepDelay || null,
       createdAt: new Date().toISOString(),
     }
@@ -128,8 +149,12 @@ export async function POST(req: NextRequest) {
       // Solo calcular para eventos de sueño/siesta que se benefician del cálculo de duración
       if (['sleep', 'nap', 'night_waking'].includes(event.eventType)) {
         event.duration = calculateSleepDuration(event.startTime, event.endTime, event.sleepDelay)
-        logger.info(`Duración calculada automáticamente: ${event.duration} minutos`)
+        event.durationReadable = formatDurationReadable(event.duration)
+        logger.info(`Duración calculada automáticamente: ${event.duration} minutos (${event.durationReadable})`)
       }
+    } else if (event.duration) {
+      // Si ya tiene duration, calcular el formato legible
+      event.durationReadable = formatDurationReadable(event.duration)
     }
 
     logger.info("Evento a registrar:", event)
@@ -389,9 +414,13 @@ export async function PATCH(req: NextRequest) {
           const sleepDelay = data.sleepDelay !== undefined ? data.sleepDelay : existingEvent.sleepDelay
           const calculatedDuration = calculateSleepDuration(existingEvent.startTime, data.endTime, sleepDelay)
           updateFields["events.$.duration"] = calculatedDuration
-          logger.info(`Duración calculada automáticamente en PATCH: ${calculatedDuration} minutos`)
+          updateFields["events.$.durationReadable"] = formatDurationReadable(calculatedDuration)
+          logger.info(`Duración calculada automáticamente en PATCH: ${calculatedDuration} minutos (${formatDurationReadable(calculatedDuration)})`)
         }
       }
+    } else if (data.duration !== undefined) {
+      // Si se proporciona duration manualmente, también calcular el formato legible
+      updateFields["events.$.durationReadable"] = formatDurationReadable(data.duration)
     }
     
     logger.info("Actualizando evento con campos:", updateFields)
