@@ -80,11 +80,6 @@ export function EventBlock({
   showTooltip = true,
   onClick 
 }: EventBlockProps) {
-  // Validar que el evento tenga datos mínimos necesarios
-  if (!event.startTime || event.startTime === '') {
-    console.warn('EventBlock: evento sin startTime válido', event)
-    return null // No renderizar eventos sin fecha de inicio
-  }
 
   // Calcular duración del evento
   const calculateEventDuration = () => {
@@ -279,6 +274,12 @@ export function EventBlock({
         <div className="text-gray-200">Estado: {event.emotionalState}</div>
       </div>
     )
+  }
+
+  // Validar que el evento tenga datos mínimos necesarios ANTES de llamar funciones
+  if (!event.startTime || event.startTime === '') {
+    console.warn('EventBlock: evento sin startTime válido', event)
+    return null // No renderizar eventos sin fecha de inicio
   }
 
   const topPosition = calculateVerticalPosition()
