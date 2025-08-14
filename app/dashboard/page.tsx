@@ -127,14 +127,8 @@ export default function DashboardPage() {
   }
 
   const getMoodEmoji = (mood: string) => {
-    switch(mood?.toLowerCase()) {
-    case "happy": case "feliz": return "😊"
-    case "energetic": case "energético": return "⚡"
-    case "tired": case "cansado": return "😴"
-    case "stressed": case "estresado": return "😰"
-    case "calm": case "tranquilo": return "😌"
-    default: return "😊"
-    }
+    // Función deshabilitada - ya no usamos emojis en UI
+    return ""
   }
 
 
@@ -188,7 +182,7 @@ export default function DashboardPage() {
         setNoteText('')
         loadChildData() // Recargar datos para mostrar la nueva nota
         toast({
-          title: "✅ Nota agregada",
+          title: "Nota agregada",
           description: "La nota se ha guardado correctamente.",
         })
       } else {
@@ -196,7 +190,7 @@ export default function DashboardPage() {
       }
     } catch (error) {
       toast({
-        title: "❌ Error",
+        title: "Error",
         description: "No se pudo guardar la nota. Intenta de nuevo.",
         variant: "destructive",
       })
@@ -215,7 +209,7 @@ export default function DashboardPage() {
       if (response.ok) {
         loadChildData() // Recargar datos
         toast({
-          title: "✅ Nota eliminada",
+          title: "Nota eliminada",
           description: "La nota se ha eliminado correctamente.",
         })
       } else {
@@ -223,7 +217,7 @@ export default function DashboardPage() {
       }
     } catch (error) {
       toast({
-        title: "❌ Error",
+        title: "Error",
         description: "No se pudo eliminar la nota. Intenta de nuevo.",
         variant: "destructive",
       })
@@ -505,9 +499,6 @@ export default function DashboardPage() {
                   
                   return (
                     <div key={event._id} className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-[#F0F7FF] rounded-full flex items-center justify-center">
-                        <span className="text-lg">{getMoodEmoji(event.emotionalState)}</span>
-                      </div>
                       <div className="flex-1">
                         <p className="text-sm text-[#3A3A3A] font-medium">
                           {dateText}

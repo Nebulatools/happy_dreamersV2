@@ -1,6 +1,7 @@
 # Claude AI Development Workflow - Happy Dreamers 🌙
 *Customized for the Happy Dreamers child sleep tracking platform*
 
+IMPORTANT: Don't ever use emojis in the UI. 
 ## 🎯 Project Context - Happy Dreamers
 
 ### Tech Stack
