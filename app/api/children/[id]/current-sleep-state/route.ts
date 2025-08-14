@@ -20,7 +20,7 @@ interface SleepStateResponse {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -29,7 +29,7 @@ export async function GET(
     }
 
     const { db } = await connectToDatabase()
-    const childId = params.id
+    const { id: childId } = await params
 
     // Verificar permisos
     const child = await db.collection("children").findOne({
