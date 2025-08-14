@@ -10,6 +10,7 @@ import { PageHeaderProvider } from "@/context/page-header-context"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { Header } from "@/components/dashboard/header"
 import ErrorBoundary from "@/components/ErrorBoundary"
+import { DevTools } from "@/components/dev/DevTools"
 
 export default async function DashboardLayout({
   children,
@@ -42,6 +43,8 @@ export default async function DashboardLayout({
                 </ErrorBoundary>
               </main>
             </div>
+            {/* Herramientas de desarrollo - solo en desarrollo */}
+            <DevTools />
           </div>
         </ErrorBoundary>
       </PageHeaderProvider>

@@ -8,6 +8,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { DevTimeProvider } from "@/context/dev-time-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -26,8 +27,10 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
         <AuthProvider>
-          {children}
-          <Toaster />
+          <DevTimeProvider>
+            {children}
+            <Toaster />
+          </DevTimeProvider>
         </AuthProvider>
       </body>
     </html>

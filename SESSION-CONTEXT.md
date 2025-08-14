@@ -1,5 +1,5 @@
 # Session Context - Happy Dreamers 🌙
-*Última actualización: 13 de Agosto, 2025*
+*Última actualización: Enero 2025*
 
 ## 🎯 Estado Actual del Sistema
 
@@ -14,69 +14,88 @@
 
 ### Estado de Producción
 - **Build Status**: ✅ Sin errores TypeScript
-- **Features**: 100% completadas según Figma
-- **Feedback Médico**: Sprints 1-3 implementados
+- **Features**: Sistema de eventos reconstruido v2.3
 - **Branch Actual**: devpraulio
 
-## 📝 Última Sesión (13 Agosto 2025)
+## 📝 Sesión Actual - Reconstrucción Sistema de Eventos
 
-### Fix Gráfica de Despertares Nocturnos - COMPLETADO
-- **Problema**: Puntos rojos mal posicionados, no alineados con días del calendario
-- **Causa**: Overlay con coordenadas manuales incompatibles con ResponsiveContainer
-- **Solución**: Vuelta al sistema nativo de Recharts con mejoras
-- **Implementado**:
-  1. **Posicionamiento correcto**: Sistema nativo de coordenadas de Recharts
-  2. **Tamaño variable**: Basado en `sleepDelay` (5-60 min → 4-12px radius)
-  3. **Sin líneas conectoras**: `stroke="transparent"` y `strokeWidth={0}`
-  4. **Tooltip mejorado**: Hora y duración específica para cada despertar
-  5. **Datos corregidos**: Cambio de `event.duration` a `event.sleepDelay`
+### RESET Y RECONSTRUCCIÓN COMPLETA - v2.3
+**Objetivo**: Eliminar sistema de eventos problemático y reconstruir iterativamente
 
-### Mejoras Críticas en Sistema de Sueño - COMPLETADO
-- **Objetivo**: Corregir bugs y mejorar lógica de siestas y sueño nocturno
-- **Logros principales**:
-  1. **Fix Siesta Unificada**:
-     - Siestas ahora crean UN SOLO registro con startTime y endTime
-     - Al despertar de siesta: actualiza el mismo evento (no crea wake separado)
-     - Compatible con sleep-calculations.ts
-  2. **Fix Zona Horaria**:
-     - Nueva función toLocalISOString() para mantener fechas locales
-     - Corrige el bug donde eventos aparecían en día siguiente
-     - Preserva correctamente el día del evento
-  3. **Fix Autorización Planes**:
-     - Padres ahora pueden ver planes de sus hijos
-     - Endpoint /api/consultas/plans permite acceso a padres
-     - Calendario carga correctamente sin error 401
-  4. **Sueño Nocturno con Despertares**:
-     - Implementación completa de despertares nocturnos
-     - Detecta automáticamente si es despertar nocturno o definitivo
-     - Eventos night_waking con duración correcta
-     - Botón contextual "VOLVER A DORMIR" durante despertares
-     - Compatible con calculateNightWakeups() y estadísticas
+#### ✅ Fase 1: Limpieza Total
+- Eliminados 31 archivos de eventos (6,428 líneas)
+- Comentadas referencias en 5 páginas principales
+- Sistema compilando sin errores
 
-- **Archivos principales modificados**:
-  - `/components/events/primary/UnifiedSleepCycle.tsx` - Lógica mejorada
-  - `/lib/date-utils.ts` - Nueva función toLocalISOString()
-  - `/app/api/consultas/plans/route.ts` - Fix autorización
+#### ✅ Fase 2: Reconstrucción Iterativa
 
-- **Resultado**: Sistema de sueño 100% funcional con requisitos médicos
+**Iteración 1 - MVP Básico**:
+- Botón de prueba funcional
+- Integración con MongoDB confirmada
+- Eventos guardados en `children.events[]`
 
-## 🚀 Estado del Sistema
+**Iteración 2 - Botón Dormir/Despertar**:
+- Estados: awake, sleeping, napping
+- Lógica inteligente según hora del día
+- Diferenciación siesta vs sueño nocturno
 
-### Funcionalidades Completadas
-- ✅ Registro unificado de siestas (un solo evento con inicio/fin)
-- ✅ Sueño nocturno con despertares nocturnos inteligentes
-- ✅ Fechas en zona horaria local correcta
-- ✅ Acceso de padres a planes de sueño
-- ✅ Botones contextuales según estado de sueño
-- ✅ Compatibilidad total con sleep-calculations.ts
+**Fixes Críticos v2.1-2.3**:
+1. **Wake Logic**: Wake events solo para despertar matutino (6am-12pm)
+2. **Duración**: Corregido bug de tiempo negativo con reloj desarrollo
+3. **Estado Visual**: Muestra "X min durmiendo" y "Despierto hace X min"
 
-### Próximos Pasos Sugeridos
-- Validar con usuarios el flujo de despertares nocturnos
-- Monitorear métricas de sueño con nuevos datos
-- Considerar notificaciones para horarios de sueño
+#### ✅ Sistema de Tiempo de Desarrollo
+- **Widget de reloj** en esquina inferior derecha
+- **Presets rápidos**: 7:00, 13:00, 15:30, 19:30, 21:00, 3:00
+- **Control velocidad**: 1x, 10x, 60x, 360x
+- **Documentado** en DEV-TIME-SYSTEM.md para limpieza pre-producción
 
-## 📊 Métricas del Sistema
-- **Eventos de sueño**: Funcionando correctamente
-- **Cálculos estadísticos**: 100% precisos
-- **UX de registro**: Simplificada y eficiente
-- **Compatibilidad móvil**: Optimizada
+### 📁 Estructura Actual
+```
+/components/events/ (NUEVO - v2.3)
+  ├── EventRegistration.tsx - Contenedor principal
+  ├── SleepButton.tsx - Botón inteligente con estados
+  ├── types.ts - Tipos de eventos
+  └── index.ts - Exports
+
+/components/dev/ (SOLO DESARROLLO)
+  ├── TimeAdjuster.tsx - Reloj ajustable
+  └── DevTools.tsx - Contenedor herramientas
+
+/context/
+  └── dev-time-context.tsx - Context tiempo simulado
+```
+
+### 🔄 Estado MongoDB
+- **Ubicación**: `children.events[]` (embedded en documento hijo)
+- **Estructura evento**:
+  ```javascript
+  {
+    _id: "unique-id",
+    eventType: "sleep|wake|nap",
+    startTime: "ISO string local",
+    endTime: "ISO string local",
+    emotionalState: "tranquilo",
+    notes: "texto opcional"
+  }
+  ```
+
+### 📋 Próximas Iteraciones Planeadas
+- [ ] **Iteración 3**: Modal captura delay sueño
+- [ ] **Iteración 4**: Registro alimentación
+- [ ] **Iteración 5**: Modo dual (simple/avanzado)
+
+### 🐛 Issues Resueltos
+- ✅ Wake events innecesarios en siestas
+- ✅ Duración negativa con cambios de tiempo
+- ✅ No mostraba tiempo durmiendo/despierto
+- ✅ Timezone incorrecta en eventos
+
+### 📝 Notas Importantes
+- Sistema tiempo desarrollo ACTIVO (remover para producción)
+- Ver DEV-TIME-SYSTEM.md para instrucciones limpieza
+- Validación funcional en cada iteración antes de avanzar
+- MongoDB: eventos dentro de children, NO colección separada
+
+---
+*Sistema de eventos v2.3 - Reconstrucción exitosa con tiempo desarrollo*

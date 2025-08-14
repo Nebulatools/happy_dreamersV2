@@ -8,6 +8,7 @@ import { useSleepState } from '@/hooks/use-sleep-state'
 import { EventData } from './types'
 import { toLocalISOString } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
+import { useDevTime } from '@/context/dev-time-context'
 
 interface SleepButtonProps {
   childId: string
@@ -33,10 +34,65 @@ export function SleepButton({
   const { toast } = useToast()
   const { sleepState, isLoading: stateLoading, refetch } = useSleepState(childId)
   const [isProcessing, setIsProcessing] = useState(false)
+  const { getCurrentTime } = useDevTime()
+  const [localDuration, setLocalDuration] = useState<number | null>(null)
+  
+  // Calcular duración localmente usando tiempo simulado
+  useEffect(() => {
+    if (sleepState.lastEventTime && (sleepState.status === 'sleeping' || sleepState.status === 'napping')) {
+      const interval = setInterval(() => {
+        const now = getCurrentTime()
+        const eventTime = new Date(sleepState.lastEventTime!)
+        const diffMs = now.getTime() - eventTime.getTime()
+        const diffMinutes = Math.floor(diffMs / (1000 * 60))
+        
+        // Solo actualizar si es positivo
+        if (diffMinutes >= 0) {
+          setLocalDuration(diffMinutes)
+        } else {
+          setLocalDuration(0)
+        }
+      }, 10000) // Actualizar cada 10 segundos
+      
+      // Calcular inmediatamente
+      const now = getCurrentTime()
+      const eventTime = new Date(sleepState.lastEventTime)
+      const diffMs = now.getTime() - eventTime.getTime()
+      const diffMinutes = Math.floor(diffMs / (1000 * 60))
+      setLocalDuration(diffMinutes >= 0 ? diffMinutes : 0)
+      
+      return () => clearInterval(interval)
+    } else if (sleepState.status === 'awake' && sleepState.lastEventTime) {
+      // Calcular tiempo despierto
+      const interval = setInterval(() => {
+        const now = getCurrentTime()
+        const eventTime = new Date(sleepState.lastEventTime!)
+        const diffMs = now.getTime() - eventTime.getTime()
+        const diffMinutes = Math.floor(diffMs / (1000 * 60))
+        
+        if (diffMinutes >= 0) {
+          setLocalDuration(diffMinutes)
+        } else {
+          setLocalDuration(0)
+        }
+      }, 60000) // Actualizar cada minuto para tiempo despierto
+      
+      // Calcular inmediatamente
+      const now = getCurrentTime()
+      const eventTime = new Date(sleepState.lastEventTime)
+      const diffMs = now.getTime() - eventTime.getTime()
+      const diffMinutes = Math.floor(diffMs / (1000 * 60))
+      setLocalDuration(diffMinutes >= 0 ? diffMinutes : 0)
+      
+      return () => clearInterval(interval)
+    } else {
+      setLocalDuration(null)
+    }
+  }, [sleepState.lastEventTime, sleepState.status, getCurrentTime])
   
   // Determinar si es hora de siesta o sueño nocturno
   const isNightTime = () => {
-    const hour = new Date().getHours()
+    const hour = getCurrentTime().getHours()
     return hour >= 19 || hour < 10  // 7pm a 10am = sueño nocturno
   }
   
@@ -70,7 +126,7 @@ export function SleepButton({
     setIsProcessing(true)
     
     try {
-      const now = new Date()
+      const now = getCurrentTime()
       const currentHour = now.getHours()
       
       if (config.action === 'wake') {
@@ -175,17 +231,31 @@ export function SleepButton({
     }
   }
   
-  // Mostrar duración si está durmiendo
-  const sleepDuration = sleepState.duration
-  const formatDuration = (minutes: number | null) => {
-    if (!minutes) return null
+  // Formatear duración según el estado
+  const formatDuration = (minutes: number | null, isAsleep: boolean) => {
+    if (!minutes && minutes !== 0) return null
+    
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
-    if (hours > 0) {
-      return `${hours}h ${mins}m durmiendo`
+    
+    if (isAsleep) {
+      // Está durmiendo
+      if (hours > 0) {
+        return `${hours}h ${mins}m durmiendo`
+      }
+      return `${mins} minutos durmiendo`
+    } else {
+      // Está despierto
+      if (hours > 0) {
+        return `Despierto hace ${hours}h ${mins}m`
+      }
+      return `Despierto hace ${mins} minutos`
     }
-    return `${mins} minutos durmiendo`
   }
+  
+  // Determinar si mostrar duración
+  const isAsleep = sleepState.status === 'sleeping' || sleepState.status === 'napping'
+  const showDuration = localDuration !== null && (isAsleep || sleepState.status === 'awake')
   
   return (
     <div className="w-full">
@@ -207,10 +277,10 @@ export function SleepButton({
         {config.text}
       </Button>
       
-      {/* Mostrar duración si está durmiendo */}
-      {sleepDuration && (
+      {/* Mostrar duración si está durmiendo o despierto */}
+      {showDuration && (
         <p className="text-sm text-gray-500 text-center mt-2">
-          {formatDuration(sleepDuration)}
+          {formatDuration(localDuration, isAsleep)}
         </p>
       )}
     </div>

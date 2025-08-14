@@ -11,7 +11,7 @@ interface EventRegistrationProps {
 
 /**
  * Componente principal para registro de eventos
- * VERSION 2.1 - Lógica de wake corregida
+ * VERSION 2.3 - Duración corregida con tiempo simulado
  */
 export function EventRegistration({ 
   childId, 
@@ -33,7 +33,7 @@ export function EventRegistration({
         />
         
         <p className="text-sm text-gray-500 text-center">
-          Sistema de eventos v2.1 - Lógica corregida
+          Sistema de eventos v2.3 - Duración mejorada
         </p>
       </div>
     </div>
