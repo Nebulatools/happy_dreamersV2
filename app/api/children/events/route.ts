@@ -85,11 +85,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Validación específica para actividades extra
-    if (data.eventType === "extra_activities" && (!data.description || data.description.length < 10)) {
-      logger.error("Descripción requerida para actividades extra")
+    // Validación específica para actividades extra - ahora usa notes en lugar de description
+    if (data.eventType === "extra_activities" && (!data.notes || data.notes.length < 10)) {
+      logger.error("Notas requeridas para actividades extra")
       return NextResponse.json(
-        { error: "La descripción es requerida para actividades extra (mínimo 10 caracteres)" },
+        { error: "Las notas son requeridas para actividades extra (mínimo 10 caracteres)" },
         { status: 400 }
       )
     }
@@ -101,7 +101,6 @@ export async function POST(req: NextRequest) {
       eventType: data.eventType,
       emotionalState: data.emotionalState || "neutral",
       notes: data.notes || "",
-      description: data.description || null, // Campo para actividades extra
       duration: data.duration || null, // Se calculará automáticamente si es posible
       sleepDelay: data.sleepDelay || null,
       createdAt: new Date().toISOString(),
