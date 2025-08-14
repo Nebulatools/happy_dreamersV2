@@ -1,6 +1,4 @@
-export { EventRegistrationModal } from "./EventRegistrationModal"
-export { EventTypeSelector } from "./EventTypeSelector"
-export { EmotionalStateSelector } from "./EmotionalStateSelector"
-export { DurationSlider } from "./DurationSlider"
-export { SleepDelayInput } from "./SleepDelayInput"
-export { QuickEventSelector } from "./QuickEventSelector"
+// Exportaciones del sistema de eventos
+
+export { EventRegistration } from './EventRegistration'
+export type { EventData, EventType, EmotionalState, Child } from './types'

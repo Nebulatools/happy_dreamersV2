@@ -28,7 +28,8 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache, useEventsInvalidation } from "@/hooks/use-events-cache"
-import { EventRegistrationModal, QuickEventSelector } from "@/components/events"
+// TEMPORALMENTE COMENTADO - Sistema de eventos en reset
+// import { EventRegistrationModal, QuickEventSelector } from "@/components/events"
 import { 
   TimelineColumn, 
   CompactTimelineColumn, 
@@ -1117,8 +1118,9 @@ export default function CalendarPage() {
         </Card>
       </div>
 
+      {/* TEMPORALMENTE COMENTADO - Sistema de eventos en reset */}
       {/* Selector rápido de eventos */}
-      <QuickEventSelector
+      {/* <QuickEventSelector
         isOpen={quickSelectorOpen}
         onClose={() => {
           setQuickSelectorOpen(false)
@@ -1131,10 +1133,10 @@ export default function CalendarPage() {
           setQuickSelectorOpen(false)
           setSelectedDateForEvent(null) // Limpiar fecha seleccionada
         }}
-      />
+      /> */}
       
       {/* Modal de registro de evento (mantenido para compatibilidad) */}
-      <EventRegistrationModal
+      {/* <EventRegistrationModal
         isOpen={eventModalOpen}
         onClose={() => {
           setEventModalOpen(false)
@@ -1148,7 +1150,7 @@ export default function CalendarPage() {
           setEventModalOpen(false)
           setSelectedDateForEvent(null) // Limpiar fecha seleccionada
         }}
-      />
+      /> */}
       
       {/* Diálogo para mostrar/editar detalles del evento */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => {

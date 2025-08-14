@@ -30,7 +30,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache, useEventsInvalidation } from "@/hooks/use-events-cache"
-import { EventRegistrationModal } from "@/components/events"
+// TEMPORALMENTE COMENTADO - Sistema de eventos en reset
+// import { EventRegistrationModal } from "@/components/events"
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal"
 
 const logger = createLogger("EventsPage")
@@ -711,8 +712,9 @@ export default function ChildEventsPage() {
         </DialogContent>
       </Dialog>
       
+      {/* TEMPORALMENTE COMENTADO - Sistema de eventos en reset */}
       {/* Event Registration Modal */}
-      <EventRegistrationModal
+      {/* <EventRegistrationModal
         isOpen={eventModalOpen}
         onClose={() => setEventModalOpen(false)}
         childId={activeChildId || undefined}
@@ -721,7 +723,7 @@ export default function ChildEventsPage() {
           invalidateEvents() // Invalidar cache global
           setEventModalOpen(false)
         }}
-      />
+      /> */}
 
       {/* Modal de confirmación de eliminación */}
       {selectedEvent && (

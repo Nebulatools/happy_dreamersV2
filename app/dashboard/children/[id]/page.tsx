@@ -6,7 +6,8 @@ import { ArrowLeft, Edit, Calendar, User, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import SleepMetricsGrid from "@/components/child-profile/SleepMetricsGrid"
 import RecentEvents from "@/components/child-profile/RecentEvents"
-import { EventRegistrationModal } from "@/components/events"
+// TEMPORALMENTE COMENTADO - Sistema de eventos en reset
+// import { EventRegistrationModal } from "@/components/events"
 import { useActiveChild } from "@/context/active-child-context"
 import { useEventsInvalidation } from "@/hooks/use-events-cache"
 import { ChildAgeBadge } from "@/components/ui/child-age-badge"
@@ -35,7 +36,8 @@ export default function ChildProfilePage() {
   const [child, setChild] = useState<Child | null>(null)
   const [activeTab, setActiveTab] = useState<TabType>("resumen")
   const [isLoading, setIsLoading] = useState(true)
-  const [eventModalOpen, setEventModalOpen] = useState(false)
+  // TEMPORALMENTE COMENTADO - Sistema de eventos en reset
+  // const [eventModalOpen, setEventModalOpen] = useState(false)
   const [children, setChildren] = useState<Child[]>([])  
   const { setActiveChildId } = useActiveChild()
   const invalidateEvents = useEventsInvalidation()
@@ -88,24 +90,25 @@ export default function ChildProfilePage() {
     }
   }, [params.id, router, setActiveChildId])
 
+  // TEMPORALMENTE COMENTADO - Sistema de eventos en reset
   // Cargar children cuando se abre el modal
-  useEffect(() => {
-    if (eventModalOpen) {
-      fetch("/api/children")
-        .then(res => res.json())
-        .then(data => {
-          const childrenData = extractChildrenFromResponse(data)
-          setChildren(childrenData)
-          
-          if (childrenData.length === 0 && data && !Array.isArray(data)) {
-            logger.warn('No se pudieron extraer niños de la respuesta:', data)
-          }
-        })
-        .catch((error) => {
-          logger.error('Error al cargar niños', error)
-        })
-    }
-  }, [eventModalOpen])
+  // useEffect(() => {
+  //   if (eventModalOpen) {
+  //     fetch("/api/children")
+  //       .then(res => res.json())
+  //       .then(data => {
+  //         const childrenData = extractChildrenFromResponse(data)
+  //         setChildren(childrenData)
+  //         
+  //         if (childrenData.length === 0 && data && !Array.isArray(data)) {
+  //           logger.warn('No se pudieron extraer niños de la respuesta:', data)
+  //         }
+  //       })
+  //       .catch((error) => {
+  //         logger.error('Error al cargar niños', error)
+  //       })
+  //   }
+  // }, [eventModalOpen])
 
   if (isLoading) {
     return (
@@ -248,8 +251,9 @@ export default function ChildProfilePage() {
                 {/* Eventos Recientes */}
                 <RecentEvents childId={params.id as string} />
 
+                {/* TEMPORALMENTE COMENTADO - Sistema de eventos en reset */}
                 {/* Botón Registrar Nuevo Evento */}
-                <div className="flex justify-end">
+                {/* <div className="flex justify-end">
                   <Button 
                     className="bg-gradient-to-r from-[#628BE6] to-[#67C5FF] text-white hover:from-[#5478D2] hover:to-[#5AB1E6] shadow-sm px-6 py-3 text-base font-medium"
                     onClick={() => setEventModalOpen(true)}
@@ -257,6 +261,13 @@ export default function ChildProfilePage() {
                     <Plus className="w-4 h-4 mr-2" />
                     Registrar Nuevo Evento
                   </Button>
+                </div> */}
+                
+                {/* PLACEHOLDER TEMPORAL */}
+                <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+                  <p className="text-center text-gray-500">
+                    Botón de registro de eventos en reconstrucción...
+                  </p>
                 </div>
 
                 {/* Métricas de Sueño */}
@@ -309,8 +320,9 @@ export default function ChildProfilePage() {
         </div>
       </div>
       
+      {/* TEMPORALMENTE COMENTADO - Sistema de eventos en reset */}
       {/* Event Registration Modal */}
-      <EventRegistrationModal
+      {/* <EventRegistrationModal
         isOpen={eventModalOpen}
         onClose={() => setEventModalOpen(false)}
         childId={params.id as string}
@@ -319,7 +331,7 @@ export default function ChildProfilePage() {
           invalidateEvents() // Invalidar cache global de eventos
           setEventModalOpen(false)
         }}
-      />
+      /> */}
     </div>
   )
 }

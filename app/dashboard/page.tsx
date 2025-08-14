@@ -11,8 +11,8 @@ import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache } from "@/hooks/use-events-cache"
 import AdminStatistics from "@/components/dashboard/AdminStatistics"
 import SleepMetricsGrid from "@/components/child-profile/SleepMetricsGrid"
-import { EventRegistrationDualMode } from "@/components/events/EventRegistrationDualMode"
-import { EventRegistrationModeProvider } from "@/contexts/EventRegistrationModeContext"
+// Sistema de eventos - Nueva implementación v1.0
+import { EventRegistration } from "@/components/events"
 import { 
   Moon, Sun, Activity, TrendingUp, Calendar, MessageSquare, 
   Lightbulb, ChevronLeft, ChevronRight, Send, X,
@@ -363,17 +363,15 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Registro de Eventos Dual - POSICIÓN PROMINENTE */}
+        {/* Sistema de Registro de Eventos - v1.0 MVP */}
         {activeChildId && child && (
-          <EventRegistrationModeProvider>
-            <div className="mb-8">
-              <EventRegistrationDualMode 
-                childId={activeChildId}
-                childName={child.firstName}
-                onEventRegistered={loadChildData}
-              />
-            </div>
-          </EventRegistrationModeProvider>
+          <div className="mb-8">
+            <EventRegistration 
+              childId={activeChildId}
+              childName={child.firstName}
+              onEventRegistered={loadChildData}
+            />
+          </div>
         )}
 
         {/* Grid de contenido principal */}

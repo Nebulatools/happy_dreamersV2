@@ -15,7 +15,8 @@ import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useActiveChild } from "@/context/active-child-context"
 import { LayoutDashboard, Calendar, BarChart3, Users, PlusCircle, Settings, Menu, MessageSquare, List, Stethoscope, ClipboardList, HelpCircle, Mail } from "lucide-react"
-import { EventRegistrationModal, QuickEventSelector } from "@/components/events"
+// TEMPORALMENTE COMENTADO - Sistema de eventos en reset
+// import { EventRegistrationModal, QuickEventSelector } from "@/components/events"
 import { useEventsInvalidation } from "@/hooks/use-events-cache"
 import { createLogger } from "@/lib/logger"
 
@@ -222,8 +223,9 @@ export function Sidebar({ className }: { className?: string }) {
         </div>
       </div>
 
+      {/* TEMPORALMENTE COMENTADO - Sistema de eventos en reset */}
       {/* Quick Event Selector */}
-      <QuickEventSelector
+      {/* <QuickEventSelector
         isOpen={quickSelectorOpen}
         onClose={() => setQuickSelectorOpen(false)}
         childId={activeChildId || ""}
@@ -232,10 +234,10 @@ export function Sidebar({ className }: { className?: string }) {
           invalidateEvents() // Invalidar cache de eventos en todas las páginas
           setQuickSelectorOpen(false)
         }}
-      />
+      /> */}
       
       {/* Event Registration Modal (mantenido para compatibilidad) */}
-      <EventRegistrationModal
+      {/* <EventRegistrationModal
         isOpen={eventModalOpen}
         onClose={() => setEventModalOpen(false)}
         childId={activeChildId || undefined}
@@ -244,7 +246,7 @@ export function Sidebar({ className }: { className?: string }) {
           invalidateEvents() // Invalidar cache de eventos en todas las páginas
           setEventModalOpen(false)
         }}
-      />
+      /> */}
     </>
   )
 }
