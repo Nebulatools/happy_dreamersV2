@@ -11,7 +11,13 @@ interface EventRegistrationProps {
 
 /**
  * Componente principal para registro de eventos
- * VERSION 2.3 - Duración corregida con tiempo simulado
+ * VERSION 3.1 - Flujo corregido + Cálculo automático de duración
+ * 
+ * CARACTERÍSTICAS v3.1:
+ * - Modal de sleepDelay antes de crear evento (corregido)
+ * - Backend calcula automáticamente duration = totalMinutes - sleepDelay  
+ * - Sin emojis en UI
+ * - Duración real aparece en estadísticas
  */
 export function EventRegistration({ 
   childId, 
@@ -33,7 +39,7 @@ export function EventRegistration({
         />
         
         <p className="text-sm text-gray-500 text-center">
-          Sistema de eventos v2.3 - Duración mejorada
+          Sistema de eventos v3.1 - Cálculo automático de duración
         </p>
       </div>
     </div>
