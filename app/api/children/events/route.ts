@@ -6,11 +6,39 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
+import { differenceInMinutes, parseISO } from "date-fns"
 
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("API:children:events:route")
 
+/**
+ * Calcula la duración real de sueño considerando sleepDelay
+ * @param startTime - Hora de acostarse (ISO string)
+ * @param endTime - Hora de despertar (ISO string)
+ * @param sleepDelay - Tiempo en minutos para dormirse (default: 0)
+ * @returns Duración real de sueño en minutos
+ */
+function calculateSleepDuration(startTime: string, endTime: string, sleepDelay: number = 0): number {
+  try {
+    const start = parseISO(startTime)
+    const end = parseISO(endTime)
+    
+    // Calcular duración total en cama
+    const totalMinutes = differenceInMinutes(end, start)
+    
+    // Restar el tiempo que tardó en dormirse (máximo 180 minutos = 3 horas)
+    const limitedSleepDelay = Math.min(Math.max(sleepDelay || 0, 0), 180)
+    const realSleepDuration = Math.max(0, totalMinutes - limitedSleepDelay)
+    
+    logger.info(`Cálculo de duración: ${totalMinutes}min total - ${limitedSleepDelay}min delay = ${realSleepDuration}min real`)
+    
+    return realSleepDuration
+  } catch (error) {
+    logger.error("Error calculando duración de sueño:", error)
+    return 0
+  }
+}
 
 // POST /api/children/events - registrar un nuevo evento para un niño
 export async function POST(req: NextRequest) {
@@ -74,7 +102,7 @@ export async function POST(req: NextRequest) {
       emotionalState: data.emotionalState || "neutral",
       notes: data.notes || "",
       description: data.description || null, // Campo para actividades extra
-      duration: data.duration || null,
+      duration: data.duration || null, // Se calculará automáticamente si es posible
       sleepDelay: data.sleepDelay || null,
       createdAt: new Date().toISOString(),
     }
@@ -94,6 +122,15 @@ export async function POST(req: NextRequest) {
     } else if (data.endTime) {
       // Solo agregar endTime si está presente y no es un evento con delay autocalculado
       event.endTime = data.endTime
+    }
+
+    // CALCULAR DURACIÓN AUTOMÁTICAMENTE si tiene startTime y endTime pero no duration manual
+    if (event.startTime && event.endTime && !data.duration) {
+      // Solo calcular para eventos de sueño/siesta que se benefician del cálculo de duración
+      if (['sleep', 'nap', 'night_waking'].includes(event.eventType)) {
+        event.duration = calculateSleepDuration(event.startTime, event.endTime, event.sleepDelay)
+        logger.info(`Duración calculada automáticamente: ${event.duration} minutos`)
+      }
     }
 
     logger.info("Evento a registrar:", event)
@@ -340,6 +377,23 @@ export async function PATCH(req: NextRequest) {
     if (data.endTime) updateFields["events.$.endTime"] = data.endTime
     if (data.duration !== undefined) updateFields["events.$.duration"] = data.duration
     if (data.notes) updateFields["events.$.notes"] = data.notes
+    if (data.sleepDelay !== undefined) updateFields["events.$.sleepDelay"] = data.sleepDelay
+
+    // CALCULAR DURACIÓN AUTOMÁTICAMENTE si se está agregando endTime y no hay duration explícita
+    if (data.endTime && data.duration === undefined) {
+      // Primero necesitamos obtener el evento para acceder a startTime y sleepDelay
+      const existingEvent = child.events?.find((e: any) => e._id === data.eventId)
+      
+      if (existingEvent && existingEvent.startTime) {
+        // Solo calcular para eventos de sueño/siesta que se benefician del cálculo de duración
+        if (['sleep', 'nap', 'night_waking'].includes(existingEvent.eventType)) {
+          const sleepDelay = data.sleepDelay !== undefined ? data.sleepDelay : existingEvent.sleepDelay
+          const calculatedDuration = calculateSleepDuration(existingEvent.startTime, data.endTime, sleepDelay)
+          updateFields["events.$.duration"] = calculatedDuration
+          logger.info(`Duración calculada automáticamente en PATCH: ${calculatedDuration} minutos`)
+        }
+      }
+    }
     
     logger.info("Actualizando evento con campos:", updateFields)
     
