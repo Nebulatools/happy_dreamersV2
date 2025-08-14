@@ -1,8 +1,15 @@
 # 🧪 Guía de Pruebas - Sistema de Eventos de Sueño V2
 
+## ✅ Estado: FUNCIONANDO CORRECTAMENTE (14 Enero 2025)
+
+### Problemas Resueltos:
+- ✅ **Posicionamiento en calendario**: Los eventos ahora aparecen en la hora correcta
+- ✅ **Doble registro de despertar**: Solo se crea un evento por despertar
+- ✅ **Alternancia de botones**: Los estados cambian correctamente
+
 ## 🚀 Cambios Activados
 
-El nuevo sistema de eventos de sueño (SimpleSleepToggleV2) ya está activo y listo para probar.
+El nuevo sistema de eventos de sueño (SimpleSleepToggleV2 y UnifiedSleepCycleV2) está funcionando correctamente.
 
 ## 📋 Casos de Prueba Recomendados
 
