@@ -17,32 +17,30 @@
 - **Features**: Sistema de eventos reconstruido v2.3
 - **Branch Actual**: devpraulio
 
-## 📝 Sesión Actual - Reconstrucción Sistema de Eventos
+## 📝 Sesión Actual - Sistema de Eventos v3.2
 
-### RESET Y RECONSTRUCCIÓN COMPLETA - v2.3
-**Objetivo**: Eliminar sistema de eventos problemático y reconstruir iterativamente
+### ITERACIÓN 3.2 COMPLETADA - Modal Mejorado
+**Fecha**: Enero 2025
+**Objetivo**: Captura completa de datos según requisitos Dra. Mariana
 
-#### ✅ Fase 1: Limpieza Total
-- Eliminados 31 archivos de eventos (6,428 líneas)
-- Comentadas referencias en 5 páginas principales
-- Sistema compilando sin errores
+#### ✅ Funcionalidades Implementadas
 
-#### ✅ Fase 2: Reconstrucción Iterativa
+**Modal SleepDelay Mejorado**:
+- Selector de tiempo con botones +/- (incrementos 5 min)
+- Selector estado emocional: Tranquilo/Inquieto/Alterado
+- Campo notas con placeholder guiado de Dra. Mariana
+- No crea evento hasta confirmar modal (flujo corregido)
 
-**Iteración 1 - MVP Básico**:
-- Botón de prueba funcional
-- Integración con MongoDB confirmada
-- Eventos guardados en `children.events[]`
+**Mejoras MongoDB**:
+- Campo `duration` se calcula automáticamente
+- Campo `durationReadable` formato legible ("3h 30min")
+- Notas vacías por defecto (sin texto automático)
+- Estructura limpia sin campos redundantes
 
-**Iteración 2 - Botón Dormir/Despertar**:
-- Estados: awake, sleeping, napping
-- Lógica inteligente según hora del día
-- Diferenciación siesta vs sueño nocturno
-
-**Fixes Críticos v2.1-2.3**:
-1. **Wake Logic**: Wake events solo para despertar matutino (6am-12pm)
-2. **Duración**: Corregido bug de tiempo negativo con reloj desarrollo
-3. **Estado Visual**: Muestra "X min durmiendo" y "Despierto hace X min"
+**Fixes Calendario**:
+1. **Posicionamiento**: Corregido parsing de timezone
+2. **Validación**: Manejo robusto de fechas inválidas
+3. **Performance**: Extracción directa de horas del string ISO
 
 #### ✅ Sistema de Tiempo de Desarrollo
 - **Widget de reloj** en esquina inferior derecha
@@ -52,9 +50,10 @@
 
 ### 📁 Estructura Actual
 ```
-/components/events/ (NUEVO - v2.3)
+/components/events/ (NUEVO - v3.2)
   ├── EventRegistration.tsx - Contenedor principal
-  ├── SleepButton.tsx - Botón inteligente con estados
+  ├── SleepButton.tsx - Botón inteligente con modal mejorado
+  ├── SleepDelayModal.tsx - Modal captura delay/estado/notas
   ├── types.ts - Tipos de eventos
   └── index.ts - Exports
 
@@ -73,15 +72,19 @@
   {
     _id: "unique-id",
     eventType: "sleep|wake|nap",
-    startTime: "ISO string local",
-    endTime: "ISO string local",
-    emotionalState: "tranquilo",
-    notes: "texto opcional"
+    startTime: "ISO string local con timezone",
+    endTime: "ISO string local con timezone",
+    emotionalState: "tranquilo|inquieto|alterado",
+    notes: "" // vacío si no se proporciona
+    duration: 210, // minutos calculados automáticamente
+    durationReadable: "3h 30min", // formato legible
+    sleepDelay: 15, // minutos que tardó en dormirse
+    createdAt: "ISO string"
   }
   ```
 
-### 📋 Próximas Iteraciones Planeadas
-- [ ] **Iteración 3**: Modal captura delay sueño
+### 📋 Iteraciones Completadas y Pendientes
+- ✅ **Iteración 3**: Modal captura delay sueño con estado emocional y notas
 - [ ] **Iteración 4**: Registro alimentación
 - [ ] **Iteración 5**: Modo dual (simple/avanzado)
 
@@ -90,6 +93,10 @@
 - ✅ Duración negativa con cambios de tiempo
 - ✅ No mostraba tiempo durmiendo/despierto
 - ✅ Timezone incorrecta en eventos
+- ✅ Campo duration null en MongoDB - ahora se calcula automáticamente
+- ✅ Modal sleep delay mejorado con estado emocional y notas
+- ✅ Posicionamiento incorrecto en calendario con timezone
+- ✅ Error 'Invalid time value' con validación robusta
 
 ### 📝 Notas Importantes
 - Sistema tiempo desarrollo ACTIVO (remover para producción)
@@ -98,4 +105,4 @@
 - MongoDB: eventos dentro de children, NO colección separada
 
 ---
-*Sistema de eventos v2.3 - Reconstrucción exitosa con tiempo desarrollo*
+*Sistema de eventos v3.2 - Modal mejorado y calendario corregido*
