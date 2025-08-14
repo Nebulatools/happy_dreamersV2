@@ -15,18 +15,43 @@ import { cn } from '@/lib/utils'
 
 // Función auxiliar para parsear fechas ISO locales correctamente
 function parseLocalISODate(isoString: string): Date {
-  // IMPORTANTE: No usar parseISO con timezone porque convierte a UTC
-  // En lugar de eso, extraemos la parte local del string (antes del timezone)
-  // y creamos la fecha directamente para mantener la hora local correcta
-  
-  if (isoString.includes('T')) {
-    // Extraer la parte YYYY-MM-DDTHH:mm:ss (ignorar timezone y milisegundos)
-    // Esto mantiene la hora tal como está en el string sin conversión
-    const localPart = isoString.split(/[+-Z]/)[0].split('.')[0]
-    return new Date(localPart)
+  // Validar que el string no esté vacío
+  if (!isoString) {
+    console.error('parseLocalISODate: string vacío o undefined')
+    return new Date() // Retornar fecha actual como fallback
   }
-  // Para fechas sin T (poco probable), usar Date directamente
-  return new Date(isoString)
+  
+  try {
+    // IMPORTANTE: No usar parseISO con timezone porque convierte a UTC
+    // En lugar de eso, extraemos la parte local del string (antes del timezone)
+    
+    if (isoString.includes('T')) {
+      // Extraer la parte YYYY-MM-DDTHH:mm:ss (ignorar timezone y milisegundos)
+      const localPart = isoString.split(/[+-Z]/)[0].split('.')[0]
+      const date = new Date(localPart)
+      
+      // Validar que la fecha sea válida
+      if (isNaN(date.getTime())) {
+        console.error('parseLocalISODate: fecha inválida generada de:', localPart)
+        // Intentar con el string original
+        return new Date(isoString)
+      }
+      
+      return date
+    }
+    
+    // Para fechas sin T, usar Date directamente
+    const date = new Date(isoString)
+    if (isNaN(date.getTime())) {
+      console.error('parseLocalISODate: fecha inválida de:', isoString)
+      return new Date() // Fallback a fecha actual
+    }
+    
+    return date
+  } catch (error) {
+    console.error('parseLocalISODate error:', error, 'para string:', isoString)
+    return new Date() // Fallback seguro
+  }
 }
 
 interface Event {
@@ -57,12 +82,25 @@ export function EventBlock({
 }: EventBlockProps) {
   // Calcular duración del evento
   const calculateEventDuration = () => {
-    if (event.endTime) {
-      const start = parseLocalISODate(event.startTime)
-      const end = parseLocalISODate(event.endTime)
-      return differenceInMinutes(end, start)
+    try {
+      if (event.endTime && event.startTime) {
+        const start = parseLocalISODate(event.startTime)
+        const end = parseLocalISODate(event.endTime)
+        
+        // Validar que ambas fechas sean válidas
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+          console.error('calculateEventDuration: fechas inválidas', event.startTime, event.endTime)
+          return 0
+        }
+        
+        const duration = differenceInMinutes(end, start)
+        // Asegurar que la duración no sea negativa
+        return Math.max(0, duration)
+      }
+    } catch (error) {
+      console.error('calculateEventDuration error:', error)
     }
-    return 0 // Eventos puntuales (sleep, wake sin endTime)
+    return 0 // Eventos puntuales o error
   }
 
   // Calcular posición vertical según la hora
@@ -165,22 +203,56 @@ export function EventBlock({
 
   // Formatear tiempo del evento
   const formatEventTime = () => {
-    const start = parseLocalISODate(event.startTime)
-    if (event.endTime) {
-      const end = parseLocalISODate(event.endTime)
-      return `${format(start, "HH:mm")}-${format(end, "HH:mm")}`
+    try {
+      if (!event.startTime) return '--:--'
+      
+      const start = parseLocalISODate(event.startTime)
+      // Validar que la fecha sea válida antes de formatear
+      if (isNaN(start.getTime())) {
+        console.error('formatEventTime: fecha de inicio inválida', event.startTime)
+        return '--:--'
+      }
+      
+      if (event.endTime) {
+        const end = parseLocalISODate(event.endTime)
+        if (isNaN(end.getTime())) {
+          console.error('formatEventTime: fecha de fin inválida', event.endTime)
+          return format(start, "HH:mm")
+        }
+        return `${format(start, "HH:mm")}-${format(end, "HH:mm")}`
+      }
+      return format(start, "HH:mm")
+    } catch (error) {
+      console.error('formatEventTime error:', error)
+      return '--:--'
     }
-    return format(start, "HH:mm")
   }
   
   // Formatear tiempo compacto para mostrar en el bloque
   const formatCompactTime = () => {
-    const start = parseLocalISODate(event.startTime)
-    if (event.endTime) {
-      const end = parseLocalISODate(event.endTime)
-      return `${format(start, "H:mm")}-${format(end, "H:mm")}`
+    try {
+      if (!event.startTime) return '--:--'
+      
+      const start = parseLocalISODate(event.startTime)
+      // Validar que la fecha sea válida antes de formatear
+      if (isNaN(start.getTime())) {
+        console.error('formatCompactTime: fecha de inicio inválida', event.startTime)
+        return '--:--'
+      }
+      
+      if (event.endTime) {
+        const end = parseLocalISODate(event.endTime)
+        if (isNaN(end.getTime())) {
+          console.error('formatCompactTime: fecha de fin inválida', event.endTime)
+          return format(start, "H:mm")
+        }
+        return `${format(start, "H:mm")}-${format(end, "H:mm")}`
+      }
+      return format(start, "H:mm")
+    } catch (error) {
+      console.error('formatCompactTime error:', error)
+      return '--:--'
     }
-    return format(start, "H:mm")
   }
 
   // Obtener información para tooltip
@@ -304,6 +376,24 @@ export function CompactEventBlock({
     }
   }
 
+  // Formatear hora con validación
+  const formatTime = () => {
+    try {
+      if (!event.startTime) return '--:--'
+      
+      const date = parseLocalISODate(event.startTime)
+      if (isNaN(date.getTime())) {
+        console.error('CompactEventBlock: fecha inválida', event.startTime)
+        return '--:--'
+      }
+      
+      return format(date, "HH:mm")
+    } catch (error) {
+      console.error('CompactEventBlock format error:', error)
+      return '--:--'
+    }
+  }
+
   return (
     <div className={cn(
       "flex items-center gap-1 p-1 rounded text-white text-xs",
@@ -312,7 +402,7 @@ export function CompactEventBlock({
     )}>
       {getEventIcon()}
       <span className="truncate">
-        {format(parseLocalISODate(event.startTime), "HH:mm")}
+        {formatTime()}
       </span>
     </div>
   )
