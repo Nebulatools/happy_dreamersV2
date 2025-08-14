@@ -131,18 +131,18 @@ export function SleepButton({
   const config = getButtonConfig()
   const Icon = config.icon
   
-  // Manejar confirmación del delay de sueño
-  const handleDelayConfirm = async (delay: number) => {
+  // Manejar confirmación del delay de sueño con estado emocional y notas
+  const handleDelayConfirm = async (delay: number, emotionalState: string, notes: string) => {
     if (!pendingEventData) return
     
     try {
-      // AHORA SÍ crear el evento con el sleepDelay incluido
+      // AHORA SÍ crear el evento con todos los datos del modal
       const eventData: Partial<EventData> = {
         childId,
         eventType: pendingEventData.eventType,
         startTime: pendingEventData.startTime,
-        emotionalState: 'tranquilo',
-        notes: pendingEventData.eventType === 'nap' ? 'Inicio de siesta' : 'Se fue a dormir',
+        emotionalState: emotionalState || 'tranquilo',
+        notes: notes || (pendingEventData.eventType === 'nap' ? 'Inicio de siesta' : 'Se fue a dormir'),
         sleepDelay: delay // Incluir el delay desde el principio
       }
       
