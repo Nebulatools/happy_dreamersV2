@@ -3,7 +3,7 @@
 import React, { useState } from "react"
 import { Clock, Calendar, Pill, Activity } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { UnifiedSleepCycle } from "./UnifiedSleepCycle"
+import { UnifiedSleepCycleV2 } from "./UnifiedSleepCycleV2"
 import { PrimaryFeedingButton } from "./PrimaryFeedingButton"
 import { EventRegistrationModal } from "../EventRegistrationModal"
 import { cn } from "@/lib/utils"
@@ -33,7 +33,7 @@ export function SimplePrimaryMode({
       {/* EVENTOS PRIMARIOS */}
       <div className="space-y-3">
         {/* Ciclo de Sueño - Botón principal */}
-        <UnifiedSleepCycle
+        <UnifiedSleepCycleV2
           childId={childId}
           childName={childName}
           onEventRegistered={onEventRegistered}

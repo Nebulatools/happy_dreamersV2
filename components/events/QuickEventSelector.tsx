@@ -5,7 +5,7 @@ import { Moon, Pill, Utensils, Star, X, ChevronRight, Sparkles } from "lucide-re
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import SimpleSleepToggle from "./SimpleSleepToggle"
+import SimpleSleepToggleV2 from "./SimpleSleepToggleV2"
 import { EventRegistrationModalRefactored } from "./EventRegistrationModalRefactored"
 import { useToast } from "@/hooks/use-toast"
 
@@ -127,7 +127,7 @@ export function QuickEventSelector({
             </div>
           </DialogHeader>
           <div className="mt-4">
-            <SimpleSleepToggle
+            <SimpleSleepToggleV2
               childId={childId}
               childName={selectedChild?.firstName || ""}
               onEventRegistered={handleEventCreated}

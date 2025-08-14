@@ -10,8 +10,19 @@ import {
   AlertCircle,
   Clock
 } from "lucide-react"
-import { format, differenceInMinutes, differenceInHours } from 'date-fns'
+import { format, differenceInMinutes, differenceInHours, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
+
+// Función auxiliar para parsear fechas ISO locales correctamente
+function parseLocalISODate(isoString: string): Date {
+  // Si la fecha ya tiene timezone, parseISO la manejará correctamente
+  // Si no tiene timezone, asumimos que es hora local
+  if (isoString.includes('+') || isoString.includes('-')) {
+    return parseISO(isoString)
+  }
+  // Para fechas sin timezone, crear Date directamente para mantener hora local
+  return new Date(isoString)
+}
 
 interface Event {
   _id: string;
@@ -42,8 +53,8 @@ export function EventBlock({
   // Calcular duración del evento
   const calculateEventDuration = () => {
     if (event.endTime) {
-      const start = new Date(event.startTime)
-      const end = new Date(event.endTime)
+      const start = parseLocalISODate(event.startTime)
+      const end = parseLocalISODate(event.endTime)
       return differenceInMinutes(end, start)
     }
     return 0 // Eventos puntuales (sleep, wake sin endTime)
@@ -51,13 +62,22 @@ export function EventBlock({
 
   // Calcular posición vertical según la hora
   const calculateVerticalPosition = () => {
-    const eventDate = new Date(event.startTime)
+    // Parsear la fecha correctamente considerando el timezone
+    const eventDate = parseLocalISODate(event.startTime)
+    // Usar métodos locales para obtener la hora correcta
     const hours = eventDate.getHours()
     const minutes = eventDate.getMinutes()
+    
+    // Calcular minutos totales desde medianoche
     const totalMinutes = hours * 60 + minutes
+    
+    // Calcular píxeles basados en la altura por hora
     const pixelsPerMinute = hourHeight / 60
+    
     // Posición exacta basada en minutos
-    return totalMinutes * pixelsPerMinute
+    const position = totalMinutes * pixelsPerMinute
+    
+    return position
   }
 
   // Calcular altura del bloque según duración
@@ -129,9 +149,9 @@ export function EventBlock({
 
   // Formatear tiempo del evento
   const formatEventTime = () => {
-    const start = new Date(event.startTime)
+    const start = parseLocalISODate(event.startTime)
     if (event.endTime) {
-      const end = new Date(event.endTime)
+      const end = parseLocalISODate(event.endTime)
       return `${format(start, "HH:mm")}-${format(end, "HH:mm")}`
     }
     return format(start, "HH:mm")
@@ -139,9 +159,9 @@ export function EventBlock({
   
   // Formatear tiempo compacto para mostrar en el bloque
   const formatCompactTime = () => {
-    const start = new Date(event.startTime)
+    const start = parseLocalISODate(event.startTime)
     if (event.endTime) {
-      const end = new Date(event.endTime)
+      const end = parseLocalISODate(event.endTime)
       return `${format(start, "H:mm")}-${format(end, "H:mm")}`
     }
     return format(start, "H:mm")
@@ -207,7 +227,7 @@ export function EventBlock({
             // Eventos puntuales o poco espacio
             <span className="flex items-center gap-0.5">
               <span>{getEventTypeName().substring(0, 3)}</span>
-              <span className="opacity-75">{format(new Date(event.startTime), "H:mm")}</span>
+              <span className="opacity-75">{format(parseLocalISODate(event.startTime), "H:mm")}</span>
             </span>
           ) : (
             // Muy poco espacio
@@ -276,7 +296,7 @@ export function CompactEventBlock({
     )}>
       {getEventIcon()}
       <span className="truncate">
-        {format(new Date(event.startTime), "HH:mm")}
+        {format(parseLocalISODate(event.startTime), "HH:mm")}
       </span>
     </div>
   )

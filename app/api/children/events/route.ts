@@ -291,6 +291,111 @@ export async function PUT(req: NextRequest) {
   }
 }
 
+// PATCH - Actualizar parcialmente un evento (usado para añadir endTime)
+export async function PATCH(req: NextRequest) {
+  try {
+    // Verificar la sesión del usuario
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      logger.error("No hay sesión de usuario activa")
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+    }
+
+    // Obtener datos del cuerpo de la solicitud
+    const data = await req.json()
+    logger.info("Datos recibidos para actualización parcial:", data)
+
+    // Validar que se proporcionen los campos requeridos
+    if (!data.eventId || !data.childId) {
+      logger.error("Faltan campos requeridos", { data })
+      return NextResponse.json(
+        { error: "Se requieren eventId y childId" },
+        { status: 400 }
+      )
+    }
+
+    // Conectar a la base de datos
+    const { db } = await connectToDatabase()
+    
+    // Verificar si el usuario es administrador
+    const isAdmin = session.user.role === "admin"
+    
+    // Verificar que el niño exista y pertenezca al usuario (o sea admin)
+    const query = isAdmin 
+      ? { _id: new ObjectId(data.childId) }
+      : { _id: new ObjectId(data.childId), parentId: session.user.id }
+    
+    const child = await db.collection("children").findOne(query)
+
+    if (!child) {
+      logger.error("Niño no encontrado o no tienes permiso")
+      return NextResponse.json(
+        { error: "Niño no encontrado o no tienes permiso" },
+        { status: 404 }
+      )
+    }
+
+    // Preparar los campos a actualizar
+    const updateFields: any = {}
+    if (data.endTime) updateFields["events.$.endTime"] = data.endTime
+    if (data.duration !== undefined) updateFields["events.$.duration"] = data.duration
+    if (data.notes) updateFields["events.$.notes"] = data.notes
+    
+    logger.info("Actualizando evento con campos:", updateFields)
+    
+    // Actualizar el evento específico en el array events del niño
+    const result = await db.collection("children").updateOne(
+      { 
+        _id: new ObjectId(data.childId),
+        "events._id": data.eventId,
+      },
+      { $set: updateFields }
+    )
+
+    logger.info("Resultado de la actualización parcial:", result)
+
+    if (result.matchedCount === 0) {
+      // Si no se encontró en el array events, buscar en la colección events
+      const eventResult = await db.collection("events").updateOne(
+        { 
+          _id: data.eventId,
+          childId: data.childId
+        },
+        { 
+          $set: {
+            endTime: data.endTime,
+            duration: data.duration,
+            ...(data.notes && { notes: data.notes })
+          }
+        }
+      )
+      
+      if (eventResult.matchedCount === 0) {
+        return NextResponse.json(
+          { error: "Evento no encontrado" },
+          { status: 404 }
+        )
+      }
+      
+      return NextResponse.json(
+        { message: "Evento actualizado exitosamente en colección events" },
+        { status: 200 }
+      )
+    }
+
+    return NextResponse.json(
+      { message: "Evento actualizado exitosamente" },
+      { status: 200 }
+    )
+  } catch (error: any) {
+    logger.error("Error al actualizar evento:", error.message)
+    return NextResponse.json(
+      { error: "Error al actualizar el evento" },
+      { status: 500 }
+    )
+  }
+}
+
 // DELETE - Eliminar un evento existente
 export async function DELETE(req: NextRequest) {
   try {
