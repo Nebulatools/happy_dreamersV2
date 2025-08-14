@@ -16,40 +16,39 @@ import { cn } from '@/lib/utils'
 // Función auxiliar para parsear fechas ISO locales correctamente
 function parseLocalISODate(isoString: string): Date {
   // Validar que el string no esté vacío
-  if (!isoString) {
+  if (!isoString || isoString === '') {
     console.error('parseLocalISODate: string vacío o undefined')
     return new Date() // Retornar fecha actual como fallback
   }
   
   try {
-    // IMPORTANTE: No usar parseISO con timezone porque convierte a UTC
-    // En lugar de eso, extraemos la parte local del string (antes del timezone)
+    // Usar parseISO de date-fns que maneja correctamente las zonas horarias
+    // parseISO convierte a UTC pero luego getHours() devuelve hora local correcta
+    const date = parseISO(isoString)
     
-    if (isoString.includes('T')) {
-      // Extraer la parte YYYY-MM-DDTHH:mm:ss (ignorar timezone y milisegundos)
-      const localPart = isoString.split(/[+-Z]/)[0].split('.')[0]
-      const date = new Date(localPart)
-      
-      // Validar que la fecha sea válida
-      if (isNaN(date.getTime())) {
-        console.error('parseLocalISODate: fecha inválida generada de:', localPart)
-        // Intentar con el string original
-        return new Date(isoString)
-      }
-      
-      return date
-    }
-    
-    // Para fechas sin T, usar Date directamente
-    const date = new Date(isoString)
+    // Validar que la fecha sea válida
     if (isNaN(date.getTime())) {
       console.error('parseLocalISODate: fecha inválida de:', isoString)
-      return new Date() // Fallback a fecha actual
+      // Intentar con Date constructor como fallback
+      const fallbackDate = new Date(isoString)
+      if (isNaN(fallbackDate.getTime())) {
+        return new Date() // Fallback a fecha actual
+      }
+      return fallbackDate
     }
     
     return date
   } catch (error) {
     console.error('parseLocalISODate error:', error, 'para string:', isoString)
+    // Último intento con Date constructor
+    try {
+      const lastTry = new Date(isoString)
+      if (!isNaN(lastTry.getTime())) {
+        return lastTry
+      }
+    } catch {
+      // Nada
+    }
     return new Date() // Fallback seguro
   }
 }

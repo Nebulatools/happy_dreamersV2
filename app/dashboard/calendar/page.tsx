@@ -393,7 +393,14 @@ export default function CalendarPage() {
 
   const getEventsForDay = (day: Date) => {
     const dayStr = format(day, "yyyy-MM-dd")
-    return events.filter(event => event.startTime.startsWith(dayStr))
+    return events.filter(event => {
+      // Validar que el evento tenga startTime y no sea vacío
+      if (!event.startTime || event.startTime === '') {
+        console.warn('Evento sin startTime válido, omitiendo:', event)
+        return false
+      }
+      return event.startTime.startsWith(dayStr)
+    })
   }
 
   const getEventTypeIcon = (type: string) => {
