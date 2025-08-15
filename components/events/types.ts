@@ -15,6 +15,7 @@ export interface EventData {
   emotionalState?: EmotionalState
   notes?: string
   sleepDelay?: number  // minutos para dormirse
+  awakeDelay?: number  // minutos que estuvo despierto (para night_waking)
   // Campos específicos para alimentación
   feedingType?: FeedingType
   feedingAmount?: number  // cantidad en ml (líquidos) o gr (sólidos)

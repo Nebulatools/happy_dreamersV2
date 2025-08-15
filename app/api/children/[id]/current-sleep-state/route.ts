@@ -80,8 +80,13 @@ export async function GET(
       .slice(0, 10)
 
     // Buscar el último evento sin endTime (evento abierto)
-    const openEvent = recentEvents.find(e => 
+    const openSleepEvent = recentEvents.find(e => 
       (e.eventType === 'sleep' || e.eventType === 'nap') && !e.endTime
+    )
+    
+    // Buscar despertar nocturno abierto
+    const openNightWaking = recentEvents.find(e => 
+      e.eventType === 'night_waking' && !e.endTime
     )
 
     // Buscar el último evento de cualquier tipo
@@ -94,13 +99,25 @@ export async function GET(
     let lastEventId = null
     let duration = null
 
-    if (openEvent) {
-      // Hay un evento de sueño abierto
+    if (openNightWaking) {
+      // Hay un despertar nocturno activo
       const now = new Date()
-      const eventTime = new Date(openEvent.startTime || openEvent.createdAt)
+      const eventTime = new Date(openNightWaking.startTime || openNightWaking.createdAt)
       duration = differenceInMinutes(now, eventTime)
       
-      // Determinar si es siesta o sueño nocturno basado en el plan
+      currentStatus = 'night_waking'
+      lastEventTime = openNightWaking.startTime || openNightWaking.createdAt
+      lastEventType = openNightWaking.eventType
+      lastEventId = openNightWaking._id
+      
+    } else if (openSleepEvent) {
+      // Hay un evento de sueño abierto
+      const now = new Date()
+      const eventTime = new Date(openSleepEvent.startTime || openSleepEvent.createdAt)
+      duration = differenceInMinutes(now, eventTime)
+      
+      // SOLUCIÓN: Si el evento es 'sleep', SIEMPRE es 'sleeping'
+      // Si el evento es 'nap', SIEMPRE es 'napping'
       const currentHour = now.getHours()
       const bedtimeHour = parseInt(schedule.bedtime.split(':')[0])
       const wakeTimeHour = parseInt(schedule.wakeTime.split(':')[0])
@@ -108,12 +125,20 @@ export async function GET(
       // Es horario nocturno si estamos después de bedtime o antes de wakeTime
       const isNightTime = currentHour >= bedtimeHour || currentHour < wakeTimeHour
       
-      currentStatus = openEvent.eventType === 'nap' ? 'napping' : 
-                     isNightTime ? 'sleeping' : 'napping'
+      console.log('[DEBUG current-sleep-state]', {
+        eventType: openSleepEvent.eventType,
+        currentHour,
+        bedtimeHour,
+        wakeTimeHour,
+        isNightTime
+      })
       
-      lastEventTime = openEvent.startTime || openEvent.createdAt
-      lastEventType = openEvent.eventType
-      lastEventId = openEvent._id
+      // CORRECCIÓN: Usar directamente el eventType
+      currentStatus = openSleepEvent.eventType === 'nap' ? 'napping' : 'sleeping'
+      
+      lastEventTime = openSleepEvent.startTime || openSleepEvent.createdAt
+      lastEventType = openSleepEvent.eventType
+      lastEventId = openSleepEvent._id
       
     } else if (lastEvent) {
       // No hay evento abierto, usar el último evento

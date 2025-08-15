@@ -41,6 +41,34 @@ function calculateSleepDuration(startTime: string, endTime: string, sleepDelay: 
 }
 
 /**
+ * Calcula la duración real de despertar considerando awakeDelay
+ * @param startTime - Hora cuando empezó el despertar nocturno (ISO string)
+ * @param endTime - Hora cuando volvió a dormirse (ISO string)
+ * @param awakeDelay - Tiempo en minutos que tardó en volverse a dormir (default: 0)
+ * @returns Duración real del despertar en minutos
+ */
+function calculateAwakeDuration(startTime: string, endTime: string, awakeDelay: number = 0): number {
+  try {
+    const start = parseISO(startTime)
+    const end = parseISO(endTime)
+    
+    // Calcular duración total del despertar
+    const totalMinutes = differenceInMinutes(end, start)
+    
+    // Restar el tiempo que tardó en volverse a dormir (máximo 180 minutos = 3 horas)
+    const limitedAwakeDelay = Math.min(Math.max(awakeDelay || 0, 0), 180)
+    const realAwakeDuration = Math.max(0, totalMinutes - limitedAwakeDelay)
+    
+    logger.info(`Cálculo de despertar: ${totalMinutes}min total - ${limitedAwakeDelay}min awakeDelay = ${realAwakeDuration}min real`)
+    
+    return realAwakeDuration
+  } catch (error) {
+    logger.error("Error calculando duración de despertar:", error)
+    return 0
+  }
+}
+
+/**
  * Convierte minutos a formato legible (Ej: "2h 30min")
  * @param minutes - Duración en minutos
  * @returns String legible de la duración
@@ -72,6 +100,17 @@ export async function POST(req: NextRequest) {
 
     // Obtener datos del cuerpo de la solicitud
     const data = await req.json()
+    
+    // LOG ESPECIAL PARA NIGHT_WAKING
+    if (data.eventType === 'night_waking') {
+      logger.info("[NIGHT_WAKING] Recibido evento de despertar nocturno:", {
+        childId: data.childId,
+        startTime: data.startTime,
+        emotionalState: data.emotionalState,
+        fullData: data
+      })
+    }
+    
     logger.info("Datos recibidos:", data)
 
     // Validar que se proporcionen los campos requeridos
@@ -162,6 +201,27 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Validaciones para sleepDelay y awakeDelay
+    if (data.sleepDelay !== undefined && data.sleepDelay !== null) {
+      if (data.sleepDelay < 0 || data.sleepDelay > 180) {
+        logger.error("sleepDelay fuera de rango")
+        return NextResponse.json(
+          { error: "sleepDelay debe estar entre 0 y 180 minutos" },
+          { status: 400 }
+        )
+      }
+    }
+
+    if (data.awakeDelay !== undefined && data.awakeDelay !== null) {
+      if (data.awakeDelay < 0 || data.awakeDelay > 180) {
+        logger.error("awakeDelay fuera de rango")
+        return NextResponse.json(
+          { error: "awakeDelay debe estar entre 0 y 180 minutos" },
+          { status: 400 }
+        )
+      }
+    }
+
     // Crear el objeto de evento con ID único
     const event: any = {
       _id: new ObjectId().toString(), // Generar un ID único para el evento
@@ -172,6 +232,7 @@ export async function POST(req: NextRequest) {
       duration: data.duration || null, // Se calculará automáticamente si es posible
       durationReadable: "", // Se calculará si hay duration
       sleepDelay: data.sleepDelay || null,
+      awakeDelay: data.awakeDelay || null, // Para eventos night_waking
       createdAt: new Date().toISOString(),
     }
 
@@ -204,10 +265,15 @@ export async function POST(req: NextRequest) {
     // CALCULAR DURACIÓN AUTOMÁTICAMENTE si tiene startTime y endTime pero no duration manual
     if (event.startTime && event.endTime && !data.duration) {
       // Solo calcular para eventos de sueño/siesta que se benefician del cálculo de duración
-      if (['sleep', 'nap', 'night_waking'].includes(event.eventType)) {
+      if (['sleep', 'nap'].includes(event.eventType)) {
         event.duration = calculateSleepDuration(event.startTime, event.endTime, event.sleepDelay)
         event.durationReadable = formatDurationReadable(event.duration)
         logger.info(`Duración calculada automáticamente: ${event.duration} minutos (${event.durationReadable})`)
+      } else if (event.eventType === 'night_waking') {
+        // Para night_waking, usar calculateAwakeDuration con awakeDelay
+        event.duration = calculateAwakeDuration(event.startTime, event.endTime, event.awakeDelay)
+        event.durationReadable = formatDurationReadable(event.duration)
+        logger.info(`Duración de despertar calculada automáticamente: ${event.duration} minutos (${event.durationReadable})`)
       }
     } else if (event.duration) {
       // Si ya tiene duration, calcular el formato legible
@@ -471,12 +537,34 @@ export async function PATCH(req: NextRequest) {
       )
     }
 
+    // Validaciones para sleepDelay y awakeDelay en PATCH
+    if (data.sleepDelay !== undefined && data.sleepDelay !== null) {
+      if (data.sleepDelay < 0 || data.sleepDelay > 180) {
+        logger.error("sleepDelay fuera de rango en PATCH")
+        return NextResponse.json(
+          { error: "sleepDelay debe estar entre 0 y 180 minutos" },
+          { status: 400 }
+        )
+      }
+    }
+
+    if (data.awakeDelay !== undefined && data.awakeDelay !== null) {
+      if (data.awakeDelay < 0 || data.awakeDelay > 180) {
+        logger.error("awakeDelay fuera de rango en PATCH")
+        return NextResponse.json(
+          { error: "awakeDelay debe estar entre 0 y 180 minutos" },
+          { status: 400 }
+        )
+      }
+    }
+
     // Preparar los campos a actualizar
     const updateFields: any = {}
     if (data.endTime) updateFields["events.$.endTime"] = data.endTime
     if (data.duration !== undefined) updateFields["events.$.duration"] = data.duration
     if (data.notes) updateFields["events.$.notes"] = data.notes
     if (data.sleepDelay !== undefined) updateFields["events.$.sleepDelay"] = data.sleepDelay
+    if (data.awakeDelay !== undefined) updateFields["events.$.awakeDelay"] = data.awakeDelay
     
     // Campos específicos de alimentación
     if (data.feedingType) updateFields["events.$.feedingType"] = data.feedingType
@@ -487,17 +575,25 @@ export async function PATCH(req: NextRequest) {
 
     // CALCULAR DURACIÓN AUTOMÁTICAMENTE si se está agregando endTime y no hay duration explícita
     if (data.endTime && data.duration === undefined) {
-      // Primero necesitamos obtener el evento para acceder a startTime y sleepDelay
+      // Primero necesitamos obtener el evento para acceder a startTime y delays
       const existingEvent = child.events?.find((e: any) => e._id === data.eventId)
       
       if (existingEvent && existingEvent.startTime) {
-        // Solo calcular para eventos de sueño/siesta que se benefician del cálculo de duración
-        if (['sleep', 'nap', 'night_waking'].includes(existingEvent.eventType)) {
+        // Para eventos de sueño/siesta, usar calculateSleepDuration
+        if (['sleep', 'nap'].includes(existingEvent.eventType)) {
           const sleepDelay = data.sleepDelay !== undefined ? data.sleepDelay : existingEvent.sleepDelay
           const calculatedDuration = calculateSleepDuration(existingEvent.startTime, data.endTime, sleepDelay)
           updateFields["events.$.duration"] = calculatedDuration
           updateFields["events.$.durationReadable"] = formatDurationReadable(calculatedDuration)
           logger.info(`Duración calculada automáticamente en PATCH: ${calculatedDuration} minutos (${formatDurationReadable(calculatedDuration)})`)
+        } 
+        // Para eventos night_waking, usar calculateAwakeDuration
+        else if (existingEvent.eventType === 'night_waking') {
+          const awakeDelay = data.awakeDelay !== undefined ? data.awakeDelay : existingEvent.awakeDelay
+          const calculatedDuration = calculateAwakeDuration(existingEvent.startTime, data.endTime, awakeDelay)
+          updateFields["events.$.duration"] = calculatedDuration
+          updateFields["events.$.durationReadable"] = formatDurationReadable(calculatedDuration)
+          logger.info(`Duración de despertar calculada automáticamente en PATCH: ${calculatedDuration} minutos (${formatDurationReadable(calculatedDuration)})`)
         }
       }
     } else if (data.duration !== undefined) {

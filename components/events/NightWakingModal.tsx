@@ -1,0 +1,240 @@
+"use client"
+
+import React, { useState } from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Moon, Plus, Minus } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+interface NightWakingModalProps {
+  open: boolean
+  onClose: () => void
+  onConfirm: (awakeDelay: number, emotionalState: string, notes: string) => void
+  childName: string
+}
+
+/**
+ * Modal para capturar cuánto tiempo estuvo despierto el niño durante un despertar nocturno
+ * Aparece después de que el niño vuelve a dormirse
+ */
+export function NightWakingModal({
+  open,
+  onClose,
+  onConfirm,
+  childName
+}: NightWakingModalProps) {
+  const [selectedDelay, setSelectedDelay] = useState<number>(15) // Default 15 min
+  const [emotionalState, setEmotionalState] = useState<string>('tranquilo')
+  const [notes, setNotes] = useState<string>('')
+  const [isProcessing, setIsProcessing] = useState(false)
+
+  // Opciones rápidas predefinidas para despertares nocturnos
+  const quickOptions = [5, 15, 30, 45]
+  
+  // Incrementar/decrementar en pasos de 5 minutos
+  const adjustDelay = (increment: number) => {
+    setSelectedDelay(prev => {
+      const newValue = prev + increment
+      // Limitar entre 1 y 180 minutos (3 horas)
+      return Math.max(1, Math.min(180, newValue))
+    })
+  }
+  
+  // Formatear el texto del tiempo
+  const formatDelayText = (minutes: number): string => {
+    if (minutes < 5) return "Muy poco tiempo"
+    if (minutes === 60) return "1 hora"
+    if (minutes > 60) return `${Math.floor(minutes/60)}h ${minutes%60}min`
+    return `${minutes} minutos`
+  }
+
+  // Estados emocionales disponibles para despertares nocturnos
+  const emotionalStates = [
+    { value: 'tranquilo', label: 'Tranquilo', description: 'Se calmó fácilmente' },
+    { value: 'inquieto', label: 'Inquieto', description: 'Costó calmarlo' },
+    { value: 'alterado', label: 'Alterado', description: 'Muy difícil de calmar' }
+  ]
+
+  const handleConfirm = async () => {
+    setIsProcessing(true)
+    await onConfirm(selectedDelay, emotionalState, notes)
+    setIsProcessing(false)
+    // Reset para próxima vez
+    setSelectedDelay(15)
+    setEmotionalState('tranquilo')
+    setNotes('')
+  }
+
+  const handleSkip = () => {
+    // Si omite, usamos valores por defecto (5 minutos)
+    onConfirm(5, 'tranquilo', '')
+    // Reset
+    setSelectedDelay(15)
+    setEmotionalState('tranquilo')
+    setNotes('')
+  }
+
+  return (
+    <Dialog 
+      open={open} 
+      onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          onClose()
+        }
+      }}
+    >
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Moon className="w-5 h-5 text-indigo-500" />
+            Despertar Nocturno
+          </DialogTitle>
+          <DialogDescription>
+            ¿Cuánto tiempo estuvo despierto {childName}?
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Sección 1: Selector de Tiempo con Flechas */}
+        <div className="space-y-4 mt-4">
+          <div className="text-sm font-medium text-gray-700">
+            Tiempo que estuvo despierto
+          </div>
+          
+          {/* Control principal con flechas */}
+          <div className="flex items-center justify-center gap-4 py-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => adjustDelay(-5)}
+              disabled={isProcessing || selectedDelay <= 1}
+              className="h-10 w-10 rounded-full"
+            >
+              <Minus className="h-4 w-4" />
+            </Button>
+            
+            <div className="bg-indigo-50 border-2 border-indigo-200 rounded-xl px-6 py-3 min-w-[180px] text-center">
+              <div className="text-2xl font-bold text-indigo-600">
+                {formatDelayText(selectedDelay)}
+              </div>
+              <div className="text-xs text-indigo-500 mt-1">
+                estuvo despierto
+              </div>
+            </div>
+            
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => adjustDelay(5)}
+              disabled={isProcessing || selectedDelay >= 180}
+              className="h-10 w-10 rounded-full"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* Opciones rápidas */}
+          <div className="flex justify-center gap-2">
+            <span className="text-xs text-gray-500">Opciones rápidas:</span>
+            {quickOptions.map(minutes => (
+              <button
+                key={minutes}
+                type="button"
+                onClick={() => setSelectedDelay(minutes)}
+                disabled={isProcessing}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-medium transition-colors",
+                  selectedDelay === minutes
+                    ? "bg-indigo-500 text-white"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                )}
+              >
+                {minutes}min
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Sección 2: Estado Emocional */}
+        <div className="space-y-3 border-t pt-4">
+          <div className="text-sm font-medium text-gray-700">
+            ¿Cómo estaba {childName} durante el despertar?
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {emotionalStates.map(state => (
+              <button
+                key={state.value}
+                type="button"
+                onClick={() => setEmotionalState(state.value)}
+                disabled={isProcessing}
+                className={cn(
+                  "p-3 rounded-lg border-2 transition-all text-center",
+                  emotionalState === state.value
+                    ? "border-indigo-500 bg-indigo-50"
+                    : "border-gray-200 hover:border-gray-300"
+                )}
+              >
+                <div className={cn(
+                  "font-medium text-sm",
+                  emotionalState === state.value ? "text-indigo-700" : "text-gray-700"
+                )}>
+                  {state.label}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {state.description}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Sección 3: Notas sobre el despertar */}
+        <div className="space-y-2 border-t pt-4">
+          <div className="text-sm font-medium text-gray-700">
+            ¿Qué ocurrió durante el despertar? (opcional)
+          </div>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            disabled={isProcessing}
+            placeholder="¿Necesitó alimentación, cambio de pañal, consuelo? ¿Hubo algún ruido o molestia? ¿Cómo lo calmaste?"
+            className="w-full p-3 border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            rows={3}
+          />
+          <p className="text-xs text-gray-500">
+            Esta información ayuda a identificar patrones de despertar
+          </p>
+        </div>
+
+        <div className="flex gap-2 mt-6">
+          <Button
+            variant="outline"
+            onClick={handleSkip}
+            disabled={isProcessing}
+            className="flex-1"
+          >
+            Omitir
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={isProcessing}
+            className="flex-1 bg-indigo-500 hover:bg-indigo-600"
+          >
+            Confirmar
+          </Button>
+        </div>
+
+        <p className="text-xs text-gray-500 text-center mt-2">
+          Los despertares nocturnos son normales en bebés y niños pequeños
+        </p>
+      </DialogContent>
+    </Dialog>
+  )
+}
