@@ -313,6 +313,15 @@ export default function CalendarPage() {
       const data = await response.json()
       const eventsData = data.events || []
       
+      // Log para debugging: verificar orden de eventos recibidos
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Eventos recibidos del servidor:', eventsData.map((e: Event) => ({
+          id: e._id,
+          time: e.startTime,
+          type: e.eventType
+        })))
+      }
+      
       // Filtrar eventos según la vista actual
       let filteredEvents = eventsData
       
@@ -393,13 +402,21 @@ export default function CalendarPage() {
 
   const getEventsForDay = (day: Date) => {
     const dayStr = format(day, "yyyy-MM-dd")
-    return events.filter(event => {
+    const dayEvents = events.filter(event => {
       // Validar que el evento tenga startTime y no sea vacío
       if (!event.startTime || event.startTime === '') {
         console.warn('Evento sin startTime válido, omitiendo:', event)
         return false
       }
       return event.startTime.startsWith(dayStr)
+    })
+    
+    // CRÍTICO: Ordenar eventos por startTime para posicionamiento consistente
+    // Esto evita que los eventos se desplacen cuando se añaden nuevos
+    return dayEvents.sort((a, b) => {
+      const timeA = new Date(a.startTime).getTime()
+      const timeB = new Date(b.startTime).getTime()
+      return timeA - timeB // Orden cronológico ascendente
     })
   }
 

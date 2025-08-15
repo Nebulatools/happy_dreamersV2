@@ -54,6 +54,8 @@ export function calculateAgeFormatted(birthDate: string | Date): string {
 /**
  * Convierte una fecha local a ISO string manteniendo la zona horaria local
  * Evita el problema de que toISOString() convierte a UTC y puede cambiar el día
+ * CRÍTICO: Siempre usa el offset de timezone ACTUAL del sistema, no del Date objeto
+ * Esto asegura consistencia cuando se usa con DevTimeContext
  * @param date - Fecha a convertir
  * @returns String ISO en zona horaria local
  */
@@ -67,15 +69,24 @@ export function toLocalISOString(date: Date): string {
   const seconds = String(date.getSeconds()).padStart(2, '0')
   const milliseconds = String(date.getMilliseconds()).padStart(3, '0')
   
-  // Obtener el offset de la zona horaria
-  const offset = -date.getTimezoneOffset()
+  // IMPORTANTE: Usar el offset de timezone del MOMENTO ACTUAL del sistema
+  // No del objeto Date, para evitar inconsistencias con tiempo simulado
+  const currentDate = new Date()
+  const offset = -currentDate.getTimezoneOffset()
   const offsetHours = Math.floor(Math.abs(offset) / 60)
   const offsetMinutes = Math.abs(offset) % 60
   const offsetSign = offset >= 0 ? '+' : '-'
   const offsetString = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`
   
-  // Construir el string ISO con zona horaria local
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${offsetString}`
+  // Construir el string ISO con zona horaria local consistente
+  const isoString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${offsetString}`
+  
+  // Log para debugging en desarrollo
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`toLocalISOString: ${isoString}`)
+  }
+  
+  return isoString
 }
 
 /**

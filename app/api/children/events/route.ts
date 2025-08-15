@@ -237,12 +237,21 @@ export async function GET(req: NextRequest) {
 
     logger.info(`Niño encontrado: ${child.firstName} ${child.lastName}, devolviendo eventos`)
     
-    // Devolver los detalles del niño, incluyendo sus eventos
+    // Ordenar eventos por startTime antes de devolver
+    // Esto asegura consistencia en el orden, evitando problemas de posicionamiento
+    const sortedEvents = (child.events || []).sort((a: any, b: any) => {
+      if (!a.startTime || !b.startTime) return 0
+      const timeA = new Date(a.startTime).getTime()
+      const timeB = new Date(b.startTime).getTime()
+      return timeA - timeB // Orden cronológico ascendente
+    })
+    
+    // Devolver los detalles del niño, incluyendo sus eventos ordenados
     return NextResponse.json({
       _id: child._id,
       firstName: child.firstName,
       lastName: child.lastName,
-      events: child.events || [],
+      events: sortedEvents,
     })
   } catch (error: any) {
     logger.error("Error al obtener eventos:", error.message)

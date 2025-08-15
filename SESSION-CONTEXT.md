@@ -97,6 +97,7 @@
 - ✅ Modal sleep delay mejorado con estado emocional y notas
 - ✅ Posicionamiento incorrecto en calendario con timezone
 - ✅ Error 'Invalid time value' con validación robusta
+- ✅ Eventos se desplazaban con múltiples en un día - corregido sistema de ancho
 
 ### 📝 Notas Importantes
 - Sistema tiempo desarrollo ACTIVO (remover para producción)
