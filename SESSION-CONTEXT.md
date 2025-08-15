@@ -88,6 +88,12 @@
 - [ ] **Iteración 4**: Registro alimentación
 - [ ] **Iteración 5**: Modo dual (simple/avanzado)
 
+### 🚨 Issue Actual - Investigando
+- **BUG CRÍTICO**: Eventos después de 18:00 se desplazan +3 horas
+  - Síntoma: Evento a las 18:44 aparece en 21:44
+  - Patrón: Solo afecta eventos >= 18:00
+  - Logging agregado para diagnóstico
+
 ### 🐛 Issues Resueltos
 - ✅ Wake events innecesarios en siestas
 - ✅ Duración negativa con cambios de tiempo
