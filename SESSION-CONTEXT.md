@@ -98,12 +98,27 @@
 - ✅ Posicionamiento incorrecto en calendario con timezone
 - ✅ Error 'Invalid time value' con validación robusta
 - ✅ Eventos se desplazaban con múltiples en un día - corregido sistema de ancho
+- ✅ **DEFINITIVO**: Eventos desfasaban posición Y - ahora ordenados por startTime
+
+### 🔧 Solución Técnica - Posicionamiento de Eventos
+
+**Problema Raíz**: Los eventos no se ordenaban cronológicamente
+- MongoDB retornaba eventos en orden de inserción ($push)
+- Al añadir nuevos eventos, el orden cambiaba
+- React re-renderizaba con posiciones inconsistentes
+
+**Correcciones Aplicadas**:
+1. **Ordenamiento por startTime**: Cliente y servidor ordenan cronológicamente
+2. **Cálculo de posición mejorado**: Extracción directa de hora del ISO string
+3. **Formato ISO estabilizado**: Offset de timezone consistente
+4. **Logging de debugging**: Para desarrollo y diagnóstico
 
 ### 📝 Notas Importantes
 - Sistema tiempo desarrollo ACTIVO (remover para producción)
 - Ver DEV-TIME-SYSTEM.md para instrucciones limpieza
 - Validación funcional en cada iteración antes de avanzar
 - MongoDB: eventos dentro de children, NO colección separada
+- **CRÍTICO**: Eventos SIEMPRE deben ordenarse por startTime antes de renderizar
 
 ---
 *Sistema de eventos v3.2 - Modal mejorado y calendario corregido*
