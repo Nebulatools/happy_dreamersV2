@@ -17,11 +17,11 @@
 - **Features**: Sistema de eventos reconstruido v2.3
 - **Branch Actual**: devpraulio
 
-## 📝 Sesión Actual - Sistema de Eventos v4.0
+## 📝 Sesión Actual - Sistema de Eventos v4.1
 
-### ITERACIÓN 4 COMPLETADA - Sistema de Alimentación
+### REGISTRO MANUAL IMPLEMENTADO
 **Fecha**: Enero 2025
-**Objetivo**: Registro completo de alimentación + Sistema de sueño robusto
+**Objetivo**: Añadir modo manual para registro retroactivo sin afectar modo simple
 
 #### ✅ Funcionalidades Implementadas
 
@@ -32,7 +32,7 @@
 - Cálculo automático duration = totalMinutes - sleepDelay
 - Formato legible durationReadable ("3h 30min")
 
-**Sistema de Alimentación v4.0 (NUEVO - Completado)**:
+**Sistema de Alimentación v4.0 (Completado)**:
 - Modal FeedingModal con 3 tipos: Pecho/Biberón/Sólidos
 - Cantidad ajustable: 1-500 ml/gr según tipo
 - Duración: 1-60 minutos
@@ -40,6 +40,14 @@
 - Notas específicas opcional (max 500 caracteres)
 - Validaciones robustas frontend + backend
 - Integración completa en EventRegistration.tsx
+
+**Registro Manual v4.1 (NUEVO - Completado)**:
+- Botón discreto "Manual" en esquina superior derecha
+- Modal simple para registro retroactivo
+- Eventos: Dormir, Despertar, Alimentación, Medicamento, Actividad
+- Selector de fecha/hora completo
+- Campos simplificados según registroeventos.md
+- NO afecta el funcionamiento del modo simple existente
 
 **Fixes Calendario**:
 1. **Posicionamiento**: Corregido parsing de timezone
