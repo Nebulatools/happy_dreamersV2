@@ -81,9 +81,23 @@ export function toLocalISOString(date: Date): string {
   // Construir el string ISO con zona horaria local consistente
   const isoString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${offsetString}`
   
-  // Log para debugging en desarrollo
+  // Log para debugging en desarrollo - MEJORADO para detectar problema de 18:00
   if (process.env.NODE_ENV === 'development') {
-    console.log(`toLocalISOString: ${isoString}`)
+    const inputHours = date.getHours()
+    console.log(`toLocalISOString:`)
+    console.log(`  - Input Date: ${date.toString()}`)
+    console.log(`  - Input Hours: ${inputHours}`)
+    console.log(`  - Output ISO: ${isoString}`)
+    
+    // Advertencia especial para horas >= 18
+    if (inputHours >= 18) {
+      console.warn(`  ⚠️ HORA TARDE (>= 18:00) - Input: ${inputHours}:00, Output en ISO: ${hours}:${minutes}`)
+      
+      // Verificar si hay discrepancia
+      if (parseInt(hours) !== inputHours) {
+        console.error(`  ❌ DISCREPANCIA DETECTADA: Input ${inputHours} !== Output ${hours}`)
+      }
+    }
   }
   
   return isoString

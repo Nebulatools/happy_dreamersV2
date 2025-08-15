@@ -117,8 +117,20 @@ export function EventBlock({
     const timeMatch = event.startTime.match(/T(\d{2}):(\d{2})/)
     
     if (timeMatch) {
-      const hours = parseInt(timeMatch[1], 10)
+      let hours = parseInt(timeMatch[1], 10)
       const minutes = parseInt(timeMatch[2], 10)
+      
+      // HOTFIX TEMPORAL: Detectar y corregir problema de +3 horas después de las 18:00
+      // Este es un parche mientras encontramos la causa raíz
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`⚠️ DEBUG hora extraída: ${hours}:${minutes.toString().padStart(2, '0')}`)
+        
+        // Si detectamos que la hora está mal calculada (ej: 21 cuando debería ser 18)
+        // NO aplicar corrección automática aún, solo detectar
+        if (hours >= 21 && hours <= 23) {
+          console.warn(`🔍 POSIBLE BUG: Hora extraída ${hours} podría estar mal. Verificar TimeAdjuster.`)
+        }
+      }
       
       // Validar rangos válidos
       if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
@@ -135,9 +147,19 @@ export function EventBlock({
       // Posición exacta basada en minutos
       const position = Math.round(totalMinutes * pixelsPerMinute)
       
-      // Log para debugging
+      // Log para debugging - MEJORADO para detectar problema de 18:00
       if (process.env.NODE_ENV === 'development') {
-        console.log(`EventBlock ${event._id}: ${hours}:${minutes} -> ${position}px (hourHeight: ${hourHeight})`)
+        console.log(`EventBlock ${event._id}:`)
+        console.log(`  - ISO String: ${event.startTime}`)
+        console.log(`  - Extracted: ${hours}:${minutes.toString().padStart(2, '0')}`)
+        console.log(`  - Total Minutes: ${totalMinutes}`)
+        console.log(`  - Position: ${position}px`)
+        console.log(`  - Hour Height: ${hourHeight}px`)
+        
+        // Advertencia especial para horas >= 18
+        if (hours >= 18) {
+          console.warn(`  ⚠️ HORA TARDE (>= 18:00) - Verificar posicionamiento`)
+        }
       }
       
       return position
