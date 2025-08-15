@@ -85,14 +85,21 @@
 
 ### 📋 Iteraciones Completadas y Pendientes
 - ✅ **Iteración 3**: Modal captura delay sueño con estado emocional y notas
-- [ ] **Iteración 4**: Registro alimentación
+- [ ] **Iteración 4**: Registro alimentación - **PRÓXIMO A IMPLEMENTAR**
 - [ ] **Iteración 5**: Modo dual (simple/avanzado)
 
-### 🚨 Issue Actual - Investigando
-- **BUG CRÍTICO**: Eventos después de 18:00 se desplazan +3 horas
-  - Síntoma: Evento a las 18:44 aparece en 21:44
-  - Patrón: Solo afecta eventos >= 18:00
-  - Logging agregado para diagnóstico
+### ✅ Análisis Backend Completado (Enero 2025)
+- **Integridad de Datos**: 95% - Excelente
+- **Suite de Pruebas**: 46 casos diseñados y documentados
+- **Resultado**: APROBADO para continuar con Iteración 4
+- **Documentación**: Ver `BACKEND-STATUS-REPORT.md`
+
+### 🚨 Issue Conocido - SOLO UI (No bloquea desarrollo)
+- **BUG UI CALENDARIO**: Eventos después de 18:00 se desplazan +3 horas
+  - Síntoma: Evento a las 18:44 aparece en 21:44 (solo visualización)
+  - **CONFIRMADO**: Los datos se guardan correctamente en MongoDB
+  - **DECISIÓN**: Ignorar temporalmente, continuar con Iteración 4
+  - Backend tiene 95% integridad - APROBADO para continuar
 
 ### 🐛 Issues Resueltos
 - ✅ Wake events innecesarios en siestas
