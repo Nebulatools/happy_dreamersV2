@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { SleepButton } from './SleepButton'
+import { FeedingButton } from './FeedingButton'
 
 interface EventRegistrationProps {
   childId: string
@@ -11,13 +12,14 @@ interface EventRegistrationProps {
 
 /**
  * Componente principal para registro de eventos
- * VERSION 3.1 - Flujo corregido + Cálculo automático de duración
+ * VERSION 3.2 - Sistema de eventos expandido con alimentación
  * 
- * CARACTERÍSTICAS v3.1:
- * - Modal de sleepDelay antes de crear evento (corregido)
- * - Backend calcula automáticamente duration = totalMinutes - sleepDelay  
+ * CARACTERÍSTICAS v3.2:
+ * - Sistema de sueño con modal de sleepDelay (v3.1)
+ * - Sistema de alimentación con modal completo (NUEVO v3.2)
+ * - Backend calcula automáticamente duration para sueño
+ * - Validaciones robustas para eventos de alimentación
  * - Sin emojis en UI
- * - Duración real aparece en estadísticas
  */
 export function EventRegistration({ 
   childId, 
@@ -38,8 +40,15 @@ export function EventRegistration({
           onEventRegistered={onEventRegistered}
         />
         
+        {/* Botón de alimentación */}
+        <FeedingButton
+          childId={childId}
+          childName={childName}
+          onEventRegistered={onEventRegistered}
+        />
+        
         <p className="text-sm text-gray-500 text-center">
-          Sistema de eventos v3.1 - Cálculo automático de duración
+          Sistema de eventos v3.2 - Sueño + Alimentación
         </p>
       </div>
     </div>

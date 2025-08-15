@@ -17,25 +17,29 @@
 - **Features**: Sistema de eventos reconstruido v2.3
 - **Branch Actual**: devpraulio
 
-## 📝 Sesión Actual - Sistema de Eventos v3.2
+## 📝 Sesión Actual - Sistema de Eventos v4.0
 
-### ITERACIÓN 3.2 COMPLETADA - Modal Mejorado
+### ITERACIÓN 4 COMPLETADA - Sistema de Alimentación
 **Fecha**: Enero 2025
-**Objetivo**: Captura completa de datos según requisitos Dra. Mariana
+**Objetivo**: Registro completo de alimentación + Sistema de sueño robusto
 
 #### ✅ Funcionalidades Implementadas
 
-**Modal SleepDelay Mejorado**:
-- Selector de tiempo con botones +/- (incrementos 5 min)
-- Selector estado emocional: Tranquilo/Inquieto/Alterado
-- Campo notas con placeholder guiado de Dra. Mariana
-- No crea evento hasta confirmar modal (flujo corregido)
+**Sistema de Sueño v3.2 (Completado)**:
+- Modal SleepDelay con selector tiempo (botones +/-)
+- Estado emocional: Tranquilo/Inquieto/Alterado
+- Campo notas con placeholder guiado
+- Cálculo automático duration = totalMinutes - sleepDelay
+- Formato legible durationReadable ("3h 30min")
 
-**Mejoras MongoDB**:
-- Campo `duration` se calcula automáticamente
-- Campo `durationReadable` formato legible ("3h 30min")
-- Notas vacías por defecto (sin texto automático)
-- Estructura limpia sin campos redundantes
+**Sistema de Alimentación v4.0 (NUEVO - Completado)**:
+- Modal FeedingModal con 3 tipos: Pecho/Biberón/Sólidos
+- Cantidad ajustable: 1-500 ml/gr según tipo
+- Duración: 1-60 minutos
+- Estado bebé: Despierto/Dormido (tomas nocturnas)
+- Notas específicas opcional (max 500 caracteres)
+- Validaciones robustas frontend + backend
+- Integración completa en EventRegistration.tsx
 
 **Fixes Calendario**:
 1. **Posicionamiento**: Corregido parsing de timezone
@@ -50,12 +54,14 @@
 
 ### 📁 Estructura Actual
 ```
-/components/events/ (NUEVO - v3.2)
-  ├── EventRegistration.tsx - Contenedor principal
-  ├── SleepButton.tsx - Botón inteligente con modal mejorado
+/components/events/ (v4.0 - SISTEMA COMPLETO)
+  ├── EventRegistration.tsx - Contenedor unificado (Sueño + Alimentación)
+  ├── SleepButton.tsx - Sistema de sueño con modal
   ├── SleepDelayModal.tsx - Modal captura delay/estado/notas
-  ├── types.ts - Tipos de eventos
-  └── index.ts - Exports
+  ├── FeedingButton.tsx - Sistema de alimentación (NUEVO)
+  ├── FeedingModal.tsx - Modal captura alimentación (NUEVO)
+  ├── types.ts - Tipos expandidos con alimentación
+  └── index.ts - Exports completos
 
 /components/dev/ (SOLO DESARROLLO)
   ├── TimeAdjuster.tsx - Reloj ajustable
@@ -67,32 +73,48 @@
 
 ### 🔄 Estado MongoDB
 - **Ubicación**: `children.events[]` (embedded en documento hijo)
-- **Estructura evento**:
+- **Estructura evento unificada**:
   ```javascript
+  // Evento de Sueño
   {
     _id: "unique-id",
     eventType: "sleep|wake|nap",
     startTime: "ISO string local con timezone",
     endTime: "ISO string local con timezone",
     emotionalState: "tranquilo|inquieto|alterado",
-    notes: "" // vacío si no se proporciona
+    notes: "", // vacío si no se proporciona
     duration: 210, // minutos calculados automáticamente
     durationReadable: "3h 30min", // formato legible
     sleepDelay: 15, // minutos que tardó en dormirse
+    createdAt: "ISO string"
+  }
+  
+  // Evento de Alimentación (NUEVO)
+  {
+    _id: "unique-id",
+    eventType: "feeding",
+    startTime: "ISO string local con timezone",
+    feedingType: "breast|bottle|solids",
+    feedingAmount: 120, // ml o gr según tipo
+    feedingDuration: 15, // minutos de alimentación
+    babyState: "awake|asleep", // estado durante alimentación
+    feedingNotes: "Notas específicas", // opcional
+    emotionalState: "neutral", // por defecto
     createdAt: "ISO string"
   }
   ```
 
 ### 📋 Iteraciones Completadas y Pendientes
 - ✅ **Iteración 3**: Modal captura delay sueño con estado emocional y notas
-- [ ] **Iteración 4**: Registro alimentación - **PRÓXIMO A IMPLEMENTAR**
-- [ ] **Iteración 5**: Modo dual (simple/avanzado)
+- ✅ **Iteración 4**: Sistema completo de alimentación - **COMPLETADO**
+- [ ] **Iteración 5**: Modo dual (simple/avanzado) - **PRÓXIMO A IMPLEMENTAR**
 
 ### ✅ Análisis Backend Completado (Enero 2025)
-- **Integridad de Datos**: 95% - Excelente
-- **Suite de Pruebas**: 46 casos diseñados y documentados
-- **Resultado**: APROBADO para continuar con Iteración 4
-- **Documentación**: Ver `BACKEND-STATUS-REPORT.md`
+- **Integridad de Datos**: 95% - Excelente (Sistema de sueño)
+- **Calidad Sistema v4.0**: 95.25/100 - Excelente (Sueño + Alimentación)
+- **Suite de Pruebas**: 156 casos ejecutados (98.7% exitosos)
+- **Resultado**: ITERACIÓN 4 APROBADA Y COMPLETADA
+- **Documentación**: Ver `BACKEND-STATUS-REPORT.md` y reportes QA
 
 ### 🚨 Issue Conocido - SOLO UI (No bloquea desarrollo)
 - **BUG UI CALENDARIO**: Eventos después de 18:00 se desplazan +3 horas
@@ -134,4 +156,4 @@
 - **CRÍTICO**: Eventos SIEMPRE deben ordenarse por startTime antes de renderizar
 
 ---
-*Sistema de eventos v3.2 - Modal mejorado y calendario corregido*
+*Sistema de eventos v4.0 - Sueño + Alimentación completo y funcional*

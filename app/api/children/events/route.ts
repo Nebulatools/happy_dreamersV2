@@ -114,6 +114,54 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Validaciones específicas para eventos de alimentación
+    if (data.eventType === "feeding") {
+      // feedingType es requerido
+      if (!data.feedingType || !['breast', 'bottle', 'solids'].includes(data.feedingType)) {
+        logger.error("Tipo de alimentación inválido o faltante")
+        return NextResponse.json(
+          { error: "Tipo de alimentación requerido: 'breast', 'bottle', o 'solids'" },
+          { status: 400 }
+        )
+      }
+
+      // feedingAmount debe estar en rangos apropiados
+      if (!data.feedingAmount || data.feedingAmount < 1 || data.feedingAmount > 500) {
+        logger.error("Cantidad de alimentación inválida")
+        return NextResponse.json(
+          { error: "Cantidad de alimentación debe estar entre 1 y 500 (ml/gr)" },
+          { status: 400 }
+        )
+      }
+
+      // feedingDuration debe estar en rango apropiado
+      if (!data.feedingDuration || data.feedingDuration < 1 || data.feedingDuration > 60) {
+        logger.error("Duración de alimentación inválida")
+        return NextResponse.json(
+          { error: "Duración de alimentación debe estar entre 1 y 60 minutos" },
+          { status: 400 }
+        )
+      }
+
+      // babyState debe ser válido
+      if (!data.babyState || !['awake', 'asleep'].includes(data.babyState)) {
+        logger.error("Estado del bebé inválido o faltante")
+        return NextResponse.json(
+          { error: "Estado del bebé requerido: 'awake' o 'asleep'" },
+          { status: 400 }
+        )
+      }
+
+      // feedingNotes es opcional pero si existe, validar longitud
+      if (data.feedingNotes && data.feedingNotes.length > 500) {
+        logger.error("Notas de alimentación muy largas")
+        return NextResponse.json(
+          { error: "Las notas de alimentación no pueden exceder 500 caracteres" },
+          { status: 400 }
+        )
+      }
+    }
+
     // Crear el objeto de evento con ID único
     const event: any = {
       _id: new ObjectId().toString(), // Generar un ID único para el evento
@@ -125,6 +173,15 @@ export async function POST(req: NextRequest) {
       durationReadable: "", // Se calculará si hay duration
       sleepDelay: data.sleepDelay || null,
       createdAt: new Date().toISOString(),
+    }
+
+    // Agregar campos específicos de alimentación si aplica
+    if (data.eventType === "feeding") {
+      event.feedingType = data.feedingType
+      event.feedingAmount = data.feedingAmount
+      event.feedingDuration = data.feedingDuration
+      event.babyState = data.babyState
+      event.feedingNotes = data.feedingNotes || ""
     }
     
     // Solo agregar startTime si está presente
@@ -308,7 +365,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Crear el objeto de evento actualizado
-    const updatedEvent = {
+    const updatedEvent: any = {
       _id: data.id,
       childId: data.childId,
       eventType: data.eventType,
@@ -317,6 +374,15 @@ export async function PUT(req: NextRequest) {
       endTime: data.endTime || null,
       notes: data.notes || "",
       createdAt: data.createdAt || new Date().toISOString(),
+    }
+
+    // Agregar campos específicos de alimentación si aplica
+    if (data.eventType === "feeding") {
+      updatedEvent.feedingType = data.feedingType
+      updatedEvent.feedingAmount = data.feedingAmount
+      updatedEvent.feedingDuration = data.feedingDuration
+      updatedEvent.babyState = data.babyState
+      updatedEvent.feedingNotes = data.feedingNotes || ""
     }
 
     logger.info("Evento a actualizar:", updatedEvent)
@@ -411,6 +477,13 @@ export async function PATCH(req: NextRequest) {
     if (data.duration !== undefined) updateFields["events.$.duration"] = data.duration
     if (data.notes) updateFields["events.$.notes"] = data.notes
     if (data.sleepDelay !== undefined) updateFields["events.$.sleepDelay"] = data.sleepDelay
+    
+    // Campos específicos de alimentación
+    if (data.feedingType) updateFields["events.$.feedingType"] = data.feedingType
+    if (data.feedingAmount !== undefined) updateFields["events.$.feedingAmount"] = data.feedingAmount
+    if (data.feedingDuration !== undefined) updateFields["events.$.feedingDuration"] = data.feedingDuration
+    if (data.babyState) updateFields["events.$.babyState"] = data.babyState
+    if (data.feedingNotes !== undefined) updateFields["events.$.feedingNotes"] = data.feedingNotes
 
     // CALCULAR DURACIÓN AUTOMÁTICAMENTE si se está agregando endTime y no hay duration explícita
     if (data.endTime && data.duration === undefined) {

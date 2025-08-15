@@ -15,11 +15,24 @@ export interface EventData {
   emotionalState?: EmotionalState
   notes?: string
   sleepDelay?: number  // minutos para dormirse
+  // Campos específicos para alimentación
   feedingType?: FeedingType
+  feedingAmount?: number  // cantidad en ml (líquidos) o gr (sólidos)
+  feedingDuration?: number  // duración en minutos
   babyState?: 'awake' | 'asleep'  // para tomas nocturnas
+  feedingNotes?: string  // notas específicas de alimentación
   description?: string  // para actividades extra
   createdAt?: string
   parentId?: string
+}
+
+// Interface específica para el modal de alimentación
+export interface FeedingModalData {
+  feedingType: FeedingType
+  feedingAmount: number
+  feedingDuration: number
+  babyState: 'awake' | 'asleep'
+  feedingNotes: string
 }
 
 export interface Child {
