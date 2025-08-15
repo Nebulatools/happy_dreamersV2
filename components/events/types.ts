@@ -22,7 +22,6 @@ export interface EventData {
   babyState?: 'awake' | 'asleep'  // para tomas nocturnas
   feedingNotes?: string  // notas específicas de alimentación
   description?: string  // para actividades extra
-  fromSimpleMode?: boolean  // Flag para indicar si el evento fue creado en modo simple
   createdAt?: string
   parentId?: string
 }

@@ -17,66 +17,37 @@
 - **Features**: Sistema de eventos reconstruido v2.3
 - **Branch Actual**: devpraulio
 
-## 📝 Sesión Actual - Sistema de Eventos v5.0
+## 📝 Sesión Actual - Sistema de Eventos v4.0
 
-### ITERACIÓN 5 COMPLETADA - Sistema de Modo Dual
+### ITERACIÓN 4 COMPLETADA - Sistema de Alimentación
 **Fecha**: Enero 2025
-**Objetivo**: Modo dual (Simple/Avanzado) con SmartDefaults inteligentes
+**Objetivo**: Registro completo de alimentación + Sistema de sueño robusto
 
 #### ✅ Funcionalidades Implementadas
 
-**Sistema de Modo Dual v5.0 (NUEVO - Completado)**:
-- **ModeToggle**: Alternancia Simple ⚡ / Avanzado ⚙️ con persistencia
-- **Modo Simple**: 1-click directo con defaults inteligentes
-- **Modo Avanzado**: Modales completos (mantiene v3.1 y v4.0)
-- **SmartDefaultsEngine**: IA basada en edad, historial y contexto temporal
-- **ModeContext**: Provider con hooks especializados
-- **Persistencia**: localStorage + futura sync MongoDB
+**Sistema de Sueño v3.2 (Completado)**:
+- Modal SleepDelay con selector tiempo (botones +/-)
+- Estado emocional: Tranquilo/Inquieto/Alterado
+- Campo notas con placeholder guiado
+- Cálculo automático duration = totalMinutes - sleepDelay
+- Formato legible durationReadable ("3h 30min")
 
-**SmartDefaults Engine (Algoritmo Inteligente)**:
-- **Edad-based**: Delays según edad (0-3m: 2min, 2+ años: 10min)
-- **Historial-based**: Promedio últimos 10-15 eventos
-- **Tiempo-based**: Ajustes por hora del día (noche +3min)
-- **Confianza**: Scoring 0-1 según datos disponibles
-- **Fallbacks**: Múltiples capas de recuperación
-
-**Hook Ecosystem**:
-- `useChildEventData`: Obtención datos niño + historial
-- `useEventRegistration`: Strategy pattern modo dual
-- `useModeContext`: Estado global modo
-- `useModeAnalytics`: Tracking inteligente
-
-**UI/UX Improvements**:
-- Toggle accesible con WCAG 2.1 AA
-- Feedback visual modo actual
-- Loading states para SmartDefaults
-- Error handling robusto
-- Indicadores de confianza
-
-**Testing QA**: ✅ 95.3% calidad (60/63 tests passed)
+**Sistema de Alimentación v4.0 (NUEVO - Completado)**:
+- Modal FeedingModal con 3 tipos: Pecho/Biberón/Sólidos
+- Cantidad ajustable: 1-500 ml/gr según tipo
+- Duración: 1-60 minutos
+- Estado bebé: Despierto/Dormido (tomas nocturnas)
+- Notas específicas opcional (max 500 caracteres)
+- Validaciones robustas frontend + backend
+- Integración completa en EventRegistration.tsx
 
 **Fixes Calendario**:
 1. **Posicionamiento**: Corregido parsing de timezone
 2. **Validación**: Manejo robusto de fechas inválidas
 3. **Performance**: Extracción directa de horas del string ISO
 
-#### ✅ Sistemas Heredados Mantenidos
-
-**Sistema de Sueño v3.1 (Modo Avanzado)**:
-- Modal SleepDelay con selector tiempo (botones +/-)
-- Estado emocional: Tranquilo/Inquieto/Alterado
-- Campo notas con placeholder guiado
-- Cálculo automático duration = totalMinutes - sleepDelay
-
-**Sistema de Alimentación v4.0 (Modo Avanzado)**:
-- Modal FeedingModal con 3 tipos: Pecho/Biberón/Sólidos
-- Cantidad ajustable: 1-500 ml/gr según tipo
-- Duración: 1-60 minutos
-- Estado bebé: Despierto/Dormido
-- Validaciones robustas frontend + backend
-
-**Sistema de Tiempo de Desarrollo**:
-- Widget de reloj en esquina inferior derecha
+#### ✅ Sistema de Tiempo de Desarrollo
+- **Widget de reloj** en esquina inferior derecha
 - **Presets rápidos**: 7:00, 13:00, 15:30, 19:30, 21:00, 3:00
 - **Control velocidad**: 1x, 10x, 60x, 360x
 - **Documentado** en DEV-TIME-SYSTEM.md para limpieza pre-producción

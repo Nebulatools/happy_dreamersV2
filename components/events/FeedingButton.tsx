@@ -9,35 +9,22 @@ import { toLocalISOString } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { useDevTime } from '@/context/dev-time-context'
 import { FeedingModal } from './FeedingModal'
-import { useEventRegistration, useModeContext } from '@/context/mode-context'
-import { getQuickDefaults } from '@/lib/smart-defaults-engine'
 
 interface FeedingButtonProps {
   childId: string
   childName: string
-  childData?: { id: string; birthDate: string } // Para SmartDefaultsEngine
-  eventHistory?: EventData[] // Para SmartDefaultsEngine
   onEventRegistered?: () => void
 }
 
 /**
  * Botón para registrar eventos de alimentación
- * VERSION 5.0 - Sistema de modo dual
+ * VERSION 1.0 - Registro directo con modal
  * 
- * LÓGICA DE EVENTOS MODO DUAL:
- * 
- * MODO SIMPLE:
- * - ALIMENTACIÓN: 1-click directo con defaults inteligentes
- * - Sin modal, registro inmediato con SmartDefaults
- * 
- * MODO AVANZADO:
+ * LÓGICA DE EVENTOS:
  * - ALIMENTACIÓN: Modal PRIMERO → Confirmar datos → ENTONCES crear evento
  * - CANCELAR MODAL: NO crea evento (operación cancelada)
  * 
- * FLUJO MODO SIMPLE:
- * 1. Click "ALIMENTACIÓN" → Crear evento inmediatamente con SmartDefaults
- * 
- * FLUJO MODO AVANZADO:
+ * FLUJO:
  * 1. Click "ALIMENTACIÓN" → Modal FeedingModal
  * 2. Confirmar datos → Crear evento con todos los detalles
  * 3. Cerrar modal → NO crear evento
@@ -45,20 +32,12 @@ interface FeedingButtonProps {
 export function FeedingButton({ 
   childId, 
   childName,
-  childData,
-  eventHistory = [],
   onEventRegistered 
 }: FeedingButtonProps) {
   const { toast } = useToast()
   const [isProcessing, setIsProcessing] = useState(false)
   const { getCurrentTime } = useDevTime()
   const [showFeedingModal, setShowFeedingModal] = useState(false)
-  
-  // Hook para detectar modo dual
-  const { shouldShowModal, getDefaults, isSimpleMode } = useEventRegistration()
-  
-  // Obtener preferencias del contexto principal
-  const { preferences } = useModeContext()
   
   // Configuración del botón
   const getButtonConfig = () => {
@@ -154,78 +133,8 @@ export function FeedingButton({
   
   // Manejar click del botón
   const handleClick = async () => {
-    if (isSimpleMode) {
-      // MODO SIMPLE - Registro directo con SmartDefaults
-      setIsProcessing(true)
-      
-      try {
-        const now = getCurrentTime()
-        let defaultValues = {}
-        
-        // Usar SmartDefaultsEngine si tenemos datos del niño
-        if (childData) {
-          try {
-            defaultValues = getQuickDefaults(
-              'feeding',
-              childData,
-              eventHistory,
-              preferences
-            )
-          } catch (error) {
-            console.warn('Error getting smart defaults, using static defaults:', error)
-            defaultValues = getDefaults('feeding')
-          }
-        } else {
-          // Fallback a defaults estáticos del contexto
-          defaultValues = getDefaults('feeding')
-        }
-        
-        // Crear evento inmediatamente con defaults
-        const eventData: Partial<EventData> = {
-          childId,
-          eventType: 'feeding',
-          startTime: toLocalISOString(now),
-          ...defaultValues
-        }
-        
-        const response = await fetch('/api/children/events', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(eventData)
-        })
-        
-        if (!response.ok) {
-          throw new Error('Error al registrar evento de alimentación')
-        }
-        
-        // Mostrar confirmación simple
-        const typeText = defaultValues.feedingType === 'breast' ? 'pecho' : 
-                        defaultValues.feedingType === 'bottle' ? 'biberón' : 
-                        defaultValues.feedingType === 'solids' ? 'sólidos' : 'alimentación'
-        
-        toast({
-          title: "Alimentación registrada",
-          description: `${childName}: ${typeText} - registro rápido completado`
-        })
-        
-        // Notificar al padre para actualizar datos
-        onEventRegistered?.()
-        
-      } catch (error) {
-        console.error('Error registrando alimentación:', error)
-        toast({
-          title: "Error",
-          description: "No se pudo registrar la alimentación",
-          variant: "destructive"
-        })
-      } finally {
-        setIsProcessing(false)
-      }
-      
-    } else {
-      // MODO AVANZADO - Mostrar modal como antes
-      setShowFeedingModal(true)
-    }
+    // Mostrar modal directamente
+    setShowFeedingModal(true)
   }
   
   return (

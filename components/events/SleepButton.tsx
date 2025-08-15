@@ -10,37 +10,23 @@ import { toLocalISOString } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { useDevTime } from '@/context/dev-time-context'
 import { SleepDelayModal } from './SleepDelayModal'
-import { useEventRegistration, useModeContext } from '@/context/mode-context'
-import { getQuickDefaults } from '@/lib/smart-defaults-engine'
 
 interface SleepButtonProps {
   childId: string
   childName: string
-  childData?: { id: string; birthDate: string } // Para SmartDefaultsEngine
-  eventHistory?: EventData[] // Para SmartDefaultsEngine
   onEventRegistered?: () => void
 }
 
 /**
  * Botón inteligente que alterna entre Dormir/Despertar
- * VERSION 5.0 - Sistema de modo dual
+ * VERSION 3.1 - Flujo modal corregido
  * 
- * LÓGICA DE EVENTOS MODO DUAL:
- * 
- * MODO SIMPLE:
- * - SIESTA/SUEÑO: 1-click directo con defaults inteligentes
- * - DESPERTAR: Directo (actualiza endTime + crea wake si es mañana)
- * - Sin modales, registro inmediato
- * 
- * MODO AVANZADO:
+ * LÓGICA DE EVENTOS:
  * - SIESTA/SUEÑO: Modal PRIMERO → Confirmar delay → ENTONCES crear evento
  * - DESPERTAR: Directo (actualiza endTime + crea wake si es mañana)
  * - CANCELAR MODAL: NO crea evento (operación cancelada)
  * 
- * FLUJO MODO SIMPLE:
- * 1. Click "SIESTA"/"SE DURMIÓ" → Crear evento inmediatamente con SmartDefaults
- * 
- * FLUJO MODO AVANZADO:
+ * FLUJO CORREGIDO:
  * 1. Click "SIESTA"/"SE DURMIÓ" → Modal sleepDelay
  * 2. Confirmar/Omitir → Crear evento con sleepDelay
  * 3. Cerrar modal → NO crear evento
@@ -48,8 +34,6 @@ interface SleepButtonProps {
 export function SleepButton({ 
   childId, 
   childName,
-  childData,
-  eventHistory = [],
   onEventRegistered 
 }: SleepButtonProps) {
   const { toast } = useToast()
@@ -62,12 +46,6 @@ export function SleepButton({
     eventType: 'sleep' | 'nap',
     startTime: string
   } | null>(null)
-  
-  // Hook para detectar modo dual
-  const { shouldShowModal, getDefaults, isSimpleMode } = useEventRegistration()
-  
-  // Obtener preferencias del contexto principal
-  const { preferences } = useModeContext()
   
   // Calcular duración localmente usando tiempo simulado
   useEffect(() => {
@@ -265,73 +243,22 @@ export function SleepButton({
         // Si es siesta, NO crear evento wake, solo actualizar endTime (ya hecho arriba)
         
       } else {
-        // DORMIR - Lógica según modo
-        const eventType = config.action as 'sleep' | 'nap'
+        // DORMIR - NO crear evento aún, solo preparar datos y mostrar modal
         
-        if (isSimpleMode) {
-          // MODO SIMPLE - Registro directo con SmartDefaults
-          let defaultValues = {}
-          
-          // Usar SmartDefaultsEngine si tenemos datos del niño
-          if (childData) {
-            try {
-              defaultValues = getQuickDefaults(
-                eventType,
-                childData,
-                eventHistory,
-                preferences
-              )
-            } catch (error) {
-              console.warn('Error getting smart defaults, using static defaults:', error)
-              defaultValues = getDefaults(eventType)
-            }
-          } else {
-            // Fallback a defaults estáticos del contexto
-            defaultValues = getDefaults(eventType)
-          }
-          
-          // Crear evento inmediatamente con defaults
-          const eventData: Partial<EventData> = {
-            childId,
-            eventType,
-            startTime: toLocalISOString(now),
-            ...defaultValues
-          }
-          
-          const response = await fetch('/api/children/events', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(eventData)
-          })
-          
-          if (!response.ok) {
-            throw new Error('Error al registrar evento')
-          }
-          
-          // Mostrar confirmación simple
-          toast({
-            title: eventType === 'nap' ? "Siesta registrada" : "A dormir",
-            description: `${childName} - registro rápido completado`
-          })
-          
-        } else {
-          // MODO AVANZADO - Mostrar modal como antes
-          
-          // Guardar datos temporales para cuando se confirme el modal
-          setPendingEventData({
-            eventType,
-            startTime: toLocalISOString(now)
-          })
-          
-          // Mostrar modal de delay PRIMERO
-          setShowDelayModal(true)
-          
-          // NO crear evento aquí - esperamos a que el usuario confirme en el modal
-          // NO actualizar estado ni mostrar toast
-          
-          setIsProcessing(false) // Importante: liberar el botón
-          return
-        }
+        // Guardar datos temporales para cuando se confirme el modal
+        setPendingEventData({
+          eventType: config.action as 'sleep' | 'nap',
+          startTime: toLocalISOString(now)
+        })
+        
+        // Mostrar modal de delay PRIMERO
+        setShowDelayModal(true)
+        
+        // NO crear evento aquí - esperamos a que el usuario confirme en el modal
+        // NO actualizar estado ni mostrar toast
+        
+        setIsProcessing(false) // Importante: liberar el botón
+        return
       }
       
       // Actualizar estado (solo para wake)
