@@ -128,18 +128,18 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
         >
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-yellow-400" />
-            <span className="text-sm font-mono">
-              {simulatedTime.toLocaleTimeString('es-ES', { 
+            <span className="text-sm font-mono" suppressHydrationWarning>
+              {typeof window !== 'undefined' ? simulatedTime.toLocaleTimeString('es-ES', { 
                 hour: '2-digit', 
                 minute: '2-digit',
                 second: '2-digit'
-              })}
+              }) : '--:--:--'}
             </span>
-            <span className="text-xs text-gray-400">
-              {simulatedTime.toLocaleDateString('es-ES', { 
+            <span className="text-xs text-gray-400" suppressHydrationWarning>
+              {typeof window !== 'undefined' ? simulatedTime.toLocaleDateString('es-ES', { 
                 day: '2-digit',
                 month: 'short'
-              })}
+              }) : '--'}
             </span>
           </div>
           {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}

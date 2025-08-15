@@ -64,14 +64,23 @@ export function MonthLineChart({
   idealWakeTime = "07:00"  // Valor por defecto si no hay plan
 }: MonthLineChartProps) {
   
+  // Debug: verificar eventos recibidos
+  console.log(`MonthLineChart: Recibidos ${events?.length || 0} eventos para`, format(currentDate, "MMMM yyyy"))
+  if (events && events.length > 0) {
+    console.log("Eventos:", events.map(e => ({ type: e.eventType, time: e.startTime })))
+  }
+
   // Si no hay eventos, mostrar mensaje informativo
   if (!events || events.length === 0) {
     return (
-      <div className={cn("w-full h-full flex items-center justify-center", className)}>
+      <div className={cn("w-full h-full flex items-center justify-center", className)} style={{ minHeight: "400px" }}>
         <div className="text-center">
           <div className="text-gray-400 text-lg mb-2">No hay eventos registrados este mes</div>
           <div className="text-gray-500 text-sm">
             Registra eventos de sueño para ver la evolución en la gráfica
+          </div>
+          <div className="text-xs text-gray-400 mt-4">
+            Mes: {format(currentDate, "MMMM yyyy", { locale: es })}
           </div>
         </div>
       </div>

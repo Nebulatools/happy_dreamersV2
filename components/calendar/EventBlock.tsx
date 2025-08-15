@@ -103,7 +103,20 @@ export function EventBlock({
     return 0 // Eventos puntuales o error
   }
 
-  // Calcular posición vertical según la hora - MEJORADO para consistencia
+  // FUNCIÓN CENTRAL: Extraer hora y minutos del string ISO de forma consistente
+  const extractTimeFromISO = (isoString: string) => {
+    const timeMatch = isoString.match(/T(\d{2}):(\d{2})/)
+    if (timeMatch) {
+      return {
+        hours: parseInt(timeMatch[1], 10),
+        minutes: parseInt(timeMatch[2], 10),
+        formatted: `${timeMatch[1]}:${timeMatch[2]}`
+      }
+    }
+    return null
+  }
+
+  // Calcular posición vertical según la hora - USANDO FUNCIÓN CENTRAL
   const calculateVerticalPosition = () => {
     // Validar que startTime exista y no esté vacío
     if (!event.startTime || event.startTime === '') {
@@ -111,26 +124,10 @@ export function EventBlock({
       return 0 // Posición por defecto
     }
     
-    // CRÍTICO: Extraer hora y minutos directamente del string ISO
-    // Formato esperado: "2025-01-15T14:30:00.000-06:00" o "2025-01-15T14:30:00Z"
-    // La regex captura HH:MM después de la T, ignorando timezone
-    const timeMatch = event.startTime.match(/T(\d{2}):(\d{2})/)
+    const timeData = extractTimeFromISO(event.startTime)
     
-    if (timeMatch) {
-      let hours = parseInt(timeMatch[1], 10)
-      const minutes = parseInt(timeMatch[2], 10)
-      
-      // HOTFIX TEMPORAL: Detectar y corregir problema de +3 horas después de las 18:00
-      // Este es un parche mientras encontramos la causa raíz
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`⚠️ DEBUG hora extraída: ${hours}:${minutes.toString().padStart(2, '0')}`)
-        
-        // Si detectamos que la hora está mal calculada (ej: 21 cuando debería ser 18)
-        // NO aplicar corrección automática aún, solo detectar
-        if (hours >= 21 && hours <= 23) {
-          console.warn(`🔍 POSIBLE BUG: Hora extraída ${hours} podría estar mal. Verificar TimeAdjuster.`)
-        }
-      }
+    if (timeData) {
+      const { hours, minutes } = timeData
       
       // Validar rangos válidos
       if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
@@ -144,21 +141,34 @@ export function EventBlock({
       // Calcular píxeles basados en la altura por hora
       const pixelsPerMinute = hourHeight / 60
       
-      // Posición exacta basada en minutos
-      const position = Math.round(totalMinutes * pixelsPerMinute)
+      // CORRECCIÓN: Asegurar alineación exacta con las líneas de hora
+      // La posición debe coincidir exactamente con las líneas del grid
+      // IMPORTANTE: NO hay offset porque los eventos están DENTRO del container
+      // que ya está posicionado correctamente después del header
+      const position = totalMinutes * pixelsPerMinute
       
-      // Log para debugging - MEJORADO para detectar problema de 18:00
+      // Log para debugging - ANALIZAR POSICIÓN ACTUAL DE GLOBOS
       if (process.env.NODE_ENV === 'development') {
-        console.log(`EventBlock ${event._id}:`)
-        console.log(`  - ISO String: ${event.startTime}`)
-        console.log(`  - Extracted: ${hours}:${minutes.toString().padStart(2, '0')}`)
-        console.log(`  - Total Minutes: ${totalMinutes}`)
-        console.log(`  - Position: ${position}px`)
-        console.log(`  - Hour Height: ${hourHeight}px`)
+        console.log(`🔥 GLOBO [${event.eventType}] ANÁLISIS:`)
+        console.log(`   📅 ISO: ${event.startTime}`)
+        console.log(`   ⏰ Hora extraída: ${hours}:${minutes.toString().padStart(2, '0')}`)
+        console.log(`   📐 Posición calculada: ${position.toFixed(2)}px`)
+        console.log(`   📏 Esto equivale a hora: ${(position / hourHeight).toFixed(2)} (debería ser ${hours + minutes/60})`)
         
-        // Advertencia especial para horas >= 18
-        if (hours >= 18) {
-          console.warn(`  ⚠️ HORA TARDE (>= 18:00) - Verificar posicionamiento`)
+        // MAPEO INVERSO: ¿A qué hora corresponde esta posición?
+        const equivalentHour = position / hourHeight
+        const realHour = Math.floor(equivalentHour)
+        const realMinutes = Math.round((equivalentHour - realHour) * 60)
+        console.log(`   🎯 GLOBO ESTÁ EN: ${realHour.toString().padStart(2, '0')}:${realMinutes.toString().padStart(2, '0')}`)
+        
+        // VERIFICAR COHERENCIA CON ÁREAS DE FONDO
+        if (event.eventType === 'nap') {
+          const isInDayArea = hours >= 6 && hours < 19
+          console.log(`   🍊 SIESTA (${hours}:${minutes.toString().padStart(2, '0')}): ${isInDayArea ? '✅ CORRECTO - En área amarilla' : '⚠️ PROBLEMA - Fuera de área amarilla'}`)
+        }
+        if (event.eventType === 'sleep') {
+          const isInNightArea = hours < 6 || hours >= 19
+          console.log(`   🟦 DORMIR (${hours}:${minutes.toString().padStart(2, '0')}): ${isInNightArea ? '✅ CORRECTO - En área azul' : '⚠️ PROBLEMA - Fuera de área azul'}`)
         }
       }
       
@@ -174,7 +184,9 @@ export function EventBlock({
       const minutes = eventDate.getMinutes()
       const totalMinutes = hours * 60 + minutes
       const pixelsPerMinute = hourHeight / 60
-      return Math.round(totalMinutes * pixelsPerMinute)
+      
+      // NO usar Math.round() para mantener precisión
+      return totalMinutes * pixelsPerMinute
     } catch (error) {
       console.error('calculateVerticalPosition: error en fallback', error)
       return 0
@@ -185,12 +197,14 @@ export function EventBlock({
   const calculateBlockHeight = () => {
     const duration = calculateEventDuration()
     if (duration > 0) {
-      // Eventos con duración: altura proporcional
+      // Eventos con duración: altura proporcional exacta
       const pixelsPerMinute = hourHeight / 60
-      return Math.max(18, duration * pixelsPerMinute) // Mínimo 18px para mejor visibilidad
+      // Altura exacta basada en duración, con mínimo para visibilidad
+      const calculatedHeight = duration * pixelsPerMinute
+      return Math.max(20, calculatedHeight) // Mínimo 20px para mejor visibilidad
     }
     // Eventos puntuales: altura fija pequeña
-    return 12
+    return 16
   }
 
   // Calcular ancho del bloque - Ahora retorna estilos en línea para ancho fijo
@@ -256,13 +270,23 @@ export function EventBlock({
     return types[event.eventType] || event.eventType
   }
 
-  // Formatear tiempo del evento
+  // Formatear tiempo del evento - USANDO FUNCIÓN CENTRAL
   const formatEventTime = () => {
     try {
       if (!event.startTime || event.startTime === '') return '--:--'
       
+      const startTime = extractTimeFromISO(event.startTime)
+      const endTime = event.endTime ? extractTimeFromISO(event.endTime) : null
+      
+      if (startTime) {
+        if (endTime) {
+          return `${startTime.formatted}-${endTime.formatted}`
+        }
+        return startTime.formatted
+      }
+      
+      // Fallback si regex no funciona
       const start = parseLocalISODate(event.startTime)
-      // Validar que la fecha sea válida antes de formatear
       if (isNaN(start.getTime())) {
         console.error('formatEventTime: fecha de inicio inválida', event.startTime)
         return '--:--'
@@ -271,7 +295,6 @@ export function EventBlock({
       if (event.endTime && event.endTime !== '') {
         const end = parseLocalISODate(event.endTime)
         if (isNaN(end.getTime())) {
-          console.error('formatEventTime: fecha de fin inválida', event.endTime)
           return format(start, "HH:mm")
         }
         return `${format(start, "HH:mm")}-${format(end, "HH:mm")}`
@@ -283,13 +306,23 @@ export function EventBlock({
     }
   }
   
-  // Formatear tiempo compacto para mostrar en el bloque
+  // Formatear tiempo compacto para mostrar en el bloque - USANDO FUNCIÓN CENTRAL
   const formatCompactTime = () => {
     try {
       if (!event.startTime || event.startTime === '') return '--:--'
       
+      const startTime = extractTimeFromISO(event.startTime)
+      const endTime = event.endTime ? extractTimeFromISO(event.endTime) : null
+      
+      if (startTime) {
+        if (endTime) {
+          return `${startTime.formatted}-${endTime.formatted}`
+        }
+        return startTime.formatted
+      }
+      
+      // Fallback si regex no funciona
       const start = parseLocalISODate(event.startTime)
-      // Validar que la fecha sea válida antes de formatear
       if (isNaN(start.getTime())) {
         console.error('formatCompactTime: fecha de inicio inválida', event.startTime)
         return '--:--'
@@ -298,7 +331,6 @@ export function EventBlock({
       if (event.endTime && event.endTime !== '') {
         const end = parseLocalISODate(event.endTime)
         if (isNaN(end.getTime())) {
-          console.error('formatCompactTime: fecha de fin inválida', event.endTime)
           return format(start, "H:mm")
         }
         return `${format(start, "H:mm")}-${format(end, "H:mm")}`
@@ -376,7 +408,9 @@ export function EventBlock({
             // Eventos puntuales o poco espacio
             <span className="flex items-center gap-0.5">
               <span>{getEventTypeName().substring(0, 3)}</span>
-              <span className="opacity-75">{format(parseLocalISODate(event.startTime), "H:mm")}</span>
+              <span className="opacity-75">
+                {extractTimeFromISO(event.startTime)?.formatted || '--:--'}
+              </span>
             </span>
           ) : (
             // Muy poco espacio
