@@ -151,13 +151,21 @@ export function EventBlock({
     return 12
   }
 
-  // Calcular ancho del bloque
-  const calculateBlockWidth = () => {
+  // Calcular ancho del bloque - Ahora retorna estilos en línea para ancho fijo
+  const calculateBlockStyles = () => {
     const duration = calculateEventDuration()
     if (duration > 0) {
-      return 'left-0.5 right-0.5' // Eventos con duración ocupan casi todo el ancho
+      // Eventos con duración: 90% del ancho con margen pequeño
+      return {
+        left: '2px',
+        width: 'calc(100% - 4px)'
+      }
     }
-    return 'left-1 right-1' // Eventos puntuales con margen normal
+    // Eventos puntuales: 85% del ancho con más margen
+    return {
+      left: '4px', 
+      width: 'calc(100% - 8px)'
+    }
   }
 
   // Obtener icono según tipo de evento
@@ -283,7 +291,7 @@ export function EventBlock({
 
   const topPosition = calculateVerticalPosition()
   const blockHeight = calculateBlockHeight()
-  const blockWidth = calculateBlockWidth()
+  const blockStyles = calculateBlockStyles()
   const eventColor = getEventColor()
 
   return (
@@ -293,7 +301,6 @@ export function EventBlock({
         "shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer",
         "group relative",
         eventColor,
-        blockWidth,
         className
       )}
       style={{
@@ -301,7 +308,8 @@ export function EventBlock({
         height: `${blockHeight}px`,
         minHeight: '14px',
         fontSize: '11px',
-        borderWidth: '1.5px'
+        borderWidth: '1.5px',
+        ...blockStyles // Aplicar los estilos de ancho y posición horizontal
       }}
       title={showTooltip ? undefined : `${getEventTypeName()} - ${formatEventTime()}`}
       onClick={(e) => {
