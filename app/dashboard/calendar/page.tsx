@@ -924,6 +924,7 @@ export default function CalendarPage() {
                               isContinuationFromPrevious={session.isContinuationFromPrevious}
                               continuesNextDay={session.continuesNextDay}
                               onClick={() => handleEventClick(session.originalEvent)}
+                              onNightWakingClick={(waking) => handleEventClick(waking)}
                             />
                           ))}
                           
@@ -1058,6 +1059,7 @@ export default function CalendarPage() {
                           isContinuationFromPrevious={session.isContinuationFromPrevious}
                           continuesNextDay={session.continuesNextDay}
                           onClick={() => handleEventClick(session.originalEvent)}
+                          onNightWakingClick={(waking) => handleEventClick(waking)}
                         />
                       ))}
                       

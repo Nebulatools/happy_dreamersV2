@@ -28,6 +28,7 @@ interface SleepSessionBlockProps {
   hourHeight: number
   className?: string
   onClick?: () => void
+  onNightWakingClick?: (waking: Event) => void  // Handler para clicks en despertares nocturnos
   isContinuationFromPrevious?: boolean  // Si es continuación del día anterior
   continuesNextDay?: boolean           // Si continúa al día siguiente
 }
@@ -41,6 +42,7 @@ export function SleepSessionBlock({
   hourHeight,
   className,
   onClick,
+  onNightWakingClick,
   isContinuationFromPrevious = false,
   continuesNextDay = false
 }: SleepSessionBlockProps) {
@@ -125,13 +127,20 @@ export function SleepSessionBlock({
       return (
         <div
           key={waking._id}
-          className="absolute left-2 right-2 bg-red-500/80 text-white rounded px-2 py-1 z-10"
+          className="absolute left-2 right-2 bg-red-500/80 hover:bg-red-600/90 text-white rounded px-2 py-1 z-20 cursor-pointer transition-colors"
           style={{ 
             top: `${relativePosition}px`,
             height: '20px'
           }}
+          onClick={(e) => {
+            e.stopPropagation() // Evitar que el click se propague al contenedor padre
+            if (onNightWakingClick) {
+              onNightWakingClick(waking)
+            }
+          }}
+          title="Click para editar despertar nocturno"
         >
-          <div className="flex items-center gap-1 text-xs">
+          <div className="flex items-center gap-1 text-xs pointer-events-none">
             <AlertCircle className="w-3 h-3" />
             <span>{formatTime(waking.startTime)}</span>
           </div>
