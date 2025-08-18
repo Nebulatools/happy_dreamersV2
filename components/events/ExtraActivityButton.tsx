@@ -73,8 +73,11 @@ export function ExtraActivityButton({
         activityDescription: activityData.activityDescription,
         activityDuration: activityData.activityDuration,
         activityImpact: activityData.activityImpact,
-        activityNotes: activityData.activityNotes,
-        notes: activityData.activityNotes, // Mantener en notes para compatibilidad
+        activityNotes: activityData.activityNotes || '',
+        // El campo notes puede combinar descripción y notas para compatibilidad
+        notes: activityData.activityNotes ? 
+          `${activityData.activityDescription} - ${activityData.activityNotes}` : 
+          activityData.activityDescription,
         description: activityData.activityDescription, // Campo legacy para compatibilidad
         emotionalState: activityData.activityImpact === 'positive' ? 'tranquilo' : 
                         activityData.activityImpact === 'negative' ? 'inquieto' : 'neutral'
@@ -87,7 +90,9 @@ export function ExtraActivityButton({
       })
       
       if (!response.ok) {
-        throw new Error('Error al registrar actividad extra')
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.error || `Error al registrar actividad extra (${response.status})`
+        throw new Error(errorMessage)
       }
       
       // Mostrar confirmación personalizada

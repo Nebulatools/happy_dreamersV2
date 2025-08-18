@@ -144,13 +144,25 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Validación específica para actividades extra - ahora usa notes en lugar de description
-    if (data.eventType === "extra_activities" && (!data.notes || data.notes.length < 10)) {
-      logger.error("Notas requeridas para actividades extra")
-      return NextResponse.json(
-        { error: "Las notas son requeridas para actividades extra (mínimo 10 caracteres)" },
-        { status: 400 }
-      )
+    // Validación específica para actividades extra - valida activityDescription
+    if (data.eventType === "extra_activities") {
+      // activityDescription es requerido
+      if (!data.activityDescription || data.activityDescription.trim().length < 3) {
+        logger.error("Descripción de actividad requerida")
+        return NextResponse.json(
+          { error: "La descripción de la actividad es requerida (mínimo 3 caracteres)" },
+          { status: 400 }
+        )
+      }
+      
+      // activityDuration debe estar en rango apropiado
+      if (data.activityDuration && (data.activityDuration < 5 || data.activityDuration > 180)) {
+        logger.error("Duración de actividad inválida")
+        return NextResponse.json(
+          { error: "La duración de la actividad debe estar entre 5 y 180 minutos" },
+          { status: 400 }
+        )
+      }
     }
 
     // Validaciones específicas para medicamentos

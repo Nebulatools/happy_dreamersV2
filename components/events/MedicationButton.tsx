@@ -86,7 +86,9 @@ export function MedicationButton({
       })
       
       if (!response.ok) {
-        throw new Error('Error al registrar medicamento')
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.error || `Error al registrar medicamento (${response.status})`
+        throw new Error(errorMessage)
       }
       
       // Mostrar confirmación personalizada
