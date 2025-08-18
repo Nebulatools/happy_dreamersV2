@@ -18,36 +18,45 @@
 - **Testing**: ✅ QA completo + Backend validado
 - **Branch Actual**: regevento
 
-## 🌙 Sesión Actual - Despertares Nocturnos v4.2 ✅
+## 🌙 Sesión Actual - Despertares Nocturnos v4.3 ✅
 
-### DESPERTARES NOCTURNOS IMPLEMENTADOS Y VALIDADOS
+### DESPERTARES NOCTURNOS - UX MEJORADA Y BUGS CORREGIDOS
 **Fecha**: Agosto 2025
-**Objetivo**: Implementar registro de despertares nocturnos con lógica opuesta a siestas
+**Objetivo**: Optimizar UX de despertares nocturnos y corregir lógica de sueño
 **Status**: ✅ COMPLETADO Y FUNCIONANDO
 
-#### ✅ Funcionalidades Implementadas
+#### ✅ Mejoras UX Implementadas (v4.3)
 
-**Sistema de Despertares Nocturnos v4.2 (NUEVO)**:
-- ✅ **NightWakingModal.tsx**: Modal para capturar tiempo despierto
-- ✅ **SleepButton.tsx actualizado**: Usa horarios del plan del niño (no hardcodeados)
-- ✅ **Detección inteligente**: Despertar nocturno vs definitivo basado en schedule.wakeTime
-- ✅ **Campo awakeDelay**: Registra cuánto tiempo estuvo despierto
-- ✅ **API backend actualizado**: Cálculo automático de duración con awakeDelay
-- ✅ **Estado night_waking**: Nuevo estado en current-sleep-state API
+**Nuevo Flujo de Despertar Nocturno (1 solo paso)**:
+- ✅ **Botón "DESPERTAR NOCTURNO"**: Texto más claro vs "SE DESPERTÓ"
+- ✅ **Modal inmediato**: Aparece al instante, no requiere esperar
+- ✅ **Registro completo**: Un solo click captura toda la información
+- ✅ **Cálculo inteligente**: startTime = ahora - tiempo despierto
 
-#### 🔄 Flujo de Despertares Nocturnos
+#### 🔧 Bugs Críticos Corregidos
 
-**Durante Sueño Nocturno**:
+**Bug #1: endTime automático incorrecto**:
+- ❌ **Antes**: Calculaba endTime = startTime + sleepDelay (eventos de 15 min)
+- ✅ **Ahora**: Eventos sleep sin endTime hasta despertar definitivo
+- **Resultado**: sleepDelay es solo metadata para estadísticas
+
+**Bug #2: calculateAwakeDuration incorrecto**:
+- ❌ **Antes**: Restaba awakeDelay del total (conceptualmente mal)
+- ✅ **Ahora**: Usa tiempo real entre startTime y endTime
+- **Resultado**: Duración correcta de despertares nocturnos
+
+#### 🔄 Flujo Actualizado de Sueño
+
+**Flujo Nocturno Completo**:
 ```
-20:30 → "SE DURMIÓ" → Modal sleepDelay → Evento sleep (solo startTime)
-02:00 → "SE DESPERTÓ" → Crear night_waking (02:00 < wakeTime)
-02:15 → "SE DURMIÓ" → Modal pregunta tiempo despierto → Actualizar night_waking
-07:30 → "SE DESPERTÓ" → Despertar definitivo (07:30 > wakeTime)
+20:30 → "SE DURMIÓ" → Modal sleepDelay → Evento sleep (solo startTime, sin endTime)
+02:00 → "DESPERTAR NOCTURNO" → Modal inmediato → Evento night_waking completo
+07:30 → "SE DESPERTÓ" → Despertar definitivo → Actualiza endTime de sleep
 ```
 
-**Lógica Opuesta a Siestas**:
-- **Siestas**: Modal ANTES de dormir (sleepDelay)
-- **Nocturnos**: Modal DESPUÉS de volver a dormir (awakeDelay)
+**Lógica de Campos**:
+- **sleepDelay**: Metadata (tiempo para dormirse), NO afecta tiempos
+- **awakeDelay**: Tiempo real despierto, usado para calcular startTime
 
 #### 🔧 Correcciones Aplicadas
 
@@ -61,16 +70,28 @@
 - ✅ Detecta despertar nocturno si hora < wakeTime planificado
 - ✅ Detecta despertar definitivo si hora >= wakeTime planificado
 
-#### 📊 Datos Registrados
+#### 📊 Estructura de Datos Actualizada
 
-**Evento night_waking**:
+**Evento sleep (dormir inicial)**:
+```javascript
+{
+  eventType: "sleep",
+  startTime: "2025-08-18T20:30:00", // Cuando se acostó
+  endTime: null,                    // Sin endTime hasta despertar definitivo
+  sleepDelay: 15,                   // Metadata: minutos para dormirse
+  emotionalState: "tranquilo",
+  notes: "Sin problemas"
+}
+```
+
+**Evento night_waking (despertar nocturno)**:
 ```javascript
 {
   eventType: "night_waking",
-  startTime: "2025-08-15T02:00:00", // Cuando se despertó
-  endTime: "2025-08-15T02:15:00",   // Cuando volvió a dormirse
-  awakeDelay: 15,                   // Minutos que tardó en volverse a dormir
-  duration: 0,                      // Duración calculada (15 - 15 = 0)
+  startTime: "2025-08-19T02:00:00", // Calculado: ahora - awakeDelay
+  endTime: "2025-08-19T02:15:00",   // Ahora (cuando volvió a dormir)
+  awakeDelay: 15,                   // Tiempo real despierto
+  duration: 15,                     // Duración correcta del despertar
   emotionalState: "inquieto",
   notes: "Necesitó consuelo"
 }
@@ -134,6 +155,6 @@
 
 ---
 
-**Commit Hash**: Próximo commit incluirá implementación completa de despertares nocturnos
-**Testing Status**: ✅ Validado en desarrollo con logs exhaustivos
-**Ready for Production**: ✅ Sí, después de commit y push
+**Última Actualización**: Agosto 2025 - v4.3
+**Testing Status**: ✅ Validado - Flujo UX mejorado y bugs críticos corregidos
+**Ready for Production**: ✅ Sí, listo para commit y push

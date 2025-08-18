@@ -11,28 +11,34 @@ import {
 import { Button } from "@/components/ui/button"
 import { Moon, Plus, Minus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toLocalISOString } from '@/lib/date-utils'
+import { useDevTime } from '@/context/dev-time-context'
+import { EventData } from './types'
 
 interface NightWakingModalProps {
   open: boolean
   onClose: () => void
   onConfirm: (awakeDelay: number, emotionalState: string, notes: string) => void
   childName: string
+  childId: string
 }
 
 /**
  * Modal para capturar cuánto tiempo estuvo despierto el niño durante un despertar nocturno
- * Aparece después de que el niño vuelve a dormirse
+ * Aparece inmediatamente cuando se detecta un despertar nocturno para registro completo
  */
 export function NightWakingModal({
   open,
   onClose,
   onConfirm,
-  childName
+  childName,
+  childId
 }: NightWakingModalProps) {
   const [selectedDelay, setSelectedDelay] = useState<number>(15) // Default 15 min
   const [emotionalState, setEmotionalState] = useState<string>('tranquilo')
   const [notes, setNotes] = useState<string>('')
   const [isProcessing, setIsProcessing] = useState(false)
+  const { getCurrentTime } = useDevTime()
 
   // Opciones rápidas predefinidas para despertares nocturnos
   const quickOptions = [5, 15, 30, 45]
@@ -63,7 +69,44 @@ export function NightWakingModal({
 
   const handleConfirm = async () => {
     setIsProcessing(true)
-    await onConfirm(selectedDelay, emotionalState, notes)
+    
+    try {
+      // Calcular startTime y endTime basado en awakeDelay
+      const now = getCurrentTime()
+      const startTime = new Date(now.getTime() - (selectedDelay * 60 * 1000)) // Restar awakeDelay minutos
+      const endTime = now
+      
+      // Crear evento night_waking completo
+      const eventData: Partial<EventData> = {
+        childId,
+        eventType: 'night_waking',
+        startTime: toLocalISOString(startTime),
+        endTime: toLocalISOString(endTime),
+        awakeDelay: selectedDelay,
+        emotionalState,
+        notes,
+        duration: 0 // Será calculado por el backend (endTime - startTime - awakeDelay)
+      }
+      
+      const response = await fetch('/api/children/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventData)
+      })
+      
+      if (!response.ok) {
+        throw new Error('Error al registrar despertar nocturno')
+      }
+      
+      // Llamar al callback original para actualizar la UI
+      await onConfirm(selectedDelay, emotionalState, notes)
+      
+    } catch (error) {
+      console.error('Error creando despertar nocturno:', error)
+      // Si hay error, aún así llamar al callback para que maneje el error
+      await onConfirm(selectedDelay, emotionalState, notes)
+    }
+    
     setIsProcessing(false)
     // Reset para próxima vez
     setSelectedDelay(15)
@@ -71,9 +114,48 @@ export function NightWakingModal({
     setNotes('')
   }
 
-  const handleSkip = () => {
-    // Si omite, usamos valores por defecto (5 minutos)
-    onConfirm(5, 'tranquilo', '')
+  const handleSkip = async () => {
+    setIsProcessing(true)
+    
+    try {
+      // Si omite, usamos valores por defecto (5 minutos, tranquilo, sin notas)
+      const defaultDelay = 5
+      const now = getCurrentTime()
+      const startTime = new Date(now.getTime() - (defaultDelay * 60 * 1000))
+      const endTime = now
+      
+      // Crear evento night_waking con valores por defecto
+      const eventData: Partial<EventData> = {
+        childId,
+        eventType: 'night_waking',
+        startTime: toLocalISOString(startTime),
+        endTime: toLocalISOString(endTime),
+        awakeDelay: defaultDelay,
+        emotionalState: 'tranquilo',
+        notes: '',
+        duration: 0
+      }
+      
+      const response = await fetch('/api/children/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventData)
+      })
+      
+      if (!response.ok) {
+        throw new Error('Error al registrar despertar nocturno')
+      }
+      
+      // Llamar al callback
+      await onConfirm(defaultDelay, 'tranquilo', '')
+      
+    } catch (error) {
+      console.error('Error creando despertar nocturno:', error)
+      // Si hay error, aún así llamar al callback
+      await onConfirm(5, 'tranquilo', '')
+    }
+    
+    setIsProcessing(false)
     // Reset
     setSelectedDelay(15)
     setEmotionalState('tranquilo')

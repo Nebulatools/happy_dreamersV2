@@ -41,10 +41,10 @@ function calculateSleepDuration(startTime: string, endTime: string, sleepDelay: 
 }
 
 /**
- * Calcula la duración real de despertar considerando awakeDelay
+ * Calcula la duración real de despertar nocturno
  * @param startTime - Hora cuando empezó el despertar nocturno (ISO string)
  * @param endTime - Hora cuando volvió a dormirse (ISO string)
- * @param awakeDelay - Tiempo en minutos que tardó en volverse a dormir (default: 0)
+ * @param awakeDelay - Tiempo en minutos que estuvo despierto (metadata informativa)
  * @returns Duración real del despertar en minutos
  */
 function calculateAwakeDuration(startTime: string, endTime: string, awakeDelay: number = 0): number {
@@ -52,16 +52,16 @@ function calculateAwakeDuration(startTime: string, endTime: string, awakeDelay: 
     const start = parseISO(startTime)
     const end = parseISO(endTime)
     
-    // Calcular duración total del despertar
+    // La duración del despertar nocturno es simplemente el tiempo entre startTime y endTime
+    // awakeDelay es información adicional pero no se resta porque ES el tiempo despierto
     const totalMinutes = differenceInMinutes(end, start)
     
-    // Restar el tiempo que tardó en volverse a dormir (máximo 180 minutos = 3 horas)
-    const limitedAwakeDelay = Math.min(Math.max(awakeDelay || 0, 0), 180)
-    const realAwakeDuration = Math.max(0, totalMinutes - limitedAwakeDelay)
+    // Si awakeDelay está presente, usarlo como referencia (pero no para cálculos)
+    if (awakeDelay > 0) {
+      logger.info(`Despertar nocturno: ${totalMinutes}min calculados, ${awakeDelay}min reportados por usuario`)
+    }
     
-    logger.info(`Cálculo de despertar: ${totalMinutes}min total - ${limitedAwakeDelay}min awakeDelay = ${realAwakeDuration}min real`)
-    
-    return realAwakeDuration
+    return totalMinutes
   } catch (error) {
     logger.error("Error calculando duración de despertar:", error)
     return 0
@@ -250,15 +250,10 @@ export async function POST(req: NextRequest) {
       event.startTime = data.startTime
     }
     
-    // Para eventos con sleepDelay, calcular endTime automáticamente
-    if ((data.eventType === "sleep" || data.eventType === "night_waking") && data.sleepDelay && data.sleepDelay > 0 && data.startTime) {
-      // Para sleep: el endTime es cuando finalmente se durmió
-      // Para night_waking: el endTime es cuando volvió a dormirse
-      const startDate = new Date(data.startTime)
-      const endDate = new Date(startDate.getTime() + (data.sleepDelay * 60 * 1000)) // sleepDelay está en minutos
-      event.endTime = endDate.toISOString()
-    } else if (data.endTime) {
-      // Solo agregar endTime si está presente y no es un evento con delay autocalculado
+    // Solo agregar endTime si está presente explícitamente
+    // NO calcular endTime automáticamente basándose en sleepDelay
+    // sleepDelay es solo metadata para estadísticas, no afecta los tiempos
+    if (data.endTime) {
       event.endTime = data.endTime
     }
 
