@@ -65,25 +65,17 @@ export function ExtraActivityButton({
       
       const now = getCurrentTime()
       
-      // Traducir impacto al español
-      const getImpactText = (impact: string) => {
-        switch (impact) {
-          case 'positive': return 'Positivo'
-          case 'negative': return 'Negativo'
-          default: return 'Neutral'
-        }
-      }
-      
-      // Crear evento de actividad extra con todos los datos del modal
+      // Crear evento de actividad extra con todos los datos en campos separados
       const eventData: Partial<EventData> = {
         childId,
         eventType: 'extra_activities',
         startTime: toLocalISOString(now),
-        description: activityData.activityDescription,
-        notes: `Actividad: ${activityData.activityDescription}
-Duración: ${activityData.activityDuration} minutos
-Impacto en el sueño: ${getImpactText(activityData.activityImpact)}
-${activityData.activityNotes ? `Notas: ${activityData.activityNotes}` : ''}`,
+        activityDescription: activityData.activityDescription,
+        activityDuration: activityData.activityDuration,
+        activityImpact: activityData.activityImpact,
+        activityNotes: activityData.activityNotes,
+        notes: activityData.activityNotes, // Mantener en notes para compatibilidad
+        description: activityData.activityDescription, // Campo legacy para compatibilidad
         emotionalState: activityData.activityImpact === 'positive' ? 'tranquilo' : 
                         activityData.activityImpact === 'negative' ? 'inquieto' : 'neutral'
       }

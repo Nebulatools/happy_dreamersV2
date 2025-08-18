@@ -9,6 +9,7 @@ import { toLocalISOString } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { useDevTime } from '@/context/dev-time-context'
 import { MedicationModal } from './MedicationModal'
+import { format } from 'date-fns'
 
 interface MedicationButtonProps {
   childId: string
@@ -65,15 +66,16 @@ export function MedicationButton({
       
       const now = getCurrentTime()
       
-      // Crear evento de medicamento con todos los datos del modal
+      // Crear evento de medicamento con todos los datos en campos separados
       const eventData: Partial<EventData> = {
         childId,
         eventType: 'medication',
         startTime: toLocalISOString(now),
-        notes: `Medicamento: ${medicationData.medicationName}
-Dosis: ${medicationData.medicationDose}
-Hora administrada: ${medicationData.medicationTime}
-${medicationData.medicationNotes ? `Notas: ${medicationData.medicationNotes}` : ''}`,
+        medicationName: medicationData.medicationName,
+        medicationDose: medicationData.medicationDose,
+        medicationTime: medicationData.medicationTime || format(now, 'HH:mm'), // Usar hora actual si no se especifica
+        medicationNotes: medicationData.medicationNotes,
+        notes: medicationData.medicationNotes, // Mantener en notes para compatibilidad
         emotionalState: 'neutral' // Por defecto neutral para medicamento
       }
       

@@ -153,6 +153,27 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Validaciones específicas para medicamentos
+    if (data.eventType === "medication") {
+      // medicationName es requerido
+      if (!data.medicationName || data.medicationName.trim().length < 1) {
+        logger.error("Nombre del medicamento requerido")
+        return NextResponse.json(
+          { error: "El nombre del medicamento es requerido" },
+          { status: 400 }
+        )
+      }
+      
+      // medicationDose es requerido
+      if (!data.medicationDose || data.medicationDose.trim().length < 1) {
+        logger.error("Dosis del medicamento requerida")
+        return NextResponse.json(
+          { error: "La dosis del medicamento es requerida" },
+          { status: 400 }
+        )
+      }
+    }
+    
     // Validaciones específicas para eventos de alimentación
     if (data.eventType === "feeding") {
       // feedingType es requerido
@@ -243,6 +264,22 @@ export async function POST(req: NextRequest) {
       event.feedingDuration = data.feedingDuration
       event.babyState = data.babyState
       event.feedingNotes = data.feedingNotes || ""
+    }
+    
+    // Agregar campos específicos de medicamentos si aplica
+    if (data.eventType === "medication") {
+      event.medicationName = data.medicationName || ""
+      event.medicationDose = data.medicationDose || ""
+      event.medicationTime = data.medicationTime || data.startTime // Usar medicationTime o startTime como fallback
+      event.medicationNotes = data.medicationNotes || ""
+    }
+    
+    // Agregar campos específicos de actividad extra si aplica
+    if (data.eventType === "extra_activities") {
+      event.activityDescription = data.activityDescription || data.description || ""
+      event.activityDuration = data.activityDuration || null
+      event.activityImpact = data.activityImpact || "neutral"
+      event.activityNotes = data.activityNotes || ""
     }
     
     // Solo agregar startTime si está presente
