@@ -1,74 +1,91 @@
 "use client"
 
 import React, { useState } from 'react'
-import { Baby, Loader2 } from 'lucide-react'
+import { Activity, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { EventData, FeedingModalData } from './types'
+import { EventData } from './types'
 import { toLocalISOString } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { useDevTime } from '@/context/dev-time-context'
-import { FeedingModal } from './FeedingModal'
+import { ExtraActivityModal } from './ExtraActivityModal'
 
-interface FeedingButtonProps {
+interface ExtraActivityButtonProps {
   childId: string
   childName: string
   onEventRegistered?: () => void
 }
 
+interface ExtraActivityModalData {
+  activityDescription: string
+  activityDuration: number // en minutos
+  activityImpact: 'positive' | 'neutral' | 'negative'
+  activityNotes: string
+}
+
 /**
- * Botón para registrar eventos de alimentación
+ * Botón para registrar eventos de actividad extra
  * VERSION 1.0 - Registro directo con modal
  * 
  * LÓGICA DE EVENTOS:
- * - ALIMENTACIÓN: Modal PRIMERO → Confirmar datos → ENTONCES crear evento
+ * - ACTIVIDAD EXTRA: Modal PRIMERO → Confirmar datos → ENTONCES crear evento
  * - CANCELAR MODAL: NO crea evento (operación cancelada)
  * 
  * FLUJO:
- * 1. Click "ALIMENTACIÓN" → Modal FeedingModal
+ * 1. Click "ACTIVIDAD" → Modal ExtraActivityModal
  * 2. Confirmar datos → Crear evento con todos los detalles
  * 3. Cerrar modal → NO crear evento
  */
-export function FeedingButton({ 
+export function ExtraActivityButton({ 
   childId, 
   childName,
   onEventRegistered 
-}: FeedingButtonProps) {
+}: ExtraActivityButtonProps) {
   const { toast } = useToast()
   const [isProcessing, setIsProcessing] = useState(false)
   const { getCurrentTime } = useDevTime()
-  const [showFeedingModal, setShowFeedingModal] = useState(false)
+  const [showActivityModal, setShowActivityModal] = useState(false)
   
   // Configuración del botón
   const getButtonConfig = () => {
     return {
-      text: 'ALIMENTACIÓN',
-      icon: Baby,
-      color: 'from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600'
+      text: 'ACTIVIDAD',
+      icon: Activity,
+      color: 'from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700'
     }
   }
   
   const config = getButtonConfig()
   const Icon = config.icon
   
-  // Manejar confirmación del modal de alimentación
-  const handleFeedingConfirm = async (feedingData: FeedingModalData) => {
+  // Manejar confirmación del modal de actividad extra
+  const handleActivityConfirm = async (activityData: ExtraActivityModalData) => {
     try {
       setIsProcessing(true)
       
       const now = getCurrentTime()
       
-      // Crear evento de alimentación con todos los datos del modal
+      // Traducir impacto al español
+      const getImpactText = (impact: string) => {
+        switch (impact) {
+          case 'positive': return 'Positivo'
+          case 'negative': return 'Negativo'
+          default: return 'Neutral'
+        }
+      }
+      
+      // Crear evento de actividad extra con todos los datos del modal
       const eventData: Partial<EventData> = {
         childId,
-        eventType: 'feeding',
+        eventType: 'extra_activities',
         startTime: toLocalISOString(now),
-        feedingType: feedingData.feedingType,
-        feedingAmount: feedingData.feedingAmount,
-        feedingDuration: feedingData.feedingDuration,
-        babyState: feedingData.babyState,
-        feedingNotes: feedingData.feedingNotes,
-        emotionalState: 'neutral' // Por defecto neutral para alimentación
+        description: activityData.activityDescription,
+        notes: `Actividad: ${activityData.activityDescription}
+Duración: ${activityData.activityDuration} minutos
+Impacto en el sueño: ${getImpactText(activityData.activityImpact)}
+${activityData.activityNotes ? `Notas: ${activityData.activityNotes}` : ''}`,
+        emotionalState: activityData.activityImpact === 'positive' ? 'tranquilo' : 
+                        activityData.activityImpact === 'negative' ? 'inquieto' : 'neutral'
       }
       
       const response = await fetch('/api/children/events', {
@@ -78,45 +95,26 @@ export function FeedingButton({
       })
       
       if (!response.ok) {
-        throw new Error('Error al registrar evento de alimentación')
-      }
-      
-      // Preparar mensaje personalizado según tipo
-      const getTypeText = (type: string) => {
-        switch (type) {
-          case 'breast': return 'pecho'
-          case 'bottle': return 'biberón'
-          case 'solids': return 'sólidos'
-          default: return 'alimentación'
-        }
-      }
-      
-      const getAmountText = (type: string, amount: number, duration: number) => {
-        if (type === 'breast') {
-          return `${amount} minutos`
-        } else {
-          const unit = type === 'bottle' ? 'ml' : 'gr'
-          return `${amount} ${unit} en ${duration} min`
-        }
+        throw new Error('Error al registrar actividad extra')
       }
       
       // Mostrar confirmación personalizada
       toast({
-        title: "Alimentación registrada",
-        description: `${childName}: ${getTypeText(feedingData.feedingType)} - ${getAmountText(feedingData.feedingType, feedingData.feedingAmount, feedingData.feedingDuration)}`
+        title: "Actividad registrada",
+        description: `${childName}: ${activityData.activityDescription} (${activityData.activityDuration} min)`
       })
       
       // Cerrar modal y limpiar
-      setShowFeedingModal(false)
+      setShowActivityModal(false)
       
       // Notificar al padre para actualizar datos
       onEventRegistered?.()
       
     } catch (error) {
-      console.error('Error registrando alimentación:', error)
+      console.error('Error registrando actividad extra:', error)
       toast({
         title: "Error",
-        description: "No se pudo registrar la alimentación",
+        description: "No se pudo registrar la actividad",
         variant: "destructive"
       })
     } finally {
@@ -127,14 +125,14 @@ export function FeedingButton({
   // Manejar cuando se cierra el modal sin confirmar
   const handleModalClose = () => {
     // NO crear evento - simplemente cancelar la operación
-    setShowFeedingModal(false)
+    setShowActivityModal(false)
     setIsProcessing(false)
   }
   
   // Manejar click del botón
   const handleClick = async () => {
     // Mostrar modal directamente
-    setShowFeedingModal(true)
+    setShowActivityModal(true)
   }
   
   return (
@@ -158,11 +156,11 @@ export function FeedingButton({
         <span className="text-xs">{config.text}</span>
       </Button>
       
-      {/* Modal para capturar datos de alimentación */}
-      <FeedingModal
-        open={showFeedingModal}
+      {/* Modal para capturar datos de la actividad extra */}
+      <ExtraActivityModal
+        open={showActivityModal}
         onClose={handleModalClose}
-        onConfirm={handleFeedingConfirm}
+        onConfirm={handleActivityConfirm}
         childName={childName}
       />
     </div>

@@ -62,6 +62,9 @@
     --color-nap: 37 90% 56%;               /* #F5A623 - Siesta */
     --color-wake: 48 100% 50%;             /* #FFD700 - Despertar matutino (amarillo sol) */
     --color-night-wake: 358 100% 78%;     /* #FF9194 - Despertar nocturno */
+    --color-feeding: 120 50% 50%;          /* #40BF40 - Alimentación (verde) */
+    --color-medication: 285 60% 65%;       /* #BF73DF - Medicamentos (púrpura) */
+    --color-extra-activity: 180 60% 50%;   /* #33CCCC - Actividad Extra (turquesa) */
     
     /* Colores principales Figma */
     --color-blue-primary: 218 56% 40%;     /* #2553A1 */
@@ -253,6 +256,18 @@
     background-color: hsl(var(--color-night-wake));
   }
   
+  .bg-feeding {
+    background-color: hsl(var(--color-feeding));
+  }
+  
+  .bg-medication {
+    background-color: hsl(var(--color-medication));
+  }
+  
+  .bg-extra-activity {
+    background-color: hsl(var(--color-extra-activity));
+  }
+  
   /* Event type colors with opacity */
   .bg-sleep\/10 {
     background-color: hsl(var(--color-sleep) / 0.1);
@@ -270,6 +285,18 @@
     background-color: hsl(var(--color-night-wake) / 0.1);
   }
   
+  .bg-feeding\/10 {
+    background-color: hsl(var(--color-feeding) / 0.1);
+  }
+  
+  .bg-medication\/10 {
+    background-color: hsl(var(--color-medication) / 0.1);
+  }
+  
+  .bg-extra-activity\/10 {
+    background-color: hsl(var(--color-extra-activity) / 0.1);
+  }
+  
   /* Event type border colors */
   .border-sleep {
     border-color: hsl(var(--color-sleep));
@@ -285,6 +312,18 @@
   
   .border-night-wake {
     border-color: hsl(var(--color-night-wake));
+  }
+  
+  .border-feeding {
+    border-color: hsl(var(--color-feeding));
+  }
+  
+  .border-medication {
+    border-color: hsl(var(--color-medication));
+  }
+  
+  .border-extra-activity {
+    border-color: hsl(var(--color-extra-activity));
   }
   
   /* Event pills */

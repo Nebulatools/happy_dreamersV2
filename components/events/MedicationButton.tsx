@@ -1,74 +1,80 @@
 "use client"
 
 import React, { useState } from 'react'
-import { Baby, Loader2 } from 'lucide-react'
+import { Pill, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { EventData, FeedingModalData } from './types'
+import { EventData } from './types'
 import { toLocalISOString } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { useDevTime } from '@/context/dev-time-context'
-import { FeedingModal } from './FeedingModal'
+import { MedicationModal } from './MedicationModal'
 
-interface FeedingButtonProps {
+interface MedicationButtonProps {
   childId: string
   childName: string
   onEventRegistered?: () => void
 }
 
+interface MedicationModalData {
+  medicationName: string
+  medicationDose: string
+  medicationTime: string
+  medicationNotes: string
+}
+
 /**
- * Botón para registrar eventos de alimentación
+ * Botón para registrar eventos de medicamentos
  * VERSION 1.0 - Registro directo con modal
  * 
  * LÓGICA DE EVENTOS:
- * - ALIMENTACIÓN: Modal PRIMERO → Confirmar datos → ENTONCES crear evento
+ * - MEDICAMENTO: Modal PRIMERO → Confirmar datos → ENTONCES crear evento
  * - CANCELAR MODAL: NO crea evento (operación cancelada)
  * 
  * FLUJO:
- * 1. Click "ALIMENTACIÓN" → Modal FeedingModal
+ * 1. Click "MEDICAMENTO" → Modal MedicationModal
  * 2. Confirmar datos → Crear evento con todos los detalles
  * 3. Cerrar modal → NO crear evento
  */
-export function FeedingButton({ 
+export function MedicationButton({ 
   childId, 
   childName,
   onEventRegistered 
-}: FeedingButtonProps) {
+}: MedicationButtonProps) {
   const { toast } = useToast()
   const [isProcessing, setIsProcessing] = useState(false)
   const { getCurrentTime } = useDevTime()
-  const [showFeedingModal, setShowFeedingModal] = useState(false)
+  const [showMedicationModal, setShowMedicationModal] = useState(false)
   
   // Configuración del botón
   const getButtonConfig = () => {
     return {
-      text: 'ALIMENTACIÓN',
-      icon: Baby,
-      color: 'from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600'
+      text: 'MEDICAMENTO',
+      icon: Pill,
+      color: 'from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700'
     }
   }
   
   const config = getButtonConfig()
   const Icon = config.icon
   
-  // Manejar confirmación del modal de alimentación
-  const handleFeedingConfirm = async (feedingData: FeedingModalData) => {
+  // Manejar confirmación del modal de medicamento
+  const handleMedicationConfirm = async (medicationData: MedicationModalData) => {
     try {
       setIsProcessing(true)
       
       const now = getCurrentTime()
       
-      // Crear evento de alimentación con todos los datos del modal
+      // Crear evento de medicamento con todos los datos del modal
       const eventData: Partial<EventData> = {
         childId,
-        eventType: 'feeding',
+        eventType: 'medication',
         startTime: toLocalISOString(now),
-        feedingType: feedingData.feedingType,
-        feedingAmount: feedingData.feedingAmount,
-        feedingDuration: feedingData.feedingDuration,
-        babyState: feedingData.babyState,
-        feedingNotes: feedingData.feedingNotes,
-        emotionalState: 'neutral' // Por defecto neutral para alimentación
+        notes: `Medicamento: ${medicationData.medicationName}
+Dosis: ${medicationData.medicationDose}
+Hora administrada: ${medicationData.medicationTime}
+${medicationData.medicationNotes ? `Notas: ${medicationData.medicationNotes}` : ''}`,
+        emotionalState: 'neutral' // Por defecto neutral para medicamento
       }
       
       const response = await fetch('/api/children/events', {
@@ -78,45 +84,26 @@ export function FeedingButton({
       })
       
       if (!response.ok) {
-        throw new Error('Error al registrar evento de alimentación')
-      }
-      
-      // Preparar mensaje personalizado según tipo
-      const getTypeText = (type: string) => {
-        switch (type) {
-          case 'breast': return 'pecho'
-          case 'bottle': return 'biberón'
-          case 'solids': return 'sólidos'
-          default: return 'alimentación'
-        }
-      }
-      
-      const getAmountText = (type: string, amount: number, duration: number) => {
-        if (type === 'breast') {
-          return `${amount} minutos`
-        } else {
-          const unit = type === 'bottle' ? 'ml' : 'gr'
-          return `${amount} ${unit} en ${duration} min`
-        }
+        throw new Error('Error al registrar medicamento')
       }
       
       // Mostrar confirmación personalizada
       toast({
-        title: "Alimentación registrada",
-        description: `${childName}: ${getTypeText(feedingData.feedingType)} - ${getAmountText(feedingData.feedingType, feedingData.feedingAmount, feedingData.feedingDuration)}`
+        title: "Medicamento registrado",
+        description: `${childName}: ${medicationData.medicationName} - ${medicationData.medicationDose}`
       })
       
       // Cerrar modal y limpiar
-      setShowFeedingModal(false)
+      setShowMedicationModal(false)
       
       // Notificar al padre para actualizar datos
       onEventRegistered?.()
       
     } catch (error) {
-      console.error('Error registrando alimentación:', error)
+      console.error('Error registrando medicamento:', error)
       toast({
         title: "Error",
-        description: "No se pudo registrar la alimentación",
+        description: "No se pudo registrar el medicamento",
         variant: "destructive"
       })
     } finally {
@@ -127,14 +114,14 @@ export function FeedingButton({
   // Manejar cuando se cierra el modal sin confirmar
   const handleModalClose = () => {
     // NO crear evento - simplemente cancelar la operación
-    setShowFeedingModal(false)
+    setShowMedicationModal(false)
     setIsProcessing(false)
   }
   
   // Manejar click del botón
   const handleClick = async () => {
     // Mostrar modal directamente
-    setShowFeedingModal(true)
+    setShowMedicationModal(true)
   }
   
   return (
@@ -158,11 +145,11 @@ export function FeedingButton({
         <span className="text-xs">{config.text}</span>
       </Button>
       
-      {/* Modal para capturar datos de alimentación */}
-      <FeedingModal
-        open={showFeedingModal}
+      {/* Modal para capturar datos del medicamento */}
+      <MedicationModal
+        open={showMedicationModal}
         onClose={handleModalClose}
-        onConfirm={handleFeedingConfirm}
+        onConfirm={handleMedicationConfirm}
         childName={childName}
       />
     </div>
