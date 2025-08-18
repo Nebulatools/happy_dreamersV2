@@ -22,23 +22,36 @@ interface Event {
 interface SleepSessionBlockProps {
   startTime: string
   endTime?: string
+  originalStartTime?: string  // Tiempo original del evento completo
+  originalEndTime?: string    // Tiempo original del evento completo
   nightWakings: Event[]
   hourHeight: number
   className?: string
   onClick?: () => void
+  isContinuationFromPrevious?: boolean  // Si es continuación del día anterior
+  continuesNextDay?: boolean           // Si continúa al día siguiente
 }
 
 export function SleepSessionBlock({ 
   startTime, 
   endTime,
+  originalStartTime,
+  originalEndTime,
   nightWakings,
   hourHeight,
   className,
-  onClick
+  onClick,
+  isContinuationFromPrevious = false,
+  continuesNextDay = false
 }: SleepSessionBlockProps) {
   
   // Calcular posición vertical según la hora de inicio
   const calculateStartPosition = () => {
+    // Si es continuación del día anterior, empieza desde el top
+    if (isContinuationFromPrevious) {
+      return 0
+    }
+    
     const timeMatch = startTime.match(/T(\d{2}):(\d{2})/)
     if (timeMatch) {
       const hours = parseInt(timeMatch[1], 10)
@@ -52,6 +65,16 @@ export function SleepSessionBlock({
   
   // Calcular altura del bloque
   const calculateBlockHeight = () => {
+    // Si continúa al día siguiente, extender hasta el final del día
+    if (continuesNextDay) {
+      // Calcular desde el inicio hasta las 24:00
+      const startHour = isContinuationFromPrevious ? 0 : parseInt(startTime.match(/T(\d{2}):/)?.[1] || '0')
+      const startMinute = isContinuationFromPrevious ? 0 : parseInt(startTime.match(/T(\d{2}):(\d{2})/)?.[2] || '0')
+      const minutesUntilMidnight = (24 * 60) - (startHour * 60 + startMinute)
+      const pixelsPerMinute = hourHeight / 60
+      return Math.max(20, minutesUntilMidnight * pixelsPerMinute)
+    }
+    
     if (!endTime) {
       // Sueño en progreso: altura fija con fade
       // Mostrar hasta el final del día actual o una altura por defecto
@@ -165,7 +188,10 @@ export function SleepSessionBlock({
   return (
     <div
       className={cn(
-        "absolute left-2 right-2 rounded-lg cursor-pointer border border-white/10 backdrop-blur-sm",
+        "absolute left-2 right-2 cursor-pointer border border-white/10 backdrop-blur-sm",
+        !isContinuationFromPrevious && !continuesNextDay && "rounded-lg",
+        isContinuationFromPrevious && !continuesNextDay && "rounded-b-lg",
+        !isContinuationFromPrevious && continuesNextDay && "rounded-t-lg",
         className
       )}
       style={{ 
@@ -175,21 +201,45 @@ export function SleepSessionBlock({
       }}
       onClick={onClick}
     >
-      {/* Indicador de inicio */}
-      <div className="absolute top-2 left-2 flex items-center gap-1">
-        <Moon className="w-3 h-3 text-blue-600" />
-        <span className="text-xs font-medium text-blue-700">
-          {formatTime(startTime)}
-        </span>
-      </div>
+      {/* Indicador de continuación desde día anterior */}
+      {isContinuationFromPrevious && (
+        <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-blue-500/40 to-transparent flex items-center justify-center">
+          <div className="text-xs text-blue-700 font-medium flex items-center gap-1">
+            <span>↑</span>
+            <span>Continúa desde ayer</span>
+          </div>
+        </div>
+      )}
       
-      {/* Indicador de fin */}
-      <div className="absolute bottom-2 right-2 flex items-center gap-1">
-        <Sun className="w-3 h-3 text-yellow-600" />
-        <span className="text-xs font-medium text-yellow-700">
-          {formatTime(endTime)}
-        </span>
-      </div>
+      {/* Indicador de inicio (solo si no es continuación) */}
+      {!isContinuationFromPrevious && (
+        <div className="absolute top-2 left-2 flex items-center gap-1">
+          <Moon className="w-3 h-3 text-blue-600" />
+          <span className="text-xs font-medium text-blue-700">
+            {formatTime(originalStartTime || startTime)}
+          </span>
+        </div>
+      )}
+      
+      {/* Indicador de fin (solo si no continúa al día siguiente) */}
+      {!continuesNextDay && endTime && (
+        <div className="absolute bottom-2 right-2 flex items-center gap-1">
+          <Sun className="w-3 h-3 text-yellow-600" />
+          <span className="text-xs font-medium text-yellow-700">
+            {formatTime(originalEndTime || endTime)}
+          </span>
+        </div>
+      )}
+      
+      {/* Indicador de continuación al día siguiente */}
+      {continuesNextDay && (
+        <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-yellow-500/40 to-transparent flex items-center justify-center">
+          <div className="text-xs text-yellow-700 font-medium flex items-center gap-1">
+            <span>Continúa mañana</span>
+            <span>↓</span>
+          </div>
+        </div>
+      )}
       
       {/* Despertares nocturnos */}
       {renderNightWakings()}

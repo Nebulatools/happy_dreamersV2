@@ -403,13 +403,43 @@ export default function CalendarPage() {
 
   const getEventsForDay = (day: Date) => {
     const dayStr = format(day, "yyyy-MM-dd")
+    const dayStart = startOfDay(day)
+    const dayEnd = endOfDay(day)
+    
     const dayEvents = events.filter(event => {
       // Validar que el evento tenga startTime y no sea vacío
       if (!event.startTime || event.startTime === '') {
         console.warn('Evento sin startTime válido, omitiendo:', event)
         return false
       }
-      return event.startTime.startsWith(dayStr)
+      
+      const eventStart = new Date(event.startTime)
+      const eventEnd = event.endTime ? new Date(event.endTime) : null
+      
+      // Incluir evento si:
+      // 1. Empieza en este día
+      if (event.startTime.startsWith(dayStr)) {
+        return true
+      }
+      
+      // 2. Termina en este día (pero empezó antes)
+      if (eventEnd && format(eventEnd, "yyyy-MM-dd") === dayStr) {
+        return true
+      }
+      
+      // 3. Cruza este día (empezó antes y termina después o no ha terminado)
+      if (eventStart < dayStart) {
+        // Si no tiene fin, incluir si es un evento de sueño activo
+        if (!eventEnd && event.eventType === 'sleep') {
+          return true
+        }
+        // Si tiene fin, incluir si el fin es después del inicio del día
+        if (eventEnd && eventEnd > dayStart) {
+          return true
+        }
+      }
+      
+      return false
     })
     
     // CRÍTICO: Ordenar eventos por startTime para posicionamiento consistente
@@ -615,14 +645,47 @@ export default function CalendarPage() {
   }
 
   // Procesar eventos de sueño para crear sesiones continuas
-  const processSleepSessions = (dayEvents: Event[]) => {
+  // Ahora maneja eventos que cruzan días
+  const processSleepSessions = (dayEvents: Event[], currentDay?: Date) => {
     const sessions: any[] = []
     const processedEventIds = new Set<string>()
+    
+    // Si tenemos el día actual, podemos determinar qué parte del evento mostrar
+    const dayStart = currentDay ? startOfDay(currentDay) : null
+    const dayEnd = currentDay ? endOfDay(currentDay) : null
     
     // Buscar eventos sleep
     dayEvents.forEach(event => {
       if (event.eventType === 'sleep' && !processedEventIds.has(event._id)) {
         processedEventIds.add(event._id)
+        
+        // Determinar los tiempos de inicio y fin para esta sesión
+        let sessionStartTime = event.startTime
+        let sessionEndTime = event.endTime
+        let isContinuationFromPrevious = false
+        let continuesNextDay = false
+        
+        if (dayStart && dayEnd) {
+          const eventStart = new Date(event.startTime)
+          const eventEnd = event.endTime ? new Date(event.endTime) : null
+          
+          // Si el evento empieza antes del día actual, ajustar inicio
+          if (eventStart < dayStart) {
+            sessionStartTime = dayStart.toISOString()
+            isContinuationFromPrevious = true
+          }
+          
+          // Si el evento termina después del día actual, ajustar fin
+          if (eventEnd && eventEnd > dayEnd) {
+            sessionEndTime = dayEnd.toISOString()
+            continuesNextDay = true
+          }
+          
+          // Si el evento no tiene fin y empezó antes, es una sesión en progreso
+          if (!eventEnd && eventStart < dayStart) {
+            isContinuationFromPrevious = true
+          }
+        }
         
         // Buscar despertares nocturnos dentro del rango de sueño
         const nightWakings = dayEvents.filter(e => 
@@ -645,13 +708,17 @@ export default function CalendarPage() {
           }
         }
         
-        // Crear sesión de sueño
+        // Crear sesión de sueño con metadata sobre continuación
         sessions.push({
           type: 'sleep-session',
-          startTime: event.startTime,
-          endTime: event.endTime,
+          startTime: sessionStartTime,
+          endTime: sessionEndTime,
+          originalStartTime: event.startTime, // Tiempo original completo
+          originalEndTime: event.endTime, // Tiempo original completo
           nightWakings: nightWakings,
-          originalEvent: event
+          originalEvent: event,
+          isContinuationFromPrevious,
+          continuesNextDay
         })
       }
     })
@@ -840,7 +907,7 @@ export default function CalendarPage() {
                     
                     {/* Process and render sleep sessions and other events */}
                     {(() => {
-                      const { sessions, otherEvents } = processSleepSessions(dayEvents)
+                      const { sessions, otherEvents } = processSleepSessions(dayEvents, day)
                       
                       return (
                         <>
@@ -850,8 +917,12 @@ export default function CalendarPage() {
                               key={`session-${idx}`}
                               startTime={session.startTime}
                               endTime={session.endTime}
+                              originalStartTime={session.originalStartTime}
+                              originalEndTime={session.originalEndTime}
                               nightWakings={session.nightWakings}
                               hourHeight={hourHeight}
+                              isContinuationFromPrevious={session.isContinuationFromPrevious}
+                              continuesNextDay={session.continuesNextDay}
                               onClick={() => handleEventClick(session.originalEvent)}
                             />
                           ))}
@@ -970,7 +1041,7 @@ export default function CalendarPage() {
                 
                 {/* Process and render sleep sessions and other events */}
                 {(() => {
-                  const { sessions, otherEvents } = processSleepSessions(dayEvents)
+                  const { sessions, otherEvents } = processSleepSessions(dayEvents, date)
                   
                   return (
                     <>
@@ -980,8 +1051,12 @@ export default function CalendarPage() {
                           key={`session-${idx}`}
                           startTime={session.startTime}
                           endTime={session.endTime}
+                          originalStartTime={session.originalStartTime}
+                          originalEndTime={session.originalEndTime}
                           nightWakings={session.nightWakings}
                           hourHeight={hourHeight}
+                          isContinuationFromPrevious={session.isContinuationFromPrevious}
+                          continuesNextDay={session.continuesNextDay}
                           onClick={() => handleEventClick(session.originalEvent)}
                         />
                       ))}
