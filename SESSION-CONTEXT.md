@@ -1,5 +1,5 @@
 # Session Context - Happy Dreamers 🌙
-*Última actualización: Agosto 2025*
+*Última actualización: Enero 2025*
 
 ## 🎯 Estado Actual del Sistema
 
@@ -14,15 +14,54 @@
 
 ### Estado de Producción
 - **Build Status**: ✅ Sin errores TypeScript
-- **Features**: Sistema de eventos v4.2 con despertares nocturnos
-- **Testing**: ✅ QA completo + Backend validado
+- **Features**: Sistema de eventos v4.4 con visualización mejorada
+- **Testing**: ✅ QA completo + Calendario visual validado
 - **Branch Actual**: regevento
 
-## 🌙 Sesión Actual - Despertares Nocturnos v4.3 ✅
+## 📊 Sesión Actual - Visualización Calendario v4.4 ✅
 
-### DESPERTARES NOCTURNOS - UX MEJORADA Y BUGS CORREGIDOS
-**Fecha**: Agosto 2025
-**Objetivo**: Optimizar UX de despertares nocturnos y corregir lógica de sueño
+### MEJORAS VISUALES DEL CALENDARIO DE SUEÑO
+**Fecha**: Enero 2025
+**Objetivo**: Mejorar visualización de sesiones de sueño y eventos cross-day
+**Status**: ✅ COMPLETADO Y FUNCIONANDO
+
+#### 🎨 Nueva Visualización de Sesiones de Sueño
+
+**Componente SleepSessionBlock**:
+- ✅ **Gradiente visual**: Azul (inicio) → Amarillo (despertar)
+- ✅ **Sesión continua**: Un solo bloque en lugar de eventos separados
+- ✅ **Sueño en progreso**: Animación fade cuando no ha terminado
+- ✅ **Duración total**: Mostrada de forma compacta al despertar
+
+#### 🌙 Soporte para Eventos Cross-Day (Cruzan Medianoche)
+
+**Eventos que cruzan días**:
+- ✅ **Detección inteligente**: getEventsForDay incluye eventos parciales
+- ✅ **División visual**: Parte en día 1, continuación en día 2
+- ✅ **Indicadores visuales**: "↑ Continúa desde ayer" y "Continúa mañana ↓"
+- ✅ **Duración total**: Solo en el día donde termina el sueño
+
+**Lógica processSleepSessions mejorada**:
+```javascript
+// Detecta eventos cross-day y crea metadata
+{
+  startTime: ajustado al día,      // Porción visible
+  originalStartTime: completo,      // Tiempo real de inicio
+  isContinuationFromPrevious: true, // Si viene del día anterior
+  continuesNextDay: true            // Si continúa al siguiente
+}
+```
+
+#### 📋 Archivos Modificados
+
+**Componentes**:
+- `/components/calendar/SleepSessionBlock.tsx` - Nuevo componente con gradientes
+- `/components/calendar/index.ts` - Exportación del nuevo componente
+
+**Páginas**:
+- `/app/dashboard/calendar/page.tsx` - Lógica cross-day y procesamiento
+
+### DESPERTARES NOCTURNOS v4.3 (Sesión Anterior)
 **Status**: ✅ COMPLETADO Y FUNCIONANDO
 
 #### ✅ Mejoras UX Implementadas (v4.3)
