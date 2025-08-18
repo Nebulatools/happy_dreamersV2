@@ -35,7 +35,8 @@ import {
   CompactTimelineColumn, 
   EventBlock, 
   CompactEventBlock,
-  MonthLineChart
+  MonthLineChart,
+  SleepSessionBlock
 } from "@/components/calendar"
 import {
   Dialog,
@@ -613,6 +614,54 @@ export default function CalendarPage() {
     }
   }
 
+  // Procesar eventos de sueño para crear sesiones continuas
+  const processSleepSessions = (dayEvents: Event[]) => {
+    const sessions: any[] = []
+    const processedEventIds = new Set<string>()
+    
+    // Buscar eventos sleep
+    dayEvents.forEach(event => {
+      if (event.eventType === 'sleep' && !processedEventIds.has(event._id)) {
+        processedEventIds.add(event._id)
+        
+        // Buscar despertares nocturnos dentro del rango de sueño
+        const nightWakings = dayEvents.filter(e => 
+          e.eventType === 'night_waking' && 
+          e.startTime > event.startTime &&
+          (!event.endTime || e.startTime < event.endTime)
+        )
+        
+        // Marcar night_wakings como procesados
+        nightWakings.forEach(nw => processedEventIds.add(nw._id))
+        
+        // Si hay endTime, buscar evento wake correspondiente y marcarlo como procesado
+        if (event.endTime) {
+          const wakeEvent = dayEvents.find(e => 
+            e.eventType === 'wake' && 
+            Math.abs(new Date(e.startTime).getTime() - new Date(event.endTime!).getTime()) < 60000 // Dentro de 1 minuto
+          )
+          if (wakeEvent) {
+            processedEventIds.add(wakeEvent._id)
+          }
+        }
+        
+        // Crear sesión de sueño
+        sessions.push({
+          type: 'sleep-session',
+          startTime: event.startTime,
+          endTime: event.endTime,
+          nightWakings: nightWakings,
+          originalEvent: event
+        })
+      }
+    })
+    
+    // Agregar eventos no procesados (que no son sleep/wake/night_waking o que no fueron emparejados)
+    const otherEvents = dayEvents.filter(e => !processedEventIds.has(e._id) && e.eventType !== 'wake')
+    
+    return { sessions, otherEvents }
+  }
+
   const renderMonthLineView = () => {
     return (
       <div className="h-full flex flex-col">
@@ -789,18 +838,39 @@ export default function CalendarPage() {
                       </div>
                     ))}
                     
-                    {/* Events positioned absolutely */}
-                    {dayEvents.map((event) => (
-                      <EventBlock
-                        key={event._id}
-                        event={event}
-                        hourHeight={hourHeight}
-                        showTooltip={true}
-                        onClick={(clickedEvent) => {
-                          handleEventClick(clickedEvent)
-                        }}
-                      />
-                    ))}
+                    {/* Process and render sleep sessions and other events */}
+                    {(() => {
+                      const { sessions, otherEvents } = processSleepSessions(dayEvents)
+                      
+                      return (
+                        <>
+                          {/* Render sleep sessions first (lower z-index) */}
+                          {sessions.map((session, idx) => (
+                            <SleepSessionBlock
+                              key={`session-${idx}`}
+                              startTime={session.startTime}
+                              endTime={session.endTime}
+                              nightWakings={session.nightWakings}
+                              hourHeight={hourHeight}
+                              onClick={() => handleEventClick(session.originalEvent)}
+                            />
+                          ))}
+                          
+                          {/* Render other events on top */}
+                          {otherEvents.map((event) => (
+                            <EventBlock
+                              key={event._id}
+                              event={event}
+                              hourHeight={hourHeight}
+                              showTooltip={true}
+                              onClick={(clickedEvent) => {
+                                handleEventClick(clickedEvent)
+                              }}
+                            />
+                          ))}
+                        </>
+                      )
+                    })()}
                     
                     {/* Empty state */}
                     {dayEvents.length === 0 && (
@@ -898,18 +968,39 @@ export default function CalendarPage() {
                   </div>
                 ))}
                 
-                {/* Eventos posicionados de manera absoluta */}
-                {dayEvents.map((event) => (
-                  <EventBlock
-                    key={event._id}
-                    event={event}
-                    hourHeight={hourHeight}
-                    showTooltip={true}
-                    onClick={(clickedEvent) => {
-                      handleEventClick(clickedEvent)
-                    }}
-                  />
-                ))}
+                {/* Process and render sleep sessions and other events */}
+                {(() => {
+                  const { sessions, otherEvents } = processSleepSessions(dayEvents)
+                  
+                  return (
+                    <>
+                      {/* Render sleep sessions first (lower z-index) */}
+                      {sessions.map((session, idx) => (
+                        <SleepSessionBlock
+                          key={`session-${idx}`}
+                          startTime={session.startTime}
+                          endTime={session.endTime}
+                          nightWakings={session.nightWakings}
+                          hourHeight={hourHeight}
+                          onClick={() => handleEventClick(session.originalEvent)}
+                        />
+                      ))}
+                      
+                      {/* Render other events on top */}
+                      {otherEvents.map((event) => (
+                        <EventBlock
+                          key={event._id}
+                          event={event}
+                          hourHeight={hourHeight}
+                          showTooltip={true}
+                          onClick={(clickedEvent) => {
+                            handleEventClick(clickedEvent)
+                          }}
+                        />
+                      ))}
+                    </>
+                  )
+                })()}
                 
                 {/* Estado vacío */}
                 {dayEvents.length === 0 && (
