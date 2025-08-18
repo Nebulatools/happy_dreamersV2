@@ -221,13 +221,33 @@ export function SleepSessionBlock({
         </div>
       )}
       
-      {/* Indicador de fin (solo si no continúa al día siguiente) */}
+      {/* Indicador de fin con duración total (solo si no continúa al día siguiente) */}
       {!continuesNextDay && endTime && (
-        <div className="absolute bottom-2 right-2 flex items-center gap-1">
-          <Sun className="w-3 h-3 text-yellow-600" />
-          <span className="text-xs font-medium text-yellow-700">
-            {formatTime(originalEndTime || endTime)}
-          </span>
+        <div className="absolute bottom-2 right-2 flex flex-col items-end gap-0.5">
+          <div className="flex items-center gap-1">
+            <Sun className="w-3 h-3 text-yellow-600" />
+            <span className="text-xs font-medium text-yellow-700">
+              {formatTime(originalEndTime || endTime)}
+            </span>
+          </div>
+          {/* Duración total - solo mostrar aquí, no en el centro */}
+          <div className="bg-white/70 backdrop-blur-sm rounded px-1.5 py-0.5">
+            <span className="text-[10px] font-medium text-gray-600">
+              Total: {(() => {
+                try {
+                  // Usar tiempos originales si es continuación, si no usar los normales
+                  const start = parseISO(originalStartTime || startTime)
+                  const end = parseISO(originalEndTime || endTime)
+                  const minutes = differenceInMinutes(end, start)
+                  const hours = Math.floor(minutes / 60)
+                  const mins = minutes % 60
+                  return `${hours}h ${mins}m`
+                } catch {
+                  return '--'
+                }
+              })()}
+            </span>
+          </div>
         </div>
       )}
       
@@ -243,28 +263,6 @@ export function SleepSessionBlock({
       
       {/* Despertares nocturnos */}
       {renderNightWakings()}
-      
-      {/* Duración total en el centro */}
-      {height > 60 && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <div className="bg-white/80 backdrop-blur-sm rounded-full px-3 py-1">
-            <span className="text-xs font-medium text-gray-700">
-              {(() => {
-                try {
-                  const start = parseISO(startTime)
-                  const end = parseISO(endTime)
-                  const minutes = differenceInMinutes(end, start)
-                  const hours = Math.floor(minutes / 60)
-                  const mins = minutes % 60
-                  return `${hours}h ${mins}m`
-                } catch {
-                  return ''
-                }
-              })()}
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
