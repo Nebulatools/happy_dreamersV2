@@ -1,25 +1,25 @@
-# =Ä Base de Datos - Happy Dreamers
+# =ï¿½ Base de Datos - Happy Dreamers
 
-## =Ë Tabla de Contenidos
+## =ï¿½ Tabla de Contenidos
 
-- [Visión General](#visión-general)
+- [Visiï¿½n General](#visiï¿½n-general)
 - [MongoDB Setup](#mongodb-setup)
 - [Esquema de Colecciones](#esquema-de-colecciones)
-- [Índices](#índices)
+- [ï¿½ndices](#ï¿½ndices)
 - [Relaciones](#relaciones)
 - [Migraciones](#migraciones)
-- [Backup y Recuperación](#backup-y-recuperación)
-- [Optimización](#optimización)
+- [Backup y Recuperaciï¿½n](#backup-y-recuperaciï¿½n)
+- [Optimizaciï¿½n](#optimizaciï¿½n)
 
-## <¯ Visión General
+## <ï¿½ Visiï¿½n General
 
 Happy Dreamers utiliza MongoDB como base de datos principal por su:
 - **Flexibilidad de esquema** para datos de encuestas variables
 - **Escalabilidad horizontal** para crecimiento futuro
 - **Rendimiento** en operaciones de lectura/escritura
-- **Aggregation Pipeline** para análisis complejos
+- **Aggregation Pipeline** para anï¿½lisis complejos
 
-### Conexión
+### Conexiï¿½n
 
 ```typescript
 // lib/mongodb.ts
@@ -41,25 +41,25 @@ if (process.env.NODE_ENV === "development") {
 }
 ```
 
-## =æ Esquema de Colecciones
+## =ï¿½ Esquema de Colecciones
 
 ### users
 
 ```javascript
 {
   _id: ObjectId,
-  email: String,            // Único, índice
+  email: String,            // ï¿½nico, ï¿½ndice
   name: String,
   password: String,          // Hash bcrypt
   role: String,              // "parent" | "admin" | "professional"
-  children: [ObjectId],      // Referencias a colección children
+  children: [ObjectId],      // Referencias a colecciï¿½n children
   image: String,             // URL de avatar
   emailVerified: Date,
   createdAt: Date,
   updatedAt: Date
 }
 
-// Índices:
+// ï¿½ndices:
 - email: 1 (unique)
 - role: 1
 - createdAt: -1
@@ -176,41 +176,66 @@ if (process.env.NODE_ENV === "development") {
       seQuedaDormirSolo: Boolean
     }
   },
-  events: [ObjectId],        // Referencias a colección events
+  events: [ObjectId],        // Referencias a colecciï¿½n events
   createdAt: Date,
   updatedAt: Date
 }
 
-// Índices:
+// ï¿½ndices:
 - parentId: 1
 - birthDate: 1
 - createdAt: -1
 ```
 
-### events
+### events (Sistema v5.0)
 
 ```javascript
 {
   _id: ObjectId,
   childId: ObjectId,         // Referencia a children
-  type: String,               // "NIGHT_SLEEP" | "NAP" | "NIGHT_WAKING"
-  timestamp: Date,
-  duration: Number,           // Minutos
-  emotionalState: String,     // "CALM" | "HAPPY" | "ANXIOUS" | etc.
-  quality: String,            // "POOR" | "FAIR" | "GOOD" | "EXCELLENT"
-  notes: String,
-  extraActivities: [String],  // Actividades adicionales
-  location: String,
-  caregiverId: ObjectId,      // Quién registró el evento
+  eventType: String,          // "sleep" | "nap" | "night_waking" | "feeding" | "medication" | "extra_activities" | "note"
+  startTime: Date,           // Hora de inicio del evento
+  endTime: Date,             // Hora de fin (opcional, para eventos con duraciÃ³n)
+  duration: Number,          // DuraciÃ³n calculada en minutos
+  durationReadable: String,  // DuraciÃ³n en formato legible ("2h 30min")
+  emotionalState: String,    // "tranquilo" | "inquieto" | "irritable" | "neutral"
+  notes: String,             // Notas generales
+  
+  // Campos especÃ­ficos de sueÃ±o
+  sleepDelay: Number,        // Minutos para dormirse
+  awakeDelay: Number,        // Minutos despierto (para night_waking)
+  
+  // Campos especÃ­ficos de alimentaciÃ³n
+  feedingType: String,       // "breast" | "bottle" | "solids"
+  feedingAmount: Number,     // Cantidad en ml o gr
+  feedingDuration: Number,   // DuraciÃ³n en minutos
+  babyState: String,         // "awake" | "asleep"
+  feedingNotes: String,      // Notas especÃ­ficas de alimentaciÃ³n
+  
+  // Campos especÃ­ficos de medicamentos (v5.0)
+  medicationName: String,    // Nombre del medicamento
+  medicationDose: String,    // Dosis administrada
+  medicationTime: String,    // Hora de administraciÃ³n
+  medicationNotes: String,   // Notas adicionales del medicamento
+  
+  // Campos especÃ­ficos de actividades extra (v5.0)
+  activityDescription: String,  // DescripciÃ³n de la actividad
+  activityDuration: Number,     // DuraciÃ³n en minutos
+  activityImpact: String,       // "positive" | "neutral" | "negative"
+  activityNotes: String,        // Notas adicionales de la actividad
+  
+  caregiverId: ObjectId,     // QuiÃ©n registrÃ³ el evento
   createdAt: Date,
   updatedAt: Date
 }
 
-// Índices:
-- childId: 1, timestamp: -1 (compound)
-- type: 1
-- timestamp: -1
+// Ãndices:
+- childId: 1, startTime: -1 (compound)
+- eventType: 1
+- startTime: -1
 - emotionalState: 1
+- medicationName: 1 (para bÃºsquedas de medicamentos)
+- activityDescription: 1 (para bÃºsquedas de actividades)
 ```
 
 ### consultations
@@ -222,7 +247,7 @@ if (process.env.NODE_ENV === "development") {
   userId: ObjectId,
   date: Date,
   type: String,               // "AI_ANALYSIS" | "PROFESSIONAL" | "FOLLOW_UP"
-  transcript: String,         // Transcripción original
+  transcript: String,         // Transcripciï¿½n original
   analysis: {
     summary: String,
     patterns: [{
@@ -262,7 +287,7 @@ if (process.env.NODE_ENV === "development") {
   updatedAt: Date
 }
 
-// Índices:
+// ï¿½ndices:
 - childId: 1, date: -1
 - userId: 1
 - type: 1
@@ -281,7 +306,7 @@ if (process.env.NODE_ENV === "development") {
   fileType: String,           // "pdf" | "docx" | "txt"
   originalName: String,
   size: Number,               // Bytes
-  content: String,            // Texto extraído
+  content: String,            // Texto extraï¿½do
   chunks: [{
     chunkId: String,
     text: String,
@@ -303,7 +328,7 @@ if (process.env.NODE_ENV === "development") {
   updatedAt: Date
 }
 
-// Índices:
+// ï¿½ndices:
 - title: "text"
 - category: 1
 - uploadedBy: 1
@@ -315,12 +340,12 @@ if (process.env.NODE_ENV === "development") {
 ```javascript
 {
   _id: ObjectId,
-  sessionToken: String,       // Único
+  sessionToken: String,       // ï¿½nico
   userId: ObjectId,
   expires: Date
 }
 
-// Índices:
+// ï¿½ndices:
 - sessionToken: 1 (unique)
 - userId: 1
 - expires: 1
@@ -344,7 +369,7 @@ if (process.env.NODE_ENV === "development") {
   session_state: String
 }
 
-// Índices:
+// ï¿½ndices:
 - userId: 1
 - provider: 1, providerAccountId: 1 (compound unique)
 ```
@@ -364,9 +389,9 @@ erDiagram
     accounts }o--|| users : "links"
 ```
 
-## =' Índices
+## =' ï¿½ndices
 
-### Índices Recomendados
+### ï¿½ndices Recomendados
 
 ```javascript
 // users
@@ -396,7 +421,7 @@ db.documents.createIndex({ title: "text", "metadata.tags": "text" })
 
 ## = Migraciones
 
-### Estrategia de Migración
+### Estrategia de Migraciï¿½n
 
 ```javascript
 // scripts/migrations/001_add_field.js
@@ -421,12 +446,12 @@ export async function down(db) {
 // En cada documento
 {
   _id: ObjectId,
-  schemaVersion: 1,  // Versión del esquema
+  schemaVersion: 1,  // Versiï¿½n del esquema
   // ... resto de campos
 }
 ```
 
-## =¾ Backup y Recuperación
+## =ï¿½ Backup y Recuperaciï¿½n
 
 ### Backup Manual
 
@@ -434,67 +459,67 @@ export async function down(db) {
 # Backup completo
 mongodump --uri="$MONGODB_URI" --out=./backup/$(date +%Y%m%d)
 
-# Backup de colección específica
+# Backup de colecciï¿½n especï¿½fica
 mongodump --uri="$MONGODB_URI" --collection=children --out=./backup/
 
-# Backup con compresión
+# Backup con compresiï¿½n
 mongodump --uri="$MONGODB_URI" --gzip --archive=backup-$(date +%Y%m%d).gz
 ```
 
-### Restauración
+### Restauraciï¿½n
 
 ```bash
 # Restaurar backup completo
 mongorestore --uri="$MONGODB_URI" ./backup/20240120/
 
-# Restaurar colección específica
+# Restaurar colecciï¿½n especï¿½fica
 mongorestore --uri="$MONGODB_URI" --collection=children ./backup/children.bson
 
 # Restaurar desde archivo comprimido
 mongorestore --uri="$MONGODB_URI" --gzip --archive=backup-20240120.gz
 ```
 
-### Backup Automático (MongoDB Atlas)
+### Backup Automï¿½tico (MongoDB Atlas)
 
 ```yaml
-# Configuración recomendada:
+# Configuraciï¿½n recomendada:
 backup:
   enabled: true
   schedule: "0 2 * * *"  # 2 AM diario
-  retention: 7            # Días
+  retention: 7            # Dï¿½as
   snapshots:
     - daily: 7
     - weekly: 4
     - monthly: 3
 ```
 
-## ¡ Optimización
+## ï¿½ Optimizaciï¿½n
 
 ### Consultas Optimizadas
 
 ```javascript
-//  Bueno: Usar proyección
+//  Bueno: Usar proyecciï¿½n
 db.children.find(
   { parentId: ObjectId(parentId) },
   { firstName: 1, lastName: 1, birthDate: 1 }
 )
 
-//  Bueno: Usar índices compound
+//  Bueno: Usar ï¿½ndices compound
 db.events.find({
   childId: ObjectId(childId),
   timestamp: { $gte: startDate, $lte: endDate }
 }).sort({ timestamp: -1 })
 
-// L Evitar: Consultas sin índices
+// L Evitar: Consultas sin ï¿½ndices
 db.events.find({
-  notes: /patron/  // Regex sin índice
+  notes: /patron/  // Regex sin ï¿½ndice
 })
 ```
 
 ### Aggregation Pipeline
 
 ```javascript
-// Estadísticas de sueño por mes
+// Estadï¿½sticas de sueï¿½o por mes
 db.events.aggregate([
   {
     $match: {
@@ -523,7 +548,7 @@ db.events.aggregate([
 ### Connection Pooling
 
 ```javascript
-// Configuración de pool
+// Configuraciï¿½n de pool
 const options = {
   maxPoolSize: 10,
   minPoolSize: 2,
@@ -532,10 +557,10 @@ const options = {
 }
 ```
 
-### Caché de Consultas
+### Cachï¿½ de Consultas
 
 ```typescript
-// Implementar caché en memoria
+// Implementar cachï¿½ en memoria
 const cache = new Map()
 
 function getCachedData(key: string, ttl: number = 300000) {
@@ -554,20 +579,20 @@ function setCachedData(key: string, data: any) {
 }
 ```
 
-## =Ï Monitoring
+## =ï¿½ Monitoring
 
-### Métricas Clave
+### Mï¿½tricas Clave
 
 ```javascript
 // Queries lentas
 db.setProfilingLevel(1, { slowms: 100 })
 db.system.profile.find().limit(10).sort({ ts: -1 })
 
-// Tamaño de colecciones
+// Tamaï¿½o de colecciones
 db.children.stats()
 db.events.stats()
 
-// Índices no utilizados
+// ï¿½ndices no utilizados
 db.events.aggregate([
   { $indexStats: {} },
   { $match: { "accesses.ops": { $lt: 100 } } }
@@ -598,5 +623,5 @@ export async function GET() {
 
 ---
 
-**Última actualización:** Enero 2024  
-**Versión:** 1.0.0
+**ï¿½ltima actualizaciï¿½n:** Enero 2024  
+**Versiï¿½n:** 1.0.0
