@@ -285,7 +285,7 @@ export default function CalendarPage() {
 
   // Cargar lista de niños para el modal o el quick selector
   useEffect(() => {
-    if (eventModalOpen || quickSelectorOpen) {
+    if (eventModalOpen || quickSelectorOpen || activeChildId) {
       fetch("/api/children")
         .then(res => res.json())
         .then(data => {
@@ -295,7 +295,7 @@ export default function CalendarPage() {
         })
         .catch(error => logger.error("Error al cargar niños", error))
     }
-  }, [eventModalOpen, quickSelectorOpen])
+  }, [eventModalOpen, quickSelectorOpen, activeChildId])
 
   const fetchEvents = async () => {
     if (!activeChildId) {
@@ -1289,7 +1289,7 @@ export default function CalendarPage() {
           setIsDialogOpen(false)
           setSelectedEvent(null)
         }}
-        childName={activeChildName}
+        childName={children.find((c: any) => c._id === activeChildId)?.name || "el niño"}
       />
       
       {/* Modal de confirmación de eliminación */}
