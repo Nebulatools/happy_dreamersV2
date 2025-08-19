@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -50,6 +50,14 @@ export function MedicationModal({
   })
   const [medicationNotes, setMedicationNotes] = useState<string>('')
   const [isProcessing, setIsProcessing] = useState(false)
+
+  // Actualizar la hora cada vez que se abre el modal
+  useEffect(() => {
+    if (open) {
+      const now = getCurrentTime()
+      setMedicationTime(format(now, 'HH:mm'))
+    }
+  }, [open, getCurrentTime])
 
   // Reset del formulario
   const resetForm = () => {
