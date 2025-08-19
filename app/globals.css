@@ -257,16 +257,21 @@
   }
   
   .bg-feeding {
-    background-color: hsl(var(--color-feeding));
+    background-color: #10b981;
   }
   
   .bg-medication {
-    background-color: hsl(var(--color-medication));
+    background-color: #a855f7;
   }
   
-  .bg-extra-activity {
-    background-color: hsl(var(--color-extra-activity));
+  .bg-activity {
+    background-color: #06b6d4;
   }
+  
+  .bg-extra-activities {
+    background-color: #06b6d4;
+  }
+  
   
   /* Event type colors with opacity */
   .bg-sleep\/10 {
@@ -286,15 +291,19 @@
   }
   
   .bg-feeding\/10 {
-    background-color: hsl(var(--color-feeding) / 0.1);
+    background-color: rgba(16, 185, 129, 0.1);
   }
   
   .bg-medication\/10 {
-    background-color: hsl(var(--color-medication) / 0.1);
+    background-color: rgba(168, 85, 247, 0.1);
   }
   
-  .bg-extra-activity\/10 {
-    background-color: hsl(var(--color-extra-activity) / 0.1);
+  .bg-activity\/10 {
+    background-color: rgba(6, 182, 212, 0.1);
+  }
+  
+  .bg-extra-activities\/10 {
+    background-color: rgba(6, 182, 212, 0.1);
   }
   
   /* Event type border colors */

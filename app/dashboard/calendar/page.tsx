@@ -157,6 +157,9 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   // Configurar el header dinámico - simplificado con solo botón de agregar
   const headerActions = useMemo(() => (
@@ -459,6 +462,13 @@ export default function CalendarPage() {
       return <Sun className="w-3 h-3" />
     case "night_waking":
       return <AlertCircle className="w-3 h-3" />
+    case "feeding":
+      return null
+    case "medication":
+      return null
+    case "activity":
+    case "extra_activities":
+      return null
     default:
       return null
     }
@@ -474,6 +484,13 @@ export default function CalendarPage() {
       return "bg-wake event-pill"  // Verde para despertar matutino
     case "night_waking":
       return "bg-night-wake event-pill"  // Rojo para despertar nocturno
+    case "feeding":
+      return "bg-feeding event-pill"  // Amarillo para alimentación
+    case "medication":
+      return "bg-medication event-pill"  // Morado para medicamentos
+    case "activity":
+    case "extra_activities":
+      return "bg-extra-activities event-pill"  // Naranja para actividades extra
     default:
       return "bg-gray-400 event-pill"
     }
@@ -498,9 +515,12 @@ export default function CalendarPage() {
       nap: "Siesta",
       wake: "Despertar",
       night_waking: "Despertar nocturno",
+      feeding: "Alimentación",
+      medication: "Medicamento",
+      activity: "Actividad Extra",
+      extra_activities: "Actividad Extra",
       meal: "Comida",
       play: "Juego",
-      activity: "Actividad física",
       bath: "Baño",
       other: "Otro",
     }
@@ -530,7 +550,7 @@ export default function CalendarPage() {
   // Función para manejar el clic en un evento
   const handleEventClick = (event: Event) => {
     setSelectedEvent(event)
-    setIsDialogOpen(true)
+    setIsDetailsModalOpen(true)
   }
   
   
@@ -538,6 +558,7 @@ export default function CalendarPage() {
   const deleteEvent = async () => {
     if (!selectedEvent) return // Prevenir doble click
     
+    setIsDeleting(true)
     try {
       // Usar la URL con el ID en la ruta
       const response = await fetch(`/api/children/events/${selectedEvent._id}`, {
@@ -562,6 +583,8 @@ export default function CalendarPage() {
       })
       
       setIsDialogOpen(false)
+      setIsDetailsModalOpen(false)
+      setIsEditModalOpen(false)
       setSelectedEvent(null)
       setShowDeleteModal(false)
     } catch (error: any) {
@@ -572,7 +595,7 @@ export default function CalendarPage() {
         variant: "destructive",
       })
     } finally {
-      // Limpiar estado
+      setIsDeleting(false)
     }
   }
 
@@ -1276,20 +1299,166 @@ export default function CalendarPage() {
         }}
       /> */}
       
+      {/* Modal de detalles del evento */}
+      {selectedEvent && (
+        <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {getEventTypeIcon(selectedEvent.eventType)}
+                <span>Detalles del Evento</span>
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* Badge del tipo de evento */}
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "px-3 py-1 rounded-full text-white text-sm font-medium inline-flex items-center gap-2",
+                  getEventTypeColor(selectedEvent.eventType)
+                )}>
+                  {getEventTypeIcon(selectedEvent.eventType)}
+                  {getEventTypeName(selectedEvent.eventType)}
+                </div>
+              </div>
+              
+              {/* Información principal */}
+              <div className="space-y-3">
+                {/* Fecha y hora */}
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="w-4 h-4 text-gray-500" />
+                  <span className="font-medium">Fecha:</span>
+                  <span>{format(new Date(selectedEvent.startTime), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}</span>
+                </div>
+                
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="w-4 h-4 text-gray-500" />
+                  <span className="font-medium">Hora:</span>
+                  <span>
+                    {format(new Date(selectedEvent.startTime), "HH:mm")}
+                    {selectedEvent.endTime && ` - ${format(new Date(selectedEvent.endTime), "HH:mm")}`}
+                  </span>
+                </div>
+                
+                {/* Duración si tiene endTime */}
+                {selectedEvent.endTime && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="w-4 h-4 text-gray-500" />
+                    <span className="font-medium">Duración:</span>
+                    <span>
+                      {(() => {
+                        const start = new Date(selectedEvent.startTime)
+                        const end = new Date(selectedEvent.endTime)
+                        const hours = differenceInHours(end, start)
+                        const minutes = differenceInMinutes(end, start) % 60
+                        if (hours > 0) {
+                          return `${hours}h ${minutes > 0 ? `${minutes}min` : ''}`
+                        }
+                        return `${minutes}min`
+                      })()}
+                    </span>
+                  </div>
+                )}
+                
+                {/* Estado emocional */}
+                {selectedEvent.emotionalState && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="font-medium">Estado emocional:</span>
+                    <span>{getEmotionalStateName(selectedEvent.emotionalState)}</span>
+                  </div>
+                )}
+                
+              </div>
+              
+              {/* Notas si existen */}
+              {selectedEvent.notes && (
+                <div className="border-t pt-3">
+                  <div className="flex items-start gap-2">
+                    <span className="text-sm font-medium text-gray-600">Notas:</span>
+                  </div>
+                  <p className="text-sm text-gray-700 mt-1 bg-gray-50 p-3 rounded-lg">
+                    {selectedEvent.notes}
+                  </p>
+                </div>
+              )}
+              
+              {/* Información adicional para eventos de sueño */}
+              {selectedEvent.eventType === 'sleep' && (
+                <div className="border-t pt-3 space-y-2">
+                  <div className="text-sm font-medium text-gray-600">Información del sueño</div>
+                  {selectedEvent.endTime ? (
+                    <div className="text-sm text-gray-700">
+                      El niño durmió {(() => {
+                        const start = new Date(selectedEvent.startTime)
+                        const end = new Date(selectedEvent.endTime)
+                        const hours = differenceInHours(end, start)
+                        const minutes = differenceInMinutes(end, start) % 60
+                        if (hours > 0) {
+                          return `${hours} hora${hours > 1 ? 's' : ''} ${minutes > 0 ? `y ${minutes} minuto${minutes > 1 ? 's' : ''}` : ''}`
+                        }
+                        return `${minutes} minuto${minutes > 1 ? 's' : ''}`
+                      })()}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-700">El niño está durmiendo actualmente</div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {/* Botones de acción */}
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsDetailsModalOpen(false)
+                  setIsEditModalOpen(true)
+                }}
+                className="w-full sm:w-auto"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Editar
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteModal(true)
+                }}
+                className="w-full sm:w-auto text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash className="w-4 h-4 mr-2" />
+                Eliminar
+              </Button>
+              <Button
+                variant="default"
+                onClick={() => {
+                  setIsDetailsModalOpen(false)
+                  setSelectedEvent(null)
+                }}
+                className="w-full sm:w-auto"
+              >
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      
       {/* Router para editar eventos usando modales específicos */}
       <EventEditRouter
         event={selectedEvent}
-        open={isDialogOpen}
+        open={isEditModalOpen}
         onClose={() => {
-          setIsDialogOpen(false)
+          setIsEditModalOpen(false)
           setSelectedEvent(null)
         }}
         onUpdate={() => {
-          invalidateCache()
-          setIsDialogOpen(false)
+          invalidateEvents()
+          setIsEditModalOpen(false)
+          setIsDetailsModalOpen(false)
           setSelectedEvent(null)
         }}
-        childName={children.find((c: any) => c._id === activeChildId)?.name || "el niño"}
+        childName={children && Array.isArray(children) ? children.find((c: any) => c._id === activeChildId)?.name || "el niño" : "el niño"}
       />
       
       {/* Modal de confirmación de eliminación */}
@@ -1305,7 +1474,7 @@ export default function CalendarPage() {
             deleteEvent()
           }}
           itemName={`evento de ${getEventTypeName(selectedEvent.eventType)}`}
-          isDeleting={isSaving}
+          isDeleting={isDeleting}
         />
       )}
     </div>

@@ -18,9 +18,10 @@ interface TimeAdjusterProps {
  */
 export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const [simulatedTime, setSimulatedTime] = useState<Date>(new Date())
+  const [simulatedTime, setSimulatedTime] = useState<Date | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [speed, setSpeed] = useState(1) // 1x, 10x, 60x, 360x velocidad
+  const [isClient, setIsClient] = useState(false)
   
   // No renderizar en producción
   if (!isDevelopment) return null
@@ -52,19 +53,23 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
     return () => clearInterval(interval)
   }, [isRunning, speed, onTimeChange])
   
-  // Cargar tiempo simulado de localStorage al inicio
+  // Inicializar en el cliente
   useEffect(() => {
+    setIsClient(true)
     if (typeof window !== 'undefined') {
       const saved = window.localStorage.getItem('devSimulatedTime')
       if (saved) {
         const date = new Date(saved)
         setSimulatedTime(date)
         onTimeChange?.(date)
+      } else {
+        setSimulatedTime(new Date())
       }
     }
   }, [onTimeChange])
   
   const adjustHours = (hours: number) => {
+    if (!simulatedTime) return
     const newTime = new Date(simulatedTime)
     newTime.setHours(newTime.getHours() + hours)
     setSimulatedTime(newTime)
@@ -76,6 +81,7 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
   }
   
   const adjustMinutes = (minutes: number) => {
+    if (!simulatedTime) return
     const newTime = new Date(simulatedTime)
     newTime.setMinutes(newTime.getMinutes() + minutes)
     setSimulatedTime(newTime)
@@ -87,6 +93,7 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
   }
   
   const setToPreset = (hour: number, minute: number = 0) => {
+    if (!simulatedTime) return
     const newTime = new Date(simulatedTime)
     newTime.setHours(hour, minute, 0, 0)
     setSimulatedTime(newTime)
@@ -128,19 +135,25 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
         >
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-yellow-400" />
-            <span className="text-sm font-mono">
-              {simulatedTime.toLocaleTimeString('es-ES', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                second: '2-digit'
-              })}
-            </span>
-            <span className="text-xs text-gray-400">
-              {simulatedTime.toLocaleDateString('es-ES', { 
-                day: '2-digit',
-                month: 'short'
-              })}
-            </span>
+            {isClient && simulatedTime ? (
+              <>
+                <span className="text-sm font-mono">
+                  {simulatedTime.toLocaleTimeString('es-ES', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit'
+                  })}
+                </span>
+                <span className="text-xs text-gray-400">
+                  {simulatedTime.toLocaleDateString('es-ES', { 
+                    day: '2-digit',
+                    month: 'short'
+                  })}
+                </span>
+              </>
+            ) : (
+              <span className="text-sm font-mono">--:--:--</span>
+            )}
           </div>
           {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
         </button>
@@ -191,7 +204,7 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
                     -
                   </Button>
                   <div className="flex-1 text-center font-mono">
-                    {simulatedTime.getHours().toString().padStart(2, '0')}
+                    {simulatedTime ? simulatedTime.getHours().toString().padStart(2, '0') : '--'}
                   </div>
                   <Button
                     size="sm"
@@ -216,7 +229,7 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
                     -
                   </Button>
                   <div className="flex-1 text-center font-mono">
-                    {simulatedTime.getMinutes().toString().padStart(2, '0')}
+                    {simulatedTime ? simulatedTime.getMinutes().toString().padStart(2, '0') : '--'}
                   </div>
                   <Button
                     size="sm"
