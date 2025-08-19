@@ -59,6 +59,7 @@ import { Label } from "@/components/ui/label"
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal"
 import { processSleepStatistics } from "@/lib/sleep-calculations"
 import { usePageHeaderConfig } from "@/context/page-header-context"
+import { EventEditRouter } from "@/components/events/EventEditRouter"
 import {
   format,
   startOfMonth,
@@ -156,9 +157,6 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [editedEvent, setEditedEvent] = useState<Partial<Event>>({})
 
   // Configurar el header dinámico - simplificado con solo botón de agregar
   const headerActions = useMemo(() => (
@@ -532,80 +530,14 @@ export default function CalendarPage() {
   // Función para manejar el clic en un evento
   const handleEventClick = (event: Event) => {
     setSelectedEvent(event)
-    setEditedEvent({
-      childId: event.childId,
-      eventType: event.eventType,
-      emotionalState: event.emotionalState,
-      startTime: event.startTime,
-      endTime: event.endTime || "",
-      notes: event.notes || "",
-    })
-    setIsEditing(false)
     setIsDialogOpen(true)
   }
   
-  // Función para actualizar un evento
-  const updateEvent = async () => {
-    if (!selectedEvent || !editedEvent) return
-    
-    setIsSaving(true)
-    try {
-      // Datos a enviar - asegurar que childId siempre esté presente
-      const updateData = {
-        childId: activeChildId,
-        eventType: editedEvent.eventType,
-        emotionalState: editedEvent.emotionalState,
-        startTime: editedEvent.startTime,
-        endTime: editedEvent.endTime || null,
-        notes: editedEvent.notes || "",
-        createdAt: selectedEvent.createdAt,
-      }
-      
-      // Usar la URL con el ID en la ruta
-      const response = await fetch(`/api/children/events/${selectedEvent._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updateData),
-      })
-      
-      const responseData = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(responseData.message || responseData.error || "Error al actualizar el evento")
-      }
-      
-      // Recargar eventos para reflejar cambios
-      await fetchEvents()
-      
-      // Invalidar cache global
-      invalidateEvents()
-      
-      toast({
-        title: "Evento actualizado",
-        description: "El evento ha sido actualizado correctamente.",
-      })
-      
-      setIsEditing(false)
-      setIsDialogOpen(false)
-    } catch (error: any) {
-      logger.error("Error:", error)
-      toast({
-        title: "Error",
-        description: error?.message || "No se pudo actualizar el evento. Inténtalo de nuevo.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
   
   // Función para eliminar un evento
   const deleteEvent = async () => {
-    if (!selectedEvent || isSaving) return // Prevenir doble click
+    if (!selectedEvent) return // Prevenir doble click
     
-    setIsSaving(true)
     try {
       // Usar la URL con el ID en la ruta
       const response = await fetch(`/api/children/events/${selectedEvent._id}`, {
@@ -640,7 +572,7 @@ export default function CalendarPage() {
         variant: "destructive",
       })
     } finally {
-      setIsSaving(false)
+      // Limpiar estado
     }
   }
 
@@ -1344,171 +1276,21 @@ export default function CalendarPage() {
         }}
       /> */}
       
-      {/* Diálogo para mostrar/editar detalles del evento */}
-      <Dialog open={isDialogOpen} onOpenChange={(open) => {
-        setIsDialogOpen(open)
-        if (!open) setSelectedEvent(null) // Limpiar cuando se cierra
-      }}>
-        <DialogContent className="sm:max-w-[500px]">
-          {selectedEvent && (
-            <>
-              <DialogHeader>
-                <DialogTitle>{isEditing ? "Editar evento" : getEventTypeName(selectedEvent.eventType)}</DialogTitle>
-                <DialogDescription>
-                  {isEditing ? "Modifica los detalles del evento" : "Detalles del evento"}
-                </DialogDescription>
-              </DialogHeader>
-              
-              {!isEditing ? (
-                // Modo visualización
-                <div className="space-y-4 py-4">
-                  <div className="grid gap-2">
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span className="text-sm">
-                        {format(new Date(selectedEvent.startTime), "PPpp", { locale: es })}
-                        {selectedEvent.endTime && (
-                          <> hasta {format(new Date(selectedEvent.endTime), "p", { locale: es })}</>
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="font-medium mr-2">Estado emocional:</span>
-                      <span>{getEmotionalStateName(selectedEvent.emotionalState)}</span>
-                    </div>
-                    {selectedEvent.notes && (
-                      <div className="mt-2">
-                        <span className="font-medium">Notas:</span>
-                        <p className="text-sm mt-1">{selectedEvent.notes}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                // Modo edición
-                <div className="py-4">
-                  <div className="grid gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="eventType">Tipo de evento</Label>
-                      <Select 
-                        value={editedEvent.eventType || ""}
-                        onValueChange={(value) => setEditedEvent({ ...editedEvent, eventType: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {eventTypes.map((type) => (
-                            <SelectItem key={type.id} value={type.id}>
-                              {type.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="grid gap-2">
-                      <Label htmlFor="emotionalState">Estado emocional</Label>
-                      <Select 
-                        value={editedEvent.emotionalState || ""}
-                        onValueChange={(value) => setEditedEvent({ ...editedEvent, emotionalState: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un estado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {emotionalStates.map((state) => (
-                            <SelectItem key={state.id} value={state.id}>
-                              {state.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="startTime">Hora de inicio</Label>
-                        <Input 
-                          type="datetime-local" 
-                          value={editedEvent.startTime?.replace("Z", "") || ""}
-                          onChange={(e) => setEditedEvent({ ...editedEvent, startTime: e.target.value })}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="endTime">Hora de finalización</Label>
-                        <Input 
-                          type="datetime-local" 
-                          value={editedEvent.endTime?.replace("Z", "") || ""}
-                          onChange={(e) => setEditedEvent({ ...editedEvent, endTime: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid gap-2">
-                      <Label htmlFor="notes">Notas</Label>
-                      <Textarea 
-                        value={editedEvent.notes || ""}
-                        onChange={(e) => setEditedEvent({ ...editedEvent, notes: e.target.value })}
-                        placeholder="Notas adicionales sobre el evento..."
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <DialogFooter className="flex justify-between">
-                {isEditing ? (
-                  <>
-                    <Button 
-                      variant="destructive" 
-                      onClick={() => {
-                        // Modal de eliminación abierto
-                        setShowDeleteModal(true)
-                      }}
-                      disabled={isSaving}
-                    >
-                      <Trash className="h-4 w-4 mr-2" />
-                      Eliminar
-                    </Button>
-                    <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
-                        Cancelar
-                      </Button>
-                      <Button onClick={updateEvent} disabled={isSaving}>
-                        {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                        Guardar cambios
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex justify-between w-full">
-                    <Button 
-                      variant="destructive" 
-                      onClick={() => {
-                        // Modal de eliminación abierto desde vista
-                        setShowDeleteModal(true)
-                      }}
-                    >
-                      <Trash className="h-4 w-4 mr-2" />
-                      Eliminar
-                    </Button>
-                    <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                        Cerrar
-                      </Button>
-                      <Button onClick={() => setIsEditing(true)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Editar evento
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Router para editar eventos usando modales específicos */}
+      <EventEditRouter
+        event={selectedEvent}
+        open={isDialogOpen}
+        onClose={() => {
+          setIsDialogOpen(false)
+          setSelectedEvent(null)
+        }}
+        onUpdate={() => {
+          invalidateCache()
+          setIsDialogOpen(false)
+          setSelectedEvent(null)
+        }}
+        childName={activeChildName}
+      />
       
       {/* Modal de confirmación de eliminación */}
       {selectedEvent && (

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -12,12 +12,24 @@ import { Button } from "@/components/ui/button"
 import { Baby, Plus, Minus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FeedingModalData, FeedingType } from './types'
+import { format } from 'date-fns'
+import { useDevTime } from '@/context/dev-time-context'
 
 interface FeedingModalProps {
   open: boolean
   onClose: () => void
   onConfirm: (data: FeedingModalData) => void
   childName: string
+  mode?: 'create' | 'edit'
+  initialData?: {
+    feedingType?: FeedingType
+    feedingAmount?: number
+    feedingDuration?: number
+    babyState?: 'awake' | 'asleep'
+    feedingNotes?: string
+    startTime?: string
+    eventId?: string
+  }
 }
 
 /**
@@ -28,14 +40,44 @@ export function FeedingModal({
   open,
   onClose,
   onConfirm,
-  childName
+  childName,
+  mode = 'create',
+  initialData
 }: FeedingModalProps) {
-  const [feedingType, setFeedingType] = useState<FeedingType>('breast')
-  const [feedingAmount, setFeedingAmount] = useState<number>(80) // Default 80ml
-  const [feedingDuration, setFeedingDuration] = useState<number>(15) // Default 15 min
-  const [babyState, setBabyState] = useState<'awake' | 'asleep'>('awake')
-  const [feedingNotes, setFeedingNotes] = useState<string>('')
+  const { getCurrentTime } = useDevTime()
+  const [feedingType, setFeedingType] = useState<FeedingType>(initialData?.feedingType || 'breast')
+  const [feedingAmount, setFeedingAmount] = useState<number>(initialData?.feedingAmount || 80) // Default 80ml
+  const [feedingDuration, setFeedingDuration] = useState<number>(initialData?.feedingDuration || 15) // Default 15 min
+  const [babyState, setBabyState] = useState<'awake' | 'asleep'>(initialData?.babyState || 'awake')
+  const [feedingNotes, setFeedingNotes] = useState<string>(initialData?.feedingNotes || '')
+  const [eventDate, setEventDate] = useState<string>(() => {
+    if (mode === 'edit' && initialData?.startTime) {
+      return format(new Date(initialData.startTime), 'yyyy-MM-dd')
+    }
+    return format(getCurrentTime(), 'yyyy-MM-dd')
+  })
+  const [eventTime, setEventTime] = useState<string>(() => {
+    if (mode === 'edit' && initialData?.startTime) {
+      return format(new Date(initialData.startTime), 'HH:mm')
+    }
+    return format(getCurrentTime(), 'HH:mm')
+  })
   const [isProcessing, setIsProcessing] = useState(false)
+
+  // Inicializar con datos cuando se abre en modo edición
+  useEffect(() => {
+    if (open && mode === 'edit' && initialData) {
+      setFeedingType(initialData.feedingType || 'breast')
+      setFeedingAmount(initialData.feedingAmount || 80)
+      setFeedingDuration(initialData.feedingDuration || 15)
+      setBabyState(initialData.babyState || 'awake')
+      setFeedingNotes(initialData.feedingNotes || '')
+      if (initialData.startTime) {
+        setEventDate(format(new Date(initialData.startTime), 'yyyy-MM-dd'))
+        setEventTime(format(new Date(initialData.startTime), 'HH:mm'))
+      }
+    }
+  }, [open, mode, initialData])
 
   // Tipos de alimentación disponibles
   const feedingTypes = [
@@ -137,11 +179,28 @@ export function FeedingModal({
   const handleCancel = () => {
     onClose()
     // Reset
-    setFeedingType('breast')
-    setFeedingAmount(80)
-    setFeedingDuration(15)
-    setBabyState('awake')
-    setFeedingNotes('')
+    if (mode === 'edit' && initialData) {
+      // En modo edición, restaurar valores iniciales
+      setFeedingType(initialData.feedingType || 'breast')
+      setFeedingAmount(initialData.feedingAmount || 80)
+      setFeedingDuration(initialData.feedingDuration || 15)
+      setBabyState(initialData.babyState || 'awake')
+      setFeedingNotes(initialData.feedingNotes || '')
+      if (initialData.startTime) {
+        setEventDate(format(new Date(initialData.startTime), 'yyyy-MM-dd'))
+        setEventTime(format(new Date(initialData.startTime), 'HH:mm'))
+      }
+    } else {
+      // En modo creación, limpiar todo
+      setFeedingType('breast')
+      setFeedingAmount(80)
+      setFeedingDuration(15)
+      setBabyState('awake')
+      setFeedingNotes('')
+      const now = getCurrentTime()
+      setEventDate(format(now, 'yyyy-MM-dd'))
+      setEventTime(format(now, 'HH:mm'))
+    }
   }
 
   return (
@@ -157,12 +216,38 @@ export function FeedingModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Baby className="w-5 h-5 text-green-500" />
-            Registro de Alimentación
+            {mode === 'edit' ? 'Editar Alimentación' : 'Registro de Alimentación'}
           </DialogTitle>
           <DialogDescription>
-            Registra la alimentación de {childName}
+            {mode === 'edit' 
+              ? `Modifica los detalles de la alimentación de ${childName}`
+              : `Registra la alimentación de ${childName}`}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Fecha y hora - Solo visible en modo edición */}
+        {mode === 'edit' && (
+          <div className="grid grid-cols-2 gap-2 pb-4 border-b">
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">Fecha</label>
+              <input
+                type="date"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">Hora</label>
+              <input
+                type="time"
+                value={eventTime}
+                onChange={(e) => setEventTime(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Sección 1: Tipo de Alimentación */}
         <div className="space-y-3 mt-4">
@@ -347,7 +432,9 @@ export function FeedingModal({
             disabled={isProcessing}
             className="flex-1 bg-green-500 hover:bg-green-600"
           >
-            {isProcessing ? 'Guardando...' : 'Confirmar'}
+            {isProcessing 
+              ? (mode === 'edit' ? 'Guardando...' : 'Registrando...') 
+              : (mode === 'edit' ? 'Guardar Cambios' : 'Confirmar')}
           </Button>
         </div>
 

@@ -28,6 +28,15 @@ interface MedicationModalProps {
   onClose: () => void
   onConfirm: (data: MedicationModalData) => void
   childName: string
+  mode?: 'create' | 'edit'
+  initialData?: {
+    medicationName?: string
+    medicationDose?: string
+    medicationTime?: string
+    medicationNotes?: string
+    startTime?: string
+    eventId?: string
+  }
 }
 
 /**
@@ -38,34 +47,71 @@ export function MedicationModal({
   open,
   onClose,
   onConfirm,
-  childName
+  childName,
+  mode = 'create',
+  initialData
 }: MedicationModalProps) {
   const { getCurrentTime } = useDevTime()
-  const [medicationName, setMedicationName] = useState<string>('')
-  const [medicationDose, setMedicationDose] = useState<string>('')
+  const [medicationName, setMedicationName] = useState<string>(initialData?.medicationName || '')
+  const [medicationDose, setMedicationDose] = useState<string>(initialData?.medicationDose || '')
   const [medicationTime, setMedicationTime] = useState<string>(() => {
+    if (mode === 'edit' && initialData?.medicationTime) {
+      return initialData.medicationTime
+    }
     // Inicializar con la hora actual
     const now = getCurrentTime()
     return format(now, 'HH:mm')
   })
-  const [medicationNotes, setMedicationNotes] = useState<string>('')
+  const [medicationNotes, setMedicationNotes] = useState<string>(initialData?.medicationNotes || '')
+  const [eventDate, setEventDate] = useState<string>(() => {
+    if (mode === 'edit' && initialData?.startTime) {
+      return format(new Date(initialData.startTime), 'yyyy-MM-dd')
+    }
+    return format(getCurrentTime(), 'yyyy-MM-dd')
+  })
   const [isProcessing, setIsProcessing] = useState(false)
 
-  // Actualizar la hora cada vez que se abre el modal
+  // Actualizar la hora cada vez que se abre el modal (solo en modo create)
   useEffect(() => {
-    if (open) {
+    if (open && mode === 'create') {
       const now = getCurrentTime()
       setMedicationTime(format(now, 'HH:mm'))
     }
-  }, [open, getCurrentTime])
+  }, [open, getCurrentTime, mode])
+
+  // Inicializar con datos cuando se abre en modo edición
+  useEffect(() => {
+    if (open && mode === 'edit' && initialData) {
+      setMedicationName(initialData.medicationName || '')
+      setMedicationDose(initialData.medicationDose || '')
+      setMedicationTime(initialData.medicationTime || '')
+      setMedicationNotes(initialData.medicationNotes || '')
+      if (initialData.startTime) {
+        setEventDate(format(new Date(initialData.startTime), 'yyyy-MM-dd'))
+      }
+    }
+  }, [open, mode, initialData])
 
   // Reset del formulario
   const resetForm = () => {
-    setMedicationName('')
-    setMedicationDose('')
-    const now = getCurrentTime()
-    setMedicationTime(format(now, 'HH:mm'))
-    setMedicationNotes('')
+    if (mode === 'edit' && initialData) {
+      // En modo edición, restaurar valores iniciales
+      setMedicationName(initialData.medicationName || '')
+      setMedicationDose(initialData.medicationDose || '')
+      setMedicationTime(initialData.medicationTime || '')
+      setMedicationNotes(initialData.medicationNotes || '')
+      if (initialData.startTime) {
+        setEventDate(format(new Date(initialData.startTime), 'yyyy-MM-dd'))
+      }
+    } else {
+      // En modo creación, limpiar todo
+      setMedicationName('')
+      setMedicationDose('')
+      const now = getCurrentTime()
+      setMedicationTime(format(now, 'HH:mm'))
+      setMedicationNotes('')
+      setEventDate(format(now, 'yyyy-MM-dd'))
+    }
   }
 
   // Manejar cierre del modal
@@ -105,10 +151,12 @@ export function MedicationModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Pill className="w-5 h-5 text-purple-600" />
-            Registrar Medicamento
+            {mode === 'edit' ? 'Editar Medicamento' : 'Registrar Medicamento'}
           </DialogTitle>
           <DialogDescription>
-            Registra el medicamento administrado a {childName}
+            {mode === 'edit' 
+              ? `Modifica los detalles del medicamento de ${childName}`
+              : `Registra el medicamento administrado a ${childName}`}
           </DialogDescription>
         </DialogHeader>
 
@@ -142,19 +190,51 @@ export function MedicationModal({
             />
           </div>
 
-          {/* Hora de administración */}
-          <div className="space-y-2">
-            <Label htmlFor="medication-time">
-              Hora de administración
-            </Label>
-            <Input
-              id="medication-time"
-              type="time"
-              value={medicationTime}
-              onChange={(e) => setMedicationTime(e.target.value)}
-              className="w-full"
-            />
-          </div>
+          {/* Fecha y hora de administración - Solo visible en modo edición */}
+          {mode === 'edit' && (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <Label htmlFor="medication-date">
+                  Fecha
+                </Label>
+                <Input
+                  id="medication-date"
+                  type="date"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="medication-time">
+                  Hora
+                </Label>
+                <Input
+                  id="medication-time"
+                  type="time"
+                  value={medicationTime}
+                  onChange={(e) => setMedicationTime(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Hora de administración - Solo visible en modo creación */}
+          {mode === 'create' && (
+            <div className="space-y-2">
+              <Label htmlFor="medication-time">
+                Hora de administración
+              </Label>
+              <Input
+                id="medication-time"
+                type="time"
+                value={medicationTime}
+                onChange={(e) => setMedicationTime(e.target.value)}
+                className="w-full"
+              />
+            </div>
+          )}
 
           {/* Notas adicionales */}
           <div className="space-y-2">
@@ -190,7 +270,9 @@ export function MedicationModal({
             disabled={isProcessing || !medicationName.trim() || !medicationDose.trim()}
             className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white"
           >
-            {isProcessing ? 'Registrando...' : 'Registrar Medicamento'}
+            {isProcessing 
+              ? (mode === 'edit' ? 'Guardando...' : 'Registrando...') 
+              : (mode === 'edit' ? 'Guardar Cambios' : 'Registrar Medicamento')}
           </Button>
         </div>
       </DialogContent>

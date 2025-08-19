@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Activity, Plus, Minus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { format } from 'date-fns'
+import { useDevTime } from '@/context/dev-time-context'
 
 interface ExtraActivityModalData {
   activityDescription: string
@@ -28,6 +30,15 @@ interface ExtraActivityModalProps {
   onClose: () => void
   onConfirm: (data: ExtraActivityModalData) => void
   childName: string
+  mode?: 'create' | 'edit'
+  initialData?: {
+    activityDescription?: string
+    activityDuration?: number
+    activityImpact?: 'positive' | 'neutral' | 'negative'
+    activityNotes?: string
+    startTime?: string
+    eventId?: string
+  }
 }
 
 /**
@@ -38,20 +49,65 @@ export function ExtraActivityModal({
   open,
   onClose,
   onConfirm,
-  childName
+  childName,
+  mode = 'create',
+  initialData
 }: ExtraActivityModalProps) {
-  const [activityDescription, setActivityDescription] = useState<string>('')
-  const [activityDuration, setActivityDuration] = useState<number>(30) // Default 30 minutos
-  const [activityImpact, setActivityImpact] = useState<'positive' | 'neutral' | 'negative'>('neutral')
-  const [activityNotes, setActivityNotes] = useState<string>('')
+  const { getCurrentTime } = useDevTime()
+  const [activityDescription, setActivityDescription] = useState<string>(initialData?.activityDescription || '')
+  const [activityDuration, setActivityDuration] = useState<number>(initialData?.activityDuration || 30) // Default 30 minutos
+  const [activityImpact, setActivityImpact] = useState<'positive' | 'neutral' | 'negative'>(initialData?.activityImpact || 'neutral')
+  const [activityNotes, setActivityNotes] = useState<string>(initialData?.activityNotes || '')
+  const [eventDate, setEventDate] = useState<string>(() => {
+    if (mode === 'edit' && initialData?.startTime) {
+      return format(new Date(initialData.startTime), 'yyyy-MM-dd')
+    }
+    return format(getCurrentTime(), 'yyyy-MM-dd')
+  })
+  const [eventTime, setEventTime] = useState<string>(() => {
+    if (mode === 'edit' && initialData?.startTime) {
+      return format(new Date(initialData.startTime), 'HH:mm')
+    }
+    return format(getCurrentTime(), 'HH:mm')
+  })
   const [isProcessing, setIsProcessing] = useState(false)
+
+  // Inicializar con datos cuando se abre en modo edición
+  useEffect(() => {
+    if (open && mode === 'edit' && initialData) {
+      setActivityDescription(initialData.activityDescription || '')
+      setActivityDuration(initialData.activityDuration || 30)
+      setActivityImpact(initialData.activityImpact || 'neutral')
+      setActivityNotes(initialData.activityNotes || '')
+      if (initialData.startTime) {
+        setEventDate(format(new Date(initialData.startTime), 'yyyy-MM-dd'))
+        setEventTime(format(new Date(initialData.startTime), 'HH:mm'))
+      }
+    }
+  }, [open, mode, initialData])
 
   // Reset del formulario
   const resetForm = () => {
-    setActivityDescription('')
-    setActivityDuration(30)
-    setActivityImpact('neutral')
-    setActivityNotes('')
+    if (mode === 'edit' && initialData) {
+      // En modo edición, restaurar valores iniciales
+      setActivityDescription(initialData.activityDescription || '')
+      setActivityDuration(initialData.activityDuration || 30)
+      setActivityImpact(initialData.activityImpact || 'neutral')
+      setActivityNotes(initialData.activityNotes || '')
+      if (initialData.startTime) {
+        setEventDate(format(new Date(initialData.startTime), 'yyyy-MM-dd'))
+        setEventTime(format(new Date(initialData.startTime), 'HH:mm'))
+      }
+    } else {
+      // En modo creación, limpiar todo
+      setActivityDescription('')
+      setActivityDuration(30)
+      setActivityImpact('neutral')
+      setActivityNotes('')
+      const now = getCurrentTime()
+      setEventDate(format(now, 'yyyy-MM-dd'))
+      setEventTime(format(now, 'HH:mm'))
+    }
   }
 
   // Manejar cierre del modal
@@ -95,14 +151,46 @@ export function ExtraActivityModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Activity className="w-5 h-5 text-cyan-600" />
-            Registrar Actividad Extra
+            {mode === 'edit' ? 'Editar Actividad Extra' : 'Registrar Actividad Extra'}
           </DialogTitle>
           <DialogDescription>
-            Registra actividades que pueden afectar el sueño de {childName}
+            {mode === 'edit' 
+              ? `Modifica los detalles de la actividad de ${childName}`
+              : `Registra actividades que pueden afectar el sueño de ${childName}`}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Fecha y hora - Solo visible en modo edición */}
+          {mode === 'edit' && (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <Label htmlFor="activity-date">
+                  Fecha
+                </Label>
+                <Input
+                  id="activity-date"
+                  type="date"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="activity-time">
+                  Hora
+                </Label>
+                <Input
+                  id="activity-time"
+                  type="time"
+                  value={eventTime}
+                  onChange={(e) => setEventTime(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Descripción de la actividad */}
           <div className="space-y-2">
             <Label htmlFor="activity-description">
@@ -215,7 +303,9 @@ export function ExtraActivityModal({
             disabled={isProcessing || !activityDescription.trim()}
             className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
           >
-            {isProcessing ? 'Registrando...' : 'Registrar Actividad'}
+            {isProcessing 
+              ? (mode === 'edit' ? 'Guardando...' : 'Registrando...') 
+              : (mode === 'edit' ? 'Guardar Cambios' : 'Registrar Actividad')}
           </Button>
         </div>
       </DialogContent>

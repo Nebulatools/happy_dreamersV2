@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,11 @@ import {
 import { Button } from "@/components/ui/button"
 import { Clock, ChevronLeft, ChevronRight, Plus, Minus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { format } from 'date-fns'
+import { useDevTime } from '@/context/dev-time-context'
 
 interface SleepDelayModalProps {
   open: boolean
@@ -18,6 +23,14 @@ interface SleepDelayModalProps {
   onConfirm: (delay: number, emotionalState: string, notes: string) => void
   childName: string
   eventType: 'sleep' | 'nap'
+  mode?: 'create' | 'edit'
+  initialData?: {
+    sleepDelay?: number
+    emotionalState?: string
+    notes?: string
+    startTime?: string
+    eventId?: string
+  }
 }
 
 /**
@@ -29,12 +42,40 @@ export function SleepDelayModal({
   onClose,
   onConfirm,
   childName,
-  eventType
+  eventType,
+  mode = 'create',
+  initialData
 }: SleepDelayModalProps) {
-  const [selectedDelay, setSelectedDelay] = useState<number>(15) // Default 15 min
-  const [emotionalState, setEmotionalState] = useState<string>('tranquilo') // Default tranquilo
-  const [notes, setNotes] = useState<string>('') // Notas opcionales
+  const { getCurrentTime } = useDevTime()
+  const [selectedDelay, setSelectedDelay] = useState<number>(initialData?.sleepDelay || 15) // Default 15 min
+  const [emotionalState, setEmotionalState] = useState<string>(initialData?.emotionalState || 'tranquilo') // Default tranquilo
+  const [notes, setNotes] = useState<string>(initialData?.notes || '') // Notas opcionales
+  const [eventDate, setEventDate] = useState<string>(() => {
+    if (mode === 'edit' && initialData?.startTime) {
+      return format(new Date(initialData.startTime), 'yyyy-MM-dd')
+    }
+    return format(getCurrentTime(), 'yyyy-MM-dd')
+  })
+  const [eventTime, setEventTime] = useState<string>(() => {
+    if (mode === 'edit' && initialData?.startTime) {
+      return format(new Date(initialData.startTime), 'HH:mm')
+    }
+    return format(getCurrentTime(), 'HH:mm')
+  })
   const [isProcessing, setIsProcessing] = useState(false)
+
+  // Inicializar con datos cuando se abre en modo edición
+  useEffect(() => {
+    if (open && mode === 'edit' && initialData) {
+      setSelectedDelay(initialData.sleepDelay || 15)
+      setEmotionalState(initialData.emotionalState || 'tranquilo')
+      setNotes(initialData.notes || '')
+      if (initialData.startTime) {
+        setEventDate(format(new Date(initialData.startTime), 'yyyy-MM-dd'))
+        setEventTime(format(new Date(initialData.startTime), 'HH:mm'))
+      }
+    }
+  }, [open, mode, initialData])
 
   // Opciones rápidas predefinidas para fácil selección
   const quickOptions = [0, 15, 30, 45]
@@ -95,12 +136,46 @@ export function SleepDelayModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-blue-500" />
-            {eventType === 'nap' ? 'Tiempo para dormir la siesta' : 'Tiempo para dormir'}
+            {mode === 'edit' 
+              ? (eventType === 'nap' ? 'Editar Siesta' : 'Editar Sueño')
+              : (eventType === 'nap' ? 'Tiempo para dormir la siesta' : 'Tiempo para dormir')}
           </DialogTitle>
           <DialogDescription>
-            ¿Cuánto tiempo tardó {childName} en dormirse?
+            {mode === 'edit'
+              ? `Modifica los detalles del sueño de ${childName}`
+              : `¿Cuánto tiempo tardó ${childName} en dormirse?`}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Fecha y hora - Solo visible en modo edición */}
+        {mode === 'edit' && (
+          <div className="grid grid-cols-2 gap-2 pb-4 border-b">
+            <div className="space-y-2">
+              <Label htmlFor="sleep-date">
+                Fecha
+              </Label>
+              <Input
+                id="sleep-date"
+                type="date"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sleep-time">
+                Hora
+              </Label>
+              <Input
+                id="sleep-time"
+                type="time"
+                value={eventTime}
+                onChange={(e) => setEventTime(e.target.value)}
+                className="w-full"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Sección 1: Selector de Tiempo con Flechas */}
         <div className="space-y-4 mt-4">
@@ -213,20 +288,32 @@ export function SleepDelayModal({
         </div>
 
         <div className="flex gap-2 mt-6">
+          {mode === 'create' && (
+            <Button
+              variant="outline"
+              onClick={handleSkip}
+              disabled={isProcessing}
+              className="flex-1"
+            >
+              Omitir
+            </Button>
+          )}
           <Button
             variant="outline"
-            onClick={handleSkip}
+            onClick={onClose}
             disabled={isProcessing}
-            className="flex-1"
+            className={mode === 'edit' ? '' : 'hidden'}
           >
-            Omitir
+            Cancelar
           </Button>
           <Button
             onClick={handleConfirm}
             disabled={selectedDelay === null || isProcessing}
             className="flex-1 bg-blue-500 hover:bg-blue-600"
           >
-            Confirmar
+            {isProcessing 
+              ? (mode === 'edit' ? 'Guardando...' : 'Registrando...') 
+              : (mode === 'edit' ? 'Guardar Cambios' : 'Confirmar')}
           </Button>
         </div>
 

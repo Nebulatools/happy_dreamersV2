@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,10 @@ import { cn } from '@/lib/utils'
 import { toLocalISOString } from '@/lib/date-utils'
 import { useDevTime } from '@/context/dev-time-context'
 import { EventData } from './types'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { format } from 'date-fns'
 
 interface NightWakingModalProps {
   open: boolean
@@ -21,6 +25,14 @@ interface NightWakingModalProps {
   onConfirm: (awakeDelay: number, emotionalState: string, notes: string) => void
   childName: string
   childId: string
+  mode?: 'create' | 'edit'
+  initialData?: {
+    awakeDelay?: number
+    emotionalState?: string
+    notes?: string
+    startTime?: string
+    eventId?: string
+  }
 }
 
 /**
@@ -32,13 +44,40 @@ export function NightWakingModal({
   onClose,
   onConfirm,
   childName,
-  childId
+  childId,
+  mode = 'create',
+  initialData
 }: NightWakingModalProps) {
-  const [selectedDelay, setSelectedDelay] = useState<number>(15) // Default 15 min
-  const [emotionalState, setEmotionalState] = useState<string>('tranquilo')
-  const [notes, setNotes] = useState<string>('')
-  const [isProcessing, setIsProcessing] = useState(false)
   const { getCurrentTime } = useDevTime()
+  const [selectedDelay, setSelectedDelay] = useState<number>(initialData?.awakeDelay || 15) // Default 15 min
+  const [emotionalState, setEmotionalState] = useState<string>(initialData?.emotionalState || 'tranquilo')
+  const [notes, setNotes] = useState<string>(initialData?.notes || '')
+  const [eventDate, setEventDate] = useState<string>(() => {
+    if (mode === 'edit' && initialData?.startTime) {
+      return format(new Date(initialData.startTime), 'yyyy-MM-dd')
+    }
+    return format(getCurrentTime(), 'yyyy-MM-dd')
+  })
+  const [eventTime, setEventTime] = useState<string>(() => {
+    if (mode === 'edit' && initialData?.startTime) {
+      return format(new Date(initialData.startTime), 'HH:mm')
+    }
+    return format(getCurrentTime(), 'HH:mm')
+  })
+  const [isProcessing, setIsProcessing] = useState(false)
+
+  // Inicializar con datos cuando se abre en modo edición
+  useEffect(() => {
+    if (open && mode === 'edit' && initialData) {
+      setSelectedDelay(initialData.awakeDelay || 15)
+      setEmotionalState(initialData.emotionalState || 'tranquilo')
+      setNotes(initialData.notes || '')
+      if (initialData.startTime) {
+        setEventDate(format(new Date(initialData.startTime), 'yyyy-MM-dd'))
+        setEventTime(format(new Date(initialData.startTime), 'HH:mm'))
+      }
+    }
+  }, [open, mode, initialData])
 
   // Opciones rápidas predefinidas para despertares nocturnos
   const quickOptions = [5, 15, 30, 45]
@@ -175,12 +214,44 @@ export function NightWakingModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Moon className="w-5 h-5 text-indigo-500" />
-            Despertar Nocturno
+            {mode === 'edit' ? 'Editar Despertar Nocturno' : 'Despertar Nocturno'}
           </DialogTitle>
           <DialogDescription>
-            ¿Cuánto tiempo estuvo despierto {childName}?
+            {mode === 'edit'
+              ? `Modifica los detalles del despertar nocturno de ${childName}`
+              : `¿Cuánto tiempo estuvo despierto ${childName}?`}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Fecha y hora - Solo visible en modo edición */}
+        {mode === 'edit' && (
+          <div className="grid grid-cols-2 gap-2 pb-4 border-b">
+            <div className="space-y-2">
+              <Label htmlFor="waking-date">
+                Fecha
+              </Label>
+              <Input
+                id="waking-date"
+                type="date"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="waking-time">
+                Hora
+              </Label>
+              <Input
+                id="waking-time"
+                type="time"
+                value={eventTime}
+                onChange={(e) => setEventTime(e.target.value)}
+                className="w-full"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Sección 1: Selector de Tiempo con Flechas */}
         <div className="space-y-4 mt-4">
@@ -309,7 +380,9 @@ export function NightWakingModal({
             disabled={isProcessing}
             className="flex-1 bg-indigo-500 hover:bg-indigo-600"
           >
-            Confirmar
+            {isProcessing 
+              ? (mode === 'edit' ? 'Guardando...' : 'Registrando...') 
+              : (mode === 'edit' ? 'Guardar Cambios' : 'Confirmar')}
           </Button>
         </div>
 
