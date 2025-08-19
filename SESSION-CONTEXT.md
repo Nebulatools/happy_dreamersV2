@@ -18,31 +18,33 @@
 - **Testing**: ✅ QA completo + Sistema funcionando
 - **Branch Actual**: regevento
 
-## 📊 Sesión Actual - Sistema de Eventos v5.0 ✅
+## 📊 Sesión Actual - Sistema de Eventos v5.1 ✅
 
-### SISTEMA COMPLETO DE EVENTOS CON CAMPOS ESTRUCTURADOS
+### SISTEMA COMPLETO DE EVENTOS CON EDICIÓN REUTILIZABLE
 **Fecha**: Enero 2025
-**Objetivo**: Sistema expandido con medicamentos, actividades extras y estructura de datos mejorada
+**Objetivo**: Sistema de eventos con modales reutilizables para crear y editar
 **Status**: ✅ COMPLETADO Y FUNCIONANDO
 
-#### 🆕 Nuevos Tipos de Eventos (v5.0)
+#### 🎯 Sistema de Edición de Eventos (v5.1)
 
-**Medicamentos**:
-- ✅ **Botón compacto**: Color púrpura con icono Pill
-- ✅ **Campos estructurados**: medicationName, medicationDose, medicationTime, medicationNotes
-- ✅ **Hora automática**: Captura el momento exacto del click
-- ✅ **Validaciones**: Nombre y dosis requeridos
+**Reutilización de Modales**:
+- ✅ **Modo dual**: Todos los modales soportan modo `create` y `edit`
+- ✅ **EventEditRouter**: Componente inteligente que gestiona qué modal abrir
+- ✅ **Campos fecha/hora**: Visibles solo en modo edición
+- ✅ **UI consistente**: Misma interfaz para crear y editar eventos
 
-**Actividad Extra**:
-- ✅ **Botón compacto**: Color turquesa con icono Activity
-- ✅ **Campos estructurados**: activityDescription, activityDuration, activityImpact, activityNotes
-- ✅ **Impacto en sueño**: Positivo, neutral o negativo
-- ✅ **Duración configurable**: 5-180 minutos
+**Modales Actualizados**:
+- ✅ **MedicationModal**: Modo edición con fecha/hora
+- ✅ **FeedingModal**: Modo edición con fecha/hora
+- ✅ **ExtraActivityModal**: Modo edición con fecha/hora
+- ✅ **SleepDelayModal**: Modo edición con fecha/hora
+- ✅ **NightWakingModal**: Modo edición con fecha/hora
 
-**Layout Mejorado**:
-- ✅ **3 botones compactos**: Alimentación | Medicamentos | Actividad
-- ✅ **Tamaño optimizado**: h-16 para botones secundarios
-- ✅ **Botón dormir**: Mantiene tamaño grande h-24
+**Mejoras UX**:
+- ✅ **Títulos contextuales**: "Registrar" vs "Editar" según modo
+- ✅ **Botones adaptados**: "Registrar" vs "Guardar Cambios"
+- ✅ **Datos precargados**: Valores iniciales en modo edición
+- ✅ **Hora automática**: Se actualiza al abrir modal de medicamentos
 
 #### 🔧 Estructura de Datos Mejorada (v5.0)
 
@@ -79,23 +81,23 @@
 - ✅ **Indicadores visuales**: "↑ Continúa desde ayer" y "Continúa mañana ↓"
 - ✅ **Duración total**: Solo en el día donde termina el sueño
 
-## 📋 Archivos Clave Modificados
+## 📋 Archivos Clave Modificados (v5.1)
 
-### Componentes de Eventos
-- `/components/events/EventRegistration.tsx` - Layout v4.0 con 3 botones compactos
-- `/components/events/MedicationButton.tsx` - Nuevo botón de medicamentos
-- `/components/events/MedicationModal.tsx` - Modal para captura de datos
-- `/components/events/ExtraActivityButton.tsx` - Nuevo botón de actividades
-- `/components/events/ExtraActivityModal.tsx` - Modal para actividades
-- `/components/events/types.ts` - Interfaces actualizadas con campos nuevos
+### Componentes de Eventos - Con Modo Edición
+- `/components/events/MedicationModal.tsx` - ✅ Modo create/edit con fecha/hora
+- `/components/events/FeedingModal.tsx` - ✅ Modo create/edit con fecha/hora
+- `/components/events/ExtraActivityModal.tsx` - ✅ Modo create/edit con fecha/hora
+- `/components/events/SleepDelayModal.tsx` - ✅ Modo create/edit con fecha/hora
+- `/components/events/NightWakingModal.tsx` - ✅ Modo create/edit con fecha/hora
+- `/components/events/EventEditRouter.tsx` - ✅ NUEVO: Router inteligente para edición
 
-### Calendario
-- `/components/calendar/SleepSessionBlock.tsx` - Visualización mejorada con click independiente
-- `/components/calendar/EventBlock.tsx` - Soporte para nuevos tipos de eventos
-- `/app/dashboard/calendar/page.tsx` - Lógica de renderizado actualizada
+### Calendario - Integración de Edición
+- `/app/dashboard/calendar/page.tsx` - ✅ Usa EventEditRouter en lugar de Dialog genérico
+- `/components/calendar/EventBlock.tsx` - Click abre modal específico para editar
 
 ### API
 - `/app/api/children/events/route.ts` - Validaciones y campos estructurados
+- `/app/api/children/events/[id]/route.ts` - PUT endpoint para actualización
 
 ### Estilos
 - `/app/globals.css` - Colores para medicamentos, actividades y alimentación
@@ -115,13 +117,22 @@
 07:30 → "SE DESPERTÓ" → Despertar definitivo → Actualiza endTime
 ```
 
-## 🚀 Próximos Pasos Sugeridos
+## 🚀 Trabajo Completado Hoy
 
-1. **Reportes y Analytics**: Aprovechar campos estructurados para estadísticas
-2. **Filtros Avanzados**: Búsqueda por medicamento, actividad, etc.
-3. **Exportación de Datos**: CSV/PDF con información estructurada
-4. **Notificaciones**: Recordatorios para medicamentos
-5. **Integración IA**: Análisis de patrones con los nuevos datos
+### ✅ Implementación de Edición Reutilizable
+1. **Modales con modo dual**: Todos los modales ahora soportan crear y editar
+2. **EventEditRouter**: Componente que gestiona qué modal abrir según tipo
+3. **Eliminación de código redundante**: Removido Dialog genérico de edición
+4. **Fix de hora automática**: Modal de medicamentos actualiza hora al abrir
+5. **Fix de activeChildName**: Corregido error de referencia no definida
+
+## 🔮 Próximos Pasos Sugeridos
+
+1. **Modal para eventos simples**: Crear modal específico para wake/bedtime
+2. **Bulk operations**: Edición/eliminación múltiple de eventos
+3. **Historial de cambios**: Auditoría de modificaciones en eventos
+4. **Validaciones mejoradas**: Prevenir solapamiento de eventos de sueño
+5. **Exportación con ediciones**: Incluir historial de cambios en reportes
 
 ## 📝 Notas Técnicas
 
