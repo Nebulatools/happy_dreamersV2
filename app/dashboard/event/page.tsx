@@ -18,6 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2 } from "lucide-react"
 
 import { createLogger } from "@/lib/logger"
+import { eventTypes } from "@/lib/event-types"
 
 const logger = createLogger("page")
 
@@ -110,15 +111,11 @@ export default function EventPage() {
     return () => clearInterval(interval)
   }, [toast])
 
-  const eventTypes = [
-    { id: "sleep", label: "Dormir" },
-    { id: "nap", label: "Siesta" },
-    { id: "meal", label: "Comida" },
-    { id: "play", label: "Juego" },
-    { id: "activity", label: "Actividad física" },
-    { id: "bath", label: "Baño" },
-    { id: "other", label: "Otro" },
-  ]
+  // Usar los tipos de eventos definidos en event-types.ts
+  const availableEventTypes = eventTypes.map(type => ({
+    id: type.id,
+    label: type.label
+  }))
 
   const emotionalStates = [
     { id: "happy", label: "Feliz" },
@@ -251,7 +248,7 @@ export default function EventPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {eventTypes.map((type) => (
+                        {availableEventTypes.map((type) => (
                           <SelectItem key={type.id} value={type.id}>
                             {type.label}
                           </SelectItem>

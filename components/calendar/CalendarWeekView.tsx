@@ -42,18 +42,9 @@ export function CalendarWeekView({
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
   const weekDays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
   
-  // DEBUG: Log de la semana
-  console.log(`📅 Vista semanal - Fecha actual: ${format(date, 'yyyy-MM-dd')}`)
-  console.log(`📅 Inicio de semana: ${format(weekStart, 'yyyy-MM-dd')}`)
-  console.log(`📅 Días de la semana:`, days.map(d => format(d, 'yyyy-MM-dd')))
-  
   // Obtener eventos de un día específico
   const getEventsForDay = (day: Date) => {
     const dayStr = format(day, "yyyy-MM-dd")
-    
-    // DEBUG: Agregar logs temporales
-    console.log(`🔍 Vista semanal - Filtrando eventos para: ${dayStr}`)
-    console.log(`📊 Total eventos disponibles: ${events.length}`)
     
     const dayEvents = events.filter(event => {
       if (!event.startTime || event.startTime === '') return false
@@ -62,22 +53,11 @@ export function CalendarWeekView({
         // Método más robusto: parsear la fecha del evento y comparar solo el día
         const eventDate = new Date(event.startTime)
         const eventDateStr = format(eventDate, "yyyy-MM-dd")
-        const matches = eventDateStr === dayStr
-        
-        // DEBUG: Log de cada evento
-        console.log(`🔍 Comparando: ${eventDateStr} vs ${dayStr} = ${matches ? '✅' : '❌'}`)
-        if (matches) {
-          console.log(`✅ Evento encontrado: ${event.eventType} a las ${event.startTime}`)
-        }
-        
-        return matches
+        return eventDateStr === dayStr
       } catch (error) {
-        console.log(`❌ Error parseando fecha: ${event.startTime}`)
         return false
       }
     })
-    
-    console.log(`🎯 Eventos filtrados para ${dayStr}: ${dayEvents.length}`)
     
     return dayEvents.sort((a, b) => {
       const timeA = new Date(a.startTime).getTime()
