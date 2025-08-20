@@ -2,7 +2,7 @@
 "use client"
 
 import React from 'react'
-import { format, addDays, startOfWeek, isToday } from 'date-fns'
+import { format, addDays, startOfWeek, isToday, startOfDay, endOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { TimeAxis } from './TimeAxis'
@@ -44,18 +44,30 @@ export function CalendarWeekView({
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
   const weekDays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
   
-  // Obtener eventos de un día específico
+  // Obtener eventos que afectan un día específico (incluye eventos que cruzan días)
   const getEventsForDay = (day: Date) => {
-    const dayStr = format(day, "yyyy-MM-dd")
+    const dayStart = startOfDay(day)
+    const dayEnd = endOfDay(day)
     
     const dayEvents = events.filter(event => {
       if (!event.startTime || event.startTime === '') return false
       
       try {
-        // Método más robusto: parsear la fecha del evento y comparar solo el día
-        const eventDate = new Date(event.startTime)
-        const eventDateStr = format(eventDate, "yyyy-MM-dd")
-        return eventDateStr === dayStr
+        const eventStart = new Date(event.startTime)
+        const eventEnd = event.endTime ? new Date(event.endTime) : eventStart
+        
+        // Incluir evento si:
+        // 1. Empieza en este día (comportamiento original)
+        // 2. Termina en este día  
+        // 3. Cruza este día (empieza antes y termina después)
+        // 4. Es una sesión de sueño en progreso que empezó antes de este día
+        
+        const startsThisDay = eventStart >= dayStart && eventStart <= dayEnd
+        const endsThisDay = eventEnd >= dayStart && eventEnd <= dayEnd
+        const crossesThisDay = eventStart < dayStart && eventEnd > dayEnd
+        const sleepInProgress = event.eventType === 'sleep' && !event.endTime && eventStart < dayEnd
+        
+        return startsThisDay || endsThisDay || crossesThisDay || sleepInProgress
       } catch (error) {
         return false
       }
