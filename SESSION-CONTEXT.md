@@ -81,19 +81,22 @@
 - ✅ **Indicadores visuales**: "↑ Continúa desde ayer" y "Continúa mañana ↓"
 - ✅ **Duración total**: Solo en el día donde termina el sueño
 
-## 📋 Archivos Clave Modificados (v5.1)
+## 📋 Archivos Clave Modificados (v6.0)
 
-### Componentes de Eventos - Con Modo Edición
+### Navegación de Calendario - Reorganización UI
+- `/app/dashboard/calendar/page.tsx` - ✅ Reorganización completa: selector de vista, navegación integrada, navegación día por día, corrección fetchEvents()
+- `/components/calendar/CalendarMain.tsx` - ✅ Props para navegación día por día, eliminado CalendarNavigation
+- `/components/calendar/CalendarWeekView.tsx` - ✅ Flechas navegación en primer y último día
+- `/components/calendar/CalendarDayView.tsx` - ✅ Flechas navegación en ambos lados del header
+- `/components/calendar/CalendarNavigation.tsx` - ✅ Simplificado: eliminado título duplicado
+
+### Componentes de Eventos - Con Modo Edición (v5.1)
 - `/components/events/MedicationModal.tsx` - ✅ Modo create/edit con fecha/hora
 - `/components/events/FeedingModal.tsx` - ✅ Modo create/edit con fecha/hora
 - `/components/events/ExtraActivityModal.tsx` - ✅ Modo create/edit con fecha/hora
 - `/components/events/SleepDelayModal.tsx` - ✅ Modo create/edit con fecha/hora
 - `/components/events/NightWakingModal.tsx` - ✅ Modo create/edit con fecha/hora
-- `/components/events/EventEditRouter.tsx` - ✅ NUEVO: Router inteligente para edición
-
-### Calendario - Integración de Edición
-- `/app/dashboard/calendar/page.tsx` - ✅ Usa EventEditRouter en lugar de Dialog genérico
-- `/components/calendar/EventBlock.tsx` - Click abre modal específico para editar
+- `/components/events/EventEditRouter.tsx` - ✅ Router inteligente para edición
 
 ### API
 - `/app/api/children/events/route.ts` - Validaciones y campos estructurados
@@ -119,7 +122,31 @@
 
 ## 🚀 Trabajo Completado Hoy
 
-### ✅ Implementación de Edición Reutilizable
+### ✅ Reorganización de Navegación de Calendario v6.0
+**Fecha**: Enero 2025
+**Status**: ✅ COMPLETADO Y FUNCIONANDO
+
+#### 🎯 Reorganización UI del Calendario
+1. **Selector de vista movido**: Mensual/Semanal/Diario ahora en barra superior junto a leyenda de colores
+2. **Navegación integrada**: Botones ← → para períodos en header del resumen del período seleccionado
+3. **Layout responsive**: Adaptado para móvil y desktop
+4. **UI más limpia**: Mejor organización visual y accesibilidad
+
+#### 🎯 Navegación Día por Día Implementada
+1. **Vista semanal**: Flechas en primer día (izquierda) y último día (derecha)
+2. **Vista diaria**: Flechas en ambos lados del header del día  
+3. **Navegación inteligente**: Cambia automáticamente de semana cuando es necesario
+4. **UX fluida**: Permite recorrer día por día sin cambiar vista
+
+#### 🚨 Problemas Críticos Resueltos
+1. **Navegación lenta corregida**: 
+   - ❌ **Problema**: fetchEvents() calculaba mal el rango semanal usando `startOfDay(date)` + `addDays(date, 6)`
+   - ✅ **Solución**: Corregido a `startOfWeek(date)` + `endOfWeek(date)` para navegación instantánea
+2. **Título duplicado eliminado**:
+   - ❌ **Problema**: CalendarNavigation mostraba título duplicado con header del período
+   - ✅ **Solución**: Eliminado título de CalendarNavigation, conservando solo el del header
+
+### ✅ Implementación de Edición Reutilizable (Completada previamente)
 1. **Modales con modo dual**: Todos los modales ahora soportan crear y editar
 2. **EventEditRouter**: Componente que gestiona qué modal abrir según tipo
 3. **Eliminación de código redundante**: Removido Dialog genérico de edición

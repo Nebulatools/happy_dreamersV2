@@ -1,9 +1,8 @@
 // 📅 Calendario Principal - Integración completa
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { Card } from '@/components/ui/card'
-import { CalendarNavigation } from './CalendarNavigation'
 import { CalendarWeekView } from './CalendarWeekView'
 import { CalendarDayView } from './CalendarDayView'
 import { handleCalendarClick } from './CalendarClickHandler'
@@ -30,8 +29,10 @@ interface CalendarMainProps {
   monthView?: React.ReactNode; // Para mantener la vista mensual existente
   initialDate?: Date; // Fecha inicial controlada por el padre
   initialView?: ViewMode; // Vista inicial controlada por el padre
-  onDateChange?: (date: Date) => void; // Callback cuando cambia la fecha
-  onViewChange?: (view: ViewMode) => void; // Callback cuando cambia la vista
+  onDateChange?: (date: Date) => void; // Callback cuando cambia la fecha (opcional)
+  onViewChange?: (view: ViewMode) => void; // Callback cuando cambia la vista (opcional)
+  onDayNavigateBack?: () => void; // Navegación día por día hacia atrás
+  onDayNavigateForward?: () => void; // Navegación día por día hacia adelante
 }
 
 export function CalendarMain({
@@ -42,50 +43,14 @@ export function CalendarMain({
   initialDate,
   initialView,
   onDateChange,
-  onViewChange
+  onViewChange,
+  onDayNavigateBack,
+  onDayNavigateForward
 }: CalendarMainProps) {
   
-  const [date, setDate] = useState<Date>(initialDate || new Date())
-  const [view, setView] = useState<ViewMode>(() => {
-    if (initialView) return initialView
-    // Cargar preferencia desde localStorage
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("calendar-view-preference")
-      if (saved && ["month", "week", "day"].includes(saved)) {
-        return saved as ViewMode
-      }
-    }
-    return "day"
-  })
-  
-  // Sincronizar con prop de fecha inicial
-  useEffect(() => {
-    if (initialDate) {
-      setDate(initialDate)
-    }
-  }, [initialDate])
-  
-  // Sincronizar con prop de vista inicial
-  useEffect(() => {
-    if (initialView) {
-      setView(initialView)
-    }
-  }, [initialView])
-  
-  // Manejar cambio de fecha
-  const handleDateChange = (newDate: Date) => {
-    setDate(newDate)
-    onDateChange?.(newDate)
-  }
-  
-  // Guardar preferencia de vista
-  const handleViewChange = (newView: ViewMode) => {
-    setView(newView)
-    if (typeof window !== "undefined") {
-      localStorage.setItem("calendar-view-preference", newView)
-    }
-    onViewChange?.(newView)
-  }
+  // Usar directamente las props del padre en lugar del estado interno
+  const date = initialDate || new Date()
+  const view = initialView || "day"
   
   // Manejar click en calendario para crear eventos
   const handleClick = (clickEvent: React.MouseEvent, dayDate: Date) => {
@@ -100,14 +65,6 @@ export function CalendarMain({
   
   return (
     <div className="space-y-4">
-      {/* Navegación */}
-      <CalendarNavigation
-        date={date}
-        view={view}
-        onDateChange={handleDateChange}
-        onViewChange={handleViewChange}
-      />
-      
       {/* Calendario */}
       <Card className="p-4">
         {view === "week" && (
@@ -117,6 +74,8 @@ export function CalendarMain({
             hourHeight={HOUR_HEIGHT}
             onEventClick={onEventClick}
             onCalendarClick={handleClick}
+            onDayNavigateBack={onDayNavigateBack}
+            onDayNavigateForward={onDayNavigateForward}
           />
         )}
         
@@ -127,6 +86,8 @@ export function CalendarMain({
             hourHeight={HOUR_HEIGHT}
             onEventClick={onEventClick}
             onCalendarClick={handleClick}
+            onDayNavigateBack={onDayNavigateBack}
+            onDayNavigateForward={onDayNavigateForward}
           />
         )}
         

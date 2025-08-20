@@ -3,7 +3,7 @@
 
 import React from 'react'
 import { format } from 'date-fns'
-import { Cloud } from 'lucide-react'
+import { Cloud, ChevronLeft, ChevronRight } from 'lucide-react'
 import { TimeAxis } from './TimeAxis'
 import { BackgroundAreas } from './BackgroundAreas'
 import { GridLines } from './GridLines'
@@ -28,6 +28,8 @@ interface CalendarDayViewProps {
   onEventClick?: (event: Event) => void;
   onCalendarClick?: (clickEvent: React.MouseEvent, dayDate: Date) => void;
   className?: string;
+  onDayNavigateBack?: () => void;
+  onDayNavigateForward?: () => void;
 }
 
 export function CalendarDayView({
@@ -36,7 +38,9 @@ export function CalendarDayView({
   hourHeight = 30,
   onEventClick,
   onCalendarClick,
-  className = ""
+  className = "",
+  onDayNavigateBack,
+  onDayNavigateForward
 }: CalendarDayViewProps) {
   
   return (
@@ -47,8 +51,37 @@ export function CalendarDayView({
       {/* Área de eventos */}
       <div className="flex-1 relative">
         {/* Header del día */}
-        <div className="h-8 bg-white border-b border-gray-200 flex items-center justify-center">
+        <div className="h-8 bg-white border-b border-gray-200 flex items-center justify-center relative">
+          {/* Flecha izquierda */}
+          {onDayNavigateBack && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onDayNavigateBack()
+              }}
+              className="absolute left-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-gray-100 transition-colors"
+              aria-label="Día anterior"
+            >
+              <ChevronLeft className="w-4 h-4 text-gray-500 hover:text-gray-700" />
+            </button>
+          )}
+          
+          {/* Contenido del día */}
           <span className="font-medium text-sm">{format(date, "d")}</span>
+          
+          {/* Flecha derecha */}
+          {onDayNavigateForward && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onDayNavigateForward()
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-gray-100 transition-colors"
+              aria-label="Día siguiente"
+            >
+              <ChevronRight className="w-4 h-4 text-gray-500 hover:text-gray-700" />
+            </button>
+          )}
         </div>
         
         {/* Container de eventos */}
