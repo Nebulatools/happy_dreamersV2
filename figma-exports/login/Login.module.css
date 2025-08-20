@@ -1,0 +1,418 @@
+/* Login Component Styles */
+.loginContainer {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  position: relative;
+  font-family: 'Century Gothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+}
+
+/* Background Section */
+.background {
+  flex: 1;
+  background: linear-gradient(180deg, #68A1C8 63.12%, #3993D1 100%);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Logo Section */
+.logoSection {
+  position: absolute;
+  width: 594px;
+  height: 381.21px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.logo {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.logoPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.logoText {
+  font-size: 48px;
+  font-weight: 700;
+  color: #FFFFFF;
+  text-align: center;
+  font-family: 'Ludicrous', 'Century Gothic', sans-serif;
+}
+
+/* Form Container */
+.formContainer {
+  width: 448px;
+  height: 100vh;
+  background: #EFFFFF;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0px 10px 15px 0px rgba(0, 0, 0, 0.1), 0px 4px 6px 0px rgba(0, 0, 0, 0.1);
+  border-radius: 24px 0 0 24px;
+}
+
+.formCard {
+  width: 384px;
+  padding: 0;
+  position: relative;
+}
+
+/* Form Header */
+.formHeader {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.welcomeTitle {
+  font-family: 'Ludicrous', 'Century Gothic', sans-serif;
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 0.5em;
+  color: #68A1C8;
+  margin: 0 0 8px 0;
+}
+
+.welcomeSubtitle {
+  font-family: 'Century Gothic', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.077em;
+  color: #6B7280;
+  margin: 0;
+}
+
+/* Form Styles */
+.form {
+  width: 100%;
+}
+
+.fieldGroup {
+  margin-bottom: 24px;
+}
+
+.label {
+  display: block;
+  font-family: 'Century Gothic', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.226em;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.inputContainer {
+  position: relative;
+}
+
+.input {
+  width: 100%;
+  height: 54px;
+  background: #DEF1F1;
+  border: none;
+  border-radius: 12px;
+  padding: 0 16px;
+  font-family: 'Century Gothic', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.846em;
+  color: #374151;
+  box-sizing: border-box;
+}
+
+.input::placeholder {
+  color: #ADAEBC;
+}
+
+.input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #68A1C8;
+}
+
+/* Password Field */
+.passwordLabelContainer {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.passwordInputContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eyeIcon {
+  width: 20px;
+  height: 16px;
+}
+
+/* Options Row */
+.optionsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.rememberMe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  border: 0.5px solid #000000;
+  border-radius: 1px;
+  background: #DEF1F1;
+  cursor: pointer;
+}
+
+.checkboxLabel {
+  font-family: 'Century Gothic', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.226em;
+  color: #4B5563;
+  cursor: pointer;
+  margin: 0;
+}
+
+.forgotPassword {
+  background: transparent;
+  border: none;
+  font-family: 'Century Gothic', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.077em;
+  color: #68A1C8;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.forgotPassword:hover {
+  color: #5a8db0;
+}
+
+/* Button Group */
+.buttonGroup {
+  margin-bottom: 24px;
+}
+
+.signInButton {
+  width: 100%;
+  height: 50px;
+  background: #68A1C8;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: #DEF1F1;
+  font-family: 'Century Gothic', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.226em;
+  text-align: center;
+  cursor: pointer;
+  margin-bottom: 16px;
+  transition: all 0.2s ease;
+}
+
+.signInButton:hover {
+  background: #5a8db0;
+  transform: translateY(-1px);
+}
+
+.googleButton {
+  width: 100%;
+  height: 50px;
+  background: #A0D8D0;
+  border: none;
+  border-radius: 12px;
+  color: #EBFFFC;
+  font-family: 'Century Gothic', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.226em;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.googleButton:hover {
+  background: #8bc4bc;
+  transform: translateY(-1px);
+}
+
+/* Sign Up Prompt */
+.signUpPrompt {
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.signUpText {
+  font-family: 'Century Gothic', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.077em;
+  color: #6B7280;
+}
+
+.signUpLink {
+  background: transparent;
+  border: none;
+  font-family: 'Century Gothic', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.077em;
+  color: #68A1C8;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.signUpLink:hover {
+  color: #5a8db0;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .loginContainer {
+    flex-direction: column;
+  }
+  
+  .background {
+    height: 40vh;
+    min-height: 300px;
+  }
+  
+  .logoSection {
+    width: 300px;
+    height: 200px;
+  }
+  
+  .logoText {
+    font-size: 32px;
+  }
+  
+  .formContainer {
+    width: 100%;
+    height: 60vh;
+    border-radius: 24px 24px 0 0;
+    position: relative;
+    bottom: 0;
+  }
+  
+  .formCard {
+    width: calc(100% - 40px);
+    padding: 20px;
+  }
+  
+  .welcomeTitle {
+    font-size: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .background {
+    height: 35vh;
+    min-height: 250px;
+  }
+  
+  .logoSection {
+    width: 250px;
+    height: 150px;
+  }
+  
+  .logoText {
+    font-size: 24px;
+  }
+  
+  .formContainer {
+    height: 65vh;
+  }
+  
+  .formCard {
+    width: calc(100% - 32px);
+    padding: 16px;
+  }
+  
+  .welcomeTitle {
+    font-size: 32px;
+  }
+  
+  .welcomeSubtitle {
+    font-size: 12px;
+  }
+  
+  .input {
+    height: 48px;
+    font-size: 12px;
+  }
+  
+  .signInButton,
+  .googleButton {
+    height: 44px;
+    font-size: 12px;
+  }
+}
+
+/* Landscape mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .loginContainer {
+    flex-direction: row;
+  }
+  
+  .background {
+    height: 100vh;
+    width: 50%;
+  }
+  
+  .formContainer {
+    width: 50%;
+    height: 100vh;
+    border-radius: 0;
+  }
+  
+  .logoSection {
+    width: 250px;
+    height: 160px;
+  }
+  
+  .logoText {
+    font-size: 28px;
+  }
+}

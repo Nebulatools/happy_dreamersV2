@@ -1,0 +1,291 @@
+/* Register Module CSS - Enhanced responsive styles */
+
+.registerContainer {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #68A1C8 50%, #3993D1 100%);
+}
+
+/* Mobile-first responsive breakpoints */
+@media (max-width: 640px) {
+  .registerForm {
+    padding: 1rem;
+  }
+  
+  .formCard {
+    margin: 1rem;
+    padding: 1.5rem;
+    border-radius: 16px;
+  }
+  
+  .title {
+    font-size: 2rem;
+    line-height: 1.2;
+  }
+  
+  .subtitle {
+    font-size: 0.875rem;
+  }
+  
+  .inputField {
+    margin-bottom: 1.25rem;
+  }
+  
+  .input {
+    padding: 0.75rem 2.5rem;
+    font-size: 14px;
+  }
+  
+  .submitButton {
+    padding: 0.875rem 1rem;
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+  .formCard {
+    max-width: 400px;
+    margin: 2rem auto;
+    padding: 2rem;
+  }
+  
+  .title {
+    font-size: 2.5rem;
+  }
+  
+  .logoSection {
+    display: none;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .formCard {
+    max-width: 420px;
+    padding: 2.5rem;
+  }
+  
+  .logoSection {
+    flex: 0.6;
+  }
+  
+  .formSection {
+    flex: 1;
+    max-width: 500px;
+  }
+}
+
+@media (min-width: 1025px) {
+  .logoSection {
+    flex: 1;
+  }
+  
+  .formSection {
+    flex: 1;
+    max-width: 600px;
+  }
+  
+  .formCard {
+    padding: 3rem;
+  }
+}
+
+/* Enhanced animations and interactions */
+.input {
+  transition: all 0.2s ease-in-out;
+}
+
+.input:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(104, 161, 200, 0.15);
+}
+
+.submitButton {
+  transition: all 0.3s ease;
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(104, 161, 200, 0.3);
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Enhanced card styling */
+.formCard {
+  backdrop-filter: blur(10px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+/* Checkbox styling */
+.checkbox {
+  accent-color: #68A1C8;
+  transform: scale(1.1);
+}
+
+.checkbox:checked {
+  background-color: #68A1C8;
+  border-color: #68A1C8;
+}
+
+/* Loading states */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.loadingSpinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Focus and Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .input,
+  .submitButton,
+  .formCard {
+    transition: none;
+  }
+  
+  .submitButton:hover:not(:disabled) {
+    transform: none;
+  }
+  
+  .loadingSpinner {
+    animation: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .input {
+    border: 2px solid #000;
+  }
+  
+  .input:focus {
+    border-color: #68A1C8;
+    box-shadow: 0 0 0 3px rgba(104, 161, 200, 0.3);
+  }
+  
+  .formCard {
+    border: 2px solid #000;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .registerContainer {
+    background: linear-gradient(135deg, #1e293b 50%, #0f172a 100%);
+  }
+  
+  .formCard {
+    background: #2d3748;
+    color: #f7fafc;
+  }
+  
+  .title {
+    color: #90cdf4;
+  }
+  
+  .subtitle {
+    color: #cbd5e0;
+  }
+  
+  .input {
+    background: #4a5568;
+    color: #f7fafc;
+    border-color: #718096;
+  }
+  
+  .input::placeholder {
+    color: #a0aec0;
+  }
+  
+  .input:focus {
+    border-color: #90cdf4;
+    box-shadow: 0 0 0 3px rgba(144, 205, 244, 0.3);
+  }
+}
+
+/* Print styles */
+@media print {
+  .registerContainer {
+    background: white;
+    color: black;
+  }
+  
+  .formCard {
+    background: white !important;
+    box-shadow: none;
+    border: 1px solid #e5e7eb;
+  }
+  
+  .logoSection {
+    display: none;
+  }
+}
+
+/* Touch devices optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .input {
+    padding: 1rem 2.5rem;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .submitButton {
+    padding: 1rem;
+    font-size: 16px;
+  }
+  
+  .checkbox {
+    transform: scale(1.3);
+  }
+}
+
+/* Landscape phone adjustments */
+@media screen and (max-height: 500px) and (orientation: landscape) {
+  .registerContainer {
+    padding: 1rem 0;
+  }
+  
+  .formCard {
+    margin: 0.5rem;
+    padding: 1rem;
+  }
+  
+  .title {
+    font-size: 1.75rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .inputField {
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* Very large screens */
+@media (min-width: 1440px) {
+  .formSection {
+    max-width: 700px;
+  }
+  
+  .formCard {
+    padding: 4rem;
+  }
+  
+  .title {
+    font-size: 3.5rem;
+  }
+  
+  .subtitle {
+    font-size: 1.125rem;
+  }
+}

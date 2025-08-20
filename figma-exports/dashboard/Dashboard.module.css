@@ -1,0 +1,228 @@
+/* Dashboard Module CSS - Enhanced responsive styles */
+
+.dashboard {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e0f2fe 100%);
+}
+
+/* Mobile-first responsive breakpoints */
+@media (max-width: 640px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .mainContent {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .headerActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .quickActions {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+  
+  .mainContent {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .quickActions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  
+  .mainContent {
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+  }
+  
+  .quickActions {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1025px) {
+  .statsGrid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+  }
+  
+  .mainContent {
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+  }
+  
+  .quickActions {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Enhanced card animations and interactions */
+.statCard {
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced gradient backgrounds for stat cards */
+.sleepCard {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.feedingCard {
+  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+}
+
+.activityCard {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.wellnessCard {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+/* Mobile optimizations */
+.mobileOptimized {
+  padding: 1rem;
+}
+
+@media (max-width: 640px) {
+  .mobileOptimized {
+    padding: 0.75rem;
+  }
+  
+  .cardContent {
+    padding: 1rem;
+  }
+  
+  .avatar {
+    width: 4rem;
+    height: 4rem;
+  }
+  
+  .chartContainer {
+    height: 12rem;
+  }
+}
+
+/* Enhanced scrollbar for mobile */
+@media (max-width: 768px) {
+  .scrollableContent {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+  }
+  
+  .scrollableContent::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .scrollableContent::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+  
+  .scrollableContent::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 2px;
+  }
+}
+
+/* Enhanced focus states for accessibility */
+.focusable:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Loading states */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.loadingShimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Print styles */
+@media print {
+  .dashboard {
+    background: white;
+    color: black;
+  }
+  
+  .gradientCard {
+    background: white !important;
+    border: 1px solid #e5e7eb;
+    color: black !important;
+  }
+  
+  .quickActions {
+    display: none;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .dashboard {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .statCard {
+    border: 2px solid #000;
+  }
+  
+  .gradientCard {
+    background: #fff !important;
+    color: #000 !important;
+    border: 2px solid #000;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .statCard,
+  .loadingShimmer {
+    transition: none;
+    animation: none;
+  }
+  
+  .statCard:hover {
+    transform: none;
+  }
+}

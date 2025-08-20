@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { Eye, EyeOff, User, Mail, Lock, ArrowLeft } from 'lucide-react'
 
 const registerSchema = z
   .object({
@@ -37,6 +37,9 @@ export default function RegisterPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [acceptTerms, setAcceptTerms] = useState(false)
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -49,6 +52,15 @@ export default function RegisterPage() {
   })
 
   async function onSubmit(values: z.infer<typeof registerSchema>) {
+    if (!acceptTerms) {
+      toast({
+        title: "Error",
+        description: "Debes aceptar los términos y condiciones",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
     try {
       const response = await fetch("/api/auth/register", {
@@ -88,147 +100,210 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen hd-gradient-secondary flex items-center justify-center p-4">
-      {/* Header flotante */}
-      <div className="absolute top-8 left-8 flex items-center gap-2 text-white/90">
-        <Link href="/" className="flex items-center gap-2 hover:text-white transition-colors">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5"
-          >
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-          </svg>
-          <span className="font-medium text-base">Página Principal</span>
-        </Link>
+    <div
+      className="min-h-screen flex items-center justify-center"
+      style={{
+        background: 'linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)'
+      }}
+    >
+      {/* Logo */}
+      <div className="flex flex-col items-center justify-center mr-16">
+        <img
+          src="/LOGO.svg"
+          alt="Happy Dreamers Logo"
+          style={{ width: 594, height: 381.21 }}
+          draggable={false}
+        />
       </div>
+      {/* Registration form */}
+      <div className="flex items-center justify-center">
+        <div className="w-[451px]">
+          {/* Back button */}
+          <div className="mb-6 lg:hidden">
+            <Link href="/" className="flex items-center text-white/90 hover:text-white transition-colors">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Página Principal
+            </Link>
+          </div>
 
-      {/* Logo principal */}
-      <div className="absolute top-8 right-8 flex items-center gap-3">
-        <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5 text-white"
-          >
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-          </svg>
-        </div>
-        <span className="font-medium text-xl text-white">Happy Dreamers</span>
-      </div>
-
-      {/* Card principal centrado */}
-      <div className="w-full max-w-md bg-white rounded-2xl hd-card-shadow p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-hd-primary mb-2">
-            Crea tu cuenta
-          </h1>
-          <p className="text-hd-secondary">
-            ¡Únete a nosotros y comienza a rastrear mejor tu sueño!
-          </p>
-        </div>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="hd-label">Nombre Completo</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ingresa tu nombre completo" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="hd-label">Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ingresa tu email" type="email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="hd-label">Contraseña</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Crea una contraseña" type="password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="confirmPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="hd-label">Confirmar Contraseña</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Confirma tu contraseña" type="password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex items-start space-x-2">
-              <input
-                id="terms"
-                type="checkbox"
-                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-1"
-                required
-              />
-              <label htmlFor="terms" className="text-sm text-hd-secondary leading-relaxed">
-                Acepto los{" "}
-                <Link href="#" className="text-primary hover:underline">
-                  Términos de Servicio
-                </Link>
-                {" "}y la{" "}
-                <Link href="#" className="text-primary hover:underline">
-                  Política de Privacidad
-                </Link>
-              </label>
+          {/* Registration Card */}
+          <div className="bg-white/95 backdrop-blur-sm rounded-[24px] p-6 lg:p-8 shadow-2xl border border-white/20">
+            {/* Header */}
+            <div className="text-center mb-6">
+              <h1 className="text-2xl lg:text-3xl font-bold text-[#2D3748] mb-2">
+                Create Your Account
+              </h1>
+              <p className="text-[#718096] text-sm">
+                Join us and tracking your sleep better!
+              </p>
             </div>
 
-            <div className="space-y-4">
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creando cuenta..." : "Crear Cuenta"}
-              </Button>
-              
-              <Button type="button" variant="outline" className="w-full">
-                Registrarse con Google
-              </Button>
-            </div>
-          </form>
-        </Form>
+            {/* Form */}
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Full Name */}
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2">
+                        Full Name
+                      </FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            {...field}
+                            placeholder="Enter your full name"
+                            className="w-full bg-[#EDF2F7] border-0 rounded-lg px-10 py-3 text-sm placeholder-[#A0AEC0] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
+                          />
+                          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-        <div className="text-center text-sm mt-8">
-          <span className="text-hd-secondary">¿Ya tienes una cuenta? </span>
-          <Link href="/auth/login" className="text-primary font-medium hover:underline">
-            Iniciar sesión
-          </Link>
+                {/* Email */}
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2">
+                        Email
+                      </FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            {...field}
+                            type="email"
+                            placeholder="Enter your email"
+                            className="w-full bg-[#EDF2F7] border-0 rounded-lg px-10 py-3 text-sm placeholder-[#A0AEC0] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
+                          />
+                          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Password */}
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2">
+                        Password
+                      </FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            {...field}
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Create a password"
+                            className="w-full bg-[#EDF2F7] border-0 rounded-lg px-10 py-3 text-sm placeholder-[#A0AEC0] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
+                          />
+                          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#A0AEC0] hover:text-[#4299E1]"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Confirm Password */}
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2">
+                        Confirm Password
+                      </FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            {...field}
+                            type={showConfirmPassword ? "text" : "password"}
+                            placeholder="Confirm your password"
+                            className="w-full bg-[#EDF2F7] border-0 rounded-lg px-10 py-3 text-sm placeholder-[#A0AEC0] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
+                          />
+                          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#A0AEC0] hover:text-[#4299E1]"
+                          >
+                            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Terms checkbox */}
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    id="acceptTerms"
+                    checked={acceptTerms}
+                    onChange={(e) => setAcceptTerms(e.target.checked)}
+                    className="mt-1 w-4 h-4 border border-gray-300 rounded focus:ring-[#4299E1] focus:ring-2"
+                  />
+                  <label htmlFor="acceptTerms" className="text-xs text-[#4A5568] leading-relaxed">
+                    I agree to the{' '}
+                    <Link href="#" className="text-[#4299E1] hover:underline">Terms of Service</Link>
+                    {' '}and{' '}
+                    <Link href="#" className="text-[#4299E1] hover:underline">Privacy Policy</Link>
+                  </label>
+                </div>
+
+                {/* Submit buttons */}
+                <div className="space-y-3">
+                  <Button
+                    type="submit"
+                    disabled={!acceptTerms || isLoading}
+                    className="w-full bg-[#68A1C8] hover:bg-[#68A1C8] text-white border-0 rounded-xl py-3 font-normal text-[13px]"
+                    style={{ fontFamily: 'Century Gothic, sans-serif' }}
+                  >
+                    {isLoading ? "Creating account..." : "Create Account"}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full bg-[#A0D8D0] hover:bg-[#A0D8D0] text-[#EBFFFC] border-0 rounded-xl py-3 font-normal text-[13px]"
+                    style={{ fontFamily: 'Century Gothic, sans-serif' }}
+                  >
+                    Sign up with Google
+                  </Button>
+                </div>
+              </form>
+            </Form>
+
+            {/* Footer */}
+            <div className="text-center mt-6">
+              <p className="text-sm text-[#718096]">
+                Already have an account?{' '}
+                <Link href="/auth/login" className="text-[#4299E1] hover:underline font-medium">
+                  Sign in
+                </Link>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
