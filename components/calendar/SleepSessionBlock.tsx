@@ -127,7 +127,7 @@ export function SleepSessionBlock({
       return (
         <div
           key={waking._id}
-          className="absolute left-2 right-2 bg-red-500/80 hover:bg-red-600/90 text-white rounded px-2 py-1 z-20 cursor-pointer transition-colors"
+          className="absolute left-2 right-2 bg-red-600/90 hover:bg-red-700 text-white rounded px-2 py-1 z-20 cursor-pointer transition-colors shadow-md border border-red-400/50"
           style={{ 
             top: `${relativePosition}px`,
             height: '20px'
@@ -159,7 +159,7 @@ export function SleepSessionBlock({
       >
         {/* Parte superior sólida */}
         <div 
-          className="bg-blue-500/60 rounded-t-lg border border-blue-400/30 flex items-center justify-center"
+          className="bg-blue-500/50 rounded-t-lg border border-blue-400/40 flex items-center justify-center shadow-sm"
           style={{ height: '24px' }}
         >
           <div className="flex items-center gap-1 text-white text-xs font-medium">
@@ -173,7 +173,7 @@ export function SleepSessionBlock({
           className="relative"
           style={{ 
             height: `${height - 24}px`,
-            background: 'linear-gradient(to bottom, rgba(59, 130, 246, 0.5), rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.1), transparent)',
+            background: 'linear-gradient(to bottom, rgba(59, 130, 246, 0.35), rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.08), transparent)',
             animation: 'pulse 3s ease-in-out infinite'
           }}
         >
@@ -206,7 +206,7 @@ export function SleepSessionBlock({
       style={{ 
         top: `${position}px`,
         height: `${height}px`,
-        background: 'linear-gradient(to bottom, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.25), rgba(251, 191, 36, 0.2))'
+        background: 'linear-gradient(to bottom, rgba(59, 130, 246, 0.18), rgba(139, 92, 246, 0.15), rgba(251, 191, 36, 0.12))'
       }}
       onClick={onClick}
     >

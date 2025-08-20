@@ -8,6 +8,8 @@ import { TimeAxis } from './TimeAxis'
 import { BackgroundAreas } from './BackgroundAreas'
 import { GridLines } from './GridLines'
 import { EventGlobe } from './EventGlobe'
+import { SleepSessionBlock } from './SleepSessionBlock'
+import { processSleepSessions, type Event as SleepEvent } from '@/lib/utils/sleep-sessions'
 
 interface Event {
   _id: string;
@@ -61,15 +63,41 @@ export function CalendarDayView({
           {/* Líneas de grid */}
           <GridLines hourHeight={hourHeight} />
           
-          {/* Eventos */}
-          {events.map((event) => (
-            <EventGlobe 
-              key={event._id} 
-              event={event} 
-              hourHeight={hourHeight}
-              onClick={onEventClick} 
-            />
-          ))}
+          {/* Eventos procesados - Sesiones de sueño y otros eventos */}
+          {(() => {
+            const { sessions, otherEvents } = processSleepSessions(events as SleepEvent[], date)
+            
+            return (
+              <>
+                {/* Renderizar sesiones de sueño primero (z-index más bajo) */}
+                {sessions.map((session, idx) => (
+                  <SleepSessionBlock
+                    key={`session-${idx}`}
+                    startTime={session.startTime}
+                    endTime={session.endTime}
+                    originalStartTime={session.originalStartTime}
+                    originalEndTime={session.originalEndTime}
+                    nightWakings={session.nightWakings}
+                    hourHeight={hourHeight}
+                    onClick={() => onEventClick?.(session.originalEvent as Event)}
+                    onNightWakingClick={(waking) => onEventClick?.(waking as Event)}
+                    isContinuationFromPrevious={session.isContinuationFromPrevious}
+                    continuesNextDay={session.continuesNextDay}
+                  />
+                ))}
+                
+                {/* Renderizar otros eventos encima */}
+                {otherEvents.map((event) => (
+                  <EventGlobe 
+                    key={event._id} 
+                    event={event as Event} 
+                    hourHeight={hourHeight}
+                    onClick={onEventClick} 
+                  />
+                ))}
+              </>
+            )
+          })()}
           
           {/* Estado vacío */}
           {events.length === 0 && (
