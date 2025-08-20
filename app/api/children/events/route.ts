@@ -6,7 +6,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
-import { differenceInMinutes, parseISO } from "date-fns"
+import { differenceInMinutes, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns"
 
 import { createLogger } from "@/lib/logger"
 
@@ -88,6 +88,69 @@ function formatDurationReadable(minutes: number | null): string {
   }
 }
 
+/**
+ * Valida si un evento se traslapa con eventos existentes
+ * @param newEvent - El evento que se quiere crear/actualizar
+ * @param existingEvents - Lista de eventos existentes del niño
+ * @param excludeEventId - ID del evento a excluir en caso de actualización
+ * @returns Array de eventos que se traslapan, vacío si no hay traslapes
+ */
+function validateEventOverlap(newEvent: any, existingEvents: any[], excludeEventId?: string) {
+  // Solo validar traslape si el evento tiene startTime
+  if (!newEvent.startTime) return []
+  
+  const newStart = parseISO(newEvent.startTime)
+  const newEnd = newEvent.endTime ? parseISO(newEvent.endTime) : null
+  
+  // Filtrar eventos del mismo día para validación más específica
+  const dayStart = startOfDay(newStart)
+  const dayEnd = endOfDay(newStart)
+  
+  const overlappingEvents = existingEvents.filter(event => {
+    // Excluir el evento que se está actualizando
+    if (excludeEventId && event._id === excludeEventId) return false
+    
+    // Solo validar eventos que tengan startTime
+    if (!event.startTime) return false
+    
+    const eventStart = parseISO(event.startTime)
+    const eventEnd = event.endTime ? parseISO(event.endTime) : null
+    
+    // Solo revisar eventos del mismo día
+    if (!isWithinInterval(eventStart, { start: dayStart, end: dayEnd })) return false
+    
+    // Validar traslape de horarios
+    // Caso 1: El nuevo evento empieza durante un evento existente
+    if (eventEnd && newStart >= eventStart && newStart < eventEnd) {
+      return true
+    }
+    
+    // Caso 2: El nuevo evento termina durante un evento existente (si tiene endTime)
+    if (newEnd && eventEnd && newEnd > eventStart && newEnd <= eventEnd) {
+      return true
+    }
+    
+    // Caso 3: El nuevo evento engloba completamente un evento existente
+    if (newEnd && newStart <= eventStart && newEnd >= (eventEnd || eventStart)) {
+      return true
+    }
+    
+    // Caso 4: Un evento existente engloba completamente el nuevo evento
+    if (eventEnd && eventStart <= newStart && eventEnd >= (newEnd || newStart)) {
+      return true
+    }
+    
+    // Caso especial: Eventos en el mismo minuto (considerados traslape)
+    if (Math.abs(newStart.getTime() - eventStart.getTime()) < 60000) { // Menos de 1 minuto
+      return true
+    }
+    
+    return false
+  })
+  
+  return overlappingEvents
+}
+
 // POST /api/children/events - registrar un nuevo evento para un niño
 export async function POST(req: NextRequest) {
   try {
@@ -142,6 +205,61 @@ export async function POST(req: NextRequest) {
         { error: "Niño no encontrado o no tienes permiso para registrar eventos" },
         { status: 404 }
       )
+    }
+
+    // VALIDAR TRASLAPE DE HORARIOS
+    // Solo validar si el evento tiene startTime
+    if (data.startTime) {
+      const existingEvents = child.events || []
+      const overlappingEvents = validateEventOverlap(data, existingEvents)
+      
+      if (overlappingEvents.length > 0) {
+        const overlappingEvent = overlappingEvents[0]
+        const formatTime = (time: string) => {
+          try {
+            return parseISO(time).toLocaleTimeString('es-ES', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            })
+          } catch {
+            return time
+          }
+        }
+        
+        const eventTypeNames: Record<string, string> = {
+          sleep: 'Dormir',
+          nap: 'Siesta', 
+          wake: 'Despertar',
+          night_waking: 'Despertar nocturno',
+          feeding: 'Alimentación',
+          medication: 'Medicamento',
+          extra_activities: 'Actividad Extra'
+        }
+        
+        const newEventName = eventTypeNames[data.eventType] || data.eventType
+        const existingEventName = eventTypeNames[overlappingEvent.eventType] || overlappingEvent.eventType
+        
+        logger.error("Intento de crear evento con traslape de horarios:", {
+          newEvent: `${newEventName} a las ${formatTime(data.startTime)}`,
+          existingEvent: `${existingEventName} a las ${formatTime(overlappingEvent.startTime)}`,
+          overlappingEventId: overlappingEvent._id
+        })
+        
+        return NextResponse.json(
+          { 
+            error: `Este horario se traslapa con otro evento`,
+            details: `Ya hay un evento de ${existingEventName} registrado a las ${formatTime(overlappingEvent.startTime)}${overlappingEvent.endTime ? ` hasta las ${formatTime(overlappingEvent.endTime)}` : ''}. Por favor selecciona un horario diferente.`,
+            overlappingEvent: {
+              id: overlappingEvent._id,
+              type: existingEventName,
+              startTime: formatTime(overlappingEvent.startTime),
+              endTime: overlappingEvent.endTime ? formatTime(overlappingEvent.endTime) : null
+            }
+          },
+          { status: 409 }
+        )
+      }
     }
 
     // Validación específica para actividades extra - valida activityDescription
@@ -472,6 +590,61 @@ export async function PUT(req: NextRequest) {
         { error: "Niño no encontrado o no tienes permiso para actualizar eventos" },
         { status: 404 }
       )
+    }
+
+    // VALIDAR TRASLAPE DE HORARIOS EN ACTUALIZACIÓN
+    // Solo validar si el evento tiene startTime
+    if (data.startTime) {
+      const existingEvents = child.events || []
+      const overlappingEvents = validateEventOverlap(data, existingEvents, data.id) // Excluir el evento que se está actualizando
+      
+      if (overlappingEvents.length > 0) {
+        const overlappingEvent = overlappingEvents[0]
+        const formatTime = (time: string) => {
+          try {
+            return parseISO(time).toLocaleTimeString('es-ES', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            })
+          } catch {
+            return time
+          }
+        }
+        
+        const eventTypeNames: Record<string, string> = {
+          sleep: 'Dormir',
+          nap: 'Siesta', 
+          wake: 'Despertar',
+          night_waking: 'Despertar nocturno',
+          feeding: 'Alimentación',
+          medication: 'Medicamento',
+          extra_activities: 'Actividad Extra'
+        }
+        
+        const newEventName = eventTypeNames[data.eventType] || data.eventType
+        const existingEventName = eventTypeNames[overlappingEvent.eventType] || overlappingEvent.eventType
+        
+        logger.error("Intento de actualizar evento con traslape de horarios:", {
+          updatedEvent: `${newEventName} a las ${formatTime(data.startTime)}`,
+          existingEvent: `${existingEventName} a las ${formatTime(overlappingEvent.startTime)}`,
+          overlappingEventId: overlappingEvent._id
+        })
+        
+        return NextResponse.json(
+          { 
+            error: `Este horario se traslapa con otro evento`,
+            details: `Ya hay un evento de ${existingEventName} registrado a las ${formatTime(overlappingEvent.startTime)}${overlappingEvent.endTime ? ` hasta las ${formatTime(overlappingEvent.endTime)}` : ''}. Por favor selecciona un horario diferente.`,
+            overlappingEvent: {
+              id: overlappingEvent._id,
+              type: existingEventName,
+              startTime: formatTime(overlappingEvent.startTime),
+              endTime: overlappingEvent.endTime ? formatTime(overlappingEvent.endTime) : null
+            }
+          },
+          { status: 409 }
+        )
+      }
     }
 
     // Crear el objeto de evento actualizado

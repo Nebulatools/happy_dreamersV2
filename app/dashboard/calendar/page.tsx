@@ -36,7 +36,8 @@ import {
   EventBlock, 
   CompactEventBlock,
   MonthLineChart,
-  SleepSessionBlock
+  SleepSessionBlock,
+  CalendarMain
 } from "@/components/calendar"
 import {
   Dialog,
@@ -774,285 +775,6 @@ export default function CalendarPage() {
     )
   }
 
-  const renderWeekView = () => {
-    // Mostrar 7 días consecutivos desde la fecha actual (para navegación día por día)
-    const days = Array.from({ length: 7 }, (_, i) => addDays(date, i))
-    const allWeekDays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
-    
-    // Altura optimizada para que todo quepa en una pantalla sin scroll
-    const hourHeight = 25 // 25px * 24 horas = 600px total
-    
-    return (
-      <div className="calendar-timeline">
-        <div className="week-view-timeline" style={{ maxHeight: "calc(100vh - 280px)", overflow: "auto" }}>
-          {/* Timeline Column */}
-          <div className="hidden md:block">
-            <TimelineColumn hourHeight={hourHeight} />
-          </div>
-          <div className="md:hidden">
-            <CompactTimelineColumn hourHeight={hourHeight} />
-          </div>
-          
-          {/* Days Grid con flechas de navegación día por día */}
-          <div className="flex-1 flex">
-            {/* Flecha izquierda para retroceder un día */}
-            <div className="flex-shrink-0 relative">
-              <div className="h-12 border-b border-gray-200 flex items-center justify-center sticky top-0 z-20 bg-white">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 hover:bg-gray-100"
-                  onClick={() => setDate(subDays(date, 1))}
-                  title="Día anterior"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="h-[600px] bg-gray-50/50 border-r border-gray-200 w-10 flex items-center justify-center">
-                <ChevronLeft className="h-4 w-4 text-gray-400" />
-              </div>
-            </div>
-            
-            {/* Días de la semana */}
-            {days.map((day, index) => {
-              const dayName = allWeekDays[day.getDay()] // Usar el día real de la semana
-              const dayEvents = getEventsForDay(day)
-              const isDayToday = isToday(day)
-              
-              return (
-                <div key={day.toString()} className="day-column-timeline">
-                  {/* Day Header */}
-                  <div 
-                    className={cn(
-                      "day-header-timeline cursor-pointer hover:bg-gray-50 transition-colors",
-                      isDayToday && "bg-blue-50 text-blue-600 hover:bg-blue-100"
-                    )}
-                    onClick={() => handleDayClick(day)}
-                  >
-                    <div className="text-xs font-medium opacity-75">{dayName}</div>
-                    <div className="text-sm font-bold">
-                      {format(day, "d")}
-                    </div>
-                  </div>
-                  
-                  {/* Events Timeline Container */}
-                  <div 
-                    className="events-timeline-container cursor-pointer hover:bg-gray-50/50 transition-colors"
-                    onClick={() => handleDayClick(day)}
-                  >
-                    {/* Hour grid lines - solo líneas principales para menos desorden */}
-                    {Array.from({ length: 24 }, (_, hour) => (
-                      <div key={hour}>
-                        {/* Major hour lines (every 3 hours) */}
-                        {hour % 3 === 0 && (
-                          <div 
-                            className="hour-grid-line-major"
-                            style={{ top: `${hour * hourHeight}px` }}
-                          />
-                        )}
-                        {/* Regular hour lines */}
-                        {hour % 3 !== 0 && (
-                          <div 
-                            className="hour-grid-line"
-                            style={{ top: `${hour * hourHeight}px` }}
-                          />
-                        )}
-                      </div>
-                    ))}
-                    
-                    {/* Process and render sleep sessions and other events */}
-                    {(() => {
-                      const { sessions, otherEvents } = processSleepSessions(dayEvents, day)
-                      
-                      return (
-                        <>
-                          {/* Render sleep sessions first (lower z-index) */}
-                          {sessions.map((session, idx) => (
-                            <SleepSessionBlock
-                              key={`session-${idx}`}
-                              startTime={session.startTime}
-                              endTime={session.endTime}
-                              originalStartTime={session.originalStartTime}
-                              originalEndTime={session.originalEndTime}
-                              nightWakings={session.nightWakings}
-                              hourHeight={hourHeight}
-                              isContinuationFromPrevious={session.isContinuationFromPrevious}
-                              continuesNextDay={session.continuesNextDay}
-                              onClick={() => handleEventClick(session.originalEvent)}
-                              onNightWakingClick={(waking) => handleEventClick(waking)}
-                            />
-                          ))}
-                          
-                          {/* Render other events on top */}
-                          {otherEvents.map((event) => (
-                            <EventBlock
-                              key={event._id}
-                              event={event}
-                              hourHeight={hourHeight}
-                              showTooltip={true}
-                              onClick={(clickedEvent) => {
-                                handleEventClick(clickedEvent)
-                              }}
-                            />
-                          ))}
-                        </>
-                      )
-                    })()}
-                    
-                    {/* Empty state */}
-                    {dayEvents.length === 0 && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="text-xs text-gray-400 text-center">
-                          <div>Sin eventos</div>
-                          <div className="mt-1 opacity-75">este día</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-            
-            {/* Flecha derecha para avanzar un día */}
-            <div className="flex-shrink-0 relative">
-              <div className="h-12 border-b border-gray-200 flex items-center justify-center sticky top-0 z-20 bg-white">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 hover:bg-gray-100"
-                  onClick={() => setDate(addDays(date, 1))}
-                  title="Día siguiente"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="h-[600px] bg-gray-50/50 border-l border-gray-200 w-10 flex items-center justify-center">
-                <ChevronRight className="h-4 w-4 text-gray-400" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const renderDayView = () => {
-    const dayEvents = getEventsForDay(date)
-    const hourHeight = 25 // Reducida para que quepa en pantalla sin scroll
-    
-    return (
-      <div className="h-full flex flex-col">
-        {/* Header del día - más compacto */}
-        <div className="text-center mb-4">
-          <h2 className="text-xl font-bold text-gray-900">
-            {format(date, "EEEE, d 'de' MMMM", { locale: es })}
-          </h2>
-          {isToday(date) && (
-            <div className="text-blue-600 font-medium text-sm">Hoy</div>
-          )}
-        </div>
-        
-        {/* Timeline de 24 horas */}
-        <div className="calendar-timeline flex-1" style={{ maxHeight: "calc(100vh - 350px)" }}>
-          <div className="flex h-full">
-            {/* Columna de horas */}
-            <TimelineColumn hourHeight={hourHeight} hourInterval={1} />
-            
-            {/* Columna de eventos del día */}
-            <div className="flex-1 relative border-l border-gray-200">
-              {/* Header del día - más pequeño */}
-              <div 
-                className="h-12 bg-white border-b border-gray-200 flex items-center justify-center sticky top-0 z-20 cursor-pointer hover:bg-gray-50 transition-colors"
-                onClick={() => handleDayClick(date)}
-              >
-                <div className="text-base font-bold">
-                  {format(date, "d")}
-                </div>
-              </div>
-              
-              {/* Container de eventos */}
-              <div 
-                className="events-timeline-container relative cursor-pointer hover:bg-gray-50/50 transition-colors"
-                onClick={() => handleDayClick(date)}
-              >
-                {/* Líneas de la grilla de horas */}
-                {Array.from({ length: 24 }, (_, hour) => (
-                  <div key={hour}>
-                    {/* Líneas principales de hora (cada 3 horas) */}
-                    {hour % 3 === 0 && (
-                      <div 
-                        className="hour-grid-line-major"
-                        style={{ top: `${hour * hourHeight}px` }}
-                      />
-                    )}
-                    {/* Líneas regulares de hora */}
-                    {hour % 3 !== 0 && (
-                      <div 
-                        className="hour-grid-line"
-                        style={{ top: `${hour * hourHeight}px` }}
-                      />
-                    )}
-                  </div>
-                ))}
-                
-                {/* Process and render sleep sessions and other events */}
-                {(() => {
-                  const { sessions, otherEvents } = processSleepSessions(dayEvents, date)
-                  
-                  return (
-                    <>
-                      {/* Render sleep sessions first (lower z-index) */}
-                      {sessions.map((session, idx) => (
-                        <SleepSessionBlock
-                          key={`session-${idx}`}
-                          startTime={session.startTime}
-                          endTime={session.endTime}
-                          originalStartTime={session.originalStartTime}
-                          originalEndTime={session.originalEndTime}
-                          nightWakings={session.nightWakings}
-                          hourHeight={hourHeight}
-                          isContinuationFromPrevious={session.isContinuationFromPrevious}
-                          continuesNextDay={session.continuesNextDay}
-                          onClick={() => handleEventClick(session.originalEvent)}
-                          onNightWakingClick={(waking) => handleEventClick(waking)}
-                        />
-                      ))}
-                      
-                      {/* Render other events on top */}
-                      {otherEvents.map((event) => (
-                        <EventBlock
-                          key={event._id}
-                          event={event}
-                          hourHeight={hourHeight}
-                          showTooltip={true}
-                          onClick={(clickedEvent) => {
-                            handleEventClick(clickedEvent)
-                          }}
-                        />
-                      ))}
-                    </>
-                  )
-                })()}
-                
-                {/* Estado vacío */}
-                {dayEvents.length === 0 && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="text-center">
-                      <div className="text-gray-400 text-lg mb-2">No hay eventos registrados</div>
-                      <div className="text-gray-500 text-sm">
-                        Haz clic para agregar el primer evento del día
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
 
   // Opciones para el formulario de edición
   const eventTypes = [
@@ -1112,90 +834,13 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Resumen con controles de navegación */}
+      {/* Resumen de estadísticas - simplificado */}
       <div className="px-6">
         <Card className="p-3 md:p-4 bg-gray-50 border-gray-200">
-          {/* Primera fila: Navegación y selector de vista */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 pb-3 border-b border-gray-200">
-            {/* Navegación de fecha */}
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => {
-                  if (view === "month") {
-                    setDate(subMonths(date, 1))
-                  } else if (view === "week") {
-                    setDate(subWeeks(date, 1))
-                  } else {
-                    setDate(subDays(date, 1))
-                  }
-                }}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              
-              <span className="font-semibold text-base min-w-[160px] text-center text-gray-800">
-                {view === "month" && format(date, "MMMM yyyy", { locale: es })}
-                {view === "week" && `${format(date, "d MMM", { locale: es })} - ${format(addDays(date, 6), "d MMM", { locale: es })}`}
-                {view === "day" && format(date, "d 'de' MMMM yyyy", { locale: es })}
-              </span>
-              
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => {
-                  if (view === "month") {
-                    setDate(addMonths(date, 1))
-                  } else if (view === "week") {
-                    setDate(addWeeks(date, 1))
-                  } else {
-                    setDate(addDays(date, 1))
-                  }
-                }}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Selector de vista */}
-            <div className="flex items-center gap-1 bg-white rounded-lg p-1 border border-gray-200">
-              <Button
-                variant={view === "month" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => handleViewChange("month")}
-                className={`text-xs md:text-sm ${view === "month" ? "hd-gradient-button text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
-              >
-                Mensual
-              </Button>
-              <Button
-                variant={view === "week" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => handleViewChange("week")}
-                className={`text-xs md:text-sm ${view === "week" ? "hd-gradient-button text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
-              >
-                Semanal
-              </Button>
-              <Button
-                variant={view === "day" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => handleViewChange("day")}
-                className={`text-xs md:text-sm ${view === "day" ? "hd-gradient-button text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
-              >
-                Diario
-              </Button>
-            </div>
-          </div>
-
-          {/* Segunda fila: Métricas */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             {/* Título del resumen */}
             <h3 className="text-sm font-semibold text-gray-700">
-              {view === "month" && "Resumen del mes"}
-              {view === "week" && "Resumen de la semana"}
-              {view === "day" && "Resumen del día"}
+              Resumen del período seleccionado
             </h3>
             
             {/* Métricas en línea */}
@@ -1207,7 +852,7 @@ export default function CalendarPage() {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs text-gray-500">
-                    {view === "day" ? "Sueño" : "Promedio sueño"}
+                    Promedio sueño
                   </span>
                   <span className="text-sm font-bold text-gray-900">
                     {monthlyStats.nightSleepHours.toFixed(1)}h
@@ -1222,7 +867,7 @@ export default function CalendarPage() {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs text-gray-500">
-                    {view === "day" ? "Siesta" : "Promedio siesta"}
+                    Promedio siesta
                   </span>
                   <span className="text-sm font-bold text-gray-900">
                     {monthlyStats.napHours.toFixed(1)}h
@@ -1247,22 +892,34 @@ export default function CalendarPage() {
         </Card>
       </div>
 
-      {/* Calendario Principal */}
+      {/* Calendario Principal - Nueva estructura limpia */}
       <div className="px-6 pb-6">
-        <Card className={`p-4 ${view === 'month' ? 'h-[600px]' : view === 'day' ? 'h-[calc(100vh-320px)]' : ''}`} style={{ minHeight: '500px' }}>
-          {isLoading ? (
+        {isLoading ? (
+          <Card className="p-4" style={{ minHeight: '500px' }}>
             <div className="flex justify-center items-center h-96">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4A90E2] mx-auto mb-4" />
                 <p className="text-gray-600">Cargando calendario...</p>
               </div>
             </div>
-          ) : (
-            view === "month" ? renderMonthLineView() :
-            view === "week" ? renderWeekView() :
-            renderDayView()
-          )}
-        </Card>
+          </Card>
+        ) : (
+          <CalendarMain
+            events={events}
+            onEventClick={handleEventClick}
+            onCreateEvent={(clickTime) => {
+              // Manejar creación de eventos desde clicks en el calendario
+              setSelectedDateForEvent(clickTime.date)
+              // TODO: Abrir modal de creación de eventos cuando esté disponible
+              // setQuickSelectorOpen(true)
+            }}
+            monthView={renderMonthView()}
+            initialDate={date}
+            initialView={view}
+            onDateChange={setDate}
+            onViewChange={handleViewChange}
+          />
+        )}
       </div>
 
       {/* TEMPORALMENTE COMENTADO - Sistema de eventos en reset */}
