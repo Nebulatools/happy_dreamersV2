@@ -22,7 +22,17 @@ export interface EventData {
   feedingDuration?: number  // duración en minutos
   babyState?: 'awake' | 'asleep'  // para tomas nocturnas
   feedingNotes?: string  // notas específicas de alimentación
-  description?: string  // para actividades extra
+  // Campos específicos para medicamentos
+  medicationName?: string  // nombre del medicamento
+  medicationDose?: string  // dosis administrada
+  medicationTime?: string  // hora de administración
+  medicationNotes?: string  // notas adicionales del medicamento
+  // Campos específicos para actividades extra
+  activityDescription?: string  // descripción de la actividad
+  activityDuration?: number  // duración en minutos
+  activityImpact?: 'positive' | 'neutral' | 'negative'  // impacto en el sueño
+  activityNotes?: string  // notas adicionales de la actividad
+  description?: string  // campo legacy para compatibilidad
   createdAt?: string
   parentId?: string
 }

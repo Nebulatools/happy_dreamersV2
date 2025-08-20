@@ -1,5 +1,5 @@
 # Session Context - Happy Dreamers 🌙
-*Última actualización: Agosto 2025*
+*Última actualización: Enero 2025*
 
 ## 🎯 Estado Actual del Sistema
 
@@ -14,69 +14,95 @@
 
 ### Estado de Producción
 - **Build Status**: ✅ Sin errores TypeScript
-- **Features**: Sistema de eventos v4.2 con despertares nocturnos
-- **Testing**: ✅ QA completo + Backend validado
+- **Features**: Sistema de eventos v5.0 completo
+- **Testing**: ✅ QA completo + Sistema funcionando
 - **Branch Actual**: regevento
 
-## 🌙 Sesión Actual - Despertares Nocturnos v4.2 ✅
+## 📊 Sesión Actual - Sistema de Eventos v5.1 ✅
 
-### DESPERTARES NOCTURNOS IMPLEMENTADOS Y VALIDADOS
-**Fecha**: Agosto 2025
-**Objetivo**: Implementar registro de despertares nocturnos con lógica opuesta a siestas
+### SISTEMA COMPLETO DE EVENTOS CON EDICIÓN REUTILIZABLE
+**Fecha**: Enero 2025
+**Objetivo**: Sistema de eventos con modales reutilizables para crear y editar
 **Status**: ✅ COMPLETADO Y FUNCIONANDO
 
-#### ✅ Funcionalidades Implementadas
+#### 🎯 Sistema de Edición de Eventos (v5.1)
 
-**Sistema de Despertares Nocturnos v4.2 (NUEVO)**:
-- ✅ **NightWakingModal.tsx**: Modal para capturar tiempo despierto
-- ✅ **SleepButton.tsx actualizado**: Usa horarios del plan del niño (no hardcodeados)
-- ✅ **Detección inteligente**: Despertar nocturno vs definitivo basado en schedule.wakeTime
-- ✅ **Campo awakeDelay**: Registra cuánto tiempo estuvo despierto
-- ✅ **API backend actualizado**: Cálculo automático de duración con awakeDelay
-- ✅ **Estado night_waking**: Nuevo estado en current-sleep-state API
+**Reutilización de Modales**:
+- ✅ **Modo dual**: Todos los modales soportan modo `create` y `edit`
+- ✅ **EventEditRouter**: Componente inteligente que gestiona qué modal abrir
+- ✅ **Campos fecha/hora**: Visibles solo en modo edición
+- ✅ **UI consistente**: Misma interfaz para crear y editar eventos
 
-#### 🔄 Flujo de Despertares Nocturnos
+**Modales Actualizados**:
+- ✅ **MedicationModal**: Modo edición con fecha/hora
+- ✅ **FeedingModal**: Modo edición con fecha/hora
+- ✅ **ExtraActivityModal**: Modo edición con fecha/hora
+- ✅ **SleepDelayModal**: Modo edición con fecha/hora
+- ✅ **NightWakingModal**: Modo edición con fecha/hora
 
-**Durante Sueño Nocturno**:
-```
-20:30 → "SE DURMIÓ" → Modal sleepDelay → Evento sleep (solo startTime)
-02:00 → "SE DESPERTÓ" → Crear night_waking (02:00 < wakeTime)
-02:15 → "SE DURMIÓ" → Modal pregunta tiempo despierto → Actualizar night_waking
-07:30 → "SE DESPERTÓ" → Despertar definitivo (07:30 > wakeTime)
-```
+**Mejoras UX**:
+- ✅ **Títulos contextuales**: "Registrar" vs "Editar" según modo
+- ✅ **Botones adaptados**: "Registrar" vs "Guardar Cambios"
+- ✅ **Datos precargados**: Valores iniciales en modo edición
+- ✅ **Hora automática**: Se actualiza al abrir modal de medicamentos
 
-**Lógica Opuesta a Siestas**:
-- **Siestas**: Modal ANTES de dormir (sleepDelay)
-- **Nocturnos**: Modal DESPUÉS de volver a dormir (awakeDelay)
+#### 🔧 Estructura de Datos Mejorada (v5.0)
 
-#### 🔧 Correcciones Aplicadas
+**Base de Datos**:
+- ✅ **Campos separados**: Cada dato en su propio campo, no todo en "notes"
+- ✅ **Filtrado eficiente**: Búsqueda por medicamento específico
+- ✅ **Reportes precisos**: Datos estructurados para estadísticas
+- ✅ **Validaciones**: Por tipo de dato en el API
 
-**Problema Original**: Estado incorrecto en API
-- **Error**: API devolvía 'napping' para eventos 'sleep'
-- **Solución**: Corregida línea 128 en current-sleep-state/route.ts
-- **Resultado**: Ahora eventos 'sleep' devuelven status 'sleeping' correctamente
+### MEJORAS DE CALENDARIO v4.5
+**Status**: ✅ COMPLETADO Y FUNCIONANDO
 
-**Horarios Personalizados**:
-- ✅ Usa schedule.bedtime y schedule.wakeTime del plan del niño
-- ✅ Detecta despertar nocturno si hora < wakeTime planificado
-- ✅ Detecta despertar definitivo si hora >= wakeTime planificado
+#### 🎯 Despertares Nocturnos Clickeables
 
-#### 📊 Datos Registrados
+**Problema resuelto**:
+- ✅ **Click independiente**: Los despertares nocturnos ahora son clickeables por separado
+- ✅ **stopPropagation**: Evita propagación al bloque de sueño padre
+- ✅ **Mayor z-index**: z-20 para asegurar que estén encima
+- ✅ **Visual feedback**: Hover state y tooltip informativo
 
-**Evento night_waking**:
-```javascript
-{
-  eventType: "night_waking",
-  startTime: "2025-08-15T02:00:00", // Cuando se despertó
-  endTime: "2025-08-15T02:15:00",   // Cuando volvió a dormirse
-  awakeDelay: 15,                   // Minutos que tardó en volverse a dormir
-  duration: 0,                      // Duración calculada (15 - 15 = 0)
-  emotionalState: "inquieto",
-  notes: "Necesitó consuelo"
-}
-```
+#### 🎨 Visualización de Sesiones de Sueño
 
-#### 🎯 Sistema Completo de Sueño
+**Componente SleepSessionBlock**:
+- ✅ **Gradiente visual**: Azul (inicio) → Amarillo (despertar)
+- ✅ **Sesión continua**: Un solo bloque en lugar de eventos separados
+- ✅ **Sueño en progreso**: Animación fade cuando no ha terminado
+- ✅ **Duración total**: Mostrada de forma compacta al despertar
+
+#### 🌙 Soporte para Eventos Cross-Day
+
+**Eventos que cruzan días**:
+- ✅ **Detección inteligente**: getEventsForDay incluye eventos parciales
+- ✅ **División visual**: Parte en día 1, continuación en día 2
+- ✅ **Indicadores visuales**: "↑ Continúa desde ayer" y "Continúa mañana ↓"
+- ✅ **Duración total**: Solo en el día donde termina el sueño
+
+## 📋 Archivos Clave Modificados (v5.1)
+
+### Componentes de Eventos - Con Modo Edición
+- `/components/events/MedicationModal.tsx` - ✅ Modo create/edit con fecha/hora
+- `/components/events/FeedingModal.tsx` - ✅ Modo create/edit con fecha/hora
+- `/components/events/ExtraActivityModal.tsx` - ✅ Modo create/edit con fecha/hora
+- `/components/events/SleepDelayModal.tsx` - ✅ Modo create/edit con fecha/hora
+- `/components/events/NightWakingModal.tsx` - ✅ Modo create/edit con fecha/hora
+- `/components/events/EventEditRouter.tsx` - ✅ NUEVO: Router inteligente para edición
+
+### Calendario - Integración de Edición
+- `/app/dashboard/calendar/page.tsx` - ✅ Usa EventEditRouter en lugar de Dialog genérico
+- `/components/calendar/EventBlock.tsx` - Click abre modal específico para editar
+
+### API
+- `/app/api/children/events/route.ts` - Validaciones y campos estructurados
+- `/app/api/children/events/[id]/route.ts` - PUT endpoint para actualización
+
+### Estilos
+- `/app/globals.css` - Colores para medicamentos, actividades y alimentación
+
+## 🔄 Sistema de Sueño Completo
 
 **Estados Posibles**:
 - `'awake'`: Despierto durante el día
@@ -84,56 +110,34 @@
 - `'napping'`: Siesta diurna
 - `'night_waking'`: Despertar nocturno activo
 
-**Transiciones de Estado**:
-- `awake` → `sleeping` (hora nocturna) o `napping` (hora diurna)
-- `sleeping` → `night_waking` (antes de wakeTime) o `awake` (después de wakeTime)
-- `night_waking` → `sleeping` (vuelve a dormir)
-- `napping` → `awake` (fin de siesta)
+**Flujo Nocturno**:
+```
+20:30 → "SE DURMIÓ" → Modal sleepDelay → Evento sleep
+02:00 → "DESPERTAR NOCTURNO" → Modal inmediato → Evento night_waking
+07:30 → "SE DESPERTÓ" → Despertar definitivo → Actualiza endTime
+```
 
-## 📝 Sesiones Anteriores - Sistema de Eventos v4.1
+## 🚀 Trabajo Completado Hoy
 
-### REGISTRO MANUAL COMPLETADO Y VALIDADO
-**Sistema de Alimentación v4.0 (Completado)**:
-- Modal FeedingModal con 3 tipos: Pecho/Biberón/Sólidos
-- Cantidad ajustable: 1-500 ml/gr según tipo
-- Duración: 1-60 minutos
-- Estado bebé: Despierto/Dormido (tomas nocturnas)
-- Notas específicas opcional (max 500 caracteres)
+### ✅ Implementación de Edición Reutilizable
+1. **Modales con modo dual**: Todos los modales ahora soportan crear y editar
+2. **EventEditRouter**: Componente que gestiona qué modal abrir según tipo
+3. **Eliminación de código redundante**: Removido Dialog genérico de edición
+4. **Fix de hora automática**: Modal de medicamentos actualiza hora al abrir
+5. **Fix de activeChildName**: Corregido error de referencia no definida
 
-**Registro Manual v4.1 (Completado)**:
-- ✅ Botón discreto "Manual" en esquina superior derecha
-- ✅ Modal simple para registro retroactivo
-- ✅ Eventos: Dormir, Despertar, Alimentación, Medicamento, Actividad
-- ✅ Selector de fecha/hora completo
+## 🔮 Próximos Pasos Sugeridos
 
-## 🏗️ Arquitectura Actual
+1. **Modal para eventos simples**: Crear modal específico para wake/bedtime
+2. **Bulk operations**: Edición/eliminación múltiple de eventos
+3. **Historial de cambios**: Auditoría de modificaciones en eventos
+4. **Validaciones mejoradas**: Prevenir solapamiento de eventos de sueño
+5. **Exportación con ediciones**: Incluir historial de cambios en reportes
 
-### Componentes Principales
-- **SleepButton.tsx**: Botón inteligente con estados y horarios personalizados
-- **NightWakingModal.tsx**: Modal para despertares nocturnos
-- **SleepDelayModal.tsx**: Modal para tiempo de dormirse
-- **current-sleep-state API**: Estado actual basado en eventos reales
+## 📝 Notas Técnicas
 
-### Base de Datos
-- **Colección children**: Eventos en array embebido
-- **Tipos de eventos**: sleep, nap, night_waking, wake, feeding, medication, etc.
-- **Campos nuevos**: awakeDelay para night_waking
-
-### Validación de Calidad
-- ✅ Frontend: Tipos TypeScript completos
-- ✅ Backend: Validación de rangos (awakeDelay: 0-180 min)
-- ✅ UX: Logging exhaustivo para debug
-- ✅ Testing: QA validó flujo completo
-
-## 🚀 Próximos Pasos Sugeridos
-
-1. **Visualización**: Adaptar EventBlock para mostrar night_waking correctamente
-2. **Estadísticas**: Incluir despertares nocturnos en métricas de sueño
-3. **Insights**: Generar recomendaciones basadas en patrones de despertar
-4. **Notificaciones**: Alertas si despertares nocturnos son muy frecuentes
-
----
-
-**Commit Hash**: Próximo commit incluirá implementación completa de despertares nocturnos
-**Testing Status**: ✅ Validado en desarrollo con logs exhaustivos
-**Ready for Production**: ✅ Sí, después de commit y push
+- Sistema funcionando sin errores de TypeScript
+- Build exitoso en producción
+- Compatibilidad mantenida con datos legacy
+- Validaciones robustas en API
+- UI responsive y accesible

@@ -35,10 +35,16 @@ components/
 │   ├── sidebar.tsx
 │   ├── header.tsx
 │   └── ...
-├── events/            # Gestión de eventos
-│   ├── SimpleSleepToggle.tsx       # Registro sueño + alimentación
-│   ├── FeedingModal.tsx            # Modal alimentación (nuevo)
-│   ├── GuidedNotesField.tsx        # Notas con placeholders (nuevo)
+├── events/            # Gestión de eventos v5.0
+│   ├── EventRegistration.tsx       # Layout principal con 3 botones compactos
+│   ├── SimpleSleepToggle.tsx       # Registro sueño principal
+│   ├── FeedingButton.tsx           # Botón alimentación
+│   ├── FeedingModal.tsx            # Modal alimentación
+│   ├── MedicationButton.tsx        # Botón medicamentos (v5.0)
+│   ├── MedicationModal.tsx         # Modal medicamentos (v5.0)
+│   ├── ExtraActivityButton.tsx     # Botón actividad extra (v5.0)
+│   ├── ExtraActivityModal.tsx      # Modal actividad extra (v5.0)
+│   ├── GuidedNotesField.tsx        # Notas con placeholders
 │   ├── EventRegistrationModal.tsx
 │   ├── EventTypeSelector.tsx
 │   ├── EmotionalStateSelector.tsx
@@ -193,9 +199,61 @@ interface ChildSelectorProps {
 - Persiste selección
 ```
 
-## 😴 Componentes de Eventos
+## 😴 Componentes de Eventos (Sistema v5.0)
 
-### QuickEventSelector 🆕
+### EventRegistration 🆕 v5.0
+**Ubicación:** `components/events/EventRegistration.tsx`
+
+```tsx
+interface EventRegistrationProps {
+  childId: string
+  childName: string
+  onEventRegistered?: () => void
+}
+
+// Características v5.0:
+- Layout con 3 botones compactos (Alimentación | Medicamentos | Actividad)
+- Botón de sueño principal más grande (h-24)
+- Botones secundarios compactos (h-16)
+- Integración con nuevos tipos de eventos
+```
+
+### MedicationButton 🆕 v5.0
+**Ubicación:** `components/events/MedicationButton.tsx`
+
+```tsx
+interface MedicationButtonProps {
+  childId: string
+  childName: string
+  onEventRegistered?: () => void
+}
+
+// Características:
+- Botón compacto color púrpura
+- Icono Pill de lucide-react
+- Modal para captura de datos estructurados
+- Campos: medicationName, medicationDose, medicationTime, medicationNotes
+```
+
+### ExtraActivityButton 🆕 v5.0
+**Ubicación:** `components/events/ExtraActivityButton.tsx`
+
+```tsx
+interface ExtraActivityButtonProps {
+  childId: string
+  childName: string
+  onEventRegistered?: () => void
+}
+
+// Características:
+- Botón compacto color turquesa
+- Icono Activity de lucide-react
+- Modal para captura de actividades
+- Campos: activityDescription, activityDuration, activityImpact, activityNotes
+- Impacto en sueño: positive | neutral | negative
+```
+
+### QuickEventSelector
 **Ubicación:** `components/events/QuickEventSelector.tsx`
 
 Selector visual de eventos con diseño tipo wizard y botones grandes.

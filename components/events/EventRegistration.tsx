@@ -3,6 +3,8 @@
 import React, { useState } from 'react'
 import { SleepButton } from './SleepButton'
 import { FeedingButton } from './FeedingButton'
+import { MedicationButton } from './MedicationButton'
+import { ExtraActivityButton } from './ExtraActivityButton'
 import { ManualEventModal } from './ManualEventModal'
 import { Button } from '@/components/ui/button'
 import { Clock } from 'lucide-react'
@@ -15,13 +17,14 @@ interface EventRegistrationProps {
 
 /**
  * Componente principal para registro de eventos
- * VERSION 3.2 - Sistema de eventos expandido con alimentación
+ * VERSION 4.0 - Sistema de eventos completo
  * 
- * CARACTERÍSTICAS v3.2:
+ * CARACTERÍSTICAS v4.0:
  * - Sistema de sueño con modal de sleepDelay (v3.1)
- * - Sistema de alimentación con modal completo (NUEVO v3.2)
- * - Backend calcula automáticamente duration para sueño
- * - Validaciones robustas para eventos de alimentación
+ * - Sistema de alimentación con modal completo (v3.2)
+ * - Sistema de medicamentos con modal (NUEVO v4.0)
+ * - Sistema de actividad extra con modal (NUEVO v4.0)
+ * - Layout compacto con 3 botones secundarios
  * - Sin emojis en UI
  */
 export function EventRegistration({ 
@@ -50,23 +53,40 @@ export function EventRegistration({
         </Button>
       </div>
       
-      <div className="space-y-4">
-        {/* Botón principal de sueño */}
+      <div className="space-y-3">
+        {/* Botón principal de sueño - mantiene su tamaño grande */}
         <SleepButton
           childId={childId}
           childName={childName}
           onEventRegistered={onEventRegistered}
         />
         
-        {/* Botón de alimentación */}
-        <FeedingButton
-          childId={childId}
-          childName={childName}
-          onEventRegistered={onEventRegistered}
-        />
+        {/* Fila de botones secundarios - más compactos */}
+        <div className="grid grid-cols-3 gap-2 h-16">
+          {/* Botón de alimentación */}
+          <FeedingButton
+            childId={childId}
+            childName={childName}
+            onEventRegistered={onEventRegistered}
+          />
+          
+          {/* Botón de medicamentos */}
+          <MedicationButton
+            childId={childId}
+            childName={childName}
+            onEventRegistered={onEventRegistered}
+          />
+          
+          {/* Botón de actividad extra */}
+          <ExtraActivityButton
+            childId={childId}
+            childName={childName}
+            onEventRegistered={onEventRegistered}
+          />
+        </div>
         
         <p className="text-sm text-gray-500 text-center">
-          Sistema de eventos v3.2 - Sueño + Alimentación
+          Sistema de eventos v4.0 - Registro completo
         </p>
       </div>
       

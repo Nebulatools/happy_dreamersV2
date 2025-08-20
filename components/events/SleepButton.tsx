@@ -49,7 +49,6 @@ export function SleepButton({
     eventType: 'sleep' | 'nap',
     startTime: string
   } | null>(null)
-  const [pendingNightWakingId, setPendingNightWakingId] = useState<string | null>(null)
   
   // Obtener el plan del niño para determinar horarios
   const { schedule, isNightTime: isNightTimeByPlan } = useChildPlan(childId)
@@ -163,16 +162,6 @@ export function SleepButton({
   
   // Determinar texto y color del botón
   const getButtonConfig = () => {
-    // Si está en despertar nocturno
-    if (sleepState.status === 'night_waking') {
-      return {
-        text: 'SE DURMIÓ',
-        icon: Moon,
-        color: 'from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600',
-        action: 'back_to_sleep'
-      }
-    }
-    
     // Si está durmiendo (siesta o sueño nocturno)
     const isAsleep = sleepState.status === 'sleeping' || sleepState.status === 'napping'
     
@@ -180,7 +169,7 @@ export function SleepButton({
       // Durante sueño nocturno, determinar si es despertar nocturno o definitivo
       if (sleepState.status === 'sleeping' && isNightWaking()) {
         return {
-          text: 'SE DESPERTÓ',
+          text: 'DESPERTAR NOCTURNO',
           icon: Sun,
           color: 'from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600',
           action: 'night_wake'
@@ -325,28 +314,8 @@ export function SleepButton({
   
   // Manejar confirmación del tiempo despierto durante despertar nocturno
   const handleNightWakingConfirm = async (awakeDelay: number, emotionalState: string, notes: string) => {
-    if (!pendingNightWakingId) return
-    
     try {
-      // Actualizar el evento night_waking con endTime y awakeDelay
-      const response = await fetch('/api/children/events', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventId: pendingNightWakingId,
-          childId,
-          endTime: toLocalISOString(getCurrentTime()),
-          awakeDelay,
-          emotionalState,
-          notes
-        })
-      })
-      
-      if (!response.ok) {
-        throw new Error('Error al actualizar despertar nocturno')
-      }
-      
-      // Mostrar confirmación
+      // El modal ya se encargó de crear el evento, solo mostrar confirmación
       const delayText = awakeDelay < 5 ? "muy poco tiempo" :
                        awakeDelay === 60 ? "1 hora" :
                        awakeDelay > 60 ? `${Math.floor(awakeDelay/60)}h ${awakeDelay%60}min` :
@@ -359,17 +328,16 @@ export function SleepButton({
       
       // Limpiar y cerrar modal
       setShowNightWakingModal(false)
-      setPendingNightWakingId(null)
       
       // Actualizar datos
       await refetch()
       onEventRegistered?.()
       
     } catch (error) {
-      console.error('Error actualizando despertar nocturno:', error)
+      console.error('Error en confirmación de despertar nocturno:', error)
       toast({
         title: "Error",
-        description: "No se pudo actualizar el despertar nocturno",
+        description: "Hubo un problema al procesar el despertar nocturno",
         variant: "destructive"
       })
     }
@@ -378,7 +346,6 @@ export function SleepButton({
   // Manejar cuando se cierra el modal de night waking sin confirmar
   const handleNightWakingModalClose = () => {
     setShowNightWakingModal(false)
-    setPendingNightWakingId(null)
   }
   
   // Manejar click del botón
@@ -447,55 +414,19 @@ export function SleepButton({
         // Si es siesta, NO crear evento wake, solo actualizar endTime (ya hecho arriba)
         
       } else if (config.action === 'night_wake') {
-        // DESPERTAR NOCTURNO - Crear evento night_waking
-        // NO actualizar el endTime del evento de dormir, sigue abierto
-        console.log('[DEBUG] Creando despertar nocturno', {
+        // DESPERTAR NOCTURNO - Mostrar modal inmediatamente para capturar toda la información
+        console.log('[DEBUG] Iniciando registro de despertar nocturno con modal inmediato', {
           hora: now.toLocaleTimeString(),
           wakeTime: safeSchedule.wakeTime,
           estado: sleepState.status,
           lastEventId: sleepState.lastEventId
         })
         
-        // IMPORTANTE: NO actualizar el evento de dormir con endTime
-        // El evento de dormir debe permanecer abierto hasta el despertar definitivo
-        
-        const nightWakingData: Partial<EventData> = {
-          childId,
-          eventType: 'night_waking',
-          startTime: toLocalISOString(now),
-          emotionalState: 'inquieto', // Por defecto inquieto en despertares nocturnos
-        }
-        
-        const response = await fetch('/api/children/events', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(nightWakingData)
-        })
-        
-        if (!response.ok) {
-          throw new Error('Error al registrar despertar nocturno')
-        }
-        
-        const data = await response.json()
-        
-        // NO mostrar modal aún, solo registrar el despertar
-        toast({
-          title: "Despertar nocturno",
-          description: `${childName} se despertó durante la noche`
-        })
-        
-      } else if (config.action === 'back_to_sleep') {
-        // VOLVER A DORMIR después de despertar nocturno
-        // Guardar el ID del evento para actualizar después del modal
-        
-        if (sleepState.lastEventId) {
-          setPendingNightWakingId(sleepState.lastEventId)
-          setShowNightWakingModal(true)
-          setIsProcessing(false)
-          return // Salir aquí, el modal se encargará del resto
-        } else {
-          throw new Error('No se encontró el evento de despertar nocturno')
-        }
+        // En lugar de crear evento parcial, mostrar modal inmediatamente
+        // El modal se encargará de crear el evento completo con toda la información
+        setShowNightWakingModal(true)
+        setIsProcessing(false) // Liberar el botón mientras el modal está abierto
+        return // Salir aquí, el modal se encargará del resto
         
       } else {
         // DORMIR - NO crear evento aún, solo preparar datos y mostrar modal
@@ -620,6 +551,7 @@ export function SleepButton({
         onClose={handleNightWakingModalClose}
         onConfirm={handleNightWakingConfirm}
         childName={childName}
+        childId={childId}
       />
     </div>
   )

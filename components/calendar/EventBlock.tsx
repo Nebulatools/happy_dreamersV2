@@ -239,6 +239,12 @@ export function EventBlock({
         return 'bg-wake border-wake text-gray-900 font-semibold'
       case 'night_waking':
         return 'bg-night-wake border-night-wake text-white font-semibold'
+      case 'feeding':
+        return 'bg-feeding border-feeding text-white font-semibold'
+      case 'medication':
+        return 'bg-medication border-medication text-white font-semibold'
+      case 'extra_activities':
+        return 'bg-extra-activity border-extra-activity text-white font-semibold'
       default:
         return 'bg-gray-400 border-gray-400 text-white font-semibold'
     }
@@ -252,6 +258,9 @@ export function EventBlock({
       nap: "Siesta", 
       wake: "Despertar",
       night_waking: "Despertar nocturno",
+      feeding: "Alimentación",
+      medication: "Medicamento",
+      extra_activities: "Actividad Extra",
     }
     return types[event.eventType] || event.eventType
   }
@@ -416,6 +425,12 @@ export function CompactEventBlock({
         return 'bg-wake'
       case 'night_waking':
         return 'bg-night-wake'
+      case 'feeding':
+        return 'bg-feeding'
+      case 'medication':
+        return 'bg-medication'
+      case 'extra_activities':
+        return 'bg-extra-activity'
       default:
         return 'bg-gray-400'
     }
@@ -432,6 +447,12 @@ export function CompactEventBlock({
         return <Sun className="w-3 h-3" />
       case 'night_waking':
         return <AlertCircle className="w-3 h-3" />
+      case 'feeding':
+        return <Clock className="w-3 h-3" /> // Icono para alimentación
+      case 'medication':
+        return <Clock className="w-3 h-3" /> // Icono para medicamento
+      case 'extra_activities':
+        return <Clock className="w-3 h-3" /> // Icono para actividad extra
       default:
         return <Clock className="w-3 h-3" />
     }

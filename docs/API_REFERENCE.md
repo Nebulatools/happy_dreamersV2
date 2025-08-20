@@ -217,51 +217,119 @@ Elimina un niño.
 }
 ```
 
-### Events API
+### Events API (Sistema v5.0)
 
-#### GET /api/events?childId={childId}
-Obtiene eventos de sueño de un niño.
+#### GET /api/children/events?childId={childId}
+Obtiene todos los eventos de un niño (sueño, alimentación, medicamentos, actividades).
 
 **Query Parameters:**
 - `childId` (required): ID del niño
 - `startDate` (optional): Fecha inicio (ISO)
 - `endDate` (optional): Fecha fin (ISO)
-- `type` (optional): Tipo de evento
+- `eventType` (optional): Tipo de evento
 
 **Response (200):**
 ```json
 {
-  "success": true,
+  "_id": "507f1f77bcf86cd799439011",
+  "firstName": "María",
+  "lastName": "Pérez",
   "events": [
     {
       "_id": "507f1f77bcf86cd799439014",
       "childId": "507f1f77bcf86cd799439011",
-      "type": "NIGHT_SLEEP",
-      "timestamp": "2024-01-20T22:00:00.000Z",
+      "eventType": "sleep",
+      "startTime": "2024-01-20T22:00:00.000Z",
+      "endTime": "2024-01-21T07:00:00.000Z",
       "duration": 480,
-      "emotionalState": "CALM",
-      "quality": "GOOD",
-      "notes": "Se durmió sin problemas",
-      "extraActivities": []
+      "emotionalState": "tranquilo",
+      "sleepDelay": 15,
+      "notes": "Se durmió sin problemas"
+    },
+    {
+      "_id": "507f1f77bcf86cd799439015",
+      "eventType": "feeding",
+      "startTime": "2024-01-21T08:00:00.000Z",
+      "feedingType": "solids",
+      "feedingAmount": 200,
+      "feedingDuration": 20,
+      "babyState": "awake",
+      "feedingNotes": "Desayuno completo"
+    },
+    {
+      "_id": "507f1f77bcf86cd799439016",
+      "eventType": "medication",
+      "startTime": "2024-01-21T09:00:00.000Z",
+      "medicationName": "Ibuprofeno",
+      "medicationDose": "5ml",
+      "medicationTime": "09:00",
+      "medicationNotes": "Para fiebre"
+    },
+    {
+      "_id": "507f1f77bcf86cd799439017",
+      "eventType": "extra_activities",
+      "startTime": "2024-01-21T10:00:00.000Z",
+      "activityDescription": "Juego en el parque",
+      "activityDuration": 60,
+      "activityImpact": "positive",
+      "activityNotes": "Mucha energía gastada"
     }
   ]
 }
 ```
 
-#### POST /api/events
-Registra un nuevo evento de sueño.
+#### POST /api/children/events
+Registra un nuevo evento (sueño, alimentación, medicamento o actividad).
 
-**Request:**
+**Request para Sueño:**
 ```json
 {
   "childId": "507f1f77bcf86cd799439011",
-  "type": "NIGHT_SLEEP",
-  "timestamp": "2024-01-20T22:00:00.000Z",
-  "duration": 480,
-  "emotionalState": "CALM",
-  "quality": "GOOD",
-  "notes": "Se durmió después del cuento",
-  "extraActivities": ["bath", "story"]
+  "eventType": "sleep",
+  "startTime": "2024-01-20T22:00:00.000Z",
+  "emotionalState": "tranquilo",
+  "sleepDelay": 20,
+  "notes": "Se durmió después del cuento"
+}
+```
+
+**Request para Alimentación:**
+```json
+{
+  "childId": "507f1f77bcf86cd799439011",
+  "eventType": "feeding",
+  "startTime": "2024-01-21T12:00:00.000Z",
+  "feedingType": "bottle",
+  "feedingAmount": 180,
+  "feedingDuration": 15,
+  "babyState": "awake",
+  "feedingNotes": "Tomó toda la leche"
+}
+```
+
+**Request para Medicamento (v5.0):**
+```json
+{
+  "childId": "507f1f77bcf86cd799439011",
+  "eventType": "medication",
+  "startTime": "2024-01-21T09:00:00.000Z",
+  "medicationName": "Paracetamol",
+  "medicationDose": "10ml",
+  "medicationTime": "09:00",
+  "medicationNotes": "Para dolor de cabeza"
+}
+```
+
+**Request para Actividad Extra (v5.0):**
+```json
+{
+  "childId": "507f1f77bcf86cd799439011",
+  "eventType": "extra_activities",
+  "startTime": "2024-01-21T16:00:00.000Z",
+  "activityDescription": "Clase de natación",
+  "activityDuration": 45,
+  "activityImpact": "positive",
+  "activityNotes": "Muy cansado después"
 }
 ```
 

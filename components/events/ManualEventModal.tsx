@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { format } from 'date-fns'
 import { Clock } from 'lucide-react'
+import { eventTypes } from '@/lib/event-types'
 
 interface ManualEventModalProps {
   open: boolean
@@ -35,7 +36,7 @@ export function ManualEventModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   
   // Estado del formulario - simplificado
-  const [eventType, setEventType] = useState<'sleep' | 'wake' | 'feeding' | 'medicine' | 'activity'>('sleep')
+  const [eventType, setEventType] = useState<string>('sleep')
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [time, setTime] = useState(format(new Date(), 'HH:mm'))
   const [sleepDelay, setSleepDelay] = useState('0')
@@ -72,7 +73,7 @@ export function ManualEventModal({
       }
       
       // Agregar campos según tipo
-      if (eventType === 'sleep') {
+      if (eventType === 'sleep' || eventType === 'nap') {
         eventData.sleepDelay = parseInt(sleepDelay)
         eventData.emotionalState = emotionalState
       }
@@ -148,11 +149,11 @@ export function ManualEventModal({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="sleep">Se durmió</SelectItem>
-                <SelectItem value="wake">Se despertó</SelectItem>
-                <SelectItem value="feeding">Alimentación</SelectItem>
-                <SelectItem value="medicine">Medicamento</SelectItem>
-                <SelectItem value="activity">Actividad Extra</SelectItem>
+                {eventTypes.map((type) => (
+                  <SelectItem key={type.id} value={type.id}>
+                    {type.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -179,7 +180,7 @@ export function ManualEventModal({
           </div>
           
           {/* Campos específicos de sueño */}
-          {eventType === 'sleep' && (
+          {(eventType === 'sleep' || eventType === 'nap') && (
             <>
               <div>
                 <Label>¿Cuánto tardó en dormirse?</Label>
@@ -264,10 +265,14 @@ export function ManualEventModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder={
-                eventType === 'sleep' 
+                (eventType === 'sleep' || eventType === 'nap')
                   ? "¿Cómo se durmió? ¿Lo arrullaron, tomó pecho, lo dejaron en la cuna despierto?"
                   : eventType === 'feeding'
                   ? "Detalles sobre la alimentación..."
+                  : eventType === 'medication'
+                  ? "Nombre del medicamento y dosis..."
+                  : eventType === 'extra_activities'
+                  ? "Descripción de la actividad..."
                   : "Agregar observaciones..."
               }
               rows={2}
