@@ -99,7 +99,7 @@ export function CalendarWeekView({
       {/* Días de la semana */}
       <div className="flex-1 flex">
         {days.map((day, index) => {
-          const dayName = weekDays[day.getDay()]
+          const dayName = weekDays[index]
           const dayEvents = getEventsForDay(day)
           const isDayToday = isToday(day)
           const isSelectedDay = isSameDay(day, date) // Día seleccionado por navegación
