@@ -98,6 +98,13 @@ interface Event {
   endTime?: string;
   notes?: string;
   duration?: number;
+  sleepDelay?: number; // Added missing sleepDelay property
+}
+
+interface Child {
+  _id: string;
+  name: string;
+  [key: string]: any; // Allow for other properties
 }
 
 interface MonthlyStats {
@@ -167,8 +174,9 @@ export default function CalendarPage() {
     if (view === "month") {
       return format(date, "MMMM yyyy", { locale: es })
     } else if (view === "week") {
-      const weekStart = startOfWeek(date, { weekStartsOn: 0 })
-      const weekEnd = endOfWeek(date, { weekStartsOn: 0 })
+      // Para vista semanal, usar la misma lógica que CalendarWeekView: 7 días consecutivos desde la fecha actual
+      const weekStart = date
+      const weekEnd = addDays(date, 6)
       if (isSameMonth(weekStart, weekEnd)) {
         return format(weekStart, "d", { locale: es }) + " - " + format(weekEnd, "d 'de' MMMM yyyy", { locale: es })
       } else {
@@ -199,7 +207,7 @@ export default function CalendarPage() {
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [quickSelectorOpen, setQuickSelectorOpen] = useState(false)
   const [selectedDateForEvent, setSelectedDateForEvent] = useState<Date | null>(null)
-  const [children, setChildren] = useState([])
+  const [children, setChildren] = useState<Child[]>([])
   
   // Estados para el diálogo de edición
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
@@ -1222,7 +1230,7 @@ export default function CalendarPage() {
           setIsDetailsModalOpen(false)
           setSelectedEvent(null)
         }}
-        childName={children && Array.isArray(children) ? children.find((c: any) => c._id === activeChildId)?.name || "el niño" : "el niño"}
+        childName={children && Array.isArray(children) ? children.find((c: Child) => c._id === activeChildId)?.name || "el niño" : "el niño"}
       />
       
       {/* Modal de confirmación de eliminación */}

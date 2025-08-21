@@ -2,7 +2,7 @@
 "use client"
 
 import React from 'react'
-import { format, addDays, startOfWeek, isToday, startOfDay, endOfDay } from 'date-fns'
+import { format, addDays, startOfWeek, endOfWeek, isToday, startOfDay, endOfDay, eachDayOfInterval } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -44,9 +44,7 @@ export function CalendarWeekView({
   onDayNavigateBack,
   onDayNavigateForward
 }: CalendarWeekViewProps) {
-  
-  const weekStart = startOfWeek(date, { weekStartsOn: 0 }) // Domingo
-  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  const days = Array.from({ length: 7 }, (_, i) => addDays(date, i))
   const weekDays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
   
   // Obtener eventos que afectan un día específico (incluye eventos que cruzan días)
