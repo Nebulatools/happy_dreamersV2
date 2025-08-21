@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { User, Mail, Calendar, Settings, Save } from "lucide-react"
+import { User, Mail, Calendar, Settings, Save, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -28,12 +28,24 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (session?.user) {
-      setFormData({
+      const sessionData = {
         name: session.user.name || "",
         email: session.user.email || "",
         phone: (session.user as any).phone || "",
         role: session.user.role || "user",
+      }
+      
+      logger.info("Session data loaded", {
+        sessionUserData: sessionData,
+        sessionPhone: (session.user as any).phone,
+        sessionPhoneType: typeof (session.user as any).phone
       })
+      
+      // Primero cargar desde la sesión
+      setFormData(sessionData)
+      
+      // Luego cargar los datos más recientes desde la base de datos
+      loadProfileData()
     }
   }, [session])
 
@@ -44,9 +56,44 @@ export default function ProfilePage() {
     }))
   }
 
+  const loadProfileData = async () => {
+    try {
+      logger.info("Loading profile data from API...")
+      const response = await fetch("/api/user/profile", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        logger.info("API response received", result)
+        
+        if (result.success && result.data) {
+          logger.info("Setting form data", result.data)
+          setFormData(result.data)
+        } else {
+          logger.warn("API response missing success or data", result)
+        }
+      } else {
+        logger.error("API response not ok", { status: response.status, statusText: response.statusText })
+      }
+    } catch (error) {
+      logger.error("Error loading profile data", error)
+    }
+  }
+
   const handleSave = async () => {
     setIsLoading(true)
     try {
+      logger.info("Starting profile save", {
+        formData: formData,
+        phoneValue: formData.phone,
+        phoneLength: formData.phone?.length,
+        phoneType: typeof formData.phone
+      })
+
       const response = await fetch("/api/user/profile", {
         method: "PUT",
         headers: {
@@ -55,10 +102,22 @@ export default function ProfilePage() {
         body: JSON.stringify(formData),
       })
 
+      const result = await response.json()
+      logger.info("Save API response", result)
+
       if (!response.ok) {
-        throw new Error("Error al actualizar el perfil")
+        throw new Error(result.error || "Error al actualizar el perfil")
       }
 
+      // Recargar los datos desde la base de datos para mostrar los cambios
+      logger.info("Reloading profile data after save...")
+      await loadProfileData()
+
+      // También actualizar la sesión
+      logger.info("Updating session after save", {
+        newName: formData.name,
+        newPhone: formData.phone
+      })
       await update({
         ...session,
         user: {
@@ -70,13 +129,14 @@ export default function ProfilePage() {
 
       toast({
         title: "Perfil actualizado",
-        description: "Tu información ha sido actualizada correctamente",
+        description: result.message || "Tu información ha sido actualizada correctamente",
       })
     } catch (error) {
-      logger.error("Error:", error)
+      logger.error("Error updating profile", error)
+      const errorMessage = error instanceof Error ? error.message : "No se pudo actualizar el perfil"
       toast({
         title: "Error",
-        description: "No se pudo actualizar el perfil",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -121,6 +181,12 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Mail className="h-4 w-4" />
                   {formData.email}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Phone className="h-4 w-4" />
+                  {formData.phone && formData.phone.trim().length > 0 
+                    ? formData.phone 
+                    : "Sin teléfono registrado"}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Calendar className="h-4 w-4" />
@@ -179,6 +245,9 @@ export default function ProfilePage() {
                       className="mt-1"
                       placeholder="+52 123 456 7890"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Formato recomendado: +52 123 456 7890
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor="role">Tipo de cuenta</Label>
@@ -207,6 +276,47 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Debug Information Card */}
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardHeader>
+            <CardTitle className="text-yellow-800">🔍 Información de Depuración</CardTitle>
+            <CardDescription className="text-yellow-700">
+              Datos para diagnosticar el problema del teléfono
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="space-y-2">
+                <h4 className="font-medium text-yellow-800">Datos del formulario:</h4>
+                <div className="bg-white p-3 rounded border">
+                  <div><strong>Nombre:</strong> {formData.name || "vacío"}</div>
+                  <div><strong>Email:</strong> {formData.email || "vacío"}</div>
+                  <div><strong>Teléfono:</strong> {formData.phone || "vacío"}</div>
+                  <div><strong>Role:</strong> {formData.role || "vacío"}</div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h4 className="font-medium text-yellow-800">Datos de la sesión:</h4>
+                <div className="bg-white p-3 rounded border">
+                  <div><strong>Nombre:</strong> {session?.user?.name || "vacío"}</div>
+                  <div><strong>Email:</strong> {session?.user?.email || "vacío"}</div>
+                  <div><strong>Teléfono:</strong> {(session?.user as any)?.phone || "vacío"}</div>
+                  <div><strong>Role:</strong> {session?.user?.role || "vacío"}</div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 p-3 bg-white rounded border">
+              <h4 className="font-medium text-yellow-800 mb-2">Estado del teléfono:</h4>
+              <div className="text-sm space-y-1">
+                <div><strong>Teléfono en formData:</strong> "{formData.phone}" (tipo: {typeof formData.phone}, longitud: {formData.phone?.length || 0})</div>
+                <div><strong>Teléfono en sesión:</strong> "{(session?.user as any)?.phone || ""}" (tipo: {typeof (session?.user as any)?.phone})</div>
+                <div><strong>¿Es truthy en formData?:</strong> {formData.phone ? "Sí" : "No"}</div>
+                <div><strong>¿Tiene contenido después de trim?:</strong> {formData.phone && formData.phone.trim().length > 0 ? "Sí" : "No"}</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Additional Info Card */}
         <Card>

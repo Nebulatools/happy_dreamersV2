@@ -96,14 +96,29 @@ class Logger {
         name: error.name,
       } : error
 
-      const logEntry = this.formatMessage("error", message, this.sanitizeData(errorData))
-      // eslint-disable-next-line no-console
-      console.error(`[${logEntry.timestamp}] [${logEntry.context}] ERROR:`, message, errorData || "")
-      
-      // TODO: En producción, enviar a servicio de monitoreo (Sentry, etc.)
-      // if (!this.isDevelopment && typeof window === 'undefined') {
-      //   // Enviar a servicio de logging
-      // }
+      try {
+        const logEntry = this.formatMessage("error", message, this.sanitizeData(errorData))
+        
+        // Defensive programming: Ensure logEntry is valid
+        if (!logEntry || typeof logEntry !== 'object') {
+          // Fallback logging if formatMessage fails
+          // eslint-disable-next-line no-console
+          console.error(`[${new Date().toISOString()}] [${this.context || 'Unknown'}] ERROR:`, message, errorData || "")
+          return
+        }
+
+        // eslint-disable-next-line no-console
+        console.error(`[${logEntry.timestamp}] [${logEntry.context}] ERROR:`, message, errorData || "")
+        
+        // TODO: En producción, enviar a servicio de monitoreo (Sentry, etc.)
+        // if (!this.isDevelopment && typeof window === 'undefined') {
+        //   // Enviar a servicio de logging
+        // }
+      } catch (loggerError) {
+        // Ultimate fallback if logger itself fails
+        // eslint-disable-next-line no-console
+        console.error(`[${new Date().toISOString()}] [Logger Error] Failed to log error:`, message, errorData || "", loggerError)
+      }
     }
   }
 
