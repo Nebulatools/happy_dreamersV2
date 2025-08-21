@@ -174,9 +174,9 @@ export default function CalendarPage() {
     if (view === "month") {
       return format(date, "MMMM yyyy", { locale: es })
     } else if (view === "week") {
-      // Para vista semanal, usar la misma lógica que CalendarWeekView: 7 días consecutivos desde la fecha actual
-      const weekStart = date
-      const weekEnd = addDays(date, 6)
+      // Para vista semanal, mostrar el rango de 7 días centrado en la fecha seleccionada
+      const weekStart = addDays(date, -3) // 3 días antes del centro
+      const weekEnd = addDays(date, 3) // 3 días después del centro
       if (isSameMonth(weekStart, weekEnd)) {
         return format(weekStart, "d", { locale: es }) + " - " + format(weekEnd, "d 'de' MMMM yyyy", { locale: es })
       } else {
@@ -187,14 +187,97 @@ export default function CalendarPage() {
     }
   }
 
-  // Funciones de navegación día por día
+  // Cache de eventos para optimizar navegación
+  const [allEventsCache, setAllEventsCache] = useState<Event[]>([])
+  const [lastFetchChildId, setLastFetchChildId] = useState<string | null>(null)
+
+  // Funciones de navegación día por día optimizadas
   const navigateOneDayBack = () => {
-    setDate(subDays(date, 1))
+    const newDate = subDays(date, 1)
+    
+    // Actualizar fecha inmediatamente
+    setDate(newDate)
+    
+    // Filtrar eventos inmediatamente desde cache si está disponible
+    if (allEventsCache.length > 0 && lastFetchChildId === activeChildId) {
+      const filteredEvents = filterEventsByView(allEventsCache, view, newDate)
+      setEvents(filteredEvents)
+      calculateMonthlyStats(filteredEvents)
+      
+      // Log para debugging
+      if (view === "week") {
+        const currentWeekStart = startOfWeek(date, { weekStartsOn: 0 })
+        const newWeekStart = startOfWeek(newDate, { weekStartsOn: 0 })
+        
+        if (currentWeekStart.getTime() !== newWeekStart.getTime()) {
+          logger.info("Navegación día: Cambiando de semana hacia atrás", {
+            currentWeek: format(currentWeekStart, "dd/MM"),
+            newWeek: format(newWeekStart, "dd/MM"),
+            eventsCount: filteredEvents.length
+          })
+        }
+      }
+    }
   }
 
   const navigateOneDayForward = () => {
-    setDate(addDays(date, 1))
+    const newDate = addDays(date, 1)
+    
+    // Actualizar fecha inmediatamente
+    setDate(newDate)
+    
+    // Filtrar eventos inmediatamente desde cache si está disponible
+    if (allEventsCache.length > 0 && lastFetchChildId === activeChildId) {
+      const filteredEvents = filterEventsByView(allEventsCache, view, newDate)
+      setEvents(filteredEvents)
+      calculateMonthlyStats(filteredEvents)
+      
+      // Log para debugging
+      if (view === "week") {
+        const currentWeekStart = startOfWeek(date, { weekStartsOn: 0 })
+        const newWeekStart = startOfWeek(newDate, { weekStartsOn: 0 })
+        
+        if (currentWeekStart.getTime() !== newWeekStart.getTime()) {
+          logger.info("Navegación día: Cambiando de semana hacia adelante", {
+            currentWeek: format(currentWeekStart, "dd/MM"),
+            newWeek: format(newWeekStart, "dd/MM"),
+            eventsCount: filteredEvents.length
+          })
+        }
+      }
+    }
   }
+
+  // Función auxiliar para filtrar eventos por vista
+  const filterEventsByView = (eventsData: Event[], currentView: string, currentDate: Date) => {
+    let filteredEvents = eventsData
+    
+    if (currentView === "month") {
+      filteredEvents = eventsData.filter((event: Event) => {
+        const eventDate = new Date(event.startTime)
+        return eventDate.getMonth() === currentDate.getMonth() && 
+               eventDate.getFullYear() === currentDate.getFullYear()
+      })
+    } else if (currentView === "week") {
+      // CAMBIO: Usar el mismo rango de 7 días que CalendarWeekView (centrando la fecha seleccionada)
+      const weekStart = addDays(currentDate, -3) // 3 días antes del centro
+      const weekEnd = endOfDay(addDays(currentDate, 3)) // 3 días después del centro
+      filteredEvents = eventsData.filter((event: Event) => {
+        const eventDate = new Date(event.startTime)
+        return eventDate >= weekStart && eventDate <= weekEnd
+      })
+    } else if (currentView === "day") {
+      const dayStart = startOfDay(currentDate)
+      const dayEnd = endOfDay(currentDate)
+      filteredEvents = eventsData.filter((event: Event) => {
+        const eventDate = new Date(event.startTime)
+        return eventDate >= dayStart && eventDate <= dayEnd
+      })
+    }
+    
+    return filteredEvents
+  }
+
   const [events, setEvents] = useState<Event[]>([])
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStats>({
     nightSleepHours: 0,
@@ -249,13 +332,20 @@ export default function CalendarPage() {
     return unsubscribe
   }, [subscribe])
 
-  // Cargar datos cuando cambia el niño activo, fecha o vista
+  // Cargar datos cuando cambia el niño activo o hay refresh forzado
   useEffect(() => {
-    fetchEvents()
     if (activeChildId) {
+      fetchEvents(true) // Forzar refresh desde servidor
       fetchActivePlan()
     }
-  }, [activeChildId, date, view, refreshTrigger])
+  }, [activeChildId, refreshTrigger])
+
+  // Filtrar desde cache cuando solo cambia fecha o vista (sin niño activo o refresh)
+  useEffect(() => {
+    if (activeChildId && allEventsCache.length > 0 && lastFetchChildId === activeChildId) {
+      filterEventsFromCache()
+    }
+  }, [date, view])
   
   // Función para obtener el plan activo del niño
   const fetchActivePlan = async () => {
@@ -356,10 +446,17 @@ export default function CalendarPage() {
     }
   }, [eventModalOpen, quickSelectorOpen, activeChildId])
 
-  const fetchEvents = async () => {
+  const fetchEvents = async (forceRefresh = false) => {
     if (!activeChildId) {
       setEvents([])
+      setAllEventsCache([])
       setIsLoading(false)
+      return
+    }
+
+    // Si es la misma child y no es un refresh forzado, usar cache para filtrar
+    if (!forceRefresh && lastFetchChildId === activeChildId && allEventsCache.length > 0) {
+      filterEventsFromCache()
       return
     }
 
@@ -380,31 +477,12 @@ export default function CalendarPage() {
         })))
       }
       
-      // Filtrar eventos según la vista actual
-      let filteredEvents = eventsData
+      // Actualizar cache
+      setAllEventsCache(eventsData)
+      setLastFetchChildId(activeChildId)
       
-      if (view === "month") {
-        filteredEvents = eventsData.filter((event: Event) => {
-          const eventDate = new Date(event.startTime)
-          return eventDate.getMonth() === date.getMonth() && 
-                 eventDate.getFullYear() === date.getFullYear()
-        })
-      } else if (view === "week") {
-        const weekStart = startOfWeek(date, { weekStartsOn: 0 })
-        const weekEnd = endOfWeek(date, { weekStartsOn: 0 })
-        filteredEvents = eventsData.filter((event: Event) => {
-          const eventDate = new Date(event.startTime)
-          return eventDate >= weekStart && eventDate <= weekEnd
-        })
-      } else if (view === "day") {
-        const dayStart = startOfDay(date)
-        const dayEnd = endOfDay(date)
-        filteredEvents = eventsData.filter((event: Event) => {
-          const eventDate = new Date(event.startTime)
-          return eventDate >= dayStart && eventDate <= dayEnd
-        })
-      }
-      
+      // Filtrar y mostrar
+      const filteredEvents = filterEventsByView(eventsData, view, date)
       setEvents(filteredEvents)
       calculateMonthlyStats(filteredEvents)
     } catch (error) {
@@ -417,6 +495,13 @@ export default function CalendarPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Función para filtrar desde cache (más rápida)
+  const filterEventsFromCache = () => {
+    const filteredEvents = filterEventsByView(allEventsCache, view, date)
+    setEvents(filteredEvents)
+    calculateMonthlyStats(filteredEvents)
   }
 
   const calculateMonthlyStats = (periodEvents: Event[]) => {

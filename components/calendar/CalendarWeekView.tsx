@@ -2,7 +2,7 @@
 "use client"
 
 import React from 'react'
-import { format, addDays, startOfWeek, endOfWeek, isToday, startOfDay, endOfDay, eachDayOfInterval } from 'date-fns'
+import { format, addDays, startOfWeek, endOfWeek, isToday, isSameDay, startOfDay, endOfDay, eachDayOfInterval } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -44,8 +44,16 @@ export function CalendarWeekView({
   onDayNavigateBack,
   onDayNavigateForward
 }: CalendarWeekViewProps) {
-  const days = Array.from({ length: 7 }, (_, i) => addDays(date, i))
-  const weekDays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
+  // CAMBIO: En lugar de mostrar la semana completa, mostrar 7 días consecutivos
+  // centrando la fecha seleccionada en el medio (posición 3, índice 2)
+  const centerDate = date
+  const days = Array.from({ length: 7 }, (_, i) => addDays(centerDate, i - 3))
+  
+  // Generar nombres de días dinámicamente basados en los días reales
+  const weekDays = days.map(day => {
+    const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
+    return dayNames[day.getDay()]
+  })
   
   // Obtener eventos que afectan un día específico (incluye eventos que cruzan días)
   const getEventsForDay = (day: Date) => {
@@ -94,6 +102,7 @@ export function CalendarWeekView({
           const dayName = weekDays[day.getDay()]
           const dayEvents = getEventsForDay(day)
           const isDayToday = isToday(day)
+          const isSelectedDay = isSameDay(day, date) // Día seleccionado por navegación
           
           return (
             <div key={day.toString()} className="flex-1 relative">
@@ -101,7 +110,8 @@ export function CalendarWeekView({
               <div 
                 className={cn(
                   "h-8 bg-white border-b border-gray-200 flex flex-col items-center justify-center text-xs font-medium relative",
-                  isDayToday && "bg-blue-50 text-blue-600"
+                  isDayToday && "bg-blue-50 text-blue-600",
+                  isSelectedDay && !isDayToday && "bg-gray-100 text-gray-800 font-bold"
                 )}
               >
                 {/* Flecha izquierda - solo en el primer día (domingo) */}
@@ -139,7 +149,10 @@ export function CalendarWeekView({
               
               {/* Container de eventos */}
               <div 
-                className="relative border-r border-gray-200 cursor-pointer"
+                className={cn(
+                  "relative border-r border-gray-200 cursor-pointer",
+                  isSelectedDay && !isDayToday && "border-l-2 border-l-gray-400"
+                )}
                 style={{ height: `${24 * hourHeight}px` }}
                 onClick={(e) => onCalendarClick?.(e, day)}
               >
