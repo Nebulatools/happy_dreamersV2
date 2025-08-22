@@ -155,6 +155,9 @@ export default function RegisterPage() {
                           <Input
                             {...field}
                             placeholder="Enter your full name"
+                            autoComplete="off"
+                            data-form-type="other"
+                            data-lpignore="true"
                             className="w-full bg-[#EDF2F7] border-0 rounded-lg px-10 py-3 text-sm placeholder-[#A0AEC0] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
                           />
                           <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
@@ -180,6 +183,9 @@ export default function RegisterPage() {
                             {...field}
                             type="email"
                             placeholder="Enter your email"
+                            autoComplete="off"
+                            data-form-type="other"
+                            data-lpignore="true"
                             className="w-full bg-[#EDF2F7] border-0 rounded-lg px-10 py-3 text-sm placeholder-[#A0AEC0] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
                           />
                           <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
@@ -205,6 +211,9 @@ export default function RegisterPage() {
                             {...field}
                             type={showPassword ? "text" : "password"}
                             placeholder="Create a password"
+                            autoComplete="new-password"
+                            data-form-type="other"
+                            data-lpignore="true"
                             className="w-full bg-[#EDF2F7] border-0 rounded-lg px-10 py-3 text-sm placeholder-[#A0AEC0] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
                           />
                           <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
@@ -237,6 +246,9 @@ export default function RegisterPage() {
                             {...field}
                             type={showConfirmPassword ? "text" : "password"}
                             placeholder="Confirm your password"
+                            autoComplete="new-password"
+                            data-form-type="other"
+                            data-lpignore="true"
                             className="w-full bg-[#EDF2F7] border-0 rounded-lg px-10 py-3 text-sm placeholder-[#A0AEC0] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
                           />
                           <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />

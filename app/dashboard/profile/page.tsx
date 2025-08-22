@@ -8,46 +8,28 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { UserAvatar } from "@/components/ui/user-avatar"
-import { useToast } from "@/hooks/use-toast"
-
-import { createLogger } from "@/lib/logger"
-
-const logger = createLogger("page")
-
+import { ChangePasswordForm } from "@/components/profile/ChangePasswordForm"
+import { useUser } from "@/context/UserContext"
 
 export default function ProfilePage() {
-  const { data: session, update } = useSession()
-  const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(false)
+  const { data: session } = useSession()
+  const { userData, isLoading, updateProfile } = useUser()
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    role: "",
+    name: userData.name,
+    email: userData.email,
+    phone: userData.phone,
+    role: userData.role,
   })
 
+  // Update formData when userData changes
   useEffect(() => {
-    if (session?.user) {
-      const sessionData = {
-        name: session.user.name || "",
-        email: session.user.email || "",
-        phone: (session.user as any).phone || "",
-        role: session.user.role || "user",
-      }
-      
-      logger.info("Session data loaded", {
-        sessionUserData: sessionData,
-        sessionPhone: (session.user as any).phone,
-        sessionPhoneType: typeof (session.user as any).phone
-      })
-      
-      // Primero cargar desde la sesión
-      setFormData(sessionData)
-      
-      // Luego cargar los datos más recientes desde la base de datos
-      loadProfileData()
-    }
-  }, [session])
+    setFormData({
+      name: userData.name,
+      email: userData.email,
+      phone: userData.phone,
+      role: userData.role,
+    })
+  }, [userData])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -56,92 +38,13 @@ export default function ProfilePage() {
     }))
   }
 
-  const loadProfileData = async () => {
-    try {
-      logger.info("Loading profile data from API...")
-      const response = await fetch("/api/user/profile", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        logger.info("API response received", result)
-        
-        if (result.success && result.data) {
-          logger.info("Setting form data", result.data)
-          setFormData(result.data)
-        } else {
-          logger.warn("API response missing success or data", result)
-        }
-      } else {
-        logger.error("API response not ok", { status: response.status, statusText: response.statusText })
-      }
-    } catch (error) {
-      logger.error("Error loading profile data", error)
-    }
-  }
-
   const handleSave = async () => {
-    setIsLoading(true)
-    try {
-      logger.info("Starting profile save", {
-        formData: formData,
-        phoneValue: formData.phone,
-        phoneLength: formData.phone?.length,
-        phoneType: typeof formData.phone
-      })
-
-      const response = await fetch("/api/user/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      })
-
-      const result = await response.json()
-      logger.info("Save API response", result)
-
-      if (!response.ok) {
-        throw new Error(result.error || "Error al actualizar el perfil")
-      }
-
-      // Recargar los datos desde la base de datos para mostrar los cambios
-      logger.info("Reloading profile data after save...")
-      await loadProfileData()
-
-      // También actualizar la sesión
-      logger.info("Updating session after save", {
-        newName: formData.name,
-        newPhone: formData.phone
-      })
-      await update({
-        ...session,
-        user: {
-          ...session?.user,
-          name: formData.name,
-          phone: formData.phone,
-        },
-      })
-
-      toast({
-        title: "Perfil actualizado",
-        description: result.message || "Tu información ha sido actualizada correctamente",
-      })
-    } catch (error) {
-      logger.error("Error updating profile", error)
-      const errorMessage = error instanceof Error ? error.message : "No se pudo actualizar el perfil"
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
+    const success = await updateProfile({
+      name: formData.name,
+      phone: formData.phone,
+    })
+    
+    // If successful, the UserContext handles the rest (session updates, data refresh, etc.)
   }
 
   const userInitials = formData.name
@@ -277,46 +180,8 @@ export default function ProfilePage() {
           </Card>
         </div>
 
-        {/* Debug Information Card */}
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardHeader>
-            <CardTitle className="text-yellow-800">🔍 Información de Depuración</CardTitle>
-            <CardDescription className="text-yellow-700">
-              Datos para diagnosticar el problema del teléfono
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div className="space-y-2">
-                <h4 className="font-medium text-yellow-800">Datos del formulario:</h4>
-                <div className="bg-white p-3 rounded border">
-                  <div><strong>Nombre:</strong> {formData.name || "vacío"}</div>
-                  <div><strong>Email:</strong> {formData.email || "vacío"}</div>
-                  <div><strong>Teléfono:</strong> {formData.phone || "vacío"}</div>
-                  <div><strong>Role:</strong> {formData.role || "vacío"}</div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <h4 className="font-medium text-yellow-800">Datos de la sesión:</h4>
-                <div className="bg-white p-3 rounded border">
-                  <div><strong>Nombre:</strong> {session?.user?.name || "vacío"}</div>
-                  <div><strong>Email:</strong> {session?.user?.email || "vacío"}</div>
-                  <div><strong>Teléfono:</strong> {(session?.user as any)?.phone || "vacío"}</div>
-                  <div><strong>Role:</strong> {session?.user?.role || "vacío"}</div>
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 p-3 bg-white rounded border">
-              <h4 className="font-medium text-yellow-800 mb-2">Estado del teléfono:</h4>
-              <div className="text-sm space-y-1">
-                <div><strong>Teléfono en formData:</strong> "{formData.phone}" (tipo: {typeof formData.phone}, longitud: {formData.phone?.length || 0})</div>
-                <div><strong>Teléfono en sesión:</strong> "{(session?.user as any)?.phone || ""}" (tipo: {typeof (session?.user as any)?.phone})</div>
-                <div><strong>¿Es truthy en formData?:</strong> {formData.phone ? "Sí" : "No"}</div>
-                <div><strong>¿Tiene contenido después de trim?:</strong> {formData.phone && formData.phone.trim().length > 0 ? "Sí" : "No"}</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Change Password Section */}
+        <ChangePasswordForm />
 
         {/* Additional Info Card */}
         <Card>

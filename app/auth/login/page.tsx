@@ -133,7 +133,14 @@ export default function LoginPage() {
                 <FormItem>
                   <FormLabel className="hd-label">Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ingresa tu email" type="email" {...field} />
+                    <Input 
+                      placeholder="Ingresa tu email" 
+                      type="email" 
+                      autoComplete="off"
+                      data-form-type="other"
+                      data-lpignore="true"
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -151,7 +158,14 @@ export default function LoginPage() {
                     </Link>
                   </div>
                   <FormControl>
-                    <Input placeholder="Ingresa tu contraseña" type="password" {...field} />
+                    <Input 
+                      placeholder="Ingresa tu contraseña" 
+                      type="password" 
+                      autoComplete="new-password"
+                      data-form-type="other"
+                      data-lpignore="true"
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
