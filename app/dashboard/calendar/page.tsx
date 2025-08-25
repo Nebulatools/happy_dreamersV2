@@ -1094,32 +1094,33 @@ export default function CalendarPage() {
 
       {/* Calendario Principal - Nueva estructura limpia */}
       <div className="px-6 pb-6">
-        {isLoading ? (
-          <Card className="p-4" style={{ minHeight: '500px' }}>
+        <Card className={`p-4 ${view === 'month' ? 'h-[600px]' : view === 'day' ? 'h-[calc(100vh-320px)]' : ''}`} style={{ minHeight: '500px' }}>
+          {isLoading ? (
             <div className="flex justify-center items-center h-96">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4A90E2] mx-auto mb-4" />
                 <p className="text-gray-600">Cargando calendario...</p>
               </div>
             </div>
-          </Card>
-        ) : (
-          <CalendarMain
-            events={events}
-            onEventClick={handleEventClick}
-            onCreateEvent={(clickTime) => {
-              // Manejar creación de eventos desde clicks en el calendario
-              setSelectedDateForEvent(clickTime.date)
-              // TODO: Abrir modal de creación de eventos cuando esté disponible
-              // setQuickSelectorOpen(true)
-            }}
-            monthView={renderMonthView()}
-            initialDate={date}
-            initialView={view}
-            onDayNavigateBack={navigateOneDayBack}
-            onDayNavigateForward={navigateOneDayForward}
-          />
-        )}
+          ) : (
+            view === "month" ? renderMonthLineView() :
+            <CalendarMain
+              events={events}
+              onEventClick={handleEventClick}
+              onCreateEvent={(clickTime) => {
+                // Manejar creación de eventos desde clicks en el calendario
+                setSelectedDateForEvent(clickTime.date)
+                // TODO: Abrir modal de creación de eventos cuando esté disponible
+                // setQuickSelectorOpen(true)
+              }}
+              monthView={renderMonthView()}
+              initialDate={date}
+              initialView={view}
+              onDayNavigateBack={navigateOneDayBack}
+              onDayNavigateForward={navigateOneDayForward}
+            />
+          )}
+        </Card>
       </div>
 
       {/* TEMPORALMENTE COMENTADO - Sistema de eventos en reset */}
