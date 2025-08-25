@@ -154,7 +154,7 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6">
       {loading ? (
         <div className="col-span-full flex justify-center items-center h-32">
           <p className="text-gray-500">Cargando métricas...</p>
@@ -171,7 +171,7 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
         sleepMetrics.map((metric, index) => (
         <div 
           key={index}
-          className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02] cursor-pointer"
+          className="bg-white rounded-lg md:rounded-2xl border border-gray-100 shadow-sm md:shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02] cursor-pointer"
         >
           {/* Badge de métrica prioritaria */}
           {metric.priority && (
@@ -185,14 +185,14 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
           )}
           
           {/* Contenido principal */}
-          <div className="p-6">
-            <div className="flex items-start justify-between mb-6">
+          <div className="p-3 md:p-6">
+            <div className="flex items-start justify-between mb-3 md:mb-6">
               {/* Información de la métrica */}
               <div className="flex-1">
-                <p className="text-sm text-gray-600 mb-2 leading-tight">
+                <p className="text-xs md:text-sm text-gray-600 mb-1 md:mb-2 leading-tight">
                   {metric.title}
                 </p>
-                <p className="text-4xl font-extrabold text-[#2F2F2F] leading-none">
+                <p className="text-lg md:text-4xl font-bold md:font-extrabold text-[#2F2F2F] leading-none">
                   {metric.value}
                 </p>
               </div>

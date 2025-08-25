@@ -334,8 +334,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F9FF] p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#F5F9FF] p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
         {/* Saludo personalizado */}
         <div className="space-y-2">
           <h1 className="text-2xl font-bold text-[#2F2F2F]">
@@ -350,7 +350,7 @@ export default function DashboardPage() {
         {activeChildId ? (
           <SleepMetricsGrid childId={activeChildId} dateRange="7-days" />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
             <div className="col-span-full bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
               <p className="text-gray-500">Por favor selecciona un niño desde el menú superior para ver las métricas</p>
             </div>
@@ -369,9 +369,9 @@ export default function DashboardPage() {
         )}
 
         {/* Grid de contenido principal */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Tendencia de Sueño */}
-          <Card className="bg-white shadow-sm border-0 lg:col-span-2">
+          <Card className="bg-white shadow-sm border-0 col-span-1 lg:col-span-2">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-[#2F2F2F]">Tendencia de Sueño</CardTitle>
@@ -379,32 +379,35 @@ export default function DashboardPage() {
                   <Button 
                     size="sm" 
                     onClick={() => setSelectedPeriod("7d")}
-                    className={selectedPeriod === "7d" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-8" : "h-8"}
+                    className={selectedPeriod === "7d" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3" : "h-7 md:h-8 text-xs md:text-sm px-2 md:px-3"}
                     variant={selectedPeriod === "7d" ? "default" : "ghost"}
                   >
-                    7 días
+                    <span className="hidden sm:inline">7 días</span>
+                    <span className="sm:hidden">7d</span>
                   </Button>
                   <Button 
                     size="sm" 
                     onClick={() => setSelectedPeriod("30d")}
-                    className={selectedPeriod === "30d" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-8" : "text-[#666666] h-8"}
+                    className={selectedPeriod === "30d" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3" : "text-[#666666] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3"}
                     variant={selectedPeriod === "30d" ? "default" : "ghost"}
                   >
-                    30 días
+                    <span className="hidden sm:inline">30 días</span>
+                    <span className="sm:hidden">30d</span>
                   </Button>
                   <Button 
                     size="sm" 
                     onClick={() => setSelectedPeriod("3m")}
-                    className={selectedPeriod === "3m" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-8" : "text-[#666666] h-8"}
+                    className={selectedPeriod === "3m" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3" : "text-[#666666] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3"}
                     variant={selectedPeriod === "3m" ? "default" : "ghost"}
                   >
-                    3 meses
+                    <span className="hidden sm:inline">3 meses</span>
+                    <span className="sm:hidden">3m</span>
                   </Button>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="h-64 bg-[#F8FAFC] rounded-xl p-4">
+            <CardContent className="p-3 md:p-6">
+              <div className="h-48 md:h-64 bg-[#F8FAFC] rounded-xl p-2 md:p-4 overflow-x-auto">
                 {(() => {
                   const chartData = getSleepChartData()
                   const maxHours = Math.max(...chartData.map(d => d.hours), 1)
@@ -520,7 +523,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Segunda fila del grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Calendario de Sueño */}
           <Card className="bg-white shadow-sm border-0">
             <CardHeader className="pb-4">
@@ -595,7 +598,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Notas Recientes */}
-          <Card className="bg-white shadow-sm border-0">
+          <Card className="bg-white shadow-sm border-0 col-span-1 md:col-span-1">
             <CardHeader className="pb-4">
               <CardTitle className="text-[#2F2F2F]">Notas Recientes</CardTitle>
             </CardHeader>
@@ -653,7 +656,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Consejos Personalizados */}
-          <Card className="bg-white shadow-sm border-0">
+          <Card className="bg-white shadow-sm border-0 col-span-1 md:col-span-2 lg:col-span-1">
             <CardHeader className="pb-4">
               <CardTitle className="text-[#2F2F2F]">Consejos Personalizados</CardTitle>
             </CardHeader>

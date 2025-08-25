@@ -1,9 +1,11 @@
 version: 4.40.0
-installed_at: '2025-08-25T19:36:17.428Z'
+installed_at: '2025-08-25T20:31:16.203Z'
 install_type: full
 agent: null
 ides_setup:
   - claude-code
+  - cline
+  - github-copilot
 expansion_packs: []
 files:
   - path: .bmad-core/working-in-the-brownfield.md
@@ -16,7 +18,7 @@ files:
     hash: 39beb3516c070e2b
     modified: false
   - path: .bmad-core/core-config.yaml
-    hash: 073cf6d2527c545d
+    hash: 38fbeb4b05ef067d
     modified: false
   - path: .bmad-core/workflows/greenfield-ui.yaml
     hash: defde5d6bdcedd49

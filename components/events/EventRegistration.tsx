@@ -35,9 +35,9 @@ export function EventRegistration({
   const [showManualModal, setShowManualModal] = useState(false)
   
   return (
-    <div className="p-4 border rounded-lg bg-white">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">
+    <div className="p-3 md:p-4 border rounded-lg bg-white">
+      <div className="flex items-center justify-between mb-3 md:mb-4">
+        <h3 className="text-base md:text-lg font-semibold">
           Registro de Eventos - {childName}
         </h3>
         
@@ -62,7 +62,7 @@ export function EventRegistration({
         />
         
         {/* Fila de botones secundarios - más compactos */}
-        <div className="grid grid-cols-3 gap-2 h-16">
+        <div className="grid grid-cols-3 gap-2 h-14 md:h-16">
           {/* Botón de alimentación */}
           <FeedingButton
             childId={childId}
@@ -85,7 +85,7 @@ export function EventRegistration({
           />
         </div>
         
-        <p className="text-sm text-gray-500 text-center">
+        <p className="text-xs md:text-sm text-gray-500 text-center">
           Sistema de eventos v4.0 - Registro completo
         </p>
       </div>

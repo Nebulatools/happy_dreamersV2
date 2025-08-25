@@ -34,7 +34,7 @@ export default async function DashboardLayout({
             <Sidebar />
             <div className="flex flex-col lg:ml-[256px]">
               <Header />
-              <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
+              <main className="flex flex-1 flex-col gap-4 p-3 md:p-4 lg:gap-8 lg:p-6">
                 <ErrorBoundary 
                   context="página" 
                   showDetails={process.env.NODE_ENV === 'development'}
