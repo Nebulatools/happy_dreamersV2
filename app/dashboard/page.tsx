@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense, lazy } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -9,8 +9,9 @@ import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
 import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache } from "@/hooks/use-events-cache"
-import AdminStatistics from "@/components/dashboard/AdminStatistics"
-import SleepMetricsGrid from "@/components/child-profile/SleepMetricsGrid"
+// Lazy load heavy components
+const AdminStatistics = lazy(() => import("@/components/dashboard/AdminStatistics"))
+const SleepMetricsGrid = lazy(() => import("@/components/child-profile/SleepMetricsGrid"))
 // Sistema de eventos - Nueva implementación v1.0
 import { EventRegistration } from "@/components/events"
 import { 
@@ -330,7 +331,15 @@ export default function DashboardPage() {
 
   // Si es admin, mostrar las estadísticas completas
   if (isAdmin) {
-    return <AdminStatistics />
+    return (
+      <Suspense fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-gray-500">Cargando estadísticas...</p>
+        </div>
+      }>
+        <AdminStatistics />
+      </Suspense>
+    )
   }
 
   return (
@@ -348,7 +357,17 @@ export default function DashboardPage() {
 
         {/* Métricas principales - usando el componente de sleep-statistics */}
         {activeChildId ? (
-          <SleepMetricsGrid childId={activeChildId} dateRange="7-days" />
+          <Suspense fallback={
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="bg-white rounded-lg md:rounded-2xl border border-gray-100 p-3 md:p-6 animate-pulse">
+                  <div className="h-20 bg-gray-200 rounded"></div>
+                </div>
+              ))}
+            </div>
+          }>
+            <SleepMetricsGrid childId={activeChildId} dateRange="7-days" />
+          </Suspense>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
             <div className="col-span-full bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
@@ -407,7 +426,7 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent className="p-3 md:p-6">
-              <div className="h-48 md:h-64 bg-[#F8FAFC] rounded-xl p-2 md:p-4 overflow-x-auto">
+              <div className="h-48 md:h-64 bg-[#F8FAFC] rounded-xl p-2 md:p-4 overflow-x-auto touch-pan-x">
                 {(() => {
                   const chartData = getSleepChartData()
                   const maxHours = Math.max(...chartData.map(d => d.hours), 1)
@@ -425,11 +444,11 @@ export default function DashboardPage() {
                   
                   return (
                     <div className="h-full flex flex-col">
-                      <div className="flex-1 flex items-end justify-between gap-2">
+                      <div className="flex-1 flex items-end gap-1 md:gap-2 min-w-max px-2">
                         {chartData.map((data, index) => (
-                          <div key={`chart-${data.label}-${index}`} className="flex flex-col items-center flex-1">
+                          <div key={`chart-${data.label}-${index}`} className="flex flex-col items-center min-w-[40px] md:min-w-[60px]">
                             <div 
-                              className="bg-[#4A90E2] rounded-t-md w-full transition-all duration-300 hover:bg-[#357ABD] flex items-end justify-center relative"
+                              className="bg-[#4A90E2] rounded-t-md w-full transition-all duration-300 hover:bg-[#357ABD] active:bg-[#2968A6] flex items-end justify-center relative cursor-pointer"
                               style={{ 
                                 height: `${Math.max((data.hours / maxHours) * 80, 8)}%`,
                                 minHeight: data.hours > 0 ? '12px' : '4px'
@@ -437,12 +456,12 @@ export default function DashboardPage() {
                               title={`${data.hours} horas`}
                             >
                               {data.hours > 0 && (
-                                <span className="text-white text-xs font-medium mb-1">
+                                <span className="text-white text-[10px] md:text-xs font-medium mb-1">
                                   {data.hours}h
                                 </span>
                               )}
                             </div>
-                            <span className="text-xs text-[#666666] mt-2 text-center">
+                            <span className="text-[10px] md:text-xs text-[#666666] mt-1 md:mt-2 text-center">
                               {data.label}
                             </span>
                           </div>

@@ -9,6 +9,7 @@ import { ActiveChildProvider } from "@/context/active-child-context"
 import { PageHeaderProvider } from "@/context/page-header-context"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { Header } from "@/components/dashboard/header"
+import { MobileBottomNav } from "@/components/dashboard/mobile-nav"
 import ErrorBoundary from "@/components/ErrorBoundary"
 import { DevTools } from "@/components/dev/DevTools"
 import { UserProvider } from "@/context/UserContext"
@@ -36,7 +37,7 @@ export default async function DashboardLayout({
               <Sidebar />
               <div className="flex flex-col lg:ml-[256px]">
                 <Header />
-                <main className="flex flex-1 flex-col gap-4 p-3 md:p-4 lg:gap-8 lg:p-6">
+                <main className="flex flex-1 flex-col gap-4 p-3 md:p-4 lg:gap-8 lg:p-6 pb-20 lg:pb-6">
                   <ErrorBoundary 
                     context="página" 
                     showDetails={process.env.NODE_ENV === 'development'}
@@ -47,6 +48,8 @@ export default async function DashboardLayout({
               </div>
               {/* Herramientas de desarrollo - solo en desarrollo */}
               <DevTools />
+              {/* Bottom navigation for mobile */}
+              <MobileBottomNav />
             </div>
           </ErrorBoundary>
         </UserProvider>

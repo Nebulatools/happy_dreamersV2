@@ -145,7 +145,7 @@ export function ManualEventModal({
           <div>
             <Label>Tipo de evento</Label>
             <Select value={eventType} onValueChange={(val: any) => setEventType(val)}>
-              <SelectTrigger>
+              <SelectTrigger className="min-h-[44px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -185,7 +185,7 @@ export function ManualEventModal({
               <div>
                 <Label>¿Cuánto tardó en dormirse?</Label>
                 <Select value={sleepDelay} onValueChange={setSleepDelay}>
-                  <SelectTrigger>
+                  <SelectTrigger className="min-h-[44px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
