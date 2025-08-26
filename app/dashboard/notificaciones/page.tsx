@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
+import { useActiveChild } from "@/context/active-child-context"
 import { NotificationSettings } from "@/components/notifications/NotificationSettings"
 import { NotificationTester } from "@/components/notifications/NotificationTester"
 import { Icons } from "@/components/icons"
@@ -51,6 +52,7 @@ interface NotificationLogItem {
 
 export default function NotificacionesPage() {
   const { data: session } = useSession()
+  const { activeChildId, activeUserId } = useActiveChild()
   const [children, setChildren] = useState<Child[]>([])
   const [selectedChild, setSelectedChild] = useState<string | null>(null)
   const [notifications, setNotifications] = useState<NotificationLogItem[]>([])
@@ -63,12 +65,54 @@ export default function NotificacionesPage() {
     failed: 0
   })
 
-  // Cargar lista de niños
+  // Cargar lista de niños basada en el contexto
   useEffect(() => {
-    loadChildren()
-  }, [session])
+    if (activeUserId && activeChildId) {
+      loadChildren()
+    } else if (session?.user.role !== 'admin') {
+      // Para usuarios normales, cargar sus propios hijos
+      loadUserChildren()
+    } else {
+      setLoading(false)
+    }
+  }, [session, activeUserId, activeChildId])
 
   const loadChildren = async () => {
+    try {
+      // Para admins, cargar los niños del usuario seleccionado
+      const url = session?.user.role === 'admin' && activeUserId 
+        ? `/api/children?userId=${activeUserId}`
+        : "/api/children"
+        
+      const response = await fetch(url)
+      if (!response.ok) throw new Error("Error cargando niños")
+      
+      const data = await response.json()
+      const childrenData = data.children || []
+      
+      // Mapear los datos para incluir el nombre completo
+      const formattedChildren = childrenData.map((child: any) => ({
+        ...child,
+        name: `${child.firstName || ''} ${child.lastName || ''}`.trim() || 'Sin nombre'
+      }))
+      
+      setChildren(formattedChildren)
+      
+      // Si hay un niño activo en el contexto, seleccionarlo
+      if (activeChildId && formattedChildren.find((c: Child) => c._id === activeChildId)) {
+        setSelectedChild(activeChildId)
+      } else if (formattedChildren.length > 0) {
+        setSelectedChild(formattedChildren[0]._id)
+      }
+    } catch (error) {
+      console.error("Error:", error)
+      toast.error("Error al cargar los perfiles")
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+  const loadUserChildren = async () => {
     try {
       const response = await fetch("/api/children")
       if (!response.ok) throw new Error("Error cargando niños")
@@ -251,15 +295,30 @@ export default function NotificacionesPage() {
         </Card>
       </div>
 
-      {children.length === 0 ? (
+      {/* Mostrar mensaje apropiado según el contexto */}
+      {session?.user.role === 'admin' && (!activeUserId || !activeChildId) ? (
+        <Card>
+          <CardContent className="text-center py-8">
+            <Icons.alertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-lg font-medium mb-2">
+              Selecciona un paciente primero
+            </p>
+            <p className="text-muted-foreground">
+              Usa el selector en la parte superior de la página para elegir un usuario y niño
+            </p>
+          </CardContent>
+        </Card>
+      ) : children.length === 0 ? (
         <Card>
           <CardContent className="text-center py-8">
             <p className="text-muted-foreground">
-              No tienes perfiles de niños registrados.
+              No hay perfiles de niños registrados para este usuario.
             </p>
-            <Button className="mt-4" onClick={() => window.location.href = "/dashboard/children"}>
-              Agregar Niño
-            </Button>
+            {session?.user.role !== 'admin' && (
+              <Button className="mt-4" onClick={() => window.location.href = "/dashboard/children"}>
+                Agregar Niño
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
