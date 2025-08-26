@@ -239,12 +239,124 @@ function getAgeBasedPatterns(ageInMonths, childName) {
 function generateDayEvents(childId, childName, date, patterns) {
   const events = []
   
-  // Sleep start
+  // 🌅 DÍA COHERENTE: Generar eventos en orden lógico temporal
+  console.log(`    🗓️  Generando día coherente para ${childName}: ${date.toISOString().split('T')[0]}`)
+  
+  // 1. DESPERTAR MATUTINO (7-8 AM según niño)
+  const wakeTime = new Date(date)
+  wakeTime.setHours(
+    patterns.wakeUp.hour,
+    patterns.wakeUp.minute + (Math.random() - 0.5) * 30,
+    0, 0
+  )
+  
+  events.push({
+    _id: new ObjectId(),
+    eventType: "wake_up",
+    startTime: wakeTime,
+    mood: patterns.mood[Math.floor(Math.random() * patterns.mood.length)],
+    quality: patterns.sleepQuality[Math.floor(Math.random() * patterns.sleepQuality.length)],
+    notes: `${childName} despertó para comenzar el día`,
+    createdAt: new Date()
+  })
+  
+  // 2. DESAYUNO (30-60 min después de despertar)
+  const breakfastTime = new Date(wakeTime)
+  breakfastTime.setMinutes(breakfastTime.getMinutes() + 30 + Math.random() * 30)
+  
+  events.push({
+    _id: new ObjectId(),
+    eventType: "feeding",
+    startTime: breakfastTime,
+    feedingType: patterns.feedingType,
+    duration: 15 + Math.random() * 25,
+    notes: `${childName} - desayuno (${patterns.feedingType})`,
+    createdAt: new Date()
+  })
+  
+  // 3. SIESTAS SEGÚN EDAD (horarios fijos realistas)
+  patterns.napTimes.forEach((nap, idx) => {
+    const napStart = new Date(date)
+    napStart.setHours(
+      nap.hour,
+      nap.minute + Math.floor((Math.random() - 0.5) * 15), // Menos varianza
+      0, 0
+    )
+    
+    // Validar horarios lógicos
+    if (napStart <= breakfastTime) {
+      napStart.setTime(breakfastTime.getTime() + 2 * 60 * 60 * 1000) // 2 horas después del desayuno
+    }
+    
+    events.push({
+      _id: new ObjectId(),
+      eventType: "nap_start",
+      startTime: napStart,
+      notes: `${childName} inicio ${idx === 0 ? 'primera' : 'segunda'} siesta`,
+      createdAt: new Date()
+    })
+    
+    const napEnd = new Date(napStart)
+    const napDuration = nap.duration + Math.floor((Math.random() - 0.5) * 30)
+    napEnd.setMinutes(napEnd.getMinutes() + napDuration)
+    
+    events.push({
+      _id: new ObjectId(),
+      eventType: "nap_end",
+      startTime: napEnd,
+      notes: `${childName} fin ${idx === 0 ? 'primera' : 'segunda'} siesta (${napDuration}min)`,
+      createdAt: new Date()
+    })
+  })
+  
+  // 4. COMIDAS PRINCIPALES (almuerzo y cena en horarios lógicos)
+  const lunchTime = new Date(date)
+  lunchTime.setHours(12, Math.random() * 30, 0, 0) // 12:00-12:30
+  
+  events.push({
+    _id: new ObjectId(),
+    eventType: "feeding",
+    startTime: lunchTime,
+    feedingType: patterns.feedingType,
+    duration: 20 + Math.random() * 25,
+    notes: `${childName} - almuerzo (comida principal)`,
+    createdAt: new Date()
+  })
+  
+  const dinnerTime = new Date(date)
+  dinnerTime.setHours(18, 30 + Math.random() * 30, 0, 0) // 18:30-19:00
+  
+  events.push({
+    _id: new ObjectId(),
+    eventType: "feeding",
+    startTime: dinnerTime,
+    feedingType: patterns.feedingType,
+    duration: 15 + Math.random() * 20,
+    notes: `${childName} - cena ligera antes de rutina nocturna`,
+    createdAt: new Date()
+  })
+  
+  // 5. RUTINA NOCTURNA Y DORMIR (19:30-20:30)
+  const bedtimeRoutine = new Date(date)
+  bedtimeRoutine.setHours(19, 30 + Math.random() * 30, 0, 0)
+  
+  // Eventos especiales según niño ANTES de dormir
+  if (patterns.tantrums && Math.random() < patterns.tantrums) {
+    events.push({
+      _id: new ObjectId(),
+      eventType: "other",
+      startTime: bedtimeRoutine,
+      duration: 10 + Math.random() * 20,
+      notes: `${childName} rabieta durante rutina - batalla pijama`,
+      mood: "irritable",
+      createdAt: new Date()
+    })
+  }
+  
   const sleepTime = new Date(date)
-  const sleepVariance = (Math.random() - 0.5) * patterns.sleepStart.variance
   sleepTime.setHours(
     patterns.sleepStart.hour,
-    patterns.sleepStart.minute + sleepVariance,
+    patterns.sleepStart.minute + (Math.random() - 0.5) * 30, // Max 30 min varianza
     0, 0
   )
   
@@ -254,21 +366,27 @@ function generateDayEvents(childId, childName, date, patterns) {
     startTime: sleepTime,
     mood: patterns.mood[Math.floor(Math.random() * patterns.mood.length)],
     notes: `${childName} se durmió después de rutina nocturna`,
-    createdAt: sleepTime
+    createdAt: new Date()
   })
   
-  // Night wakings (según patrón del niño)
+  // 6. DESPERTARES NOCTURNOS (REALISTAS según problema del niño)
   const shouldHaveWakings = Math.random() < (childName === 'Bernardo' ? 0.9 : 0.4)
   if (shouldHaveWakings) {
     const numWakings = Math.floor(Math.random() * patterns.nightWakings) + 1
     
     for (let i = 0; i < numWakings; i++) {
-      const wakingHour = patterns.nightWakingPattern[
-        Math.floor(Math.random() * patterns.nightWakingPattern.length)
-      ]
+      // Hora lógica: entre bedtime y wake up del día siguiente
+      const minHour = sleepTime.getHours()
+      const maxHour = minHour + 8 // Máximo 8 horas después
+      const wakingHour = minHour + Math.random() * (maxHour - minHour)
       
       const waking = new Date(sleepTime)
-      waking.setHours(wakingHour, Math.random() * 60, 0, 0)
+      waking.setHours(Math.floor(wakingHour), Math.random() * 60, 0, 0)
+      
+      // Si pasa de medianoche, ajustar al día siguiente
+      if (waking.getHours() < sleepTime.getHours()) {
+        waking.setDate(waking.getDate() + 1)
+      }
       
       const problem = patterns.problems[Math.floor(Math.random() * patterns.problems.length)]
       let notes = `${childName} despertar nocturno`
@@ -282,96 +400,12 @@ function generateDayEvents(childId, childName, date, patterns) {
         startTime: waking,
         duration: 5 + Math.random() * (childName === 'Bernardo' ? 25 : 15),
         notes: notes,
-        createdAt: waking
+        createdAt: new Date()
       })
     }
   }
   
-  // Wake up
-  const wakeTime = new Date(date)
-  wakeTime.setDate(date.getDate() + 1)
-  const wakeVariance = (Math.random() - 0.5) * patterns.wakeUp.variance
-  wakeTime.setHours(
-    patterns.wakeUp.hour + Math.floor(wakeVariance / 60),
-    patterns.wakeUp.minute + (wakeVariance % 60),
-    0, 0
-  )
-  
-  events.push({
-    _id: new ObjectId(),
-    eventType: "wake_up",
-    startTime: wakeTime,
-    mood: patterns.mood[Math.floor(Math.random() * patterns.mood.length)],
-    quality: patterns.sleepQuality[Math.floor(Math.random() * patterns.sleepQuality.length)],
-    notes: `${childName} despertó para comenzar el día`,
-    createdAt: wakeTime
-  })
-  
-  // Feeding events
-  patterns.feedingTimes.forEach(meal => {
-    const mealTime = new Date(date)
-    mealTime.setHours(
-      meal.hour + Math.floor((Math.random() - 0.5) * 1),
-      meal.minute + Math.floor((Math.random() - 0.5) * 30),
-      0, 0
-    )
-    
-    events.push({
-      _id: new ObjectId(),
-      eventType: "feeding",
-      startTime: mealTime,
-      feedingType: patterns.feedingType,
-      duration: 15 + Math.random() * 25,
-      notes: `${childName} - ${meal.type}`,
-      createdAt: mealTime
-    })
-  })
-  
-  // Nap events
-  patterns.napTimes.forEach(nap => {
-    const napStart = new Date(date)
-    napStart.setHours(
-      nap.hour,
-      nap.minute + Math.floor((Math.random() - 0.5) * nap.variance),
-      0, 0
-    )
-    
-    events.push({
-      _id: new ObjectId(),
-      eventType: "nap_start",
-      startTime: napStart,
-      notes: `${childName} inicio siesta`,
-      createdAt: napStart
-    })
-    
-    const napEnd = new Date(napStart)
-    napEnd.setMinutes(napEnd.getMinutes() + nap.duration + Math.floor((Math.random() - 0.5) * 30))
-    
-    events.push({
-      _id: new ObjectId(),
-      eventType: "nap_end",
-      startTime: napEnd,
-      notes: `${childName} fin siesta`,
-      createdAt: napEnd
-    })
-  })
-  
-  // Eventos especiales según niño
-  if (patterns.tantrums && Math.random() < patterns.tantrums) {
-    const tantrumTime = new Date(sleepTime)
-    tantrumTime.setMinutes(tantrumTime.getMinutes() - 30)
-    
-    events.push({
-      _id: new ObjectId(),
-      eventType: "other",
-      startTime: tantrumTime,
-      duration: 10 + Math.random() * 20,
-      notes: `${childName} rabieta durante rutina - batalla pijama`,
-      mood: "irritable",
-      createdAt: tantrumTime
-    })
-  }
-  
+  console.log(`    ✅ ${events.length} eventos coherentes generados`)
   return events
 }
 
