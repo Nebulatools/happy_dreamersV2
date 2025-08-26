@@ -65,14 +65,17 @@ export default function NotificacionesPage() {
     failed: 0
   })
   
-  // Debug log para verificar el contexto
+  // Debug log para verificar el contexto - ACTUALIZADO
   useEffect(() => {
+    console.log("=== NotificacionesPage DEBUG START ===")
     console.log("NotificacionesPage - Context values:", {
       activeUserId,
       activeChildId,
       sessionRole: session?.user?.role,
-      loading
+      loading,
+      timestamp: new Date().toISOString()
     })
+    console.log("=== NotificacionesPage DEBUG END ===")
   }, [activeUserId, activeChildId, session, loading])
 
   // Cargar lista de niños basada en el contexto
@@ -278,6 +281,25 @@ export default function NotificacionesPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
+      {/* Panel de Debug Visible - TEMPORAL */}
+      <Card className="bg-yellow-50 border-yellow-300">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm text-yellow-800">🐛 Panel de Debug (Temporal)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-xs space-y-1 font-mono text-yellow-900">
+            <div>activeUserId: {activeUserId || 'null'}</div>
+            <div>activeChildId: {activeChildId || 'null'}</div>
+            <div>sessionRole: {session?.user?.role || 'null'}</div>
+            <div>loading: {loading.toString()}</div>
+            <div>children.length: {children.length}</div>
+            <div>selectedChild: {selectedChild || 'null'}</div>
+            <div>isAdmin: {(session?.user?.role === 'admin').toString()}</div>
+            <div>timestamp: {new Date().toLocaleTimeString()}</div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-[#1F2937]">Notificaciones</h1>
