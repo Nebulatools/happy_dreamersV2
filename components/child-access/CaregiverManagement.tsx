@@ -9,6 +9,7 @@ import { es } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -88,8 +89,12 @@ export function CaregiverManagement({
   // Estado para el formulario de agregar cuidador
   const [formData, setFormData] = useState({
     email: "",
-    role: "caregiver",
-    relationshipType: "family",
+    permissions: {
+      viewer: false,
+      caregiver: true,
+      editor: false
+    },
+    relationshipType: "familiar",
     relationshipDescription: "",
     expiresAt: ""
   })
@@ -145,7 +150,8 @@ export function CaregiverManagement({
         },
         body: JSON.stringify({
           email: formData.email,
-          role: formData.role,
+          role: formData.permissions.editor ? "editor" : 
+                formData.permissions.caregiver ? "caregiver" : "viewer",
           relationshipType: formData.relationshipType,
           relationshipDescription: formData.relationshipDescription,
           expiresAt: formData.expiresAt || null
@@ -170,8 +176,12 @@ export function CaregiverManagement({
       setAddDialogOpen(false)
       setFormData({
         email: "",
-        role: "caregiver",
-        relationshipType: "family",
+        permissions: {
+          viewer: false,
+          caregiver: true,
+          editor: false
+        },
+        relationshipType: "familiar",
         relationshipDescription: "",
         expiresAt: ""
       })
@@ -307,20 +317,75 @@ export function CaregiverManagement({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="role">Nivel de acceso</Label>
-                  <Select
-                    value={formData.role}
-                    onValueChange={(value) => setFormData({ ...formData, role: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="viewer">Solo lectura</SelectItem>
-                      <SelectItem value="caregiver">Puede registrar eventos</SelectItem>
-                      <SelectItem value="editor">Acceso completo</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Permisos</Label>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="viewer"
+                        checked={formData.permissions.viewer}
+                        onCheckedChange={(checked) => 
+                          setFormData({
+                            ...formData,
+                            permissions: {
+                              viewer: !!checked,
+                              caregiver: false,
+                              editor: false
+                            }
+                          })
+                        }
+                      />
+                      <Label 
+                        htmlFor="viewer" 
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        Solo lectura
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="caregiver"
+                        checked={formData.permissions.caregiver}
+                        onCheckedChange={(checked) => 
+                          setFormData({
+                            ...formData,
+                            permissions: {
+                              viewer: false,
+                              caregiver: !!checked,
+                              editor: false
+                            }
+                          })
+                        }
+                      />
+                      <Label 
+                        htmlFor="caregiver" 
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        Crear eventos
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="editor"
+                        checked={formData.permissions.editor}
+                        onCheckedChange={(checked) => 
+                          setFormData({
+                            ...formData,
+                            permissions: {
+                              viewer: false,
+                              caregiver: false,
+                              editor: !!checked
+                            }
+                          })
+                        }
+                      />
+                      <Label 
+                        htmlFor="editor" 
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        Acceso completo
+                      </Label>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -333,12 +398,8 @@ export function CaregiverManagement({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="parent">Padre/Madre</SelectItem>
-                      <SelectItem value="grandparent">Abuelo/a</SelectItem>
-                      <SelectItem value="babysitter">Niñera</SelectItem>
-                      <SelectItem value="family">Familiar</SelectItem>
-                      <SelectItem value="professional">Profesional</SelectItem>
-                      <SelectItem value="other">Otro</SelectItem>
+                      <SelectItem value="familiar">Familiar</SelectItem>
+                      <SelectItem value="otro">Otro</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -482,7 +543,7 @@ export function CaregiverManagement({
                       </div>
 
                       <div className="flex items-center space-x-2">
-                        <Badge variant="warning">
+                        <Badge variant="secondary">
                           Esperando aceptación
                         </Badge>
                         <Badge variant={getRoleBadgeVariant(invitation.role)}>
