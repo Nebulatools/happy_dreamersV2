@@ -28,9 +28,10 @@ import { es } from "date-fns/locale"
 
 interface Child {
   _id: string
-  name: string
-  gender: string
+  firstName: string
+  lastName: string
   birthDate: string
+  name?: string // Campo agregado dinámicamente
 }
 
 interface NotificationLogItem {
@@ -73,11 +74,19 @@ export default function NotificacionesPage() {
       if (!response.ok) throw new Error("Error cargando niños")
       
       const data = await response.json()
-      setChildren(data.children || [])
+      const childrenData = data.children || []
+      
+      // Mapear los datos para incluir el nombre completo
+      const formattedChildren = childrenData.map((child: any) => ({
+        ...child,
+        name: `${child.firstName || ''} ${child.lastName || ''}`.trim() || 'Sin nombre'
+      }))
+      
+      setChildren(formattedChildren)
       
       // Seleccionar el primer niño por defecto
-      if (data.children && data.children.length > 0) {
-        setSelectedChild(data.children[0]._id)
+      if (formattedChildren.length > 0) {
+        setSelectedChild(formattedChildren[0]._id)
       }
     } catch (error) {
       console.error("Error:", error)
