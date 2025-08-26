@@ -92,16 +92,35 @@ export default function NotificacionesPage() {
 
   const loadChildren = async () => {
     try {
+      setLoading(true)
+      
       // Para admins, cargar los niños del usuario seleccionado
       const url = session?.user.role === 'admin' && activeUserId 
         ? `/api/children?userId=${activeUserId}`
         : "/api/children"
-        
+      
+      console.log("NotificacionesPage - Fetching from URL:", url)
+      
       const response = await fetch(url)
-      if (!response.ok) throw new Error("Error cargando niños")
+      if (!response.ok) {
+        console.error("Response not OK:", response.status, response.statusText)
+        throw new Error("Error cargando niños")
+      }
       
       const data = await response.json()
-      const childrenData = data.children || []
+      console.log("NotificacionesPage - API Response:", data)
+      
+      // Manejar diferentes formatos de respuesta
+      let childrenData = []
+      if (Array.isArray(data)) {
+        childrenData = data
+      } else if (data.children) {
+        childrenData = data.children
+      } else if (data.data?.children) {
+        childrenData = data.data.children
+      }
+      
+      console.log("NotificacionesPage - Children data extracted:", childrenData)
       
       // Mapear los datos para incluir el nombre completo
       const formattedChildren = childrenData.map((child: any) => ({
@@ -109,6 +128,7 @@ export default function NotificacionesPage() {
         name: `${child.firstName || ''} ${child.lastName || ''}`.trim() || 'Sin nombre'
       }))
       
+      console.log("NotificacionesPage - Formatted children:", formattedChildren)
       setChildren(formattedChildren)
       
       // Si hay un niño activo en el contexto, seleccionarlo
@@ -118,8 +138,9 @@ export default function NotificacionesPage() {
         setSelectedChild(formattedChildren[0]._id)
       }
     } catch (error) {
-      console.error("Error:", error)
+      console.error("NotificacionesPage - Error in loadChildren:", error)
       toast.error("Error al cargar los perfiles")
+      setChildren([])
     } finally {
       setLoading(false)
     }
@@ -127,11 +148,24 @@ export default function NotificacionesPage() {
   
   const loadUserChildren = async () => {
     try {
+      setLoading(true)
+      console.log("NotificacionesPage - loadUserChildren called for non-admin user")
+      
       const response = await fetch("/api/children")
       if (!response.ok) throw new Error("Error cargando niños")
       
       const data = await response.json()
-      const childrenData = data.children || []
+      console.log("NotificacionesPage - User children API Response:", data)
+      
+      // Manejar diferentes formatos de respuesta
+      let childrenData = []
+      if (Array.isArray(data)) {
+        childrenData = data
+      } else if (data.children) {
+        childrenData = data.children
+      } else if (data.data?.children) {
+        childrenData = data.data.children
+      }
       
       // Mapear los datos para incluir el nombre completo
       const formattedChildren = childrenData.map((child: any) => ({
@@ -139,6 +173,7 @@ export default function NotificacionesPage() {
         name: `${child.firstName || ''} ${child.lastName || ''}`.trim() || 'Sin nombre'
       }))
       
+      console.log("NotificacionesPage - User formatted children:", formattedChildren)
       setChildren(formattedChildren)
       
       // Seleccionar el primer niño por defecto
@@ -146,8 +181,9 @@ export default function NotificacionesPage() {
         setSelectedChild(formattedChildren[0]._id)
       }
     } catch (error) {
-      console.error("Error:", error)
+      console.error("NotificacionesPage - Error in loadUserChildren:", error)
       toast.error("Error al cargar los perfiles")
+      setChildren([])
     } finally {
       setLoading(false)
     }
