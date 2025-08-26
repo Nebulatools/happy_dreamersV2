@@ -64,16 +64,29 @@ export default function NotificacionesPage() {
     read: 0,
     failed: 0
   })
+  
+  // Debug log para verificar el contexto
+  useEffect(() => {
+    console.log("NotificacionesPage - Context values:", {
+      activeUserId,
+      activeChildId,
+      sessionRole: session?.user?.role,
+      loading
+    })
+  }, [activeUserId, activeChildId, session, loading])
 
   // Cargar lista de niños basada en el contexto
   useEffect(() => {
-    if (activeUserId && activeChildId) {
+    // Para admins, cargar cuando hay un usuario seleccionado
+    if (session?.user.role === 'admin' && activeUserId) {
       loadChildren()
-    } else if (session?.user.role !== 'admin') {
+    } else if (session?.user.role === 'admin' && !activeUserId) {
+      // Admin sin selección - no cargar nada
+      setChildren([])
+      setLoading(false)
+    } else if (session?.user.role && session?.user.role !== 'admin') {
       // Para usuarios normales, cargar sus propios hijos
       loadUserChildren()
-    } else {
-      setLoading(false)
     }
   }, [session, activeUserId, activeChildId])
 
@@ -296,7 +309,7 @@ export default function NotificacionesPage() {
       </div>
 
       {/* Mostrar mensaje apropiado según el contexto */}
-      {session?.user.role === 'admin' && (!activeUserId || !activeChildId) ? (
+      {session?.user.role === 'admin' && !activeUserId ? (
         <Card>
           <CardContent className="text-center py-8">
             <Icons.alertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -308,7 +321,7 @@ export default function NotificacionesPage() {
             </p>
           </CardContent>
         </Card>
-      ) : children.length === 0 ? (
+      ) : children.length === 0 && !loading ? (
         <Card>
           <CardContent className="text-center py-8">
             <p className="text-muted-foreground">
