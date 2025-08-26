@@ -249,6 +249,7 @@ function generateDayEvents(childId, childName, date, patterns) {
   )
   
   events.push({
+    _id: new ObjectId(),
     eventType: "sleep_start",
     startTime: sleepTime,
     mood: patterns.mood[Math.floor(Math.random() * patterns.mood.length)],
@@ -276,6 +277,7 @@ function generateDayEvents(childId, childName, date, patterns) {
       if (problem === 'necesita_arrullo') notes += ' - necesita arrullo'
       
       events.push({
+        _id: new ObjectId(),
         eventType: "night_waking",
         startTime: waking,
         duration: 5 + Math.random() * (childName === 'Bernardo' ? 25 : 15),
@@ -296,6 +298,7 @@ function generateDayEvents(childId, childName, date, patterns) {
   )
   
   events.push({
+    _id: new ObjectId(),
     eventType: "wake_up",
     startTime: wakeTime,
     mood: patterns.mood[Math.floor(Math.random() * patterns.mood.length)],
@@ -314,6 +317,7 @@ function generateDayEvents(childId, childName, date, patterns) {
     )
     
     events.push({
+      _id: new ObjectId(),
       eventType: "feeding",
       startTime: mealTime,
       feedingType: patterns.feedingType,
@@ -333,6 +337,7 @@ function generateDayEvents(childId, childName, date, patterns) {
     )
     
     events.push({
+      _id: new ObjectId(),
       eventType: "nap_start",
       startTime: napStart,
       notes: `${childName} inicio siesta`,
@@ -343,6 +348,7 @@ function generateDayEvents(childId, childName, date, patterns) {
     napEnd.setMinutes(napEnd.getMinutes() + nap.duration + Math.floor((Math.random() - 0.5) * 30))
     
     events.push({
+      _id: new ObjectId(),
       eventType: "nap_end",
       startTime: napEnd,
       notes: `${childName} fin siesta`,
@@ -356,6 +362,7 @@ function generateDayEvents(childId, childName, date, patterns) {
     tantrumTime.setMinutes(tantrumTime.getMinutes() - 30)
     
     events.push({
+      _id: new ObjectId(),
       eventType: "other",
       startTime: tantrumTime,
       duration: 10 + Math.random() * 20,
