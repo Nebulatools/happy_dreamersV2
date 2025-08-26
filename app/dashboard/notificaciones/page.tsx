@@ -5,6 +5,7 @@
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { NotificationSettings } from "@/components/notifications/NotificationSettings"
+import { NotificationTester } from "@/components/notifications/NotificationTester"
 import { Icons } from "@/components/icons"
 import { toast } from "sonner"
 import {
@@ -264,6 +265,14 @@ export default function NotificacionesPage() {
 
           {children.map(child => (
             <TabsContent key={child._id} value={child._id} className="space-y-6">
+              {/* Componente de prueba */}
+              {process.env.NODE_ENV === 'development' && (
+                <NotificationTester
+                  childId={child._id}
+                  childName={child.name}
+                />
+              )}
+
               {/* Configuración de notificaciones */}
               <NotificationSettings 
                 childId={child._id} 
