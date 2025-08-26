@@ -47,10 +47,12 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json({
-      childId: child._id.toString(),
-      parentId: child.parentId,
-      surveyData: child.surveyData,
-      updatedAt: child.surveyUpdatedAt || child.updatedAt || child.createdAt,
+      survey: {
+        childId: child._id.toString(),
+        parentId: child.parentId,
+        surveyData: child.surveyData,
+        updatedAt: child.surveyUpdatedAt || child.updatedAt || child.createdAt,
+      }
     })
   } catch (error) {
     logger.error("Error al obtener encuesta:", error)
