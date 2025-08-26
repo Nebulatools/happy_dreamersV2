@@ -7,7 +7,7 @@
 const FECHA_INICIO = '2025-06-01'  // Formato: YYYY-MM-DD - PRIMERA SEMANA JUNIO
 const FECHA_FIN = '2025-06-07'     // Formato: YYYY-MM-DD - PRIMERA SEMANA JUNIO
 const NIÑO_ESPECÍFICO = null       // null = ambos, 'Bernardo' o 'Esteban' para uno específico
-const SOBRESCRIBIR = false         // true = eliminar eventos existentes, false = mantener
+const SOBRESCRIBIR = true          // true = eliminar eventos existentes, false = mantener
 
 // ========================================
 // SCRIPT - NO MODIFICAR DEBAJO DE ESTA LÍNEA
@@ -91,21 +91,33 @@ async function poblarSemanal() {
       const childAge = calculateAgeInMonths(child.birthDate)
       console.log(`\n📝 ${child.firstName} ${child.lastName} (${childAge} meses)`)
       
-      // Verificar eventos existentes
-      const existingCount = await db.collection('events').countDocuments({
-        childId: child._id,
-        startTime: { $gte: startDate, $lte: endDate }
+      // Los eventos ahora se guardan en child.events (no en colección separada)
+      
+      // Verificar eventos existentes en el documento del niño
+      const existingChildEvents = child.events || []
+      const eventsInRange = existingChildEvents.filter(event => {
+        const eventDate = new Date(event.startTime)
+        return eventDate >= startDate && eventDate <= endDate
       })
       
-      if (existingCount > 0) {
-        console.log(`   ⚠️  ${existingCount} eventos existentes en el rango`)
+      if (eventsInRange.length > 0) {
+        console.log(`   ⚠️  ${eventsInRange.length} eventos existentes en el documento`)
         
         if (SOBRESCRIBIR) {
-          console.log('   🔄 Eliminando eventos existentes...')
-          await db.collection('events').deleteMany({
-            childId: child._id,
-            startTime: { $gte: startDate, $lte: endDate }
-          })
+          console.log('   🔄 Eliminando eventos del documento...')
+          await db.collection('children').updateOne(
+            { _id: child._id },
+            { 
+              $pull: { 
+                events: { 
+                  startTime: { 
+                    $gte: startDate, 
+                    $lte: endDate 
+                  } 
+                } 
+              } 
+            }
+          )
         } else {
           console.log('   💡 Saltando (cambia SOBRESCRIBIR = true para eliminar)')
           continue
@@ -161,9 +173,17 @@ async function generateEventsForChild(db, childId, childName, ageInMonths, start
     currentDate.setDate(currentDate.getDate() + 1)
   }
   
-  // Insertar eventos
+  // Actualizar el documento del niño con los eventos
   if (events.length > 0) {
-    await db.collection('events').insertMany(events)
+    await db.collection('children').updateOne(
+      { _id: childId },
+      { 
+        $push: { 
+          events: { $each: events } 
+        },
+        $set: { updatedAt: new Date() }
+      }
+    )
   }
   
   return events.length
@@ -229,8 +249,6 @@ function generateDayEvents(childId, childName, date, patterns) {
   )
   
   events.push({
-    childId: new ObjectId(childId),
-    parentId: new ObjectId(USER_ID),
     eventType: "sleep_start",
     startTime: sleepTime,
     mood: patterns.mood[Math.floor(Math.random() * patterns.mood.length)],
@@ -258,8 +276,6 @@ function generateDayEvents(childId, childName, date, patterns) {
       if (problem === 'necesita_arrullo') notes += ' - necesita arrullo'
       
       events.push({
-        childId: new ObjectId(childId),
-        parentId: new ObjectId(USER_ID),
         eventType: "night_waking",
         startTime: waking,
         duration: 5 + Math.random() * (childName === 'Bernardo' ? 25 : 15),
@@ -280,8 +296,6 @@ function generateDayEvents(childId, childName, date, patterns) {
   )
   
   events.push({
-    childId: new ObjectId(childId),
-    parentId: new ObjectId(USER_ID),
     eventType: "wake_up",
     startTime: wakeTime,
     mood: patterns.mood[Math.floor(Math.random() * patterns.mood.length)],
@@ -300,8 +314,6 @@ function generateDayEvents(childId, childName, date, patterns) {
     )
     
     events.push({
-      childId: new ObjectId(childId),
-      parentId: new ObjectId(USER_ID),
       eventType: "feeding",
       startTime: mealTime,
       feedingType: patterns.feedingType,
@@ -321,8 +333,6 @@ function generateDayEvents(childId, childName, date, patterns) {
     )
     
     events.push({
-      childId: new ObjectId(childId),
-      parentId: new ObjectId(USER_ID),
       eventType: "nap_start",
       startTime: napStart,
       notes: `${childName} inicio siesta`,
@@ -333,8 +343,6 @@ function generateDayEvents(childId, childName, date, patterns) {
     napEnd.setMinutes(napEnd.getMinutes() + nap.duration + Math.floor((Math.random() - 0.5) * 30))
     
     events.push({
-      childId: new ObjectId(childId),
-      parentId: new ObjectId(USER_ID),
       eventType: "nap_end",
       startTime: napEnd,
       notes: `${childName} fin siesta`,
@@ -348,8 +356,6 @@ function generateDayEvents(childId, childName, date, patterns) {
     tantrumTime.setMinutes(tantrumTime.getMinutes() - 30)
     
     events.push({
-      childId: new ObjectId(childId),
-      parentId: new ObjectId(USER_ID),
       eventType: "other",
       startTime: tantrumTime,
       duration: 10 + Math.random() * 20,
