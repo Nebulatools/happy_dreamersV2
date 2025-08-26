@@ -1,0 +1,406 @@
+// Sistema de Invitaciones para Acceso Multi-Usuario
+// Maneja invitaciones pendientes para usuarios que no tienen cuenta
+
+import { ObjectId, Collection } from "mongodb"
+import { connectToDatabase } from "@/lib/mongodb"
+import { PendingInvitation, UserChildAccess, Child, User } from "@/types/models"
+import { createLogger } from "@/lib/logger"
+import crypto from "crypto"
+import { ROLE_PERMISSIONS } from "./user-child-access"
+
+const logger = createLogger("Invitations")
+
+// Nombres de colecciones
+const INVITATIONS_COLLECTION = "pendingInvitations"
+const ACCESS_COLLECTION = "userChildAccess"
+const CHILDREN_COLLECTION = "children"
+const USERS_COLLECTION = "users"
+
+// Configuración
+const INVITATION_EXPIRY_DAYS = 7 // Las invitaciones expiran en 7 días
+const BASE_URL = process.env.NEXTAUTH_URL || "http://localhost:3000"
+
+// Generar token único para invitación
+function generateInvitationToken(): string {
+  return crypto.randomBytes(32).toString('hex')
+}
+
+// Obtener colección de invitaciones
+async function getInvitationsCollection(): Promise<Collection<PendingInvitation>> {
+  const { db } = await connectToDatabase()
+  return db.collection<PendingInvitation>(INVITATIONS_COLLECTION)
+}
+
+// Crear índices necesarios
+export async function createInvitationIndexes(): Promise<void> {
+  try {
+    const collection = await getInvitationsCollection()
+    
+    // Índice único para token
+    await collection.createIndex({ invitationToken: 1 }, { unique: true })
+    
+    // Índice para buscar por email
+    await collection.createIndex({ email: 1 })
+    
+    // Índice para buscar por niño
+    await collection.createIndex({ childId: 1 })
+    
+    // Índice para expiración automática (TTL)
+    await collection.createIndex(
+      { expiresAt: 1 },
+      { expireAfterSeconds: 0 } // MongoDB eliminará documentos automáticamente
+    )
+    
+    logger.info("Índices de invitaciones creados exitosamente")
+  } catch (error) {
+    logger.error("Error creando índices de invitaciones:", error)
+    throw error
+  }
+}
+
+// Crear invitación para usuario no registrado
+export async function createInvitation(
+  invitedBy: string,
+  childId: string,
+  email: string,
+  role: "viewer" | "caregiver" | "editor" = "caregiver",
+  relationshipType?: string,
+  relationshipDescription?: string,
+  temporaryAccessDays?: number
+): Promise<{ success: boolean; invitation?: PendingInvitation; error?: string }> {
+  try {
+    const { db } = await connectToDatabase()
+    
+    // Verificar que el usuario que invita es el dueño del niño
+    const childrenCollection = db.collection<Child>(CHILDREN_COLLECTION)
+    const child = await childrenCollection.findOne({
+      _id: new ObjectId(childId),
+      parentId: new ObjectId(invitedBy)
+    })
+    
+    if (!child) {
+      return {
+        success: false,
+        error: "No tienes permisos para compartir este perfil"
+      }
+    }
+    
+    // Obtener información del usuario que invita
+    const usersCollection = db.collection<User>(USERS_COLLECTION)
+    const inviter = await usersCollection.findOne({ _id: new ObjectId(invitedBy) })
+    
+    if (!inviter) {
+      return {
+        success: false,
+        error: "Usuario que invita no encontrado"
+      }
+    }
+    
+    // Verificar si ya existe una invitación pendiente
+    const invitationsCollection = await getInvitationsCollection()
+    const existingInvitation = await invitationsCollection.findOne({
+      email: email.toLowerCase(),
+      childId: new ObjectId(childId),
+      status: "pending"
+    })
+    
+    if (existingInvitation) {
+      // Actualizar invitación existente
+      const updatedInvitation = await invitationsCollection.findOneAndUpdate(
+        { _id: existingInvitation._id },
+        {
+          $set: {
+            role,
+            permissions: ROLE_PERMISSIONS[role],
+            relationshipType: relationshipType as any,
+            relationshipDescription,
+            expiresAt: new Date(Date.now() + INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000),
+            updatedAt: new Date()
+          }
+        },
+        { returnDocument: "after" }
+      )
+      
+      return {
+        success: true,
+        invitation: updatedInvitation as PendingInvitation
+      }
+    }
+    
+    // Crear nueva invitación
+    const invitationToken = generateInvitationToken()
+    const expiresAt = new Date(Date.now() + INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000)
+    
+    const newInvitation: PendingInvitation = {
+      _id: new ObjectId(),
+      email: email.toLowerCase(),
+      childId: new ObjectId(childId),
+      invitedBy: new ObjectId(invitedBy),
+      invitedByName: inviter.name,
+      childName: `${child.firstName} ${child.lastName || ''}`.trim(),
+      role,
+      permissions: ROLE_PERMISSIONS[role],
+      relationshipType: relationshipType as any,
+      relationshipDescription,
+      invitationToken,
+      expiresAt,
+      status: "pending",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+    
+    await invitationsCollection.insertOne(newInvitation as any)
+    
+    logger.info(`Invitación creada para ${email} al niño ${childId}`)
+    return {
+      success: true,
+      invitation: newInvitation
+    }
+    
+  } catch (error) {
+    logger.error("Error creando invitación:", error)
+    return {
+      success: false,
+      error: "Error interno al crear invitación"
+    }
+  }
+}
+
+// Aceptar invitación
+export async function acceptInvitation(
+  token: string,
+  userId: string
+): Promise<{ success: boolean; childId?: string; error?: string }> {
+  try {
+    const invitationsCollection = await getInvitationsCollection()
+    
+    // Buscar invitación por token
+    const invitation = await invitationsCollection.findOne({
+      invitationToken: token,
+      status: "pending",
+      expiresAt: { $gt: new Date() }
+    })
+    
+    if (!invitation) {
+      return {
+        success: false,
+        error: "Invitación no válida o expirada"
+      }
+    }
+    
+    // Verificar que el email coincida si el usuario ya existe
+    const { db } = await connectToDatabase()
+    const usersCollection = db.collection<User>(USERS_COLLECTION)
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) })
+    
+    if (!user) {
+      return {
+        success: false,
+        error: "Usuario no encontrado"
+      }
+    }
+    
+    // Si el usuario existe y el email no coincide, rechazar
+    if (user.email.toLowerCase() !== invitation.email.toLowerCase()) {
+      return {
+        success: false,
+        error: "Esta invitación es para otro email"
+      }
+    }
+    
+    // Crear acceso en UserChildAccess
+    const accessCollection = db.collection<UserChildAccess>(ACCESS_COLLECTION)
+    
+    const newAccess: UserChildAccess = {
+      _id: new ObjectId(),
+      userId: new ObjectId(userId),
+      childId: invitation.childId,
+      grantedBy: invitation.invitedBy,
+      role: invitation.role,
+      permissions: invitation.permissions,
+      relationshipType: invitation.relationshipType,
+      relationshipDescription: invitation.relationshipDescription,
+      invitationToken: token,
+      invitationStatus: "accepted",
+      invitationSentAt: invitation.createdAt,
+      acceptedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+    
+    await accessCollection.insertOne(newAccess as any)
+    
+    // Actualizar estado de invitación
+    await invitationsCollection.updateOne(
+      { _id: invitation._id },
+      {
+        $set: {
+          status: "accepted",
+          acceptedAt: new Date(),
+          acceptedBy: new ObjectId(userId),
+          updatedAt: new Date()
+        }
+      }
+    )
+    
+    // Actualizar array sharedWith en el niño
+    const childrenCollection = db.collection<Child>(CHILDREN_COLLECTION)
+    await childrenCollection.updateOne(
+      { _id: invitation.childId },
+      { 
+        $addToSet: { sharedWith: userId },
+        $set: { updatedAt: new Date() }
+      }
+    )
+    
+    logger.info(`Invitación aceptada por usuario ${userId} para niño ${invitation.childId}`)
+    
+    return {
+      success: true,
+      childId: invitation.childId.toString()
+    }
+    
+  } catch (error) {
+    logger.error("Error aceptando invitación:", error)
+    return {
+      success: false,
+      error: "Error interno al aceptar invitación"
+    }
+  }
+}
+
+// Obtener invitación por token
+export async function getInvitationByToken(
+  token: string
+): Promise<PendingInvitation | null> {
+  try {
+    const invitationsCollection = await getInvitationsCollection()
+    
+    const invitation = await invitationsCollection.findOne({
+      invitationToken: token,
+      status: "pending",
+      expiresAt: { $gt: new Date() }
+    })
+    
+    return invitation
+    
+  } catch (error) {
+    logger.error("Error obteniendo invitación:", error)
+    return null
+  }
+}
+
+// Cancelar invitación
+export async function cancelInvitation(
+  invitationId: string,
+  cancelledBy: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const invitationsCollection = await getInvitationsCollection()
+    
+    // Verificar que quien cancela es quien invitó
+    const invitation = await invitationsCollection.findOne({
+      _id: new ObjectId(invitationId),
+      invitedBy: new ObjectId(cancelledBy),
+      status: "pending"
+    })
+    
+    if (!invitation) {
+      return {
+        success: false,
+        error: "Invitación no encontrada o no tienes permisos"
+      }
+    }
+    
+    // Actualizar estado a cancelado
+    await invitationsCollection.updateOne(
+      { _id: invitation._id },
+      {
+        $set: {
+          status: "cancelled",
+          updatedAt: new Date()
+        }
+      }
+    )
+    
+    logger.info(`Invitación ${invitationId} cancelada por ${cancelledBy}`)
+    
+    return { success: true }
+    
+  } catch (error) {
+    logger.error("Error cancelando invitación:", error)
+    return {
+      success: false,
+      error: "Error interno al cancelar invitación"
+    }
+  }
+}
+
+// Obtener invitaciones pendientes para un niño
+export async function getPendingInvitations(
+  childId: string,
+  requestedBy: string
+): Promise<{ success: boolean; invitations?: PendingInvitation[]; error?: string }> {
+  try {
+    // Verificar que quien solicita es el dueño
+    const { db } = await connectToDatabase()
+    const childrenCollection = db.collection<Child>(CHILDREN_COLLECTION)
+    const child = await childrenCollection.findOne({
+      _id: new ObjectId(childId),
+      parentId: new ObjectId(requestedBy)
+    })
+    
+    if (!child) {
+      return {
+        success: false,
+        error: "No tienes permisos para ver estas invitaciones"
+      }
+    }
+    
+    const invitationsCollection = await getInvitationsCollection()
+    const invitations = await invitationsCollection.find({
+      childId: new ObjectId(childId),
+      status: "pending",
+      expiresAt: { $gt: new Date() }
+    }).toArray()
+    
+    return {
+      success: true,
+      invitations
+    }
+    
+  } catch (error) {
+    logger.error("Error obteniendo invitaciones:", error)
+    return {
+      success: false,
+      error: "Error interno al obtener invitaciones"
+    }
+  }
+}
+
+// Limpiar invitaciones expiradas (job periódico)
+export async function cleanupExpiredInvitations(): Promise<number> {
+  try {
+    const invitationsCollection = await getInvitationsCollection()
+    
+    const result = await invitationsCollection.updateMany(
+      {
+        status: "pending",
+        expiresAt: { $lt: new Date() }
+      },
+      {
+        $set: {
+          status: "expired",
+          updatedAt: new Date()
+        }
+      }
+    )
+    
+    logger.info(`${result.modifiedCount} invitaciones marcadas como expiradas`)
+    return result.modifiedCount
+    
+  } catch (error) {
+    logger.error("Error limpiando invitaciones expiradas:", error)
+    return 0
+  }
+}

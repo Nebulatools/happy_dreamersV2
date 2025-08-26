@@ -476,4 +476,98 @@
   .summary-cards-horizontal {
     @apply grid grid-cols-1 md:grid-cols-3 gap-4;
   }
+  
+  /* === MOBILE OPTIMIZATIONS === */
+  
+  /* Safe areas for iOS */
+  @supports (padding: max(0px)) {
+    .safe-area-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    .safe-area-top {
+      padding-top: env(safe-area-inset-top);
+    }
+  }
+  
+  /* Touch optimization */
+  @media (hover: none) and (pointer: coarse) {
+    /* Better touch targets */
+    button, a, [role="button"] {
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Smooth scrolling on iOS */
+    .touch-pan-x {
+      -webkit-overflow-scrolling: touch;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+    }
+    
+    .touch-pan-y {
+      -webkit-overflow-scrolling: touch;
+      overflow-y: auto;
+    }
+    
+    /* Prevent zoom on double tap */
+    * {
+      touch-action: manipulation;
+    }
+  }
+  
+  /* Mobile navigation adjustments */
+  @media (max-width: 640px) {
+    /* Account for bottom navigation */
+    .pb-safe {
+      padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+    }
+    
+    /* Smaller text for mobile */
+    .text-mobile-xs {
+      font-size: 0.625rem; /* 10px */
+    }
+    
+    .text-mobile-sm {
+      font-size: 0.75rem; /* 12px */
+    }
+  }
+  
+  /* Improved scrollbar for mobile */
+  @media (max-width: 768px) {
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 2px;
+    }
+  }
+  
+  /* Loading skeleton animation */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  
+  .skeleton {
+    @apply bg-gray-200 rounded;
+    background: linear-gradient(
+      90deg,
+      #f0f0f0 0%,
+      #e0e0e0 50%,
+      #f0f0f0 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
 }

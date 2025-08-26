@@ -2,40 +2,34 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { User, Mail, Calendar, Settings, Save } from "lucide-react"
+import { User, Mail, Calendar, Settings, Save, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { UserAvatar } from "@/components/ui/user-avatar"
-import { useToast } from "@/hooks/use-toast"
-
-import { createLogger } from "@/lib/logger"
-
-const logger = createLogger("page")
-
+import { ChangePasswordForm } from "@/components/profile/ChangePasswordForm"
+import { useUser } from "@/context/UserContext"
 
 export default function ProfilePage() {
-  const { data: session, update } = useSession()
-  const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(false)
+  const { data: session } = useSession()
+  const { userData, isLoading, updateProfile } = useUser()
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    role: "",
+    name: userData.name,
+    email: userData.email,
+    phone: userData.phone,
+    role: userData.role,
   })
 
+  // Update formData when userData changes
   useEffect(() => {
-    if (session?.user) {
-      setFormData({
-        name: session.user.name || "",
-        email: session.user.email || "",
-        phone: (session.user as any).phone || "",
-        role: session.user.role || "user",
-      })
-    }
-  }, [session])
+    setFormData({
+      name: userData.name,
+      email: userData.email,
+      phone: userData.phone,
+      role: userData.role,
+    })
+  }, [userData])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -45,43 +39,12 @@ export default function ProfilePage() {
   }
 
   const handleSave = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch("/api/user/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      })
-
-      if (!response.ok) {
-        throw new Error("Error al actualizar el perfil")
-      }
-
-      await update({
-        ...session,
-        user: {
-          ...session?.user,
-          name: formData.name,
-          phone: formData.phone,
-        },
-      })
-
-      toast({
-        title: "Perfil actualizado",
-        description: "Tu información ha sido actualizada correctamente",
-      })
-    } catch (error) {
-      logger.error("Error:", error)
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el perfil",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
+    const success = await updateProfile({
+      name: formData.name,
+      phone: formData.phone,
+    })
+    
+    // If successful, the UserContext handles the rest (session updates, data refresh, etc.)
   }
 
   const userInitials = formData.name
@@ -121,6 +84,12 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Mail className="h-4 w-4" />
                   {formData.email}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Phone className="h-4 w-4" />
+                  {formData.phone && formData.phone.trim().length > 0 
+                    ? formData.phone 
+                    : "Sin teléfono registrado"}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Calendar className="h-4 w-4" />
@@ -179,6 +148,9 @@ export default function ProfilePage() {
                       className="mt-1"
                       placeholder="+52 123 456 7890"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Formato recomendado: +52 123 456 7890
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor="role">Tipo de cuenta</Label>
@@ -207,6 +179,9 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Change Password Section */}
+        <ChangePasswordForm />
 
         {/* Additional Info Card */}
         <Card>

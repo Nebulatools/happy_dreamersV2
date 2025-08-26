@@ -515,7 +515,7 @@ export function SleepButton({
         onClick={handleClick}
         disabled={isProcessing || stateLoading}
         className={cn(
-          "w-full h-24 text-xl font-bold text-white shadow-lg",
+          "w-full h-20 md:h-24 text-lg md:text-xl font-bold text-white shadow-lg min-h-[44px]",
           "transform transition-all duration-200 hover:scale-[1.02]",
           "bg-gradient-to-r",
           config.color

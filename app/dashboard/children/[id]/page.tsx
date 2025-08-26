@@ -11,9 +11,11 @@ import RecentEvents from "@/components/child-profile/RecentEvents"
 import { useActiveChild } from "@/context/active-child-context"
 import { useEventsInvalidation } from "@/hooks/use-events-cache"
 import { ChildAgeBadge } from "@/components/ui/child-age-badge"
+import { CaregiverManagement } from "@/components/child-access/CaregiverManagement"
 
 import { createLogger } from "@/lib/logger"
 import { extractChildrenFromResponse } from "@/lib/api-response-utils"
+import { useSession } from "next-auth/react"
 
 const logger = createLogger("page")
 
@@ -28,14 +30,16 @@ interface Child {
   avatar?: string
 }
 
-type TabType = "resumen" | "eventos" | "progreso" | "encuestas"
+type TabType = "resumen" | "eventos" | "progreso" | "encuestas" | "acceso"
 
 export default function ChildProfilePage() {
   const params = useParams()
   const router = useRouter()
+  const { data: session } = useSession()
   const [child, setChild] = useState<Child | null>(null)
   const [activeTab, setActiveTab] = useState<TabType>("resumen")
   const [isLoading, setIsLoading] = useState(true)
+  const [isOwner, setIsOwner] = useState(false)
   // TEMPORALMENTE COMENTADO - Sistema de eventos en reset
   // const [eventModalOpen, setEventModalOpen] = useState(false)
   const [children, setChildren] = useState<Child[]>([])  
@@ -67,15 +71,34 @@ export default function ChildProfilePage() {
   useEffect(() => {
     const fetchChild = async () => {
       try {
+        console.log("Fetching child with ID:", params.id)
         const response = await fetch(`/api/children/${params.id}`)
+        console.log("Response status:", response.status)
+        
         if (response.ok) {
           const childData = await response.json()
+          console.log("Child data received:", childData)
           setChild(childData)
+          
+          // El API ahora devuelve isOwner directamente
+          setIsOwner(childData.isOwner || false)
         } else {
-          logger.error("Error fetching child data")
+          let errorData = "";
+          try {
+            errorData = await response.text()
+          } catch (e) {
+            errorData = "Could not parse error response"
+          }
+          console.error("API Error Response:", {
+            status: response.status,
+            statusText: response.statusText,
+            errorData: errorData
+          })
+          logger.error(`Error fetching child data - Status: ${response.status}`, errorData || response.statusText)
           router.push("/dashboard/children")
         }
       } catch (error) {
+        console.error("Fetch error:", error)
         logger.error("Error:", error)
         router.push("/dashboard/children")
       } finally {
@@ -88,7 +111,7 @@ export default function ChildProfilePage() {
       // También establecer este niño como activo
       setActiveChildId(params.id as string)
     }
-  }, [params.id, router, setActiveChildId])
+  }, [params.id, router, setActiveChildId, session])
 
   // TEMPORALMENTE COMENTADO - Sistema de eventos en reset
   // Cargar children cuando se abre el modal
@@ -139,6 +162,7 @@ export default function ChildProfilePage() {
     { id: "eventos" as TabType, label: "Eventos de Sueño" },
     { id: "progreso" as TabType, label: "Progreso y Estadísticas" },
     { id: "encuestas" as TabType, label: "Encuestas" },
+    { id: "acceso" as TabType, label: "Acceso Compartido" },
   ]
 
   return (
@@ -284,6 +308,16 @@ export default function ChildProfilePage() {
             {activeTab === "progreso" && (
               <div className="text-center py-8 text-gray-500">
                 <p>Contenido de Progreso y Estadísticas próximamente...</p>
+              </div>
+            )}
+
+            {activeTab === "acceso" && (
+              <div className="space-y-6">
+                <CaregiverManagement
+                  childId={params.id as string}
+                  childName={child.firstName}
+                  isOwner={isOwner}
+                />
               </div>
             )}
 

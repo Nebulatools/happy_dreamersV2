@@ -68,11 +68,11 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 bg-white shadow-sm">
-      <div className="flex h-20 items-center justify-between px-4 md:px-6">
+      <div className="flex h-16 md:h-20 items-center justify-between px-3 md:px-6">
         {/* Título y acciones dinámicas a la izquierda */}
-        <div className="flex items-center gap-4 flex-1 min-w-0">
+        <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
           <div className="min-w-0">
-            <h1 className="text-lg md:text-xl font-bold text-[#2F2F2F] truncate">
+            <h1 className="text-base md:text-xl font-bold text-[#2F2F2F] truncate">
               {config.title}
             </h1>
             {config.subtitle && (
@@ -125,7 +125,7 @@ export function Header() {
           
           {/* Notification Button con badge - exactamente como en Figma */}
           {config.showNotifications !== false && (
-            <Button variant="ghost" className="relative p-2 h-9 w-6">
+            <Button variant="ghost" className="relative p-2 min-h-[44px] min-w-[44px] h-auto w-auto flex items-center justify-center">
               {/* Ícono de notificación con dimensiones exactas de Figma */}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -136,7 +136,7 @@ export function Header() {
                 <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
               </svg>
               {/* Badge con dimensiones exactas de Figma: 16x16px */}
-              <div className="absolute -top-1 -right-1 h-4 w-4 bg-[#DF3F40] rounded-full flex items-center justify-center">
+              <div className="absolute top-1 right-1 h-4 w-4 bg-[#DF3F40] rounded-full flex items-center justify-center">
                 <span className="text-xs text-white font-normal leading-none">3</span>
               </div>
             </Button>
@@ -146,15 +146,15 @@ export function Header() {
           <div className="flex items-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative p-0">
+                <Button variant="ghost" className="relative p-0 min-h-[44px] min-w-[44px] flex items-center">
                   <UserAvatar 
                     name={session?.user?.name} 
                     image={session?.user?.image}
-                    className="h-9 w-9" 
+                    className="h-8 w-8 md:h-9 md:w-9" 
                   />
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-3 w-3 text-[#666666] ml-1"
+                    className="h-3 w-3 text-[#666666] ml-1 hidden sm:block"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"

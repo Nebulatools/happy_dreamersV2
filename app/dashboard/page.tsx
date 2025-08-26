@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense, lazy } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -9,8 +9,9 @@ import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
 import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache } from "@/hooks/use-events-cache"
-import AdminStatistics from "@/components/dashboard/AdminStatistics"
-import SleepMetricsGrid from "@/components/child-profile/SleepMetricsGrid"
+// Lazy load heavy components
+const AdminStatistics = lazy(() => import("@/components/dashboard/AdminStatistics"))
+const SleepMetricsGrid = lazy(() => import("@/components/child-profile/SleepMetricsGrid"))
 // Sistema de eventos - Nueva implementación v1.0
 import { EventRegistration } from "@/components/events"
 import { 
@@ -330,12 +331,20 @@ export default function DashboardPage() {
 
   // Si es admin, mostrar las estadísticas completas
   if (isAdmin) {
-    return <AdminStatistics />
+    return (
+      <Suspense fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-gray-500">Cargando estadísticas...</p>
+        </div>
+      }>
+        <AdminStatistics />
+      </Suspense>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F9FF] p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#F5F9FF] p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
         {/* Saludo personalizado */}
         <div className="space-y-2">
           <h1 className="text-2xl font-bold text-[#2F2F2F]">
@@ -348,9 +357,19 @@ export default function DashboardPage() {
 
         {/* Métricas principales - usando el componente de sleep-statistics */}
         {activeChildId ? (
-          <SleepMetricsGrid childId={activeChildId} dateRange="7-days" />
+          <Suspense fallback={
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="bg-white rounded-lg md:rounded-2xl border border-gray-100 p-3 md:p-6 animate-pulse">
+                  <div className="h-20 bg-gray-200 rounded"></div>
+                </div>
+              ))}
+            </div>
+          }>
+            <SleepMetricsGrid childId={activeChildId} dateRange="7-days" />
+          </Suspense>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
             <div className="col-span-full bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
               <p className="text-gray-500">Por favor selecciona un niño desde el menú superior para ver las métricas</p>
             </div>
@@ -369,9 +388,9 @@ export default function DashboardPage() {
         )}
 
         {/* Grid de contenido principal */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Tendencia de Sueño */}
-          <Card className="bg-white shadow-sm border-0 lg:col-span-2">
+          <Card className="bg-white shadow-sm border-0 col-span-1 lg:col-span-2">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-[#2F2F2F]">Tendencia de Sueño</CardTitle>
@@ -379,32 +398,35 @@ export default function DashboardPage() {
                   <Button 
                     size="sm" 
                     onClick={() => setSelectedPeriod("7d")}
-                    className={selectedPeriod === "7d" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-8" : "h-8"}
+                    className={selectedPeriod === "7d" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3" : "h-7 md:h-8 text-xs md:text-sm px-2 md:px-3"}
                     variant={selectedPeriod === "7d" ? "default" : "ghost"}
                   >
-                    7 días
+                    <span className="hidden sm:inline">7 días</span>
+                    <span className="sm:hidden">7d</span>
                   </Button>
                   <Button 
                     size="sm" 
                     onClick={() => setSelectedPeriod("30d")}
-                    className={selectedPeriod === "30d" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-8" : "text-[#666666] h-8"}
+                    className={selectedPeriod === "30d" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3" : "text-[#666666] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3"}
                     variant={selectedPeriod === "30d" ? "default" : "ghost"}
                   >
-                    30 días
+                    <span className="hidden sm:inline">30 días</span>
+                    <span className="sm:hidden">30d</span>
                   </Button>
                   <Button 
                     size="sm" 
                     onClick={() => setSelectedPeriod("3m")}
-                    className={selectedPeriod === "3m" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-8" : "text-[#666666] h-8"}
+                    className={selectedPeriod === "3m" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3" : "text-[#666666] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3"}
                     variant={selectedPeriod === "3m" ? "default" : "ghost"}
                   >
-                    3 meses
+                    <span className="hidden sm:inline">3 meses</span>
+                    <span className="sm:hidden">3m</span>
                   </Button>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="h-64 bg-[#F8FAFC] rounded-xl p-4">
+            <CardContent className="p-3 md:p-6">
+              <div className="h-48 md:h-64 bg-[#F8FAFC] rounded-xl p-2 md:p-4 overflow-x-auto touch-pan-x">
                 {(() => {
                   const chartData = getSleepChartData()
                   const maxHours = Math.max(...chartData.map(d => d.hours), 1)
@@ -422,11 +444,11 @@ export default function DashboardPage() {
                   
                   return (
                     <div className="h-full flex flex-col">
-                      <div className="flex-1 flex items-end justify-between gap-2">
+                      <div className="flex-1 flex items-end gap-1 md:gap-2 min-w-max px-2">
                         {chartData.map((data, index) => (
-                          <div key={`chart-${data.label}-${index}`} className="flex flex-col items-center flex-1">
+                          <div key={`chart-${data.label}-${index}`} className="flex flex-col items-center min-w-[40px] md:min-w-[60px]">
                             <div 
-                              className="bg-[#4A90E2] rounded-t-md w-full transition-all duration-300 hover:bg-[#357ABD] flex items-end justify-center relative"
+                              className="bg-[#4A90E2] rounded-t-md w-full transition-all duration-300 hover:bg-[#357ABD] active:bg-[#2968A6] flex items-end justify-center relative cursor-pointer"
                               style={{ 
                                 height: `${Math.max((data.hours / maxHours) * 80, 8)}%`,
                                 minHeight: data.hours > 0 ? '12px' : '4px'
@@ -434,12 +456,12 @@ export default function DashboardPage() {
                               title={`${data.hours} horas`}
                             >
                               {data.hours > 0 && (
-                                <span className="text-white text-xs font-medium mb-1">
+                                <span className="text-white text-[10px] md:text-xs font-medium mb-1">
                                   {data.hours}h
                                 </span>
                               )}
                             </div>
-                            <span className="text-xs text-[#666666] mt-2 text-center">
+                            <span className="text-[10px] md:text-xs text-[#666666] mt-1 md:mt-2 text-center">
                               {data.label}
                             </span>
                           </div>
@@ -520,7 +542,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Segunda fila del grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Calendario de Sueño */}
           <Card className="bg-white shadow-sm border-0">
             <CardHeader className="pb-4">
@@ -595,7 +617,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Notas Recientes */}
-          <Card className="bg-white shadow-sm border-0">
+          <Card className="bg-white shadow-sm border-0 col-span-1 md:col-span-1">
             <CardHeader className="pb-4">
               <CardTitle className="text-[#2F2F2F]">Notas Recientes</CardTitle>
             </CardHeader>
@@ -653,7 +675,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Consejos Personalizados */}
-          <Card className="bg-white shadow-sm border-0">
+          <Card className="bg-white shadow-sm border-0 col-span-1 md:col-span-2 lg:col-span-1">
             <CardHeader className="pb-4">
               <CardTitle className="text-[#2F2F2F]">Consejos Personalizados</CardTitle>
             </CardHeader>

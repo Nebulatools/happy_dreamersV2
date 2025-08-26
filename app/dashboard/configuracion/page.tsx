@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { ToggleSwitch } from "@/components/ui/toggle-switch"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useUser } from "@/context/UserContext"
 import { 
   Camera,
   Trash2,
@@ -55,7 +56,7 @@ export default function ConfiguracionPage() {
   const router = useRouter()
   const { data: session } = useSession()
   const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(false)
+  const { userData, isLoading: userLoading, updateProfile, changePassword } = useUser()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [profileData, setProfileData] = useState<UserProfile>({
@@ -73,53 +74,29 @@ export default function ConfiguracionPage() {
     marketingEmails: false,
   })
 
+  // Update profileData when userData changes
   useEffect(() => {
-    if (session?.user) {
+    if (userData.name || userData.email || userData.phone) {
       setProfileData(prev => ({
         ...prev,
-        name: session.user.name || "",
-        email: session.user.email || "",
-        phone: (session.user as any).phone || "",
+        name: userData.name || "",
+        email: userData.email || "",
+        phone: userData.phone || "",
       }))
     }
-  }, [session])
+  }, [userData])
 
   const userInitials = profileData.name
     ? profileData.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
     : "MG"
 
   const handleSaveProfile = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch("/api/user/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: profileData.name,
-          phone: profileData.phone,
-          language: profileData.language,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Error al actualizar el perfil")
-      }
-
-      toast({
-        title: "Cambios guardados",
-        description: "Tu información personal ha sido actualizada",
-      })
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudieron guardar los cambios",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
+    const success = await updateProfile({
+      name: profileData.name,
+      phone: profileData.phone,
+    })
+    
+    // The UserContext handles the toast notifications and data synchronization
   }
 
   const handleUpdatePassword = async () => {
@@ -132,28 +109,9 @@ export default function ConfiguracionPage() {
       return
     }
 
-    setIsLoading(true)
-    try {
-      const response = await fetch("/api/user/password", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          currentPassword: profileData.currentPassword,
-          newPassword: profileData.newPassword,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Error al actualizar la contraseña")
-      }
-
-      toast({
-        title: "Contraseña actualizada",
-        description: "Tu contraseña ha sido cambiada exitosamente",
-      })
-
+    const success = await changePassword(profileData.currentPassword, profileData.newPassword)
+    
+    if (success) {
       // Limpiar campos de contraseña
       setProfileData(prev => ({
         ...prev,
@@ -161,14 +119,6 @@ export default function ConfiguracionPage() {
         newPassword: "",
         confirmPassword: "",
       }))
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar la contraseña",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -210,6 +160,23 @@ export default function ConfiguracionPage() {
         variant: "destructive",
       })
     }
+  }
+
+  // Show loading state while user data is being loaded
+  if (userLoading || (!userData.name && !userData.email)) {
+    return (
+      <div className="max-w-6xl mx-auto p-6 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-[#1F2937]">Configuración de Cuenta</h1>
+          <p className="text-gray-600 mt-2">
+            Cargando información del usuario...
+          </p>
+        </div>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2553A1]"></div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -306,7 +273,7 @@ export default function ConfiguracionPage() {
         <div className="mt-6">
           <Button
             onClick={handleSaveProfile}
-            disabled={isLoading}
+            disabled={userLoading}
             className="hd-gradient-button text-white"
           >
             Guardar Cambios
@@ -357,7 +324,7 @@ export default function ConfiguracionPage() {
           </div>
           <Button
             onClick={handleUpdatePassword}
-            disabled={isLoading}
+            disabled={userLoading}
             className="mt-4 hd-gradient-button text-white"
           >
             Actualizar Contraseña

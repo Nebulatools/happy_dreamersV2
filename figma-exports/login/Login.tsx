@@ -69,6 +69,9 @@ const Login: React.FC<LoginProps> = ({
                   placeholder="Enter your Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="off"
+                  data-form-type="other"
+                  data-lpignore="true"
                   required
                 />
               </div>
@@ -89,6 +92,9 @@ const Login: React.FC<LoginProps> = ({
                   placeholder="Enter Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                  data-form-type="other"
+                  data-lpignore="true"
                   required
                 />
                 <button
