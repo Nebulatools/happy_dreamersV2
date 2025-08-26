@@ -49,9 +49,9 @@ export function SleepSessionBlock({
   
   // Calcular posición vertical según la hora de inicio
   const calculateStartPosition = () => {
-    // Si es continuación del día anterior, empieza desde el top
+    // Para continuaciones del día anterior, empezar desde medianoche (00:00)
     if (isContinuationFromPrevious) {
-      return 0
+      return 0 // Empezar desde el principio del día (medianoche)
     }
     
     const timeMatch = startTime.match(/T(\d{2}):(\d{2})/)
@@ -69,27 +69,41 @@ export function SleepSessionBlock({
   const calculateBlockHeight = () => {
     // Si continúa al día siguiente, extender hasta el final del día
     if (continuesNextDay) {
-      // Calcular desde el inicio hasta las 24:00
-      const startHour = isContinuationFromPrevious ? 0 : parseInt(startTime.match(/T(\d{2}):/)?.[1] || '0')
-      const startMinute = isContinuationFromPrevious ? 0 : parseInt(startTime.match(/T(\d{2}):(\d{2})/)?.[2] || '0')
+      const useStartTime = isContinuationFromPrevious && originalStartTime ? originalStartTime : startTime
+      const startHour = parseInt(useStartTime.match(/T(\d{2}):/)?.[1] || '0')
+      const startMinute = parseInt(useStartTime.match(/T(\d{2}):(\d{2})/)?.[2] || '0')
       const minutesUntilMidnight = (24 * 60) - (startHour * 60 + startMinute)
       const pixelsPerMinute = hourHeight / 60
       return Math.max(20, minutesUntilMidnight * pixelsPerMinute)
     }
     
     if (!endTime) {
-      // Sueño en progreso: altura fija con fade
-      // Mostrar hasta el final del día actual o una altura por defecto
-      const remainingHours = 24 - parseInt(startTime.match(/T(\d{2}):/)?.[1] || '0')
+      // Sueño en progreso: calcular desde el tiempo real de inicio
+      const useStartTime = isContinuationFromPrevious && originalStartTime ? originalStartTime : startTime
+      const startHour = parseInt(useStartTime.match(/T(\d{2}):/)?.[1] || '0')
+      const remainingHours = 24 - startHour
       return Math.min(remainingHours * hourHeight, 300) // Máximo 300px para el fade
     }
     
-    // Sueño completado: calcular duración real
+    // Sueño completado: calcular duración real usando tiempos originales si disponible
     try {
-      const start = parseISO(startTime)
-      const end = parseISO(endTime)
+      const useStartTime = isContinuationFromPrevious && originalStartTime ? originalStartTime : startTime
+      const useEndTime = continuesNextDay && originalEndTime ? originalEndTime : endTime
+      
+      const start = parseISO(useStartTime)
+      const end = parseISO(useEndTime)
       const durationMinutes = differenceInMinutes(end, start)
       const pixelsPerMinute = hourHeight / 60
+      
+      // Para eventos que cruzan días, ajustar la altura a solo la parte visible del día
+      if (isContinuationFromPrevious || continuesNextDay) {
+        const dayStart = isContinuationFromPrevious ? 0 : start.getHours() * 60 + start.getMinutes()
+        // Si continúa al día siguiente, cortar exactamente a medianoche (00:00)
+        const dayEnd = continuesNextDay ? 24 * 60 : end.getHours() * 60 + end.getMinutes()
+        const visibleMinutes = dayEnd - dayStart
+        return Math.max(20, visibleMinutes * pixelsPerMinute)
+      }
+      
       return Math.max(20, durationMinutes * pixelsPerMinute) // Mínimo 20px
     } catch {
       return 100 // Altura por defecto si hay error

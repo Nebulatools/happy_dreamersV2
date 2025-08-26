@@ -150,7 +150,7 @@ export function MonthLineChart({
             if (entry.value === undefined) return null
             
             return (
-              <div key={index} className="mb-1">
+              <div key={eventType} className="mb-1">
                 <p 
                   className="text-sm font-medium"
                   style={{ color: entry.color }}
@@ -179,7 +179,7 @@ export function MonthLineChart({
                 {nightWakingEventsForDay.length} evento{nightWakingEventsForDay.length > 1 ? 's' : ''}
               </p>
               {nightWakingEventsForDay.map((event: Event, index: number) => (
-                <p key={index} className="text-xs text-gray-500">
+                <p key={event._id} className="text-xs text-gray-500">
                   {format(new Date(event.startTime), 'HH:mm')} - Duración: {event.sleepDelay || 5} min
                 </p>
               ))}
