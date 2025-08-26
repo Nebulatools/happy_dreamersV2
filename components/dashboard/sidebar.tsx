@@ -14,7 +14,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useActiveChild } from "@/context/active-child-context"
-import { LayoutDashboard, Calendar, BarChart3, Users, PlusCircle, Settings, Menu, MessageSquare, List, Stethoscope, ClipboardList, HelpCircle, Mail } from "lucide-react"
+import { LayoutDashboard, Calendar, BarChart3, Users, PlusCircle, Settings, Menu, MessageSquare, List, Stethoscope, ClipboardList, HelpCircle, Mail, Bell } from "lucide-react"
 // TEMPORALMENTE COMENTADO - Sistema de eventos en reset
 // import { EventRegistrationModal, QuickEventSelector } from "@/components/events"
 import { useEventsInvalidation } from "@/hooks/use-events-cache"
@@ -115,6 +115,11 @@ export function Sidebar({ className }: { className?: string }) {
       href: "/dashboard/consultas",
       icon: <Stethoscope className="h-5 w-5" />,
       role: ["admin"],
+    },
+    {
+      title: "Notificaciones",
+      href: "/dashboard/notificaciones",
+      icon: <Bell className="h-5 w-5" />,
     },
     {
       title: "Configuración",
