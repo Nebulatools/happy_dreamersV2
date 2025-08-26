@@ -22,7 +22,8 @@ export interface Child {
   firstName: string
   lastName: string
   birthDate: string // ISO string
-  parentId: ObjectId | string
+  parentId: ObjectId | string // Dueño principal del perfil del niño
+  sharedWith?: string[] // Array de IDs de usuarios con acceso compartido
   surveyData?: SurveyData
   sleepProfile?: SleepProfile
   createdAt: Date
@@ -285,6 +286,60 @@ export interface SleepStatistics {
     sleepQuality: "improving" | "stable" | "declining"
     consistency: "improving" | "stable" | "declining"
   }
+}
+
+// Modelo de Invitación Pendiente
+export interface PendingInvitation {
+  _id: ObjectId | string
+  email: string // Email del usuario invitado
+  childId: ObjectId | string // Niño al que tendrá acceso
+  invitedBy: ObjectId | string // Usuario que envió la invitación
+  invitedByName: string // Nombre del que invita para el email
+  childName: string // Nombre del niño para el email
+  role: "viewer" | "editor" | "caregiver" // Rol asignado
+  permissions: {
+    canViewEvents: boolean
+    canCreateEvents: boolean
+    canEditEvents: boolean
+    canViewReports: boolean
+    canEditProfile: boolean
+    canViewPlan: boolean
+  }
+  relationshipType?: "parent" | "grandparent" | "babysitter" | "family" | "professional" | "other"
+  relationshipDescription?: string
+  invitationToken: string // Token único para aceptar
+  expiresAt: Date // Fecha de expiración de la invitación
+  status: "pending" | "accepted" | "expired" | "cancelled"
+  acceptedAt?: Date
+  acceptedBy?: ObjectId | string // ID del usuario que aceptó
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Modelo de Acceso Compartido a Niño
+export interface UserChildAccess {
+  _id: ObjectId | string
+  userId: ObjectId | string // Usuario que tiene acceso
+  childId: ObjectId | string // Niño al que tiene acceso
+  grantedBy: ObjectId | string // Usuario que otorgó el acceso (parentId)
+  role: "viewer" | "editor" | "caregiver" // Nivel de permisos
+  permissions: {
+    canViewEvents: boolean
+    canCreateEvents: boolean
+    canEditEvents: boolean
+    canViewReports: boolean
+    canEditProfile: boolean
+    canViewPlan: boolean
+  }
+  relationshipType?: "parent" | "grandparent" | "babysitter" | "family" | "professional" | "other"
+  relationshipDescription?: string // Descripción personalizada (ej: "Tía María")
+  invitationToken?: string // Token para aceptar invitación
+  invitationStatus: "pending" | "accepted" | "rejected" | "expired"
+  invitationSentAt?: Date
+  acceptedAt?: Date
+  expiresAt?: Date // Acceso temporal opcional
+  createdAt: Date
+  updatedAt: Date
 }
 
 // Plan personalizado para el niño
