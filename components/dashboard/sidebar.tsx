@@ -174,8 +174,11 @@ export function Sidebar({ className }: { className?: string }) {
               <img
                 src="/LOGO.svg"
                 alt="Happy Dreamers Logo"
-                className="h-16 w-auto"
-                style={{ maxWidth: '180px' }}
+                style={{ 
+                  width: '163.61px',
+                  height: '105px',
+                  objectFit: 'contain'
+                }}
                 draggable={false}
               />
             </div>
@@ -319,8 +322,11 @@ function MobileSidebar({
         <img
           src="/LOGO.svg"
           alt="Happy Dreamers Logo"
-          className="h-14 w-auto"
-          style={{ maxWidth: '160px' }}
+          style={{ 
+            width: '140px',
+            height: '90px',
+            objectFit: 'contain'
+          }}
           draggable={false}
         />
       </Link>
