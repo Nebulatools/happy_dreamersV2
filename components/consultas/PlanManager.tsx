@@ -39,6 +39,18 @@ export function PlanManager({
   const [selectedPlanIndex, setSelectedPlanIndex] = useState<number | null>(null)
   const [historyReports, setHistoryReports] = useState<any[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
+  
+  // Estados para validaciones de plan
+  const [planValidations, setPlanValidations] = useState<{
+    initial: any
+    event_based: any
+    transcript_refinement: any
+  }>({
+    initial: null,
+    event_based: null,
+    transcript_refinement: null
+  })
+  const [loadingValidations, setLoadingValidations] = useState(false)
 
   // Cargar planes y reportes del historial cuando se selecciona un niño
   useEffect(() => {
@@ -47,13 +59,68 @@ export function PlanManager({
       logger.debug(`Cargando planes para usuario: ${selectedUserId}, niño: ${selectedChildId}`)
       loadPlans()
       loadHistoryReports()
+      validatePlanCapabilities()
     } else {
       logger.debug("Limpiando estado - no hay usuario o niño seleccionado")
       setPlans([])
       setHistoryReports([])
       setSelectedPlanIndex(null)
+      setPlanValidations({
+        initial: null,
+        event_based: null,
+        transcript_refinement: null
+      })
     }
   }, [selectedUserId, selectedChildId])
+
+  // Validar capacidades de generar planes
+  const validatePlanCapabilities = async () => {
+    if (!selectedUserId || !selectedChildId) return
+
+    try {
+      setLoadingValidations(true)
+      const planTypes = ['initial', 'event_based', 'transcript_refinement']
+      const validations: any = {}
+
+      // Ejecutar validaciones en paralelo
+      const validationPromises = planTypes.map(async (planType) => {
+        const response = await fetch('/api/consultas/plans', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: selectedUserId,
+            childId: selectedChildId,
+            planType
+          }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          validations[planType] = data
+        } else {
+          validations[planType] = {
+            canGenerate: false,
+            reason: 'Error al validar',
+            planType
+          }
+        }
+      })
+
+      await Promise.all(validationPromises)
+      setPlanValidations(validations)
+    } catch (error) {
+      logger.error('Error validando capacidades de plan:', error)
+      setPlanValidations({
+        initial: { canGenerate: false, reason: 'Error de validación' },
+        event_based: { canGenerate: false, reason: 'Error de validación' },
+        transcript_refinement: { canGenerate: false, reason: 'Error de validación' }
+      })
+    } finally {
+      setLoadingValidations(false)
+    }
+  }
 
   // Cargar reportes del historial
   const loadHistoryReports = async () => {
@@ -110,15 +177,26 @@ export function PlanManager({
   }
 
   // Generar nuevo plan
-  const generatePlan = async (planType: "initial" | "transcript_based", reportId?: string) => {
+  const generatePlan = async (planType: "initial" | "event_based" | "transcript_refinement", reportId?: string) => {
     if (!selectedUserId || !selectedChildId) return
 
-    const effectiveReportId = reportId || nextPlanInfo.reportId
-
-    if (planType === "transcript_based" && !effectiveReportId) {
+    // Validar que se puede generar el tipo de plan solicitado
+    const validation = planValidations[planType]
+    if (!validation || !validation.canGenerate) {
       toast({
         title: "Error",
-        description: "Se requiere un análisis de transcript previo para generar un plan actualizado.",
+        description: validation?.reason || "No se puede generar este tipo de plan",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const effectiveReportId = reportId || validation.additionalInfo?.latestReportId
+
+    if (planType === "transcript_refinement" && !effectiveReportId) {
+      toast({
+        title: "Error",
+        description: "Se requiere un análisis de transcript previo para generar un refinamiento.",
         variant: "destructive",
       })
       return
@@ -133,7 +211,7 @@ export function PlanManager({
         planType,
       }
 
-      if (planType === "transcript_based" && effectiveReportId) {
+      if (planType === "transcript_refinement" && effectiveReportId) {
         requestBody.reportId = effectiveReportId
       }
 
@@ -152,16 +230,23 @@ export function PlanManager({
 
       const result = await response.json()
       
-      // Actualizar la lista de planes
+      // Actualizar la lista de planes y validaciones
       await loadPlans()
+      await validatePlanCapabilities()
       
       // Verificar que el resultado tiene la estructura esperada
-      const planNumber = result?.plan?.planNumber ?? 'Nuevo'
+      const planVersion = result?.plan?.planVersion ?? 'Nuevo'
       const childNameForToast = selectedChildName || 'el niño'
+      
+      const planTypeNames = {
+        initial: "Plan Inicial",
+        event_based: `Plan ${planVersion} (Progresión)`,
+        transcript_refinement: `Plan ${planVersion} (Refinamiento)`
+      }
       
       toast({
         title: "Plan generado exitosamente",
-        description: `Se ha creado el ${planType === "initial" ? "Plan Inicial" : `Plan ${planNumber}`} para ${childNameForToast}.`,
+        description: `Se ha creado el ${planTypeNames[planType]} para ${childNameForToast}.`,
       })
     } catch (error) {
       logger.error("Error generando plan:", error)
@@ -175,50 +260,59 @@ export function PlanManager({
     }
   }
 
-  // Determinar qué tipo de plan se puede generar
-  const getNextPlanInfo = () => {
-    const hasInitialPlan = plans.some(p => p.planNumber === 0)
-    
-    if (!hasInitialPlan) {
-      return {
-        canGenerate: true,
+  // Obtener información de planes disponibles basada en validaciones
+  const getAvailablePlans = () => {
+    const availablePlans = []
+
+    // Plan Inicial
+    const initialValidation = planValidations.initial
+    if (initialValidation) {
+      availablePlans.push({
         planType: "initial" as const,
+        canGenerate: initialValidation.canGenerate,
         buttonText: "Generar Plan Inicial",
-        description: "Crear el primer plan basado en survey, estadísticas y conocimiento especializado",
-        reportId: null
-      }
+        description: initialValidation.canGenerate 
+          ? "Crear el primer plan basado en survey, estadísticas y conocimiento especializado"
+          : initialValidation.reason,
+        nextVersion: initialValidation.nextVersion,
+        validation: initialValidation
+      })
     }
-    
-    // SOLO permitir generar plan si hay análisis reciente Y no ha sido usado
-    if (hasAnalysisResult && latestReportId) {
-      // Verificar si el análisis reciente ya fue usado para generar un plan
-      const isLatestReportAlreadyUsed = plans.some(plan => 
-        plan.transcriptAnalysis?.reportId?.toString() === latestReportId
-      )
-      
-      if (!isLatestReportAlreadyUsed) {
-        const nextPlanNumber = Math.max(...plans.map(p => p.planNumber)) + 1
-        return {
-          canGenerate: true,
-          planType: "transcript_based" as const,
-          buttonText: `Generar Plan ${nextPlanNumber}`,
-          description: "Crear un plan actualizado basado en el último análisis de transcript",
-          reportId: latestReportId
-        }
-      }
+
+    // Plan basado en eventos
+    const eventValidation = planValidations.event_based
+    if (eventValidation) {
+      availablePlans.push({
+        planType: "event_based" as const,
+        canGenerate: eventValidation.canGenerate,
+        buttonText: eventValidation.canGenerate 
+          ? `Generar Plan ${eventValidation.nextVersion} (Progresión)`
+          : "Plan de Progresión",
+        description: eventValidation.reason,
+        nextVersion: eventValidation.nextVersion,
+        validation: eventValidation
+      })
     }
-    
-    // Si no hay análisis reciente nuevo, deshabilitar el botón
-    return {
-      canGenerate: false,
-      planType: "transcript_based" as const,
-      buttonText: "Sin análisis nuevos",
-      description: "Genere un nuevo análisis de transcript para crear un plan actualizado",
-      reportId: null
+
+    // Plan de refinamiento con transcript
+    const transcriptValidation = planValidations.transcript_refinement
+    if (transcriptValidation) {
+      availablePlans.push({
+        planType: "transcript_refinement" as const,
+        canGenerate: transcriptValidation.canGenerate,
+        buttonText: transcriptValidation.canGenerate
+          ? `Generar Plan ${transcriptValidation.nextVersion} (Refinamiento)`
+          : "Plan de Refinamiento",
+        description: transcriptValidation.reason,
+        nextVersion: transcriptValidation.nextVersion,
+        validation: transcriptValidation
+      })
     }
+
+    return availablePlans
   }
 
-  const nextPlanInfo = getNextPlanInfo()
+  const availablePlans = getAvailablePlans()
 
   if (!selectedUserId || !selectedChildId) {
     return (
@@ -255,30 +349,40 @@ export function PlanManager({
               </CardDescription>
             </div>
             
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <Button
-                      onClick={() => generatePlan(nextPlanInfo.planType)}
-                      disabled={!nextPlanInfo.canGenerate || generatingPlan}
-                      size="lg"
-                      className="min-w-[200px]"
-                    >
-                      {generatingPlan ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Plus className="h-4 w-4 mr-2" />
-                      )}
-                      {generatingPlan ? "Generando..." : nextPlanInfo.buttonText}
-                    </Button>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{nextPlanInfo.description}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+{loadingValidations ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Validando opciones...</span>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2 sm:flex-row">
+                {availablePlans.map((planOption) => (
+                  <TooltipProvider key={planOption.planType}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => generatePlan(planOption.planType)}
+                          disabled={!planOption.canGenerate || generatingPlan}
+                          size="sm"
+                          variant={planOption.canGenerate ? "default" : "outline"}
+                          className="min-w-[160px] text-xs"
+                        >
+                          {generatingPlan ? (
+                            <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                          ) : (
+                            <Plus className="h-3 w-3 mr-2" />
+                          )}
+                          {generatingPlan ? "Generando..." : planOption.buttonText}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">{planOption.description}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ))}
+              </div>
+            )}
           </div>
         </CardHeader>
 
@@ -306,9 +410,11 @@ export function PlanManager({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold">Plan {plan.planNumber}</span>
-                        <Badge variant={plan.planType === "initial" ? "default" : "secondary"}>
-                          {plan.planType === "initial" ? "Inicial" : "Actualización"}
+                        <span className="font-semibold">Plan {plan.planVersion || plan.planNumber}</span>
+                        <Badge variant={plan.planType === "initial" ? "default" : 
+                                      plan.planType === "event_based" ? "secondary" : "outline"}>
+                          {plan.planType === "initial" ? "Inicial" : 
+                           plan.planType === "event_based" ? "Progresión" : "Refinamiento"}
                         </Badge>
                         {plan.status === "active" && (
                           <Badge variant="outline" className="text-green-600 border-green-600">

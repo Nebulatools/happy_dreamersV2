@@ -19,6 +19,124 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
+// ================================
+// FUNCIONES UTILITARIAS PARA VERSIONES DE PLANES
+// ================================
+
+/**
+ * Calcula la siguiente versión de plan basada en el tipo y la existencia de planes anteriores
+ */
+function calculateNextPlanVersion(existingPlans: any[], planType: "initial" | "event_based" | "transcript_refinement"): {
+  planNumber: number
+  planVersion: string
+} {
+  if (planType === "initial") {
+    return { planNumber: 0, planVersion: "0" }
+  }
+  
+  // Obtener el plan más reciente
+  const latestPlan = existingPlans[0] // Ya están ordenados por planNumber desc
+  
+  if (planType === "event_based") {
+    // Para planes basados en eventos: 1, 2, 3, etc.
+    const nextNumber = latestPlan ? latestPlan.planNumber + 1 : 1
+    return { 
+      planNumber: nextNumber, 
+      planVersion: nextNumber.toString() 
+    }
+  }
+  
+  if (planType === "transcript_refinement") {
+    // Para refinamientos: solo si ya hay planes 1, 2, 3... (no se puede refinar Plan 0)
+    if (!latestPlan) {
+      throw new Error("No se puede crear un plan de refinamiento sin un plan base")
+    }
+    
+    // Solo se puede refinar planes 1, 2, 3... NO el Plan 0
+    if (latestPlan.planNumber === 0) {
+      throw new Error("No se puede refinar el Plan 0. Primero debe generar el Plan 1")
+    }
+    
+    const basePlanNumber = latestPlan.planNumber
+    const refinementVersion = `${basePlanNumber}.1`
+    
+    return {
+      planNumber: basePlanNumber, // Mismo número que el plan base
+      planVersion: refinementVersion
+    }
+  }
+  
+  throw new Error(`Tipo de plan no válido: ${planType}`)
+}
+
+/**
+ * Verifica si hay eventos disponibles después de una fecha específica
+ */
+async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
+  hasEvents: boolean
+  eventCount: number
+  eventTypes: string[]
+}> {
+  try {
+    const client = await clientPromise
+    const db = client.db()
+    
+    // Obtener eventos del campo 'events' del documento del niño
+    const child = await db.collection("children").findOne({
+      _id: new ObjectId(childId)
+    })
+    
+    if (!child || !child.events) {
+      return { hasEvents: false, eventCount: 0, eventTypes: [] }
+    }
+    
+    // Filtrar eventos después de la fecha
+    const eventsAfterDate = child.events.filter((event: any) => {
+      if (!event.startTime) return false
+      const eventDate = new Date(event.startTime)
+      return eventDate > afterDate
+    })
+    
+    const eventTypes = [...new Set(eventsAfterDate.map((e: any) => e.eventType))]
+    
+    return {
+      hasEvents: eventsAfterDate.length > 0,
+      eventCount: eventsAfterDate.length,
+      eventTypes
+    }
+  } catch (error) {
+    logger.error("Error verificando eventos después de fecha:", error)
+    return { hasEvents: false, eventCount: 0, eventTypes: [] }
+  }
+}
+
+/**
+ * Verifica si existe un transcript de consulta disponible
+ */
+async function hasAvailableTranscript(childId: string): Promise<{
+  hasTranscript: boolean
+  latestReportId?: string
+}> {
+  try {
+    const client = await clientPromise
+    const db = client.db()
+    
+    const latestReport = await db.collection("consultation_reports")
+      .findOne(
+        { childId: new ObjectId(childId) },
+        { sort: { createdAt: -1 } }
+      )
+    
+    return {
+      hasTranscript: !!latestReport,
+      latestReportId: latestReport?._id?.toString()
+    }
+  } catch (error) {
+    logger.error("Error verificando transcript disponible:", error)
+    return { hasTranscript: false }
+  }
+}
+
 // GET: Obtener todos los planes de un niño
 export async function GET(req: NextRequest) {
   try {
@@ -87,7 +205,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST: Generar nuevo plan (Plan 0 o Plan N+1)
+// POST: Generar nuevo plan (Plan 0, Plan N, o Plan N.1)
 export async function POST(req: NextRequest) {
   const startTime = Date.now()
   
@@ -106,9 +224,17 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    if (planType === "transcript_based" && !reportId) {
+    // Validar tipos de plan permitidos
+    const validPlanTypes = ["initial", "event_based", "transcript_refinement"]
+    if (!validPlanTypes.includes(planType)) {
       return NextResponse.json({ 
-        error: "Para planes basados en transcript se requiere el reportId del análisis" 
+        error: `Tipo de plan no válido. Tipos permitidos: ${validPlanTypes.join(", ")}` 
+      }, { status: 400 })
+    }
+
+    if (planType === "transcript_refinement" && !reportId) {
+      return NextResponse.json({ 
+        error: "Para planes de refinamiento con transcript se requiere el reportId del análisis" 
       }, { status: 400 })
     }
 
@@ -132,19 +258,49 @@ export async function POST(req: NextRequest) {
       .sort({ planNumber: -1 })
       .toArray()
 
-    const nextPlanNumber = existingPlans.length > 0 ? existingPlans[0].planNumber + 1 : 0
+    // Calcular la siguiente versión de plan
+    const { planNumber, planVersion } = calculateNextPlanVersion(existingPlans, planType)
 
-    // Validaciones específicas por tipo de plan
+    // VALIDACIONES ESPECÍFICAS POR TIPO DE PLAN
     if (planType === "initial" && existingPlans.length > 0) {
       return NextResponse.json({ 
         error: "Ya existe un plan inicial para este niño" 
       }, { status: 400 })
     }
 
-    if (planType === "transcript_based" && existingPlans.length === 0) {
+    if (planType === "event_based" && existingPlans.length === 0) {
       return NextResponse.json({ 
-        error: "Debe existir un plan inicial antes de crear planes basados en transcript" 
+        error: "Debe existir un plan inicial antes de crear planes basados en eventos" 
       }, { status: 400 })
+    }
+
+    if (planType === "transcript_refinement" && existingPlans.length === 0) {
+      return NextResponse.json({ 
+        error: "Debe existir al menos un plan base antes de crear un refinamiento" 
+      }, { status: 400 })
+    }
+
+    // Validar que hay eventos disponibles para planes basados en eventos
+    if (planType === "event_based") {
+      const latestPlan = existingPlans[0]
+      const eventsCheck = await hasEventsAfterDate(childId, new Date(latestPlan.createdAt))
+      
+      if (!eventsCheck.hasEvents) {
+        return NextResponse.json({ 
+          error: "No hay eventos registrados después del último plan para generar uno nuevo" 
+        }, { status: 400 })
+      }
+    }
+
+    // Validar que hay transcript disponible para refinamientos
+    if (planType === "transcript_refinement") {
+      const transcriptCheck = await hasAvailableTranscript(childId)
+      
+      if (!transcriptCheck.hasTranscript && !reportId) {
+        return NextResponse.json({ 
+          error: "No hay transcript de consulta disponible para generar un refinamiento" 
+        }, { status: 400 })
+      }
     }
 
     let generatedPlan: ChildPlan
@@ -152,25 +308,38 @@ export async function POST(req: NextRequest) {
     if (planType === "initial") {
       // Generar Plan 0 basado en survey + stats + RAG
       generatedPlan = await generateInitialPlan(userId, childId, session.user.id)
-    } else {
-      // Generar Plan N+1 basado en reporte de análisis
-      generatedPlan = await generateTranscriptBasedPlan(
+    } else if (planType === "event_based") {
+      // Generar Plan N basado en eventos + plan anterior + RAG
+      const basePlan = existingPlans[0]
+      generatedPlan = await generateEventBasedPlan(
         userId, 
         childId, 
-        reportId, 
-        nextPlanNumber, 
-        existingPlans[0].planNumber,
+        basePlan,
+        planNumber,
+        planVersion,
+        session.user.id
+      )
+    } else if (planType === "transcript_refinement") {
+      // Generar Plan N.1 basado en plan N + transcript
+      const basePlan = existingPlans[0]
+      generatedPlan = await generateTranscriptRefinementPlan(
+        userId, 
+        childId, 
+        basePlan,
+        reportId,
+        planNumber,
+        planVersion,
         session.user.id
       )
     }
 
-    // Marcar planes anteriores como superseded (excepto el más reciente)
-    if (existingPlans.length > 0) {
+    // Marcar planes anteriores como superseded (excepto refinamientos)
+    if (existingPlans.length > 0 && planType !== "transcript_refinement") {
       await db.collection("child_plans").updateMany(
         { 
           childId: new ObjectId(childId),
           userId: new ObjectId(userId),
-          planNumber: { $lt: nextPlanNumber }
+          planNumber: { $lt: planNumber }
         },
         { 
           $set: { 
@@ -184,7 +353,8 @@ export async function POST(req: NextRequest) {
     // Guardar el nuevo plan
     const result = await db.collection("child_plans").insertOne({
       ...generatedPlan,
-      planNumber: nextPlanNumber,
+      planNumber,
+      planVersion,
       createdAt: new Date(),
       updatedAt: new Date(),
       status: "active"
@@ -194,7 +364,8 @@ export async function POST(req: NextRequest) {
 
     logger.info("Plan generado exitosamente", {
       planId: result.insertedId,
-      planNumber: nextPlanNumber,
+      planNumber,
+      planVersion,
       planType,
       childId,
       processingTime: totalProcessingTime
@@ -206,14 +377,16 @@ export async function POST(req: NextRequest) {
       plan: {
         ...generatedPlan,
         _id: result.insertedId,
-        planNumber: nextPlanNumber,
+        planNumber,
+        planVersion,
         createdAt: new Date(),
         updatedAt: new Date(),
         status: "active"
       },
       metadata: {
         processingTime: totalProcessingTime,
-        planNumber: nextPlanNumber,
+        planNumber,
+        planVersion,
         totalPlans: existingPlans.length + 1
       }
     })
@@ -226,6 +399,128 @@ export async function POST(req: NextRequest) {
       processingTime: totalProcessingTime
     })
     
+    return NextResponse.json({ 
+      error: "Error interno del servidor",
+      details: error instanceof Error ? error.message : "Error desconocido"
+    }, { status: 500 })
+  }
+}
+
+// PUT: Validar si es posible generar un tipo específico de plan
+export async function PUT(req: NextRequest) {
+  try {
+    // Verificar autenticación
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+    }
+
+    const { userId, childId, planType } = await req.json()
+
+    if (!userId || !childId || !planType) {
+      return NextResponse.json({ 
+        error: "Faltan parámetros requeridos: userId, childId, planType" 
+      }, { status: 400 })
+    }
+
+    // Permitir acceso si es admin O si es el padre del niño
+    const isAdmin = session.user.role === "admin"
+    const isParent = session.user.id === userId
+    
+    if (!isAdmin && !isParent) {
+      return NextResponse.json({ error: "No autorizado para validar estos planes" }, { status: 403 })
+    }
+
+    const client = await clientPromise
+    const db = client.db()
+
+    // Obtener planes existentes
+    const existingPlans = await db.collection("child_plans")
+      .find({ 
+        childId: new ObjectId(childId),
+        userId: new ObjectId(userId)
+      })
+      .sort({ planNumber: -1 })
+      .toArray()
+
+    let canGenerate = false
+    let reason = ""
+    let additionalInfo = {}
+
+    if (planType === "initial") {
+      canGenerate = existingPlans.length === 0
+      reason = canGenerate ? "No hay planes existentes" : "Ya existe un plan inicial"
+      
+    } else if (planType === "event_based") {
+      if (existingPlans.length === 0) {
+        canGenerate = false
+        reason = "Debe existir un plan inicial antes de crear planes basados en eventos"
+      } else {
+        const latestPlan = existingPlans[0]
+        const eventsCheck = await hasEventsAfterDate(childId, new Date(latestPlan.createdAt))
+        
+        canGenerate = eventsCheck.hasEvents
+        reason = canGenerate 
+          ? `${eventsCheck.eventCount} eventos disponibles desde el último plan`
+          : "No hay eventos registrados después del último plan"
+        
+        additionalInfo = {
+          eventsAvailable: eventsCheck.eventCount,
+          eventTypes: eventsCheck.eventTypes,
+          lastPlanDate: latestPlan.createdAt,
+          lastPlanVersion: latestPlan.planVersion
+        }
+      }
+      
+    } else if (planType === "transcript_refinement") {
+      if (existingPlans.length === 0) {
+        canGenerate = false
+        reason = "Debe existir al menos un plan base antes de crear un refinamiento"
+      } else if (existingPlans[0].planNumber === 0) {
+        // No se puede refinar Plan 0, primero debe haber Plan 1
+        canGenerate = false
+        reason = "No se puede refinar el Plan 0. Primero genere el Plan 1"
+      } else {
+        // Verificar si ya existe un plan de refinamiento para el plan actual
+        const currentPlanNumber = existingPlans[0].planNumber
+        const existingRefinement = existingPlans.find(plan => 
+          plan.planNumber === currentPlanNumber && plan.planVersion.includes('.1')
+        )
+        
+        if (existingRefinement) {
+          canGenerate = false
+          reason = `Ya existe un Plan ${existingRefinement.planVersion} de refinamiento`
+        } else {
+          const transcriptCheck = await hasAvailableTranscript(childId)
+          
+          canGenerate = transcriptCheck.hasTranscript
+          reason = canGenerate
+            ? "Transcript de consulta disponible"
+            : "No hay transcript de consulta disponible"
+        }
+        
+        additionalInfo = {
+          hasTranscript: true, // Si llegamos aquí, asumimos que hay transcript
+          basePlanVersion: existingPlans[0].planVersion,
+          hasRefinement: !!existingRefinement
+        }
+      }
+    } else {
+      canGenerate = false
+      reason = `Tipo de plan no válido: ${planType}`
+    }
+
+    return NextResponse.json({
+      success: true,
+      canGenerate,
+      reason,
+      planType,
+      nextVersion: canGenerate ? calculateNextPlanVersion(existingPlans, planType).planVersion : null,
+      additionalInfo
+    })
+
+  } catch (error) {
+    logger.error("Error validando posibilidad de generar plan:", error)
     return NextResponse.json({ 
       error: "Error interno del servidor",
       details: error instanceof Error ? error.message : "Error desconocido"
@@ -281,6 +576,7 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
     childId: new ObjectId(childId),
     userId: new ObjectId(userId),
     planNumber: 0,
+    planVersion: "0",
     planType: "initial",
     title: `Plan Inicial para ${child.firstName}`,
     schedule: aiPlan.schedule,
@@ -301,7 +597,201 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
   }
 }
 
-// Función para generar Plan N+1 basado en reporte de análisis (enfocado en cambios)
+// Función para generar Plan N basado en eventos + plan anterior + RAG
+async function generateEventBasedPlan(
+  userId: string, 
+  childId: string, 
+  basePlan: any,
+  planNumber: number,
+  planVersion: string,
+  adminId: string
+): Promise<ChildPlan> {
+  logger.info("Generando plan basado en eventos", { 
+    userId, 
+    childId, 
+    basePlanVersion: basePlan.planVersion,
+    newPlanVersion: planVersion 
+  })
+
+  const client = await clientPromise
+  const db = client.db()
+  
+  // 1. Obtener datos del niño
+  const child = await db.collection("children").findOne({
+    _id: new ObjectId(childId),
+    parentId: userId,
+  })
+
+  if (!child) {
+    throw new Error("No se encontró información del niño")
+  }
+
+  // 2. Obtener eventos desde el último plan
+  const eventsFromDate = new Date(basePlan.createdAt)
+  const eventsToDate = new Date()
+  
+  // Filtrar eventos desde la fecha del plan base
+  const allEvents = child.events || []
+  const newEvents = allEvents.filter((event: any) => {
+    if (!event.startTime) return false
+    const eventDate = new Date(event.startTime)
+    return eventDate > eventsFromDate && eventDate <= eventsToDate
+  })
+
+  if (newEvents.length === 0) {
+    throw new Error("No hay eventos nuevos para analizar")
+  }
+
+  // 3. Calcular estadísticas de los nuevos eventos
+  const stats = processSleepStatistics(newEvents, eventsFromDate)
+  
+  const birthDate = child.birthDate ? new Date(child.birthDate) : null
+  const ageInMonths = birthDate ? Math.floor(differenceInDays(new Date(), birthDate) / 30.44) : null
+
+  // 4. Buscar información relevante en RAG (para mantener metodología fresca)
+  const ragContext = await searchRAGForPlan(ageInMonths)
+  
+  // 5. Generar plan con IA basado en progresión de eventos
+  const aiPlan = await generatePlanWithAI({
+    planType: "event_based",
+    childData: {
+      ...child,
+      ageInMonths,
+      stats,
+      events: newEvents
+    },
+    ragContext,
+    previousPlan: basePlan,
+    eventAnalysis: {
+      eventsAnalyzed: newEvents.length,
+      eventTypes: [...new Set(newEvents.map((e: any) => e.eventType))],
+      dateRange: { from: eventsFromDate, to: eventsToDate },
+      basePlanVersion: basePlan.planVersion
+    }
+  })
+
+  return {
+    childId: new ObjectId(childId),
+    userId: new ObjectId(userId),
+    planNumber,
+    planVersion,
+    planType: "event_based",
+    title: `Plan ${planVersion} para ${child.firstName} (Progresión por Eventos)`,
+    schedule: aiPlan.schedule,
+    objectives: aiPlan.objectives,
+    recommendations: aiPlan.recommendations,
+    basedOn: "events_stats_rag",
+    basedOnPlan: {
+      planId: basePlan._id,
+      planVersion: basePlan.planVersion
+    },
+    eventsDateRange: {
+      fromDate: eventsFromDate,
+      toDate: eventsToDate,
+      totalEventsAnalyzed: newEvents.length
+    },
+    eventAnalysis: {
+      eventsAnalyzed: newEvents.length,
+      eventTypes: [...new Set(newEvents.map((e: any) => e.eventType))],
+      progressFromPrevious: aiPlan.progressAnalysis || "Análisis de progresión basado en eventos recientes",
+      ragSources: ragContext.map(r => r.source),
+      basePlanVersion: basePlan.planVersion
+    },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: new ObjectId(adminId),
+    status: "active"
+  }
+}
+
+// Función para generar Plan N.1 basado en plan N + transcript (refinamiento)
+async function generateTranscriptRefinementPlan(
+  userId: string, 
+  childId: string, 
+  basePlan: any,
+  reportId: string, 
+  planNumber: number,
+  planVersion: string,
+  adminId: string
+): Promise<ChildPlan> {
+  logger.info("Generando plan de refinamiento con transcript", { 
+    userId, 
+    childId, 
+    basePlanVersion: basePlan.planVersion,
+    newPlanVersion: planVersion,
+    reportId
+  })
+
+  const client = await clientPromise
+  const db = client.db()
+  
+  // 1. Obtener el reporte de análisis completo
+  const consultationReport = await db.collection("consultation_reports").findOne({
+    _id: new ObjectId(reportId),
+    childId: new ObjectId(childId)
+  })
+
+  if (!consultationReport) {
+    throw new Error("No se encontró el reporte de análisis")
+  }
+
+  // 2. Obtener datos básicos del niño
+  const child = await db.collection("children").findOne({
+    _id: new ObjectId(childId)
+  })
+
+  if (!child) {
+    throw new Error("No se encontró información del niño")
+  }
+
+  // 3. Extraer cambios específicos de horarios del transcript
+  const scheduleChanges = await extractScheduleChangesFromTranscript(
+    consultationReport.transcript,
+    child.firstName
+  )
+
+  // 4. Generar plan refinado basado en transcript
+  const aiPlan = await generatePlanWithAI({
+    planType: "transcript_refinement",
+    childData: child,
+    previousPlan: basePlan,
+    transcriptAnalysis: {
+      analysis: consultationReport.analysis,
+      recommendations: consultationReport.recommendations,
+      transcript: consultationReport.transcript
+    },
+    scheduleChanges
+  })
+
+  return {
+    childId: new ObjectId(childId),
+    userId: new ObjectId(userId),
+    planNumber,
+    planVersion,
+    planType: "transcript_refinement",
+    title: `Plan ${planVersion} para ${child.firstName} (Refinamiento con Consulta)`,
+    schedule: aiPlan.schedule,
+    objectives: aiPlan.objectives,
+    recommendations: aiPlan.recommendations,
+    basedOn: "transcript_refinement",
+    basedOnPlan: {
+      planId: basePlan._id,
+      planVersion: basePlan.planVersion
+    },
+    transcriptAnalysis: {
+      reportId: new ObjectId(reportId),
+      improvements: aiPlan.improvements || [],
+      adjustments: aiPlan.adjustments || [],
+      basePlanVersion: basePlan.planVersion
+    },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: new ObjectId(adminId),
+    status: "active"
+  }
+}
+
+// FUNCIÓN LEGACY - mantenida para compatibilidad (NO SE USA EN NUEVO FLUJO)
 async function generateTranscriptBasedPlan(
   userId: string, 
   childId: string, 
@@ -420,7 +910,7 @@ EJEMPLO DE ANÁLISIS CORRECTO:
 
 Si NO se acuerda un horario específico en la conversación, devuelve null para ese campo.
 
-Responde en el siguiente formato JSON:
+FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {
   "wakeTime": "07:00" o null,
   "bedtime": "20:00" o null,
@@ -481,7 +971,7 @@ Analiza ÚNICAMENTE este transcript de consulta para identificar:
 
 NO necesitas hacer análisis completo, solo enfócate en lo que CAMBIÓ o necesita AJUSTARSE según la consulta.
 
-Responde en el siguiente formato JSON:
+FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {
   "analysis": "Breve análisis de los puntos clave del transcript enfocado en cambios necesarios",
   "recommendations": "Recomendaciones específicas para ajustar el plan actual basadas solo en esta consulta"
@@ -562,20 +1052,24 @@ async function generatePlanWithAI({
   surveyData,
   previousPlan,
   transcriptAnalysis,
-  scheduleChanges
+  scheduleChanges,
+  eventAnalysis
 }: {
-  planType: "initial" | "transcript_based"
+  planType: "initial" | "event_based" | "transcript_refinement"
   childData: any
   ragContext?: any[]
   surveyData?: any
   previousPlan?: any
   transcriptAnalysis?: any
   scheduleChanges?: any
+  eventAnalysis?: any
 }) {
   let systemPrompt = ""
 
   if (planType === "initial") {
     systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y desarrollo infantil. 
+
+CRÍTICO: Tu respuesta DEBE ser únicamente un objeto JSON válido, sin texto adicional.
 
 Genera un PLAN DETALLADO Y ESTRUCTURADO para ${childData.firstName} (${childData.ageInMonths} meses).
 
@@ -605,7 +1099,7 @@ INSTRUCCIONES:
 4. Proporciona objetivos claros y medibles
 5. Incluye recomendaciones específicas para los padres
 
-Responde en el siguiente formato JSON:
+FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {
   "schedule": {
     "bedtime": "20:00",
@@ -630,10 +1124,128 @@ Responde en el siguiente formato JSON:
     "Recomendación 2 específica"
   ]
 }`
-  } else {
+  } else if (planType === "event_based") {
     systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y desarrollo infantil.
 
-ACTUALIZA EL PLAN EXISTENTE para ${childData.firstName} basándote en el análisis de la sesión más reciente.
+CRÍTICO: Tu respuesta DEBE ser únicamente un objeto JSON válido, sin texto adicional.
+
+GENERA PLAN DE PROGRESIÓN basado en EVENTOS REALES registrados para ${childData.firstName}.
+
+PLAN ANTERIOR (COMO BASE):
+${JSON.stringify(previousPlan?.schedule, null, 2)}
+
+ANÁLISIS DE EVENTOS RECIENTES (${eventAnalysis?.eventsAnalyzed || 0} eventos):
+- Tipos de eventos: ${eventAnalysis?.eventTypes?.join(", ") || "No especificado"}
+- Período analizado: ${eventAnalysis?.dateRange?.from || "No especificado"} a ${eventAnalysis?.dateRange?.to || "No especificado"}
+- Duración promedio de sueño: ${childData.stats?.avgSleepDurationMinutes || 0} minutos
+- Hora promedio de despertar: ${Math.floor((childData.stats?.avgWakeTimeMinutes || 0) / 60)}:${((childData.stats?.avgWakeTimeMinutes || 0) % 60).toString().padStart(2, "0")}
+
+${ragContext ? `
+CONOCIMIENTO ESPECIALIZADO ACTUALIZADO:
+${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join("\n\n---\n\n")}
+` : ''}
+
+INSTRUCCIONES PARA PROGRESIÓN:
+1. 🎯 PRIORIDAD: Utiliza el PLAN ANTERIOR como base sólida
+2. 📊 AJUSTA según los PATRONES REALES observados en los eventos
+3. ✨ EVOLUCIONA el plan manteniendo coherencia con el anterior
+4. 📈 IDENTIFICA mejoras basadas en el comportamiento real del niño
+5. 🔧 OPTIMIZA horarios según los datos reales registrados
+
+FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
+{
+  "schedule": {
+    "bedtime": "20:00",
+    "wakeTime": "07:00", 
+    "meals": [...],
+    "activities": [],
+    "naps": [...]
+  },
+  "objectives": [
+    "Objetivo basado en progresión real observada"
+  ],
+  "recommendations": [
+    "Recomendación basada en patrones de eventos reales"
+  ],
+  "progressAnalysis": "Análisis de cómo el niño ha progresado desde el plan anterior"
+}`
+  } else if (planType === "transcript_refinement") {
+    systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y desarrollo infantil.
+
+CRÍTICO: Tu respuesta DEBE ser únicamente un objeto JSON válido, sin texto adicional.
+
+REFINA EL PLAN EXISTENTE para ${childData.firstName} basándote en la consulta médica más reciente.
+
+PLAN BASE (A REFINAR):
+${JSON.stringify(previousPlan?.schedule, null, 2)}
+
+ANÁLISIS DE LA CONSULTA MÉDICA:
+Análisis: ${transcriptAnalysis?.analysis || "No disponible"}
+Recomendaciones: ${transcriptAnalysis?.recommendations || "No disponible"}
+
+${scheduleChanges ? `
+CAMBIOS ESPECÍFICOS DE HORARIOS EXTRAÍDOS DEL TRANSCRIPT:
+${JSON.stringify(scheduleChanges, null, 2)}
+
+⚠️ IMPORTANTE: Estos horarios específicos tienen PRIORIDAD sobre el plan anterior. Si se especifica un horario aquí, ÚSALO en lugar del horario del plan anterior.
+` : ''}
+
+TRANSCRIPT DE LA CONSULTA (COMPLETO):
+${transcriptAnalysis?.transcript || "No disponible"}
+
+INSTRUCCIONES PARA REFINAMIENTO:
+1. 🎯 PRIORIDAD MÁXIMA: Aplica todos los cambios específicos de horarios extraídos del transcript
+2. Si hay conflicto entre plan base y horarios extraídos, USA LOS HORARIOS EXTRAÍDOS
+3. Mantén la coherencia general del plan base, pero aplica refinamientos específicos
+4. Enfócate en los problemas identificados y cambios solicitados en la consulta
+5. Conserva elementos que funcionan del plan base
+
+FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
+{
+  "schedule": {
+    "bedtime": "20:00",
+    "wakeTime": "07:00",
+    "meals": [
+      {
+        "time": "07:30",
+        "type": "desayuno",
+        "description": "Descripción del desayuno"
+      }
+    ],
+    "activities": [
+      {
+        "time": "08:00",
+        "activity": "jugar",
+        "duration": 60,
+        "description": "Descripción de la actividad"
+      }
+    ],
+    "naps": [
+      {
+        "time": "14:00",
+        "duration": 90,
+        "description": "Siesta vespertina"
+      }
+    ]
+  },
+  "objectives": [
+    "Objetivo refinado basado en la consulta médica"
+  ],
+  "recommendations": [
+    "Recomendación específica basada en el análisis de la consulta"
+  ],
+  "improvements": [
+    "Mejora identificada en la consulta"
+  ],
+  "adjustments": [
+    "Ajuste realizado al plan base"
+  ]
+}`
+  } else {
+    // Fallback para compatibilidad (no debería llegar aquí en el nuevo flujo)
+    systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y desarrollo infantil.
+
+ACTUALIZA EL PLAN EXISTENTE para ${childData.firstName} basándote en el análisis proporcionado.
 
 PLAN ANTERIOR:
 ${JSON.stringify(previousPlan.schedule, null, 2)}
@@ -660,7 +1272,7 @@ INSTRUCCIONES:
 5. Enfócate en los problemas identificados y cambios solicitados en la consulta
 6. Si un horario no está en los cambios extraídos, mantén el del plan anterior
 
-Responde en el siguiente formato JSON:
+FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {
   "schedule": {
     "bedtime": "20:00",
@@ -701,13 +1313,53 @@ Responde en el siguiente formato JSON:
       temperature: 0.7,
     })
 
-    const responseContent = completion.choices[0]?.message?.content || ""
+    let responseContent = completion.choices[0]?.message?.content || ""
+    
+    // Limpiar la respuesta para asegurar JSON válido
+    responseContent = responseContent.trim()
+    
+    // Si la respuesta no empieza con {, intentar extraer el JSON
+    if (!responseContent.startsWith('{')) {
+      const jsonMatch = responseContent.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        responseContent = jsonMatch[0]
+      }
+    }
     
     try {
       return JSON.parse(responseContent)
     } catch (parseError) {
-      logger.error("Error parseando respuesta de IA:", parseError)
-      throw new Error("Error al procesar la respuesta de la IA")
+      logger.error("Error parseando respuesta de IA:", {
+        parseError: parseError.message,
+        responseContent: responseContent.substring(0, 500) + "...",
+        fullLength: responseContent.length
+      })
+      
+      // Intentar generar un plan básico como fallback
+      logger.warn("Generando plan fallback debido a error de parsing")
+      return {
+        schedule: {
+          bedtime: "20:30",
+          wakeTime: "07:00",
+          meals: [
+            { time: "07:30", type: "desayuno", description: "Desayuno nutritivo" },
+            { time: "12:00", type: "almuerzo", description: "Almuerzo balanceado" },
+            { time: "16:00", type: "merienda", description: "Merienda ligera" },
+            { time: "19:00", type: "cena", description: "Cena temprana" }
+          ],
+          activities: [
+            { time: "08:00", activity: "jugar", duration: 60, description: "Tiempo de juego" },
+            { time: "17:00", activity: "ejercicio", duration: 30, description: "Actividad física" }
+          ],
+          naps: [
+            { time: "14:00", duration: 90, description: "Siesta vespertina" }
+          ]
+        },
+        objectives: ["Establecer rutina de sueño consistente", "Mejorar calidad del descanso"],
+        recommendations: ["Mantener horarios fijos", "Crear ambiente propicio para dormir"],
+        improvements: ["Plan refinado basado en consulta médica"],
+        adjustments: ["Horarios ajustados según recomendaciones"]
+      }
     }
   } catch (error) {
     logger.error("Error generando plan con IA:", error)

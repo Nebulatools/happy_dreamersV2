@@ -134,8 +134,11 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
                   <Calendar className="h-5 w-5" />
                   {plan.title}
                 </CardTitle>
-                <Badge variant={plan.planType === "initial" ? "default" : "secondary"}>
-                  {plan.planType === "initial" ? "Plan Inicial" : "Actualización"}
+                <Badge variant={plan.planType === "initial" ? "default" : 
+                              plan.planType === "event_based" ? "secondary" : "outline"}>
+                  {plan.planType === "initial" ? "Plan Inicial" : 
+                   plan.planType === "event_based" ? "Progresión" :
+                   plan.planType === "transcript_refinement" ? "Refinamiento" : "Actualización"}
                 </Badge>
                 {plan.status === "active" && (
                   <Badge variant="outline" className="text-green-600 border-green-600">
@@ -153,6 +156,14 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
                 })}
                 {plan.basedOn === "transcript_analysis" && (
                   <span className="ml-2">• Basado en análisis de transcript</span>
+                )}
+                {plan.basedOn === "events_stats_rag" && (
+                  <span className="ml-2">
+                    • Basado en plan anterior + {plan.eventAnalysis?.eventsAnalyzed || 'eventos'} eventos registrados + RAG
+                  </span>
+                )}
+                {plan.basedOn === "survey_stats_rag" && (
+                  <span className="ml-2">• Basado en survey + estadísticas + RAG</span>
                 )}
               </CardDescription>
             </div>
@@ -314,25 +325,55 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
                 </div>
                 <div className="flex justify-between">
                   <span>Tipo:</span>
-                  <span>{plan.planType === "initial" ? "Inicial" : "Actualización"}</span>
+                  <span>
+                    {plan.planType === "initial" ? "Inicial" : 
+                     plan.planType === "event_based" ? "Progresión basada en eventos" :
+                     plan.planType === "transcript_refinement" ? "Refinamiento por transcript" : 
+                     "Actualización"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Basado en:</span>
                   <span>
-                    {plan.basedOn === "survey_stats_rag" ? "Survey + Stats + RAG" : "Análisis de transcript"}
+                    {plan.basedOn === "survey_stats_rag" ? "Survey + Stats + RAG" : 
+                     plan.basedOn === "events_stats_rag" ? 
+                       `Plan ${plan.basedOnPlan?.planVersion || 'anterior'} + ${plan.eventAnalysis?.eventsAnalyzed || 'X'} eventos + RAG` :
+                     plan.basedOn === "transcript_analysis" ? "Análisis de transcript" : 
+                     plan.basedOn}
                   </span>
                 </div>
-                {plan.sourceData && (
+                {(plan.sourceData || plan.eventAnalysis || plan.eventsDateRange) && (
                   <>
                     <Separator className="my-2" />
-                    <div className="flex justify-between">
-                      <span>Eventos analizados:</span>
-                      <span>{plan.sourceData.totalEvents}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Fuentes RAG:</span>
-                      <span>{plan.sourceData.ragSources.length}</span>
-                    </div>
+                    {plan.eventAnalysis && (
+                      <>
+                        <div className="flex justify-between">
+                          <span>Eventos analizados:</span>
+                          <span>{plan.eventAnalysis.eventsAnalyzed}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Período de análisis:</span>
+                          <span>
+                            {plan.eventsDateRange?.fromDate && plan.eventsDateRange?.toDate ? 
+                              `${new Date(plan.eventsDateRange.fromDate).toLocaleDateString('es-ES')} - ${new Date(plan.eventsDateRange.toDate).toLocaleDateString('es-ES')}` :
+                              'N/A'
+                            }
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    {plan.sourceData && (
+                      <>
+                        <div className="flex justify-between">
+                          <span>Eventos base:</span>
+                          <span>{plan.sourceData.totalEvents}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Fuentes RAG:</span>
+                          <span>{plan.sourceData.ragSources?.length || 'N/A'}</span>
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
               </div>

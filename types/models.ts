@@ -348,7 +348,8 @@ export interface ChildPlan {
   childId: ObjectId | string
   userId: ObjectId | string
   planNumber: number // 0, 1, 2, 3...
-  planType: "initial" | "transcript_based"
+  planVersion: string // "0", "1", "1.1", "2", "2.1", etc.
+  planType: "initial" | "event_based" | "transcript_refinement"
   
   // Horarios estructurados del plan
   schedule: {
@@ -376,7 +377,20 @@ export interface ChildPlan {
   title: string          // "Plan Inicial para [Nombre]"
   objectives: string[]   // Objetivos principales del plan
   recommendations: string[] // Recomendaciones específicas
-  basedOn: "survey_stats_rag" | "transcript_analysis"
+  basedOn: "survey_stats_rag" | "events_stats_rag" | "transcript_refinement"
+  
+  // Referencia al plan base (para evolución progresiva)
+  basedOnPlan?: {
+    planId: ObjectId | string
+    planVersion: string
+  }
+  
+  // Rango de eventos considerados para planes basados en eventos
+  eventsDateRange?: {
+    fromDate: Date
+    toDate: Date
+    totalEventsAnalyzed: number
+  }
   
   // Metadata para Plan 0 (basado en survey + stats + RAG)
   sourceData?: {
@@ -387,12 +401,21 @@ export interface ChildPlan {
     totalEvents: number
   }
   
-  // Metadata para Planes 1+ (basados en transcript analysis)
+  // Metadata para Planes basados en eventos (1, 2, 3...)
+  eventAnalysis?: {
+    eventsAnalyzed: number
+    eventTypes: string[]
+    progressFromPrevious: string
+    ragSources: string[]
+    basePlanVersion: string
+  }
+  
+  // Metadata para Planes de refinamiento (.1, .2, etc.)
   transcriptAnalysis?: {
     reportId: ObjectId | string  // ID del reporte de análisis usado
     improvements: string[]       // Mejoras identificadas
     adjustments: string[]        // Ajustes sugeridos
-    previousPlanNumber: number   // Plan anterior que se está actualizando
+    basePlanVersion: string      // Plan base que se refinó (ej: "1", "2")
   }
   
   // Información de auditoría
