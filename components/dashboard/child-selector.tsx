@@ -224,7 +224,7 @@ export function ChildSelector() {
       {/* Selector de niños para usuarios normales */}
       <div className="flex items-center">
         {children.length > 0 ? (
-          <div className="flex items-center bg-[#F0F7FF] rounded-xl px-4 py-2 h-12 min-w-[131px]">
+          <div className="flex items-center bg-[#DEF1F1] rounded-xl px-4 py-2 h-12 min-w-[131px]">
             {/* Avatar del niño */}
             <div className="flex-shrink-0">
               <ChildAvatar 

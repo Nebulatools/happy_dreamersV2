@@ -271,7 +271,7 @@ export default function AdminStatistics() {
           >
             {getGreeting()}, Dr. {session?.user?.name?.split(" ")[0] || "Admin"}!
           </h1>
-          <p className="text-[#666666]">
+          <p className="text-[#666666]" style={{ fontFamily: 'Century Gothic, sans-serif' }}>
             Aquí está el resumen de tus pacientes y casos que requieren atención.
           </p>
         </div>
@@ -283,7 +283,7 @@ export default function AdminStatistics() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <p className="text-sm text-[#666666]">Total de Pacientes</p>
+                  <p className="text-sm text-[#666666]" style={{ fontFamily: 'Century Gothic, sans-serif' }}>Total de Pacientes</p>
                   <p className="text-3xl font-bold text-[#2F2F2F]">{metrics.totalPatients}</p>
                 </div>
                 <div className="h-10 w-10 bg-blue-100 rounded-xl flex items-center justify-center">
@@ -291,7 +291,7 @@ export default function AdminStatistics() {
                 </div>
               </div>
               <div className="mt-4 flex items-center gap-2">
-                <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50">Registrados</Badge>
+                <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50" style={{ fontFamily: 'Century Gothic, sans-serif' }}>Registrados</Badge>
                 <span className="text-xs text-[#666666]">
                   +{Math.max(1, Math.floor(metrics.totalPatients * 0.15))} este mes
                 </span>
@@ -304,7 +304,7 @@ export default function AdminStatistics() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <p className="text-sm text-[#666666]">Planes de Seguimiento Activos</p>
+                  <p className="text-sm text-[#666666]" style={{ fontFamily: 'Century Gothic, sans-serif' }}>Planes de Seguimiento Activos</p>
                   <p className="text-3xl font-bold text-[#2F2F2F]">{metrics.activeToday}</p>
                 </div>
                 <div className="h-10 w-10 bg-green-100 rounded-xl flex items-center justify-center">
@@ -315,7 +315,7 @@ export default function AdminStatistics() {
                 <Badge className="bg-green-50 text-green-700 hover:bg-green-50">
                   {Math.round((metrics.activeToday / metrics.totalPatients) * 100) || 0}% en seguimiento
                 </Badge>
-                <span className="text-xs text-[#666666]" title="Pacientes con planes activos o actividad reciente">
+                <span className="text-xs text-[#666666]" style={{ fontFamily: 'Century Gothic, sans-serif' }} title="Pacientes con planes activos o actividad reciente">
                   planes activos o actividad en 7 días
                 </span>
               </div>
@@ -327,7 +327,7 @@ export default function AdminStatistics() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <p className="text-sm text-[#666666]">Resumen de Alertas</p>
+                  <p className="text-sm text-[#666666]" style={{ fontFamily: 'Century Gothic, sans-serif' }}>Resumen de Alertas</p>
                   <div className="flex items-center gap-3">
                     <span className="flex items-center gap-1">
                       <div className="h-4 w-4 bg-red-100 rounded-full flex items-center justify-center">

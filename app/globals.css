@@ -29,6 +29,23 @@
   font-display: block;
 }
 
+/* Fuente Gotham */
+@font-face {
+  font-family: 'Gotham';
+  src: url('/fonts/gotham_book.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'Gotham';
+  src: url('/fonts/gotham_bold.otf') format('opentype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: block;
+}
+
 /* Clase para aplicar la fuente Ludicrous */
 .ludicrous-title {
   font-family: 'Ludicrous', sans-serif !important;
