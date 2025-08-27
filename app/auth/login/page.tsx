@@ -106,7 +106,7 @@ export default function LoginPage() {
           <div className="bg-white/95 backdrop-blur-sm rounded-[24px] p-6 lg:p-8 shadow-2xl border border-white/20">
             {/* Header */}
             <div className="text-center mb-6">
-              <h1 className="text-2xl lg:text-3xl font-bold text-[#2D3748] mb-2">
+              <h1 className="text-2xl lg:text-3xl mb-2 ludicrous-title">
                 Welcome Back
               </h1>
               <p className="text-[#718096] text-sm">

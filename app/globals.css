@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fuente personalizada Ludicrous */
+@font-face {
+  font-family: 'Ludicrous';
+  src: url('/fonts/ludicrous.ttf') format('truetype'),
+       url('/fonts/ludicrous.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block; /* Espera a que se cargue la fuente antes de mostrar el texto */
+}
+
+/* Clase para aplicar la fuente Ludicrous */
+.ludicrous-title {
+  font-family: 'Ludicrous', sans-serif !important;
+  color: #68A1C8 !important;
+  font-weight: normal !important;
+}
+
 @layer base {
   :root {
     /* ===== NUEVO SISTEMA DE COLORES HAPPY DREAMERS ===== */
