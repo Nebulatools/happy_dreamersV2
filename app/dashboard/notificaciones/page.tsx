@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
+import { useActiveChild } from "@/context/active-child-context"
 import { NotificationSettings } from "@/components/notifications/NotificationSettings"
 import { NotificationTester } from "@/components/notifications/NotificationTester"
 import { Icons } from "@/components/icons"
@@ -28,9 +29,10 @@ import { es } from "date-fns/locale"
 
 interface Child {
   _id: string
-  name: string
-  gender: string
+  firstName: string
+  lastName: string
   birthDate: string
+  name?: string // Campo agregado dinámicamente
 }
 
 interface NotificationLogItem {
@@ -50,6 +52,7 @@ interface NotificationLogItem {
 
 export default function NotificacionesPage() {
   const { data: session } = useSession()
+  const { activeChildId, activeUserId } = useActiveChild()
   const [children, setChildren] = useState<Child[]>([])
   const [selectedChild, setSelectedChild] = useState<string | null>(null)
   const [notifications, setNotifications] = useState<NotificationLogItem[]>([])
@@ -61,27 +64,129 @@ export default function NotificacionesPage() {
     read: 0,
     failed: 0
   })
-
-  // Cargar lista de niños
+  
+  // Debug log para verificar el contexto - ACTUALIZADO
   useEffect(() => {
-    loadChildren()
-  }, [session])
+    console.log("=== NotificacionesPage DEBUG START ===")
+    console.log("NotificacionesPage - Context values:", {
+      activeUserId,
+      activeChildId,
+      sessionRole: session?.user?.role,
+      loading,
+      timestamp: new Date().toISOString()
+    })
+    console.log("=== NotificacionesPage DEBUG END ===")
+  }, [activeUserId, activeChildId, session, loading])
+
+  // Cargar lista de niños basada en el contexto
+  useEffect(() => {
+    // Para admins, cargar cuando hay un usuario seleccionado
+    if (session?.user.role === 'admin' && activeUserId) {
+      loadChildren()
+    } else if (session?.user.role === 'admin' && !activeUserId) {
+      // Admin sin selección - no cargar nada
+      setChildren([])
+      setLoading(false)
+    } else if (session?.user.role && session?.user.role !== 'admin') {
+      // Para usuarios normales, cargar sus propios hijos
+      loadUserChildren()
+    }
+  }, [session, activeUserId, activeChildId])
 
   const loadChildren = async () => {
     try {
+      setLoading(true)
+      
+      // Para admins, cargar los niños del usuario seleccionado
+      const url = session?.user.role === 'admin' && activeUserId 
+        ? `/api/children?userId=${activeUserId}`
+        : "/api/children"
+      
+      console.log("NotificacionesPage - Fetching from URL:", url)
+      
+      const response = await fetch(url)
+      if (!response.ok) {
+        console.error("Response not OK:", response.status, response.statusText)
+        throw new Error("Error cargando niños")
+      }
+      
+      const data = await response.json()
+      console.log("NotificacionesPage - API Response:", data)
+      
+      // Manejar diferentes formatos de respuesta
+      let childrenData = []
+      if (Array.isArray(data)) {
+        childrenData = data
+      } else if (data.children) {
+        childrenData = data.children
+      } else if (data.data?.children) {
+        childrenData = data.data.children
+      }
+      
+      console.log("NotificacionesPage - Children data extracted:", childrenData)
+      
+      // Mapear los datos para incluir el nombre completo
+      const formattedChildren = childrenData.map((child: any) => ({
+        ...child,
+        name: `${child.firstName || ''} ${child.lastName || ''}`.trim() || 'Sin nombre'
+      }))
+      
+      console.log("NotificacionesPage - Formatted children:", formattedChildren)
+      setChildren(formattedChildren)
+      
+      // Si hay un niño activo en el contexto, seleccionarlo
+      if (activeChildId && formattedChildren.find((c: Child) => c._id === activeChildId)) {
+        setSelectedChild(activeChildId)
+      } else if (formattedChildren.length > 0) {
+        setSelectedChild(formattedChildren[0]._id)
+      }
+    } catch (error) {
+      console.error("NotificacionesPage - Error in loadChildren:", error)
+      toast.error("Error al cargar los perfiles")
+      setChildren([])
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+  const loadUserChildren = async () => {
+    try {
+      setLoading(true)
+      console.log("NotificacionesPage - loadUserChildren called for non-admin user")
+      
       const response = await fetch("/api/children")
       if (!response.ok) throw new Error("Error cargando niños")
       
       const data = await response.json()
-      setChildren(data.children || [])
+      console.log("NotificacionesPage - User children API Response:", data)
+      
+      // Manejar diferentes formatos de respuesta
+      let childrenData = []
+      if (Array.isArray(data)) {
+        childrenData = data
+      } else if (data.children) {
+        childrenData = data.children
+      } else if (data.data?.children) {
+        childrenData = data.data.children
+      }
+      
+      // Mapear los datos para incluir el nombre completo
+      const formattedChildren = childrenData.map((child: any) => ({
+        ...child,
+        name: `${child.firstName || ''} ${child.lastName || ''}`.trim() || 'Sin nombre'
+      }))
+      
+      console.log("NotificacionesPage - User formatted children:", formattedChildren)
+      setChildren(formattedChildren)
       
       // Seleccionar el primer niño por defecto
-      if (data.children && data.children.length > 0) {
-        setSelectedChild(data.children[0]._id)
+      if (formattedChildren.length > 0) {
+        setSelectedChild(formattedChildren[0]._id)
       }
     } catch (error) {
-      console.error("Error:", error)
+      console.error("NotificacionesPage - Error in loadUserChildren:", error)
       toast.error("Error al cargar los perfiles")
+      setChildren([])
     } finally {
       setLoading(false)
     }
@@ -176,6 +281,25 @@ export default function NotificacionesPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
+      {/* Panel de Debug Visible - TEMPORAL */}
+      <Card className="bg-yellow-50 border-yellow-300">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm text-yellow-800">🐛 Panel de Debug (Temporal)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-xs space-y-1 font-mono text-yellow-900">
+            <div>activeUserId: {activeUserId || 'null'}</div>
+            <div>activeChildId: {activeChildId || 'null'}</div>
+            <div>sessionRole: {session?.user?.role || 'null'}</div>
+            <div>loading: {loading.toString()}</div>
+            <div>children.length: {children.length}</div>
+            <div>selectedChild: {selectedChild || 'null'}</div>
+            <div>isAdmin: {(session?.user?.role === 'admin').toString()}</div>
+            <div>timestamp: {new Date().toLocaleTimeString()}</div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-[#1F2937]">Notificaciones</h1>
@@ -242,15 +366,30 @@ export default function NotificacionesPage() {
         </Card>
       </div>
 
-      {children.length === 0 ? (
+      {/* Mostrar mensaje apropiado según el contexto */}
+      {session?.user.role === 'admin' && !activeUserId ? (
+        <Card>
+          <CardContent className="text-center py-8">
+            <Icons.alertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-lg font-medium mb-2">
+              Selecciona un paciente primero
+            </p>
+            <p className="text-muted-foreground">
+              Usa el selector en la parte superior de la página para elegir un usuario y niño
+            </p>
+          </CardContent>
+        </Card>
+      ) : children.length === 0 && !loading ? (
         <Card>
           <CardContent className="text-center py-8">
             <p className="text-muted-foreground">
-              No tienes perfiles de niños registrados.
+              No hay perfiles de niños registrados para este usuario.
             </p>
-            <Button className="mt-4" onClick={() => window.location.href = "/dashboard/children"}>
-              Agregar Niño
-            </Button>
+            {session?.user.role !== 'admin' && (
+              <Button className="mt-4" onClick={() => window.location.href = "/dashboard/children"}>
+                Agregar Niño
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (

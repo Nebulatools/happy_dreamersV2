@@ -54,6 +54,7 @@ import {
   Plus,
   X
 } from "lucide-react"
+import { PDFExportButton } from "@/components/reports/PDFExportButton"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 
@@ -315,6 +316,14 @@ export function ProfessionalReportEditor({
                     <History className="h-4 w-4 mr-1" />
                     Historial
                   </Button>
+                  {professionalReport?._id && (
+                    <PDFExportButton
+                      reportId={professionalReport._id}
+                      reportType="professional_report"
+                      size="sm"
+                      variant="outline"
+                    />
+                  )}
                   <Button
                     variant="outline"
                     size="sm"

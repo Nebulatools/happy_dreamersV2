@@ -347,7 +347,7 @@ export default function DashboardPage() {
       <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
         {/* Saludo personalizado */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-[#2F2F2F]">
+          <h1 className="text-2xl font-bold" style={{ fontFamily: 'Ludicrous, sans-serif', color: '#68A1C8' }}>
             {getGreeting()}, {session?.user?.name?.split(" ")[0] || "Usuario"}!
           </h1>
           <p className="text-[#666666]">

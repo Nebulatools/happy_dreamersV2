@@ -21,6 +21,7 @@ import {
   Calendar,
   TrendingUp,
 } from "lucide-react"
+import { PDFExportButton } from "@/components/reports/PDFExportButton"
 import { useToast } from "@/hooks/use-toast"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -100,48 +101,6 @@ Generado por Happy Dreamers AI Assistant
     }
   }
 
-  // Descargar como archivo de texto
-  const downloadReport = () => {
-    if (!result) return
-
-    const fullReport = `
-ANÁLISIS PEDIÁTRICO
-Fecha: ${new Date().toLocaleDateString("es-ES")}
-${userName ? `Usuario: ${userName}` : ""}
-${childName ? `Niño: ${childName}` : ""}
-
-ANÁLISIS:
-${result.analysis}
-
-RECOMENDACIONES:
-${result.recommendations}
-
-${result.childContext ? `
-CONTEXTO DEL NIÑO:
-- Edad: ${result.childContext.ageInMonths} meses
-- Total de eventos: ${result.childContext.totalEvents}
-` : ""}
-
----
-Generado por Happy Dreamers AI Assistant
-Reporte ID: ${result.metadata?.reportId || "N/A"}
-    `.trim()
-
-    const blob = new Blob([fullReport], { type: "text/plain;charset=utf-8" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `analisis-${childName || "consulta"}-${new Date().toISOString().slice(0, 10)}.txt`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-
-    toast({
-      title: "Descarga iniciada",
-      description: "El análisis se está descargando como archivo de texto.",
-    })
-  }
 
   if (isLoading) {
     return (
@@ -212,13 +171,14 @@ Reporte ID: ${result.metadata?.reportId || "N/A"}
               >
                 {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={downloadReport}
-              >
-                <Download className="h-4 w-4" />
-              </Button>
+              {result.metadata?.reportId && (
+                <PDFExportButton
+                  reportId={result.metadata.reportId}
+                  reportType="consultation"
+                  size="sm"
+                  variant="outline"
+                />
+              )}
             </div>
           </div>
         </CardHeader>

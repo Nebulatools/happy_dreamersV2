@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Loader2, Calendar, Plus, Clock, Target, CheckCircle, AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { PlanDisplay } from "./PlanDisplay"
+import { EditablePlanDisplay } from "./EditablePlanDisplay"
 import { ChildPlan } from "@/types/models"
 
 interface PlanManagerProps {
@@ -467,9 +467,17 @@ export function PlanManager({
 
       {/* Mostrar plan seleccionado */}
       {selectedPlanIndex !== null && plans && plans.length > selectedPlanIndex && plans[selectedPlanIndex] && (
-        <PlanDisplay 
+        <EditablePlanDisplay 
           plan={plans[selectedPlanIndex]} 
           key={plans[selectedPlanIndex]._id?.toString() || `plan-${selectedPlanIndex}`}
+          onSave={async (updatedPlan) => {
+            // Recargar los planes después de guardar
+            await loadPlans()
+            toast({
+              title: "Plan actualizado",
+              description: "Los cambios se han guardado correctamente.",
+            })
+          }}
         />
       )}
     </div>

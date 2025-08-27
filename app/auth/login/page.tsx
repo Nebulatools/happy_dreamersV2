@@ -87,7 +87,7 @@ export default function LoginPage() {
         <img
           src="/LOGO.svg"
           alt="Happy Dreamers Logo"
-          style={{ width: 594, height: 381.21 }}
+          style={{ width: 594, height: 381.2064208984375 }}
           draggable={false}
         />
       </div>
@@ -103,13 +103,13 @@ export default function LoginPage() {
           </div>
 
           {/* Login Card */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-[24px] p-6 lg:p-8 shadow-2xl border border-white/20">
+          <div className="backdrop-blur-sm shadow-2xl border border-white/20" style={{ backgroundColor: '#EFFFFF', width: '451px', height: '624px', borderRadius: '20px', padding: '32px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             {/* Header */}
             <div className="text-center mb-6">
-              <h1 className="text-2xl lg:text-3xl font-bold text-[#2D3748] mb-2">
-                Welcome Back
+              <h1 className="mb-2 ludicrous-title" style={{ fontSize: '48px' }}>
+                Welcome Back!
               </h1>
-              <p className="text-[#718096] text-sm">
+              <p className="text-[#718096] text-sm century-gothic">
                 Sign in to continue tracking your sleep!
               </p>
             </div>
@@ -123,7 +123,7 @@ export default function LoginPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2">
+                      <FormLabel className="block text-sm font-medium text-[#374151] mb-2 century-gothic">
                         Email
                       </FormLabel>
                       <FormControl>
@@ -132,10 +132,11 @@ export default function LoginPage() {
                             {...field}
                             type="email"
                             placeholder="Enter your email"
+                            style={{ fontFamily: 'Century Gothic, sans-serif', backgroundColor: '#DEF1F1' }}
                             autoComplete="off"
                             data-form-type="other"
                             data-lpignore="true"
-                            className="w-full bg-[#EDF2F7] border-0 rounded-lg px-10 py-3 text-sm placeholder-[#A0AEC0] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
+                            className="w-full border-0 rounded-lg px-10 py-3 text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
                           />
                           <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
                         </div>
@@ -152,10 +153,10 @@ export default function LoginPage() {
                   render={({ field }) => (
                     <FormItem>
                       <div className="flex items-center justify-between mb-2">
-                        <FormLabel className="block text-sm font-medium text-[#2D3748]">
+                        <FormLabel className="block text-sm font-medium text-[#374151] century-gothic">
                           Password
                         </FormLabel>
-                        <Link href="#" className="text-sm text-[#4299E1] hover:underline">
+                        <Link href="#" className="text-sm text-[#4299E1] hover:underline century-gothic">
                           Forgot password?
                         </Link>
                       </div>
@@ -165,10 +166,11 @@ export default function LoginPage() {
                             {...field}
                             type={showPassword ? "text" : "password"}
                             placeholder="Enter your password"
+                            style={{ fontFamily: 'Century Gothic, sans-serif', backgroundColor: '#DEF1F1' }}
                             autoComplete="new-password"
                             data-form-type="other"
                             data-lpignore="true"
-                            className="w-full bg-[#EDF2F7] border-0 rounded-lg px-10 py-3 text-sm placeholder-[#A0AEC0] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
+                            className="w-full border-0 rounded-lg px-10 py-3 text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
                           />
                           <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
                           <button
@@ -192,7 +194,7 @@ export default function LoginPage() {
                     type="checkbox"
                     className="h-4 w-4 border border-gray-300 rounded focus:ring-[#4299E1] focus:ring-2"
                   />
-                  <label htmlFor="remember" className="text-sm text-[#4A5568]">
+                  <label htmlFor="remember" className="text-sm text-[#4A5568] century-gothic">
                     Remember me
                   </label>
                 </div>
@@ -202,8 +204,14 @@ export default function LoginPage() {
                   <Button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-[#68A1C8] hover:bg-[#68A1C8] text-white border-0 rounded-xl py-3 font-normal text-[13px]"
-                    style={{ fontFamily: 'Century Gothic, sans-serif' }}
+                    className="w-full text-white border-0 rounded-xl py-3 font-normal text-[13px]"
+                    style={{ 
+                      fontFamily: 'Century Gothic, sans-serif',
+                      background: '#68A1C8',
+                      backgroundColor: '#68A1C8'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a91b8'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#68A1C8'}
                   >
                     {isLoading ? "Signing in..." : "Sign In"}
                   </Button>
@@ -222,7 +230,7 @@ export default function LoginPage() {
 
             {/* Footer */}
             <div className="text-center mt-6">
-              <p className="text-sm text-[#718096]">
+              <p className="text-sm text-[#718096] century-gothic">
                 Don't have an account?{' '}
                 <Link href="/auth/register" className="text-[#4299E1] hover:underline font-medium">
                   Sign up

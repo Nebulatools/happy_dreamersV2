@@ -2,11 +2,9 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import dbConnect from "@/lib/mongodb"
-import NotificationLog from "@/models/notification-log"
-import Child from "@/models/Child"
-import { Types } from "mongoose"
+import { authOptions } from "@/lib/auth"
+import clientPromise from "@/lib/mongodb"
+import { ObjectId } from "mongodb"
 
 // GET: Obtener historial de notificaciones
 export async function GET(request: NextRequest) {
@@ -16,7 +14,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    await dbConnect()
+    const client = await clientPromise
+    const db = client.db()
 
     const { searchParams } = new URL(request.url)
     const childId = searchParams.get("childId")
@@ -27,12 +26,15 @@ export async function GET(request: NextRequest) {
 
     // Construir filtro de búsqueda
     const filter: any = {
-      userId: new Types.ObjectId(session.user.id)
+      userId: session.user.id
     }
 
     if (childId) {
       // Verificar acceso al niño
-      const child = await Child.findById(childId)
+      const child = await db.collection("children").findOne({
+        _id: new ObjectId(childId)
+      })
+      
       if (!child) {
         return NextResponse.json(
           { error: "Niño no encontrado" },
@@ -40,17 +42,17 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      const hasAccess = child.userId.toString() === session.user.id ||
-        child.caregivers?.some(c => c.userId.toString() === session.user.id)
+      const hasAccess = child.parentId === session.user.id ||
+        child.sharedWith?.includes(session.user.id)
 
-      if (!hasAccess) {
+      if (!hasAccess && session.user.role !== "admin") {
         return NextResponse.json(
           { error: "No tienes acceso a este perfil" },
           { status: 403 }
         )
       }
 
-      filter.childId = new Types.ObjectId(childId)
+      filter.childId = childId
     }
 
     if (status) {
@@ -62,23 +64,45 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener notificaciones con paginación
-    const [notifications, total] = await Promise.all([
-      NotificationLog
-        .find(filter)
-        .sort({ createdAt: -1 })
-        .limit(limit)
-        .skip(offset)
-        .populate("childId", "name")
-        .lean(),
-      NotificationLog.countDocuments(filter)
-    ])
+    const notifications = await db.collection("notificationlogs")
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .skip(offset)
+      .toArray()
 
-    // Obtener estadísticas
-    const stats = await NotificationLog.getStats(
-      new Types.ObjectId(session.user.id),
-      childId ? new Types.ObjectId(childId) : undefined,
-      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Últimos 30 días
-    )
+    const total = await db.collection("notificationlogs").countDocuments(filter)
+
+    // Obtener estadísticas básicas
+    const stats = {
+      total: 0,
+      sent: 0,
+      delivered: 0,
+      read: 0,
+      failed: 0
+    }
+
+    if (childId) {
+      const statsPipeline = [
+        { $match: { childId: childId, userId: session.user.id } },
+        { $group: {
+          _id: "$status",
+          count: { $sum: 1 }
+        }}
+      ]
+
+      const statsResult = await db.collection("notificationlogs")
+        .aggregate(statsPipeline)
+        .toArray()
+
+      statsResult.forEach(item => {
+        if (item._id === "sent") stats.sent = item.count
+        else if (item._id === "delivered") stats.delivered = item.count
+        else if (item._id === "read") stats.read = item.count
+        else if (item._id === "failed") stats.failed = item.count
+        stats.total += item.count
+      })
+    }
 
     return NextResponse.json({
       success: true,
@@ -89,13 +113,7 @@ export async function GET(request: NextRequest) {
         offset,
         hasMore: offset + limit < total
       },
-      stats: stats[0] || {
-        total: 0,
-        sent: 0,
-        delivered: 0,
-        read: 0,
-        failed: 0
-      }
+      stats
     })
 
   } catch (error) {
@@ -115,7 +133,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    await dbConnect()
+    const client = await clientPromise
+    const db = client.db()
 
     const body = await request.json()
     const { notificationId, action } = body
@@ -128,9 +147,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Buscar la notificación
-    const notification = await NotificationLog.findOne({
-      _id: new Types.ObjectId(notificationId),
-      userId: new Types.ObjectId(session.user.id)
+    const notification = await db.collection("notificationlogs").findOne({
+      _id: new ObjectId(notificationId),
+      userId: session.user.id
     })
 
     if (!notification) {
@@ -141,12 +160,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Ejecutar acción según el tipo
+    let updateData: any = {}
+    
     switch (action) {
       case "read":
-        await notification.markAsRead()
+        updateData = { 
+          status: "read", 
+          readAt: new Date(),
+          updatedAt: new Date()
+        }
         break
       case "delivered":
-        await notification.markAsDelivered()
+        updateData = { 
+          status: "delivered", 
+          deliveredAt: new Date(),
+          updatedAt: new Date()
+        }
         break
       default:
         return NextResponse.json(
@@ -155,10 +184,16 @@ export async function POST(request: NextRequest) {
         )
     }
 
+    // Actualizar la notificación
+    await db.collection("notificationlogs").updateOne(
+      { _id: new ObjectId(notificationId) },
+      { $set: updateData }
+    )
+
     return NextResponse.json({
       success: true,
       message: `Notificación marcada como ${action}`,
-      notification
+      notification: { ...notification, ...updateData }
     })
 
   } catch (error) {
@@ -178,7 +213,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    await dbConnect()
+    const client = await clientPromise
+    const db = client.db()
 
     const { searchParams } = new URL(request.url)
     const childId = searchParams.get("childId")
@@ -190,17 +226,17 @@ export async function DELETE(request: NextRequest) {
 
     // Construir filtro
     const filter: any = {
-      userId: new Types.ObjectId(session.user.id),
+      userId: session.user.id,
       createdAt: { $lt: dateLimit },
       status: { $in: ["read", "failed", "cancelled"] }
     }
 
     if (childId) {
-      filter.childId = new Types.ObjectId(childId)
+      filter.childId = childId
     }
 
     // Eliminar notificaciones antiguas
-    const result = await NotificationLog.deleteMany(filter)
+    const result = await db.collection("notificationlogs").deleteMany(filter)
 
     return NextResponse.json({
       success: true,
