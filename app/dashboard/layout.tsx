@@ -33,11 +33,11 @@ export default async function DashboardLayout({
             context="dashboard" 
             showDetails={process.env.NODE_ENV === 'development'}
           >
-            <div className="min-h-screen w-full">
+            <div className="min-h-screen w-full" style={{ backgroundColor: '#DEF1F1' }}>
               <Sidebar />
-              <div className="flex flex-col lg:ml-[256px]">
+              <div className="flex flex-col lg:ml-[256px]" style={{ backgroundColor: '#DEF1F1' }}>
                 <Header />
-                <main className="flex flex-1 flex-col gap-4 p-3 md:p-4 lg:gap-8 lg:p-6 pb-20 lg:pb-6">
+                <main className="flex flex-1 flex-col gap-4 p-3 md:p-4 lg:gap-8 lg:p-6 pb-20 lg:pb-6" style={{ backgroundColor: '#DEF1F1' }}>
                   <ErrorBoundary 
                     context="página" 
                     showDetails={process.env.NODE_ENV === 'development'}

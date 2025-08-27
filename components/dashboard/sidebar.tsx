@@ -213,14 +213,14 @@ export function Sidebar({ className }: { className?: string }) {
           <div className="p-4 mt-auto border-t border-white/10">
             <button 
               className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 hover:bg-white/10 w-full mb-1"
-              style={{ color: '#DEF1F1' }}
+              style={{ color: '#DEF1F1', fontFamily: 'Century Gothic, sans-serif' }}
             >
               <HelpCircle className="h-5 w-5" />
               Ayuda
             </button>
             <button 
               className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 hover:bg-white/10 w-full"
-              style={{ color: '#DEF1F1' }}
+              style={{ color: '#DEF1F1', fontFamily: 'Century Gothic, sans-serif' }}
             >
               <Mail className="h-5 w-5" />
               Contacto
@@ -273,7 +273,7 @@ function SidebarNav({ items, className, onItemClick }: SidebarNavProps) {
                 "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 text-left w-full",
                 item.disabled ? "opacity-50 cursor-not-allowed" : ""
               )}
-              style={{ color: '#DEF1F1' }}
+              style={{ color: '#DEF1F1', fontFamily: 'Century Gothic, sans-serif' }}
             >
               {item.icon}
               {item.title}
@@ -294,7 +294,8 @@ function SidebarNav({ items, className, onItemClick }: SidebarNavProps) {
             )}
             style={{ 
               backgroundColor: pathname === item.href && !item.disabled ? '#DEF1F1' : 'transparent',
-              color: pathname === item.href && !item.disabled ? '#68A1C8' : '#DEF1F1'
+              color: pathname === item.href && !item.disabled ? '#68A1C8' : '#DEF1F1',
+              fontFamily: 'Century Gothic, sans-serif'
             }}
             aria-disabled={item.disabled}
             tabIndex={item.disabled ? -1 : undefined}
@@ -358,7 +359,7 @@ function MobileSidebar({
                   "hover:bg-white/10",
                   item.disabled ? "opacity-50 cursor-not-allowed" : ""
                 )}
-                style={{ color: '#DEF1F1' }}
+                style={{ color: '#DEF1F1', fontFamily: 'Century Gothic, sans-serif' }}
               >
                 {item.icon}
                 {item.title}

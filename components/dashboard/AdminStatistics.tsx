@@ -256,7 +256,7 @@ export default function AdminStatistics() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F9FF] p-6">
+    <div className="min-h-screen p-6" style={{ backgroundColor: '#DEF1F1' }}>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Saludo personalizado para admin */}
         <div className="space-y-2">
