@@ -107,7 +107,7 @@ export default function LoginPage() {
             {/* Header */}
             <div className="text-center mb-6">
               <h1 className="text-2xl lg:text-3xl mb-2 ludicrous-title">
-                Welcome Back
+                Welcome Back!
               </h1>
               <p className="text-[#718096] text-sm century-gothic">
                 Sign in to continue tracking your sleep!
@@ -204,8 +204,14 @@ export default function LoginPage() {
                   <Button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-[#68A1C8] hover:bg-[#68A1C8] text-white border-0 rounded-xl py-3 font-normal text-[13px]"
-                    style={{ fontFamily: 'Century Gothic, sans-serif' }}
+                    className="w-full text-white border-0 rounded-xl py-3 font-normal text-[13px]"
+                    style={{ 
+                      fontFamily: 'Century Gothic, sans-serif',
+                      background: '#68A1C8',
+                      backgroundColor: '#68A1C8'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a91b8'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#68A1C8'}
                   >
                     {isLoading ? "Signing in..." : "Sign In"}
                   </Button>

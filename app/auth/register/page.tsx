@@ -133,7 +133,7 @@ export default function RegisterPage() {
               <h1 className="text-2xl lg:text-3xl mb-2 ludicrous-title">
                 Create Your Account
               </h1>
-              <p className="text-[#718096] text-sm century-gothic">
+              <p className="text-[#6B7280] text-sm century-gothic">
                 Join us and tracking your sleep better!
               </p>
             </div>
@@ -292,8 +292,14 @@ export default function RegisterPage() {
                   <Button
                     type="submit"
                     disabled={!acceptTerms || isLoading}
-                    className="w-full bg-[#68A1C8] hover:bg-[#68A1C8] text-white border-0 rounded-xl py-3 font-normal text-[13px]"
-                    style={{ fontFamily: 'Century Gothic, sans-serif' }}
+                    className="w-full text-white border-0 rounded-xl py-3 font-normal text-[13px]"
+                    style={{ 
+                      fontFamily: 'Century Gothic, sans-serif',
+                      background: '#68A1C8',
+                      backgroundColor: '#68A1C8' 
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a91b8'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#68A1C8'}
                   >
                     {isLoading ? "Creating account..." : "Create Account"}
                   </Button>
