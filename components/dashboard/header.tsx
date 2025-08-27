@@ -72,7 +72,7 @@ export function Header() {
         {/* Título y acciones dinámicas a la izquierda */}
         <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
           <div className="min-w-0">
-            <h1 className="text-base md:text-xl font-bold text-[#2F2F2F] truncate">
+            <h1 className="text-base md:text-xl font-bold truncate" style={{ color: '#A0D8D0' }}>
               {config.title}
             </h1>
             {config.subtitle && (

@@ -111,7 +111,7 @@ export default function RegisterPage() {
         <img
           src="/LOGO.svg"
           alt="Happy Dreamers Logo"
-          style={{ width: 594, height: 381.21 }}
+          style={{ width: 594, height: 381.2064208984375 }}
           draggable={false}
         />
       </div>
@@ -127,10 +127,10 @@ export default function RegisterPage() {
           </div>
 
           {/* Registration Card */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-[24px] p-6 lg:p-8 shadow-2xl border border-white/20">
+          <div className="backdrop-blur-sm shadow-2xl border border-white/20" style={{ backgroundColor: '#EFFFFF', width: '451px', minHeight: '624px', borderRadius: '20px', padding: '32px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             {/* Header */}
             <div className="text-center mb-6">
-              <h1 className="text-2xl lg:text-3xl mb-2 ludicrous-title">
+              <h1 className="mb-2 ludicrous-title" style={{ fontSize: '48px' }}>
                 Create Your Account
               </h1>
               <p className="text-[#6B7280] text-sm century-gothic">
@@ -147,7 +147,7 @@ export default function RegisterPage() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2 century-gothic">
+                      <FormLabel className="block text-sm font-medium text-[#374151] mb-2 century-gothic">
                         Full Name
                       </FormLabel>
                       <FormControl>
@@ -159,7 +159,7 @@ export default function RegisterPage() {
                             autoComplete="off"
                             data-form-type="other"
                             data-lpignore="true"
-                            className="w-full bg-[#EDF2F7] border-0 rounded-lg px-10 py-3 text-sm placeholder-[#A0AEC0] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
+                            className="w-full border-0 rounded-lg px-10 py-3 text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]" style={{ backgroundColor: '#DEF1F1' }}
                           />
                           <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
                         </div>
@@ -175,7 +175,7 @@ export default function RegisterPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2 century-gothic">
+                      <FormLabel className="block text-sm font-medium text-[#374151] mb-2 century-gothic">
                         Email
                       </FormLabel>
                       <FormControl>
@@ -188,7 +188,7 @@ export default function RegisterPage() {
                             autoComplete="off"
                             data-form-type="other"
                             data-lpignore="true"
-                            className="w-full bg-[#EDF2F7] border-0 rounded-lg px-10 py-3 text-sm placeholder-[#A0AEC0] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
+                            className="w-full border-0 rounded-lg px-10 py-3 text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]" style={{ backgroundColor: '#DEF1F1' }}
                           />
                           <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
                         </div>
@@ -204,7 +204,7 @@ export default function RegisterPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2 century-gothic">
+                      <FormLabel className="block text-sm font-medium text-[#374151] mb-2 century-gothic">
                         Password
                       </FormLabel>
                       <FormControl>
@@ -217,7 +217,7 @@ export default function RegisterPage() {
                             autoComplete="new-password"
                             data-form-type="other"
                             data-lpignore="true"
-                            className="w-full bg-[#EDF2F7] border-0 rounded-lg px-10 py-3 text-sm placeholder-[#A0AEC0] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
+                            className="w-full border-0 rounded-lg px-10 py-3 text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]" style={{ backgroundColor: '#DEF1F1' }}
                           />
                           <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
                           <button
@@ -240,7 +240,7 @@ export default function RegisterPage() {
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2 century-gothic">
+                      <FormLabel className="block text-sm font-medium text-[#374151] mb-2 century-gothic">
                         Confirm Password
                       </FormLabel>
                       <FormControl>
@@ -253,7 +253,7 @@ export default function RegisterPage() {
                             autoComplete="new-password"
                             data-form-type="other"
                             data-lpignore="true"
-                            className="w-full bg-[#EDF2F7] border-0 rounded-lg px-10 py-3 text-sm placeholder-[#A0AEC0] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
+                            className="w-full border-0 rounded-lg px-10 py-3 text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]" style={{ backgroundColor: '#DEF1F1' }}
                           />
                           <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
                           <button
