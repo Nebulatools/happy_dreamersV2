@@ -38,6 +38,22 @@
   line-height: 1.2 !important;
 }
 
+/* Clase específica para el saludo del dashboard */
+.dashboard-greeting {
+  font-family: 'Ludicrous', sans-serif !important;
+  color: #68A1C8 !important;
+  font-weight: normal !important;
+}
+
+/* Asegurar que la fuente se mantenga después de la hidratación */
+.dashboard-greeting, 
+.dashboard-greeting *,
+.greeting-title {
+  font-family: 'Ludicrous', sans-serif !important;
+  color: #68A1C8 !important;
+  font-weight: normal !important;
+}
+
 /* Clase para aplicar Century Gothic */
 .century-gothic {
   font-family: 'Century Gothic', sans-serif !important;

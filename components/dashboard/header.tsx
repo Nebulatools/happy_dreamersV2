@@ -67,16 +67,16 @@ export function Header() {
     : "U"
 
   return (
-    <header className="sticky top-0 z-30 bg-white shadow-sm">
+    <header className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: '#A0D8D0' }}>
       <div className="flex h-16 md:h-20 items-center justify-between px-3 md:px-6">
         {/* Título y acciones dinámicas a la izquierda */}
         <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
           <div className="min-w-0">
-            <h1 className="text-base md:text-xl font-bold truncate" style={{ color: '#A0D8D0' }}>
+            <h1 className="text-base md:text-xl font-bold truncate text-white">
               {config.title}
             </h1>
             {config.subtitle && (
-              <p className="text-sm text-gray-600 truncate">
+              <p className="text-sm text-white/80 truncate">
                 {config.subtitle}
               </p>
             )}

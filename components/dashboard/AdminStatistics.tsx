@@ -260,7 +260,14 @@ export default function AdminStatistics() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Saludo personalizado para admin */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-[#2F2F2F]">
+          <h1 
+            className="text-2xl greeting-title"
+            style={{
+              fontFamily: "Ludicrous, sans-serif",
+              color: "#68A1C8",
+              fontWeight: "normal"
+            }}
+          >
             {getGreeting()}, Dr. {session?.user?.name?.split(" ")[0] || "Admin"}!
           </h1>
           <p className="text-[#666666]">
