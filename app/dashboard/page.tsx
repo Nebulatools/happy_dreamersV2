@@ -361,11 +361,12 @@ export default function DashboardPage() {
         {/* Saludo personalizado */}
         <div className="space-y-2">
           <h1 
-            className="text-2xl greeting-title"
+            className="greeting-title"
             style={{
               fontFamily: "Ludicrous, sans-serif",
               color: "#68A1C8",
-              fontWeight: "normal"
+              fontWeight: "normal",
+              fontSize: "48px"
             }}
             suppressHydrationWarning
           >

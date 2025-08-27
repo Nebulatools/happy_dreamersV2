@@ -166,26 +166,18 @@ export function Sidebar({ className }: { className?: string }) {
           <MobileSidebar items={filteredItems} setOpen={setOpen} onItemClick={handleItemClick} />
         </SheetContent>
       </Sheet>
-      <div className="hidden md:block w-[256px] min-h-screen fixed left-0 top-0 bottom-0 hd-gradient-primary border-r border-white/10">
+      <div className="hidden md:block w-[256px] min-h-screen fixed left-0 top-0 bottom-0 border-r border-white/10" style={{ backgroundColor: '#68A1C8' }}>
         <div className="flex flex-col h-full">
           {/* Logo Section */}
           <div className="px-6 pt-6 pb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/40 rounded-xl flex items-center justify-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-5 w-5 text-gray-800"
-                >
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                </svg>
-              </div>
-              <h1 className="text-xl font-semibold text-gray-800">Happy Dreamers</h1>
+            <div className="flex items-center justify-center">
+              <img
+                src="/LOGO.svg"
+                alt="Happy Dreamers Logo"
+                className="h-16 w-auto"
+                style={{ maxWidth: '180px' }}
+                draggable={false}
+              />
             </div>
           </div>
           
@@ -216,11 +208,11 @@ export function Sidebar({ className }: { className?: string }) {
           
           {/* Botones de Ayuda y Contacto al final */}
           <div className="p-4 mt-auto border-t border-white/10">
-            <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 text-gray-700 hover:bg-white/20 hover:text-gray-900 w-full mb-1">
+            <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 text-white hover:bg-white/20 hover:text-white w-full mb-1">
               <HelpCircle className="h-5 w-5" />
               Ayuda
             </button>
-            <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 text-gray-700 hover:bg-white/20 hover:text-gray-900 w-full">
+            <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 text-white hover:bg-white/20 hover:text-white w-full">
               <Mail className="h-5 w-5" />
               Contacto
             </button>
@@ -270,7 +262,7 @@ function SidebarNav({ items, className, onItemClick }: SidebarNavProps) {
               disabled={item.disabled}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 text-left w-full",
-                "text-gray-700 hover:bg-white/20 hover:text-gray-900",
+                "text-white hover:bg-white/20 hover:text-white",
                 item.disabled ? "opacity-50 cursor-not-allowed" : ""
               )}
             >
@@ -287,8 +279,8 @@ function SidebarNav({ items, className, onItemClick }: SidebarNavProps) {
             className={cn(
               "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
               pathname === item.href && !item.disabled 
-                ? "bg-white/30 text-gray-900 backdrop-blur-sm border border-white/50" 
-                : "text-gray-700 hover:bg-white/20 hover:text-gray-900",
+                ? "bg-white/30 text-white backdrop-blur-sm border border-white/50" 
+                : "hover:bg-white/20",
               item.disabled ? "opacity-50 pointer-events-none cursor-not-allowed" : ""
             )}
             aria-disabled={item.disabled}
@@ -323,20 +315,14 @@ function MobileSidebar({
 
   return (
     <div className="flex flex-col gap-6 py-2">
-      <Link href="/dashboard" className="flex items-center gap-2 px-4" onClick={() => setOpen(false)}>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-6 w-6 text-primary"
-        >
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-        </svg>
-        <span className="font-bold">Happy Dreamers</span>
+      <Link href="/dashboard" className="flex items-center justify-center px-4" onClick={() => setOpen(false)}>
+        <img
+          src="/LOGO.svg"
+          alt="Happy Dreamers Logo"
+          className="h-14 w-auto"
+          style={{ maxWidth: '160px' }}
+          draggable={false}
+        />
       </Link>
       <nav className="flex flex-col gap-2 px-2">
         {items.map((item) => {
