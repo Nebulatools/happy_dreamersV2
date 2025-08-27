@@ -109,7 +109,7 @@ export default function LoginPage() {
               <h1 className="text-2xl lg:text-3xl mb-2 ludicrous-title">
                 Welcome Back
               </h1>
-              <p className="text-[#718096] text-sm">
+              <p className="text-[#718096] text-sm century-gothic">
                 Sign in to continue tracking your sleep!
               </p>
             </div>
@@ -123,7 +123,7 @@ export default function LoginPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2">
+                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2 century-gothic">
                         Email
                       </FormLabel>
                       <FormControl>
@@ -132,6 +132,7 @@ export default function LoginPage() {
                             {...field}
                             type="email"
                             placeholder="Enter your email"
+                            style={{ fontFamily: 'Century Gothic, sans-serif' }}
                             autoComplete="off"
                             data-form-type="other"
                             data-lpignore="true"
@@ -152,10 +153,10 @@ export default function LoginPage() {
                   render={({ field }) => (
                     <FormItem>
                       <div className="flex items-center justify-between mb-2">
-                        <FormLabel className="block text-sm font-medium text-[#2D3748]">
+                        <FormLabel className="block text-sm font-medium text-[#2D3748] century-gothic">
                           Password
                         </FormLabel>
-                        <Link href="#" className="text-sm text-[#4299E1] hover:underline">
+                        <Link href="#" className="text-sm text-[#4299E1] hover:underline century-gothic">
                           Forgot password?
                         </Link>
                       </div>
@@ -165,6 +166,7 @@ export default function LoginPage() {
                             {...field}
                             type={showPassword ? "text" : "password"}
                             placeholder="Enter your password"
+                            style={{ fontFamily: 'Century Gothic, sans-serif' }}
                             autoComplete="new-password"
                             data-form-type="other"
                             data-lpignore="true"
@@ -192,7 +194,7 @@ export default function LoginPage() {
                     type="checkbox"
                     className="h-4 w-4 border border-gray-300 rounded focus:ring-[#4299E1] focus:ring-2"
                   />
-                  <label htmlFor="remember" className="text-sm text-[#4A5568]">
+                  <label htmlFor="remember" className="text-sm text-[#4A5568] century-gothic">
                     Remember me
                   </label>
                 </div>
@@ -222,7 +224,7 @@ export default function LoginPage() {
 
             {/* Footer */}
             <div className="text-center mt-6">
-              <p className="text-sm text-[#718096]">
+              <p className="text-sm text-[#718096] century-gothic">
                 Don't have an account?{' '}
                 <Link href="/auth/register" className="text-[#4299E1] hover:underline font-medium">
                   Sign up

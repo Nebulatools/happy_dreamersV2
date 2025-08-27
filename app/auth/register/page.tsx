@@ -133,7 +133,7 @@ export default function RegisterPage() {
               <h1 className="text-2xl lg:text-3xl mb-2 ludicrous-title">
                 Create Your Account
               </h1>
-              <p className="text-[#718096] text-sm">
+              <p className="text-[#718096] text-sm century-gothic">
                 Join us and tracking your sleep better!
               </p>
             </div>
@@ -147,7 +147,7 @@ export default function RegisterPage() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2">
+                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2 century-gothic">
                         Full Name
                       </FormLabel>
                       <FormControl>
@@ -155,6 +155,7 @@ export default function RegisterPage() {
                           <Input
                             {...field}
                             placeholder="Enter your full name"
+                            style={{ fontFamily: 'Century Gothic, sans-serif' }}
                             autoComplete="off"
                             data-form-type="other"
                             data-lpignore="true"
@@ -174,7 +175,7 @@ export default function RegisterPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2">
+                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2 century-gothic">
                         Email
                       </FormLabel>
                       <FormControl>
@@ -183,6 +184,7 @@ export default function RegisterPage() {
                             {...field}
                             type="email"
                             placeholder="Enter your email"
+                            style={{ fontFamily: 'Century Gothic, sans-serif' }}
                             autoComplete="off"
                             data-form-type="other"
                             data-lpignore="true"
@@ -202,7 +204,7 @@ export default function RegisterPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2">
+                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2 century-gothic">
                         Password
                       </FormLabel>
                       <FormControl>
@@ -211,6 +213,7 @@ export default function RegisterPage() {
                             {...field}
                             type={showPassword ? "text" : "password"}
                             placeholder="Create a password"
+                            style={{ fontFamily: 'Century Gothic, sans-serif' }}
                             autoComplete="new-password"
                             data-form-type="other"
                             data-lpignore="true"
@@ -237,7 +240,7 @@ export default function RegisterPage() {
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2">
+                      <FormLabel className="block text-sm font-medium text-[#2D3748] mb-2 century-gothic">
                         Confirm Password
                       </FormLabel>
                       <FormControl>
@@ -246,6 +249,7 @@ export default function RegisterPage() {
                             {...field}
                             type={showConfirmPassword ? "text" : "password"}
                             placeholder="Confirm your password"
+                            style={{ fontFamily: 'Century Gothic, sans-serif' }}
                             autoComplete="new-password"
                             data-form-type="other"
                             data-lpignore="true"
@@ -275,7 +279,7 @@ export default function RegisterPage() {
                     onChange={(e) => setAcceptTerms(e.target.checked)}
                     className="mt-1 w-4 h-4 border border-gray-300 rounded focus:ring-[#4299E1] focus:ring-2"
                   />
-                  <label htmlFor="acceptTerms" className="text-xs text-[#4A5568] leading-relaxed">
+                  <label htmlFor="acceptTerms" className="text-xs text-[#4A5568] leading-relaxed century-gothic">
                     I agree to the{' '}
                     <Link href="#" className="text-[#4299E1] hover:underline">Terms of Service</Link>
                     {' '}and{' '}
@@ -308,7 +312,7 @@ export default function RegisterPage() {
 
             {/* Footer */}
             <div className="text-center mt-6">
-              <p className="text-sm text-[#718096]">
+              <p className="text-sm text-[#718096] century-gothic">
                 Already have an account?{' '}
                 <Link href="/auth/login" className="text-[#4299E1] hover:underline font-medium">
                   Sign in
