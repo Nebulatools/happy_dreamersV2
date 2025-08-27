@@ -162,7 +162,7 @@ export function Sidebar({ className }: { className?: string }) {
             <span className="sr-only">Abrir menú</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-[256px] pr-0 hd-gradient-primary">
+        <SheetContent side="left" className="w-[256px] pr-0" style={{ backgroundColor: '#68A1C8' }}>
           <MobileSidebar items={filteredItems} setOpen={setOpen} onItemClick={handleItemClick} />
         </SheetContent>
       </Sheet>
@@ -211,11 +211,17 @@ export function Sidebar({ className }: { className?: string }) {
           
           {/* Botones de Ayuda y Contacto al final */}
           <div className="p-4 mt-auto border-t border-white/10">
-            <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 text-white hover:bg-white/20 hover:text-white w-full mb-1">
+            <button 
+              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 hover:bg-white/10 w-full mb-1"
+              style={{ color: '#DEF1F1' }}
+            >
               <HelpCircle className="h-5 w-5" />
               Ayuda
             </button>
-            <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 text-white hover:bg-white/20 hover:text-white w-full">
+            <button 
+              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 hover:bg-white/10 w-full"
+              style={{ color: '#DEF1F1' }}
+            >
               <Mail className="h-5 w-5" />
               Contacto
             </button>
@@ -265,9 +271,9 @@ function SidebarNav({ items, className, onItemClick }: SidebarNavProps) {
               disabled={item.disabled}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 text-left w-full",
-                "text-white hover:bg-white/20 hover:text-white",
                 item.disabled ? "opacity-50 cursor-not-allowed" : ""
               )}
+              style={{ color: '#DEF1F1' }}
             >
               {item.icon}
               {item.title}
@@ -282,10 +288,14 @@ function SidebarNav({ items, className, onItemClick }: SidebarNavProps) {
             className={cn(
               "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
               pathname === item.href && !item.disabled 
-                ? "bg-white/30 text-white backdrop-blur-sm border border-white/50" 
-                : "hover:bg-white/20",
+                ? "" 
+                : "hover:bg-white/10",
               item.disabled ? "opacity-50 pointer-events-none cursor-not-allowed" : ""
             )}
+            style={{ 
+              backgroundColor: pathname === item.href && !item.disabled ? '#DEF1F1' : 'transparent',
+              color: pathname === item.href && !item.disabled ? '#68A1C8' : '#DEF1F1'
+            }}
             aria-disabled={item.disabled}
             tabIndex={item.disabled ? -1 : undefined}
           >
@@ -345,9 +355,10 @@ function MobileSidebar({
                 disabled={item.disabled}
                 className={cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors text-left w-full",
-                  "hover:bg-muted",
+                  "hover:bg-white/10",
                   item.disabled ? "opacity-50 cursor-not-allowed" : ""
                 )}
+                style={{ color: '#DEF1F1' }}
               >
                 {item.icon}
                 {item.title}
@@ -362,9 +373,13 @@ function MobileSidebar({
               onClick={() => { if (!item.disabled) setOpen(false) }}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                pathname === item.href && !item.disabled ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+                pathname === item.href && !item.disabled ? "" : "hover:bg-white/10",
                 item.disabled ? "opacity-50 pointer-events-none cursor-not-allowed" : ""
               )}
+              style={{ 
+                backgroundColor: pathname === item.href && !item.disabled ? '#DEF1F1' : 'transparent',
+                color: pathname === item.href && !item.disabled ? '#68A1C8' : '#DEF1F1'
+              }}
               aria-disabled={item.disabled}
               tabIndex={item.disabled ? -1 : undefined}
             >
