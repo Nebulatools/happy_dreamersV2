@@ -9,6 +9,7 @@ import { ObjectId } from "mongodb"
 import { differenceInMinutes, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns"
 
 import { createLogger } from "@/lib/logger"
+import { syncEventToAnalyticsCollection, removeEventFromAnalyticsCollection } from "@/lib/event-sync"
 
 const logger = createLogger("API:children:events:route")
 
@@ -469,6 +470,41 @@ export async function POST(req: NextRequest) {
         { error: "No se pudo registrar el evento" },
         { status: 500 }
       )
+    }
+
+    // SINCRONIZAR CON COLECCIÓN ANALYTICS (no bloquear si falla)
+    try {
+      await syncEventToAnalyticsCollection({
+        _id: event._id,
+        childId: event.childId,
+        parentId: session.user.id,
+        eventType: event.eventType,
+        emotionalState: event.emotionalState,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        duration: event.duration,
+        notes: event.notes,
+        sleepDelay: event.sleepDelay,
+        awakeDelay: event.awakeDelay,
+        feedingType: event.feedingType,
+        feedingAmount: event.feedingAmount,
+        feedingDuration: event.feedingDuration,
+        babyState: event.babyState,
+        feedingNotes: event.feedingNotes,
+        medicationName: event.medicationName,
+        medicationDose: event.medicationDose,
+        medicationTime: event.medicationTime,
+        medicationNotes: event.medicationNotes,
+        activityDescription: event.activityDescription,
+        activityDuration: event.activityDuration,
+        activityImpact: event.activityImpact,
+        activityNotes: event.activityNotes,
+        createdAt: event.createdAt
+      })
+      logger.info(`Evento ${event._id} sincronizado a colección analytics`)
+    } catch (syncError) {
+      logger.warn(`No se pudo sincronizar evento ${event._id} a analytics:`, syncError)
+      // No fallar la operación principal por error de sincronización
     }
 
     return NextResponse.json(
@@ -956,6 +992,15 @@ export async function DELETE(req: NextRequest) {
         { error: "No se pudo eliminar el evento o no existe" },
         { status: 404 }
       )
+    }
+
+    // SINCRONIZAR ELIMINACIÓN CON COLECCIÓN ANALYTICS (no bloquear si falla)
+    try {
+      await removeEventFromAnalyticsCollection(eventId)
+      logger.info(`Evento ${eventId} eliminado de colección analytics`)
+    } catch (syncError) {
+      logger.warn(`No se pudo eliminar evento ${eventId} de analytics:`, syncError)
+      // No fallar la operación principal por error de sincronización
     }
 
     return NextResponse.json(
