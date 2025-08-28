@@ -206,17 +206,6 @@ export function NotificationTester({ childId, childName }: NotificationTesterPro
           </Select>
         </div>
 
-        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3">
-          <p className="text-sm text-yellow-800">
-            <strong>Nota:</strong> Las notificaciones de prueba aparecerán como:
-          </p>
-          <ul className="text-sm text-yellow-700 mt-2 space-y-1">
-            <li>• Notificación del navegador (si está permitido)</li>
-            <li>• Toast en la aplicación</li>
-            <li>• Entrada en el historial de notificaciones</li>
-          </ul>
-        </div>
-
         <div className="flex space-x-2">
           <Button
             onClick={testNotification}
