@@ -30,8 +30,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache, useEventsInvalidation } from "@/hooks/use-events-cache"
-// TEMPORALMENTE COMENTADO - Sistema de eventos en reset
-// import { EventRegistrationModal } from "@/components/events"
+import { ManualEventModal } from "@/components/events/ManualEventModal"
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal"
 
 const logger = createLogger("EventsPage")
@@ -385,10 +384,6 @@ export default function ChildEventsPage() {
           <CardContent className="py-10">
             <div className="text-center">
               <p>No hay eventos registrados para este niño.</p>
-              <Button className="mt-4 hd-gradient-button text-white" onClick={() => setEventModalOpen(true)}>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Registrar el primer evento
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -714,16 +709,19 @@ export default function ChildEventsPage() {
       
       {/* TEMPORALMENTE COMENTADO - Sistema de eventos en reset */}
       {/* Event Registration Modal */}
-      {/* <EventRegistrationModal
-        isOpen={eventModalOpen}
-        onClose={() => setEventModalOpen(false)}
-        childId={activeChildId || undefined}
-        children={children}
-        onEventCreated={() => {
-          invalidateEvents() // Invalidar cache global
-          setEventModalOpen(false)
-        }}
-      /> */}
+      {/* Modal para registrar eventos */}
+      {activeChildId && child && (
+        <ManualEventModal
+          open={eventModalOpen}
+          onClose={() => setEventModalOpen(false)}
+          childId={activeChildId}
+          childName={`${child.firstName} ${child.lastName || ''}`.trim()}
+          onEventRegistered={() => {
+            invalidateEvents() // Invalidar cache global
+            setEventModalOpen(false)
+          }}
+        />
+      )}
 
       {/* Modal de confirmación de eliminación */}
       {selectedEvent && (
