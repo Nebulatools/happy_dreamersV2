@@ -54,35 +54,53 @@ export function SleepSessionBlock({
       return 0 // Empezar desde el principio del día (medianoche)
     }
     
-    const timeMatch = startTime.match(/T(\d{2}):(\d{2})/)
-    if (timeMatch) {
-      const hours = parseInt(timeMatch[1], 10)
-      const minutes = parseInt(timeMatch[2], 10)
+    try {
+      // Usar parseISO para convertir correctamente a hora local
+      const date = parseISO(startTime)
+      const hours = date.getHours()
+      const minutes = date.getMinutes()
       const totalMinutes = hours * 60 + minutes
       const pixelsPerMinute = hourHeight / 60
       return Math.round(totalMinutes * pixelsPerMinute)
+    } catch (error) {
+      console.error('Error parsing startTime in calculateStartPosition:', error)
+      return 0
     }
-    return 0
   }
   
   // Calcular altura del bloque
   const calculateBlockHeight = () => {
     // Si continúa al día siguiente, extender hasta el final del día
     if (continuesNextDay) {
-      const useStartTime = isContinuationFromPrevious && originalStartTime ? originalStartTime : startTime
-      const startHour = parseInt(useStartTime.match(/T(\d{2}):/)?.[1] || '0')
-      const startMinute = parseInt(useStartTime.match(/T(\d{2}):(\d{2})/)?.[2] || '0')
-      const minutesUntilMidnight = (24 * 60) - (startHour * 60 + startMinute)
-      const pixelsPerMinute = hourHeight / 60
-      return Math.max(20, minutesUntilMidnight * pixelsPerMinute)
+      try {
+        const useStartTime = isContinuationFromPrevious && originalStartTime ? originalStartTime : startTime
+        const startDate = parseISO(useStartTime)
+        const startHour = startDate.getHours()
+        const startMinute = startDate.getMinutes()
+        const minutesUntilMidnight = (24 * 60) - (startHour * 60 + startMinute)
+        const pixelsPerMinute = hourHeight / 60
+        return Math.max(20, minutesUntilMidnight * pixelsPerMinute)
+      } catch (error) {
+        console.error('Error calculating height for continuesNextDay:', error)
+        return 20
+      }
     }
     
     if (!endTime) {
-      // Sueño en progreso: calcular desde el tiempo real de inicio
-      const useStartTime = isContinuationFromPrevious && originalStartTime ? originalStartTime : startTime
-      const startHour = parseInt(useStartTime.match(/T(\d{2}):/)?.[1] || '0')
-      const remainingHours = 24 - startHour
-      return Math.min(remainingHours * hourHeight, 300) // Máximo 300px para el fade
+      // Sueño en progreso: calcular hasta medianoche solamente
+      try {
+        const useStartTime = isContinuationFromPrevious && originalStartTime ? originalStartTime : startTime
+        const startDate = parseISO(useStartTime)
+        const startHour = startDate.getHours()
+        const startMinute = startDate.getMinutes()
+        const minutesUntilMidnight = (24 * 60) - (startHour * 60 + startMinute)
+        const pixelsPerMinute = hourHeight / 60
+        // Altura máxima: hasta medianoche
+        return Math.min(minutesUntilMidnight * pixelsPerMinute, 300)
+      } catch (error) {
+        console.error('Error calculating height for in progress sleep:', error)
+        return 100
+      }
     }
     
     // Sueño completado: calcular duración real usando tiempos originales si disponible
@@ -127,16 +145,20 @@ export function SleepSessionBlock({
   // Renderizar despertares nocturnos dentro de la sesión
   const renderNightWakings = () => {
     return nightWakings.map(waking => {
-      const wakingTimeMatch = waking.startTime.match(/T(\d{2}):(\d{2})/)
-      if (!wakingTimeMatch) return null
-      
-      const wakingHours = parseInt(wakingTimeMatch[1], 10)
-      const wakingMinutes = parseInt(wakingTimeMatch[2], 10)
-      const wakingTotalMinutes = wakingHours * 60 + wakingMinutes
-      const wakingPosition = Math.round(wakingTotalMinutes * (hourHeight / 60))
-      const relativePosition = wakingPosition - position
-      
-      if (relativePosition < 0 || relativePosition > height) return null
+      try {
+        // Usar parseISO para convertir correctamente a hora local
+        const wakingDate = parseISO(waking.startTime)
+        const wakingHours = wakingDate.getHours()
+        const wakingMinutes = wakingDate.getMinutes()
+        const wakingTotalMinutes = wakingHours * 60 + wakingMinutes
+        const wakingPosition = Math.round(wakingTotalMinutes * (hourHeight / 60))
+        const relativePosition = wakingPosition - position
+        
+        if (relativePosition < 0 || relativePosition > height) return null
+      } catch (error) {
+        console.error('Error parsing waking startTime:', error)
+        return null
+      }
       
       return (
         <div

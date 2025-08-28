@@ -83,13 +83,16 @@ export default function DashboardPage() {
 
   // Cargar datos del niño activo
   useEffect(() => {
-    if (activeChildId) {
+    if (activeChildId && session) {
       loadChildData()
     }
-  }, [activeChildId, refreshTrigger])
+  }, [activeChildId, refreshTrigger, session])
 
   const loadChildData = async () => {
-    if (!activeChildId) return
+    if (!activeChildId || !session) {
+      console.log('No se puede cargar datos: activeChildId =', activeChildId, ', session =', !!session)
+      return
+    }
     
     try {
       setIsLoading(true)
@@ -101,11 +104,18 @@ export default function DashboardPage() {
         setChild(childData)
       }
       
-      // Cargar eventos del niño
+      // Cargar eventos del niño (NextAuth maneja cookies automáticamente)
+      console.log('🔍 Cargando eventos para:', activeChildId)
       const eventsResponse = await fetch(`/api/children/events?childId=${activeChildId}`)
+      
       if (eventsResponse.ok) {
         const eventsData = await eventsResponse.json()
+        console.log('✅ Eventos cargados exitosamente:', eventsData.events?.length || 0, 'eventos')
         setEvents(eventsData.events || [])
+      } else {
+        console.error('❌ Error cargando eventos:', eventsResponse.status, eventsResponse.statusText)
+        const errorData = await eventsResponse.json().catch(() => null)
+        console.error('Error details:', errorData)
       }
     } catch (error) {
       logger.error("Error loading child data:", error)

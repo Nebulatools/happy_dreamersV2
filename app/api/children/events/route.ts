@@ -119,7 +119,17 @@ function validateEventOverlap(newEvent: any, existingEvents: any[], excludeEvent
     // Solo revisar eventos del mismo día
     if (!isWithinInterval(eventStart, { start: dayStart, end: dayEnd })) return false
     
-    // Validar traslape de horarios
+    // Caso especial: Eventos puntuales del mismo tipo en el mismo momento
+    // Solo considerar traslape si son del mismo tipo Y están en el mismo minuto
+    const sameMinute = Math.abs(newStart.getTime() - eventStart.getTime()) < 60000
+    const sameEventType = newEvent.eventType === event.eventType
+    
+    // Si ambos eventos no tienen endTime (son puntuales), solo traslapar si mismo tipo
+    if (!newEnd && !eventEnd) {
+      return sameMinute && sameEventType
+    }
+    
+    // Si alguno tiene duración, aplicar validaciones de traslape de tiempo
     // Caso 1: El nuevo evento empieza durante un evento existente
     if (eventEnd && newStart >= eventStart && newStart < eventEnd) {
       return true
@@ -140,8 +150,8 @@ function validateEventOverlap(newEvent: any, existingEvents: any[], excludeEvent
       return true
     }
     
-    // Caso especial: Eventos en el mismo minuto (considerados traslape)
-    if (Math.abs(newStart.getTime() - eventStart.getTime()) < 60000) { // Menos de 1 minuto
+    // Caso 5: Eventos puntuales en el mismo minuto - solo traslapar si mismo tipo
+    if (sameMinute && sameEventType) {
       return true
     }
     
