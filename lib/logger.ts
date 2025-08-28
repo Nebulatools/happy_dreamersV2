@@ -63,8 +63,10 @@ class Logger {
   debug(message: string, data?: unknown): void {
     if (this.shouldLog("debug") && this.isDevelopment) {
       const logEntry = this.formatMessage("debug", message, this.sanitizeData(data))
-      // eslint-disable-next-line no-console
-      console.log(`[${logEntry.timestamp}] [${logEntry.context}] DEBUG:`, message, data || "")
+      if (logEntry && logEntry.timestamp && logEntry.context) {
+        // eslint-disable-next-line no-console
+        console.log(`[${logEntry.timestamp}] [${logEntry.context}] DEBUG:`, message, data || "")
+      }
     }
   }
 
@@ -100,7 +102,7 @@ class Logger {
         const logEntry = this.formatMessage("error", message, this.sanitizeData(errorData))
         
         // Defensive programming: Ensure logEntry is valid
-        if (!logEntry || typeof logEntry !== 'object') {
+        if (!logEntry || typeof logEntry !== 'object' || !logEntry.timestamp || !logEntry.context) {
           // Fallback logging if formatMessage fails
           // eslint-disable-next-line no-console
           console.error(`[${new Date().toISOString()}] [${this.context || 'Unknown'}] ERROR:`, message, errorData || "")
