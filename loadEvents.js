@@ -24,14 +24,26 @@ const CSV_FILE_PATH = './bernardo prueba happy dreamers.csv';
 // -----------------------------------------------------------------------------
 
 // Función para combinar fecha y hora en un objeto Date de JavaScript
-// Maneja el formato 'MM/DD/YY' y horas como '8:00' o '12:45'
+// Maneja el formato 'MM/DD/YY' o 'MM/DD/YYYY' y horas como '8:00' o '12:45'
 const parseDateTime = (eventDate, timeStr) => {
   if (!eventDate || !timeStr) return null;
-  // El formato MM/DD/YY no es estándar, lo reconstruimos
-  const [month, day, year] = eventDate.split('/');
-  const fullYear = `20${year}`; // Asumimos años 20xx
+  
+  // El formato MM/DD/YY o MM/DD/YYYY no es estándar, lo reconstruimos
+  const [month, day, yearRaw] = eventDate.split('/');
+  
+  // Determinar si el año tiene 2 o 4 dígitos
+  let fullYear;
+  if (yearRaw.length === 2) {
+    // Año corto (YY) - asumimos 20xx
+    fullYear = `20${yearRaw}`;
+  } else {
+    // Año completo (YYYY)
+    fullYear = yearRaw;
+  }
+  
   const dateString = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timeStr.padStart(5, '0')}:00`;
   const date = new Date(dateString);
+  
   // Validamos si la fecha es válida
   return isNaN(date.getTime()) ? null : date;
 };
@@ -63,18 +75,45 @@ async function main() {
     console.log(`✅ Niño encontrado: ${child.firstName} ${child.lastName || ''}`);
 
     const eventsToInsert = [];
+    let skippedEvents = 0;
+    let lastValidDate = null; // Para manejar eventos sin fecha
 
     // Usamos una Promise para asegurar que la lectura del CSV termine antes de la inserción
     await new Promise((resolve, reject) => {
       fs.createReadStream(CSV_FILE_PATH)
         .pipe(csv())
         .on('data', (row) => {
+          // Verificar si el evento tiene fecha o usar la última fecha válida
+          let eventDate = row['eventDate (MM/DD/YYYY)'];
+          
+          // Si no hay fecha pero hay una fecha válida previa, usarla
+          if (!eventDate || eventDate.trim() === '') {
+            if (lastValidDate) {
+              eventDate = lastValidDate;
+              console.log(`⚠️ Evento sin fecha, usando fecha anterior: ${eventDate}`);
+            } else {
+              console.log(`⚠️ Saltando evento sin fecha: tipo=${row.eventType}, hora=${row.startTime}`);
+              skippedEvents++;
+              return; // Saltar este evento
+            }
+          } else {
+            // Guardar esta fecha como la última válida
+            lastValidDate = eventDate;
+          }
+          
+          // Verificar que tenga al menos el tipo de evento y hora de inicio
+          if (!row.eventType || !row.startTime) {
+            console.log(`⚠️ Saltando evento incompleto: tipo=${row.eventType}, fecha=${eventDate}`);
+            skippedEvents++;
+            return;
+          }
+          
           // --- Construcción del objeto del evento ---
           const event = {
             _id: new ObjectId(), // Generamos un nuevo ID para cada evento
             eventType: row.eventType,
-            startTime: parseDateTime(row['eventDate (MM/DD/YYYY)'], row.startTime),
-            endTime: parseDateTime(row['eventDate (MM/DD/YYYY)'], row.endTime),
+            startTime: parseDateTime(eventDate, row.startTime),
+            endTime: row.endTime ? parseDateTime(eventDate, row.endTime) : null,
             emotionalState: row.emotionalState || null,
             notes: row.notes || null,
             sleepDelay: row.sleepDelay ? parseInt(row.sleepDelay, 10) : null,
@@ -87,6 +126,13 @@ async function main() {
             // activityDescription: row.activityDescription || null,
           };
           
+          // Verificar que startTime se haya parseado correctamente
+          if (!event.startTime) {
+            console.log(`⚠️ Error parseando fecha/hora: fecha=${eventDate}, hora=${row.startTime}`);
+            skippedEvents++;
+            return;
+          }
+          
           // Limpiamos campos nulos para no ensuciar la base de datos
           Object.keys(event).forEach(key => {
             if (event[key] === null || event[key] === '' || (typeof event[key] === 'number' && isNaN(event[key]))) {
@@ -98,6 +144,9 @@ async function main() {
         })
         .on('end', () => {
           console.log(`✅ Lectura del archivo CSV completada. Se procesaron ${eventsToInsert.length} eventos.`);
+          if (skippedEvents > 0) {
+            console.log(`⚠️ Se saltaron ${skippedEvents} eventos por datos incompletos o fechas inválidas.`);
+          }
           resolve();
         })
         .on('error', reject);
