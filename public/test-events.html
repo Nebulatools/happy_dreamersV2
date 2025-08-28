@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Eventos - Happy Dreamers</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .success {
+            background: #28a745;
+        }
+        .error {
+            background: #dc3545;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌙 Happy Dreamers - Prueba de Eventos</h1>
+    <p><strong>Niño:</strong> Bernardo (ID: 68ad0476b98bdbe0f7ff5941)</p>
+    <p><strong>Fecha:</strong> 1 de agosto 2025</p>
+    
+    <button class="button" onclick="crearEventosPrueba()">
+        🚀 Crear Eventos de Prueba
+    </button>
+    
+    <button class="button" onclick="limpiarLog()">
+        🗑️ Limpiar Log
+    </button>
+    
+    <button class="button" onclick="abrirDashboard()">
+        📊 Abrir Dashboard
+    </button>
+    
+    <button class="button" onclick="abrirCalendario()">
+        📅 Abrir Calendario
+    </button>
+
+    <div class="log" id="log"></div>
+
+    <script>
+        let logElement = document.getElementById('log');
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            logElement.innerHTML += `[${timestamp}] ${prefix} ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function limpiarLog() {
+            logElement.innerHTML = '';
+        }
+
+        function abrirDashboard() {
+            window.open('/dashboard', '_blank');
+        }
+
+        function abrirCalendario() {
+            window.open('/dashboard/calendar', '_blank');
+        }
+
+        // Función para registrar evento
+        async function registrarEvento(eventData) {
+            try {
+                const response = await fetch('/api/children/events', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(eventData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || errorData.details || 'Error al registrar evento');
+                }
+
+                const result = await response.json();
+                log(`Evento ${eventData.eventType} registrado exitosamente`, 'success');
+                return result;
+            } catch (error) {
+                log(`Error al registrar evento ${eventData.eventType}: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        // Eventos de prueba del 1 de agosto 2025
+        const eventosAgosto1 = [
+            // 1. Despertar matutino - 6:30 AM
+            {
+                childId: '68ad0476b98bdbe0f7ff5941',
+                eventType: 'wake',
+                startTime: '2025-08-01T06:30:00.000Z',
+                notes: 'Despertó naturalmente, de buen humor'
+            },
+
+            // 2. Alimentación matutina - 7:00 AM (30 min)
+            {
+                childId: '68ad0476b98bdbe0f7ff5941',
+                eventType: 'feeding',
+                startTime: '2025-08-01T07:00:00.000Z',
+                endTime: '2025-08-01T07:30:00.000Z',
+                feedingType: 'bottle',
+                feedingAmount: 150,
+                feedingDuration: 25,
+                babyState: 'awake',
+                feedingNotes: 'Se tomó todo el biberón, eructó bien'
+            },
+
+            // 3. Actividad extra - Paseo matutino - 8:00 AM
+            {
+                childId: '68ad0476b98bdbe0f7ff5941',
+                eventType: 'extra_activities',
+                startTime: '2025-08-01T08:00:00.000Z',
+                activityDescription: 'Paseo por el parque',
+                activityDuration: 60,
+                activityImpact: 'positive',
+                activityNotes: 'Disfrutó mucho el aire fresco y los sonidos de la naturaleza'
+            },
+
+            // 4. Siesta matutina - 9:30 AM a 11:00 AM
+            {
+                childId: '68ad0476b98bdbe0f7ff5941',
+                eventType: 'nap',
+                startTime: '2025-08-01T09:30:00.000Z',
+                endTime: '2025-08-01T11:00:00.000Z',
+                sleepDelay: 10,
+                emotionalState: 'tranquilo'
+            },
+
+            // 5. Alimentación del mediodía - 11:30 AM
+            {
+                childId: '68ad0476b98bdbe0f7ff5941',
+                eventType: 'feeding',
+                startTime: '2025-08-01T11:30:00.000Z',
+                endTime: '2025-08-01T12:00:00.000Z',
+                feedingType: 'bottle',
+                feedingAmount: 180,
+                feedingDuration: 30,
+                babyState: 'awake',
+                feedingNotes: 'Buen apetito, terminó todo'
+            },
+
+            // 6. Medicamento - Vitaminas - 12:15 PM
+            {
+                childId: '68ad0476b98bdbe0f7ff5941',
+                eventType: 'medication',
+                startTime: '2025-08-01T12:15:00.000Z',
+                medicationName: 'Vitamina D',
+                medicationDose: '2 gotas',
+                medicationTime: '2025-08-01T12:15:00.000Z',
+                medicationNotes: 'Vitamina diaria como indica el pediatra'
+            },
+
+            // 7. Siesta de la tarde - 2:00 PM a 4:30 PM
+            {
+                childId: '68ad0476b98bdbe0f7ff5941',
+                eventType: 'nap',
+                startTime: '2025-08-01T14:00:00.000Z',
+                endTime: '2025-08-01T16:30:00.000Z',
+                sleepDelay: 15,
+                emotionalState: 'tranquilo'
+            },
+
+            // 8. Alimentación de la tarde - 5:00 PM
+            {
+                childId: '68ad0476b98bdbe0f7ff5941',
+                eventType: 'feeding',
+                startTime: '2025-08-01T17:00:00.000Z',
+                endTime: '2025-08-01T17:25:00.000Z',
+                feedingType: 'bottle',
+                feedingAmount: 160,
+                feedingDuration: 20,
+                babyState: 'awake',
+                feedingNotes: 'Un poco distraído pero terminó la mayor parte'
+            },
+
+            // 9. Actividad extra - Baño relajante - 6:30 PM
+            {
+                childId: '68ad0476b98bdbe0f7ff5941',
+                eventType: 'extra_activities',
+                startTime: '2025-08-01T18:30:00.000Z',
+                activityDescription: 'Baño relajante con aceites',
+                activityDuration: 30,
+                activityImpact: 'positive',
+                activityNotes: 'Le encanta el agua tibia, muy relajante'
+            },
+
+            // 10. Alimentación nocturna - 7:30 PM
+            {
+                childId: '68ad0476b98bdbe0f7ff5941',
+                eventType: 'feeding',
+                startTime: '2025-08-01T19:30:00.000Z',
+                endTime: '2025-08-01T20:00:00.000Z',
+                feedingType: 'bottle',
+                feedingAmount: 200,
+                feedingDuration: 30,
+                babyState: 'awake',
+                feedingNotes: 'Última toma antes de dormir, tomó todo lentamente'
+            },
+
+            // 11. Dormir nocturno - 8:00 PM
+            {
+                childId: '68ad0476b98bdbe0f7ff5941',
+                eventType: 'sleep',
+                startTime: '2025-08-01T20:00:00.000Z',
+                sleepDelay: 20,
+                emotionalState: 'tranquilo',
+                notes: 'Se durmió después de un rato de arrullos, rutina nocturna completa'
+            },
+
+            // 12. Despertar nocturno - 2:30 AM (2 de agosto)
+            {
+                childId: '68ad0476b98bdbe0f7ff5941',
+                eventType: 'night_waking',
+                startTime: '2025-08-02T02:30:00.000Z',
+                awakeDelay: 45,
+                emotionalState: 'inquieto',
+                notes: 'Despertó llorando, tardó en calmarse y volver a dormir'
+            },
+
+            // 13. Toma nocturna - 3:00 AM
+            {
+                childId: '68ad0476b98bdbe0f7ff5941',
+                eventType: 'feeding',
+                startTime: '2025-08-02T03:00:00.000Z',
+                endTime: '2025-08-02T03:20:00.000Z',
+                feedingType: 'bottle',
+                feedingAmount: 120,
+                feedingDuration: 20,
+                babyState: 'asleep',
+                feedingNotes: 'Toma nocturna, se durmió mientras tomaba'
+            }
+        ];
+
+        // Función principal
+        async function crearEventosPrueba() {
+            log('🚀 Iniciando creación de eventos de prueba para el 1 de agosto 2025...');
+            log(`👶 Niño: Bernardo (ID: 68ad0476b98bdbe0f7ff5941)`);
+            log(`📅 Fecha: 1 de agosto 2025`);
+            log(`📊 Total de eventos: ${eventosAgosto1.length}`);
+            log('---');
+
+            let exitosos = 0;
+            let fallidos = 0;
+
+            for (const evento of eventosAgosto1) {
+                const resultado = await registrarEvento(evento);
+                if (resultado) {
+                    exitosos++;
+                } else {
+                    fallidos++;
+                }
+                
+                // Esperar un poco entre eventos para evitar saturar la API
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+
+            log('---');
+            log(`📈 Resumen: ✅ Exitosos: ${exitosos} | ❌ Fallidos: ${fallidos}`);
+            log('🏁 Proceso completado');
+            
+            if (exitosos > 0) {
+                log('✨ Puedes verificar los eventos en el Dashboard y Calendario');
+            }
+        }
+    </script>
+</body>
+</html>

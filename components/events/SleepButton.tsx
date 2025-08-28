@@ -270,7 +270,9 @@ export function SleepButton({
       })
       
       if (!response.ok) {
-        throw new Error('Error al registrar evento')
+        const errorData = await response.json()
+        console.error('Error del servidor:', errorData)
+        throw new Error(errorData.error || errorData.details || 'Error al registrar evento')
       }
       
       // Mostrar confirmación
@@ -295,7 +297,7 @@ export function SleepButton({
       console.error('Error registrando evento:', error)
       toast({
         title: "Error",
-        description: "No se pudo registrar el evento",
+        description: error instanceof Error ? error.message : "No se pudo registrar el evento",
         variant: "destructive"
       })
     }

@@ -16,7 +16,7 @@ export const eventTypes: EventType[] = [
     label: "Dormir",
     icon: Moon,
     description: "Momento de acostar y período de sueño",
-    hasEndTime: false,
+    hasEndTime: true,
     hasSleepDelay: true,
   },
   {
@@ -38,7 +38,7 @@ export const eventTypes: EventType[] = [
     label: "Despertar nocturno",
     icon: AlertCircle,
     description: "Despertar durante la noche",
-    hasEndTime: false,
+    hasEndTime: true,
     hasSleepDelay: true,
   },
   {
@@ -46,7 +46,7 @@ export const eventTypes: EventType[] = [
     label: "Alimentación",
     icon: Utensils,
     description: "Comida, biberón, lactancia",
-    hasEndTime: true,
+    hasEndTime: false,
   },
   {
     id: "night_feeding",
