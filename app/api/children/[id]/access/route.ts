@@ -136,7 +136,7 @@ export async function POST(
 // PUT /api/children/[id]/access - Actualizar permisos de cuidador
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticación
@@ -148,7 +148,7 @@ export async function PUT(
       )
     }
 
-    const childId = params.id
+    const { id: childId } = await params
     const body = await request.json()
 
     // Validar datos requeridos
@@ -212,7 +212,7 @@ export async function PUT(
 // DELETE /api/children/[id]/access - Revocar acceso de cuidador
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticación
@@ -224,7 +224,7 @@ export async function DELETE(
       )
     }
 
-    const childId = params.id
+    const { id: childId } = await params
     
     // Obtener userId desde query params
     const { searchParams } = new URL(request.url)

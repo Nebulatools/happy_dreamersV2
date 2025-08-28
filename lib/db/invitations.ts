@@ -342,18 +342,37 @@ export async function getPendingInvitations(
   requestedBy: string
 ): Promise<{ success: boolean; invitations?: PendingInvitation[]; error?: string }> {
   try {
-    // Verificar que quien solicita es el dueño
+    // Verificar que quien solicita es el dueño o tiene acceso
     const { db } = await connectToDatabase()
     const childrenCollection = db.collection<Child>(CHILDREN_COLLECTION)
     const child = await childrenCollection.findOne({
-      _id: new ObjectId(childId),
-      parentId: new ObjectId(requestedBy)
+      _id: new ObjectId(childId)
     })
     
     if (!child) {
       return {
         success: false,
-        error: "No tienes permisos para ver estas invitaciones"
+        error: "Niño no encontrado"
+      }
+    }
+    
+    // Verificar si es el dueño
+    const isOwner = child.parentId.toString() === requestedBy
+    
+    // Si no es el dueño, verificar si tiene acceso compartido
+    if (!isOwner) {
+      const accessCollection = db.collection<UserChildAccess>(ACCESS_COLLECTION)
+      const access = await accessCollection.findOne({
+        userId: new ObjectId(requestedBy),
+        childId: new ObjectId(childId),
+        status: "active"
+      })
+      
+      if (!access) {
+        return {
+          success: false,
+          error: "No tienes permisos para ver estas invitaciones"
+        }
       }
     }
     
