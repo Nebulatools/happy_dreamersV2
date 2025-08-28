@@ -155,12 +155,8 @@ export function SleepSessionBlock({
         const relativePosition = wakingPosition - position
         
         if (relativePosition < 0 || relativePosition > height) return null
-      } catch (error) {
-        console.error('Error parsing waking startTime:', error)
-        return null
-      }
-      
-      return (
+        
+        return (
         <div
           key={waking._id}
           className="absolute left-2 right-2 bg-red-600/90 hover:bg-red-700 text-white rounded px-2 py-1 z-20 cursor-pointer transition-colors shadow-md border border-red-400/50"
@@ -181,7 +177,11 @@ export function SleepSessionBlock({
             <span>{formatTime(waking.startTime)}</span>
           </div>
         </div>
-      )
+        )
+      } catch (error) {
+        console.error('Error parsing waking startTime:', error)
+        return null
+      }
     })
   }
   
