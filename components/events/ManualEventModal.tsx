@@ -127,6 +127,17 @@ export function ManualEventModal({
       // Construir fecha/hora de inicio
       const startDateTime = new Date(`${startDate}T${startTime}`)
       
+      // Calcular endTime automáticamente para alimentación y actividades extra
+      let calculatedEndTime: Date | null = null
+      if (eventType === 'feeding') {
+        // Alimentación: usar duración (máximo 60 minutos)
+        const durationMinutes = Math.min(feedingDuration, 60)
+        calculatedEndTime = new Date(startDateTime.getTime() + (durationMinutes * 60 * 1000))
+      } else if (eventType === 'extra_activities') {
+        // Actividad extra: usar duración (sin límite)
+        calculatedEndTime = new Date(startDateTime.getTime() + (activityDuration * 60 * 1000))
+      }
+      
       // Construir datos del evento base
       const eventData: any = {
         childId,
@@ -139,6 +150,9 @@ export function ManualEventModal({
       if (hasEndTime) {
         const endDateTime = new Date(`${endDate}T${endTime}`)
         eventData.endTime = endDateTime.toISOString()
+      } else if (calculatedEndTime) {
+        // Usar endTime calculado automáticamente para alimentación y actividades extra
+        eventData.endTime = calculatedEndTime.toISOString()
       }
       
       // Campos específicos según tipo de evento
