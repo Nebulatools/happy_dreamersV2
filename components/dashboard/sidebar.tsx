@@ -14,8 +14,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useActiveChild } from "@/context/active-child-context"
-import { LayoutDashboard, Calendar, BarChart3, Users, PlusCircle, Settings, Menu, MessageSquare, List, Stethoscope, ClipboardList, HelpCircle, Mail, Bell } from "lucide-react"
-import { ManualEventModal } from "@/components/events/ManualEventModal"
+import { LayoutDashboard, Calendar, BarChart3, Users, Settings, Menu, MessageSquare, List, Stethoscope, ClipboardList, HelpCircle, Mail, Bell } from "lucide-react"
 import { useEventsInvalidation } from "@/hooks/use-events-cache"
 import { createLogger } from "@/lib/logger"
 
@@ -38,9 +37,7 @@ export function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [eventModalOpen, setEventModalOpen] = useState(false)
-  const [manualEventModalOpen, setManualEventModalOpen] = useState(false)
   const [children, setChildren] = useState([])
-  const [activeChildName, setActiveChildName] = useState("")
   const { activeChildId } = useActiveChild()
   const invalidateEvents = useEventsInvalidation()
 
@@ -86,14 +83,6 @@ export function Sidebar({ className }: { className?: string }) {
       role: ["parent", "user"], // Para parents y users
     },
     {
-      title: "Registrar Evento",
-      href: "#",
-      icon: <PlusCircle className="h-5 w-5" />,
-      role: ["parent", "user"], // Para parents y users
-      onClick: () => setManualEventModalOpen(true),
-      disabled: !activeChildId,
-    },
-    {
       title: "Asistente IA",
       href: "/dashboard/assistant",
       icon: <MessageSquare className="h-5 w-5" />,
@@ -128,26 +117,19 @@ export function Sidebar({ className }: { className?: string }) {
     },
   ]
 
-  // Cargar children cuando se abre el modal manual
+  // Cargar children cuando se abre el modal
   useEffect(() => {
-    if ((eventModalOpen || manualEventModalOpen) && session?.user?.email) {
+    if (eventModalOpen && session?.user?.email) {
       fetch("/api/children")
         .then(res => res.json())
         .then(data => {
           if (data.success) {
             setChildren(data.children)
-            // Actualizar el nombre del niño activo
-            if (activeChildId) {
-              const activeChild = data.children.find((c: any) => c._id === activeChildId)
-              if (activeChild) {
-                setActiveChildName(activeChild.name)
-              }
-            }
           }
         })
         .catch(error => logger.error("Error al obtener niños", error))
     }
-  }, [eventModalOpen, manualEventModalOpen, session?.user?.email, activeChildId])
+  }, [eventModalOpen, session?.user?.email])
 
   // Filtrar elementos según el rol del usuario
   const filteredItems = sidebarNavItems.filter(
@@ -236,20 +218,6 @@ export function Sidebar({ className }: { className?: string }) {
         </div>
       </div>
 
-      {/* Manual Event Modal para registrar eventos */}
-      {activeChildId && (
-        <ManualEventModal
-          open={manualEventModalOpen}
-          onClose={() => setManualEventModalOpen(false)}
-          childId={activeChildId}
-          childName={activeChildName || "Mi soñador"}
-          onEventRegistered={() => {
-            invalidateEvents() // Invalidar cache de eventos
-            setManualEventModalOpen(false)
-          }}
-        />
-      )}
-      
       {/* Event Registration Modal (mantenido para compatibilidad) */}
       {/* <EventRegistrationModal
         isOpen={eventModalOpen}
