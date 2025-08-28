@@ -155,6 +155,15 @@ export function ManualEventModal({
         eventData.endTime = calculatedEndTime.toISOString()
       }
       
+      // Debug temporal - verificar qué se está enviando
+      console.log('📊 Enviando evento:', {
+        eventType,
+        hasEndTime,
+        startTime: eventData.startTime,
+        endTime: eventData.endTime,
+        fullData: eventData
+      })
+      
       // Campos específicos según tipo de evento
       if (eventType === 'sleep' || eventType === 'nap') {
         eventData.sleepDelay = sleepDelay

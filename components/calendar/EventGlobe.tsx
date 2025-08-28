@@ -61,6 +61,21 @@ export function EventGlobe({ event, hourHeight = 30, onClick }: EventGlobeProps)
   if (endTimeData) {
     const endTotalMinutes = endTimeData.hours * 60 + endTimeData.minutes
     duration = endTotalMinutes - totalMinutes
+    
+    // Debug para eventos que no se ven con la altura correcta
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 EventGlobe Duration Debug:', {
+        eventId: event._id,
+        eventType: event.eventType,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        startFormatted: timeData.formatted,
+        endFormatted: endTimeData.formatted,
+        durationMinutes: duration,
+        hourHeight,
+        calculatedHeight: Math.max(20, duration * (hourHeight / 60))
+      })
+    }
   }
   const height = duration > 0 ? Math.max(20, duration * (hourHeight / 60)) : 20
   
