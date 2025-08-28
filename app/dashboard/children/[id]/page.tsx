@@ -166,7 +166,7 @@ export default function ChildProfilePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#F5F9FF] p-10">
+    <div className="min-h-screen bg-[#DEF1F1] p-10">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Breadcrumb */}
         <button 

@@ -67,16 +67,16 @@ export function Header() {
     : "U"
 
   return (
-    <header className="sticky top-0 z-30 bg-white shadow-sm">
+    <header className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: '#A0D8D0' }}>
       <div className="flex h-16 md:h-20 items-center justify-between px-3 md:px-6">
         {/* Título y acciones dinámicas a la izquierda */}
         <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
           <div className="min-w-0">
-            <h1 className="text-base md:text-xl font-bold truncate" style={{ color: '#A0D8D0' }}>
+            <h1 className="truncate text-white" style={{ fontFamily: 'Gotham, sans-serif', fontSize: '16px', fontWeight: 'normal' }}>
               {config.title}
             </h1>
             {config.subtitle && (
-              <p className="text-sm text-gray-600 truncate">
+              <p className="text-sm text-white/80 truncate">
                 {config.subtitle}
               </p>
             )}
@@ -94,10 +94,10 @@ export function Header() {
         <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
           {/* Search Button - funcional y mejorado */}
           {config.showSearch !== false && (
-            <div className="hidden lg:flex items-center bg-[#F0F7FF] rounded-[30px] px-4 py-2 h-12 w-[200px] xl:w-[289px] cursor-pointer hover:bg-[#E8F4FF] transition-colors">
+            <div className="hidden lg:flex items-center bg-[#DEF1F1] rounded-[30px] px-4 py-2 h-12 w-[200px] xl:w-[289px] cursor-pointer hover:bg-[#c8e3e3] transition-colors">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-[#2553A1] flex-shrink-0"
+                className="h-5 w-5 text-[#68A1C8] flex-shrink-0"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -108,7 +108,7 @@ export function Header() {
               <input
                 type="text"
                 placeholder="Buscar..."
-                className="ml-2.5 bg-transparent text-[#2553A1] text-base font-medium placeholder:text-[#2553A1] placeholder:opacity-70 border-none outline-none flex-1"
+                className="ml-2.5 bg-transparent text-[#68A1C8] text-base font-medium placeholder:text-[#68A1C8] placeholder:opacity-70 border-none outline-none flex-1"
                 onClick={(e) => e.stopPropagation()}
               />
             </div>

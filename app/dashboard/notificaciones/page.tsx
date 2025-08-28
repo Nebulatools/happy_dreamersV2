@@ -281,24 +281,6 @@ export default function NotificacionesPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
-      {/* Panel de Debug Visible - TEMPORAL */}
-      <Card className="bg-yellow-50 border-yellow-300">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-yellow-800">🐛 Panel de Debug (Temporal)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-xs space-y-1 font-mono text-yellow-900">
-            <div>activeUserId: {activeUserId || 'null'}</div>
-            <div>activeChildId: {activeChildId || 'null'}</div>
-            <div>sessionRole: {session?.user?.role || 'null'}</div>
-            <div>loading: {loading.toString()}</div>
-            <div>children.length: {children.length}</div>
-            <div>selectedChild: {selectedChild || 'null'}</div>
-            <div>isAdmin: {(session?.user?.role === 'admin').toString()}</div>
-            <div>timestamp: {new Date().toLocaleTimeString()}</div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Header */}
       <div>
@@ -370,7 +352,7 @@ export default function NotificacionesPage() {
       {session?.user.role === 'admin' && !activeUserId ? (
         <Card>
           <CardContent className="text-center py-8">
-            <Icons.alertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <Icons.alert className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-lg font-medium mb-2">
               Selecciona un paciente primero
             </p>

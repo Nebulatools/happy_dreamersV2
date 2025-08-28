@@ -72,8 +72,21 @@ export default function DashboardPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedPeriod, setSelectedPeriod] = useState<"7d" | "30d" | "3m">("7d")
   const [isAddingNote, setIsAddingNote] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
   
   // Ya no redirigimos, manejamos todo en esta página
+  
+  // Asegurar que los estilos se mantengan después del montaje
+  useEffect(() => {
+    setIsMounted(true)
+    // Forzar la aplicación de estilos después del montaje
+    const greetingElement = document.querySelector('.greeting-title')
+    if (greetingElement) {
+      (greetingElement as HTMLElement).style.fontFamily = 'Ludicrous, sans-serif'
+      ;(greetingElement as HTMLElement).style.color = '#68A1C8'
+      ;(greetingElement as HTMLElement).style.fontWeight = 'normal'
+    }
+  }, [session])
 
   // Suscribirse a invalidaciones de cache
   useEffect(() => {
@@ -343,11 +356,20 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F9FF] p-4 md:p-6">
+    <div className="min-h-screen px-4 pt-2 pb-4 md:px-6 md:pt-3 md:pb-6" style={{ backgroundColor: '#DEF1F1' }}>
       <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
         {/* Saludo personalizado */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold" style={{ fontFamily: 'Ludicrous, sans-serif', color: '#68A1C8' }}>
+          <h1 
+            className="greeting-title"
+            style={{
+              fontFamily: "Ludicrous, sans-serif",
+              color: "#68A1C8",
+              fontWeight: "normal",
+              fontSize: "48px"
+            }}
+            suppressHydrationWarning
+          >
             {getGreeting()}, {session?.user?.name?.split(" ")[0] || "Usuario"}!
           </h1>
           <p className="text-[#666666]">

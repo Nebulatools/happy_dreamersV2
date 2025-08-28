@@ -29,6 +29,23 @@
   font-display: block;
 }
 
+/* Fuente Gotham */
+@font-face {
+  font-family: 'Gotham';
+  src: url('/fonts/gotham_book.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'Gotham';
+  src: url('/fonts/gotham_bold.otf') format('opentype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: block;
+}
+
 /* Clase para aplicar la fuente Ludicrous */
 .ludicrous-title {
   font-family: 'Ludicrous', sans-serif !important;
@@ -36,6 +53,22 @@
   font-weight: normal !important;
   font-size: 48px !important;
   line-height: 1.2 !important;
+}
+
+/* Clase específica para el saludo del dashboard */
+.dashboard-greeting {
+  font-family: 'Ludicrous', sans-serif !important;
+  color: #68A1C8 !important;
+  font-weight: normal !important;
+}
+
+/* Asegurar que la fuente se mantenga después de la hidratación */
+.dashboard-greeting, 
+.dashboard-greeting *,
+.greeting-title {
+  font-family: 'Ludicrous', sans-serif !important;
+  color: #68A1C8 !important;
+  font-weight: normal !important;
 }
 
 /* Clase para aplicar Century Gothic */

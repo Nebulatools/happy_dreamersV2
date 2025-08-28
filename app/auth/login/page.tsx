@@ -156,7 +156,7 @@ export default function LoginPage() {
                         <FormLabel className="block text-sm font-medium text-[#374151] century-gothic">
                           Password
                         </FormLabel>
-                        <Link href="#" className="text-sm text-[#4299E1] hover:underline century-gothic">
+                        <Link href="/auth/forgot-password" className="text-sm text-[#4299E1] hover:underline century-gothic">
                           Forgot password?
                         </Link>
                       </div>

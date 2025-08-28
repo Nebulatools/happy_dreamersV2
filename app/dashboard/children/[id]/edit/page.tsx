@@ -130,7 +130,7 @@ export default function EditChildProfilePage() {
 
   if (isFetching) {
     return (
-      <div className="min-h-screen bg-[#F5F9FF] flex items-center justify-center">
+      <div className="min-h-screen bg-[#DEF1F1] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
           <p className="text-gray-600">Cargando información del niño...</p>
@@ -140,7 +140,7 @@ export default function EditChildProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F9FF]">
+    <div className="min-h-screen bg-[#DEF1F1]">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-20 py-4">

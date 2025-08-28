@@ -236,7 +236,7 @@ export function PatientQuickSelector({
           role="combobox"
           aria-expanded={open}
           className={cn(
-            "justify-between min-w-[200px]",
+            "justify-between min-w-[200px] bg-[#DEF1F1] hover:bg-[#c8e3e3] border-0",
             !activeUserId && "text-muted-foreground",
             className
           )}
@@ -247,7 +247,7 @@ export function PatientQuickSelector({
               Cargando...
             </span>
           ) : activeUserId && activeChild ? (
-            <span className="flex items-center">
+            <span className="flex items-center" style={{ color: '#68A1C8' }}>
               <ChildAvatar 
                 name={`${activeChild.firstName} ${activeChild.lastName}`}
                 className="mr-2 h-5 w-5"
@@ -257,19 +257,19 @@ export function PatientQuickSelector({
                   {activeChild.firstName} - {activeUserName}
                 </span>
                 {activeChild.birthDate && (
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs" style={{ color: '#68A1C8', opacity: 0.8 }}>
                     {getChildAge(activeChild.birthDate)}
                   </span>
                 )}
               </div>
             </span>
           ) : activeUserId && !activeChild ? (
-            <span className="flex items-center">
+            <span className="flex items-center" style={{ color: '#68A1C8' }}>
               <User className="mr-2 h-4 w-4" />
               <span className="truncate">{activeUserName} - Seleccionar niño</span>
             </span>
           ) : (
-            <span className="flex items-center">
+            <span className="flex items-center" style={{ color: '#68A1C8' }}>
               <User className="mr-2 h-4 w-4" />
               Seleccionar paciente
             </span>
