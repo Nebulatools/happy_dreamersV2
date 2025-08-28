@@ -15,8 +15,7 @@ import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useActiveChild } from "@/context/active-child-context"
 import { LayoutDashboard, Calendar, BarChart3, Users, PlusCircle, Settings, Menu, MessageSquare, List, Stethoscope, ClipboardList, HelpCircle, Mail, Bell } from "lucide-react"
-// TEMPORALMENTE COMENTADO - Sistema de eventos en reset
-// import { EventRegistrationModal, QuickEventSelector } from "@/components/events"
+import { ManualEventModal } from "@/components/events/ManualEventModal"
 import { useEventsInvalidation } from "@/hooks/use-events-cache"
 import { createLogger } from "@/lib/logger"
 
@@ -39,8 +38,9 @@ export function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [eventModalOpen, setEventModalOpen] = useState(false)
-  const [quickSelectorOpen, setQuickSelectorOpen] = useState(false)
+  const [manualEventModalOpen, setManualEventModalOpen] = useState(false)
   const [children, setChildren] = useState([])
+  const [activeChildName, setActiveChildName] = useState("")
   const { activeChildId } = useActiveChild()
   const invalidateEvents = useEventsInvalidation()
 
@@ -90,7 +90,7 @@ export function Sidebar({ className }: { className?: string }) {
       href: "#",
       icon: <PlusCircle className="h-5 w-5" />,
       role: ["parent", "user"], // Para parents y users
-      onClick: () => setQuickSelectorOpen(true),
+      onClick: () => setManualEventModalOpen(true),
       disabled: !activeChildId,
     },
     {
@@ -128,19 +128,26 @@ export function Sidebar({ className }: { className?: string }) {
     },
   ]
 
-  // Cargar children cuando se abre el modal o el quick selector
+  // Cargar children cuando se abre el modal manual
   useEffect(() => {
-    if ((eventModalOpen || quickSelectorOpen) && session?.user?.email) {
+    if ((eventModalOpen || manualEventModalOpen) && session?.user?.email) {
       fetch("/api/children")
         .then(res => res.json())
         .then(data => {
           if (data.success) {
             setChildren(data.children)
+            // Actualizar el nombre del niño activo
+            if (activeChildId) {
+              const activeChild = data.children.find((c: any) => c._id === activeChildId)
+              if (activeChild) {
+                setActiveChildName(activeChild.name)
+              }
+            }
           }
         })
         .catch(error => logger.error("Error al obtener niños", error))
     }
-  }, [eventModalOpen, session?.user?.email])
+  }, [eventModalOpen, manualEventModalOpen, session?.user?.email, activeChildId])
 
   // Filtrar elementos según el rol del usuario
   const filteredItems = sidebarNavItems.filter(
@@ -229,18 +236,19 @@ export function Sidebar({ className }: { className?: string }) {
         </div>
       </div>
 
-      {/* TEMPORALMENTE COMENTADO - Sistema de eventos en reset */}
-      {/* Quick Event Selector */}
-      {/* <QuickEventSelector
-        isOpen={quickSelectorOpen}
-        onClose={() => setQuickSelectorOpen(false)}
-        childId={activeChildId || ""}
-        children={children}
-        onEventCreated={() => {
-          invalidateEvents() // Invalidar cache de eventos en todas las páginas
-          setQuickSelectorOpen(false)
-        }}
-      /> */}
+      {/* Manual Event Modal para registrar eventos */}
+      {activeChildId && (
+        <ManualEventModal
+          open={manualEventModalOpen}
+          onClose={() => setManualEventModalOpen(false)}
+          childId={activeChildId}
+          childName={activeChildName || "Mi soñador"}
+          onEventRegistered={() => {
+            invalidateEvents() // Invalidar cache de eventos
+            setManualEventModalOpen(false)
+          }}
+        />
+      )}
       
       {/* Event Registration Modal (mantenido para compatibilidad) */}
       {/* <EventRegistrationModal

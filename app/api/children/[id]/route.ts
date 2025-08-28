@@ -16,7 +16,7 @@ const logger = createLogger("API:children:[id]:route")
 // GET /api/children/[id] - obtener un niño específico
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -82,7 +82,7 @@ export async function GET(
 // PUT /api/children/[id] - actualizar un niño existente
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   logger.info("PUT /api/children/[id] - Iniciando solicitud de actualización")
   try {
@@ -92,7 +92,7 @@ export async function PUT(
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    const id = params.id
+    const { id } = await params
     logger.info(`Actualizando niño con ID: ${id}`)
 
     const data = await request.json()
@@ -161,7 +161,7 @@ export async function PUT(
 // DELETE /api/children/[id] - eliminar un niño
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -169,7 +169,7 @@ export async function DELETE(
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    const id = params.id
+    const { id } = await params
     
     const client = await clientPromise
     const db = client.db()

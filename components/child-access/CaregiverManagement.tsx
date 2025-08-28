@@ -103,14 +103,26 @@ export function CaregiverManagement({
   const loadCaregivers = async () => {
     try {
       const response = await fetch(`/api/children/${childId}/access`)
-      if (!response.ok) {
-        throw new Error("Error cargando cuidadores")
-      }
       const data = await response.json()
+      
+      if (!response.ok) {
+        console.error("Error del servidor:", data)
+        // Si no tiene permisos, simplemente no mostrar cuidadores
+        if (response.status === 403 || data.error?.includes("permisos")) {
+          setCaregivers([])
+          return
+        }
+        throw new Error(data.error || "Error cargando cuidadores")
+      }
+      
       setCaregivers(data.caregivers || [])
     } catch (error) {
       console.error("Error:", error)
-      toast.error("Error al cargar los cuidadores")
+      // Solo mostrar toast si es un error real, no de permisos
+      if (error.message && !error.message.includes("permisos")) {
+        toast.error("Error al cargar los cuidadores")
+      }
+      setCaregivers([])
     }
   }
 
@@ -118,14 +130,26 @@ export function CaregiverManagement({
   const loadInvitations = async () => {
     try {
       const response = await fetch(`/api/children/${childId}/invitations`)
-      if (!response.ok) {
-        throw new Error("Error cargando invitaciones")
-      }
       const data = await response.json()
+      
+      if (!response.ok) {
+        console.error("Error del servidor:", data)
+        // Si no tiene permisos, simplemente no mostrar invitaciones
+        if (response.status === 403 || data.error?.includes("permisos")) {
+          setInvitations([])
+          return
+        }
+        throw new Error(data.error || "Error cargando invitaciones")
+      }
+      
       setInvitations(data.invitations || [])
     } catch (error) {
       console.error("Error:", error)
-      toast.error("Error al cargar las invitaciones")
+      // Solo mostrar toast si es un error real, no de permisos
+      if (error.message && !error.message.includes("permisos")) {
+        toast.error("Error al cargar las invitaciones")
+      }
+      setInvitations([])
     }
   }
 

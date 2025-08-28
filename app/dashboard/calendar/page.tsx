@@ -26,6 +26,7 @@ import {
   Calendar,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useSession } from "next-auth/react"
 import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache, useEventsInvalidation } from "@/hooks/use-events-cache"
 // TEMPORALMENTE COMENTADO - Sistema de eventos en reset
@@ -118,6 +119,7 @@ interface MonthlyStats {
 
 export default function CalendarPage() {
   const { toast } = useToast()
+  const { data: session } = useSession()
   const { activeChildId } = useActiveChild()
   const { refreshTrigger, subscribe } = useEventsCache(activeChildId)
   const invalidateEvents = useEventsInvalidation()
@@ -334,11 +336,11 @@ export default function CalendarPage() {
 
   // Cargar datos cuando cambia el niño activo o hay refresh forzado
   useEffect(() => {
-    if (activeChildId) {
+    if (activeChildId && session) {
       fetchEvents(true) // Forzar refresh desde servidor
       fetchActivePlan()
     }
-  }, [activeChildId, refreshTrigger])
+  }, [activeChildId, refreshTrigger, session])
 
   // Filtrar desde cache cuando solo cambia fecha o vista (sin niño activo o refresh)
   useEffect(() => {
@@ -447,7 +449,8 @@ export default function CalendarPage() {
   }, [eventModalOpen, quickSelectorOpen, activeChildId])
 
   const fetchEvents = async (forceRefresh = false) => {
-    if (!activeChildId) {
+    if (!activeChildId || !session) {
+      console.log('🚫 No se puede cargar eventos: activeChildId =', activeChildId, ', session =', !!session)
       setEvents([])
       setAllEventsCache([])
       setIsLoading(false)
@@ -462,15 +465,23 @@ export default function CalendarPage() {
 
     setIsLoading(true)
     try {
+      console.log('📅 CALENDARIO: Cargando eventos para:', activeChildId)
       const response = await fetch(`/api/children/events?childId=${activeChildId}`)
-      if (!response.ok) throw new Error("Error al cargar eventos")
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null)
+        console.error('❌ CALENDARIO: Error cargando eventos:', response.status, response.statusText, errorData)
+        throw new Error("Error al cargar eventos")
+      }
       
       const data = await response.json()
       const eventsData = data.events || []
       
+      console.log('✅ CALENDARIO: Eventos cargados exitosamente:', eventsData.length, 'eventos')
+      
       // Log para debugging: verificar orden de eventos recibidos
       if (process.env.NODE_ENV === 'development') {
-        console.log('Eventos recibidos del servidor:', eventsData.map((e: Event) => ({
+        console.log('📋 CALENDARIO: Detalles de eventos:', eventsData.map((e: Event) => ({
           id: e._id,
           time: e.startTime,
           type: e.eventType

@@ -14,17 +14,28 @@ interface Event {
   notes?: string;
 }
 
-// ⚡ FUNCIÓN CLAVE: Extracción exacta de tiempo del ISO
+// ⚡ FUNCIÓN CLAVE: Extracción de tiempo con conversión de timezone
 function extractTimeFromISO(isoString: string) {
-  const match = isoString.match(/T(\d{2}):(\d{2})/)
-  if (match) {
-    return {
-      hours: parseInt(match[1], 10),
-      minutes: parseInt(match[2], 10),
-      formatted: `${match[1]}:${match[2]}`
+  try {
+    // Usar Date constructor para convertir correctamente a hora local
+    const date = new Date(isoString)
+    if (isNaN(date.getTime())) {
+      console.error('extractTimeFromISO: fecha inválida', isoString)
+      return null
     }
+    
+    const hours = date.getHours()
+    const minutes = date.getMinutes()
+    
+    return {
+      hours,
+      minutes,
+      formatted: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+    }
+  } catch (error) {
+    console.error('extractTimeFromISO error:', error, isoString)
+    return null
   }
-  return null
 }
 
 interface EventGlobeProps {
@@ -50,6 +61,21 @@ export function EventGlobe({ event, hourHeight = 30, onClick }: EventGlobeProps)
   if (endTimeData) {
     const endTotalMinutes = endTimeData.hours * 60 + endTimeData.minutes
     duration = endTotalMinutes - totalMinutes
+    
+    // Debug para eventos que no se ven con la altura correcta
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 EventGlobe Duration Debug:', {
+        eventId: event._id,
+        eventType: event.eventType,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        startFormatted: timeData.formatted,
+        endFormatted: endTimeData.formatted,
+        durationMinutes: duration,
+        hourHeight,
+        calculatedHeight: Math.max(20, duration * (hourHeight / 60))
+      })
+    }
   }
   const height = duration > 0 ? Math.max(20, duration * (hourHeight / 60)) : 20
   

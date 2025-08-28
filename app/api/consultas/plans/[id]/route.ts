@@ -12,7 +12,7 @@ const logger = createLogger('api/consultas/plans/[id]')
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar sesión
@@ -24,7 +24,7 @@ export async function PUT(
       )
     }
 
-    const planId = params.id
+    const { id: planId } = await params
     
     if (!planId || !ObjectId.isValid(planId)) {
       return NextResponse.json(
@@ -112,7 +112,7 @@ export async function PUT(
 // GET endpoint para obtener un plan específico
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar sesión
@@ -124,7 +124,7 @@ export async function GET(
       )
     }
 
-    const planId = params.id
+    const { id: planId } = await params
     
     if (!planId || !ObjectId.isValid(planId)) {
       return NextResponse.json(

@@ -1,6 +1,6 @@
 // Tipos TypeScript para el sistema de eventos
 
-export type EventType = 'sleep' | 'wake' | 'nap' | 'night_waking' | 'feeding' | 'medication' | 'extra_activities' | 'note'
+export type EventType = 'sleep' | 'wake' | 'nap' | 'night_waking' | 'feeding' | 'night_feeding' | 'medication' | 'extra_activities'
 
 export type EmotionalState = 'tranquilo' | 'inquieto' | 'irritable' | 'neutral'
 

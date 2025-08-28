@@ -12,7 +12,7 @@ const logger = createLogger("API:ChildInvitations")
 // GET - Obtener invitaciones pendientes para un niño
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -23,7 +23,7 @@ export async function GET(
       )
     }
 
-    const childId = params.id
+    const { id: childId } = await params
 
     // Obtener invitaciones pendientes
     const result = await getPendingInvitations(childId, session.user.id)
@@ -53,7 +53,7 @@ export async function GET(
 // DELETE - Cancelar una invitación pendiente
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)

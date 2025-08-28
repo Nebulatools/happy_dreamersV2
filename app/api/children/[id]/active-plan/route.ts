@@ -20,7 +20,7 @@ export async function GET(
     const { db } = await connectToDatabase()
     
     // Verificar permisos
-    const childId = params.id
+    const childId = (await params).id
     const child = await db.collection("children").findOne({
       _id: new ObjectId(childId),
       $or: [
