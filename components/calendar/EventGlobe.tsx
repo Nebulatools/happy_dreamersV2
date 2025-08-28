@@ -14,17 +14,28 @@ interface Event {
   notes?: string;
 }
 
-// ⚡ FUNCIÓN CLAVE: Extracción exacta de tiempo del ISO
+// ⚡ FUNCIÓN CLAVE: Extracción de tiempo con conversión de timezone
 function extractTimeFromISO(isoString: string) {
-  const match = isoString.match(/T(\d{2}):(\d{2})/)
-  if (match) {
-    return {
-      hours: parseInt(match[1], 10),
-      minutes: parseInt(match[2], 10),
-      formatted: `${match[1]}:${match[2]}`
+  try {
+    // Usar Date constructor para convertir correctamente a hora local
+    const date = new Date(isoString)
+    if (isNaN(date.getTime())) {
+      console.error('extractTimeFromISO: fecha inválida', isoString)
+      return null
     }
+    
+    const hours = date.getHours()
+    const minutes = date.getMinutes()
+    
+    return {
+      hours,
+      minutes,
+      formatted: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+    }
+  } catch (error) {
+    console.error('extractTimeFromISO error:', error, isoString)
+    return null
   }
-  return null
 }
 
 interface EventGlobeProps {
