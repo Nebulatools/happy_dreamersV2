@@ -6,7 +6,7 @@
 import type React from "react"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -16,6 +16,7 @@ import { useState, useEffect } from "react"
 import { useActiveChild } from "@/context/active-child-context"
 import { LayoutDashboard, Calendar, BarChart3, Users, Settings, Menu, MessageSquare, List, Stethoscope, ClipboardList, HelpCircle, Mail, Bell } from "lucide-react"
 import { useEventsInvalidation } from "@/hooks/use-events-cache"
+import { useToast } from "@/hooks/use-toast"
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("sidebar")
@@ -35,6 +36,8 @@ interface SidebarNavProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Sidebar({ className }: { className?: string }) {
   const { data: session } = useSession()
   const pathname = usePathname()
+  const router = useRouter()
+  const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [children, setChildren] = useState([])
@@ -43,8 +46,8 @@ export function Sidebar({ className }: { className?: string }) {
 
   const isAdmin = session?.user?.role === "admin"
 
-  const eventsHref = activeChildId ? `/dashboard/children/${activeChildId}/events` : "#"
-  const isEventsLinkDisabled = !activeChildId
+  const eventsHref = activeChildId ? `/dashboard/children/${activeChildId}/events` : "/dashboard/children"
+  const isEventsLinkDisabled = false // Ya no lo deshabilitamos, redirigimos
 
   const sidebarNavItems = [
     {
@@ -79,8 +82,14 @@ export function Sidebar({ className }: { className?: string }) {
       title: "Mis Eventos",
       href: eventsHref,
       icon: <List className="h-5 w-5" />,
-      disabled: isEventsLinkDisabled,
       role: ["parent", "user"], // Para parents y users
+      onClick: !activeChildId ? () => {
+        toast({
+          title: "Selecciona un niño primero",
+          description: "Debes seleccionar o registrar un niño para ver sus eventos.",
+          variant: "default"
+        })
+      } : undefined,
     },
     {
       title: "Asistente IA",
