@@ -74,11 +74,11 @@ async function main() {
     }
     console.log(`✅ Niño encontrado: ${child.firstName} ${child.lastName || ''}`);
 
-    const eventsToInsert = [];
+    const rawEvents = [];
     let skippedEvents = 0;
     let lastValidDate = null; // Para manejar eventos sin fecha
 
-    // Usamos una Promise para asegurar que la lectura del CSV termine antes de la inserción
+    // Primero, leemos todos los eventos del CSV
     await new Promise((resolve, reject) => {
       fs.createReadStream(CSV_FILE_PATH)
         .pipe(csv())
@@ -108,42 +108,14 @@ async function main() {
             return;
           }
           
-          // --- Construcción del objeto del evento ---
-          const event = {
-            _id: new ObjectId(), // Generamos un nuevo ID para cada evento
-            eventType: row.eventType,
-            startTime: parseDateTime(eventDate, row.startTime),
-            endTime: row.endTime ? parseDateTime(eventDate, row.endTime) : null,
-            emotionalState: row.emotionalState || null,
-            notes: row.notes || null,
-            sleepDelay: row.sleepDelay ? parseInt(row.sleepDelay, 10) : null,
-            feedingType: row.feedingType || null,
-            createdAt: new Date(),
-            updatedAt: new Date()
-            // ... Agrega aquí cualquier otro campo del CSV que quieras procesar
-            // Ejemplo:
-            // medicationName: row.medicationName || null,
-            // activityDescription: row.activityDescription || null,
-          };
-          
-          // Verificar que startTime se haya parseado correctamente
-          if (!event.startTime) {
-            console.log(`⚠️ Error parseando fecha/hora: fecha=${eventDate}, hora=${row.startTime}`);
-            skippedEvents++;
-            return;
-          }
-          
-          // Limpiamos campos nulos para no ensuciar la base de datos
-          Object.keys(event).forEach(key => {
-            if (event[key] === null || event[key] === '' || (typeof event[key] === 'number' && isNaN(event[key]))) {
-              delete event[key];
-            }
+          // Almacenar el evento crudo con toda su información
+          rawEvents.push({
+            ...row,
+            eventDate: eventDate
           });
-
-          eventsToInsert.push(event);
         })
         .on('end', () => {
-          console.log(`✅ Lectura del archivo CSV completada. Se procesaron ${eventsToInsert.length} eventos.`);
+          console.log(`✅ Lectura del archivo CSV completada. Se leyeron ${rawEvents.length} registros.`);
           if (skippedEvents > 0) {
             console.log(`⚠️ Se saltaron ${skippedEvents} eventos por datos incompletos o fechas inválidas.`);
           }
@@ -151,6 +123,108 @@ async function main() {
         })
         .on('error', reject);
     });
+
+    // Ahora procesamos los eventos, uniendo dormir con despertar
+    const eventsToInsert = [];
+    const processedIndices = new Set(); // Para rastrear qué eventos ya procesamos
+
+    for (let i = 0; i < rawEvents.length; i++) {
+      // Si ya procesamos este evento, saltarlo
+      if (processedIndices.has(i)) continue;
+      
+      const row = rawEvents[i];
+      
+      // Si es un evento de dormir, buscar su correspondiente despertar
+      if (row.eventType === 'dormir' || row.eventType === 'sleep') {
+        let wakeEvent = null;
+        let wakeIndex = -1;
+        
+        // Buscar el siguiente evento de despertar
+        for (let j = i + 1; j < rawEvents.length; j++) {
+          if (rawEvents[j].eventType === 'despertar' || rawEvents[j].eventType === 'wake') {
+            wakeEvent = rawEvents[j];
+            wakeIndex = j;
+            break;
+          }
+        }
+        
+        // Crear evento de sueño combinado
+        const sleepEvent = {
+          _id: new ObjectId(),
+          eventType: 'dormir', // Normalizamos el tipo de evento
+          startTime: parseDateTime(row.eventDate, row.startTime),
+          endTime: wakeEvent ? parseDateTime(wakeEvent.eventDate, wakeEvent.startTime) : null,
+          emotionalState: row.emotionalState || null,
+          notes: row.notes || null,
+          sleepDelay: row.sleepDelay ? parseInt(row.sleepDelay, 10) : null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        
+        // Verificar que startTime se haya parseado correctamente
+        if (!sleepEvent.startTime) {
+          console.log(`⚠️ Error parseando fecha/hora del evento dormir: fecha=${row.eventDate}, hora=${row.startTime}`);
+          skippedEvents++;
+          continue;
+        }
+        
+        // Si encontramos el evento de despertar, marcarlo como procesado
+        if (wakeIndex !== -1) {
+          processedIndices.add(wakeIndex);
+          console.log(`✅ Uniendo evento dormir (${row.startTime}) con despertar (${wakeEvent.startTime})`);
+        } else {
+          console.log(`⚠️ Evento dormir sin despertar correspondiente: ${row.startTime}`);
+        }
+        
+        // Limpiar campos nulos
+        Object.keys(sleepEvent).forEach(key => {
+          if (sleepEvent[key] === null || sleepEvent[key] === '' || (typeof sleepEvent[key] === 'number' && isNaN(sleepEvent[key]))) {
+            delete sleepEvent[key];
+          }
+        });
+        
+        eventsToInsert.push(sleepEvent);
+        processedIndices.add(i);
+        
+      } else if (row.eventType === 'despertar' || row.eventType === 'wake') {
+        // Si es un evento de despertar suelto (sin dormir previo), lo saltamos
+        console.log(`⚠️ Evento despertar sin dormir previo: ${row.startTime}`);
+        processedIndices.add(i);
+        
+      } else {
+        // Para otros tipos de eventos, procesarlos normalmente
+        const event = {
+          _id: new ObjectId(),
+          eventType: row.eventType,
+          startTime: parseDateTime(row.eventDate, row.startTime),
+          endTime: row.endTime ? parseDateTime(row.eventDate, row.endTime) : null,
+          emotionalState: row.emotionalState || null,
+          notes: row.notes || null,
+          feedingType: row.feedingType || null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        
+        // Verificar que startTime se haya parseado correctamente
+        if (!event.startTime) {
+          console.log(`⚠️ Error parseando fecha/hora: fecha=${row.eventDate}, hora=${row.startTime}`);
+          skippedEvents++;
+          continue;
+        }
+        
+        // Limpiar campos nulos
+        Object.keys(event).forEach(key => {
+          if (event[key] === null || event[key] === '' || (typeof event[key] === 'number' && isNaN(event[key]))) {
+            delete event[key];
+          }
+        });
+        
+        eventsToInsert.push(event);
+        processedIndices.add(i);
+      }
+    }
+
+    console.log(`📊 Total de eventos procesados: ${eventsToInsert.length} eventos.`);
 
     if (eventsToInsert.length > 0) {
       console.log(`⏳ Insertando ${eventsToInsert.length} eventos para ${child.firstName}...`);
