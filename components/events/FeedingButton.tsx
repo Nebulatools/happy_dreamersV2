@@ -9,6 +9,7 @@ import { toLocalISOString } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { useDevTime } from '@/context/dev-time-context'
 import { FeedingModal } from './FeedingModal'
+import { useSleepState } from '@/hooks/use-sleep-state'
 
 interface FeedingButtonProps {
   childId: string
@@ -38,6 +39,7 @@ export function FeedingButton({
   const [isProcessing, setIsProcessing] = useState(false)
   const { getCurrentTime } = useDevTime()
   const [showFeedingModal, setShowFeedingModal] = useState(false)
+  const { sleepState } = useSleepState(childId)
   
   // Configuración del botón
   const getButtonConfig = () => {
@@ -57,6 +59,9 @@ export function FeedingButton({
       setIsProcessing(true)
       
       const now = getCurrentTime()
+      
+      // Detectar si el bebé está dormido actualmente
+      const isBabySleeping = sleepState.status === 'sleeping' || sleepState.status === 'napping'
       
       // Crear evento de alimentación con todos los datos del modal
       const eventData: Partial<EventData> = {
@@ -81,6 +86,30 @@ export function FeedingButton({
         throw new Error('Error al registrar evento de alimentación')
       }
       
+      // Si el bebé está dormido, crear también un evento de night_feeding
+      if (isBabySleeping) {
+        const nightFeedingData: Partial<EventData> = {
+          childId,
+          eventType: 'night_feeding',
+          startTime: toLocalISOString(now),
+          feedingType: feedingData.feedingType,
+          feedingAmount: feedingData.feedingAmount,
+          feedingDuration: feedingData.feedingDuration,
+          notes: `Alimentación nocturna - ${feedingData.feedingType === 'breast' ? 'Pecho' : feedingData.feedingType === 'bottle' ? 'Biberón' : 'Sólidos'}`,
+          emotionalState: 'neutral'
+        }
+        
+        const nightFeedingResponse = await fetch('/api/children/events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(nightFeedingData)
+        })
+        
+        if (!nightFeedingResponse.ok) {
+          console.error('Error al registrar evento de alimentación nocturna')
+        }
+      }
+      
       // Preparar mensaje personalizado según tipo
       const getTypeText = (type: string) => {
         switch (type) {
@@ -102,8 +131,8 @@ export function FeedingButton({
       
       // Mostrar confirmación personalizada
       toast({
-        title: "Alimentación registrada",
-        description: `${childName}: ${getTypeText(feedingData.feedingType)} - ${getAmountText(feedingData.feedingType, feedingData.feedingAmount, feedingData.feedingDuration)}`
+        title: isBabySleeping ? "Alimentación nocturna registrada" : "Alimentación registrada",
+        description: `${childName}: ${getTypeText(feedingData.feedingType)} - ${getAmountText(feedingData.feedingType, feedingData.feedingAmount, feedingData.feedingDuration)}${isBabySleeping ? ' (durante el sueño)' : ''}`
       })
       
       // Cerrar modal y limpiar
