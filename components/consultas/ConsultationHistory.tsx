@@ -113,16 +113,54 @@ export function ConsultationHistory({
     })
   }
 
-  // Truncar texto
+  // Truncar texto y manejar objetos anidados de forma segura
   const truncateText = (text: string | any, maxLength: number = 150) => {
     // Convertir a string si no lo es
-    const textStr = typeof text === 'string' ? text : JSON.stringify(text) || ''
+    let textStr = ''
+    
+    if (typeof text === 'string') {
+      textStr = text
+    } else if (text && typeof text === 'object') {
+      try {
+        // Si es un objeto, extraer el contenido de forma más inteligente
+        if (text.mainConcerns && text.recommendations) {
+          // Estructura de análisis específica
+          textStr = `Preocupaciones principales: ${text.mainConcerns}. Recomendaciones: ${text.recommendations}`
+        } else if (text.mainConcerns) {
+          textStr = `Preocupaciones: ${text.mainConcerns}`
+        } else if (text.recommendations) {
+          textStr = `Recomendaciones: ${text.recommendations}`
+        } else if (text.content) {
+          textStr = text.content
+        } else if (text.summary) {
+          textStr = text.summary
+        } else {
+          // Fallback seguro a JSON.stringify
+          textStr = JSON.stringify(text, null, 0)
+        }
+      } catch (error) {
+        // Si falla JSON.stringify, usar una representación segura
+        textStr = '[Objeto complejo]'
+      }
+    } else {
+      textStr = String(text || '')
+    }
+    
     if (textStr.length <= maxLength) return textStr
     return textStr.substring(0, maxLength) + '...'
   }
 
   // Descargar consulta específica
   const downloadConsultation = (consultation: ConsultationRecord) => {
+    // Convertir campos a texto legible
+    const analysisText = typeof consultation.analysis === 'string' 
+      ? consultation.analysis 
+      : JSON.stringify(consultation.analysis, null, 2)
+    
+    const recommendationsText = typeof consultation.recommendations === 'string' 
+      ? consultation.recommendations 
+      : JSON.stringify(consultation.recommendations, null, 2)
+      
     const report = `
 CONSULTA PEDIÁTRICA
 Fecha: ${formatDate(consultation.createdAt)}
@@ -133,10 +171,10 @@ TRANSCRIPT:
 ${consultation.transcript}
 
 ANÁLISIS:
-${consultation.analysis}
+${analysisText}
 
 RECOMENDACIONES:
-${consultation.recommendations}
+${recommendationsText}
 
 ---
 ID de Consulta: ${consultation._id}
@@ -283,7 +321,10 @@ Generado por Happy Dreamers AI Assistant
                                   </h4>
                                   <div className="p-3 bg-blue-50 rounded-lg text-sm">
                                     <pre className="whitespace-pre-wrap font-sans">
-                                      {consultation.analysis}
+                                      {typeof consultation.analysis === 'string' 
+                                        ? consultation.analysis 
+                                        : JSON.stringify(consultation.analysis, null, 2)
+                                      }
                                     </pre>
                                   </div>
                                 </div>
@@ -298,7 +339,10 @@ Generado por Happy Dreamers AI Assistant
                                   </h4>
                                   <div className="p-3 bg-green-50 rounded-lg text-sm">
                                     <pre className="whitespace-pre-wrap font-sans">
-                                      {consultation.recommendations}
+                                      {typeof consultation.recommendations === 'string' 
+                                        ? consultation.recommendations 
+                                        : JSON.stringify(consultation.recommendations, null, 2)
+                                      }
                                     </pre>
                                   </div>
                                 </div>

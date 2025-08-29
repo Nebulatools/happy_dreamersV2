@@ -47,7 +47,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     // Para admins, permitir ver cualquier niño
     const query = isAdmin 
       ? { _id: new ObjectId(id) }
-      : { _id: new ObjectId(id), parentId: session.user.id }
+      : { _id: new ObjectId(id), parentId: new ObjectId(session.user.id) }
       
     const child = await db.collection<Child>("children").findOne(query)
 
@@ -79,7 +79,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   if (isAdmin && requestedUserId) {
     logger.info("Admin solicitando niños de usuario", { requestedUserId, adminId: session.user.id })
     const children = await db.collection<Child>("children")
-      .find({ parentId: requestedUserId })
+      .find({ parentId: new ObjectId(requestedUserId) })
       .toArray()
     
     logger.info("Niños encontrados", { count: children.length, userId: requestedUserId })
@@ -92,7 +92,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   // Para admin: obtener TODOS los niños del sistema
   // Para usuario normal: solo sus propios niños
-  const query = isAdmin ? {} : { parentId: session.user.id }
+  const query = isAdmin ? {} : { parentId: new ObjectId(session.user.id) }
   
   logger.debug("Obteniendo niños", { 
     userId: session.user.id, 
@@ -150,7 +150,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     firstName: data.firstName!,
     lastName: data.lastName!,
     birthDate: data.birthDate || "",
-    parentId: session.user.id,
+    parentId: new ObjectId(session.user.id),
     createdAt: new Date(),
     updatedAt: new Date(),
     // Incluir los datos de la encuesta si están presentes
@@ -203,7 +203,7 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
   // Verificar que el niño pertenece al usuario
   const child = await db.collection<Child>("children").findOne({
     _id: new ObjectId(data.id),
-    parentId: session.user.id,
+    parentId: new ObjectId(session.user.id),
   })
 
   if (!child) {
@@ -260,7 +260,7 @@ export async function DELETE(request: NextRequest) {
     // Verificar que el niño pertenece al usuario
     const child = await db.collection("children").findOne({
       _id: new ObjectId(id),
-      parentId: session.user.id,
+      parentId: new ObjectId(session.user.id),
     })
 
     if (!child) {

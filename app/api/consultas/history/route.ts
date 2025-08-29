@@ -129,24 +129,20 @@ async function getConsultationStats(childId: string) {
             lastConsultation: { $max: "$createdAt" },
             avgAnalysisLength: { 
               $avg: { 
-                $strLenCP: { 
-                  $cond: [
-                    { $eq: [{ $type: "$analysis" }, "string"] },
-                    "$analysis",
-                    { $toString: "$analysis" }
-                  ]
-                }
+                $cond: [
+                  { $eq: [{ $type: "$analysis" }, "string"] },
+                  { $strLenCP: "$analysis" },
+                  0
+                ]
               }
             },
             avgRecommendationsLength: { 
               $avg: { 
-                $strLenCP: { 
-                  $cond: [
-                    { $eq: [{ $type: "$recommendations" }, "string"] },
-                    "$recommendations", 
-                    { $toString: "$recommendations" }
-                  ]
-                }
+                $cond: [
+                  { $eq: [{ $type: "$recommendations" }, "string"] },
+                  { $strLenCP: "$recommendations" },
+                  0
+                ]
               }
             },
           },

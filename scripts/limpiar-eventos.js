@@ -15,6 +15,7 @@ async function limpiarTodosLosEventos() {
     console.log('✅ Conectado a MongoDB')
     
     const db = client.db()
+    b
     
     // Obtener todos los niños
     const children = await db.collection('children')

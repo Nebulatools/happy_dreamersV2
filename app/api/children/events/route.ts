@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
     // Verificar que el niño exista y pertenezca al usuario (o sea admin)
     const query = isAdmin 
       ? { _id: new ObjectId(data.childId) }
-      : { _id: new ObjectId(data.childId), parentId: session.user.id }
+      : { _id: new ObjectId(data.childId), parentId: new ObjectId(session.user.id) }
     
     const child = await db.collection("children").findOne(query)
 
@@ -353,7 +353,7 @@ export async function POST(req: NextRequest) {
       await syncEventToAnalyticsCollection({
         _id: event._id,
         childId: event.childId,
-        parentId: session.user.id,
+        parentId: new ObjectId(session.user.id),
         eventType: event.eventType,
         emotionalState: event.emotionalState,
         startTime: event.startTime,
@@ -428,7 +428,7 @@ export async function GET(req: NextRequest) {
     // Para admins, permitir acceso a cualquier niño sin verificar el parentId
     const query = isAdmin 
       ? { _id: new ObjectId(childId) }
-      : { _id: new ObjectId(childId), parentId: session.user.id }
+      : { _id: new ObjectId(childId), parentId: new ObjectId(session.user.id) }
       
     logger.info("Query para buscar niño:", JSON.stringify(query))
     
@@ -444,14 +444,22 @@ export async function GET(req: NextRequest) {
 
     logger.info(`Niño encontrado: ${child.firstName} ${child.lastName}, devolviendo eventos`)
     
+    // BUSCAR EVENTOS EN LA COLECCIÓN SEPARADA 'events'
+    const events = await db.collection("events").find({ 
+      childId: new ObjectId(childId),
+      parentId: new ObjectId(session.user.id) 
+    }).toArray()
+    
     // Ordenar eventos por startTime antes de devolver
-    // Esto asegura consistencia en el orden, evitando problemas de posicionamiento
-    const sortedEvents = (child.events || []).sort((a: any, b: any) => {
+    // Esto asegura consistencia en el orden, evitando problemas de posicionamiento  
+    const sortedEvents = events.sort((a: any, b: any) => {
       if (!a.startTime || !b.startTime) return 0
       const timeA = new Date(a.startTime).getTime()
       const timeB = new Date(b.startTime).getTime()
       return timeA - timeB // Orden cronológico ascendente
     })
+    
+    logger.info(`Eventos encontrados en colección separada: ${sortedEvents.length}`)
     
     // Devolver los detalles del niño, incluyendo sus eventos ordenados
     return NextResponse.json({
@@ -502,7 +510,7 @@ export async function PUT(req: NextRequest) {
     // Verificar que el niño exista y pertenezca al usuario (o sea admin)
     const query = isAdmin 
       ? { _id: new ObjectId(data.childId) }
-      : { _id: new ObjectId(data.childId), parentId: session.user.id }
+      : { _id: new ObjectId(data.childId), parentId: new ObjectId(session.user.id) }
     
     const child = await db.collection("children").findOne(query)
 
@@ -611,7 +619,7 @@ export async function PATCH(req: NextRequest) {
     // Verificar que el niño exista y pertenezca al usuario (o sea admin)
     const query = isAdmin 
       ? { _id: new ObjectId(data.childId) }
-      : { _id: new ObjectId(data.childId), parentId: session.user.id }
+      : { _id: new ObjectId(data.childId), parentId: new ObjectId(session.user.id) }
     
     const child = await db.collection("children").findOne(query)
 
@@ -781,7 +789,7 @@ export async function DELETE(req: NextRequest) {
     // Verificar que el niño exista y pertenezca al usuario (o sea admin)
     const query = isAdmin 
       ? { _id: new ObjectId(childId) }
-      : { _id: new ObjectId(childId), parentId: session.user.id }
+      : { _id: new ObjectId(childId), parentId: new ObjectId(session.user.id) }
     
     const child = await db.collection("children").findOne(query)
     

@@ -16,6 +16,8 @@ Salud y Desarrollo:
 • Pediatra: Confirma que el niño puede dormir toda la noche dada su edad, peso y salud.
 • Tratamiento médico: Actualmente, está tomando Tylenol y Motrin para la fiebre debido a una enfermedad.
 • Hitos del desarrollo: Rodó en ambos lados a los 4 meses, se sentó a los 5.5 meses, gateó a los 6.5 meses, se paró a los 6 meses. Todavía no camina.
+
+
 • Alimentación: Se alimenta de leche materna exclusiva, usa biberón y vasito. Tuvo problemas iniciales con el agarre y sobreproducción de leche materna, y tiene una asesora de lactancia.
 • Sólidos: Come sólidos (desayuno, comida y cena), pero come muy poco. Tienen un problema de integración sensorial que están revisando, y se describe como "difícil que coma".
 • Actividad física y pantallas: No ve pantallas (TV, celular, iPad). No practica actividad física organizada ni estimulación temprana/deporte. Cuando está despierto, juega, gatea y realiza actividades sensoriales.
@@ -28,6 +30,8 @@ Hábitos de Sueño y Dinámica Familiar (antes de la consulta):
 • Temperamento: Tranquilo pero demandante.
 • Objetivos de los padres: Que Bernardo sea capaz de dormir de corrido en su cuna por sí solo, dormir siestas largas en su cuna, y preferiblemente destetar por la noche (aunque una toma es aceptable). No les molesta arrullarlo al principio de la noche, pero quieren abordar los despertares nocturnos.
 Resumen de la Correspondencia por Correo Electrónico (Cronológico)
+
+
 Los correos documentan la evolución del entrenamiento de sueño de Bernardo, bajo la guía de Mariana Villarreal de Happy Dreamers, desde octubre hasta diciembre.
 • Octubre 7-10: Preparación y Enfermedad
     ◦ Itzel informa que Bernardo tiene 5 tomas nocturnas y ella se siente cansada. Mariana sugiere introducir un objeto de seguridad para el bebé.
