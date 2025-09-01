@@ -707,21 +707,17 @@ export default function ChildEventsPage() {
         </DialogContent>
       </Dialog>
       
-      {/* TEMPORALMENTE COMENTADO - Sistema de eventos en reset */}
-      {/* Event Registration Modal */}
       {/* Modal para registrar eventos */}
-      {activeChildId && child && (
-        <ManualEventModal
-          open={eventModalOpen}
-          onClose={() => setEventModalOpen(false)}
-          childId={activeChildId}
-          childName={`${child.firstName} ${child.lastName || ''}`.trim()}
-          onEventRegistered={() => {
-            invalidateEvents() // Invalidar cache global
-            setEventModalOpen(false)
-          }}
-        />
-      )}
+      <ManualEventModal
+        open={eventModalOpen}
+        onClose={() => setEventModalOpen(false)}
+        childId={activeChildId || childIdFromUrl || ''}
+        childName={child ? `${child.firstName} ${child.lastName || ''}`.trim() : 'Niño'}
+        onEventRegistered={() => {
+          invalidateEvents() // Invalidar cache global
+          setEventModalOpen(false)
+        }}
+      />
 
       {/* Modal de confirmación de eliminación */}
       {selectedEvent && (
@@ -739,9 +735,6 @@ export default function ChildEventsPage() {
           isDeleting={isSaving}
         />
       )}
-      
-      {/* Debug */}
-      {console.log("showDeleteModal:", showDeleteModal, "selectedEvent:", selectedEvent)}
     </div>
   )
 } 
