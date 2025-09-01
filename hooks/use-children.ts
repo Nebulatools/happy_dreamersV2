@@ -59,17 +59,27 @@ export function useChildren(): UseChildrenResult {
       }
     } catch (error) {
       // Solo mostrar error si es un error real, no si simplemente no hay niños
-      logger.error("Error al cargar niños", error)
-      setError("Error al cargar la lista de niños")
-      
-      // Solo mostrar toast si no es un 404 o similar (usuario sin niños)
       const errorMessage = error instanceof Error ? error.message : ""
-      if (!errorMessage.includes("404") && !errorMessage.includes("not found")) {
+      
+      // Verificar si es un error de servidor real (500+) o de red
+      const isServerError = errorMessage.includes("500") || 
+                           errorMessage.includes("502") || 
+                           errorMessage.includes("503") || 
+                           errorMessage.includes("Network") ||
+                           errorMessage.includes("Failed to fetch")
+      
+      if (isServerError) {
+        logger.error("Error al cargar niños", error)
+        setError("Error al cargar la lista de niños")
         toast({
           title: "Error",
           description: "No se pudieron cargar los niños. Por favor, intenta de nuevo.",
           variant: "destructive",
         })
+      } else {
+        // Para usuarios sin niños o errores 404, simplemente establecer array vacío
+        logger.debug("Usuario sin niños o respuesta vacía", errorMessage)
+        setChildren([])
       }
     } finally {
       setIsLoading(false)
