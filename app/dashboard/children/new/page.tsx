@@ -6,10 +6,19 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Camera, Calendar, ArrowLeft } from "lucide-react"
+import { Camera, Calendar, ArrowLeft, CheckCircle, FileQuestion } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { useSession } from "next-auth/react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { useActiveChild } from "@/context/active-child-context"
 
 import { createLogger } from "@/lib/logger"
 
@@ -19,7 +28,11 @@ const logger = createLogger("page")
 export default function AddChildPage() {
   const router = useRouter()
   const { data: session } = useSession()
+  const { setActiveChildId } = useActiveChild()
   const [loading, setLoading] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [showSurveyModal, setShowSurveyModal] = useState(false)
+  const [newChildId, setNewChildId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -39,10 +52,29 @@ export default function AddChildPage() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      // Validar tamaño de imagen (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("La imagen no debe superar los 5MB")
+        return
+      }
+      
+      // Validar tipo de archivo
+      if (!file.type.startsWith('image/')) {
+        toast.error("Por favor selecciona una imagen válida")
+        return
+      }
+      
       setFormData(prev => ({
         ...prev,
         profileImage: file,
       }))
+      
+      // Crear preview de la imagen
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
     }
   }
 
@@ -62,11 +94,22 @@ export default function AddChildPage() {
     setLoading(true)
 
     try {
+      // Si hay imagen, convertirla a base64
+      let profileImageBase64 = null
+      if (formData.profileImage) {
+        const reader = new FileReader()
+        profileImageBase64 = await new Promise<string>((resolve) => {
+          reader.onloadend = () => resolve(reader.result as string)
+          reader.readAsDataURL(formData.profileImage!)
+        })
+      }
+
       const childData = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         birthDate: formData.birthDate,
         notes: formData.notes.trim(),
+        avatar: profileImageBase64, // Agregar la imagen en base64
       }
 
       const response = await fetch("/api/children", {
@@ -78,8 +121,23 @@ export default function AddChildPage() {
       })
 
       if (response.ok) {
+        const result = await response.json()
+        const childId = result.id || result._id
+        
+        // Establecer el nuevo niño como activo inmediatamente
+        if (childId) {
+          setActiveChildId(childId)
+          localStorage.setItem('activeChildId', childId)
+          setNewChildId(childId)
+        }
+        
         toast.success("Soñador registrado exitosamente")
-        router.push("/dashboard/children")
+        
+        // Forzar actualización del selector disparando un evento
+        window.dispatchEvent(new Event('childrenUpdated'))
+        
+        // Mostrar modal para preguntar sobre la encuesta
+        setShowSurveyModal(true)
       } else {
         const errorData = await response.json()
         toast.error(errorData.message || "Error al registrar el soñador")
@@ -144,11 +202,34 @@ export default function AddChildPage() {
                   />
                   <label
                     htmlFor="profile-image"
-                    className="flex flex-col items-center justify-center w-20 h-20 bg-blue-50 border-2 border-dashed border-blue-300 rounded-full cursor-pointer hover:bg-blue-100 transition-colors"
+                    className="flex flex-col items-center justify-center w-20 h-20 bg-blue-50 border-2 border-dashed border-blue-300 rounded-full cursor-pointer hover:bg-blue-100 transition-colors overflow-hidden"
                   >
-                    <Camera className="h-4 w-4 text-blue-600 mb-1" />
-                    <span className="text-xs text-blue-600 font-medium">Subir</span>
+                    {imagePreview ? (
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <>
+                        <Camera className="h-4 w-4 text-blue-600 mb-1" />
+                        <span className="text-xs text-blue-600 font-medium">Subir</span>
+                      </>
+                    )}
                   </label>
+                  {imagePreview && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setImagePreview(null)
+                        setFormData(prev => ({ ...prev, profileImage: null }))
+                      }}
+                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -199,6 +280,8 @@ export default function AddChildPage() {
                     type="date"
                     value={formData.birthDate}
                     onChange={handleInputChange}
+                    min="2015-01-01"
+                    max={new Date().toISOString().split('T')[0]}
                     className="h-12 bg-white border-gray-200 rounded-xl focus:border-blue-400 transition-all pr-12"
                     required
                   />
@@ -251,6 +334,56 @@ export default function AddChildPage() {
           </div>
         </Card>
       </div>
+
+      {/* Modal para preguntar sobre la encuesta */}
+      <Dialog open={showSurveyModal} onOpenChange={setShowSurveyModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-4 w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <DialogTitle className="text-center text-xl">
+              ¡{formData.firstName} ha sido registrado!
+            </DialogTitle>
+            <DialogDescription className="text-center space-y-3">
+              <p className="text-gray-700">
+                Para personalizar las recomendaciones de sueño, necesitamos conocer mejor 
+                los hábitos y rutinas de {formData.firstName}.
+              </p>
+              <div className="bg-blue-50 rounded-lg p-3 mt-4">
+                <div className="flex items-start gap-2">
+                  <FileQuestion className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <div className="text-sm text-gray-700 text-left">
+                    <p className="font-semibold mb-1">Encuesta de Sueño Infantil</p>
+                    <p>Toma aproximadamente 10-15 minutos y nos ayudará a crear un plan 
+                    de sueño personalizado.</p>
+                  </div>
+                </div>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:justify-center">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowSurveyModal(false)
+                router.push("/dashboard/children")
+              }}
+            >
+              Completar después
+            </Button>
+            <Button
+              onClick={() => {
+                setShowSurveyModal(false)
+                router.push(`/dashboard/survey?childId=${newChildId}`)
+              }}
+              className="bg-gradient-to-r from-blue-500 to-blue-400 hover:from-blue-600 hover:to-blue-500 text-white"
+            >
+              Iniciar Encuesta
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
