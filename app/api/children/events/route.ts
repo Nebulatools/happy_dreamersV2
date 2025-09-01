@@ -449,10 +449,12 @@ export async function GET(req: NextRequest) {
     logger.info(`Eventos encontrados en child.events: ${eventsFromChild.length}`)
     
     // SEGUNDO: Buscar eventos en la colección separada 'events'
-    const eventsFromCollection = await db.collection("events").find({ 
-      childId: new ObjectId(childId),
-      parentId: new ObjectId(session.user.id) 
-    }).toArray()
+    // Para admins, no filtrar por parentId
+    const eventsQuery = isAdmin 
+      ? { childId: new ObjectId(childId) }
+      : { childId: new ObjectId(childId), parentId: new ObjectId(session.user.id) }
+    
+    const eventsFromCollection = await db.collection("events").find(eventsQuery).toArray()
     logger.info(`Eventos encontrados en colección events: ${eventsFromCollection.length}`)
     
     // Combinar ambas fuentes de eventos
@@ -468,7 +470,7 @@ export async function GET(req: NextRequest) {
       return timeA - timeB // Orden cronológico ascendente
     })
     
-    logger.info(`Eventos encontrados en colección separada: ${sortedEvents.length}`)
+    logger.info(`Total de eventos ordenados: ${sortedEvents.length}`)
     
     // Devolver los detalles del niño, incluyendo sus eventos ordenados
     return NextResponse.json({
