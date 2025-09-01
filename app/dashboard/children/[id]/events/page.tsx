@@ -533,7 +533,7 @@ export default function ChildEventsPage() {
         setIsDialogOpen(open)
         if (!open) setSelectedEvent(null) // Limpiar cuando se cierra
       }}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           {selectedEvent && (
             <>
               <DialogHeader>
@@ -623,13 +623,14 @@ export default function ChildEventsPage() {
                       </Select>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="startTime">Hora de inicio</Label>
                         <Input 
                           type="datetime-local" 
                           value={editedEvent.startTime?.replace("Z", "") || ""}
                           onChange={(e) => setEditedEvent({ ...editedEvent, startTime: e.target.value })}
+                          className="w-full"
                         />
                       </div>
                       <div className="grid gap-2">
@@ -638,6 +639,7 @@ export default function ChildEventsPage() {
                           type="datetime-local" 
                           value={editedEvent.endTime?.replace("Z", "") || ""}
                           onChange={(e) => setEditedEvent({ ...editedEvent, endTime: e.target.value })}
+                          className="w-full"
                         />
                       </div>
                     </div>
