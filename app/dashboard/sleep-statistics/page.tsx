@@ -57,70 +57,41 @@ export default function SleepStatisticsPage() {
   usePageHeaderConfig({
     title: "Estadísticas de Sueño",
     actions: headerActions,
-    showSearch: true,
     showChildSelector: true,
     showNotifications: true
   })
 
   return (
     <div className="space-y-6">
-      {/* Nueva Card de Métricas Mejorada - Incluye todo lo prioritario */}
       {activeChildId ? (
-        <EnhancedSleepMetricsCard childId={activeChildId} dateRange={dateRange} />
-      ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-          <p className="text-gray-500">Por favor selecciona un niño desde el menú superior para ver las estadísticas</p>
-        </div>
-      )}
+        <>
+          {/* Nueva Card de Métricas Mejorada - Incluye todo lo prioritario */}
+          <EnhancedSleepMetricsCard childId={activeChildId} dateRange={dateRange} />
 
-      {/* Card de Análisis y Recomendaciones */}
-      {activeChildId ? (
-        <SleepInsightsCard childId={activeChildId} dateRange={dateRange} />
-      ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-          <p className="text-gray-500">Por favor selecciona un niño desde el menú superior para ver análisis y recomendaciones</p>
-        </div>
-      )}
+          {/* Card de Análisis y Recomendaciones */}
+          <SleepInsightsCard childId={activeChildId} dateRange={dateRange} />
 
-      {/* Nuevo componente de Data Storytelling */}
-      {activeChildId ? (
-        <SleepDataStorytellingCard childId={activeChildId} dateRange={dateRange} />
-      ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-          <p className="text-gray-500">Selecciona un niño para ver el análisis detallado de sueño</p>
-        </div>
-      )}
+          {/* Nuevo componente de Data Storytelling */}
+          <SleepDataStorytellingCard childId={activeChildId} dateRange={dateRange} />
 
-      {/* Evolución de despertares nocturnos - Después del análisis del sueño */}
-      {activeChildId ? (
-        <NightWakeupsEvolutionChart childId={activeChildId} dateRange={dateRange} />
-      ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-          <p className="text-gray-500">Selecciona un niño para ver la evolución de despertares nocturnos</p>
-        </div>
-      )}
+          {/* Evolución de despertares nocturnos - Después del análisis del sueño */}
+          <NightWakeupsEvolutionChart childId={activeChildId} dateRange={dateRange} />
 
-      {/* Distribución del sueño - Al final */}
-      {activeChildId ? (
-        <SleepDistributionChart childId={activeChildId} dateRange={dateRange} />
-      ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-          <p className="text-gray-500">Selecciona un niño para ver la distribución del sueño</p>
-        </div>
-      )}
+          {/* Distribución del sueño - Al final */}
+          <SleepDistributionChart childId={activeChildId} dateRange={dateRange} />
 
-      {/* Tabla Comparativa temporalmente deshabilitada 
-      {activeChildId ? (
-        <SleepComparison childId={activeChildId} dateRange={dateRange} />
+          {/* Tabla Comparativa temporalmente deshabilitada 
+          <SleepComparison childId={activeChildId} dateRange={dateRange} />
+          */}
+        </>
       ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-          <h2 className="text-xl font-bold text-[#2F2F2F] mb-4">
-            Comparativa con períodos anteriores
-          </h2>
-          <p className="text-gray-500">Selecciona un niño para ver la comparativa</p>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+          <h2 className="text-xl font-semibold mb-2">Selecciona un niño</h2>
+          <p className="text-gray-500">
+            Por favor, selecciona un niño en la parte superior para ver sus estadísticas de sueño.
+          </p>
         </div>
       )}
-      */}
     </div>
   )
 }

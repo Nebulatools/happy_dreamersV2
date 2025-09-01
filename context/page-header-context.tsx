@@ -22,7 +22,7 @@ interface PageHeaderContextType {
 // Configuración por defecto
 const defaultConfig: PageHeaderConfig = {
   title: "Dashboard",
-  showSearch: true,
+  showSearch: false,
   showChildSelector: true,
   showNotifications: true
 }

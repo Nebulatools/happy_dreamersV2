@@ -31,12 +31,7 @@ export default function SurveyPage() {
 
   useEffect(() => {
     if (!childId) {
-      toast({
-        title: "Sin niño seleccionado",
-        description: "Por favor selecciona un niño para continuar con la encuesta",
-        variant: "destructive"
-      })
-      router.push("/dashboard/children")
+      setIsLoading(false)
       return
     }
 
@@ -96,7 +91,16 @@ export default function SurveyPage() {
   }
 
   if (!childId) {
-    return null // El useEffect redirigirá
+    return (
+      <div className="p-4 md:p-6 max-w-7xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+          <h2 className="text-xl font-semibold mb-2">Selecciona un niño</h2>
+          <p className="text-gray-500">
+            Por favor, selecciona un niño en la parte superior para completar la encuesta de sueño.
+          </p>
+        </div>
+      </div>
+    )
   }
 
   if (isLoading) {
