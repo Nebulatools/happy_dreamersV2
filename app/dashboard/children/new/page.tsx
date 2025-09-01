@@ -20,6 +20,7 @@ export default function AddChildPage() {
   const router = useRouter()
   const { data: session } = useSession()
   const [loading, setLoading] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -39,10 +40,29 @@ export default function AddChildPage() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      // Validar tamaño de imagen (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("La imagen no debe superar los 5MB")
+        return
+      }
+      
+      // Validar tipo de archivo
+      if (!file.type.startsWith('image/')) {
+        toast.error("Por favor selecciona una imagen válida")
+        return
+      }
+      
       setFormData(prev => ({
         ...prev,
         profileImage: file,
       }))
+      
+      // Crear preview de la imagen
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
     }
   }
 
@@ -62,11 +82,22 @@ export default function AddChildPage() {
     setLoading(true)
 
     try {
+      // Si hay imagen, convertirla a base64
+      let profileImageBase64 = null
+      if (formData.profileImage) {
+        const reader = new FileReader()
+        profileImageBase64 = await new Promise<string>((resolve) => {
+          reader.onloadend = () => resolve(reader.result as string)
+          reader.readAsDataURL(formData.profileImage!)
+        })
+      }
+
       const childData = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         birthDate: formData.birthDate,
         notes: formData.notes.trim(),
+        avatar: profileImageBase64, // Agregar la imagen en base64
       }
 
       const response = await fetch("/api/children", {
@@ -144,11 +175,34 @@ export default function AddChildPage() {
                   />
                   <label
                     htmlFor="profile-image"
-                    className="flex flex-col items-center justify-center w-20 h-20 bg-blue-50 border-2 border-dashed border-blue-300 rounded-full cursor-pointer hover:bg-blue-100 transition-colors"
+                    className="flex flex-col items-center justify-center w-20 h-20 bg-blue-50 border-2 border-dashed border-blue-300 rounded-full cursor-pointer hover:bg-blue-100 transition-colors overflow-hidden"
                   >
-                    <Camera className="h-4 w-4 text-blue-600 mb-1" />
-                    <span className="text-xs text-blue-600 font-medium">Subir</span>
+                    {imagePreview ? (
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <>
+                        <Camera className="h-4 w-4 text-blue-600 mb-1" />
+                        <span className="text-xs text-blue-600 font-medium">Subir</span>
+                      </>
+                    )}
                   </label>
+                  {imagePreview && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setImagePreview(null)
+                        setFormData(prev => ({ ...prev, profileImage: null }))
+                      }}
+                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -199,6 +253,8 @@ export default function AddChildPage() {
                     type="date"
                     value={formData.birthDate}
                     onChange={handleInputChange}
+                    min="2015-01-01"
+                    max={new Date().toISOString().split('T')[0]}
                     className="h-12 bg-white border-gray-200 rounded-xl focus:border-blue-400 transition-all pr-12"
                     required
                   />
