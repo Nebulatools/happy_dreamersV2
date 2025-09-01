@@ -147,6 +147,20 @@ export function ChildSelector() {
     }
   }
 
+  // Escuchar evento de actualización de niños
+  useEffect(() => {
+    const handleChildrenUpdate = () => {
+      logger.info("Evento childrenUpdated recibido, recargando niños...")
+      fetchChildren(activeUserId)
+    }
+    
+    window.addEventListener('childrenUpdated', handleChildrenUpdate)
+    
+    return () => {
+      window.removeEventListener('childrenUpdated', handleChildrenUpdate)
+    }
+  }, [activeUserId])
+
   // Efecto simplificado para cargar niños
   useEffect(() => {
     if (!session || !session.user) {
