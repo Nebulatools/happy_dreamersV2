@@ -84,9 +84,9 @@ export function EventGlobe({ event, hourHeight = 30, onClick }: EventGlobeProps)
     switch (event.eventType) {
       case 'nap': return 'bg-orange-400 text-white'
       case 'sleep': return 'bg-blue-400 text-white'  
-      case 'wake': return 'bg-green-400 text-white'
-      case 'night_waking': return 'bg-red-400 text-white'
-      case 'feeding': return 'bg-yellow-500 text-white'
+      case 'wake': return 'bg-wake text-white'
+      case 'night_waking': return 'bg-night-wake text-white'
+      case 'feeding': return 'bg-feeding text-white'
       case 'medication': return 'bg-purple-500 text-white'
       case 'extra_activities': return 'bg-teal-500 text-white'
       default: return 'bg-gray-400 text-white'

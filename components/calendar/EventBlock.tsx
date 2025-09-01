@@ -327,14 +327,14 @@ export function EventBlock({
       }}
     >
       {/* Contenido del bloque */}
-      <div className="flex items-center gap-0.5 truncate w-full">
+      <div className="flex items-center gap-1 w-full overflow-hidden px-1">
         {blockHeight >= 16 && getEventIcon()}
-        <span className="font-medium truncate" style={{ fontSize: '11px' }}>
+        <span className="font-medium flex-1 min-w-0" style={{ fontSize: blockHeight >= 20 ? '12px' : '11px' }}>
           {event.endTime && blockHeight >= 24 ? (
             // Si tiene duración y espacio suficiente, mostrar rango completo
             <div className="leading-tight">
-              <div className="truncate">{getEventTypeName()}</div>
-              <div className="opacity-80 text-xs">{formatEventTime()}</div>
+              <div className="line-clamp-1">{getEventTypeName()}</div>
+              <div className="opacity-80 text-xs line-clamp-1">{formatEventTime()}</div>
             </div>
           ) : event.endTime && blockHeight >= 18 ? (
             // Si tiene duración pero menos espacio, solo horas
@@ -436,12 +436,12 @@ export function CompactEventBlock({
 
   return (
     <div className={cn(
-      "flex items-center gap-1 p-1 rounded text-white text-xs",
+      "flex items-center gap-1.5 px-2 py-1 rounded text-white text-xs",
       getEventColor(),
       className
     )}>
       {getEventIcon()}
-      <span className="truncate">
+      <span className="line-clamp-1 font-medium">
         {formatTime()}
       </span>
     </div>

@@ -831,7 +831,8 @@ export default function CalendarPage() {
     })
     
     // Agregar eventos no procesados (que no son sleep/wake/night_waking o que no fueron emparejados)
-    const otherEvents = dayEvents.filter(e => !processedEventIds.has(e._id) && e.eventType !== 'wake')
+    // NOTA: Incluir eventos wake que no fueron emparejados con sleep
+    const otherEvents = dayEvents.filter(e => !processedEventIds.has(e._id))
     
     return { sessions, otherEvents }
   }
