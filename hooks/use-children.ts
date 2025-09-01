@@ -51,17 +51,26 @@ export function useChildren(): UseChildrenResult {
       } else if (Array.isArray(data)) {
         // Por compatibilidad con respuestas anteriores
         setChildren(data)
+      } else if (data.success) {
+        // Si success es true pero no hay niños, es válido (usuario sin niños)
+        setChildren([])
       } else {
         throw new Error("Formato de respuesta inválido")
       }
     } catch (error) {
+      // Solo mostrar error si es un error real, no si simplemente no hay niños
       logger.error("Error al cargar niños", error)
       setError("Error al cargar la lista de niños")
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los niños. Por favor, intenta de nuevo.",
-        variant: "destructive",
-      })
+      
+      // Solo mostrar toast si no es un 404 o similar (usuario sin niños)
+      const errorMessage = error instanceof Error ? error.message : ""
+      if (!errorMessage.includes("404") && !errorMessage.includes("not found")) {
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los niños. Por favor, intenta de nuevo.",
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsLoading(false)
     }
