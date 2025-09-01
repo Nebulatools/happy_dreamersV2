@@ -208,10 +208,29 @@ export default function ConfiguracionPage() {
                 Usa una foto o imagen que sea de al menos 132px x 132px.
               </p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="text-[#2553A1]">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-[#2553A1]"
+                  onClick={() => {
+                    toast({
+                      title: "Función en desarrollo",
+                      description: "La carga de fotos de perfil estará disponible próximamente",
+                    })
+                  }}
+                >
                   Cambiar foto
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    toast({
+                      title: "Función en desarrollo",
+                      description: "La eliminación de fotos estará disponible próximamente",
+                    })
+                  }}
+                >
                   Eliminar
                 </Button>
               </div>
@@ -342,7 +361,13 @@ export default function ConfiguracionPage() {
             </div>
             <ToggleSwitch
               checked={profileData.twoFactorEnabled}
-              onCheckedChange={(checked) => setProfileData({ ...profileData, twoFactorEnabled: checked })}
+              onCheckedChange={(checked) => {
+                setProfileData({ ...profileData, twoFactorEnabled: checked })
+                toast({
+                  title: "Función en desarrollo",
+                  description: "La autenticación de dos factores estará disponible próximamente",
+                })
+              }}
             />
           </div>
         </div>
@@ -404,6 +429,21 @@ export default function ConfiguracionPage() {
               onCheckedChange={(checked) => setProfileData({ ...profileData, marketingEmails: checked })}
             />
           </div>
+        </div>
+        
+        {/* Botón de guardar preferencias */}
+        <div className="mt-6 flex justify-end">
+          <Button
+            onClick={() => {
+              toast({
+                title: "Preferencias guardadas",
+                description: "Tus preferencias de notificación se han actualizado (función en desarrollo)",
+              })
+            }}
+            className="hd-gradient-button text-white"
+          >
+            Guardar Preferencias
+          </Button>
         </div>
       </Card>
 
