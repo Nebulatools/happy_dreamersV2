@@ -212,6 +212,12 @@ export function Sidebar({ className }: { className?: string }) {
             <button 
               className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 hover:bg-white/10 w-full mb-1"
               style={{ color: '#DEF1F1', fontFamily: 'Century Gothic, sans-serif' }}
+              onClick={() => {
+                toast({
+                  title: "Sección en desarrollo",
+                  description: "La sección de ayuda estará disponible próximamente",
+                })
+              }}
             >
               <HelpCircle className="h-5 w-5" />
               Ayuda
@@ -219,6 +225,12 @@ export function Sidebar({ className }: { className?: string }) {
             <button 
               className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 hover:bg-white/10 w-full"
               style={{ color: '#DEF1F1', fontFamily: 'Century Gothic, sans-serif' }}
+              onClick={() => {
+                toast({
+                  title: "Sección en desarrollo",
+                  description: "La sección de contacto estará disponible próximamente",
+                })
+              }}
             >
               <Mail className="h-5 w-5" />
               Contacto
