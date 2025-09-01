@@ -124,11 +124,8 @@ export default function ConfiguracionPage() {
 
   const handleLogoutAllDevices = async () => {
     try {
-      await signOut({ callbackUrl: "/auth/signin" })
-      toast({
-        title: "Sesión cerrada",
-        description: "Has cerrado sesión en todos los dispositivos",
-      })
+      await signOut({ redirect: false })
+      window.location.href = "/"
     } catch (error) {
       toast({
         title: "Error",
@@ -139,27 +136,28 @@ export default function ConfiguracionPage() {
   }
 
   const handleDeleteAccount = async () => {
-    try {
-      const response = await fetch("/api/user/account", {
-        method: "DELETE",
-      })
-
-      if (!response.ok) {
-        throw new Error("Error al eliminar la cuenta")
-      }
-
-      await signOut({ callbackUrl: "/auth/signin" })
-      toast({
-        title: "Cuenta eliminada",
-        description: "Tu cuenta ha sido eliminada permanentemente",
-      })
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo eliminar la cuenta",
-        variant: "destructive",
-      })
-    }
+    // Por seguridad, la eliminación de cuentas está deshabilitada temporalmente
+    toast({
+      title: "Función no disponible",
+      description: "Por seguridad, la eliminación de cuentas debe realizarse contactando al soporte",
+    })
+    setShowDeleteModal(false)
+    
+    // Implementación futura:
+    // try {
+    //   const response = await fetch("/api/user/account", {
+    //     method: "DELETE",
+    //   })
+    //   if (!response.ok) throw new Error("Error al eliminar la cuenta")
+    //   await signOut({ redirect: false })
+    //   window.location.href = "/"
+    // } catch (error) {
+    //   toast({
+    //     title: "Error",
+    //     description: "No se pudo eliminar la cuenta",
+    //     variant: "destructive",
+    //   })
+    // }
   }
 
   // Show loading state while user data is being loaded
