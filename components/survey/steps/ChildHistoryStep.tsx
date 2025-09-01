@@ -61,7 +61,7 @@ export function ChildHistoryStep({ data, onChange, errors = {} }: SurveyStepProp
           {/* 1. Nombre del hijo */}
           <div>
             <Label htmlFor="nombre-hijo">
-              1. Nombre de tu hijo <span className="text-red-500">*</span>
+              1. Nombre de su hijo/a <span className="text-red-500">*</span>
             </Label>
             <Input
               id="nombre-hijo"
@@ -130,7 +130,7 @@ export function ChildHistoryStep({ data, onChange, errors = {} }: SurveyStepProp
         
         {/* 1. Embarazo planeado */}
         <div>
-          <Label>1. ¿Fue tu embarazo planeado?</Label>
+          <Label>1. ¿Fue su embarazo planeado?</Label>
           <RadioGroup
             value={data.embarazoPlaneado === true ? "si" : data.embarazoPlaneado === false ? "no" : ""}
             onValueChange={(value) => updateField('embarazoPlaneado', value === 'si')}
