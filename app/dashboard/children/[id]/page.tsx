@@ -261,15 +261,11 @@ export default function ChildProfilePage() {
                   <h3 className="text-xl font-semibold text-[#2F2F2F] mb-3">
                     Consejo del Sleep Coach
                   </h3>
-                  <p className="text-gray-600 mb-4 leading-relaxed">
+                  <p className="text-gray-600 leading-relaxed">
                     Mantener una rutina constante antes de dormir ayuda a mejorar la calidad del 
                     sueño. Considera incluir actividades relajantes como leer un cuento o hacer 
                     ejercicios de respiración suaves.
                   </p>
-                  <Button variant="outline" className="border-[#628BE6] text-[#628BE6] hover:hd-gradient-button hover:text-white hover:border-transparent">
-                    Ver más consejos
-                    <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
-                  </Button>
                 </div>
 
                 {/* Eventos Recientes */}
@@ -286,13 +282,6 @@ export default function ChildProfilePage() {
                     Registrar Nuevo Evento
                   </Button>
                 </div> */}
-                
-                {/* PLACEHOLDER TEMPORAL */}
-                <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
-                  <p className="text-center text-gray-500">
-                    Botón de registro de eventos en reconstrucción...
-                  </p>
-                </div>
 
                 {/* Métricas de Sueño */}
                 <SleepMetricsGrid childId={params.id as string} />
