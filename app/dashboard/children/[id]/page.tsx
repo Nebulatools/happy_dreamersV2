@@ -307,6 +307,7 @@ export default function ChildProfilePage() {
 
             {activeTab === "acceso" && (
               <div className="space-y-6">
+                {console.log("Pasando isOwner a CaregiverManagement:", isOwner)}
                 <CaregiverManagement
                   childId={params.id as string}
                   childName={child.firstName}

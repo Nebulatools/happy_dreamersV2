@@ -60,8 +60,12 @@ export async function GET(
     }
 
     // TEMPORAL: Determinar si es dueño comparando parentId
-    const isOwner = child.parentId === session.user.id || 
-                    child.parentId?.toString() === session.user.id
+    // Convertir ambos a string para comparación segura
+    const childParentId = child.parentId?.toString ? child.parentId.toString() : child.parentId
+    const currentUserId = session.user.id.toString()
+    const isOwner = childParentId === currentUserId
+    
+    logger.info(`Comparando parentId: ${childParentId} con userId: ${currentUserId}`)
     
     // Agregar información sobre el tipo de acceso
     const childWithAccess = {

@@ -351,6 +351,7 @@ export function CaregiverManagement({
   }
 
   if (!isOwner) {
+    console.log("Usuario no es propietario del perfil", { childId, isOwner })
     return (
       <Card>
         <CardHeader>
@@ -359,9 +360,17 @@ export function CaregiverManagement({
             Solo el propietario del perfil puede gestionar los accesos compartidos
           </CardDescription>
         </CardHeader>
+        <CardContent>
+          <div className="text-sm text-muted-foreground">
+            <p>Para gestionar los cuidadores, debes ser el propietario del perfil de {childName}.</p>
+            <p className="mt-2">Si crees que esto es un error, contacta al propietario del perfil.</p>
+          </div>
+        </CardContent>
       </Card>
     )
   }
+  
+  console.log("Usuario ES propietario del perfil", { childId, isOwner })
 
   return (
     <Card>
