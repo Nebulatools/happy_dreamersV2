@@ -894,14 +894,15 @@ export default function CalendarPage() {
                   {format(day, "d")}
                 </div>
                 
-                <div className="space-y-0.5">
+                <div className="space-y-0">
                   {dayEvents.slice(0, 4).map((event) => (
                     <div
                       key={event._id}
                       className={cn(
                         getEventTypeColor(event.eventType),
-                        "flex items-center gap-0.5 cursor-pointer hover:opacity-80 z-10 relative text-xs px-1 py-0.5 rounded"
+                        "flex items-center gap-0.5 cursor-pointer hover:opacity-80 z-10 relative px-1 py-px rounded"
                       )}
+                      style={{ fontSize: '9px', lineHeight: '1.1' }}
                       onClick={(e) => {
                         e.stopPropagation()
                         handleEventClick(event)

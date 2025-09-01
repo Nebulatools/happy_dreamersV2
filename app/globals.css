@@ -135,7 +135,7 @@
     --color-sleep: 201 56% 68%;            /* #7DBFE2 - Dormir/Acostarse */
     --color-nap: 37 90% 56%;               /* #F5A623 - Siesta */
     --color-wake: 142 71% 45%;             /* #34D399 - Despertar matutino (verde claro) */
-    --color-night-wake: 358 100% 78%;     /* #FF9194 - Despertar nocturno */
+    --color-night-wake: 0 72% 51%;         /* #DC2626 - Despertar nocturno (rojo) */
     --color-feeding: 199 89% 48%;          /* #0EA5E9 - Alimentación (azul cielo) */
     --color-medication: 285 60% 65%;       /* #BF73DF - Medicamentos (púrpura) */
     --color-extra-activity: 180 60% 50%;   /* #33CCCC - Actividad Extra (turquesa) */
@@ -411,7 +411,9 @@
   
   /* Event pills */
   .event-pill {
-    @apply px-4 py-2 rounded-full text-xs font-medium text-white whitespace-nowrap min-w-fit;
+    @apply px-2 py-0.5 rounded-full font-medium text-white whitespace-nowrap min-w-fit;
+    font-size: 10px;
+    line-height: 1.2;
   }
   
   /* Calendar cell */

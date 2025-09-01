@@ -170,18 +170,19 @@ export function EventBlock({
 
   // Obtener icono según tipo de evento
   const getEventIcon = () => {
+    const iconSize = blockHeight >= 20 ? "w-3 h-3" : "w-2.5 h-2.5"
     switch (event.eventType) {
       case 'sleep':
       case 'bedtime':
-        return <Moon className="w-3 h-3" />
+        return <Moon className={iconSize} />
       case 'nap':
-        return <Sun className="w-3 h-3" />
+        return <Sun className={iconSize} />
       case 'wake':
-        return <Sun className="w-3 h-3" />
+        return <Sun className={iconSize} />
       case 'night_waking':
-        return <AlertCircle className="w-3 h-3" />
+        return <AlertCircle className={iconSize} />
       default:
-        return <Clock className="w-3 h-3" />
+        return <Clock className={iconSize} />
     }
   }
 
@@ -327,14 +328,14 @@ export function EventBlock({
       }}
     >
       {/* Contenido del bloque */}
-      <div className="flex items-center gap-1 w-full overflow-hidden px-1">
-        {blockHeight >= 16 && getEventIcon()}
-        <span className="font-medium flex-1 min-w-0" style={{ fontSize: blockHeight >= 20 ? '12px' : '11px' }}>
-          {event.endTime && blockHeight >= 24 ? (
+      <div className="flex items-center gap-0.5 w-full overflow-hidden px-0.5">
+        {blockHeight >= 18 && getEventIcon()}
+        <span className="font-medium flex-1 min-w-0" style={{ fontSize: blockHeight >= 24 ? '11px' : '10px' }}>
+          {event.endTime && blockHeight >= 30 ? (
             // Si tiene duración y espacio suficiente, mostrar rango completo
             <div className="leading-tight">
-              <div className="line-clamp-1">{getEventTypeName()}</div>
-              <div className="opacity-80 text-xs line-clamp-1">{formatEventTime()}</div>
+              <div className="line-clamp-1" style={{ fontSize: '10px' }}>{getEventTypeName()}</div>
+              <div className="opacity-80 line-clamp-1" style={{ fontSize: '9px' }}>{formatEventTime()}</div>
             </div>
           ) : event.endTime && blockHeight >= 18 ? (
             // Si tiene duración pero menos espacio, solo horas
@@ -395,24 +396,25 @@ export function CompactEventBlock({
   }
 
   const getEventIcon = () => {
+    const iconSize = "w-2.5 h-2.5" // Iconos más pequeños para CompactEventBlock
     switch (event.eventType) {
       case 'sleep':
       case 'bedtime':
-        return <Moon className="w-3 h-3" />
+        return <Moon className={iconSize} />
       case 'nap':
-        return <Sun className="w-3 h-3" />
+        return <Sun className={iconSize} />
       case 'wake':
-        return <Sun className="w-3 h-3" />
+        return <Sun className={iconSize} />
       case 'night_waking':
-        return <AlertCircle className="w-3 h-3" />
+        return <AlertCircle className={iconSize} />
       case 'feeding':
-        return <Clock className="w-3 h-3" /> // Icono para alimentación
+        return <Clock className={iconSize} /> // Icono para alimentación
       case 'medication':
-        return <Clock className="w-3 h-3" /> // Icono para medicamento
+        return <Clock className={iconSize} /> // Icono para medicamento
       case 'extra_activities':
-        return <Clock className="w-3 h-3" /> // Icono para actividad extra
+        return <Clock className={iconSize} /> // Icono para actividad extra
       default:
-        return <Clock className="w-3 h-3" />
+        return <Clock className={iconSize} />
     }
   }
 
@@ -436,10 +438,10 @@ export function CompactEventBlock({
 
   return (
     <div className={cn(
-      "flex items-center gap-1.5 px-2 py-1 rounded text-white text-xs",
+      "flex items-center gap-1 px-1.5 py-0.5 rounded text-white",
       getEventColor(),
       className
-    )}>
+    )} style={{ fontSize: '10px' }}>
       {getEventIcon()}
       <span className="line-clamp-1 font-medium">
         {formatTime()}
