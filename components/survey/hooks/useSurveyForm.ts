@@ -112,6 +112,18 @@ export function useSurveyForm(initialData?: Partial<SurveyData>) {
     return formData[stepKey as keyof SurveyData] || {}
   }, [formData])
 
+  // Función para establecer datos iniciales (útil para pre-llenar con datos del usuario)
+  const setInitialData = useCallback((data: Partial<SurveyData>) => {
+    setFormData(prevData => ({
+      ...data,
+      ...prevData,
+      informacionFamiliar: {
+        ...data.informacionFamiliar,
+        ...prevData.informacionFamiliar
+      }
+    }))
+  }, [])
+
   return {
     formData,
     errors,
@@ -122,7 +134,8 @@ export function useSurveyForm(initialData?: Partial<SurveyData>) {
     isStepValid,
     isFormComplete,
     getStepData,
-    setFormData
+    setFormData,
+    setInitialData
   }
 }
 

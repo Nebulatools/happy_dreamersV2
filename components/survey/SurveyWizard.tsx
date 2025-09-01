@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Save, AlertCircle, CheckCircle2 } from "lucide-react"
@@ -39,10 +40,13 @@ interface SurveyWizardProps {
 
 export function SurveyWizard({ childId, initialData, isExisting = false }: SurveyWizardProps) {
   const router = useRouter()
+  const { data: session } = useSession()
   const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSaveIndicator, setShowSaveIndicator] = useState(false)
+  const [userProfile, setUserProfile] = useState<any>(null)
+  const [childData, setChildData] = useState<any>(null)
   
   const {
     formData,
@@ -54,7 +58,8 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
     isStepValid,
     isFormComplete,
     getStepData,
-    setFormData
+    setFormData,
+    setInitialData
   } = useSurveyForm(initialData)
   
   const {
@@ -119,9 +124,111 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
     setCurrentStep(newStep)
   }
 
-  // Cargar datos guardados al iniciar
+  // Cargar perfil del usuario y datos del niño
   useEffect(() => {
-    if (!initialData && !isExisting) {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await fetch('/api/user/profile')
+        if (response.ok) {
+          const data = await response.json()
+          setUserProfile(data.data)
+        }
+      } catch (error) {
+        console.error('Error al cargar perfil del usuario:', error)
+      }
+    }
+    
+    const fetchChildData = async () => {
+      try {
+        const response = await fetch(`/api/children/${childId}`)
+        if (response.ok) {
+          const data = await response.json()
+          setChildData(data)
+        }
+      } catch (error) {
+        console.error('Error al cargar datos del niño:', error)
+      }
+    }
+    
+    if (session?.user) {
+      fetchUserProfile()
+    }
+    
+    if (childId) {
+      fetchChildData()
+    }
+  }, [session, childId])
+
+  // Pre-llenar datos con información del usuario y del niño
+  useEffect(() => {
+    if ((userProfile || childData) && !initialData && !isExisting) {
+      // Pre-llenar información familiar con datos del usuario
+      const prefilledData: Partial<SurveyData> = {
+        informacionFamiliar: {
+          papa: {
+            nombre: userProfile?.name || "",
+            ocupacion: "",
+            direccion: "",
+            email: userProfile?.email || session?.user?.email || "",
+            trabajaFueraCasa: false,
+            tieneAlergias: false
+          },
+          mama: {
+            nombre: "",
+            ocupacion: "",
+            mismaDireccionPapa: true,
+            direccion: "",
+            email: "",
+            trabajaFueraCasa: false,
+            tieneAlergias: false
+          }
+        },
+        dinamicaFamiliar: {},
+        historial: {
+          // Pre-llenar información del niño si está disponible
+          nombreNino: childData ? `${childData.firstName} ${childData.lastName}` : "",
+          fechaNacimiento: childData?.birthDate || "",
+          genero: childData?.gender || ""
+        },
+        desarrollo: {},
+        actividadFisica: {},
+        rutinaHabitos: {}
+      }
+      
+      // Actualizar los datos iniciales con la información pre-llenada
+      setInitialData(prefilledData)
+      
+      // También verificar si hay datos guardados en localStorage
+      const savedData = loadFromLocalStorage()
+      if (savedData) {
+        // Mezclar datos guardados con datos pre-llenados
+        const mergedData = {
+          ...prefilledData,
+          ...savedData.formData,
+          informacionFamiliar: {
+            ...prefilledData.informacionFamiliar,
+            ...savedData.formData.informacionFamiliar,
+            papa: {
+              ...prefilledData.informacionFamiliar?.papa,
+              ...savedData.formData.informacionFamiliar?.papa
+            },
+            mama: {
+              ...prefilledData.informacionFamiliar?.mama,
+              ...savedData.formData.informacionFamiliar?.mama
+            }
+          }
+        }
+        setFormData(mergedData)
+        setCurrentStep(savedData.currentStep || 1)
+        toast({
+          title: "Progreso recuperado",
+          description: "Hemos recuperado tu progreso anterior en la encuesta"
+        })
+      } else {
+        setFormData(prefilledData)
+      }
+    } else if (!initialData && !isExisting && !userProfile) {
+      // Si no hay perfil de usuario aún, solo cargar datos guardados
       const savedData = loadFromLocalStorage()
       if (savedData) {
         setFormData(savedData.formData)
@@ -132,7 +239,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
         })
       }
     }
-  }, [])
+  }, [userProfile, childData, initialData, isExisting, session])
 
   // Mostrar indicador de guardado
   useEffect(() => {
