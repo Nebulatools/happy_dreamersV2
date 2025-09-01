@@ -581,10 +581,28 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-[#2F2F2F]">Calendario de Sueño</CardTitle>
                 <div className="flex gap-1">
-                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-8 w-8 p-0"
+                    onClick={() => {
+                      const newDate = new Date(currentDate)
+                      newDate.setDate(newDate.getDate() - 7)
+                      setCurrentDate(newDate)
+                    }}
+                  >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-8 w-8 p-0"
+                    onClick={() => {
+                      const newDate = new Date(currentDate)
+                      newDate.setDate(newDate.getDate() + 7)
+                      setCurrentDate(newDate)
+                    }}
+                  >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -740,7 +758,16 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <Button variant="ghost" className="w-full text-[#4A90E2] hover:bg-[#F0F7FF] justify-center">
+              <Button 
+                variant="ghost" 
+                className="w-full text-[#4A90E2] hover:bg-[#F0F7FF] justify-center"
+                onClick={() => {
+                  toast({
+                    title: "Próximamente",
+                    description: "La sección de consejos completos estará disponible pronto."
+                  })
+                }}
+              >
                 Ver todos los consejos
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
