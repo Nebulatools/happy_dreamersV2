@@ -57,7 +57,6 @@ export default function SleepStatisticsPage() {
   usePageHeaderConfig({
     title: "Estadísticas de Sueño",
     actions: headerActions,
-    showSearch: true,
     showChildSelector: true,
     showNotifications: true
   })
