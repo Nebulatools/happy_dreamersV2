@@ -14,7 +14,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useActiveChild } from "@/context/active-child-context"
-import { LayoutDashboard, Calendar, BarChart3, Users, Settings, Menu, MessageSquare, List, Stethoscope, ClipboardList, HelpCircle, Mail, Bell } from "lucide-react"
+import { LayoutDashboard, Calendar, BarChart3, Users, Settings, Menu, MessageSquare, List, Stethoscope, ClipboardList, HelpCircle, Mail, Bell, FileText } from "lucide-react"
 import { useEventsInvalidation } from "@/hooks/use-events-cache"
 import { useToast } from "@/hooks/use-toast"
 import { createLogger } from "@/lib/logger"
@@ -115,6 +115,18 @@ export function Sidebar({ className }: { className?: string }) {
       role: ["admin"],
     },
     {
+      title: "Planes",
+      href: "#",
+      icon: <FileText className="h-5 w-5" />,
+      role: ["parent", "user"],
+      onClick: () => {
+        toast({
+          title: "Sección en desarrollo",
+          description: "La sección de planes de sueño estará disponible próximamente",
+        })
+      },
+    },
+    {
       title: "Notificaciones",
       href: "/dashboard/notificaciones",
       icon: <Bell className="h-5 w-5" />,
@@ -123,6 +135,28 @@ export function Sidebar({ className }: { className?: string }) {
       title: "Configuración",
       href: "/dashboard/configuracion",
       icon: <Settings className="h-5 w-5" />,
+    },
+    {
+      title: "Ayuda",
+      href: "#",
+      icon: <HelpCircle className="h-5 w-5" />,
+      onClick: () => {
+        toast({
+          title: "Sección en desarrollo",
+          description: "La sección de ayuda estará disponible próximamente",
+        })
+      },
+    },
+    {
+      title: "Contacto",
+      href: "#",
+      icon: <Mail className="h-5 w-5" />,
+      onClick: () => {
+        toast({
+          title: "Sección en desarrollo",
+          description: "La sección de contacto estará disponible próximamente",
+        })
+      },
     },
   ]
 
