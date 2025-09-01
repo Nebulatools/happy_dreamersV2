@@ -444,11 +444,20 @@ export async function GET(req: NextRequest) {
 
     logger.info(`Niño encontrado: ${child.firstName} ${child.lastName}, devolviendo eventos`)
     
-    // BUSCAR EVENTOS EN LA COLECCIÓN SEPARADA 'events'
-    const events = await db.collection("events").find({ 
+    // PRIMERO: Buscar eventos en el documento del niño (legacy/migración)
+    const eventsFromChild = child.events || []
+    logger.info(`Eventos encontrados en child.events: ${eventsFromChild.length}`)
+    
+    // SEGUNDO: Buscar eventos en la colección separada 'events'
+    const eventsFromCollection = await db.collection("events").find({ 
       childId: new ObjectId(childId),
       parentId: new ObjectId(session.user.id) 
     }).toArray()
+    logger.info(`Eventos encontrados en colección events: ${eventsFromCollection.length}`)
+    
+    // Combinar ambas fuentes de eventos
+    const events = [...eventsFromChild, ...eventsFromCollection]
+    logger.info(`Total de eventos combinados: ${events.length}`)
     
     // Ordenar eventos por startTime antes de devolver
     // Esto asegura consistencia en el orden, evitando problemas de posicionamiento  

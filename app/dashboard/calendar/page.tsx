@@ -123,7 +123,8 @@ export default function CalendarPage() {
   const { activeChildId } = useActiveChild()
   const { refreshTrigger, subscribe } = useEventsCache(activeChildId)
   const invalidateEvents = useEventsInvalidation()
-  const [date, setDate] = useState<Date>(new Date())
+  // Inicializar con octubre 2025 para ver los eventos de Bernardo
+  const [date, setDate] = useState<Date>(new Date('2025-10-15'))
   const [activePlan, setActivePlan] = useState<any>(null)
   
   // Estado para vista del calendario con localStorage
