@@ -10,10 +10,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { ChangePasswordForm } from "@/components/profile/ChangePasswordForm"
 import { useUser } from "@/context/UserContext"
+import { useChildren } from "@/hooks/use-children"
 
 export default function ProfilePage() {
   const { data: session } = useSession()
   const { userData, isLoading, updateProfile } = useUser()
+  const { children } = useChildren()
   const [formData, setFormData] = useState({
     name: userData.name,
     email: userData.email,
@@ -195,7 +197,7 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center p-4 bg-blue-50 rounded-lg">
                 <div className="text-2xl font-bold text-blue-600">
-                  {session?.user?.role === "admin" ? "∞" : "3"}
+                  {session?.user?.role === "admin" ? "∞" : children.length}
                 </div>
                 <div className="text-sm text-gray-600">
                   {session?.user?.role === "admin" ? "Acceso completo" : "Niños registrados"}
