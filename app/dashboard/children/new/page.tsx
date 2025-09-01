@@ -37,6 +37,7 @@ export default function AddChildPage() {
     firstName: "",
     lastName: "",
     birthDate: "",
+    gender: "Masculino",
     notes: "",
     profileImage: null as File | null,
   })
@@ -108,6 +109,7 @@ export default function AddChildPage() {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         birthDate: formData.birthDate,
+        gender: formData.gender,
         notes: formData.notes.trim(),
         avatar: profileImageBase64, // Agregar la imagen en base64
       }
@@ -286,6 +288,31 @@ export default function AddChildPage() {
                     required
                   />
                   <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                </div>
+              </div>
+
+              {/* Gender */}
+              <div className="space-y-3">
+                <Label htmlFor="gender" className="text-sm font-medium text-gray-700">
+                  Género
+                </Label>
+                <div className="relative">
+                  <select
+                    id="gender"
+                    name="gender"
+                    value={formData.gender}
+                    onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value }))}
+                    className="w-full h-12 px-3 pr-10 bg-white border border-gray-200 rounded-xl text-gray-900 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-20 outline-none transition-all appearance-none"
+                  >
+                    <option value="Masculino">Masculino</option>
+                    <option value="Femenino">Femenino</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                 </div>
               </div>
 
