@@ -28,6 +28,11 @@ interface Child {
   gender: string
   createdAt: string
   avatar?: string
+  surveyData?: {
+    completed?: boolean
+    responses?: any
+    lastUpdated?: string
+  }
 }
 
 type TabType = "resumen" | "eventos" | "progreso" | "encuestas" | "acceso"
@@ -317,15 +322,16 @@ export default function ChildProfilePage() {
                     Encuesta de Sueño Infantil
                   </h3>
                   <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-                    Completa nuestra encuesta detallada para recibir recomendaciones personalizadas 
-                    sobre los patrones de sueño de {child.firstName}. La encuesta toma aproximadamente 
-                    10-15 minutos y nos ayudará a crear un plan de sueño adaptado a sus necesidades.
+                    {child.surveyData?.completed 
+                      ? `La encuesta de ${child.firstName} ya ha sido completada. Puedes actualizarla para reflejar cambios en sus patrones de sueño.`
+                      : `Completa nuestra encuesta detallada para recibir recomendaciones personalizadas sobre los patrones de sueño de ${child.firstName}. La encuesta toma aproximadamente 10-15 minutos y nos ayudará a crear un plan de sueño adaptado a sus necesidades.`
+                    }
                   </p>
                   <Button 
                     className="bg-gradient-to-r from-[#628BE6] to-[#67C5FF] text-white hover:from-[#5478D2] hover:to-[#5AB1E6] shadow-sm px-8 py-3 text-base font-medium"
                     onClick={() => router.push(`/dashboard/survey?childId=${child._id}`)}
                   >
-                    Comenzar Encuesta
+                    {child.surveyData?.completed ? "Actualizar Encuesta" : "Comenzar Encuesta"}
                     <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
                   </Button>
                 </div>
@@ -333,8 +339,13 @@ export default function ChildProfilePage() {
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h4 className="text-lg font-semibold text-gray-800 mb-3">Estado de la Encuesta</h4>
                   <div className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                    <span className="text-gray-600">Encuesta pendiente de completar</span>
+                    <div className={`w-2 h-2 ${child.surveyData?.completed ? 'bg-green-500' : 'bg-amber-500'} rounded-full`}></div>
+                    <span className="text-gray-600">
+                      {child.surveyData?.completed 
+                        ? `Encuesta completada${child.surveyData.lastUpdated ? ` el ${new Date(child.surveyData.lastUpdated).toLocaleDateString('es-ES')}` : ''}`
+                        : "Encuesta pendiente de completar"
+                      }
+                    </span>
                   </div>
                 </div>
               </div>
