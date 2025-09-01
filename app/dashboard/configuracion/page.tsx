@@ -273,7 +273,18 @@ export default function ConfiguracionPage() {
             <Label htmlFor="language">Idioma Preferido</Label>
             <Select
               value={profileData.language}
-              onValueChange={(value) => setProfileData({ ...profileData, language: value })}
+              onValueChange={(value) => {
+                setProfileData({ ...profileData, language: value })
+                const languageNames = {
+                  es: "Español",
+                  en: "English", 
+                  pt: "Português"
+                }
+                toast({
+                  title: "Función en desarrollo",
+                  description: `El cambio de idioma a ${languageNames[value as keyof typeof languageNames]} estará disponible próximamente. La aplicación permanece en español.`,
+                })
+              }}
             >
               <SelectTrigger className="mt-1">
                 <SelectValue />
