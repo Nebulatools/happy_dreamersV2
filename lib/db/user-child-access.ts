@@ -148,15 +148,36 @@ export async function grantAccess(
   try {
     // Verificar que el usuario que otorga el acceso es el dueño
     const childrenCollection = await getChildrenCollection()
+    
+    // Si no se proporciona childId o es inválido, dar mensaje claro
+    if (!childId || childId === "undefined" || childId === "null") {
+      return {
+        success: false,
+        error: "Primero debes registrar un niño antes de compartir acceso"
+      }
+    }
+    
     const child = await childrenCollection.findOne({
       _id: new ObjectId(childId),
       parentId: new ObjectId(grantedBy)
     })
     
     if (!child) {
-      return { 
-        success: false, 
-        error: "No tienes permisos para compartir este perfil" 
+      // Verificar si el niño existe pero no es del usuario
+      const childExists = await childrenCollection.findOne({
+        _id: new ObjectId(childId)
+      })
+      
+      if (childExists) {
+        return {
+          success: false,
+          error: "No tienes permisos para compartir este perfil"
+        }
+      } else {
+        return {
+          success: false,
+          error: "El perfil del niño no existe. Por favor, registra un niño primero"
+        }
       }
     }
     

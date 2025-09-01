@@ -73,15 +73,36 @@ export async function createInvitation(
     
     // Verificar que el usuario que invita es el dueño del niño
     const childrenCollection = db.collection<Child>(CHILDREN_COLLECTION)
+    
+    // Si no se proporciona childId o es inválido, dar mensaje claro
+    if (!childId || childId === "undefined" || childId === "null") {
+      return {
+        success: false,
+        error: "Primero debes registrar un niño antes de invitar cuidadores"
+      }
+    }
+    
     const child = await childrenCollection.findOne({
       _id: new ObjectId(childId),
       parentId: new ObjectId(invitedBy)
     })
     
     if (!child) {
-      return {
-        success: false,
-        error: "No tienes permisos para compartir este perfil"
+      // Verificar si el niño existe pero no es del usuario
+      const childExists = await childrenCollection.findOne({
+        _id: new ObjectId(childId)
+      })
+      
+      if (childExists) {
+        return {
+          success: false,
+          error: "No tienes permisos para compartir este perfil"
+        }
+      } else {
+        return {
+          success: false,
+          error: "El perfil del niño no existe. Por favor, registra un niño primero"
+        }
       }
     }
     
