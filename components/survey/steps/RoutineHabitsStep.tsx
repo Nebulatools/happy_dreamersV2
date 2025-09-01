@@ -34,7 +34,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
       {/* 1. Día típico (24 horas) */}
       <div>
         <Label htmlFor="dia-tipico">
-          1. Explica DETALLADAMENTE un día típico (24 horas) de tu hijo(a), desde que se despierta por la mañana y a lo largo de la noche <span className="text-red-500">*</span>
+          1. Explique DETALLADAMENTE un día típico (24 horas) de su hijo/a, desde que se despierta por la mañana y a lo largo de la noche <span className="text-red-500">*</span>
         </Label>
         <Textarea
           id="dia-tipico"
@@ -51,7 +51,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
 
       {/* 2. ¿Va al kinder o guardería? */}
       <div>
-        <Label>2. ¿Va tu hijo al kinder o guardería?</Label>
+        <Label>2. ¿Va su hijo/a al kinder o guardería?</Label>
         <RadioGroup
           value={data.vaKinder === true ? "si" : data.vaKinder === false ? "no" : ""}
           onValueChange={(value) => updateField('vaKinder', value === 'si')}
@@ -72,7 +72,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
       {/* 3. ¿Quién pasa la mayoría del tiempo con el niño? */}
       <div>
         <Label htmlFor="quien-cuida">
-          3. ¿Quién pasa la mayoría del tiempo con el niño(a)? <span className="text-red-500">*</span>
+          3. ¿Quién pasa la mayoría del tiempo con su hijo/a? <span className="text-red-500">*</span>
         </Label>
         <Input
           id="quien-cuida"
@@ -89,7 +89,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
       {/* 4. Cuando salen de noche, ¿quién cuida? */}
       <div>
         <Label htmlFor="quien-cuida-noche">
-          4. Si papá y mamá salen de casa en la noche, ¿quién cuida a su hij@ mientras regresan?
+          4. Si usted y su pareja salen de casa en la noche, ¿quién cuida a su hijo/a mientras regresan?
         </Label>
         <Input
           id="quien-cuida-noche"
@@ -102,7 +102,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
       {/* 5. Cuando salen de noche, ¿dónde duerme? */}
       <div>
         <Label htmlFor="donde-duerme-salida">
-          5. Cuando papá y mamá salen de noche, ¿dónde duerme su hij@?
+          5. Cuando usted y su pareja salen de noche, ¿dónde duerme su hijo/a?
         </Label>
         <Input
           id="donde-duerme-salida"
@@ -115,7 +115,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
       {/* 6. Rutina para dormir */}
       <div>
         <Label htmlFor="rutina-dormir">
-          6. Explica cuál es la rutina que siguen por la noche para ir a dormir (qué hacen ANTES de acostarse). Indica a qué hora inicia y termina. <span className="text-red-500">*</span>
+          6. Explique cuál es la rutina que siguen por la noche para ir a dormir (qué hacen ANTES de acostarse). Indique a qué hora inicia y termina. <span className="text-red-500">*</span>
         </Label>
         <Textarea
           id="rutina-dormir"
@@ -149,7 +149,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
 
       {/* 8. ¿Se queda dormido solo? */}
       <div>
-        <Label>8. ¿Tu hijo(a) se queda dormido solo?</Label>
+        <Label>8. ¿Su hijo/a se queda dormido solo/a?</Label>
         <RadioGroup
           value={data.duermeSolo === true ? "si" : data.duermeSolo === false ? "no" : ""}
           onValueChange={(value) => updateField('duermeSolo', value === 'si')}
@@ -169,7 +169,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
 
       {/* 9. Oscuridad del cuarto (OPTIONAL) */}
       <div>
-        <Label>9. ¿Qué tan oscuro es el cuarto de tu hijo(a)? Dejas: (OPTIONAL)</Label>
+        <Label>9. ¿Qué tan oscuro es el cuarto de su hijo/a? ¿Deja usted: (OPTIONAL)</Label>
         <RadioGroup
           value={data.oscuridadCuarto || ""}
           onValueChange={(value) => updateField('oscuridadCuarto', value)}
@@ -193,7 +193,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
 
       {/* 10. ¿Usan ruido blanco? */}
       <div>
-        <Label>10. ¿Usan ruido blanco?</Label>
+        <Label>10. ¿Usan ustedes ruido blanco?</Label>
         <RadioGroup
           value={data.ruidoBlanco === true ? "si" : data.ruidoBlanco === false ? "no" : ""}
           onValueChange={(value) => updateField('ruidoBlanco', value === 'si')}
@@ -227,7 +227,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
       {/* 12. Tipo de piyama */}
       <div>
         <Label htmlFor="tipo-piyama">
-          12. Describe detalladamente qué tipo de piyama usa tu hij@.
+          12. Describa detalladamente qué tipo de piyama usa su hijo/a.
         </Label>
         <Textarea
           id="tipo-piyama"
@@ -240,7 +240,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
 
       {/* 13. ¿Usa saco para dormir? */}
       <div>
-        <Label>13. ¿Usa saco para dormir?</Label>
+        <Label>13. ¿Usa su hijo/a saco para dormir?</Label>
         <RadioGroup
           value={data.usaSaco === true ? "si" : data.usaSaco === false ? "no" : ""}
           onValueChange={(value) => updateField('usaSaco', value === 'si')}
@@ -260,7 +260,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
 
       {/* 14. ¿Te quedas hasta que duerma? */}
       <div>
-        <Label>14. ¿Te quedas con él/ella hasta que concilie el sueño?</Label>
+        <Label>14. ¿Se queda usted con él/ella hasta que concilie el sueño?</Label>
         <RadioGroup
           value={data.teQuedasHastaDuerma === true ? "si" : data.teQuedasHastaDuerma === false ? "no" : ""}
           onValueChange={(value) => updateField('teQuedasHastaDuerma', value === 'si')}
@@ -280,7 +280,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
 
       {/* 15. ¿Dónde duerme tu hijo? */}
       <div>
-        <Label>15. ¿Dónde duerme tu hijo por las noches? <span className="text-red-500">*</span></Label>
+        <Label>15. ¿Dónde duerme su hijo/a por las noches? <span className="text-red-500">*</span></Label>
         <RadioGroup
           value={data.dondeDuerme || ""}
           onValueChange={(value) => updateField('dondeDuerme', value)}

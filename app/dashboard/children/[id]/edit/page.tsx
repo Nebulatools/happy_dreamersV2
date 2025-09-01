@@ -52,7 +52,7 @@ export default function EditChildProfilePage() {
           firstName: data.firstName || "",
           lastName: data.lastName || "",
           birthDate: data.birthDate || "",
-          gender: data.gender || "Femenino",
+          gender: data.gender || "",
         })
       } catch (error) {
         logger.error("Error:", error)
@@ -265,8 +265,9 @@ export default function EditChildProfilePage() {
                           onChange={(e) => handleInputChange("gender", e.target.value)}
                           className="w-full h-12 px-3 pr-10 bg-white border border-gray-300 rounded-xl text-gray-900 focus:border-[#4A90E2] focus:ring-2 focus:ring-[#4A90E2] focus:ring-opacity-20 outline-none transition-colors appearance-none"
                         >
-                          <option value="Femenino">Femenino</option>
+                          <option value="">Seleccionar género</option>
                           <option value="Masculino">Masculino</option>
+                          <option value="Femenino">Femenino</option>
                           <option value="Otro">Otro</option>
                         </select>
                         <div className="absolute right-3 top-4 pointer-events-none">

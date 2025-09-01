@@ -28,6 +28,11 @@ interface Child {
   gender: string
   createdAt: string
   avatar?: string
+  surveyData?: {
+    completed?: boolean
+    responses?: any
+    lastUpdated?: string
+  }
 }
 
 type TabType = "resumen" | "eventos" | "progreso" | "encuestas" | "acceso"
@@ -261,15 +266,11 @@ export default function ChildProfilePage() {
                   <h3 className="text-xl font-semibold text-[#2F2F2F] mb-3">
                     Consejo del Sleep Coach
                   </h3>
-                  <p className="text-gray-600 mb-4 leading-relaxed">
+                  <p className="text-gray-600 leading-relaxed">
                     Mantener una rutina constante antes de dormir ayuda a mejorar la calidad del 
                     sueño. Considera incluir actividades relajantes como leer un cuento o hacer 
                     ejercicios de respiración suaves.
                   </p>
-                  <Button variant="outline" className="border-[#628BE6] text-[#628BE6] hover:hd-gradient-button hover:text-white hover:border-transparent">
-                    Ver más consejos
-                    <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
-                  </Button>
                 </div>
 
                 {/* Eventos Recientes */}
@@ -286,13 +287,6 @@ export default function ChildProfilePage() {
                     Registrar Nuevo Evento
                   </Button>
                 </div> */}
-                
-                {/* PLACEHOLDER TEMPORAL */}
-                <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
-                  <p className="text-center text-gray-500">
-                    Botón de registro de eventos en reconstrucción...
-                  </p>
-                </div>
 
                 {/* Métricas de Sueño */}
                 <SleepMetricsGrid childId={params.id as string} />
@@ -313,6 +307,7 @@ export default function ChildProfilePage() {
 
             {activeTab === "acceso" && (
               <div className="space-y-6">
+                {console.log("Pasando isOwner a CaregiverManagement:", isOwner)}
                 <CaregiverManagement
                   childId={params.id as string}
                   childName={child.firstName}
@@ -328,15 +323,16 @@ export default function ChildProfilePage() {
                     Encuesta de Sueño Infantil
                   </h3>
                   <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-                    Completa nuestra encuesta detallada para recibir recomendaciones personalizadas 
-                    sobre los patrones de sueño de {child.firstName}. La encuesta toma aproximadamente 
-                    10-15 minutos y nos ayudará a crear un plan de sueño adaptado a sus necesidades.
+                    {child.surveyData?.completed 
+                      ? `La encuesta de ${child.firstName} ya ha sido completada. Puedes actualizarla para reflejar cambios en sus patrones de sueño.`
+                      : `Completa nuestra encuesta detallada para recibir recomendaciones personalizadas sobre los patrones de sueño de ${child.firstName}. La encuesta toma aproximadamente 10-15 minutos y nos ayudará a crear un plan de sueño adaptado a sus necesidades.`
+                    }
                   </p>
                   <Button 
                     className="bg-gradient-to-r from-[#628BE6] to-[#67C5FF] text-white hover:from-[#5478D2] hover:to-[#5AB1E6] shadow-sm px-8 py-3 text-base font-medium"
                     onClick={() => router.push(`/dashboard/survey?childId=${child._id}`)}
                   >
-                    Comenzar Encuesta
+                    {child.surveyData?.completed ? "Actualizar Encuesta" : "Comenzar Encuesta"}
                     <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
                   </Button>
                 </div>
@@ -344,8 +340,13 @@ export default function ChildProfilePage() {
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h4 className="text-lg font-semibold text-gray-800 mb-3">Estado de la Encuesta</h4>
                   <div className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                    <span className="text-gray-600">Encuesta pendiente de completar</span>
+                    <div className={`w-2 h-2 ${child.surveyData?.completed ? 'bg-green-500' : 'bg-amber-500'} rounded-full`}></div>
+                    <span className="text-gray-600">
+                      {child.surveyData?.completed 
+                        ? `Encuesta completada${child.surveyData.lastUpdated ? ` el ${new Date(child.surveyData.lastUpdated).toLocaleDateString('es-ES')}` : ''}`
+                        : "Encuesta pendiente de completar"
+                      }
+                    </span>
                   </div>
                 </div>
               </div>

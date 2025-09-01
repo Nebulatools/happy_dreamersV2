@@ -49,7 +49,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
           {/* 1. Rodar en ambos lados */}
           <div>
             <Label htmlFor="rodar-meses">
-              1. ¿Cuándo fue tu hijo(a) capaz de rodar en ambos lados? (Meses)
+              1. ¿Cuándo fue su hijo/a capaz de rodar en ambos lados? (Meses)
             </Label>
             <Input
               id="rodar-meses"
@@ -63,7 +63,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
           {/* 2. Sentarse */}
           <div>
             <Label htmlFor="sentarse-meses">
-              2. ¿Cuándo fue tu hijo(a) capaz de sentarse? (Meses)
+              2. ¿Cuándo fue su hijo/a capaz de sentarse? (Meses)
             </Label>
             <Input
               id="sentarse-meses"
@@ -77,7 +77,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
           {/* 3. Gatear */}
           <div>
             <Label htmlFor="gatear-meses">
-              3. ¿Cuándo fue tu hijo(a) capaz de gatear? (Meses)
+              3. ¿Cuándo fue su hijo/a capaz de gatear? (Meses)
             </Label>
             <Input
               id="gatear-meses"
@@ -91,7 +91,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
           {/* 4. Pararse */}
           <div>
             <Label htmlFor="pararse-meses">
-              4. ¿Cuándo fue tu hijo(a) capaz de pararse? (Meses)
+              4. ¿Cuándo fue su hijo/a capaz de pararse? (Meses)
             </Label>
             <Input
               id="pararse-meses"
@@ -105,7 +105,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
           {/* 5. Caminar */}
           <div>
             <Label htmlFor="caminar-meses">
-              5. ¿Cuándo fue tu hijo(a) capaz de caminar? (Meses)
+              5. ¿Cuándo fue su hijo/a capaz de caminar? (Meses)
             </Label>
             <Input
               id="caminar-meses"
@@ -120,7 +120,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
 
       {/* 6. Tu hijo utiliza (OPTIONAL) */}
       <div>
-        <Label>6. Tu hijo utiliza: (OPTIONAL)</Label>
+        <Label>6. Su hijo/a utiliza: (OPTIONAL)</Label>
         <RadioGroup
           value={data.hijoUtiliza || ""}
           onValueChange={(value) => updateField('hijoUtiliza', value)}
@@ -140,7 +140,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
 
       {/* 7. Tu hijo se alimenta de (OPTIONAL) */}
       <div>
-        <Label>7. Tu hijo se alimenta de: (OPTIONAL)</Label>
+        <Label>7. Su hijo/a se alimenta de: (OPTIONAL)</Label>
         <RadioGroup
           value={data.alimentacion || ""}
           onValueChange={(value) => updateField('alimentacion', value)}
@@ -168,7 +168,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
 
       {/* 8. ¿Tu hijo come sólidos? (OPTIONAL) */}
       <div>
-        <Label>8. ¿Tu hijo(a) come sólidos? (OPTIONAL)</Label>
+        <Label>8. ¿Su hijo/a come sólidos? (OPTIONAL)</Label>
         <RadioGroup
           value={data.comeSolidos === true ? "si" : data.comeSolidos === false ? "no" : ""}
           onValueChange={(value) => updateField('comeSolidos', value === 'si')}
@@ -188,7 +188,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
 
       {/* 9. Tu hijo(a) - Lista de checkboxes */}
       <div>
-        <Label>9. Tu hijo(a):</Label>
+        <Label>9. Su hijo/a:</Label>
         <div className="space-y-2 mt-2">
           <div className="flex items-center space-x-2">
             <Checkbox
