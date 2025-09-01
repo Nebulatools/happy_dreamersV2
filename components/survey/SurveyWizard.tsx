@@ -274,7 +274,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
         <StepComponent
           data={getStepData(currentStep)}
           onChange={(data) => updateStepData(currentStep, data)}
-          errors={shouldShowError('', true) ? errors[currentStep] || {} : {}}
+          errors={touchedSteps.has(currentStep) ? errors[currentStep] || {} : {}}
         />
         
         <div className="flex justify-between items-center mt-8 pt-6 border-t">

@@ -42,15 +42,29 @@ export function useSurveyForm(initialData?: Partial<SurveyData>) {
   const updateStepData = useCallback((step: number, data: any) => {
     setFormData(prev => {
       const stepKey = getStepKey(step)
-      return {
+      const updatedData = {
         ...prev,
         [stepKey]: {
           ...prev[stepKey as keyof SurveyData],
           ...data
         }
       }
+      
+      // Si el paso ya fue tocado, validar en tiempo real
+      if (touchedSteps.has(step)) {
+        const validation = stepValidations[step]
+        if (validation) {
+          const stepErrors = validateStep(updatedData[stepKey as keyof SurveyData], validation)
+          setErrors(prevErrors => ({
+            ...prevErrors,
+            [step]: stepErrors
+          }))
+        }
+      }
+      
+      return updatedData
     })
-  }, [])
+  }, [touchedSteps])
 
   // Validar un paso específico
   const validateStepData = useCallback((step: number): ValidationErrors => {
