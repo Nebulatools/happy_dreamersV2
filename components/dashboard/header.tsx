@@ -125,7 +125,11 @@ export function Header() {
           
           {/* Notification Button con badge - exactamente como en Figma */}
           {config.showNotifications !== false && (
-            <Button variant="ghost" className="relative p-2 min-h-[44px] min-w-[44px] h-auto w-auto flex items-center justify-center">
+            <Button 
+              variant="ghost" 
+              className="relative p-2 min-h-[44px] min-w-[44px] h-auto w-auto flex items-center justify-center"
+              onClick={() => router.push("/dashboard/notificaciones")}
+            >
               {/* Ícono de notificación con dimensiones exactas de Figma */}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
