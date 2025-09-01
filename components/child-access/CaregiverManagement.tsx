@@ -74,6 +74,10 @@ export function CaregiverManagement({
   const [invitations, setInvitations] = useState<PendingInvitation[]>([])
   const [loading, setLoading] = useState(true)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false)
+  const [existingUsers, setExistingUsers] = useState<any[]>([])
+  const [selectedUserId, setSelectedUserId] = useState<string>("")
+  const [searchEmail, setSearchEmail] = useState<string>("")
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; caregiver: CaregiverWithUser | null }>({
     open: false,
     caregiver: null
@@ -150,6 +154,61 @@ export function CaregiverManagement({
         toast.error("Error al cargar las invitaciones")
       }
       setInvitations([])
+    }
+  }
+
+  // Buscar usuarios existentes por email
+  const searchUsers = async (email: string) => {
+    if (!email || email.length < 3) {
+      setExistingUsers([])
+      return
+    }
+    
+    try {
+      const response = await fetch(`/api/users/search?email=${encodeURIComponent(email)}`)
+      if (response.ok) {
+        const data = await response.json()
+        setExistingUsers(data.users || [])
+      }
+    } catch (error) {
+      console.error("Error buscando usuarios:", error)
+      setExistingUsers([])
+    }
+  }
+
+  // Vincular usuario existente
+  const handleLinkExistingUser = async () => {
+    if (!selectedUserId) {
+      toast.error("Por favor selecciona un usuario")
+      return
+    }
+    
+    try {
+      const response = await fetch(`/api/children/${childId}/access/link`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          userId: selectedUserId,
+          role: "caregiver",
+          relationshipType: "familiar"
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Error al vincular usuario")
+      }
+
+      toast.success("Usuario vinculado exitosamente")
+      setLinkDialogOpen(false)
+      setSelectedUserId("")
+      setSearchEmail("")
+      setExistingUsers([])
+      loadAllData()
+    } catch (error: any) {
+      toast.error(error.message)
     }
   }
 
@@ -314,13 +373,14 @@ export function CaregiverManagement({
               Gestiona quién puede ver y registrar eventos para {childName}
             </CardDescription>
           </div>
-          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Icons.userPlus className="mr-2 h-4 w-4" />
-                Agregar Cuidador
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Icons.mail className="mr-2 h-4 w-4" />
+                  Invitar por Email
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Agregar Nuevo Cuidador</DialogTitle>
@@ -457,7 +517,97 @@ export function CaregiverManagement({
                 </Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+            
+            <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Icons.userPlus className="mr-2 h-4 w-4" />
+                  Vincular a Soñador
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Vincular Usuario Existente</DialogTitle>
+                  <DialogDescription>
+                    Busca y vincula un usuario ya registrado para darle acceso al perfil de {childName}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="search">Buscar por email</Label>
+                    <Input
+                      id="search"
+                      type="email"
+                      placeholder="ejemplo@correo.com"
+                      value={searchEmail}
+                      onChange={(e) => {
+                        setSearchEmail(e.target.value)
+                        searchUsers(e.target.value)
+                      }}
+                    />
+                  </div>
+
+                  {existingUsers.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Usuarios encontrados</Label>
+                      <div className="max-h-60 overflow-y-auto space-y-2 border rounded-lg p-2">
+                        {existingUsers.map((user) => (
+                          <div
+                            key={user._id}
+                            className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                              selectedUserId === user._id
+                                ? "bg-blue-50 border-blue-300"
+                                : "hover:bg-gray-50"
+                            }`}
+                            onClick={() => setSelectedUserId(user._id)}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={user.image} />
+                                <AvatarFallback>
+                                  {user.name?.charAt(0).toUpperCase() || "?"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <div className="font-medium">{user.name}</div>
+                                <div className="text-sm text-muted-foreground">{user.email}</div>
+                              </div>
+                              {selectedUserId === user._id && (
+                                <Icons.check className="h-5 w-5 text-blue-600" />
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {searchEmail.length >= 3 && existingUsers.length === 0 && (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No se encontraron usuarios con ese email
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => {
+                    setLinkDialogOpen(false)
+                    setSelectedUserId("")
+                    setSearchEmail("")
+                    setExistingUsers([])
+                  }}>
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={handleLinkExistingUser}
+                    disabled={!selectedUserId}
+                  >
+                    Vincular Usuario
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </CardHeader>
 
