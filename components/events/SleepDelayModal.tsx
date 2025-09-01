@@ -115,9 +115,9 @@ export function SleepDelayModal({
   }
 
   const handleSkip = () => {
-    // Si omite, usamos valores por defecto
-    onConfirm(0, 'tranquilo', '')
-    // Reset
+    // Si omite, simplemente cerramos el modal sin confirmar
+    onClose()
+    // Reset para próxima vez
     setSelectedDelay(15)
     setEmotionalState('tranquilo')
     setNotes('')
