@@ -3,8 +3,8 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions"
-import { connectToDatabase } from "@/lib/db"
+import { authOptions } from "@/lib/auth"
+import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { createLogger } from "@/lib/logger"
 
