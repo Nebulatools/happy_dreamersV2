@@ -26,7 +26,11 @@ export async function PUT(
 
     const { id: planId } = await params
     
+    // Log para depuración
+    logger.info("Solicitud de actualización/creación de plan", { planId })
+    
     if (!planId || !ObjectId.isValid(planId)) {
+      logger.error("ID de plan inválido", { planId })
       return NextResponse.json(
         { error: "ID de plan inválido" },
         { status: 400 }
@@ -35,7 +39,7 @@ export async function PUT(
 
     // Obtener datos del body
     const body = await req.json()
-    const { schedule, objectives, recommendations } = body
+    const { schedule, objectives, recommendations, childId, userId, planNumber, planVersion, planType } = body
 
     // Validación básica
     if (!schedule || !objectives || !recommendations) {
@@ -55,13 +59,67 @@ export async function PUT(
     })
 
     if (!existingPlan) {
-      return NextResponse.json(
-        { error: "Plan no encontrado" },
-        { status: 404 }
-      )
+      logger.info("Plan no encontrado, creando nuevo plan", { 
+        planId,
+        childId,
+        collection: "childplans"
+      })
+      
+      // Si el plan no existe y tenemos la información necesaria, lo creamos
+      if (!childId || !userId) {
+        return NextResponse.json(
+          { error: "Para crear un nuevo plan se requiere childId y userId" },
+          { status: 400 }
+        )
+      }
+
+      // Crear el nuevo plan con el ID proporcionado
+      const newPlan = {
+        _id: new ObjectId(planId),
+        childId: typeof childId === 'string' ? new ObjectId(childId) : childId,
+        userId: typeof userId === 'string' ? new ObjectId(userId) : userId,
+        planNumber: planNumber || 0,
+        planVersion: planVersion || "1.0",
+        planType: planType || "initial",
+        schedule,
+        objectives,
+        recommendations,
+        createdAt: new Date(),
+        createdBy: new ObjectId(session.user.id),
+        updatedAt: new Date(),
+        updatedBy: new ObjectId(session.user.id)
+      }
+
+      const insertResult = await plansCollection.insertOne(newPlan)
+      
+      if (!insertResult.acknowledged) {
+        logger.error("Error al crear el plan", { planId })
+        return NextResponse.json(
+          { error: "No se pudo crear el plan" },
+          { status: 500 }
+        )
+      }
+
+      logger.info("Plan creado exitosamente", {
+        planId,
+        childId,
+        adminId: session.user.id
+      })
+
+      return NextResponse.json({
+        success: true,
+        plan: newPlan,
+        message: "Plan creado correctamente",
+        created: true
+      })
     }
 
-    // Actualizar el plan
+    logger.info("Plan encontrado, procediendo con actualización", {
+      planId,
+      childId: existingPlan.childId
+    })
+
+    // Actualizar el plan existente
     const updateResult = await plansCollection.updateOne(
       { _id: new ObjectId(planId) },
       {

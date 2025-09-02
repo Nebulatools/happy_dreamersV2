@@ -291,6 +291,14 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     setIsSaving(true)
     
     try {
+      // Depuración: Verificar que el ID existe
+      console.log('Guardando plan con ID:', plan._id)
+      console.log('Plan completo:', plan)
+      
+      if (!plan._id) {
+        throw new Error('El plan no tiene un ID válido')
+      }
+      
       const response = await fetch(`/api/consultas/plans/${plan._id}`, {
         method: 'PUT',
         headers: {
@@ -299,7 +307,13 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
         body: JSON.stringify({
           schedule: editedPlan.schedule,
           objectives: editedPlan.objectives,
-          recommendations: editedPlan.recommendations
+          recommendations: editedPlan.recommendations,
+          // Enviar información adicional para crear el plan si no existe
+          childId: plan.childId,
+          userId: plan.userId,
+          planNumber: plan.planNumber,
+          planVersion: plan.planVersion,
+          planType: plan.planType
         })
       })
 
