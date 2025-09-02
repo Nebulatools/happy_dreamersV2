@@ -36,155 +36,6 @@ export interface ProcessedSleepStats {
 }
 
 /**
- * Procesa eventos de sueño y calcula estadísticas unificadas
- * Utiliza la misma lógica que el dashboard de sleep-statistics
- */
-export function processSleepStatistics(
-  events: SleepEvent[], 
-  statsFromDate?: Date
-): ProcessedSleepStats {
-  if (events.length === 0) {
-    return {
-      avgSleepDuration: 0,
-      avgNapDuration: 0,
-      avgBedtime: "--:--",
-      avgSleepTime: "--:--",
-      avgWakeTime: "--:--",
-      bedtimeVariation: 0,
-      bedtimeToSleepDifference: "--",
-      totalWakeups: 0,
-      avgWakeupsPerNight: 0,
-      avgNightWakingDuration: 0,
-      totalSleepHours: 0,
-      totalEvents: 0,
-      recentEvents: 0,
-      sleepEvents: 0,
-      napEvents: 0,
-      avgSleepDurationMinutes: 0,
-      avgWakeTimeMinutes: 0,
-      dominantMood: "unknown",
-      emotionalStates: {}
-    }
-  }
-
-  // Filtrar eventos por fecha si se especifica
-  let relevantEvents = events
-  if (statsFromDate) {
-    relevantEvents = events.filter(event => {
-      if (!event.startTime) return false
-      const eventDate = parseISO(event.startTime)
-      return eventDate >= statsFromDate
-    })
-  }
-
-  // Filtrar eventos de la última semana para "recientes"
-  const now = new Date()
-  const weekAgo = subDays(now, 7)
-  const recentEvents = events.filter(event => {
-    if (!event.startTime) return false
-    const eventDate = parseISO(event.startTime)
-    return eventDate >= weekAgo
-  })
-
-  // Separar diferentes tipos de eventos (y filtrar solo los que tienen startTime)
-  const nightSleep = relevantEvents.filter(e => e.eventType === 'sleep' && e.startTime)
-  const naps = relevantEvents.filter(e => e.eventType === 'nap' && e.startTime)
-  // Para compatibilidad con datos antiguos, incluir bedtime como sleep
-  const bedtimeEvents = relevantEvents.filter(e => (e.eventType === 'bedtime' || e.eventType === 'sleep') && e.startTime)
-  const sleepEvents = relevantEvents.filter(e => (e.eventType === 'sleep' || e.eventType === 'bedtime') && e.startTime)
-
-  // Duración promedio del sueño nocturno usando inferencia
-  const avgSleepDuration = calculateInferredSleepDuration(relevantEvents)
-
-  // Duración promedio de siestas
-  const avgNapDuration = naps.length > 0
-    ? naps.reduce((sum, event) => {
-        if (event.endTime) {
-          return sum + differenceInMinutes(parseISO(event.endTime), parseISO(event.startTime)) / 60
-        }
-        return sum
-      }, 0) / naps.length
-    : 0
-
-  // Hora promedio de acostarse (eventos bedtime y sleep nocturnos)
-  const nocturnalBedtimeEvents = bedtimeEvents.filter(e => {
-    const hour = parseISO(e.startTime).getHours()
-    return hour >= 18 || hour <= 6 // Horario nocturno
-  })
-  
-  const avgBedtime = nocturnalBedtimeEvents.length > 0
-    ? calculateAverageTime(nocturnalBedtimeEvents.map(e => parseISO(e.startTime)))
-    : "--:--"
-
-  // Hora promedio de dormir real (considerando el delay)
-  const nocturnalSleepEvents = sleepEvents.filter(e => {
-    const hour = parseISO(e.startTime).getHours()
-    return hour >= 18 || hour <= 6 // Horario nocturno
-  })
-  
-  const avgSleepTime = nocturnalSleepEvents.length > 0
-    ? calculateAverageSleepTime(nocturnalSleepEvents)
-    : "--:--"
-
-  // Hora promedio de levantarse usando inferencia
-  const avgWakeTime = calculateInferredWakeTime(relevantEvents)
-
-  // Variación de hora de acostarse (SOLO eventos bedtime NOCTURNOS)
-  const bedtimeVariation = nocturnalBedtimeEvents.length > 1
-    ? calculateTimeVariation(nocturnalBedtimeEvents.map(e => parseISO(e.startTime)))
-    : 0
-
-  // Despertares nocturnos
-  const totalWakeups = calculateNightWakeups(relevantEvents)
-  const avgWakeupsPerNight = nightSleep.length > 0 ? totalWakeups / nightSleep.length : 0
-  const avgNightWakingDuration = calculateAverageNightWakingDuration(relevantEvents)
-
-  // Calcular diferencia promedio entre acostarse y dormirse
-  const bedtimeToSleepDifference = calculateAverageSleepDelay(nocturnalSleepEvents)
-
-  // Total de horas de sueño por día
-  const totalSleepHours = (avgSleepDuration + avgNapDuration)
-
-  // Calcular estados emocionales
-  const emotionalStates = relevantEvents.reduce((acc, event) => {
-    if (event.emotionalState) {
-      acc[event.emotionalState] = (acc[event.emotionalState] || 0) + 1
-    }
-    return acc
-  }, {} as Record<string, number>)
-
-  // Estado emocional dominante
-  const dominantMood = Object.entries(emotionalStates)
-    .sort(([,a], [,b]) => b - a)[0]?.[0] || "unknown"
-
-  // Conversiones para compatibilidad con API consultas
-  const avgSleepDurationMinutes = Math.round(avgSleepDuration * 60)
-  const avgWakeTimeMinutes = timeStringToMinutes(avgWakeTime)
-
-  return {
-    avgSleepDuration,
-    avgNapDuration,
-    avgBedtime,
-    avgSleepTime,
-    avgWakeTime,
-    bedtimeVariation,
-    bedtimeToSleepDifference,
-    totalWakeups,
-    avgWakeupsPerNight,
-    avgNightWakingDuration,
-    totalSleepHours,
-    totalEvents: events.length,
-    recentEvents: recentEvents.length,
-    sleepEvents: sleepEvents.length,
-    napEvents: naps.length,
-    avgSleepDurationMinutes,
-    avgWakeTimeMinutes,
-    dominantMood,
-    emotionalStates
-  }
-}
-
-/**
  * Calcula duración promedio del sueño mediante inferencia de patrones
  * bedtime/sleep -> wake con emparejamiento mejorado día por día
  */
@@ -222,7 +73,6 @@ function calculateInferredSleepDuration(events: SleepEvent[]): number {
     
     // Buscar el evento wake más cercano dentro de las próximas 18 horas (máximo razonable para sueño nocturno)
     let wakeEvent: SleepEvent | null = null
-    let wakeEventIndex = -1
     
     for (let j = i + 1; j < relevantEvents.length; j++) {
       const nextEvent = relevantEvents[j]
@@ -237,7 +87,6 @@ function calculateInferredSleepDuration(events: SleepEvent[]): number {
       // Si encontramos un evento wake, es nuestro candidato
       if (nextEvent.eventType === 'wake') {
         wakeEvent = nextEvent
-        wakeEventIndex = j
         break
       }
       
@@ -505,5 +354,154 @@ function timeStringToMinutes(timeString: string): number {
     return hours * 60 + minutes
   } catch {
     return 0
+  }
+}
+
+/**
+ * Procesa eventos de sueño y calcula estadísticas unificadas
+ * Utiliza la misma lógica que el dashboard de sleep-statistics
+ */
+export function processSleepStatistics(
+  events: SleepEvent[], 
+  statsFromDate?: Date
+): ProcessedSleepStats {
+  if (events.length === 0) {
+    return {
+      avgSleepDuration: 0,
+      avgNapDuration: 0,
+      avgBedtime: "--:--",
+      avgSleepTime: "--:--",
+      avgWakeTime: "--:--",
+      bedtimeVariation: 0,
+      bedtimeToSleepDifference: "--",
+      totalWakeups: 0,
+      avgWakeupsPerNight: 0,
+      avgNightWakingDuration: 0,
+      totalSleepHours: 0,
+      totalEvents: 0,
+      recentEvents: 0,
+      sleepEvents: 0,
+      napEvents: 0,
+      avgSleepDurationMinutes: 0,
+      avgWakeTimeMinutes: 0,
+      dominantMood: "unknown",
+      emotionalStates: {}
+    }
+  }
+
+  // Filtrar eventos por fecha si se especifica
+  let relevantEvents = events
+  if (statsFromDate) {
+    relevantEvents = events.filter(event => {
+      if (!event.startTime) return false
+      const eventDate = parseISO(event.startTime)
+      return eventDate >= statsFromDate
+    })
+  }
+
+  // Filtrar eventos de la última semana para "recientes"
+  const now = new Date()
+  const weekAgo = subDays(now, 7)
+  const recentEvents = events.filter(event => {
+    if (!event.startTime) return false
+    const eventDate = parseISO(event.startTime)
+    return eventDate >= weekAgo
+  })
+
+  // Separar diferentes tipos de eventos (y filtrar solo los que tienen startTime)
+  const nightSleep = relevantEvents.filter(e => e.eventType === 'sleep' && e.startTime)
+  const naps = relevantEvents.filter(e => e.eventType === 'nap' && e.startTime)
+  // Para compatibilidad con datos antiguos, incluir bedtime como sleep
+  const bedtimeEvents = relevantEvents.filter(e => (e.eventType === 'bedtime' || e.eventType === 'sleep') && e.startTime)
+  const sleepEvents = relevantEvents.filter(e => (e.eventType === 'sleep' || e.eventType === 'bedtime') && e.startTime)
+
+  // Duración promedio del sueño nocturno usando inferencia
+  const avgSleepDuration = calculateInferredSleepDuration(relevantEvents)
+
+  // Duración promedio de siestas
+  const avgNapDuration = naps.length > 0
+    ? naps.reduce((sum, event) => {
+        if (event.endTime) {
+          return sum + differenceInMinutes(parseISO(event.endTime), parseISO(event.startTime)) / 60
+        }
+        return sum
+      }, 0) / naps.length
+    : 0
+
+  // Hora promedio de acostarse (eventos bedtime y sleep nocturnos)
+  const nocturnalBedtimeEvents = bedtimeEvents.filter(e => {
+    const hour = parseISO(e.startTime).getHours()
+    return hour >= 18 || hour <= 6 // Horario nocturno
+  })
+  
+  const avgBedtime = nocturnalBedtimeEvents.length > 0
+    ? calculateAverageTime(nocturnalBedtimeEvents.map(e => parseISO(e.startTime)))
+    : "--:--"
+
+  // Hora promedio de dormir real (considerando el delay)
+  const nocturnalSleepEvents = sleepEvents.filter(e => {
+    const hour = parseISO(e.startTime).getHours()
+    return hour >= 18 || hour <= 6 // Horario nocturno
+  })
+  
+  const avgSleepTime = nocturnalSleepEvents.length > 0
+    ? calculateAverageSleepTime(nocturnalSleepEvents)
+    : "--:--"
+
+  // Hora promedio de levantarse usando inferencia
+  const avgWakeTime = calculateInferredWakeTime(relevantEvents)
+
+  // Variación de hora de acostarse (SOLO eventos bedtime NOCTURNOS)
+  const bedtimeVariation = nocturnalBedtimeEvents.length > 1
+    ? calculateTimeVariation(nocturnalBedtimeEvents.map(e => parseISO(e.startTime)))
+    : 0
+
+  // Despertares nocturnos
+  const totalWakeups = calculateNightWakeups(relevantEvents)
+  const avgWakeupsPerNight = nightSleep.length > 0 ? totalWakeups / nightSleep.length : 0
+  const avgNightWakingDuration = calculateAverageNightWakingDuration(relevantEvents)
+
+  // Calcular diferencia promedio entre acostarse y dormirse
+  const bedtimeToSleepDifference = calculateAverageSleepDelay(nocturnalSleepEvents)
+
+  // Total de horas de sueño por día
+  const totalSleepHours = (avgSleepDuration + avgNapDuration)
+
+  // Calcular estados emocionales
+  const emotionalStates = relevantEvents.reduce((acc, event) => {
+    if (event.emotionalState) {
+      acc[event.emotionalState] = (acc[event.emotionalState] || 0) + 1
+    }
+    return acc
+  }, {} as Record<string, number>)
+
+  // Estado emocional dominante
+  const dominantMood = Object.entries(emotionalStates)
+    .sort(([,a], [,b]) => b - a)[0]?.[0] || "unknown"
+
+  // Conversiones para compatibilidad con API consultas
+  const avgSleepDurationMinutes = Math.round(avgSleepDuration * 60)
+  const avgWakeTimeMinutes = timeStringToMinutes(avgWakeTime)
+
+  return {
+    avgSleepDuration,
+    avgNapDuration,
+    avgBedtime,
+    avgSleepTime,
+    avgWakeTime,
+    bedtimeVariation,
+    bedtimeToSleepDifference,
+    totalWakeups,
+    avgWakeupsPerNight,
+    avgNightWakingDuration,
+    totalSleepHours,
+    totalEvents: events.length,
+    recentEvents: recentEvents.length,
+    sleepEvents: sleepEvents.length,
+    napEvents: naps.length,
+    avgSleepDurationMinutes,
+    avgWakeTimeMinutes,
+    dominantMood,
+    emotionalStates
   }
 }
