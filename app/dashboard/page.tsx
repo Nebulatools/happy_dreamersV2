@@ -94,10 +94,16 @@ export default function DashboardPage() {
     return unsubscribe
   }, [subscribe])
 
-  // Cargar datos del niño activo
+  // Cargar datos del niño activo o limpiar si no hay niño
   useEffect(() => {
-    if (activeChildId && session) {
-      loadChildData()
+    if (session) {
+      if (activeChildId) {
+        loadChildData()
+      } else {
+        // Si no hay niño activo, limpiar datos
+        setChild(null)
+        setEvents([])
+      }
     }
   }, [activeChildId, refreshTrigger, session])
 
@@ -117,18 +123,24 @@ export default function DashboardPage() {
         setChild(childData)
       }
       
-      // Cargar eventos del niño (NextAuth maneja cookies automáticamente)
-      console.log('🔍 Cargando eventos para:', activeChildId)
-      const eventsResponse = await fetch(`/api/children/events?childId=${activeChildId}`)
-      
-      if (eventsResponse.ok) {
-        const eventsData = await eventsResponse.json()
-        console.log('✅ Eventos cargados exitosamente:', eventsData.events?.length || 0, 'eventos')
-        setEvents(eventsData.events || [])
+      // Cargar eventos del niño solo si hay un niño activo
+      if (activeChildId) {
+        console.log('🔍 Cargando eventos para:', activeChildId)
+        const eventsResponse = await fetch(`/api/children/events?childId=${activeChildId}`)
+        
+        if (eventsResponse.ok) {
+          const eventsData = await eventsResponse.json()
+          console.log('✅ Eventos cargados exitosamente:', eventsData.events?.length || 0, 'eventos')
+          setEvents(eventsData.events || [])
+        } else {
+          console.error('❌ Error cargando eventos:', eventsResponse.status, eventsResponse.statusText)
+          const errorData = await eventsResponse.json().catch(() => null)
+          console.error('Error details:', errorData)
+        }
       } else {
-        console.error('❌ Error cargando eventos:', eventsResponse.status, eventsResponse.statusText)
-        const errorData = await eventsResponse.json().catch(() => null)
-        console.error('Error details:', errorData)
+        // Si no hay niño activo, limpiar los eventos
+        console.log('ℹ️ No hay niño activo, limpiando eventos')
+        setEvents([])
       }
     } catch (error) {
       logger.error("Error loading child data:", error)
