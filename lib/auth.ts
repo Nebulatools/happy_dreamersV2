@@ -8,7 +8,7 @@ import clientPromise from "@/lib/mongodb"
 import { compare, hash } from "bcryptjs"
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
 import type { Adapter } from "next-auth/adapters"
-import { tempStorage } from "./temp-storage"
+// import { tempStorage } from "./temp-storage" // DESACTIVADO - Ya no usamos almacenamiento temporal local
 
 // Extender el tipo User para incluir id y role
 declare module "next-auth" {
@@ -54,56 +54,11 @@ export const authOptions: NextAuthOptions = {
         const emailLower = credentials.email.toLowerCase()
         console.log("\n🔐 Intentando login para:", emailLower)
 
-        // Primero verificar si hay una contraseña temporal para este email
-        const tempPassword = tempStorage.getPassword(emailLower)
-        console.log("🔑 Contraseña temporal encontrada:", tempPassword ? "Sí" : "No")
+        // SISTEMA DE TOKENS LOCALES DESACTIVADO
+        // Ahora todos los usuarios se autentican únicamente contra MongoDB
+        // Esto asegura que todos los desarrolladores trabajen con los mismos usuarios
         
-        if (tempPassword) {
-          console.log("🔍 Comparando contraseñas:")
-          console.log("   - Proporcionada:", credentials.password.substring(0, 3) + "***")
-          console.log("   - Temporal:", tempPassword.substring(0, 3) + "***")
-          
-          // Si hay contraseña temporal, verificar contra ella
-          if (credentials.password === tempPassword) {
-            console.log("✅ Login exitoso con contraseña temporal para:", emailLower)
-            
-            try {
-              // Intentar obtener datos del usuario de la BD
-              const { db } = await connectToDatabase()
-              const user = await db.collection("users").findOne({
-                email: credentials.email,
-              })
-              
-              if (user) {
-                // Si el usuario existe, actualizar su contraseña en la BD
-                const hashedPassword = await hash(credentials.password, 10)
-                await db.collection("users").updateOne(
-                  { _id: user._id },
-                  { $set: { password: hashedPassword } }
-                )
-                
-                return {
-                  id: user._id.toString(),
-                  email: user.email,
-                  name: user.name,
-                  role: user.role,
-                }
-              }
-            } catch (error) {
-              console.log("No se pudo conectar a la BD, usando datos temporales")
-            }
-            
-            // Si no hay BD o usuario, crear uno temporal
-            return {
-              id: "temp-" + Date.now(),
-              email: credentials.email,
-              name: credentials.email.split("@")[0],
-              role: "parent",
-            }
-          }
-        }
-
-        // Si no hay contraseña temporal, verificar en la base de datos normalmente
+        // Verificar en la base de datos directamente
         try {
           const { db } = await connectToDatabase()
           const user = await db.collection("users").findOne({
@@ -128,17 +83,6 @@ export const authOptions: NextAuthOptions = {
           }
         } catch (error) {
           console.error("Error al verificar credenciales:", error)
-          
-          // En modo desarrollo, permitir login temporal si coincide con contraseña temporal
-          if (process.env.NODE_ENV === "development" && tempPassword === credentials.password) {
-            return {
-              id: "temp-" + Date.now(),
-              email: credentials.email,
-              name: credentials.email.split("@")[0],
-              role: "parent",
-            }
-          }
-          
           return null
         }
       },

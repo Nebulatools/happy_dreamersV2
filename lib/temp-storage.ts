@@ -81,55 +81,36 @@ function cleanExpiredTokens(): void {
   }
 }
 
-// API pública
+// API pública - DESACTIVADA PARA EVITAR DISCREPANCIAS ENTRE MÁQUINAS
+// Todos los desarrolladores ahora usan únicamente MongoDB
 export const tempStorage = {
-  // Guardar token
+  // Guardar token - DESACTIVADO
   setToken(hash: string, email: string, expiry: Date): void {
-    const storage = readStorage()
-    storage.tokens[hash] = {
-      email,
-      expiry: expiry.toISOString()
-    }
-    writeStorage(storage)
+    console.log("⚠️ tempStorage.setToken desactivado - usando solo MongoDB")
+    // NO HACE NADA - Forzamos a usar solo MongoDB
   },
   
-  // Obtener token
+  // Obtener token - DESACTIVADO
   getToken(hash: string): { email: string; expiry: Date } | null {
-    cleanExpiredTokens()
-    const storage = readStorage()
-    const data = storage.tokens[hash]
-    
-    if (!data) return null
-    
-    const expiry = new Date(data.expiry)
-    if (expiry < new Date()) {
-      this.deleteToken(hash)
-      return null
-    }
-    
-    return {
-      email: data.email,
-      expiry
-    }
+    console.log("⚠️ tempStorage.getToken desactivado - usando solo MongoDB")
+    return null // Siempre retorna null para forzar uso de MongoDB
   },
   
-  // Eliminar token
+  // Eliminar token - DESACTIVADO
   deleteToken(hash: string): void {
-    const storage = readStorage()
-    delete storage.tokens[hash]
-    writeStorage(storage)
+    console.log("⚠️ tempStorage.deleteToken desactivado - usando solo MongoDB")
+    // NO HACE NADA
   },
   
-  // Guardar contraseña temporal
+  // Guardar contraseña temporal - DESACTIVADO
   setPassword(email: string, password: string): void {
-    const storage = readStorage()
-    storage.passwords[email] = password
-    writeStorage(storage)
+    console.log("⚠️ tempStorage.setPassword desactivado - usando solo MongoDB")
+    // NO HACE NADA - Forzamos a usar solo MongoDB
   },
   
-  // Obtener contraseña temporal
+  // Obtener contraseña temporal - DESACTIVADO
   getPassword(email: string): string | null {
-    const storage = readStorage()
-    return storage.passwords[email] || null
+    console.log("⚠️ tempStorage.getPassword desactivado - usando solo MongoDB")
+    return null // Siempre retorna null para forzar uso de MongoDB
   }
 }
