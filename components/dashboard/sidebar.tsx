@@ -235,7 +235,16 @@ export function Sidebar({ className }: { className?: string }) {
               <p className="text-xs text-gray-700 mb-3">
                 Accede a todas las funciones y análisis avanzados
               </p>
-              <Button size="sm" className="w-full bg-white/30 hover:bg-white/40 text-gray-800 border-0 text-xs">
+              <Button 
+                size="sm" 
+                className="w-full bg-white/30 hover:bg-white/40 text-gray-800 border-0 text-xs"
+                onClick={() => {
+                  toast({
+                    title: "Próximamente disponible",
+                    description: "Los planes premium estarán disponibles pronto. ¡Mantente atento!",
+                  })
+                }}
+              >
                 Actualizar Plan
               </Button>
             </div>
