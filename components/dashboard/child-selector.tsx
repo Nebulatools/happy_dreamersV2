@@ -84,15 +84,20 @@ export function ChildSelector() {
       logger.info(`Loaded ${childrenData.length} children`)
       setChildren(childrenData)
 
+      // Si no hay niños, no intentar seleccionar ninguno
+      if (childrenData.length === 0) {
+        setActiveChildId(null)
+        localStorage.removeItem('activeChildId')
+      }
       // SOLO cambiar si el niño guardado NO existe en la lista
       // NO cambiar automáticamente a ningún niño por defecto
-      if (activeChildId && !childrenData.some((child: Child) => child._id === activeChildId)) {
+      else if (activeChildId && !childrenData.some((child: Child) => child._id === activeChildId)) {
         const savedId = localStorage.getItem('activeChildId')
         if (savedId && childrenData.some((child: Child) => child._id === savedId)) {
           // Existe en localStorage y en la lista, usarlo
           setActiveChildId(savedId)
-        } else {
-          // No existe ni guardado ni en lista, usar el primero
+        } else if (childrenData.length > 0) {
+          // No existe ni guardado ni en lista, usar el primero solo si hay niños
           setActiveChildId(childrenData[0]._id)
         }
       }
@@ -108,7 +113,7 @@ export function ChildSelector() {
 
       setLoading(false)
     } catch (error) {
-      logger.error("Error cargando niños:", error instanceof Error ? error.message : "Error desconocido")
+      logger.error("Error cargando niños:", error instanceof Error ? error.message : String(error))
       // No mostrar toast si el error es de autorización durante logout
       if (session && session.user) {
         toast({
@@ -118,7 +123,9 @@ export function ChildSelector() {
         })
       }
       setLoading(false)
+      setChildren([])
       setActiveChildId(null)
+      localStorage.removeItem('activeChildId')
     }
   }
 
