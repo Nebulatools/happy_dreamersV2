@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
 import { 
   Send, 
@@ -21,6 +22,8 @@ import {
   Upload,
   Trash2,
   FileText,
+  MessageSquare,
+  Info,
 } from "lucide-react"
 import { useActiveChild } from "@/context/active-child-context"
 import { cn } from "@/lib/utils"
@@ -348,6 +351,30 @@ export default function AssistantPage() {
     }
   }
 
+  const handleClearChat = () => {
+    setMessages([
+      {
+        id: "welcome",
+        role: "assistant",
+        content: "¡Hola! Soy el asistente de Happy Dreamers. Estoy aquí para ayudarte con cualquier consulta sobre el sueño de tu hijo/a. ¿En qué puedo ayudarte hoy?",
+        timestamp: new Date(),
+      },
+    ])
+    // Reiniciar sessionId para nueva conversación
+    sessionId.current = crypto.randomUUID()
+    toast({
+      title: "Chat reiniciado",
+      description: "Se ha iniciado una nueva conversación.",
+    })
+  }
+
+  const handleShowInfo = () => {
+    toast({
+      title: "Información del Asistente",
+      description: "El asistente usa inteligencia artificial para responder consultas sobre sueño infantil basándose en documentos especializados.",
+    })
+  }
+
   const formatContent = (content: string) => {
     // Dividir el contenido en secciones si contiene listas
     const lines = content.split("\n")
@@ -427,13 +454,27 @@ export default function AssistantPage() {
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="icon">
-            <MoreHorizontal className="w-5 h-5" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreHorizontal className="w-5 h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleClearChat}>
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Limpiar chat
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleShowInfo}>
+                <Info className="w-4 h-4 mr-2" />
+                Información
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Messages Area */}
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-1 p-4 bg-gray-50/30 chat-messages-scroll">
           <div className="space-y-4">
             {messages.map((message) => (
               <div
