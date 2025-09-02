@@ -46,7 +46,7 @@ export async function PUT(
     // Verificar que el niño exista y pertenezca al usuario
     const child = await db.collection("children").findOne({
       _id: new ObjectId(data.childId),
-      parentId: session.user.id,
+      parentId: new ObjectId(session.user.id),
     })
 
     if (!child) {
@@ -134,7 +134,7 @@ export async function DELETE(
     // Encontrar y eliminar el evento del array de eventos del niño
     const result = await db.collection("children").updateOne(
       { 
-        parentId: session.user.id,
+        parentId: new ObjectId(session.user.id),
         "events._id": eventId, 
       },
       { $pull: { events: { _id: eventId } } as any }

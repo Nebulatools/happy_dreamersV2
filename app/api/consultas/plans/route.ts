@@ -113,7 +113,7 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
 /**
  * Verifica si existe un transcript de consulta disponible
  */
-async function hasAvailableTranscript(childId: string): Promise<{
+async function hasAvailableTranscript(childId: string, afterDate?: Date): Promise<{
   hasTranscript: boolean
   latestReportId?: string
 }> {
@@ -121,11 +121,14 @@ async function hasAvailableTranscript(childId: string): Promise<{
     const client = await clientPromise
     const db = client.db()
     
+    // Construir query - si se especifica afterDate, buscar transcripts después de esa fecha
+    const query: any = { childId: new ObjectId(childId) }
+    if (afterDate) {
+      query.createdAt = { $gt: afterDate }
+    }
+    
     const latestReport = await db.collection("consultation_reports")
-      .findOne(
-        { childId: new ObjectId(childId) },
-        { sort: { createdAt: -1 } }
-      )
+      .findOne(query, { sort: { createdAt: -1 } })
     
     return {
       hasTranscript: !!latestReport,
@@ -294,11 +297,13 @@ export async function POST(req: NextRequest) {
 
     // Validar que hay transcript disponible para refinamientos
     if (planType === "transcript_refinement") {
-      const transcriptCheck = await hasAvailableTranscript(childId)
+      // Para refinamientos, verificar transcripts DESPUÉS del último plan
+      const lastPlanDate = existingPlans.length > 0 ? new Date(existingPlans[0].createdAt) : null
+      const transcriptCheck = await hasAvailableTranscript(childId, lastPlanDate)
       
       if (!transcriptCheck.hasTranscript && !reportId) {
         return NextResponse.json({ 
-          error: "No hay transcript de consulta disponible para generar un refinamiento" 
+          error: "No hay transcript de consulta nuevo disponible para generar un refinamiento" 
         }, { status: 400 })
       }
     }
@@ -491,12 +496,14 @@ export async function PUT(req: NextRequest) {
           canGenerate = false
           reason = `Ya existe un Plan ${existingRefinement.planVersion} de refinamiento`
         } else {
-          const transcriptCheck = await hasAvailableTranscript(childId)
+          // Para refinamientos, verificar transcripts DESPUÉS del último plan
+          const lastPlanDate = new Date(existingPlans[0].createdAt)
+          const transcriptCheck = await hasAvailableTranscript(childId, lastPlanDate)
           
           canGenerate = transcriptCheck.hasTranscript
           reason = canGenerate
-            ? "Transcript de consulta disponible"
-            : "No hay transcript de consulta disponible"
+            ? "Transcript de consulta nuevo disponible"
+            : "No hay transcript de consulta nuevo disponible"
         }
         
         additionalInfo = {
@@ -538,7 +545,7 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
   // 1. Obtener datos del niño con survey
   const child = await db.collection("children").findOne({
     _id: new ObjectId(childId),
-    parentId: userId,
+    parentId: new ObjectId(userId),
   })
 
   if (!child) {
@@ -619,7 +626,7 @@ async function generateEventBasedPlan(
   // 1. Obtener datos del niño
   const child = await db.collection("children").findOne({
     _id: new ObjectId(childId),
-    parentId: userId,
+    parentId: new ObjectId(userId),
   })
 
   if (!child) {
