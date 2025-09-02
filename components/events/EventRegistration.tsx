@@ -46,10 +46,10 @@ export function EventRegistration({
           variant="outline"
           size="sm"
           onClick={() => setShowManualModal(true)}
-          className="text-xs"
+          className="text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300"
         >
           <Clock className="w-3 h-3 mr-1" />
-          Manual
+          Registrar Evento
         </Button>
       </div>
       

@@ -584,7 +584,7 @@ export default function DashboardPage() {
                   <Button 
                     size="sm" 
                     variant="ghost" 
-                    className="h-8 w-8 p-0"
+                    className="h-8 w-8 p-0 hover:bg-gray-200 text-gray-700 hover:text-gray-900"
                     onClick={() => {
                       const newDate = new Date(currentDate)
                       newDate.setDate(newDate.getDate() - 7)
@@ -596,7 +596,7 @@ export default function DashboardPage() {
                   <Button 
                     size="sm" 
                     variant="ghost" 
-                    className="h-8 w-8 p-0"
+                    className="h-8 w-8 p-0 hover:bg-gray-200 text-gray-700 hover:text-gray-900"
                     onClick={() => {
                       const newDate = new Date(currentDate)
                       newDate.setDate(newDate.getDate() + 7)
