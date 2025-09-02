@@ -11,6 +11,15 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { 
   Clock, 
   Moon, 
@@ -39,6 +48,12 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
   const [isSaving, setIsSaving] = useState(false)
   const [editedPlan, setEditedPlan] = useState<ChildPlan>(plan)
   const [hasChanges, setHasChanges] = useState(false)
+  const [showNapModal, setShowNapModal] = useState(false)
+  const [newNap, setNewNap] = useState({
+    time: "14:00",
+    duration: 60,
+    description: "Siesta de la tarde"
+  })
 
   // Reiniciar cuando cambia el plan
   useEffect(() => {
@@ -183,19 +198,34 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     setHasChanges(true)
   }
 
-  // Agregar nueva siesta
-  const addNap = () => {
+  // Abrir modal para agregar siesta
+  const handleAddNapClick = () => {
+    setNewNap({
+      time: "14:00",
+      duration: 60,
+      description: "Siesta de la tarde"
+    })
+    setShowNapModal(true)
+  }
+
+  // Confirmar y agregar nueva siesta
+  const confirmAddNap = async () => {
     const updatedPlan = { ...editedPlan }
     if (!updatedPlan.schedule.naps) {
       updatedPlan.schedule.naps = []
     }
-    updatedPlan.schedule.naps.push({
-      time: "14:00",
-      duration: 60,
-      description: "Nueva siesta"
-    })
+    updatedPlan.schedule.naps.push({ ...newNap })
     setEditedPlan(updatedPlan)
     setHasChanges(true)
+    setShowNapModal(false)
+    
+    // Guardar automáticamente si estamos en modo edición
+    if (isEditing) {
+      // Esperar un momento para que se actualice el estado
+      setTimeout(() => {
+        handleSave()
+      }, 100)
+    }
   }
 
   // Eliminar siesta
@@ -514,7 +544,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                 {isEditing && (
                   <Button
                     variant="outline"
-                    onClick={addNap}
+                    onClick={handleAddNapClick}
                     className="w-full"
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -701,6 +731,70 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
           </Card>
         </div>
       </div>
+
+      {/* Modal para agregar siesta */}
+      <Dialog open={showNapModal} onOpenChange={setShowNapModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Agregar Siesta</DialogTitle>
+            <DialogDescription>
+              Configure los detalles de la nueva siesta en la rutina diaria.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="nap-time" className="text-right">
+                Hora
+              </Label>
+              <Input
+                id="nap-time"
+                type="time"
+                value={newNap.time}
+                onChange={(e) => setNewNap({ ...newNap, time: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="nap-duration" className="text-right">
+                Duración
+              </Label>
+              <div className="col-span-3 flex items-center gap-2">
+                <Input
+                  id="nap-duration"
+                  type="number"
+                  min="15"
+                  max="180"
+                  step="15"
+                  value={newNap.duration}
+                  onChange={(e) => setNewNap({ ...newNap, duration: parseInt(e.target.value) || 60 })}
+                  className="flex-1"
+                />
+                <span className="text-sm text-muted-foreground">minutos</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="nap-description" className="text-right">
+                Descripción
+              </Label>
+              <Input
+                id="nap-description"
+                value={newNap.description}
+                onChange={(e) => setNewNap({ ...newNap, description: e.target.value })}
+                placeholder="Ej: Siesta de la tarde"
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNapModal(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmAddNap}>
+              Agregar Siesta
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
