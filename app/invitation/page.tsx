@@ -3,7 +3,7 @@
 // Página de Aceptación de Invitaciones
 // Maneja el flujo cuando un usuario hace clic en el link de invitación
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useSession, signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
@@ -29,7 +29,7 @@ interface InvitationData {
   expiresAt: string
 }
 
-export default function InvitationPage() {
+function InvitationContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session, status } = useSession()
@@ -325,3 +325,19 @@ export default function InvitationPage() {
 
 // Importar signOut también
 import { signOut } from "next-auth/react"
+
+// Componente principal con Suspense
+export default function InvitationPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F9FF]">
+        <div className="text-center">
+          <Icons.spinner className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
+          <p className="text-gray-600">Cargando invitación...</p>
+        </div>
+      </div>
+    }>
+      <InvitationContent />
+    </Suspense>
+  )
+}
