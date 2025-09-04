@@ -1,10 +1,4 @@
 {
-  "crons": [
-    {
-      "path": "/api/notifications/scheduler",
-      "schedule": "* * * * *"
-    }
-  ],
   "headers": [
     {
       "source": "/service-worker.js",
