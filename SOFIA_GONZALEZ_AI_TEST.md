@@ -4,7 +4,7 @@
 
 ---
 
-## 👑 **PERFIL: SOFÍA GONZÁLEZ**
+## 👑 **PERFIL: SOFÍA GONZÁLEZ*
 
 - **Edad**: 2 años (nacida 15 marzo 2023)
 - **Perfil**: "dormilona" - Le encanta dormir, siestas largas
