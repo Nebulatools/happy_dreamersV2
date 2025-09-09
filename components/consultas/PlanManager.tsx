@@ -40,6 +40,7 @@ export function PlanManager({
   const [selectedPlanIndex, setSelectedPlanIndex] = useState<number | null>(null)
   const [historyReports, setHistoryReports] = useState<any[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [showDebug, setShowDebug] = useState(false)
   
   // Estados para validaciones de plan
   const [planValidations, setPlanValidations] = useState<{
@@ -406,7 +407,7 @@ export function PlanManager({
               </CardDescription>
             </div>
             
-{loadingValidations ? (
+            {loadingValidations ? (
               <div className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span className="text-sm text-muted-foreground">Validando opciones...</span>
@@ -450,6 +451,27 @@ export function PlanManager({
               </div>
             )}
           </div>
+          {/* Debug panel (solo admin) */}
+          {(!loadingValidations) && (
+            <div className="mt-2">
+              <button
+                type="button"
+                className="text-xs text-muted-foreground underline"
+                onClick={() => setShowDebug(v => !v)}
+              >
+                {showDebug ? 'Ocultar' : 'Mostrar'} debug de validación
+              </button>
+              {showDebug && (
+                <pre className="mt-2 text-xs bg-muted/40 p-2 rounded border max-h-40 overflow-auto">
+{JSON.stringify({
+  initial: planValidations.initial,
+  event_based: planValidations.event_based,
+  transcript_refinement: planValidations.transcript_refinement
+}, null, 2)}
+                </pre>
+              )}
+            </div>
+          )}
         </CardHeader>
 
         {/* Lista de planes existentes */}
