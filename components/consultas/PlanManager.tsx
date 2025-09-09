@@ -219,12 +219,30 @@ export function PlanManager({
   const generatePlan = async (planType: "initial" | "event_based" | "transcript_refinement", reportId?: string) => {
     if (!selectedUserId || !selectedChildId) return
 
-    // Validar que se puede generar el tipo de plan solicitado
-    const validation = planValidations[planType]
+    // Validar que se puede generar el tipo de plan solicitado (revalida en tiempo real)
+    // 1) Usar estado actual
+    let validation = planValidations[planType]
+    // 2) Revalidar contra el backend para evitar condiciones de carrera
+    try {
+      const validateResp = await fetch('/api/consultas/plans', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selectedUserId, childId: selectedChildId, planType })
+      })
+      if (validateResp.ok) {
+        const validateData = await validateResp.json()
+        // Refrescar todo el mapa de validaciones manteniendo las otras
+        setPlanValidations(prev => ({ ...prev, [planType]: validateData }))
+        validation = validateData
+      }
+    } catch (e) {
+      // Si falla la revalidación, usamos el estado previo
+    }
+
     if (!validation || !validation.canGenerate) {
       toast({
-        title: "Error",
-        description: validation?.reason || "No se puede generar este tipo de plan",
+        title: "No disponible",
+        description: validation?.reason || "Este tipo de plan no puede generarse ahora",
         variant: "destructive",
       })
       return
@@ -394,31 +412,40 @@ export function PlanManager({
                 <span className="text-sm text-muted-foreground">Validando opciones...</span>
               </div>
             ) : (
-              <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full max-w-3xl">
                 {availablePlans.map((planOption) => (
-                  <TooltipProvider key={planOption.planType}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          onClick={() => generatePlan(planOption.planType)}
-                          disabled={!planOption.canGenerate || generatingPlan}
-                          size="sm"
-                          variant={planOption.canGenerate ? "default" : "outline"}
-                          className="min-w-[160px] text-xs"
-                        >
-                          {generatingPlan ? (
-                            <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                          ) : (
-                            <Plus className="h-3 w-3 mr-2" />
-                          )}
-                          {generatingPlan ? "Generando..." : planOption.buttonText}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">{planOption.description}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <div key={planOption.planType} className="flex flex-col items-stretch">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            onClick={() => generatePlan(planOption.planType)}
+                            disabled={!planOption.canGenerate || generatingPlan}
+                            size="sm"
+                            variant={planOption.canGenerate ? "default" : "outline"}
+                            className="min-w-[160px] text-xs"
+                          >
+                            {generatingPlan ? (
+                              <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                            ) : (
+                              <Plus className="h-3 w-3 mr-2" />
+                            )}
+                            {generatingPlan ? "Generando..." : planOption.buttonText}
+                          </Button>
+                        </TooltipTrigger>
+                        {planOption.canGenerate && planOption.description && (
+                          <TooltipContent>
+                            <p className="max-w-xs">{planOption.description}</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
+                    {!planOption.canGenerate && planOption.description && (
+                      <div className="mt-1 text-[11px] text-muted-foreground leading-snug">
+                        {planOption.description}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
