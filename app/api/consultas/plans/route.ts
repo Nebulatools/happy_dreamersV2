@@ -1370,6 +1370,35 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
     }
   } catch (error) {
     logger.error("Error generando plan con IA:", error)
-    throw new Error("Error al procesar el plan con IA")
+    // Fallback robusto cuando la IA o la red fallan: devolver un plan básico válido
+    logger.warn("Generando plan fallback debido a error en IA/red")
+    return {
+      schedule: {
+        bedtime: "20:30",
+        wakeTime: "07:00",
+        meals: [
+          { time: "07:30", type: "desayuno", description: "Desayuno nutritivo" },
+          { time: "12:00", type: "almuerzo", description: "Almuerzo balanceado" },
+          { time: "16:00", type: "merienda", description: "Merienda ligera" },
+          { time: "19:00", type: "cena", description: "Cena temprana" }
+        ],
+        activities: [
+          { time: "18:30", activity: "rutina", duration: 30, description: "Rutina relajante antes de dormir" }
+        ],
+        naps: [
+          { time: "14:00", duration: 90, description: "Siesta vespertina" }
+        ]
+      },
+      objectives: [
+        "Establecer rutina de sueño consistente",
+        "Mejorar calidad del descanso"
+      ],
+      recommendations: [
+        "Mantener horarios fijos",
+        "Ambiente oscuro y tranquilo por la noche"
+      ],
+      improvements: ["Plan generado con fallback por indisponibilidad de IA"],
+      adjustments: ["Ajustes estándar basados en edad"]
+    }
   }
 }
