@@ -99,7 +99,7 @@ export async function PUT(
 
     // Conectar a la base de datos
     const { db } = await connectToDatabase()
-    const plansCollection = db.collection("childplans")
+    const plansCollection = db.collection("child_plans")
 
     // Verificar que el plan existe
     const existingPlan = await plansCollection.findOne({
@@ -110,7 +110,7 @@ export async function PUT(
       logger.info("Plan no encontrado, creando nuevo plan", { 
         planId,
         childId,
-        collection: "childplans"
+        collection: "child_plans"
       })
       
       // Si el plan no existe y tenemos la información necesaria, lo creamos
@@ -241,7 +241,7 @@ export async function GET(
 
     // Conectar a la base de datos
     const { db } = await connectToDatabase()
-    const plansCollection = db.collection("childplans")
+    const plansCollection = db.collection("child_plans")
 
     // Obtener el plan
     const plan = await plansCollection.findOne({
