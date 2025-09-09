@@ -12,6 +12,7 @@ import { useEventsCache } from "@/hooks/use-events-cache"
 // Lazy load heavy components
 const AdminStatistics = lazy(() => import("@/components/dashboard/AdminStatistics"))
 const SleepMetricsGrid = lazy(() => import("@/components/child-profile/SleepMetricsGrid"))
+const SleepMetricsCombinedChart = lazy(() => import("@/components/child-profile/SleepMetricsCombinedChart"))
 // Sistema de eventos - Nueva implementación v1.0
 import { EventRegistration } from "@/components/events"
 import { 
@@ -399,7 +400,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Métricas principales - usando el componente de sleep-statistics */}
+        {/* Resumen visual de métricas clave (gráfica compuesta) */}
         {activeChildId ? (
           <Suspense fallback={
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
@@ -410,7 +411,7 @@ export default function DashboardPage() {
               ))}
             </div>
           }>
-            <SleepMetricsGrid childId={activeChildId} dateRange="7-days" />
+            <SleepMetricsCombinedChart childId={activeChildId} dateRange="7-days" />
           </Suspense>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">

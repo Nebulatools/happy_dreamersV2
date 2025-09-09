@@ -10,7 +10,7 @@ const logger = createLogger('PlanManager')
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Calendar, Plus, Clock, Target, CheckCircle, AlertCircle } from "lucide-react"
+import { Loader2, Calendar, Plus, Clock, Target, CheckCircle, AlertCircle, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { EditablePlanDisplay } from "./EditablePlanDisplay"
@@ -35,10 +35,12 @@ export function PlanManager({
   
   const [plans, setPlans] = useState<ChildPlan[]>([])
   const [loadingPlans, setLoadingPlans] = useState(false)
+  const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null)
   const [generatingPlan, setGeneratingPlan] = useState(false)
   const [selectedPlanIndex, setSelectedPlanIndex] = useState<number | null>(null)
   const [historyReports, setHistoryReports] = useState<any[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [showDebug, setShowDebug] = useState(false)
   
   // Estados para validaciones de plan
   const [planValidations, setPlanValidations] = useState<{
@@ -176,16 +178,72 @@ export function PlanManager({
     }
   }
 
+  // Eliminar plan (solo admin desde UI de administrador)
+  const deletePlan = async (planId: string) => {
+    if (!planId) return
+    const confirmed = typeof window !== 'undefined' ? window.confirm('¿Eliminar este plan de forma permanente?') : true
+    if (!confirmed) return
+
+    try {
+      setDeletingPlanId(planId)
+      const response = await fetch(`/api/consultas/plans/${planId}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error || 'No se pudo eliminar el plan')
+      }
+
+      // Refrescar lista y selección
+      await loadPlans()
+      setSelectedPlanIndex((prev) => {
+        if (prev === null) return prev
+        // Si el índice apuntaba a un plan al final, moverlo hacia atrás
+        return Math.max(0, Math.min((plans.length - 2), prev))
+      })
+
+      toast({
+        title: 'Plan eliminado',
+        description: 'El plan se eliminó correctamente.'
+      })
+    } catch (error) {
+      logger.error('Error eliminando plan:', error)
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'No se pudo eliminar el plan',
+        variant: 'destructive'
+      })
+    } finally {
+      setDeletingPlanId(null)
+    }
+  }
+
   // Generar nuevo plan
   const generatePlan = async (planType: "initial" | "event_based" | "transcript_refinement", reportId?: string) => {
     if (!selectedUserId || !selectedChildId) return
 
-    // Validar que se puede generar el tipo de plan solicitado
-    const validation = planValidations[planType]
+    // Validar que se puede generar el tipo de plan solicitado (revalida en tiempo real)
+    // 1) Usar estado actual
+    let validation = planValidations[planType]
+    // 2) Revalidar contra el backend para evitar condiciones de carrera
+    try {
+      const validateResp = await fetch('/api/consultas/plans', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selectedUserId, childId: selectedChildId, planType })
+      })
+      if (validateResp.ok) {
+        const validateData = await validateResp.json()
+        // Refrescar todo el mapa de validaciones manteniendo las otras
+        setPlanValidations(prev => ({ ...prev, [planType]: validateData }))
+        validation = validateData
+      }
+    } catch (e) {
+      // Si falla la revalidación, usamos el estado previo
+    }
+
     if (!validation || !validation.canGenerate) {
       toast({
-        title: "Error",
-        description: validation?.reason || "No se puede generar este tipo de plan",
+        title: "No disponible",
+        description: validation?.reason || "Este tipo de plan no puede generarse ahora",
         variant: "destructive",
       })
       return
@@ -224,8 +282,15 @@ export function PlanManager({
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Error al generar el plan")
+        const raw = await response.text()
+        let details = ''
+        try {
+          const parsed = JSON.parse(raw)
+          details = parsed.details || parsed.error || raw
+        } catch {
+          details = raw
+        }
+        throw new Error(`${details} (HTTP ${response.status})`)
       }
 
       const result = await response.json()
@@ -349,41 +414,71 @@ export function PlanManager({
               </CardDescription>
             </div>
             
-{loadingValidations ? (
+            {loadingValidations ? (
               <div className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span className="text-sm text-muted-foreground">Validando opciones...</span>
               </div>
             ) : (
-              <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full max-w-3xl">
                 {availablePlans.map((planOption) => (
-                  <TooltipProvider key={planOption.planType}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          onClick={() => generatePlan(planOption.planType)}
-                          disabled={!planOption.canGenerate || generatingPlan}
-                          size="sm"
-                          variant={planOption.canGenerate ? "default" : "outline"}
-                          className="min-w-[160px] text-xs"
-                        >
-                          {generatingPlan ? (
-                            <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                          ) : (
-                            <Plus className="h-3 w-3 mr-2" />
-                          )}
-                          {generatingPlan ? "Generando..." : planOption.buttonText}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">{planOption.description}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <div key={planOption.planType} className="flex flex-col items-stretch">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            onClick={() => generatePlan(planOption.planType)}
+                            disabled={!planOption.canGenerate || generatingPlan}
+                            size="sm"
+                            variant={planOption.canGenerate ? "default" : "outline"}
+                            className="min-w-[160px] text-xs"
+                          >
+                            {generatingPlan ? (
+                              <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                            ) : (
+                              <Plus className="h-3 w-3 mr-2" />
+                            )}
+                            {generatingPlan ? "Generando..." : planOption.buttonText}
+                          </Button>
+                        </TooltipTrigger>
+                        {planOption.canGenerate && planOption.description && (
+                          <TooltipContent>
+                            <p className="max-w-xs">{planOption.description}</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
+                    {!planOption.canGenerate && planOption.description && (
+                      <div className="mt-1 text-[11px] text-muted-foreground leading-snug">
+                        {planOption.description}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
           </div>
+          {/* Debug panel (solo admin) */}
+          {(!loadingValidations) && (
+            <div className="mt-2">
+              <button
+                type="button"
+                className="text-xs text-muted-foreground underline"
+                onClick={() => setShowDebug(v => !v)}
+              >
+                {showDebug ? 'Ocultar' : 'Mostrar'} debug de validación
+              </button>
+              {showDebug && (
+                <pre className="mt-2 text-xs bg-muted/40 p-2 rounded border max-h-40 overflow-auto">
+{JSON.stringify({
+  initial: planValidations.initial,
+  event_based: planValidations.event_based,
+  transcript_refinement: planValidations.transcript_refinement
+}, null, 2)}
+                </pre>
+              )}
+            </div>
+          )}
         </CardHeader>
 
         {/* Lista de planes existentes */}
@@ -432,6 +527,15 @@ export function PlanManager({
                         month: '2-digit',
                         year: 'numeric'
                       })}
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={(e) => { e.stopPropagation(); deletePlan(String(plan._id)) }}
+                        disabled={deletingPlanId === String(plan._id)}
+                        title="Eliminar plan"
+                      >
+                        <Trash2 className={`h-4 w-4 ${deletingPlanId === String(plan._id) ? 'text-muted-foreground' : 'text-destructive'}`} />
+                      </Button>
                     </div>
                   </div>
                   

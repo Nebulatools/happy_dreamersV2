@@ -90,11 +90,12 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
       return { hasEvents: false, eventCount: 0, eventTypes: [] }
     }
     
-    // Filtrar eventos después de la fecha
+    // Filtrar eventos después de la fecha y HASTA ahora (excluir futuros)
+    const now = new Date()
     const eventsAfterDate = child.events.filter((event: any) => {
       if (!event.startTime) return false
       const eventDate = new Date(event.startTime)
-      return eventDate > afterDate
+      return eventDate > afterDate && eventDate <= now
     })
     
     const eventTypes = [...new Set(eventsAfterDate.map((e: any) => e.eventType))]
@@ -542,15 +543,18 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
   const client = await clientPromise
   const db = client.db()
   
-  // 1. Obtener datos del niño con survey
+  // 1. Obtener datos del niño. Para flujos de administrador, permitir por _id
+  //    y usar el parentId real del niño como owner del plan.
   const child = await db.collection("children").findOne({
     _id: new ObjectId(childId),
-    parentId: new ObjectId(userId),
   })
 
   if (!child) {
     throw new Error("No se encontró información del niño")
   }
+
+  // Asegurar userId consistente con el dueño real del niño
+  const effectiveUserId = child.parentId?.toString?.() || userId
 
   // 2. Calcular estadísticas del niño
   const events = await db.collection("events").find({
@@ -581,7 +585,7 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
 
   return {
     childId: new ObjectId(childId),
-    userId: new ObjectId(userId),
+    userId: new ObjectId(effectiveUserId),
     planNumber: 0,
     planVersion: "0",
     planType: "initial",
@@ -623,15 +627,17 @@ async function generateEventBasedPlan(
   const client = await clientPromise
   const db = client.db()
   
-  // 1. Obtener datos del niño
+  // 1. Obtener datos del niño. En flujo admin, basta con _id.
   const child = await db.collection("children").findOne({
     _id: new ObjectId(childId),
-    parentId: new ObjectId(userId),
   })
 
   if (!child) {
     throw new Error("No se encontró información del niño")
   }
+
+  // Owner efectivo para el plan (padre real del niño)
+  const effectiveUserId = child.parentId?.toString?.() || userId
 
   // 2. Obtener eventos desde el último plan
   const eventsFromDate = new Date(basePlan.createdAt)
@@ -679,7 +685,7 @@ async function generateEventBasedPlan(
 
   return {
     childId: new ObjectId(childId),
-    userId: new ObjectId(userId),
+    userId: new ObjectId(effectiveUserId),
     planNumber,
     planVersion,
     planType: "event_based",
@@ -1370,6 +1376,35 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
     }
   } catch (error) {
     logger.error("Error generando plan con IA:", error)
-    throw new Error("Error al procesar el plan con IA")
+    // Fallback robusto cuando la IA o la red fallan: devolver un plan básico válido
+    logger.warn("Generando plan fallback debido a error en IA/red")
+    return {
+      schedule: {
+        bedtime: "20:30",
+        wakeTime: "07:00",
+        meals: [
+          { time: "07:30", type: "desayuno", description: "Desayuno nutritivo" },
+          { time: "12:00", type: "almuerzo", description: "Almuerzo balanceado" },
+          { time: "16:00", type: "merienda", description: "Merienda ligera" },
+          { time: "19:00", type: "cena", description: "Cena temprana" }
+        ],
+        activities: [
+          { time: "18:30", activity: "rutina", duration: 30, description: "Rutina relajante antes de dormir" }
+        ],
+        naps: [
+          { time: "14:00", duration: 90, description: "Siesta vespertina" }
+        ]
+      },
+      objectives: [
+        "Establecer rutina de sueño consistente",
+        "Mejorar calidad del descanso"
+      ],
+      recommendations: [
+        "Mantener horarios fijos",
+        "Ambiente oscuro y tranquilo por la noche"
+      ],
+      improvements: ["Plan generado con fallback por indisponibilidad de IA"],
+      adjustments: ["Ajustes estándar basados en edad"]
+    }
   }
 }
