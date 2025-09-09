@@ -542,15 +542,18 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
   const client = await clientPromise
   const db = client.db()
   
-  // 1. Obtener datos del niño con survey
+  // 1. Obtener datos del niño. Para flujos de administrador, permitir por _id
+  //    y usar el parentId real del niño como owner del plan.
   const child = await db.collection("children").findOne({
     _id: new ObjectId(childId),
-    parentId: new ObjectId(userId),
   })
 
   if (!child) {
     throw new Error("No se encontró información del niño")
   }
+
+  // Asegurar userId consistente con el dueño real del niño
+  const effectiveUserId = child.parentId?.toString?.() || userId
 
   // 2. Calcular estadísticas del niño
   const events = await db.collection("events").find({
@@ -581,7 +584,7 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
 
   return {
     childId: new ObjectId(childId),
-    userId: new ObjectId(userId),
+    userId: new ObjectId(effectiveUserId),
     planNumber: 0,
     planVersion: "0",
     planType: "initial",
@@ -623,15 +626,17 @@ async function generateEventBasedPlan(
   const client = await clientPromise
   const db = client.db()
   
-  // 1. Obtener datos del niño
+  // 1. Obtener datos del niño. En flujo admin, basta con _id.
   const child = await db.collection("children").findOne({
     _id: new ObjectId(childId),
-    parentId: new ObjectId(userId),
   })
 
   if (!child) {
     throw new Error("No se encontró información del niño")
   }
+
+  // Owner efectivo para el plan (padre real del niño)
+  const effectiveUserId = child.parentId?.toString?.() || userId
 
   // 2. Obtener eventos desde el último plan
   const eventsFromDate = new Date(basePlan.createdAt)
@@ -679,7 +684,7 @@ async function generateEventBasedPlan(
 
   return {
     childId: new ObjectId(childId),
-    userId: new ObjectId(userId),
+    userId: new ObjectId(effectiveUserId),
     planNumber,
     planVersion,
     planType: "event_based",
