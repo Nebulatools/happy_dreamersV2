@@ -10,7 +10,7 @@ const logger = createLogger('PlanManager')
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Calendar, Plus, Clock, Target, CheckCircle, AlertCircle } from "lucide-react"
+import { Loader2, Calendar, Plus, Clock, Target, CheckCircle, AlertCircle, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { EditablePlanDisplay } from "./EditablePlanDisplay"
@@ -35,6 +35,7 @@ export function PlanManager({
   
   const [plans, setPlans] = useState<ChildPlan[]>([])
   const [loadingPlans, setLoadingPlans] = useState(false)
+  const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null)
   const [generatingPlan, setGeneratingPlan] = useState(false)
   const [selectedPlanIndex, setSelectedPlanIndex] = useState<number | null>(null)
   const [historyReports, setHistoryReports] = useState<any[]>([])
@@ -173,6 +174,44 @@ export function PlanManager({
       })
     } finally {
       setLoadingPlans(false)
+    }
+  }
+
+  // Eliminar plan (solo admin desde UI de administrador)
+  const deletePlan = async (planId: string) => {
+    if (!planId) return
+    const confirmed = typeof window !== 'undefined' ? window.confirm('¿Eliminar este plan de forma permanente?') : true
+    if (!confirmed) return
+
+    try {
+      setDeletingPlanId(planId)
+      const response = await fetch(`/api/consultas/plans/${planId}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error || 'No se pudo eliminar el plan')
+      }
+
+      // Refrescar lista y selección
+      await loadPlans()
+      setSelectedPlanIndex((prev) => {
+        if (prev === null) return prev
+        // Si el índice apuntaba a un plan al final, moverlo hacia atrás
+        return Math.max(0, Math.min((plans.length - 2), prev))
+      })
+
+      toast({
+        title: 'Plan eliminado',
+        description: 'El plan se eliminó correctamente.'
+      })
+    } catch (error) {
+      logger.error('Error eliminando plan:', error)
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'No se pudo eliminar el plan',
+        variant: 'destructive'
+      })
+    } finally {
+      setDeletingPlanId(null)
     }
   }
 
@@ -432,6 +471,15 @@ export function PlanManager({
                         month: '2-digit',
                         year: 'numeric'
                       })}
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={(e) => { e.stopPropagation(); deletePlan(String(plan._id)) }}
+                        disabled={deletingPlanId === String(plan._id)}
+                        title="Eliminar plan"
+                      >
+                        <Trash2 className={`h-4 w-4 ${deletingPlanId === String(plan._id) ? 'text-muted-foreground' : 'text-destructive'}`} />
+                      </Button>
                     </div>
                   </div>
                   

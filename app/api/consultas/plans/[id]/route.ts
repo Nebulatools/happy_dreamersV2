@@ -10,6 +10,54 @@ import { createLogger } from "@/lib/logger"
 
 const logger = createLogger('api/consultas/plans/[id]')
 
+// DELETE endpoint para eliminar un plan específico (solo admin)
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session || session.user.role !== "admin") {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      )
+    }
+
+    const { id: planId } = await params
+    if (!planId || !ObjectId.isValid(planId)) {
+      return NextResponse.json(
+        { error: "ID de plan inválido" },
+        { status: 400 }
+      )
+    }
+
+    const { db } = await connectToDatabase()
+
+    // Usar la colección principal de planes
+    const collection = db.collection("child_plans")
+
+    const result = await collection.deleteOne({ _id: new ObjectId(planId) })
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json(
+        { error: "Plan no encontrado" },
+        { status: 404 }
+      )
+    }
+
+    logger.info("Plan eliminado", { planId, adminId: session.user.id })
+
+    return NextResponse.json({ success: true, message: "Plan eliminado correctamente" })
+  } catch (error) {
+    logger.error("Error eliminando plan:", error)
+    return NextResponse.json(
+      { error: "Error interno del servidor" },
+      { status: 500 }
+    )
+  }
+}
+
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
