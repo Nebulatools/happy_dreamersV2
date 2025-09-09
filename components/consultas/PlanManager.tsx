@@ -282,8 +282,15 @@ export function PlanManager({
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Error al generar el plan")
+        const raw = await response.text()
+        let details = ''
+        try {
+          const parsed = JSON.parse(raw)
+          details = parsed.details || parsed.error || raw
+        } catch {
+          details = raw
+        }
+        throw new Error(`${details} (HTTP ${response.status})`)
       }
 
       const result = await response.json()
