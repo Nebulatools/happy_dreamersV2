@@ -90,11 +90,12 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
       return { hasEvents: false, eventCount: 0, eventTypes: [] }
     }
     
-    // Filtrar eventos después de la fecha
+    // Filtrar eventos después de la fecha y HASTA ahora (excluir futuros)
+    const now = new Date()
     const eventsAfterDate = child.events.filter((event: any) => {
       if (!event.startTime) return false
       const eventDate = new Date(event.startTime)
-      return eventDate > afterDate
+      return eventDate > afterDate && eventDate <= now
     })
     
     const eventTypes = [...new Set(eventsAfterDate.map((e: any) => e.eventType))]
