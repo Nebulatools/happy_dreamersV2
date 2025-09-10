@@ -62,7 +62,7 @@ export function ManualEventModal({
   
   // Campos específicos de alimentación
   const [feedingType, setFeedingType] = useState<'breast' | 'bottle' | 'solids'>('bottle')
-  const [feedingAmount, setFeedingAmount] = useState(120)
+  const [feedingAmount, setFeedingAmount] = useState(4) // onzas (oz)
   const [feedingDuration, setFeedingDuration] = useState(15)
   const [babyState, setBabyState] = useState<'awake' | 'asleep'>('awake')
   const [feedingNotes, setFeedingNotes] = useState('')
@@ -176,7 +176,8 @@ export function ManualEventModal({
       
       if (eventType === 'feeding') {
         eventData.feedingType = feedingType
-        eventData.feedingAmount = feedingAmount
+        // Convertir oz → ml para biberón
+        eventData.feedingAmount = feedingType === 'bottle' ? Math.round((feedingAmount || 0) * 29.5735) : feedingAmount
         eventData.feedingDuration = feedingDuration
         eventData.babyState = babyState
         eventData.feedingNotes = feedingNotes
@@ -447,13 +448,13 @@ export function ManualEventModal({
               {feedingType === 'bottle' && (
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label>Cantidad (ml)</Label>
+                    <Label>Cantidad (oz)</Label>
                     <div className="flex items-center gap-2">
                       <Button
                         type="button"
                         variant="outline"
                         size="icon"
-                        onClick={() => setFeedingAmount(Math.max(0, feedingAmount - 10))}
+                        onClick={() => setFeedingAmount(Math.max(0, feedingAmount - 1))}
                       >
                         <Minus className="h-4 w-4" />
                       </Button>
@@ -463,13 +464,13 @@ export function ManualEventModal({
                         onChange={(e) => setFeedingAmount(parseInt(e.target.value) || 0)}
                         className="text-center"
                         min="0"
-                        max="500"
+                        max="16"
                       />
                       <Button
                         type="button"
                         variant="outline"
                         size="icon"
-                        onClick={() => setFeedingAmount(Math.min(500, feedingAmount + 10))}
+                        onClick={() => setFeedingAmount(Math.min(16, feedingAmount + 1))}
                       >
                         <Plus className="h-4 w-4" />
                       </Button>

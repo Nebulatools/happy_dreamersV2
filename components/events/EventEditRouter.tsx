@@ -138,13 +138,23 @@ export function EventEditRouter({
       )
 
     case 'feeding':
+      // Utilidades de conversión
+      const mlToOz = (ml?: number) => {
+        if (!ml || isNaN(ml)) return 0
+        return Math.round((ml / 29.5735))
+      }
       return (
         <FeedingModal
           open={open}
           onClose={onClose}
           onConfirm={async (data: FeedingModalData) => {
+            // Convertir oz → ml para biberón antes de actualizar
+            const payload = { ...data }
+            if (payload.feedingType === 'bottle' && typeof payload.feedingAmount === 'number') {
+              payload.feedingAmount = Math.round(payload.feedingAmount * 29.5735)
+            }
             await updateEvent({
-              ...data,
+              ...payload,
               startTime: event.startTime,
               notes: data.feedingNotes
             })
@@ -153,7 +163,7 @@ export function EventEditRouter({
           mode="edit"
           initialData={{
             feedingType: event.feedingType,
-            feedingAmount: event.feedingAmount,
+            feedingAmount: event.feedingType === 'bottle' ? mlToOz(event.feedingAmount) : event.feedingAmount,
             feedingDuration: event.feedingDuration,
             babyState: event.babyState,
             feedingNotes: event.feedingNotes || event.notes,

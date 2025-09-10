@@ -63,13 +63,17 @@ export function FeedingButton({
       // Detectar si el bebé está dormido actualmente
       const isBabySleeping = sleepState.status === 'sleeping' || sleepState.status === 'napping'
       
+      // Utilidad: convertir onzas a mililitros
+      const ozToMl = (oz: number) => Math.round(oz * 29.5735)
+
       // Crear evento de alimentación con todos los datos del modal
       const eventData: Partial<EventData> = {
         childId,
         eventType: 'feeding',
         startTime: toLocalISOString(now),
         feedingType: feedingData.feedingType,
-        feedingAmount: feedingData.feedingAmount,
+        // Para biberón capturamos en onzas; almacenar en ml
+        feedingAmount: feedingData.feedingType === 'bottle' ? ozToMl(feedingData.feedingAmount || 0) : feedingData.feedingAmount,
         feedingDuration: feedingData.feedingDuration,
         babyState: feedingData.babyState,
         feedingNotes: feedingData.feedingNotes,
@@ -93,7 +97,7 @@ export function FeedingButton({
           eventType: 'night_feeding',
           startTime: toLocalISOString(now),
           feedingType: feedingData.feedingType,
-          feedingAmount: feedingData.feedingAmount,
+          feedingAmount: feedingData.feedingType === 'bottle' ? ozToMl(feedingData.feedingAmount || 0) : feedingData.feedingAmount,
           feedingDuration: feedingData.feedingDuration,
           notes: `Alimentación nocturna - ${feedingData.feedingType === 'breast' ? 'Pecho' : feedingData.feedingType === 'bottle' ? 'Biberón' : 'Sólidos'}`,
           emotionalState: 'neutral'
@@ -124,7 +128,7 @@ export function FeedingButton({
         if (type === 'breast') {
           return `${amount} minutos`
         } else {
-          const unit = type === 'bottle' ? 'ml' : 'gr'
+          const unit = type === 'bottle' ? 'oz' : 'gr'
           return `${amount} ${unit} en ${duration} min`
         }
       }
