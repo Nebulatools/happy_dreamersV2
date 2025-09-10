@@ -4,6 +4,7 @@ import { Clock, Moon, Sun, Activity, Info } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip } from "recharts"
 
 interface SleepDistributionChartProps {
   childId: string
@@ -257,6 +258,36 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
             <p className="text-xs mt-1">Registra cuando duerme y despierta para ver esta información</p>
           </div>
         )}
+
+        {/* Histograma compacto de ventanas (duración en minutos) */}
+        {data.awakePeriods.length > 0 && (() => {
+          const durations = data.awakePeriods.map(p => p.duration)
+          const bins = [0, 60, 120, 180, 240, 300, Infinity]
+          const labels = ["<1h", "1–2h", "2–3h", "3–4h", "4–5h", ">5h"]
+          const counts = new Array(labels.length).fill(0)
+          durations.forEach(m => {
+            const idx = bins.findIndex((edge, i) => m > edge && m <= bins[i+1])
+            if (idx >= 0) counts[idx]++
+          })
+          const histData = labels.map((lab, i) => ({ range: lab, count: counts[i] }))
+          const total = durations.length || 1
+          return (
+            <div className="mt-4">
+              <h5 className="text-xs font-semibold text-gray-700 mb-2">Histograma de ventanas ({dateRange.replace('-days',' días')})</h5>
+              <div className="h-36">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={histData} margin={{ top: 0, right: 8, bottom: 0, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
+                    <XAxis dataKey="range" tick={{ fontSize: 10 }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 10 }} width={22} />
+                    <ReTooltip formatter={(value: any, name: any, props: any) => [`${value} (${Math.round((value/total)*100)}%)`, 'ventanas']} />
+                    <Bar dataKey="count" fill="#94A3B8" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Leyenda de colores */}
         {data.awakePeriods.length > 0 && (
