@@ -86,11 +86,15 @@ export function ManualEventForm({ childId, childName, onEventRegistered, onCance
         if (feedingType === 'bottle') {
           const oz = feedingAmount ? parseFloat(feedingAmount) : NaN
           eventData.feedingAmount = isNaN(oz) ? undefined : Math.round(oz * 29.5735)
-        } else {
+          eventData.feedingDuration = feedingDuration ? parseInt(feedingDuration) : undefined
+        } else if (feedingType === 'solids') {
           eventData.feedingAmount = feedingAmount ? parseInt(feedingAmount) : undefined
+          eventData.feedingDuration = feedingDuration ? parseInt(feedingDuration) : undefined
+        } else if (feedingType === 'breast') {
+          // Pecho: minutos
+          eventData.feedingDuration = feedingAmount ? parseInt(feedingAmount) : undefined
         }
-        eventData.feedingDuration = feedingDuration ? parseInt(feedingDuration) : undefined
-        eventData.babyState = babyState
+        eventData.babyState = feedingType === 'solids' ? 'awake' : babyState
       }
       
       // Enviar al backend
@@ -288,7 +292,11 @@ export function ManualEventForm({ childId, childName, onEventRegistered, onCance
           <>
             <div>
               <Label>Tipo de alimentación</Label>
-              <RadioGroup value={feedingType} onValueChange={(val) => setFeedingType(val as FeedingType)}>
+              <RadioGroup value={feedingType} onValueChange={(val) => {
+                const ft = val as FeedingType
+                setFeedingType(ft)
+                if (ft === 'solids') setBabyState('awake')
+              }}>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="breast" id="breast" />
                   <Label htmlFor="breast">Pecho</Label>
@@ -318,17 +326,19 @@ export function ManualEventForm({ childId, childName, onEventRegistered, onCance
                   onChange={(e) => setFeedingAmount(e.target.value)}
                 />
               </div>
-              <div>
-                <Label htmlFor="feedingDuration">Duración (min)</Label>
-                <Input
-                  id="feedingDuration"
-                  type="number"
-                  min="1"
-                  max="60"
-                  value={feedingDuration}
-                  onChange={(e) => setFeedingDuration(e.target.value)}
-                />
-              </div>
+              {feedingType !== 'breast' && (
+                <div>
+                  <Label htmlFor="feedingDuration">Duración (min)</Label>
+                  <Input
+                    id="feedingDuration"
+                    type="number"
+                    min="1"
+                    max="60"
+                    value={feedingDuration}
+                    onChange={(e) => setFeedingDuration(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
             
             <div>
@@ -339,8 +349,8 @@ export function ManualEventForm({ childId, childName, onEventRegistered, onCance
                   <Label htmlFor="awake">Despierto</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="asleep" id="asleep" />
-                  <Label htmlFor="asleep">Dormido</Label>
+                  <RadioGroupItem value="asleep" id="asleep" disabled={feedingType === 'solids'} />
+                  <Label htmlFor="asleep">Dormido {feedingType === 'solids' ? '(no disponible para sólidos)' : ''}</Label>
                 </div>
               </RadioGroup>
             </div>

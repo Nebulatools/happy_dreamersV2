@@ -46,7 +46,13 @@ export function FeedingModal({
 }: FeedingModalProps) {
   const { getCurrentTime } = useDevTime()
   const [feedingType, setFeedingType] = useState<FeedingType>(initialData?.feedingType || 'breast')
-  const [feedingAmount, setFeedingAmount] = useState<number>(initialData?.feedingAmount || 4) // Default 4 oz
+  const [feedingAmount, setFeedingAmount] = useState<number>(() => {
+    if (typeof initialData?.feedingAmount === 'number') return initialData.feedingAmount
+    const t = initialData?.feedingType || 'breast'
+    if (t === 'breast') return 15
+    if (t === 'bottle') return 4
+    return 50
+  })
   const [feedingDuration, setFeedingDuration] = useState<number>(initialData?.feedingDuration || 15) // Default 15 min
   const [babyState, setBabyState] = useState<'awake' | 'asleep'>(initialData?.babyState || 'awake')
   const [feedingNotes, setFeedingNotes] = useState<string>(initialData?.feedingNotes || '')
@@ -68,7 +74,11 @@ export function FeedingModal({
   useEffect(() => {
     if (open && mode === 'edit' && initialData) {
       setFeedingType(initialData.feedingType || 'breast')
-      setFeedingAmount(initialData.feedingAmount || 80)
+      if (typeof initialData.feedingAmount === 'number') {
+        setFeedingAmount(initialData.feedingAmount)
+      } else {
+        setFeedingAmount(initialData.feedingType === 'breast' ? 15 : initialData.feedingType === 'bottle' ? 4 : 50)
+      }
       setFeedingDuration(initialData.feedingDuration || 15)
       setBabyState(initialData.babyState || 'awake')
       setFeedingNotes(initialData.feedingNotes || '')
@@ -158,11 +168,13 @@ export function FeedingModal({
   const handleConfirm = async () => {
     setIsProcessing(true)
     
+    // Normalización: pecho en minutos (feedingDuration), sólidos siempre despierto
+    const normalizedBabyState = feedingType === 'solids' ? 'awake' : babyState
     const data: FeedingModalData = {
       feedingType,
-      feedingAmount: feedingType === 'breast' ? feedingAmount : feedingAmount,
-      feedingDuration,
-      babyState,
+      feedingAmount: feedingAmount,
+      feedingDuration: feedingType === 'breast' ? feedingAmount : feedingDuration,
+      babyState: normalizedBabyState,
       feedingNotes
     }
     
@@ -171,7 +183,7 @@ export function FeedingModal({
     
     // Reset para próxima vez
     setFeedingType('breast')
-    setFeedingAmount(80)
+    setFeedingAmount(15)
     setFeedingDuration(15)
     setBabyState('awake')
     setFeedingNotes('')
@@ -194,7 +206,7 @@ export function FeedingModal({
     } else {
       // En modo creación, limpiar todo
       setFeedingType('breast')
-      setFeedingAmount(80)
+      setFeedingAmount(15)
       setFeedingDuration(15)
       setBabyState('awake')
       setFeedingNotes('')
@@ -266,6 +278,8 @@ export function FeedingModal({
                   if (type.value === 'breast') setFeedingAmount(15)
                   else if (type.value === 'bottle') setFeedingAmount(4)
                   else setFeedingAmount(50)
+                  // Sólidos: siempre despierto
+                  if (type.value === 'solids') setBabyState('awake')
                 }}
                 disabled={isProcessing}
                 className={cn(
@@ -377,7 +391,7 @@ export function FeedingModal({
                 key={state.value}
                 type="button"
                 onClick={() => setBabyState(state.value)}
-                disabled={isProcessing}
+                disabled={isProcessing || (feedingType === 'solids' && state.value === 'asleep')}
                 className={cn(
                   "p-3 rounded-lg border-2 transition-all text-center",
                   babyState === state.value
@@ -392,7 +406,7 @@ export function FeedingModal({
                   {state.label}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
-                  {state.description}
+                  {feedingType === 'solids' && state.value === 'asleep' ? 'No disponible para sólidos' : state.description}
                 </div>
               </button>
             ))}

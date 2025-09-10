@@ -53,6 +53,7 @@ export function ManualEventModal({
   const [startTime, setStartTime] = useState(getCurrentHourRounded())
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [endTime, setEndTime] = useState(getCurrentHourRounded())
+  const [includeEndTime, setIncludeEndTime] = useState<boolean>(false) // Hora fin opcional
   const [notes, setNotes] = useState('')
   
   // Campos específicos de sueño (sleep, nap, night_waking)
@@ -87,10 +88,9 @@ export function ManualEventModal({
     
     try {
       // Validaciones básicas
-      if (hasEndTime) {
+      if (hasEndTime && includeEndTime) {
         const startDateTime = new Date(`${startDate}T${startTime}`)
         const endDateTime = new Date(`${endDate}T${endTime}`)
-        
         if (endDateTime <= startDateTime) {
           toast({
             title: "Error de validación",
@@ -147,10 +147,10 @@ export function ManualEventModal({
       }
       
       // Agregar endTime si corresponde
-      if (hasEndTime) {
+      if (hasEndTime && includeEndTime) {
         const endDateTime = new Date(`${endDate}T${endTime}`)
         eventData.endTime = endDateTime.toISOString()
-      } else if (calculatedEndTime) {
+      } else if (!hasEndTime && calculatedEndTime) {
         // Usar endTime calculado automáticamente para alimentación y actividades extra
         eventData.endTime = calculatedEndTime.toISOString()
       }
@@ -265,7 +265,7 @@ export function ManualEventModal({
   
   // Effect para ajustar endTime cuando cambia el tipo de evento
   useEffect(() => {
-    if (hasEndTime && startTime) {
+    if (hasEndTime && includeEndTime && startTime) {
       // Para eventos con fin, establecer hora de fin predeterminada
       const startDateTime = new Date(`${startDate}T${startTime}`)
       let defaultDuration = 60 // 1 hora por defecto
@@ -284,7 +284,7 @@ export function ManualEventModal({
       setEndDate(endDateStr)
       setEndTime(endTimeStr)
     }
-  }, [eventType, hasEndTime, startDate, startTime])
+  }, [eventType, hasEndTime, includeEndTime, startDate, startTime])
   
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
@@ -335,8 +335,19 @@ export function ManualEventModal({
             </div>
           </div>
           
-          {/* Fecha y hora de fin - solo para eventos con duración */}
+          {/* Fecha y hora de fin (opcional) - solo para eventos con duración */}
           {hasEndTime && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  id="toggle-end-time"
+                  type="checkbox"
+                  checked={includeEndTime}
+                  onChange={(e) => setIncludeEndTime(e.target.checked)}
+                />
+                <Label htmlFor="toggle-end-time">Agregar hora de fin (opcional)</Label>
+              </div>
+              {includeEndTime && (
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>Fecha de fin</Label>
@@ -356,6 +367,8 @@ export function ManualEventModal({
                   onChange={(e) => setEndTime(e.target.value)}
                 />
               </div>
+            </div>
+              )}
             </div>
           )}
           

@@ -62,6 +62,7 @@ export function FeedingButton({
       
       // Detectar si el bebé está dormido actualmente
       const isBabySleeping = sleepState.status === 'sleeping' || sleepState.status === 'napping'
+      const isLiquid = feedingData.feedingType === 'breast' || feedingData.feedingType === 'bottle'
       
       // Utilidad: convertir onzas a mililitros
       const ozToMl = (oz: number) => Math.round(oz * 29.5735)
@@ -72,12 +73,21 @@ export function FeedingButton({
         eventType: 'feeding',
         startTime: toLocalISOString(now),
         feedingType: feedingData.feedingType,
-        // Para biberón capturamos en onzas; almacenar en ml
-        feedingAmount: feedingData.feedingType === 'bottle' ? ozToMl(feedingData.feedingAmount || 0) : feedingData.feedingAmount,
-        feedingDuration: feedingData.feedingDuration,
-        babyState: feedingData.babyState,
+        // Duración: en pecho son minutos del control principal; en otros, del campo de duración
+        feedingDuration: feedingData.feedingType === 'breast' ? (feedingData.feedingAmount || 0) : feedingData.feedingDuration,
+        babyState: feedingData.feedingType === 'solids' ? 'awake' : feedingData.babyState,
         feedingNotes: feedingData.feedingNotes,
         emotionalState: 'neutral' // Por defecto neutral para alimentación
+      }
+      // Cantidad: biberón en ml, sólidos en gr; pecho no requiere cantidad
+      const feedingAmountValue =
+        feedingData.feedingType === 'bottle'
+          ? ozToMl(feedingData.feedingAmount || 0)
+          : feedingData.feedingType === 'solids'
+            ? feedingData.feedingAmount
+            : undefined
+      if (typeof feedingAmountValue === 'number') {
+        eventData.feedingAmount = feedingAmountValue
       }
       
       const response = await fetch('/api/children/events', {
@@ -91,14 +101,14 @@ export function FeedingButton({
       }
       
       // Si el bebé está dormido, crear también un evento de night_feeding
-      if (isBabySleeping) {
+      if (isBabySleeping && isLiquid) {
         const nightFeedingData: Partial<EventData> = {
           childId,
           eventType: 'night_feeding',
           startTime: toLocalISOString(now),
           feedingType: feedingData.feedingType,
-          feedingAmount: feedingData.feedingType === 'bottle' ? ozToMl(feedingData.feedingAmount || 0) : feedingData.feedingAmount,
-          feedingDuration: feedingData.feedingDuration,
+          feedingDuration: feedingData.feedingType === 'breast' ? (feedingData.feedingAmount || 0) : feedingData.feedingDuration,
+          feedingAmount: feedingData.feedingType === 'bottle' ? ozToMl(feedingData.feedingAmount || 0) : undefined,
           notes: `Alimentación nocturna - ${feedingData.feedingType === 'breast' ? 'Pecho' : feedingData.feedingType === 'bottle' ? 'Biberón' : 'Sólidos'}`,
           emotionalState: 'neutral'
         }

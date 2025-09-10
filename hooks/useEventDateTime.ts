@@ -5,25 +5,38 @@ import { useState, useCallback } from "react"
  * Hook para manejar la lógica de fechas y horas en eventos
  */
 export const useEventDateTime = () => {
+  // Redondear minutos al múltiplo de 10 más cercano con carry a la hora si llega a 60
+  const roundToNearest10WithCarry = (d: Date) => {
+    const copy = new Date(d)
+    const minutesRounded = Math.round(copy.getMinutes() / 10) * 10
+    if (minutesRounded === 60) {
+      copy.setHours(copy.getHours() + 1, 0, 0, 0)
+    } else {
+      copy.setMinutes(minutesRounded, 0, 0)
+    }
+    return copy
+  }
+
   // Función auxiliar para formatear la fecha actual en formato ISO para input datetime-local
   const getCurrentDateTimeISO = useCallback(() => {
-    const now = new Date()
+    const now = roundToNearest10WithCarry(new Date())
     const year = now.getFullYear()
     const month = String(now.getMonth() + 1).padStart(2, "0")
     const day = String(now.getDate()).padStart(2, "0")
     const hours = String(now.getHours()).padStart(2, "0")
-    const minutes = String(Math.round(now.getMinutes() / 10) * 10).padStart(2, "0")
+    const minutes = String(now.getMinutes()).padStart(2, "0")
     
     return `${year}-${month}-${day}T${hours}:${minutes}`
   }, [])
 
   // Función auxiliar para formatear una fecha específica en formato ISO
   const getDateTimeISO = useCallback((date: Date) => {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, "0")
-    const day = String(date.getDate()).padStart(2, "0")
-    const hours = String(date.getHours()).padStart(2, "0")
-    const minutes = String(Math.round(date.getMinutes() / 10) * 10).padStart(2, "0")
+    const d = roundToNearest10WithCarry(date)
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    const hours = String(d.getHours()).padStart(2, "0")
+    const minutes = String(d.getMinutes()).padStart(2, "0")
     
     return `${year}-${month}-${day}T${hours}:${minutes}`
   }, [])
