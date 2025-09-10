@@ -13,6 +13,7 @@ import { useEventsCache } from "@/hooks/use-events-cache"
 const AdminStatistics = lazy(() => import("@/components/dashboard/AdminStatistics"))
 const SleepMetricsGrid = lazy(() => import("@/components/child-profile/SleepMetricsGrid"))
 const SleepMetricsCombinedChart = lazy(() => import("@/components/child-profile/SleepMetricsCombinedChart"))
+const TodayInstructionsCard = lazy(() => import("@/components/parent/TodayInstructionsCard"))
 // Sistema de eventos - Nueva implementación v1.0
 import { EventRegistration } from "@/components/events"
 import { 
@@ -399,6 +400,13 @@ export default function DashboardPage() {
             Aquí tienes un resumen del sueño de {child?.firstName || "tu niño"} de los últimos 7 días.
           </p>
         </div>
+
+        {/* Instrucciones para hoy (solo padres) */}
+        {activeChildId && (
+          <Suspense fallback={<div className="h-16" />}> 
+            <TodayInstructionsCard childId={activeChildId} />
+          </Suspense>
+        )}
 
         {/* Resumen visual de métricas clave (gráfica compuesta) */}
         {activeChildId ? (
