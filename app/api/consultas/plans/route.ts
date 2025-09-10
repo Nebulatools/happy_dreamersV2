@@ -12,6 +12,7 @@ import { differenceInDays, format, subDays } from "date-fns"
 import { processSleepStatistics } from "@/lib/sleep-calculations"
 import { createLogger } from "@/lib/logger"
 import { ChildPlan } from "@/types/models"
+import { derivePlanPolicy } from "@/lib/plan-policies"
 
 const logger = createLogger("API:consultas:plans:route")
 
@@ -569,8 +570,8 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
 
   // 3. Buscar información relevante en RAG
   const ragContext = await searchRAGForPlan(ageInMonths)
-  
-  // 4. Generar plan con IA
+  // 4. Generar plan con IA (incluir políticas de ajuste seguras)
+  const policies = derivePlanPolicy({ ageInMonths, events })
   const aiPlan = await generatePlanWithAI({
     planType: "initial",
     childData: {
@@ -580,7 +581,8 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
       events
     },
     ragContext,
-    surveyData: child.surveyData
+    surveyData: child.surveyData,
+    policies
   })
 
   return {
@@ -663,6 +665,7 @@ async function generateEventBasedPlan(
 
   // 4. Buscar información relevante en RAG (para mantener metodología fresca)
   const ragContext = await searchRAGForPlan(ageInMonths)
+  const policies = derivePlanPolicy({ ageInMonths, events: newEvents })
   
   // 5. Generar plan con IA basado en progresión de eventos
   const aiPlan = await generatePlanWithAI({
@@ -675,6 +678,7 @@ async function generateEventBasedPlan(
     },
     ragContext,
     previousPlan: basePlan,
+    policies,
     eventAnalysis: {
       eventsAnalyzed: newEvents.length,
       eventTypes: [...new Set(newEvents.map((e: any) => e.eventType))],
@@ -1310,18 +1314,29 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
   }
 
   try {
+    // Inyectar políticas de ajuste como mensaje de sistema adicional (seguro si falla)
+    let policyText = ""
+    try {
+      const ageM = typeof childData?.ageInMonths === 'number' ? childData.ageInMonths : (childData?.birthDate ? Math.floor(differenceInDays(new Date(), new Date(childData.birthDate)) / 30.44) : null)
+      const p = derivePlanPolicy({ ageInMonths: ageM, events: childData?.events || [] })
+      const napLine = p.napTransition.isTransitionWindow
+        ? `Transición 2→1 siestas (15–18 meses): cambios de ${Math.max(10, Math.min(15, p.napTransition.recommendedStepMinutes))} min cada 3–4 días.`
+        : `Ajustes generales: puedes mover bloques de ${p.napTransition.recommendedStepMinutes} min si el niño lo tolera.`
+      const nightLine = p.nightWeaning.isActive
+        ? `Destete nocturno activo: mover toma ${p.nightWeaning.shiftEarlierMinutesPerStep} min más temprano y aumentar ~${p.nightWeaning.increaseBottleOzPerStep} oz cada ${p.nightWeaning.stepEveryDays} días.`
+        : `Si no hay tomas nocturnas recientes, no incluir destete.`
+      policyText = `POLÍTICAS Y LÍMITES DE AJUSTE (OBLIGATORIO RESPETAR):\n- ${napLine}\n- ${nightLine}`
+    } catch (_) {}
+    const __messages: any[] = [
+      { role: "system", content: systemPrompt }
+    ]
+    if (policyText) {
+      __messages.push({ role: "system", content: policyText })
+    }
+    __messages.push({ role: "user", content: `Genera el plan detallado siguiendo exactamente el formato JSON especificado.` })
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-        {
-          role: "user",  
-          content: `Genera el plan detallado siguiendo exactamente el formato JSON especificado.`,
-        },
-      ],
+      messages: __messages,
       max_tokens: 2000,
       temperature: 0.7,
     })
