@@ -35,8 +35,8 @@ Este archivo registra los cambios enfocados en lo que ve un padre en el panel y 
 - Qué: Se reemplazó la grilla de 4 métricas por una gráfica compuesta (línea + barras + dispersión) con selector 7d/30d/90d.
 - Muestra:
   - Línea: horas de sueño nocturno por día.
-  - Barras: despertares nocturnos por día.
-  - Puntos: hora de acostarse y de despertar (eje horario nocturno 21:00→06:00).
+  - Barras: despertares nocturnos por día (color más oscuro para mejor contraste).
+  - Puntos: hora de acostarse (morado más oscuro) y de despertar (verde más oscuro) — eje horario nocturno 21:00→06:00.
 - Dónde verlo: `/dashboard`, al seleccionar un niño.
 - Archivos:
   - `components/child-profile/SleepMetricsCombinedChart.tsx`

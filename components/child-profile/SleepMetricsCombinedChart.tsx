@@ -286,12 +286,32 @@ export default function SleepMetricsCombinedChart({
             {/* Línea: duración de sueño nocturno (horas) */}
             <Line yAxisId="hours" type="monotone" dataKey="sleepHours" name="Sueño nocturno (h)" stroke="#4A90E2" strokeWidth={2} dot={{ r: 3, fill: "#4A90E2" }} connectNulls />
 
-            {/* Barras: número de despertares nocturnos */}
-            <Bar yAxisId="hours" dataKey="wakeups" name="Despertares" fill="#FFE442" stroke="#E6D63D" radius={[4, 4, 0, 0]} barSize={14} />
+            {/* Barras: número de despertares nocturnos (color más oscuro) */}
+            <Bar
+              yAxisId="hours"
+              dataKey="wakeups"
+              name="Despertares"
+              fill="#F5C518"
+              stroke="#C89C00"
+              radius={[4, 4, 0, 0]}
+              barSize={14}
+            />
 
-            {/* Puntos: hora de acostarse y hora de despertar (eje tiempo) */}
-            <Scatter yAxisId="time" dataKey="bedTime" name="Acostarse" fill="#D4C1FF" />
-            <Scatter yAxisId="time" dataKey="wakeTime" name="Despertar" fill="#B7F1C0" />
+            {/* Puntos: hora de acostarse y hora de despertar (eje tiempo) - colores más oscuros */}
+            <Scatter
+              yAxisId="time"
+              dataKey="bedTime"
+              name="Acostarse"
+              fill="#8E6CF0"
+              stroke="#6B4CC2"
+            />
+            <Scatter
+              yAxisId="time"
+              dataKey="wakeTime"
+              name="Despertar"
+              fill="#4CAF50"
+              stroke="#2E7D32"
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </CardContent>
