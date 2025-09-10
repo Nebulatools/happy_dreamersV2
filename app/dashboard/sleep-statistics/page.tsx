@@ -12,6 +12,7 @@ import SleepDistributionChart from "@/components/sleep-statistics/SleepDistribut
 import SleepDataStorytellingCard from "@/components/sleep-statistics/SleepDataStorytellingCard"
 import SleepInsightsCard from "@/components/sleep-statistics/SleepInsightsCard"
 import PositiveFeedbackCard from "@/components/sleep-statistics/PositiveFeedbackCard"
+import TodayInstructionsCard from "@/components/parent/TodayInstructionsCard"
 // import SleepComparison from "@/components/sleep-statistics/SleepComparison"
 import { useActiveChild } from "@/context/active-child-context"
 import { useToast } from "@/hooks/use-toast"
@@ -71,6 +72,9 @@ export default function SleepStatisticsPage() {
 
           {/* Mensajes positivos (solo padres) */}
           <PositiveFeedbackCard childId={activeChildId} dateRange={dateRange} />
+
+          {/* Para Hoy (solo padres) */}
+          <TodayInstructionsCard childId={activeChildId} />
 
           {/* Card de Análisis y Recomendaciones */}
           <SleepInsightsCard childId={activeChildId} dateRange={dateRange} />
