@@ -14,6 +14,7 @@ const AdminStatistics = lazy(() => import("@/components/dashboard/AdminStatistic
 const SleepMetricsGrid = lazy(() => import("@/components/child-profile/SleepMetricsGrid"))
 const SleepMetricsCombinedChart = lazy(() => import("@/components/child-profile/SleepMetricsCombinedChart"))
 const TodayInstructionsCard = lazy(() => import("@/components/parent/TodayInstructionsCard"))
+const PlanHintsCard = lazy(() => import("@/components/parent/PlanHintsCard"))
 // Sistema de eventos - Nueva implementación v1.0
 import { EventRegistration } from "@/components/events"
 import { 
@@ -405,6 +406,13 @@ export default function DashboardPage() {
         {activeChildId && (
           <Suspense fallback={<div className="h-16" />}> 
             <TodayInstructionsCard childId={activeChildId} />
+          </Suspense>
+        )}
+
+        {/* Sugerencias basadas en políticas (solo padres) */}
+        {activeChildId && child && (
+          <Suspense fallback={<div className="h-8" />}> 
+            <PlanHintsCard childId={activeChildId} childBirthDate={child.birthDate} />
           </Suspense>
         )}
 
