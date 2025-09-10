@@ -104,6 +104,19 @@ Este archivo registra los cambios enfocados en lo que ve un padre en el panel y 
 - Archivos:
   - `components/events/ManualEventModal.tsx` (toggle “Agregar hora de fin (opcional)”, validación y envío condicional)
 
+### 10) Encuesta médica: trigger por empeoramiento y recordatorio semanal
+- Qué: Se añade una tarjeta que sugiere responder una breve encuesta de sintomatología cuando las métricas empeoran (↓ ≥0.5h de sueño, ↑ ≥0.5 despertares, ↑ ≥10m en variación). Incluye “Responder ahora” (lleva a `/dashboard/survey`) y “Recordar más tarde” (no vuelve a mostrarse por 7 días).
+- Dónde verlo: `/dashboard` y `/dashboard/sleep-statistics`.
+- Archivos:
+  - `components/alerts/MedicalSurveyPrompt.tsx` (lógica y UI)
+  - `app/dashboard/page.tsx` y `app/dashboard/sleep-statistics/page.tsx` (integración)
+
+### 11) Destete: minutos como dato y captura manual
+- Qué: El control de “Pecho” usa minutos como dato principal (para destete progresivo) y permite captura manual. Para “Duración” en biberón/sólidos también se agregó input manual. En pecho el paso es dinámico: 1–10 (paso 1), luego de 5 en 5.
+- Dónde verlo: Modal de alimentación en `/dashboard`.
+- Archivos:
+  - `components/events/FeedingModal.tsx` (entrada manual + paso dinámico)
+
 ---
 
 ## Instrucciones de Prueba

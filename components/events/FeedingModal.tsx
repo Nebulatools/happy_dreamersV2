@@ -123,13 +123,16 @@ export function FeedingModal({
   // Configuración según tipo de alimentación
   const getAmountConfig = () => {
     switch (feedingType) {
-      case 'breast':
-        return { min: 5, max: 60, step: 5, unit: 'min', label: 'Duración' }
+      case 'breast': {
+        // Dinámico: 1–10 paso 1; >10 paso 5
+        const step = feedingAmount <= 10 ? 1 : 5
+        return { min: 1, max: 120, step, unit: 'min', label: 'Duración (min)' }
+      }
       case 'bottle':
         // Captura en onzas (oz). Conversión a ml se hace al confirmar en el consumidor.
-        return { min: 1, max: 16, step: 1, unit: 'oz', label: 'Cantidad' }
+        return { min: 1, max: 16, step: 1, unit: 'oz', label: 'Cantidad (oz)' }
       case 'solids':
-        return { min: 5, max: 200, step: 5, unit: 'gr', label: 'Cantidad' }
+        return { min: 5, max: 200, step: 5, unit: 'gr', label: 'Cantidad (gr)' }
     }
   }
 
@@ -138,7 +141,10 @@ export function FeedingModal({
   // Ajustar cantidad/duración
   const adjustAmount = (increment: number) => {
     setFeedingAmount(prev => {
-      const newValue = prev + increment
+      // Recalcular step dinámico para pecho
+      const dynamicStep = feedingType === 'breast' ? (prev <= 10 ? 1 : 5) : amountConfig.step
+      const inc = increment === amountConfig.step ? dynamicStep : increment
+      const newValue = prev + inc
       return Math.max(amountConfig.min, Math.min(amountConfig.max, newValue))
     })
   }
@@ -322,10 +328,24 @@ export function FeedingModal({
               <Minus className="h-4 w-4" />
             </Button>
             
-            <div className="bg-green-50 border-2 border-green-200 rounded-xl px-6 py-3 min-w-[160px] text-center">
+            <div className="bg-green-50 border-2 border-green-200 rounded-xl px-3 py-3 min-w-[200px] text-center flex items-center gap-2 justify-center">
               <div className="text-2xl font-bold text-green-600">
                 {formatAmountText(feedingAmount)}
               </div>
+              {/* Entrada manual opcional */}
+              <input
+                type="number"
+                className="w-16 h-9 text-center text-sm border rounded-md bg-white"
+                value={feedingAmount}
+                min={amountConfig.min}
+                max={amountConfig.max}
+                onChange={(e) => {
+                  const val = Number(e.target.value)
+                  if (Number.isFinite(val)) {
+                    setFeedingAmount(Math.max(amountConfig.min, Math.min(amountConfig.max, val)))
+                  }
+                }}
+              />
             </div>
             
             <Button
@@ -360,10 +380,23 @@ export function FeedingModal({
                 <Minus className="h-4 w-4" />
               </Button>
               
-              <div className="bg-green-50 border-2 border-green-200 rounded-xl px-6 py-3 min-w-[140px] text-center">
+              <div className="bg-green-50 border-2 border-green-200 rounded-xl px-3 py-3 min-w-[200px] text-center flex items-center gap-2 justify-center">
                 <div className="text-xl font-bold text-green-600">
                   {formatDurationText(feedingDuration)}
                 </div>
+                <input
+                  type="number"
+                  className="w-16 h-9 text-center text-sm border rounded-md bg-white"
+                  value={feedingDuration}
+                  min={1}
+                  max={60}
+                  onChange={(e) => {
+                    const val = Number(e.target.value)
+                    if (Number.isFinite(val)) {
+                      setFeedingDuration(Math.max(1, Math.min(60, val)))
+                    }
+                  }}
+                />
               </div>
               
               <Button

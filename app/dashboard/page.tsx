@@ -15,6 +15,7 @@ const SleepMetricsGrid = lazy(() => import("@/components/child-profile/SleepMetr
 const SleepMetricsCombinedChart = lazy(() => import("@/components/child-profile/SleepMetricsCombinedChart"))
 const TodayInstructionsCard = lazy(() => import("@/components/parent/TodayInstructionsCard"))
 const PlanHintsCard = lazy(() => import("@/components/parent/PlanHintsCard"))
+const MedicalSurveyPrompt = lazy(() => import("@/components/alerts/MedicalSurveyPrompt"))
 // Sistema de eventos - Nueva implementación v1.0
 import { EventRegistration } from "@/components/events"
 import { 
@@ -406,6 +407,13 @@ export default function DashboardPage() {
         {activeChildId && (
           <Suspense fallback={<div className="h-16" />}> 
             <TodayInstructionsCard childId={activeChildId} />
+          </Suspense>
+        )}
+
+        {/* Encuesta médica sugerida ante empeoramiento */}
+        {activeChildId && (
+          <Suspense fallback={<div className="h-8" />}> 
+            <MedicalSurveyPrompt childId={activeChildId} />
           </Suspense>
         )}
 

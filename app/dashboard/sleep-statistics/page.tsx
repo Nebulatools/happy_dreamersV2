@@ -13,6 +13,7 @@ import SleepDataStorytellingCard from "@/components/sleep-statistics/SleepDataSt
 import SleepInsightsCard from "@/components/sleep-statistics/SleepInsightsCard"
 import PositiveFeedbackCard from "@/components/sleep-statistics/PositiveFeedbackCard"
 import TodayInstructionsCard from "@/components/parent/TodayInstructionsCard"
+import MedicalSurveyPrompt from "@/components/alerts/MedicalSurveyPrompt"
 // import SleepComparison from "@/components/sleep-statistics/SleepComparison"
 import { useActiveChild } from "@/context/active-child-context"
 import { useToast } from "@/hooks/use-toast"
@@ -78,6 +79,9 @@ export default function SleepStatisticsPage() {
 
           {/* Card de Análisis y Recomendaciones */}
           <SleepInsightsCard childId={activeChildId} dateRange={dateRange} />
+
+          {/* Encuesta médica sugerida ante empeoramiento */}
+          <MedicalSurveyPrompt childId={activeChildId} dateRange={dateRange} />
 
           {/* Nuevo componente de Data Storytelling */}
           <SleepDataStorytellingCard childId={activeChildId} dateRange={dateRange} />
