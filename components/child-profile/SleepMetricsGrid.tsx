@@ -2,6 +2,8 @@ import React from "react"
 import { Clock, Moon, AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { differenceInMinutes, parseISO, subDays } from "date-fns"
+import { quantile, median, toHHMM } from "@/lib/stats"
+import { getNightSleepDurationsHours, getNocturnalBedtimes, getInferredWakeTimes, toNocturnalMinutesWithWrap } from "@/lib/sleep-stats"
 import { useEventsCache } from "@/hooks/use-events-cache"
 import { useSleepData } from "@/hooks/use-sleep-data"
 
@@ -37,30 +39,58 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
     if (!sleepData) return []
     
     // Nuevo orden según prioridad Dra. Mariana: Despertar -> Sueño -> Acostarse -> Despertares
+    // Preparar distribuciones (duración nocturna y horas de dormir/despertar)
+    const events = sleepData.events || []
+    const nightDurations = getNightSleepDurationsHours(events).sort((a,b)=>a-b) // horas
+    const bedtimes = getNocturnalBedtimes(events)
+    const wakeTimes = getInferredWakeTimes(events)
+    const bedtimeMinutes = toNocturnalMinutesWithWrap(bedtimes).sort((a,b)=>a-b)
+    const wakeMinutes = toNocturnalMinutesWithWrap(wakeTimes).sort((a,b)=>a-b)
+
+    // Cuantiles
+    const sleepMed = isFinite(median(nightDurations)) ? median(nightDurations) : sleepData.avgSleepDuration
+    const sleepQ25 = isFinite(quantile(nightDurations, 0.25)) ? quantile(nightDurations, 0.25) : null
+    const sleepQ75 = isFinite(quantile(nightDurations, 0.75)) ? quantile(nightDurations, 0.75) : null
+
+    const wakeMedMin = isFinite(median(wakeMinutes)) ? median(wakeMinutes) : null
+    const wakeQ25Min = isFinite(quantile(wakeMinutes, 0.25)) ? quantile(wakeMinutes, 0.25) : null
+    const wakeQ75Min = isFinite(quantile(wakeMinutes, 0.75)) ? quantile(wakeMinutes, 0.75) : null
+
+    const bedMedMin = isFinite(median(bedtimeMinutes)) ? median(bedtimeMinutes) : null
+    const bedQ25Min = isFinite(quantile(bedtimeMinutes, 0.25)) ? quantile(bedtimeMinutes, 0.25) : null
+    const bedQ75Min = isFinite(quantile(bedtimeMinutes, 0.75)) ? quantile(bedtimeMinutes, 0.75) : null
+
+    const fmtDur = (h: number | null) => {
+      if (h === null || !isFinite(h)) return sleepData.avgSleepDuration.toFixed(1) + 'h'
+      const hh = Math.floor(h)
+      const mm = Math.round((h - hh) * 60)
+      return mm > 0 ? `${hh}h ${mm}m` : `${hh}h`
+    }
+
     return [
       {
-        title: "Hora de despertar (promedio)",
-        value: sleepData.avgWakeTime,
+        title: "Hora de despertar (rango típico)",
+        value: wakeMedMin !== null ? `${toHHMM(wakeMedMin)}${(wakeQ25Min!==null&&wakeQ75Min!==null)?` (p25–p75 ${toHHMM(wakeQ25Min)}–${toHHMM(wakeQ75Min)})`:''}` : sleepData.avgWakeTime,
         icon: <Clock className="w-4 h-4" />,
-        status: getWakeTimeStatus(sleepData.avgWakeTime),
+        status: getWakeTimeStatus(wakeMedMin !== null ? toHHMM(wakeMedMin) : sleepData.avgWakeTime),
         change: `Hora promedio de despertar matutino`,
         iconBg: "bg-gradient-to-br from-orange-100 to-yellow-100",
         priority: true, // Marca esta métrica como prioritaria
       },
       {
-        title: "Sueño nocturno (promedio)",
-        value: formatDuration(sleepData.avgSleepDuration),
+        title: "Sueño nocturno (rango típico)",
+        value: `${fmtDur(sleepMed)}${(sleepQ25!==null&&sleepQ75!==null)?` (p25–p75 ${fmtDur(sleepQ25)}–${fmtDur(sleepQ75)})`:''}`,
         icon: <Moon className="w-4 h-4" />,
-        status: getSleepDurationStatus(sleepData.avgSleepDuration),
-        change: `${sleepData.avgSleepDuration.toFixed(1)}h nocturno`,
+        status: getSleepDurationStatus(sleepMed || sleepData.avgSleepDuration),
+        change: `${(sleepMed || sleepData.avgSleepDuration).toFixed(1)}h (mediana)`,
         iconBg: "bg-[#B7F1C0]",
       },
       {
-        title: "Hora de acostarse (promedio)",
-        value: sleepData.avgBedtime,
+        title: "Hora de acostarse (rango típico)",
+        value: bedMedMin !== null ? `${toHHMM(bedMedMin)}${(bedQ25Min!==null&&bedQ75Min!==null)?` (p25–p75 ${toHHMM(bedQ25Min)}–${toHHMM(bedQ75Min)})`:''}` : sleepData.avgBedtime,
         icon: <Moon className="w-5 h-4" />,
         status: getBedtimeConsistencyStatus(sleepData.bedtimeVariation),
-        change: `±${Math.round(sleepData.bedtimeVariation)} min de variación`,
+        change: `±${Math.round(sleepData.bedtimeVariation)} min (variación)`,
         iconBg: "bg-[#D4C1FF]",
       },
       {
