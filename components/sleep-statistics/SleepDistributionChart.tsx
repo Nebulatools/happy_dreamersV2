@@ -173,6 +173,23 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
           <Activity className="w-4 h-4 mr-2" />
           Tiempo despierto entre sueños
         </h4>
+        {data.awakePeriods.length > 0 && (
+          <div className="flex items-center justify-between mb-3">
+            {(() => {
+              const total = data.awakePeriods.length
+              const inRange = data.awakePeriods.filter(p => p.duration >= 120 && p.duration <= 240).length
+              const pct = Math.round((inRange / total) * 100)
+              const statusColor = pct >= 70 ? 'text-green-700' : pct >= 50 ? 'text-yellow-700' : 'text-red-700'
+              return (
+                <div className="text-sm text-gray-700">
+                  Ventanas 2–4 h:
+                  <span className={`font-semibold ml-1 ${statusColor}`}>{pct}%</span>
+                  <span className="text-xs text-gray-500 ml-2">({inRange}/{total})</span>
+                </div>
+              )
+            })()}
+          </div>
+        )}
         
         {data.awakePeriods.length > 0 ? (
           <div className="space-y-2">
@@ -205,6 +222,9 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
                       }}
                     />
                   </div>
+                  <span className={`text-xs ${period.duration >= 120 && period.duration <= 240 ? 'text-green-700' : 'text-gray-500'}`}>
+                    {period.duration >= 120 && period.duration <= 240 ? 'Dentro 2–4h' : 'Fuera 2–4h'}
+                  </span>
                   
                   <span className="text-sm font-semibold text-gray-700 min-w-[60px] text-right">
                     {period.durationFormatted}
