@@ -141,59 +141,8 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
         </div>
       </div>
 
-      {/* Sección 2: Distribución Nocturno vs Siestas */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        {/* Donut Chart */}
-        <div className="flex items-center justify-center">
-          <div className="relative">
-            <svg width="120" height="120" className="transform -rotate-90">
-              {/* Círculo de fondo */}
-              <circle
-                cx="60"
-                cy="60"
-                r="35"
-                fill="none"
-                stroke="#E5E7EB"
-                strokeWidth="15"
-              />
-              
-              {/* Círculo de sueño nocturno */}
-              <circle
-                cx="60"
-                cy="60"
-                r="35"
-                fill="none"
-                stroke="#1E40AF"
-                strokeWidth="15"
-                strokeDasharray={`${(nightPercentage / 100) * 220} 220`}
-                className="transition-all duration-1000"
-              />
-              
-              {/* Círculo de siestas */}
-              <circle
-                cx="60"
-                cy="60"
-                r="35"
-                fill="none"
-                stroke="#FBBF24"
-                strokeWidth="15"
-                strokeDasharray={`${(napPercentage / 100) * 220} 220`}
-                strokeDashoffset={`-${(nightPercentage / 100) * 220}`}
-                className="transition-all duration-1000"
-              />
-            </svg>
-            
-            {/* Texto central */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-xl font-bold text-[#2F2F2F]">
-                {data.totalSleepHours.toFixed(1)}h
-              </span>
-              <span className="text-xs text-gray-600">total</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Estadísticas */}
+      {/* Sección 2: Distribución Nocturno vs Siestas (solo estadísticas, sin rueda) */}
+      <div className="mb-8">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -214,15 +163,7 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
               {data.napHours.toFixed(1)}h ({napPercentage.toFixed(0)}%)
             </span>
           </div>
-
-          <div className="pt-2 border-t border-gray-100">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Total diario:</span>
-              <span className="text-sm font-semibold text-[#4ECDC4]">
-                {data.totalSleepHours.toFixed(1)} horas
-              </span>
-            </div>
-          </div>
+          {/* Nota: la métrica de total diario se muestra arriba, se omite aquí */}
         </div>
       </div>
 
