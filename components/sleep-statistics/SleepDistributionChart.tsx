@@ -1,8 +1,9 @@
 import React from "react"
 import { useSleepData } from "@/hooks/use-sleep-data"
-import { Clock, Moon, Sun, Activity } from "lucide-react"
+import { Clock, Moon, Sun, Activity, Info } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface SleepDistributionChartProps {
   childId: string
@@ -181,10 +182,26 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
               const pct = Math.round((inRange / total) * 100)
               const statusColor = pct >= 70 ? 'text-green-700' : pct >= 50 ? 'text-yellow-700' : 'text-red-700'
               return (
-                <div className="text-sm text-gray-700">
-                  Ventanas 2–4 h:
-                  <span className={`font-semibold ml-1 ${statusColor}`}>{pct}%</span>
-                  <span className="text-xs text-gray-500 ml-2">({inRange}/{total})</span>
+                <div className="flex items-center gap-2 text-sm text-gray-700">
+                  <span>
+                    Ventanas 2–4 h:
+                    <span className={`font-semibold ml-1 ${statusColor}`}>{pct}%</span>
+                    <span className="text-xs text-gray-500 ml-2">({inRange}/{total})</span>
+                  </span>
+                  <TooltipProvider delayDuration={0}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        Las “ventanas de vigilia” (tiempo despierto entre ciclos de sueño)
+                        suelen estar en 2–4 horas como rango general. Mantenerse dentro
+                        de ese rango ayuda a evitar sobrecansancio y facilita conciliar
+                        y sostener el sueño. Este indicador muestra qué porcentaje de
+                        períodos despierto caen en 2–4 h en el período seleccionado.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               )
             })()}
