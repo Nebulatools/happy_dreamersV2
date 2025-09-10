@@ -83,7 +83,12 @@ export function ManualEventForm({ childId, childName, onEventRegistered, onCance
       
       if (showFeedingFields) {
         eventData.feedingType = feedingType
-        eventData.feedingAmount = feedingAmount ? parseInt(feedingAmount) : undefined
+        if (feedingType === 'bottle') {
+          const oz = feedingAmount ? parseFloat(feedingAmount) : NaN
+          eventData.feedingAmount = isNaN(oz) ? undefined : Math.round(oz * 29.5735)
+        } else {
+          eventData.feedingAmount = feedingAmount ? parseInt(feedingAmount) : undefined
+        }
         eventData.feedingDuration = feedingDuration ? parseInt(feedingDuration) : undefined
         eventData.babyState = babyState
       }
@@ -302,13 +307,13 @@ export function ManualEventForm({ childId, childName, onEventRegistered, onCance
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="feedingAmount">
-                  Cantidad {feedingType === 'bottle' ? '(ml)' : feedingType === 'solids' ? '(gr)' : '(min)'}
+                  Cantidad {feedingType === 'bottle' ? '(oz)' : feedingType === 'solids' ? '(gr)' : '(min)'}
                 </Label>
                 <Input
                   id="feedingAmount"
                   type="number"
                   min="1"
-                  max="500"
+                  max={feedingType === 'bottle' ? 16 : 500}
                   value={feedingAmount}
                   onChange={(e) => setFeedingAmount(e.target.value)}
                 />

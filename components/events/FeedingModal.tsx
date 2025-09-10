@@ -46,7 +46,7 @@ export function FeedingModal({
 }: FeedingModalProps) {
   const { getCurrentTime } = useDevTime()
   const [feedingType, setFeedingType] = useState<FeedingType>(initialData?.feedingType || 'breast')
-  const [feedingAmount, setFeedingAmount] = useState<number>(initialData?.feedingAmount || 80) // Default 80ml
+  const [feedingAmount, setFeedingAmount] = useState<number>(initialData?.feedingAmount || 4) // Default 4 oz
   const [feedingDuration, setFeedingDuration] = useState<number>(initialData?.feedingDuration || 15) // Default 15 min
   const [babyState, setBabyState] = useState<'awake' | 'asleep'>(initialData?.babyState || 'awake')
   const [feedingNotes, setFeedingNotes] = useState<string>(initialData?.feedingNotes || '')
@@ -93,7 +93,7 @@ export function FeedingModal({
       label: 'Biberón', 
       icon: '🍼',
       description: 'Leche o fórmula',
-      unit: 'ml'
+      unit: 'oz'
     },
     { 
       value: 'solids' as FeedingType, 
@@ -116,7 +116,8 @@ export function FeedingModal({
       case 'breast':
         return { min: 5, max: 60, step: 5, unit: 'min', label: 'Duración' }
       case 'bottle':
-        return { min: 10, max: 300, step: 10, unit: 'ml', label: 'Cantidad' }
+        // Captura en onzas (oz). Conversión a ml se hace al confirmar en el consumidor.
+        return { min: 1, max: 16, step: 1, unit: 'oz', label: 'Cantidad' }
       case 'solids':
         return { min: 5, max: 200, step: 5, unit: 'gr', label: 'Cantidad' }
     }
@@ -263,7 +264,7 @@ export function FeedingModal({
                   setFeedingType(type.value)
                   // Ajustar cantidad por defecto según tipo
                   if (type.value === 'breast') setFeedingAmount(15)
-                  else if (type.value === 'bottle') setFeedingAmount(80)
+                  else if (type.value === 'bottle') setFeedingAmount(4)
                   else setFeedingAmount(50)
                 }}
                 disabled={isProcessing}
