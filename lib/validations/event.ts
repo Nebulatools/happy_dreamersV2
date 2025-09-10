@@ -1,5 +1,6 @@
 // Validaciones para eventos de sueño
 import * as z from "zod"
+import { differenceInCalendarDays } from "date-fns"
 
 /**
  * Esquema de validación para el formulario de eventos
@@ -67,10 +68,11 @@ export const defaultEventFormValues: Partial<EventFormValues> = {
  */
 export const isValidEventDate = (date: Date): boolean => {
   const now = new Date()
-  const maxPastDate = new Date()
-  maxPastDate.setDate(maxPastDate.getDate() - 30) // Máximo 30 días en el pasado
-  
-  return date <= now && date >= maxPastDate
+  // Rechazar fechas futuras
+  if (date > now) return false
+  // Usar diferencia en días de calendario (inclusivo en 30 días)
+  const diffDays = differenceInCalendarDays(now, date)
+  return diffDays >= 0 && diffDays <= 30
 }
 
 /**

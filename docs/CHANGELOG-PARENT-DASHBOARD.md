@@ -2,7 +2,7 @@
 
 Este archivo registra los cambios enfocados en lo que ve un padre en el panel y en la vista de estadísticas, desde la incorporación de las nuevas gráficas hasta ahora. Incluye dónde ver cada cambio y cómo probarlo.
 
-Última actualización: YYYY-MM-DD
+Última actualización: 2025-09-10
 
 ---
 
@@ -17,6 +17,19 @@ Este archivo registra los cambios enfocados en lo que ve un padre en el panel y 
 ---
 
 ## Cambios Principales (orden cronológico aproximado)
+
+### 0) Alimentación: reglas por tipo (mejora)
+- Qué: Se ajustó la captura/validación según tipo de alimentación.
+  - Pecho: se registra en minutos (duración). No requiere cantidad.
+  - Biberón: se registra cantidad en onzas (oz) en UI, se guarda en ml; duración requerida.
+  - Sólidos: siempre en estado “Despierto”; cantidad en gramos y duración requeridas.
+- Dónde verlo: botón `ALIMENTACIÓN` en `/dashboard` (modal), edición de eventos y formulario manual.
+- Archivos:
+  - `components/events/FeedingModal.tsx` (UI y normalización)
+  - `components/events/FeedingButton.tsx` (mapeo de payload + night_feeding solo líquidos)
+  - `components/events/EventEditRouter.tsx` (edición con reglas nuevas)
+  - `components/events/manual/ManualEventForm.tsx` (formulario manual con reglas por tipo)
+  - `app/api/children/events/route.ts` (validaciones backend por tipo)
 
 ### 1) Gráfica combinada en Panel (sustituye los 4 recuadros)
 - Qué: Se reemplazó la grilla de 4 métricas por una gráfica compuesta (línea + barras + dispersión) con selector 7d/30d/90d.
@@ -63,16 +76,47 @@ Este archivo registra los cambios enfocados en lo que ve un padre en el panel y 
   - `components/sleep-statistics/PositiveFeedbackCard.tsx`
   - `app/dashboard/sleep-statistics/page.tsx` (inserta la tarjeta)
 
+### 6) Para Hoy: instrucciones y cambios destacados (solo padres)
+- Qué: Tarjeta que resume qué toca hoy (Despertar, Siestas, Acostarse) según el plan activo, con prioridad temporal ("Ahora", "En X min"). Marca cambios vs. el plan anterior con badge “Cambió” y muestra el antes→ahora si la diferencia ≥ 15 min.
+- Dónde verlo:
+  - `/dashboard` (debajo del saludo, antes de la gráfica combinada)
+  - `/dashboard/sleep-statistics` (debajo de “Métricas mejoradas” y la tarjeta de mensajes positivos)
+- Archivos:
+  - `components/parent/TodayInstructionsCard.tsx`
+  - `app/dashboard/page.tsx` (inserta la tarjeta)
+  - `app/dashboard/sleep-statistics/page.tsx` (inserta la tarjeta)
+
+### 7) Políticas de ajuste integradas (backend)
+- Qué: Se definieron políticas para ajustes de horarios y destete nocturno y se integraron en la lógica del sistema (para sugerencias visibles al padre). Preparada la integración en el prompt del generador de planes para que la IA respete: ajustes de 30 min en general; 10–15 min en transición 15–18 m; destete nocturno moviendo toma y aumentando oz de forma paulatina.
+- Archivos:
+  - `lib/plan-policies.ts` (cálculo dinámico por edad y eventos)
+  - Backend pendiente de despliegue final del prompt (ver PR) en `app/api/consultas/plans/route.ts`.
+
+### 8) Actividades extra: ocultar “impacto en el sueño” para padres
+- Qué: Los usuarios papá/mamá ya no pueden seleccionar el campo “Impacto esperado en el sueño” al registrar/editar Actividades Extra. Solo visible para administradores. Para padres, se guarda como “neutral” por defecto (en creación) o se mantiene el valor previo (en edición) sin permitir cambios.
+- Dónde verlo: Botón `ACTIVIDAD` en `/dashboard` (modal) y edición de eventos de tipo actividad.
+- Archivos:
+  - `components/events/ExtraActivityModal.tsx` (oculta el selector para rol no admin y normaliza el valor)
+
+### 9) Tiempo: hora fin opcional en eventos con duración
+- Qué: En el registro manual, “Hora inicio” es obligatoria y “Hora fin” es opcional para eventos con duración (Sueño nocturno, Siesta, Despertar nocturno). Se añadió un toggle para activar la hora de fin. Los eventos sin duración mantienen su comportamiento (alimentación y actividades calculan fin a partir de duración ingresada en la UI).
+- Dónde verlo: Modal “Registrar Evento” en `/dashboard`.
+- Archivos:
+  - `components/events/ManualEventModal.tsx` (toggle “Agregar hora de fin (opcional)”, validación y envío condicional)
+
 ---
 
 ## Instrucciones de Prueba
 1) Panel principal (`/dashboard`):
    - Selecciona un niño.
    - Verifica el selector 7d/30d/90d en la gráfica combinada.
-   - Registra “ALIMENTACIÓN (biberón)” en oz; confirma y revisa que el toast muestre oz.
+   - Registra “ALIMENTACIÓN (biberón)” en oz; confirma y revisa que el toast muestre oz y que se guarde en ml.
+   - Registra “ALIMENTACIÓN (pecho)”: el control principal es “Duración (min)”; no se solicita cantidad.
+   - Registra “ALIMENTACIÓN (sólidos)”: verifica que “Dormido” esté deshabilitado y que se pidan gramos y duración.
 
 2) Estadísticas (`/dashboard/sleep-statistics`):
    - Revisa que aparezca “Métricas mejoradas” y, debajo, la tarjeta de mensajes positivos (como padre).
+   - Verifica que aparezca la tarjeta “Para Hoy” con los items del plan y, si hubo cambios vs. el plan anterior, se vea el badge “Cambió” con el antes→ahora.
    - En “Distribución del sueño”, verifica:
      - KPI “Ventanas 2–4 h” con tooltip (icono i).
      - Etiquetas “Dentro/ Fuera 2–4h” en cada período.
@@ -80,6 +124,11 @@ Este archivo registra los cambios enfocados en lo que ve un padre en el panel y 
 
 3) Edición de eventos de alimentación:
    - Edita un evento de tipo biberón; debe abrirse con la cantidad en oz y guardar en ml al confirmar.
+   - Edita un evento de tipo pecho; asegúrate que la duración (min) sea el campo principal.
+   - Edita un evento de tipo sólidos; “Dormido” debe permanecer deshabilitado.
+
+4) Lógica de alimentación nocturna:
+   - Si el bebé está “dormido” y registras alimentación, sólo se debe crear `night_feeding` para líquidos (pecho/biberón), nunca para sólidos.
 
 ---
 
@@ -94,4 +143,3 @@ Este archivo registra los cambios enfocados en lo que ve un padre en el panel y 
 Añade entradas al final de “Cambios Principales” con:
 - Título breve del cambio, “Qué”, “Dónde verlo”, “Archivos”.
 - Mantén el foco en lo que afecta la experiencia del padre.
-

@@ -148,10 +148,17 @@ export function EventEditRouter({
           open={open}
           onClose={onClose}
           onConfirm={async (data: FeedingModalData) => {
-            // Convertir oz → ml para biberón antes de actualizar
-            const payload = { ...data }
+            // Normalizar payload y convertir oz → ml para biberón
+            const payload: any = { ...data }
             if (payload.feedingType === 'bottle' && typeof payload.feedingAmount === 'number') {
               payload.feedingAmount = Math.round(payload.feedingAmount * 29.5735)
+            }
+            if (payload.feedingType === 'breast') {
+              // En pecho, la duración es el control principal (minutos)
+              payload.feedingDuration = typeof data.feedingAmount === 'number' ? data.feedingAmount : data.feedingDuration
+            }
+            if (payload.feedingType === 'solids') {
+              payload.babyState = 'awake'
             }
             await updateEvent({
               ...payload,

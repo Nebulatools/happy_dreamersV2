@@ -202,31 +202,72 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      // feedingAmount debe estar en rangos apropiados
-      if (!data.feedingAmount || data.feedingAmount < 1 || data.feedingAmount > 500) {
-        logger.error("Cantidad de alimentación inválida")
-        return NextResponse.json(
-          { error: "Cantidad de alimentación debe estar entre 1 y 500 (ml/gr)" },
-          { status: 400 }
-        )
+      // Normalización de estado: sólidos siempre es 'awake'
+      if (data.feedingType === 'solids') {
+        data.babyState = 'awake'
       }
 
-      // feedingDuration debe estar en rango apropiado
-      if (!data.feedingDuration || data.feedingDuration < 1 || data.feedingDuration > 60) {
-        logger.error("Duración de alimentación inválida")
-        return NextResponse.json(
-          { error: "Duración de alimentación debe estar entre 1 y 60 minutos" },
-          { status: 400 }
-        )
-      }
-
-      // babyState debe ser válido
+      // Validar babyState
       if (!data.babyState || !['awake', 'asleep'].includes(data.babyState)) {
         logger.error("Estado del bebé inválido o faltante")
         return NextResponse.json(
           { error: "Estado del bebé requerido: 'awake' o 'asleep'" },
           { status: 400 }
         )
+      }
+
+      // Validaciones específicas por tipo
+      if (data.feedingType === 'breast') {
+        // Pecho: minutos
+        if (!data.feedingDuration || data.feedingDuration < 1 || data.feedingDuration > 60) {
+          logger.error("Duración de alimentación inválida (pecho)")
+          return NextResponse.json(
+            { error: "En pecho, la duración debe estar entre 1 y 60 minutos" },
+            { status: 400 }
+          )
+        }
+        // feedingAmount opcional; si existe validar rango genérico
+        if (data.feedingAmount !== undefined && data.feedingAmount !== null) {
+          if (data.feedingAmount < 1 || data.feedingAmount > 500) {
+            logger.error("Cantidad de alimentación inválida (opcional en pecho)")
+            return NextResponse.json(
+              { error: "Cantidad (si se proporciona) debe estar entre 1 y 500" },
+              { status: 400 }
+            )
+          }
+        }
+      } else if (data.feedingType === 'bottle') {
+        // Biberón: cantidad (ml) y duración requeridas
+        if (!data.feedingAmount || data.feedingAmount < 1 || data.feedingAmount > 500) {
+          logger.error("Cantidad de alimentación inválida (biberón)")
+          return NextResponse.json(
+            { error: "En biberón, la cantidad debe estar entre 1 y 500 ml" },
+            { status: 400 }
+          )
+        }
+        if (!data.feedingDuration || data.feedingDuration < 1 || data.feedingDuration > 60) {
+          logger.error("Duración de alimentación inválida (biberón)")
+          return NextResponse.json(
+            { error: "Duración de alimentación debe estar entre 1 y 60 minutos" },
+            { status: 400 }
+          )
+        }
+      } else if (data.feedingType === 'solids') {
+        // Sólidos: cantidad (gr) y duración requeridas; estado siempre awake
+        if (!data.feedingAmount || data.feedingAmount < 1 || data.feedingAmount > 500) {
+          logger.error("Cantidad de alimentación inválida (sólidos)")
+          return NextResponse.json(
+            { error: "En sólidos, la cantidad debe estar entre 1 y 500 gr" },
+            { status: 400 }
+          )
+        }
+        if (!data.feedingDuration || data.feedingDuration < 1 || data.feedingDuration > 60) {
+          logger.error("Duración de alimentación inválida (sólidos)")
+          return NextResponse.json(
+            { error: "Duración de alimentación debe estar entre 1 y 60 minutos" },
+            { status: 400 }
+          )
+        }
       }
 
       // feedingNotes es opcional pero si existe, validar longitud
