@@ -11,6 +11,7 @@ import NightWakeupsEvolutionChart from "@/components/sleep-statistics/NightWakeu
 import SleepDistributionChart from "@/components/sleep-statistics/SleepDistributionChart"
 import SleepDataStorytellingCard from "@/components/sleep-statistics/SleepDataStorytellingCard"
 import SleepInsightsCard from "@/components/sleep-statistics/SleepInsightsCard"
+import PositiveFeedbackCard from "@/components/sleep-statistics/PositiveFeedbackCard"
 // import SleepComparison from "@/components/sleep-statistics/SleepComparison"
 import { useActiveChild } from "@/context/active-child-context"
 import { useToast } from "@/hooks/use-toast"
@@ -67,6 +68,9 @@ export default function SleepStatisticsPage() {
         <>
           {/* Nueva Card de Métricas Mejorada - Incluye todo lo prioritario */}
           <EnhancedSleepMetricsCard childId={activeChildId} dateRange={dateRange} />
+
+          {/* Mensajes positivos (solo padres) */}
+          <PositiveFeedbackCard childId={activeChildId} dateRange={dateRange} />
 
           {/* Card de Análisis y Recomendaciones */}
           <SleepInsightsCard childId={activeChildId} dateRange={dateRange} />
