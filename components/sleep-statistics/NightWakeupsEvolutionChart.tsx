@@ -186,7 +186,8 @@ export default function NightWakeupsEvolutionChart({
     if (Math.abs(difference) < 0.1) {
       return { type: 'stable', icon: Minus, color: 'text-gray-600', text: 'Estable' }
     } else if (difference < 0) {
-      return { type: 'improving', icon: TrendingDown, color: 'text-green-600', text: 'Mejorando' }
+      // Si mejora (menos despertares), mostrar flecha verde hacia arriba
+      return { type: 'improving', icon: TrendingUp, color: 'text-green-600', text: 'Mejorando' }
     } else {
       return { type: 'worsening', icon: TrendingUp, color: 'text-red-600', text: 'Empeorando' }
     }
