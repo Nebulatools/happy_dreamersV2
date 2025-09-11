@@ -122,10 +122,32 @@ curl -X POST http://localhost:3000/api/transcripts/process \
 
 ---
 
+### 5) Zoom Poller (fallback por cron)
+- Ruta: `GET /api/integrations/zoom/poller`
+- Auth: header `Authorization: Bearer ${CRON_SECRET}`
+- Parámetros (query):
+  - `userId` (opcional): Zoom user (email/ID). Default: `ZOOM_USER_ID` o `me`.
+  - `from` (opcional): fecha ISO `yyyy-mm-dd` (o ISO completa). Default: 7 días atrás.
+  - `to` (opcional): fecha ISO `yyyy-mm-dd` (o ISO completa). Default: hoy.
+  - `page_size` (opcional): 1–300 (default 30).
+- Requisitos de entorno (Server-to-Server OAuth):
+  - `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`
+  - `ZOOM_USER_ID` (opcional para default)
+  - `CRON_SECRET` para autorizar el llamado
+- Comportamiento: obtiene grabaciones/transcripts del usuario y upserta registros en `consultation_sessions` por `uuid` (`status=recording_listed`).
+- Ejemplo (mock):
+```
+curl -X GET "http://localhost:3000/api/integrations/zoom/poller?from=2025-09-08&to=2025-09-10&page_size=50" \
+  -H "Authorization: Bearer $CRON_SECRET"
+```
+
+---
+
 ## Variables de Entorno
 - `ZOOM_VERIFICATION_TOKEN`: token para validar webhooks de Zoom (básico para pruebas).
 - `GOOGLE_DRIVE_CHANNEL_TOKEN`: token de canal para validar webhooks de Drive.
-- (Próximas): credenciales OAuth/Service Account para Zoom/Google cuando se integre descarga real.
+- Zoom (Server-to-Server OAuth): `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`, `ZOOM_USER_ID` (opcional)
+- (Próximas): credenciales OAuth/Service Account adicionales cuando se integre descarga real y permisos por dominio.
 
 ---
 
