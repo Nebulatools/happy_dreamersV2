@@ -137,17 +137,6 @@ export function Sidebar({ className }: { className?: string }) {
       icon: <Settings className="h-5 w-5" />,
     },
     {
-      title: "Ayuda",
-      href: "#",
-      icon: <HelpCircle className="h-5 w-5" />,
-      onClick: () => {
-        toast({
-          title: "Sección en desarrollo",
-          description: "La sección de ayuda estará disponible próximamente",
-        })
-      },
-    },
-    {
       title: "Contacto",
       href: "#",
       icon: <Mail className="h-5 w-5" />,
