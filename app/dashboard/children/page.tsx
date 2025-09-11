@@ -135,13 +135,6 @@ export default function MisSonadoresPage() {
           <p className="text-gray-600">
             Gestiona los perfiles de tus niños para un seguimiento personalizado
           </p>
-          <Button 
-            onClick={() => router.push('/dashboard/children/new')}
-            className="bg-gradient-to-r from-blue-500 to-blue-400 hover:from-blue-600 hover:to-blue-500 text-white font-medium px-6 py-2.5 rounded-xl shadow-sm transition-all duration-200"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Añadir Soñador
-          </Button>
         </div>
       </div>
 
