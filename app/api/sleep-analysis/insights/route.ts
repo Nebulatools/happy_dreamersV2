@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
       // Los usuarios normales solo pueden ver sus propios niños
       child = await db.collection("children").findOne({
         _id: new ObjectId(childId),
-        parentId: session.user.id
+        parentId: new ObjectId(session.user.id)
       })
     }
 
