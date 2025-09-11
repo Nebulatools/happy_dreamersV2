@@ -196,40 +196,38 @@ export function Sidebar({ className }: { className?: string }) {
           
           {/* Navigation */}
           <ScrollArea className="flex-1 px-4">
-            {/* Padding inferior para evitar solape con la tarjeta Premium estática */}
-            <div className="pb-28">
+            <div className="pb-4">
               <SidebarNav items={filteredItems} className="" onItemClick={handleItemClick} />
+              {/* Premium Section (ahora dentro del área scroll, debajo de Configuración) */}
+              {!isAdmin && (
+                <div className="mt-4 p-4 bg-white/10 rounded-xl border border-white/20">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-5 h-5 bg-yellow-400 rounded flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    </div>
+                    <span className="text-sm font-medium text-gray-800">Plan Premium</span>
+                  </div>
+                  <p className="text-xs text-gray-700 mb-3">
+                    Accede a todas las funciones y análisis avanzados
+                  </p>
+                  <Button 
+                    size="sm" 
+                    className="w-full bg-white/30 hover:bg-white/40 text-gray-800 border-0 text-xs"
+                    onClick={() => {
+                      toast({
+                        title: "Próximamente disponible",
+                        description: "Los planes premium estarán disponibles pronto. ¡Mantente atento!",
+                      })
+                    }}
+                  >
+                    Actualizar Plan
+                  </Button>
+                </div>
+              )}
             </div>
           </ScrollArea>
-          
-          {/* Premium Section (si no es admin) */}
-          {!isAdmin && (
-            <div className="p-4 mx-4 mb-6 bg-white/10 rounded-xl border border-white/20">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-5 h-5 bg-yellow-400 rounded flex items-center justify-center">
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                </div>
-                <span className="text-sm font-medium text-gray-800">Plan Premium</span>
-              </div>
-              <p className="text-xs text-gray-700 mb-3">
-                Accede a todas las funciones y análisis avanzados
-              </p>
-              <Button 
-                size="sm" 
-                className="w-full bg-white/30 hover:bg-white/40 text-gray-800 border-0 text-xs"
-                onClick={() => {
-                  toast({
-                    title: "Próximamente disponible",
-                    description: "Los planes premium estarán disponibles pronto. ¡Mantente atento!",
-                  })
-                }}
-              >
-                Actualizar Plan
-              </Button>
-            </div>
-          )}
           
           {/* Botones de Ayuda y Contacto al final */}
           <div className="p-4 mt-auto border-t border-white/10">
