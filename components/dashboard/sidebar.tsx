@@ -136,17 +136,6 @@ export function Sidebar({ className }: { className?: string }) {
       href: "/dashboard/configuracion",
       icon: <Settings className="h-5 w-5" />,
     },
-    {
-      title: "Contacto",
-      href: "#",
-      icon: <Mail className="h-5 w-5" />,
-      onClick: () => {
-        toast({
-          title: "Sección en desarrollo",
-          description: "La sección de contacto estará disponible próximamente",
-        })
-      },
-    },
   ]
 
   // Cargar children cuando se abre el modal
