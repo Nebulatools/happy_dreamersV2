@@ -4,12 +4,14 @@ import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { usePageHeaderConfig } from "@/context/page-header-context"
+import { useActiveChild } from "@/context/active-child-context"
 import { useRouter } from "next/navigation"
 
 export default function AyudaPage() {
   const { data: session } = useSession()
   const router = useRouter()
   const role = session?.user?.role || "parent"
+  const { activeChildId } = useActiveChild()
 
   usePageHeaderConfig({
     title: "Ayuda",
@@ -56,8 +58,20 @@ export default function AyudaPage() {
         </CardHeader>
         <CardContent className="text-sm text-slate-700 space-y-2">
           <p>• Ver encuesta de sueño para recomendaciones personalizadas.</p>
-          <div>
-            <Button size="sm" onClick={() => router.push("/dashboard/survey")}>Abrir Encuesta</Button>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => router.push(activeChildId ? `/dashboard/survey?childId=${activeChildId}` : "/dashboard/survey")}>Abrir Encuesta</Button>
+            <Button size="sm" variant="outline" onClick={() => router.push("/dashboard/assistant")}>Asistente IA</Button>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Contactar soporte</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-slate-700 space-y-2">
+          <p>• Si necesitas ayuda inmediata, puedes escribir al asistente o contactar a soporte de tu organización.</p>
+          <div className="flex gap-2">
+            <Button size="sm" className="" onClick={() => router.push("/dashboard/assistant")}>Abrir Asistente</Button>
           </div>
         </CardContent>
       </Card>
@@ -89,6 +103,17 @@ export default function AyudaPage() {
       </Card>
       <Card>
         <CardHeader>
+          <CardTitle>Soporte y contacto</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-slate-700 space-y-2">
+          <p>• Usa el Asistente IA para incidencias comunes o para guiar a familias.</p>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => router.push("/dashboard/assistant")}>Abrir Asistente</Button>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
           <CardTitle>Solución de Problemas</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-slate-700 space-y-2">
@@ -115,4 +140,3 @@ export default function AyudaPage() {
     </div>
   )
 }
-
