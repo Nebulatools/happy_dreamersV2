@@ -25,8 +25,9 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get("type")
 
     // Construir filtro de búsqueda
+    const userObjectId = new ObjectId(session.user.id)
     const filter: any = {
-      userId: session.user.id
+      userId: userObjectId
     }
 
     if (childId) {
@@ -42,8 +43,10 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      const hasAccess = child.parentId === session.user.id ||
-        child.sharedWith?.includes(session.user.id)
+      const hasAccess = (
+        child.parentId?.toString?.() === session.user.id ||
+        (Array.isArray(child.sharedWith) && child.sharedWith.some((id: any) => id?.toString?.() === session.user.id))
+      )
 
       if (!hasAccess && session.user.role !== "admin") {
         return NextResponse.json(
@@ -52,7 +55,7 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      filter.childId = childId
+      filter.childId = new ObjectId(childId)
     }
 
     if (status) {
@@ -84,7 +87,7 @@ export async function GET(request: NextRequest) {
 
     if (childId) {
       const statsPipeline = [
-        { $match: { childId: childId, userId: session.user.id } },
+        { $match: { childId: new ObjectId(childId), userId: userObjectId } },
         { $group: {
           _id: "$status",
           count: { $sum: 1 }
@@ -149,7 +152,7 @@ export async function POST(request: NextRequest) {
     // Buscar la notificación
     const notification = await db.collection("notificationlogs").findOne({
       _id: new ObjectId(notificationId),
-      userId: session.user.id
+      userId: new ObjectId(session.user.id)
     })
 
     if (!notification) {
@@ -226,13 +229,13 @@ export async function DELETE(request: NextRequest) {
 
     // Construir filtro
     const filter: any = {
-      userId: session.user.id,
+      userId: new ObjectId(session.user.id),
       createdAt: { $lt: dateLimit },
       status: { $in: ["read", "failed", "cancelled"] }
     }
 
     if (childId) {
-      filter.childId = childId
+      filter.childId = new ObjectId(childId)
     }
 
     // Eliminar notificaciones antiguas

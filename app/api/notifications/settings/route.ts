@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Verificar permisos (propietario o compartido)
-    const hasAccess = child.parentId === session.user.id ||
-      child.sharedWith?.includes(session.user.id) ||
+    const hasAccess = child.parentId?.toString?.() === session.user.id ||
+      (Array.isArray(child.sharedWith) && child.sharedWith.some((id: any) => id?.toString?.() === session.user.id)) ||
       session.user.role === "admin"
 
     if (!hasAccess) {
@@ -53,8 +53,8 @@ export async function GET(request: NextRequest) {
 
     // Buscar configuración de notificaciones existente
     let settings = await db.collection("notificationsettings").findOne({
-      childId: childId,
-      userId: session.user.id
+      childId: new ObjectId(childId),
+      userId: new ObjectId(session.user.id)
     })
 
     // Si no existe, crear configuración por defecto
@@ -121,8 +121,8 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const hasAccess = child.parentId === session.user.id ||
-      child.sharedWith?.includes(session.user.id) ||
+    const hasAccess = child.parentId?.toString?.() === session.user.id ||
+      (Array.isArray(child.sharedWith) && child.sharedWith.some((id: any) => id?.toString?.() === session.user.id)) ||
       session.user.role === "admin"
 
     if (!hasAccess) {
@@ -134,12 +134,12 @@ export async function PUT(request: NextRequest) {
 
     // Actualizar o crear configuración
     const result = await db.collection("notificationsettings").updateOne(
-      { childId: childId, userId: session.user.id },
+      { childId: new ObjectId(childId), userId: new ObjectId(session.user.id) },
       {
         $set: {
           ...settingsData,
-          childId: childId,
-          userId: session.user.id,
+          childId: new ObjectId(childId),
+          userId: new ObjectId(session.user.id),
           updatedAt: new Date()
         },
         $setOnInsert: {
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
 
     // Guardar token de push notification
     await db.collection("pushnotificationtokens").updateOne(
-      { userId: session.user.id, childId: childId, platform: platform },
+      { userId: new ObjectId(session.user.id), childId: new ObjectId(childId), platform: platform },
       {
         $set: {
           token: token,
@@ -196,8 +196,8 @@ export async function POST(request: NextRequest) {
           active: true
         },
         $setOnInsert: {
-          userId: session.user.id,
-          childId: childId,
+          userId: new ObjectId(session.user.id),
+          childId: new ObjectId(childId),
           createdAt: new Date()
         }
       },
