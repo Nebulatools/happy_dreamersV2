@@ -78,6 +78,23 @@ curl -X POST http://localhost:3000/api/integrations/google/drive/webhook \
   }
 }
 ```
+
+### 4) Google Drive Poller (fallback por cron)
+- Ruta: `GET /api/integrations/google/drive/poller`
+- Auth: header `Authorization: Bearer ${CRON_SECRET}` (igual que el scheduler de notificaciones).
+- Parámetros (query):
+  - `folderId` (opcional): carpeta en la que buscar.
+  - `since` (opcional): fecha ISO desde la cual buscar (default: 24h atrás).
+  - `limit` (opcional): máximo de archivos a revisar (1–100, default 25).
+- Requisitos de entorno:
+  - `GOOGLE_SA_CLIENT_EMAIL`, `GOOGLE_SA_PRIVATE_KEY` (Service Account con acceso de lectura a Drive).
+  - `CRON_SECRET` para autorizar el llamado.
+- Comportamiento: lista archivos recientes (Google Doc transcripts o MP4) y registra/actualiza entradas en `consultation_sessions` con `status=drive_file_detected`.
+- Ejemplo (mock):
+```
+curl -X GET "http://localhost:3000/api/integrations/google/drive/poller?folderId=<FOLDER>&since=2025-09-09T00:00:00Z&limit=20" \
+  -H "Authorization: Bearer $CRON_SECRET"
+```
 - Comportamiento: normaliza el texto (VTT/SRT/Doc → texto plano), llama análisis (stub Gemini/OpenAI) y guarda en `consultation_reports`.
 - Respuesta: `{ success: true, reportId: "..." }`
 - Ejemplos (mock):
@@ -147,4 +164,3 @@ curl -X POST http://localhost:3000/api/transcripts/process \
 - Proceso de transcript: `app/api/transcripts/process/route.ts`
 - Parse/Analyze: `lib/transcripts/parse.ts`, `lib/transcripts/analyze.ts`
 - Planes: `app/api/consultas/plans/route.ts`
-
