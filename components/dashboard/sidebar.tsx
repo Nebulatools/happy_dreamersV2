@@ -196,7 +196,10 @@ export function Sidebar({ className }: { className?: string }) {
           
           {/* Navigation */}
           <ScrollArea className="flex-1 px-4">
-            <SidebarNav items={filteredItems} className="" onItemClick={handleItemClick} />
+            {/* Padding inferior para evitar solape con la tarjeta Premium estática */}
+            <div className="pb-28">
+              <SidebarNav items={filteredItems} className="" onItemClick={handleItemClick} />
+            </div>
           </ScrollArea>
           
           {/* Premium Section (si no es admin) */}
