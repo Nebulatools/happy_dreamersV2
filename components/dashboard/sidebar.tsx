@@ -116,15 +116,9 @@ export function Sidebar({ className }: { className?: string }) {
     },
     {
       title: "Planes",
-      href: "#",
+      href: "/dashboard/planes",
       icon: <FileText className="h-5 w-5" />,
-      role: ["parent", "user"],
-      onClick: () => {
-        toast({
-          title: "Sección en desarrollo",
-          description: "La sección de planes de sueño estará disponible próximamente",
-        })
-      },
+      role: ["parent", "user", "admin"],
     },
     {
       title: "Notificaciones",
