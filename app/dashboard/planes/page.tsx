@@ -92,6 +92,20 @@ export default function PlanesPage() {
     return plans[plans.length - 1]
   }, [plans])
 
+  // Para administradores, siempre mostrar el mismo gestor de planes que en /consultas (tab Plan),
+  // incluso si aún no hay usuario/niño seleccionado. El propio PlanManager maneja el estado vacío.
+  if (isAdmin) {
+    return (
+      <PlanManager
+        selectedUserId={activeUserId}
+        selectedChildId={activeChildId}
+        selectedChildName={childName || null}
+        hasAnalysisResult={false}
+        latestReportId={null}
+      />
+    )
+  }
+
   if (!activeChildId) {
     return (
       <Card>
@@ -142,19 +156,6 @@ export default function PlanesPage() {
   }
 
   const schedule = activePlan.schedule || {}
-
-  // Para administradores, mostrar el mismo gestor de planes que en /consultas (tab Plan)
-  if (isAdmin && activeUserId && activeChildId) {
-    return (
-      <PlanManager
-        selectedUserId={activeUserId}
-        selectedChildId={activeChildId}
-        selectedChildName={childName || "Paciente"}
-        hasAnalysisResult={false}
-        latestReportId={null}
-      />
-    )
-  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
