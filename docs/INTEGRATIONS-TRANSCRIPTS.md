@@ -154,14 +154,16 @@ curl -X GET "http://localhost:3000/api/integrations/zoom/poller?from=2025-09-08&
 ## Cómo Probar (rápido)
 1) Simular webhook de Zoom y Drive con `curl` (ver ejemplos) y verificar inserciones en Mongo (`consultation_sessions`).
 2) Enviar al endpoint de proceso con un VTT/Doc de ejemplo y comprobar que se crea un `consultation_reports` con `analysis` y `recommendations`.
-3) Ver en los planes (ruta `app/api/consultas/plans/route.ts`) cómo `consultation_reports` sirven para planes N.1.
+3) Ver en los planes (ruta `app/api/consultas/plans/route.ts`) cómo `consultation_reports` sirven para planes N.1. La validación expone `latestReportId` para refinamientos.
 
 ---
 
 ## Próximos Pasos (TODO)
 - Zoom:
-  - OAuth app + scopes (recording/transcription), descargar VTT/SRT/MP4 vía API.
-  - Si no hay transcript: STT (Whisper/Google Speech-to-Text) contra audio.
+  - OAuth app + scopes (recording/transcription), descargar VTT/SRT/MP4 vía API. (Token S2S + descarga automática integrado en webhook/poller)
+  - Ingest automático: webhook `recording.completed` y poller procesan transcript y crean `consultation_reports`. (implementado)
+  - Auto-link de paciente/niño: añade en el Título del Zoom (Topic) los tokens `[HD child:<mongoId>] [HD user:<mongoId>]` para asociar el transcript automáticamente. Si faltan, se guarda como `transcript_unlinked` en `consultation_sessions`.
+  - Si no hay transcript: STT (Whisper/Google Speech-to-Text) contra audio. (pendiente)
 - Google:
   - Watch de carpeta de grabaciones; descargar Google Doc “Transcript” o MP4.
   - Fallback cron: endpoint de polling para recientes (Drive `files.list`).
@@ -184,5 +186,21 @@ curl -X GET "http://localhost:3000/api/integrations/zoom/poller?from=2025-09-08&
   - `app/api/integrations/zoom/webhook/route.ts`
   - `app/api/integrations/google/drive/webhook/route.ts`
 - Proceso de transcript: `app/api/transcripts/process/route.ts`
+- Ingest Zoom manual/cron: `app/api/integrations/zoom/ingest/route.ts`
+- Utilidades Zoom: `lib/integrations/zoom.ts`
+
+---
+
+## Modo 100% Automático (Zoom)
+
+1) Configura Zoom S2S OAuth (`ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`).
+2) Activa webhooks `recording.completed` hacia `/api/integrations/zoom/webhook` y opcionalmente programa el poller `/api/integrations/zoom/poller` con `Authorization: Bearer ${CRON_SECRET}`.
+3) Al agendar la reunión en Zoom, agrega en el Título (Topic) los tokens para auto-vincular:
+   - `[HD child:<mongoId_del_niño>] [HD user:<mongoId_del_padre>]`
+4) Graba en la nube con “Audio Transcript” activo. Cuando Zoom termine el transcript:
+   - El webhook/poller descargará automáticamente el VTT, lo normalizará y analizará.
+   - Se creará un `consultation_reports` vinculado al niño/usuario si los tokens están presentes.
+   - Si no hay tokens, el transcript quedará en `consultation_sessions` con `status=transcript_unlinked` para conciliación.
+5) En `/dashboard/planes` (admin) o `/dashboard/consultas` → tab “Plan”, podrás generar el Plan N.1 (Refinamiento). La validación usa el `latestReportId` automáticamente.
 - Parse/Analyze: `lib/transcripts/parse.ts`, `lib/transcripts/analyze.ts`
 - Planes: `app/api/consultas/plans/route.ts`

@@ -511,7 +511,8 @@ export async function PUT(req: NextRequest) {
         additionalInfo = {
           hasTranscript: true, // Si llegamos aquí, asumimos que hay transcript
           basePlanVersion: existingPlans[0].planVersion,
-          hasRefinement: !!existingRefinement
+          hasRefinement: !!existingRefinement,
+          latestReportId: transcriptCheck?.latestReportId || null
         }
       }
     } else {

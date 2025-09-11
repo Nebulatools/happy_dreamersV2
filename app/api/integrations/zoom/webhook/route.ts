@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import { createLogger } from "@/lib/logger"
+import { ingestZoomMeetingTranscripts } from "@/lib/integrations/zoom"
 
 const logger = createLogger("API:integrations:zoom:webhook")
 
@@ -46,6 +47,13 @@ export async function POST(req: NextRequest) {
         updatedAt: new Date(),
         rawEvent: payload,
       })
+
+      // Attempt automatic ingestion immediately (webhook-triggered)
+      try {
+        await ingestZoomMeetingTranscripts({ meetingId, uuid, topic })
+      } catch (e) {
+        logger.error("Ingest error (webhook)", { meetingId, uuid, error: e instanceof Error ? e.message : String(e) })
+      }
     }
 
     // Respond fast per webhook best practices
@@ -55,4 +63,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message || "Internal error" }, { status: 500 })
   }
 }
-

@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import { createLogger } from "@/lib/logger"
+import { getZoomAccessToken, ingestZoomMeetingTranscripts } from "@/lib/integrations/zoom"
 
 const logger = createLogger("API:integrations:zoom:poller")
 
@@ -21,29 +22,7 @@ function toDateOnly(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
-async function getZoomAccessToken() {
-  const accountId = process.env.ZOOM_ACCOUNT_ID
-  const clientId = process.env.ZOOM_CLIENT_ID
-  const clientSecret = process.env.ZOOM_CLIENT_SECRET
-  if (!accountId || !clientId || !clientSecret) {
-    throw new Error("Zoom OAuth (Server-to-Server) no configurado: ZOOM_ACCOUNT_ID/ZOOM_CLIENT_ID/ZOOM_CLIENT_SECRET")
-  }
-  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64")
-  const url = `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${encodeURIComponent(accountId)}`
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${basic}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => "")
-    throw new Error(`Zoom token error: ${res.status} ${res.statusText} ${text}`)
-  }
-  const json = await res.json()
-  return json?.access_token as string
-}
+// getZoomAccessToken now imported from lib/integrations/zoom
 
 export async function GET(req: NextRequest) {
   try {
@@ -105,6 +84,16 @@ export async function GET(req: NextRequest) {
         { upsert: true }
       )
       if (result.upsertedCount > 0) inserted += 1
+
+      // Ingest transcript automatically if not processed yet
+      try {
+        const sess = await db.collection("consultation_sessions").findOne({ provider: "zoom", uuid: m.uuid })
+        if (!sess?.transcriptProcessed) {
+          await ingestZoomMeetingTranscripts({ meetingId: m.id, uuid: m.uuid, topic: m.topic })
+        }
+      } catch (e) {
+        logger.error("Ingest error (poller)", { uuid: m.uuid, error: e instanceof Error ? e.message : String(e) })
+      }
     }
 
     logger.info("Zoom poller", { found: meetings.length, inserted })
@@ -114,4 +103,3 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message || "Error interno" }, { status: 500 })
   }
 }
-
