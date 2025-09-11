@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { usePageHeaderConfig } from "@/context/page-header-context"
 import { useActiveChild } from "@/context/active-child-context"
+import { PlanManager } from "@/components/consultas/PlanManager"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -28,6 +29,8 @@ interface ChildPlan {
 export default function PlanesPage() {
   const { activeChildId } = useActiveChild()
   const { data: session } = useSession()
+  const isAdmin = session?.user?.role === 'admin'
+  const { activeUserId, activeUserName } = useActiveChild()
   const [loading, setLoading] = useState(true)
   const [plans, setPlans] = useState<ChildPlan[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -41,14 +44,15 @@ export default function PlanesPage() {
 
   useEffect(() => {
     const fetchPlans = async () => {
-      if (!activeChildId || !session?.user?.id) {
+      const userParam = isAdmin && activeUserId ? activeUserId : session?.user?.id
+      if (!activeChildId || !userParam) {
         setLoading(false)
         return
       }
       try {
         setLoading(true)
         setError(null)
-        const res = await fetch(`/api/consultas/plans?childId=${activeChildId}&userId=${session.user.id}`)
+        const res = await fetch(`/api/consultas/plans?childId=${activeChildId}&userId=${userParam}`)
         if (!res.ok) {
           const data = await res.json().catch(() => null)
           throw new Error(data?.error || "No se pudieron cargar los planes")
@@ -62,7 +66,24 @@ export default function PlanesPage() {
       }
     }
     fetchPlans()
-  }, [activeChildId, session?.user?.id])
+  }, [activeChildId, session?.user?.id, isAdmin, activeUserId])
+
+  // Cargar nombre del niño para admin (igual que en /consultas)
+  const [childName, setChildName] = useState<string>("")
+  useEffect(() => {
+    const loadChildName = async () => {
+      if (!isAdmin || !activeUserId || !activeChildId) return
+      try {
+        const response = await fetch(`/api/children?userId=${activeUserId}`)
+        if (!response.ok) return
+        const data = await response.json()
+        const children = Array.isArray(data) ? data : (data?.children || data?.data?.children || [])
+        const child = children.find((c: any) => c._id === activeChildId)
+        if (child) setChildName(`${child.firstName || ''} ${child.lastName || ''}`.trim())
+      } catch {}
+    }
+    loadChildName()
+  }, [isAdmin, activeUserId, activeChildId])
 
   const activePlan = useMemo(() => {
     if (!plans || plans.length === 0) return null
@@ -121,6 +142,19 @@ export default function PlanesPage() {
   }
 
   const schedule = activePlan.schedule || {}
+
+  // Para administradores, mostrar el mismo gestor de planes que en /consultas (tab Plan)
+  if (isAdmin && activeUserId && activeChildId) {
+    return (
+      <PlanManager
+        selectedUserId={activeUserId}
+        selectedChildId={activeChildId}
+        selectedChildName={childName || "Paciente"}
+        hasAnalysisResult={false}
+        latestReportId={null}
+      />
+    )
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -188,4 +222,3 @@ export default function PlanesPage() {
     </div>
   )
 }
-
