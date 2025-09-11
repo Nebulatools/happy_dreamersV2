@@ -324,6 +324,7 @@ export default function CalendarPage() {
   usePageHeaderConfig({
     title: "Calendario",
     actions: headerActions,
+    showSearch: false,
     showChildSelector: true,
     showNotifications: true
   })
