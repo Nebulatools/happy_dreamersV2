@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Plus, Edit2, Trash2, AlertTriangle } from "lucide-react"
+import { Plus, Edit2, Trash2, AlertTriangle, Eye } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -174,6 +174,18 @@ export default function MisSonadoresPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/dashboard/children/${child._id}`)
+                      }}
+                      className="h-8 w-8 p-0 rounded-full hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Ver perfil"
+                    >
+                      <Eye className="h-4 w-4 text-blue-600" />
+                    </Button>
                     <Button 
                       variant="ghost" 
                       size="sm" 
