@@ -32,3 +32,6 @@ next-env.d.ts.env.production
 
 #lock json's
 package-lock.json
+
+#dumps
+/dump
