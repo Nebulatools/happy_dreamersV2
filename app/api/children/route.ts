@@ -19,8 +19,15 @@ import {
 } from "@/lib/api-utils"
 import { calculateAge } from "@/lib/date-utils"
 import type { Child } from "@/types/models"
+import { checkUserAccess, getAccessibleChildren } from "@/lib/db/user-child-access"
 
 const logger = createLogger("API:Children")
+
+const serializeChild = (child: Child | any) => ({
+  ...child,
+  _id: child?._id?.toString?.() ?? child?._id,
+  parentId: child?.parentId?.toString?.() ?? child?.parentId,
+})
 
 // GET /api/children - obtener todos los niños del usuario autenticado
 // GET /api/children?id=123 - obtener un niño específico
@@ -44,12 +51,15 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     
     logger.debug("Buscando niño", { childId: id })
     
-    // Para admins, permitir ver cualquier niño
-    const query = isAdmin 
-      ? { _id: new ObjectId(id) }
-      : { _id: new ObjectId(id), parentId: new ObjectId(session.user.id) }
-      
-    const child = await db.collection<Child>("children").findOne(query)
+    if (!isAdmin) {
+      const accessResult = await checkUserAccess(session.user.id, id)
+      if (!accessResult.hasAccess) {
+        logger.warn("Acceso denegado al niño para usuario", { childId: id, userId: session.user.id })
+        throw new ApiError(ApiErrorType.NOT_FOUND, "Niño no encontrado o no tienes permiso para verlo", 404)
+      }
+    }
+
+    const child = await db.collection<Child>("children").findOne({ _id: new ObjectId(id) })
 
     if (!child) {
       logger.warn("Niño no encontrado o sin permisos", { childId: id, userId: session.user.id })
@@ -84,30 +94,32 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     
     logger.info("Niños encontrados", { count: children.length, userId: requestedUserId })
     
-    // Asegurar que no se cachea la respuesta
-    const response = createSuccessResponse({ children, success: true })
+    const response = createSuccessResponse({ children: children.map(serializeChild), success: true })
     response.headers.set("Cache-Control", "no-store, max-age=0")
     return response
   }
 
-  // Para admin: obtener TODOS los niños del sistema
-  // Para usuario normal: solo sus propios niños
-  const query = isAdmin ? {} : { parentId: new ObjectId(session.user.id) }
-  
-  logger.debug("Obteniendo niños", { 
-    userId: session.user.id, 
-    isAdmin,
-    query: JSON.stringify(query)
-  })
-  
+  // Para usuarios normales, incluir niños propios y compartidos
+  if (!isAdmin) {
+    logger.debug("Obteniendo niños accesibles para usuario", { userId: session.user.id })
+    const accessibleChildren = await getAccessibleChildren(session.user.id)
+    logger.info("Niños accesibles encontrados", { count: accessibleChildren.length, userId: session.user.id })
+
+    const serialized = accessibleChildren.map(serializeChild)
+
+    const response = createSuccessResponse({ children: serialized, success: true })
+    response.headers.set("Cache-Control", "no-store, max-age=0")
+    return response
+  }
+
+  // Para admins sin filtro, devolver todos los niños
   const children = await db.collection<Child>("children")
-    .find(query)
+    .find({})
     .toArray()
 
-  logger.info("Niños encontrados", { count: children.length, userId: session.user.id })
-  
-  // Asegurar que no se cachea la respuesta
-  const response = createSuccessResponse({ children, success: true })
+  logger.info("Admin obtuvo todos los niños", { count: children.length })
+
+  const response = createSuccessResponse({ children: children.map(serializeChild), success: true })
   response.headers.set("Cache-Control", "no-store, max-age=0")
   return response
 })

@@ -201,7 +201,12 @@ export function CaregiverManagement({
         throw new Error(error.error || "Error al vincular usuario")
       }
 
-      toast.success("Usuario vinculado exitosamente")
+      const result = await response.json()
+      if (result.message) {
+        toast.success(result.message)
+      } else {
+        toast.success("Invitación enviada al usuario seleccionado")
+      }
       setLinkDialogOpen(false)
       setSelectedUserId("")
       setSearchEmail("")

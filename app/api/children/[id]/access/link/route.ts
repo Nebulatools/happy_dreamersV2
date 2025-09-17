@@ -7,8 +7,8 @@ import { authOptions } from "@/lib/auth"
 import clientPromise from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { createLogger } from "@/lib/logger"
-import { UserChildAccess } from "@/types/models"
-import { ROLE_PERMISSIONS } from "@/lib/db/user-child-access"
+import { createInvitation } from "@/lib/db/invitations"
+import { sendInvitationEmail } from "@/lib/email/invitation-email"
 
 const logger = createLogger("API:children:access:link")
 
@@ -32,7 +32,13 @@ export async function POST(
 
     // Obtener datos del body
     const body = await request.json()
-    const { userId, role = "caregiver", relationshipType = "familiar" } = body
+    const {
+      userId,
+      role = "caregiver",
+      relationshipType = "familiar",
+      relationshipDescription,
+      expiresAt,
+    } = body
 
     if (!userId || !ObjectId.isValid(userId)) {
       return NextResponse.json({ error: "ID de usuario inválido" }, { status: 400 })
@@ -70,7 +76,11 @@ export async function POST(
     // Verificar si ya existe acceso
     const existingAccess = await db.collection("userChildAccess").findOne({
       userId: new ObjectId(userId),
-      childId: new ObjectId(childId)
+      childId: new ObjectId(childId),
+      $or: [
+        { invitationStatus: "accepted" },
+        { invitationStatus: { $exists: false } }
+      ]
     })
 
     if (existingAccess) {
@@ -80,36 +90,57 @@ export async function POST(
       )
     }
 
-    // Crear el acceso
-    const newAccess: UserChildAccess = {
-      _id: new ObjectId(),
-      userId: new ObjectId(userId),
-      childId: new ObjectId(childId),
-      grantedBy: new ObjectId(session.user.id),
-      role: role as "viewer" | "caregiver" | "editor",
-      permissions: ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS],
-      relationshipType: relationshipType as any,
-      status: "active",
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }
-
-    await db.collection("userChildAccess").insertOne(newAccess as any)
-
-    // Actualizar el array sharedWith en el niño
-    await db.collection("children").updateOne(
-      { _id: new ObjectId(childId) },
-      { 
-        $addToSet: { sharedWith: userId },
-        $set: { updatedAt: new Date() }
-      }
+    // Crear invitación pendiente para el usuario existente
+    const invitationResult = await createInvitation(
+      session.user.id,
+      childId,
+      userToLink.email,
+      role,
+      relationshipType,
+      relationshipDescription
     )
 
-    logger.info(`Usuario ${userId} vinculado al niño ${childId} por ${session.user.id}`)
+    if (!invitationResult.success || !invitationResult.invitation) {
+      return NextResponse.json(
+        { error: invitationResult.error || "No se pudo crear la invitación" },
+        { status: 400 }
+      )
+    }
+
+    const invitation = invitationResult.invitation
+
+    // Registrar notificación para el usuario invitado
+    try {
+      const now = new Date()
+      const inviterName = session.user.name || session.user.email || "Un familiar"
+      await db.collection("notificationlogs").insertOne({
+        userId: userToLink._id,
+        childId: new ObjectId(childId),
+        type: "invitation",
+        status: "delivered",
+        title: `${inviterName} te invitó a ver el perfil de ${child.firstName}`,
+        message: `${inviterName} te envió una invitación para acceder al perfil de ${child.firstName}. Puedes aceptarla o rechazarla desde Notificaciones.`,
+        scheduledFor: now,
+        createdAt: now,
+        updatedAt: now
+      } as any)
+    } catch (logError) {
+      logger.warn("No se pudo registrar notificación de invitación", logError)
+    }
+
+    // Opcional: enviar email si hay configuración
+    try {
+      await sendInvitationEmail(invitation)
+    } catch (emailError) {
+      logger.warn("No se pudo enviar email de invitación para usuario existente", emailError)
+    }
+
+    logger.info(`Invitación creada para usuario ${userId} al niño ${childId} por ${session.user.id}`)
 
     return NextResponse.json({
       success: true,
-      message: "Usuario vinculado exitosamente"
+      invitationId: invitation._id,
+      message: "Invitación enviada. Esperando respuesta del usuario." 
     })
   } catch (error) {
     logger.error("Error vinculando usuario:", error)

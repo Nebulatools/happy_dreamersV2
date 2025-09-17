@@ -60,13 +60,14 @@ export function useChildPlan(childId: string | null) {
 
   // Función helper para determinar si es hora de siesta
   const isNapTime = (date: Date = new Date()): boolean => {
-    if (!data?.schedule.naps || data.schedule.naps.length === 0) return false
+    const naps = data?.schedule?.naps
+    if (!naps || naps.length === 0) return false
     
     const currentHour = date.getHours()
     const currentMinutes = date.getMinutes()
     const currentTime = currentHour * 60 + currentMinutes
     
-    return data.schedule.naps.some(nap => {
+    return naps.some(nap => {
       const [napHour, napMin] = nap.time.split(':').map(Number)
       const napStart = napHour * 60 + napMin
       const napEnd = napStart + nap.duration

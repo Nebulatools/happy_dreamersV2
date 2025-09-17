@@ -236,7 +236,7 @@ export async function grantAccess(
             permissions: ROLE_PERMISSIONS[role],
             relationshipType,
             relationshipDescription,
-            expiresAt,
+            expiresAt: expiresAt ?? null,
             invitationStatus: "accepted",
             updatedAt: new Date()
           }
@@ -270,7 +270,7 @@ export async function grantAccess(
       invitationStatus: "accepted", // Auto-aceptado si el usuario ya existe
       invitationSentAt: new Date(),
       acceptedAt: new Date(),
-      expiresAt,
+      expiresAt: expiresAt ?? null,
       createdAt: new Date(),
       updatedAt: new Date()
     }
@@ -425,8 +425,12 @@ export async function getAccessibleChildren(
     const accessCollection = await getAccessCollection()
     const sharedAccesses = await accessCollection.find({
       userId: new ObjectId(userId),
-      invitationStatus: "accepted",
       $or: [
+        { invitationStatus: "accepted" },
+        { invitationStatus: { $exists: false } }
+      ],
+      $or: [
+        { expiresAt: { $exists: false } },
         { expiresAt: null },
         { expiresAt: { $gt: new Date() } }
       ]

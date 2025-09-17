@@ -145,7 +145,7 @@ export async function createInvitation(
       
       return {
         success: true,
-        invitation: updatedInvitation as PendingInvitation
+        invitation: (updatedInvitation.value || existingInvitation) as PendingInvitation
       }
     }
     
@@ -279,17 +279,35 @@ export async function acceptInvitation(
     
     // Crear una notificación para el padre/dueño avisando aceptación
     const notifications = db.collection(NOTIFICATIONS_COLLECTION)
+    const displayName = user.name || user.email
     await notifications.insertOne({
       userId: invitation.invitedBy, // destinatario: padre que invitó
       childId: invitation.childId,
       type: "invitation_response",
       status: "delivered",
       title: "Invitación aceptada",
-      message: `${user.name} aceptó la invitación para acceder a ${invitation.childName}`,
+      message: `${displayName} aceptó la invitación para acceder a ${invitation.childName}`,
       scheduledFor: new Date(),
       createdAt: new Date(),
       updatedAt: new Date()
     } as any)
+
+    // Marcar como leída la notificación de invitación para el usuario que aceptó
+    await notifications.updateMany(
+      {
+        userId: new ObjectId(userId),
+        childId: invitation.childId,
+        type: "invitation",
+        status: { $in: ["sent", "delivered"] }
+      },
+      {
+        $set: {
+          status: "read",
+          updatedAt: new Date(),
+          readAt: new Date()
+        }
+      }
+    )
     
     return {
       success: true,
@@ -382,17 +400,34 @@ export async function declineInvitation(
     
     // Registrar notificación para el padre/dueño
     const notifications = db.collection(NOTIFICATIONS_COLLECTION)
+    const displayName = user.name || user.email
     await notifications.insertOne({
       userId: invitation.invitedBy,
       childId: invitation.childId,
       type: "invitation_response",
       status: "delivered",
       title: "Invitación denegada",
-      message: `${user.name || user.email} denegó la invitación para acceder a ${invitation.childName}`,
+      message: `${displayName} denegó la invitación para acceder a ${invitation.childName}`,
       scheduledFor: new Date(),
       createdAt: new Date(),
       updatedAt: new Date()
     } as any)
+
+    await notifications.updateMany(
+      {
+        userId: new ObjectId(userId),
+        childId: invitation.childId,
+        type: "invitation",
+        status: { $in: ["sent", "delivered"] }
+      },
+      {
+        $set: {
+          status: "read",
+          updatedAt: new Date(),
+          readAt: new Date()
+        }
+      }
+    )
     
     return { success: true }
   } catch (error) {
