@@ -3,6 +3,7 @@
 
 import { PendingInvitation } from "@/types/models"
 import { createLogger } from "@/lib/logger"
+import { getEmailService } from "@/lib/email/email-service"
 
 const logger = createLogger("InvitationEmail")
 
@@ -249,50 +250,6 @@ Si no esperabas esta invitación, puedes ignorar este email.
 
 © 2025 Happy Dreamers. Todos los derechos reservados.
   `
-}
-
-// Interfaz para el servicio de email (puede ser implementada con diferentes proveedores)
-export interface EmailService {
-  sendEmail(to: string, subject: string, html: string, text: string): Promise<boolean>
-}
-
-// Implementación con console.log para desarrollo
-class ConsoleEmailService implements EmailService {
-  async sendEmail(to: string, subject: string, html: string, text: string): Promise<boolean> {
-    logger.info(`
-    ========================================
-    📧 EMAIL DE INVITACIÓN (MODO DESARROLLO)
-    ========================================
-    Para: ${to}
-    Asunto: ${subject}
-    ----------------------------------------
-    ${text}
-    ========================================
-    `)
-    return true
-  }
-}
-
-// TODO: Implementar servicios reales como SendGrid, AWS SES, etc.
-// class SendGridEmailService implements EmailService { ... }
-// class AWSEmailService implements EmailService { ... }
-
-// Factory para obtener el servicio de email según el entorno
-function getEmailService(): EmailService {
-  const emailProvider = process.env.EMAIL_PROVIDER || "console"
-  
-  switch (emailProvider) {
-    case "sendgrid":
-      // return new SendGridEmailService()
-      logger.warn("SendGrid no implementado, usando console")
-      return new ConsoleEmailService()
-    case "aws":
-      // return new AWSEmailService()
-      logger.warn("AWS SES no implementado, usando console")
-      return new ConsoleEmailService()
-    default:
-      return new ConsoleEmailService()
-  }
 }
 
 // Función principal para enviar email de invitación

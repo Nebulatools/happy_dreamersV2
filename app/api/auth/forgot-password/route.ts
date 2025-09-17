@@ -4,6 +4,7 @@
 import { NextResponse } from "next/server"
 import crypto from "crypto"
 import { tempStorage } from "@/lib/temp-storage"
+import { sendPasswordResetEmail } from "@/lib/email/password-reset-email"
 
 export async function POST(request: Request) {
   try {
@@ -34,18 +35,33 @@ export async function POST(request: Request) {
     const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
     const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`
 
-    // En desarrollo, mostrar el link en consola
-    console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    console.log("🔑 LINK DE RESETEO DE CONTRASEÑA")
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    console.log("Email:", email)
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    console.log("Copia y pega este link en tu navegador:")
-    console.log("\n" + resetUrl + "\n")
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    console.log("⏱️  Este link es válido por 1 hora")
-    console.log("📝 Token guardado en archivo temporal")
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+    const emailResult = await sendPasswordResetEmail({
+      email: emailLower,
+      resetUrl,
+      expiresInMinutes: 60
+    })
+
+    if (!emailResult.success) {
+      console.error("No se pudo enviar el email de recuperación:", emailResult.error)
+      return NextResponse.json(
+        { error: "No se pudo enviar el email de recuperación" },
+        { status: 500 }
+      )
+    }
+
+    if (process.env.NODE_ENV === "development") {
+      console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+      console.log("🔑 LINK DE RESETEO DE CONTRASEÑA")
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+      console.log("Email:", email)
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+      console.log("Copia y pega este link en tu navegador:")
+      console.log("\n" + resetUrl + "\n")
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+      console.log("⏱️  Este link es válido por 1 hora")
+      console.log("📝 Token guardado en archivo temporal")
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+    }
 
     return NextResponse.json({
       message: "Si el email existe en nuestro sistema, recibirás instrucciones para resetear tu contraseña.",
