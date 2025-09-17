@@ -63,7 +63,7 @@ interface Event {
 export default function DashboardPage() {
   const { toast } = useToast()
   const { data: session } = useSession()
-  const { activeChildId } = useActiveChild()
+  const { activeChildId, setActiveChildId } = useActiveChild()
   const { refreshTrigger, subscribe } = useEventsCache(activeChildId)
   
   // Detectar si el usuario es admin
@@ -125,6 +125,18 @@ export default function DashboardPage() {
       if (childResponse.ok) {
         const childData = await childResponse.json()
         setChild(childData)
+      } else {
+        // Si el niño no es accesible (404/403), limpiar selección guardada y evitar seguir
+        try {
+          const status = childResponse.status
+          if (status === 404 || status === 403) {
+            setChild(null)
+            setEvents([])
+            setActiveChildId(null)
+            localStorage.removeItem('activeChildId')
+            return
+          }
+        } catch {}
       }
       
       // Cargar eventos del niño solo si hay un niño activo
@@ -137,9 +149,14 @@ export default function DashboardPage() {
           console.log('✅ Eventos cargados exitosamente:', eventsData.events?.length || 0, 'eventos')
           setEvents(eventsData.events || [])
         } else {
-          console.error('❌ Error cargando eventos:', eventsResponse.status, eventsResponse.statusText)
-          const errorData = await eventsResponse.json().catch(() => null)
-          console.error('Error details:', errorData)
+          // Manejar estados esperables sin ruido: 404 (sin eventos/niño no accesible), 403
+          if (eventsResponse.status === 404 || eventsResponse.status === 403) {
+            setEvents([])
+          } else {
+            console.error('❌ Error cargando eventos:', eventsResponse.status, eventsResponse.statusText)
+            const errorData = await eventsResponse.json().catch(() => null)
+            console.error('Error details:', errorData)
+          }
         }
       } else {
         // Si no hay niño activo, limpiar los eventos

@@ -15,6 +15,7 @@ const INVITATIONS_COLLECTION = "pendingInvitations"
 const ACCESS_COLLECTION = "userChildAccess"
 const CHILDREN_COLLECTION = "children"
 const USERS_COLLECTION = "users"
+const NOTIFICATIONS_COLLECTION = "notificationlogs"
 
 // Configuración
 const INVITATION_EXPIRY_DAYS = 7 // Las invitaciones expiran en 7 días
@@ -276,6 +277,20 @@ export async function acceptInvitation(
     
     logger.info(`Invitación aceptada por usuario ${userId} para niño ${invitation.childId}`)
     
+    // Crear una notificación para el padre/dueño avisando aceptación
+    const notifications = db.collection(NOTIFICATIONS_COLLECTION)
+    await notifications.insertOne({
+      userId: invitation.invitedBy, // destinatario: padre que invitó
+      childId: invitation.childId,
+      type: "invitation_response",
+      status: "delivered",
+      title: "Invitación aceptada",
+      message: `${user.name} aceptó la invitación para acceder a ${invitation.childName}`,
+      scheduledFor: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    } as any)
+    
     return {
       success: true,
       childId: invitation.childId.toString()
@@ -308,6 +323,81 @@ export async function getInvitationByToken(
   } catch (error) {
     logger.error("Error obteniendo invitación:", error)
     return null
+  }
+}
+
+// Listar invitaciones pendientes por email
+export async function getInvitationsForEmail(
+  email: string
+): Promise<PendingInvitation[]> {
+  try {
+    const invitationsCollection = await getInvitationsCollection()
+    const invitations = await invitationsCollection.find({
+      email: email.toLowerCase(),
+      status: "pending",
+      expiresAt: { $gt: new Date() }
+    }).sort({ createdAt: -1 }).toArray()
+    return invitations
+  } catch (error) {
+    logger.error("Error listando invitaciones por email:", error)
+    return []
+  }
+}
+
+// Denegar invitación
+export async function declineInvitation(
+  token: string,
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const invitationsCollection = await getInvitationsCollection()
+    const { db } = await connectToDatabase()
+    
+    // Buscar invitación válida
+    const invitation = await invitationsCollection.findOne({
+      invitationToken: token,
+      status: "pending",
+      expiresAt: { $gt: new Date() }
+    })
+    
+    if (!invitation) {
+      return { success: false, error: "Invitación no válida o expirada" }
+    }
+    
+    // Validar que el usuario coincide por email
+    const usersCollection = db.collection<User>(USERS_COLLECTION)
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) })
+    if (!user) {
+      return { success: false, error: "Usuario no encontrado" }
+    }
+    if (user.email.toLowerCase() !== invitation.email.toLowerCase()) {
+      return { success: false, error: "Esta invitación es para otro email" }
+    }
+    
+    // Marcar como denegada
+    await invitationsCollection.updateOne(
+      { _id: invitation._id },
+      { $set: { status: "declined", declinedAt: new Date(), acceptedBy: new ObjectId(userId), updatedAt: new Date() } }
+    )
+    
+    // Registrar notificación para el padre/dueño
+    const notifications = db.collection(NOTIFICATIONS_COLLECTION)
+    await notifications.insertOne({
+      userId: invitation.invitedBy,
+      childId: invitation.childId,
+      type: "invitation_response",
+      status: "delivered",
+      title: "Invitación denegada",
+      message: `${user.name || user.email} denegó la invitación para acceder a ${invitation.childName}`,
+      scheduledFor: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    } as any)
+    
+    return { success: true }
+  } catch (error) {
+    logger.error("Error denegando invitación:", error)
+    return { success: false, error: "Error interno al denegar invitación" }
   }
 }
 

@@ -65,6 +65,21 @@ export default function NotificacionesPage() {
     failed: 0
   })
   
+  // Invitaciones pendientes del usuario actual
+  interface InvitationItem {
+    _id: string
+    email: string
+    childId: string | { _id: string }
+    childName: string
+    invitedByName: string
+    role: string
+    relationshipDescription?: string
+    invitationToken: string
+    createdAt: string
+  }
+  const [pendingInvitations, setPendingInvitations] = useState<InvitationItem[]>([])
+  const [loadingInvitations, setLoadingInvitations] = useState<boolean>(false)
+  
   // Debug log para verificar el contexto - ACTUALIZADO
   useEffect(() => {
     console.log("=== NotificacionesPage DEBUG START ===")
@@ -198,6 +213,59 @@ export default function NotificacionesPage() {
       loadNotificationHistory()
     }
   }, [selectedChild])
+
+  // Cargar invitaciones pendientes del usuario
+  const loadPendingInvitations = async () => {
+    try {
+      setLoadingInvitations(true)
+      const response = await fetch('/api/invitations/me')
+      if (!response.ok) throw new Error('Error cargando invitaciones')
+      const data = await response.json()
+      setPendingInvitations(data.invitations || [])
+    } catch (error) {
+      console.error('Error cargando invitaciones:', error)
+      setPendingInvitations([])
+    } finally {
+      setLoadingInvitations(false)
+    }
+  }
+
+  useEffect(() => {
+    loadPendingInvitations()
+  }, [])
+
+  const acceptInvitation = async (token: string) => {
+    try {
+      const response = await fetch('/api/invitation/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Error al aceptar invitación')
+      toast.success('¡Invitación aceptada!')
+      await loadPendingInvitations()
+      // Opcional: si el padre está en esta sesión, el log aparecerá en historial; aquí solo refrescamos
+    } catch (error: any) {
+      toast.error(error.message || 'Error al aceptar invitación')
+    }
+  }
+
+  const declineInvitation = async (token: string) => {
+    try {
+      const response = await fetch('/api/invitation/decline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Error al denegar invitación')
+      toast.success('Invitación denegada')
+      await loadPendingInvitations()
+    } catch (error: any) {
+      toast.error(error.message || 'Error al denegar invitación')
+    }
+  }
 
   const loadNotificationHistory = async () => {
     try {
@@ -347,6 +415,49 @@ export default function NotificacionesPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Invitaciones pendientes */}
+      {loadingInvitations ? (
+        <div className="flex items-center justify-center py-6">
+          <Icons.spinner className="h-5 w-5 animate-spin" />
+        </div>
+      ) : pendingInvitations.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Invitaciones pendientes</CardTitle>
+            <CardDescription>
+              Acepta o deniega accesos que te han compartido
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {pendingInvitations.map((inv) => (
+                <div key={inv._id} className="flex items-center justify-between p-3 border rounded-lg bg-yellow-50 border-yellow-200">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center">
+                      <Icons.mail className="h-5 w-5 text-yellow-700" />
+                    </div>
+                    <div>
+                      <div className="font-medium">{inv.invitedByName} te invitó al perfil de {inv.childName}</div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        Rol: <strong>{inv.role === 'editor' ? 'Editor completo' : inv.role === 'caregiver' ? 'Cuidador' : 'Solo lectura'}</strong>
+                        {inv.relationshipDescription ? ` · ${inv.relationshipDescription}` : ''}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {formatDistanceToNow(new Date(inv.createdAt), { addSuffix: true, locale: es })}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={() => acceptInvitation(inv.invitationToken)}>Aceptar</Button>
+                    <Button size="sm" variant="outline" onClick={() => declineInvitation(inv.invitationToken)}>Denegar</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* Mostrar mensaje apropiado según el contexto */}
       {session?.user.role === 'admin' && !activeUserId ? (

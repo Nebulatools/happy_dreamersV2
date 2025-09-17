@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { connectToDatabase } from "@/lib/mongodb"
+import { getInvitationsForEmail } from "@/lib/db/invitations"
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("api/notifications/count")
@@ -17,21 +18,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Por ahora retornar 0 ya que el sistema de notificaciones no está implementado
-    // Cuando se implemente, aquí se consultaría la base de datos para contar
-    // las notificaciones no leídas del usuario
-    
-    // Ejemplo de implementación futura:
-    // const { db } = await connectToDatabase()
-    // const count = await db.collection("notifications").countDocuments({
-    //   userId: session.user.id,
-    //   read: false
-    // })
+    // Contar invitaciones pendientes del usuario (por email)
+    const pendingInvites = await getInvitationsForEmail(session.user.email)
+    const invitationsCount = pendingInvites.length
 
-    return NextResponse.json({
-      success: true,
-      count: 0 // Por ahora siempre 0
-    })
+    // En el futuro aquí podemos sumar otras notificaciones no leídas
+    const totalCount = invitationsCount
+
+    return NextResponse.json({ success: true, count: totalCount })
 
   } catch (error) {
     logger.error("Error fetching notification count", error)
