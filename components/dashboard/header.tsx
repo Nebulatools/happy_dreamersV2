@@ -15,12 +15,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { UserAvatar } from "@/components/ui/user-avatar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { useState, useEffect } from "react"
+import { formatDistanceToNow } from "date-fns"
+import { es } from "date-fns/locale"
 import { ChildSelector } from "@/components/dashboard/child-selector"
 import { usePageHeader } from "@/context/page-header-context"
 import { ChildAgeFromContext } from "@/components/ui/child-age-badge"
+import { Icons } from "@/components/icons"
 
 import { createLogger } from "@/lib/logger"
 
@@ -33,6 +37,9 @@ export function Header() {
   const [mounted, setMounted] = useState(false)
   const { config } = usePageHeader()
   const [notificationCount, setNotificationCount] = useState(0)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [notificationsLoading, setNotificationsLoading] = useState(false)
+  const [notifications, setNotifications] = useState<any[]>([])
 
   useEffect(() => {
     setMounted(true)
@@ -40,7 +47,10 @@ export function Header() {
 
   // Cargar conteo de notificaciones pendientes
   useEffect(() => {
+    let isMountedComponent = true
+
     const fetchNotificationCount = async () => {
+      if (!isMountedComponent) return
       if (!session?.user?.email) return
       
       try {
@@ -57,9 +67,68 @@ export function Header() {
     fetchNotificationCount()
     // Actualizar cada minuto
     const interval = setInterval(fetchNotificationCount, 60000)
+
+    const handleNotificationsUpdated = () => {
+      fetchNotificationCount()
+    }
+
+    window.addEventListener('notificationsUpdated', handleNotificationsUpdated)
     
-    return () => clearInterval(interval)
+    return () => {
+      isMountedComponent = false
+      clearInterval(interval)
+      window.removeEventListener('notificationsUpdated', handleNotificationsUpdated)
+    }
   }, [session])
+
+  const fetchNotificationsList = async () => {
+    if (!session?.user?.id) return
+    setNotificationsLoading(true)
+
+    try {
+      const response = await fetch('/api/notifications/history?limit=10')
+      if (!response.ok) throw new Error('Error cargando notificaciones')
+
+      const data = await response.json()
+      const list = data.notifications || []
+      setNotifications(list)
+
+      const toMark = list
+        .filter((item: any) =>
+          item?.status === 'delivered' &&
+          ['invitation', 'invitation_response'].includes(item?.type)
+        )
+        .map((item: any) => item?._id)
+        .filter(Boolean)
+
+      if (toMark.length > 0) {
+        await Promise.all(toMark.map((id: string) =>
+          fetch('/api/notifications/history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notificationId: id, action: 'read' })
+          })
+        ))
+
+        window.dispatchEvent(new CustomEvent('notificationsUpdated'))
+        setNotifications((current) => current.map((item: any) =>
+          toMark.includes(item._id)
+            ? { ...item, status: 'read', readAt: new Date().toISOString() }
+            : item
+        ))
+      }
+    } catch (error) {
+      logger.error('Error loading notifications list:', error)
+    } finally {
+      setNotificationsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (notificationsOpen) {
+      fetchNotificationsList()
+    }
+  }, [notificationsOpen])
 
   if (!mounted) return null
 
@@ -149,27 +218,89 @@ export function Header() {
           
           {/* Notification Button con badge - exactamente como en Figma */}
           {config.showNotifications !== false && (
-            <Button 
-              variant="ghost" 
-              className="relative p-2 min-h-[44px] min-w-[44px] h-auto w-auto flex items-center justify-center"
-              onClick={() => router.push("/dashboard/notificaciones")}
-            >
-              {/* Ícono de notificación con dimensiones exactas de Figma */}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-[18px] w-[15.75px] text-[#666666]"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
-              </svg>
-              {/* Badge con dimensiones exactas de Figma: 16x16px - Solo mostrar si hay notificaciones */}
-              {notificationCount > 0 && (
-                <div className="absolute top-1 right-1 h-4 w-4 bg-[#DF3F40] rounded-full flex items-center justify-center">
-                  <span className="text-xs text-white font-normal leading-none">{notificationCount}</span>
+            <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="relative p-2 min-h-[44px] min-w-[44px] h-auto w-auto flex items-center justify-center"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-[18px] w-[15.75px] text-[#666666]"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+                  </svg>
+                  {notificationCount > 0 && (
+                    <div className="absolute top-1 right-1 h-4 w-4 bg-[#DF3F40] rounded-full flex items-center justify-center">
+                      <span className="text-xs text-white font-normal leading-none">{notificationCount}</span>
+                    </div>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 p-0">
+                <div className="p-4 border-b">
+                  <h3 className="text-sm font-medium text-[#1F2937]">Notificaciones</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Últimas solicitudes y avisos</p>
                 </div>
-              )}
-            </Button>
+                <div className="max-h-80 overflow-y-auto">
+                  {notificationsLoading ? (
+                    <div className="flex items-center justify-center py-6">
+                      <Icons.spinner className="h-5 w-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : notifications.length === 0 ? (
+                    <div className="py-6 text-center text-sm text-muted-foreground">
+                      No hay notificaciones nuevas
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {notifications.map((notification) => {
+                        const createdAt = notification?.createdAt ? new Date(notification.createdAt) : null
+                        return (
+                          <div key={notification._id || notification.title} className="p-4 hover:bg-gray-50">
+                            <div className="flex items-start gap-3">
+                              <div className="mt-1">
+                                <Icons.bell className="h-4 w-4 text-[#68A1C8]" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-[#1F2937]">
+                                  {notification.title || 'Nueva notificación'}
+                                </p>
+                                {notification.message && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {notification.message}
+                                  </p>
+                                )}
+                                {createdAt && (
+                                  <p className="text-xs text-muted-foreground mt-2">
+                                    {formatDistanceToNow(createdAt, { addSuffix: true, locale: es })}
+                                  </p>
+                                )}
+                              </div>
+                              {notification.status !== 'read' && (
+                                <span className="inline-flex h-2 w-2 rounded-full bg-[#68A1C8] mt-2" />
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div className="p-4 border-t flex items-center justify-between">
+                  <Button variant="ghost" size="sm" onClick={() => setNotificationsOpen(false)}>
+                    Cerrar
+                  </Button>
+                  <Button variant="link" size="sm" onClick={() => {
+                    setNotificationsOpen(false)
+                    router.push('/dashboard/notificaciones')
+                  }}>
+                    Ver todas
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           )}
           
           {/* Profile Avatar con dropdown - como en Figma */}

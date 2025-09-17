@@ -245,7 +245,8 @@ export default function NotificacionesPage() {
       if (!response.ok) throw new Error(data.error || 'Error al aceptar invitación')
       toast.success('¡Invitación aceptada!')
       await loadPendingInvitations()
-      // Opcional: si el padre está en esta sesión, el log aparecerá en historial; aquí solo refrescamos
+      await loadNotificationHistory()
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'))
     } catch (error: any) {
       toast.error(error.message || 'Error al aceptar invitación')
     }
@@ -262,8 +263,38 @@ export default function NotificacionesPage() {
       if (!response.ok) throw new Error(data.error || 'Error al denegar invitación')
       toast.success('Invitación denegada')
       await loadPendingInvitations()
+      await loadNotificationHistory()
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'))
     } catch (error: any) {
       toast.error(error.message || 'Error al denegar invitación')
+    }
+  }
+
+  const autoMarkNotifications = async (items: any[]) => {
+    try {
+      const targets = items
+        .filter((notification: any) =>
+          notification?.status === 'delivered' &&
+          ['invitation', 'invitation_response'].includes(notification?.type)
+        )
+        .map((notification: any) => notification?._id)
+        .filter(Boolean)
+
+      if (targets.length === 0) return
+
+      await Promise.all(targets.map((id: string) =>
+        fetch('/api/notifications/history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notificationId: id, action: 'read' })
+        })
+      ))
+
+      // Refrescar conteo sin bloquear
+      fetch('/api/notifications/count').catch(() => undefined)
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'))
+    } catch (error) {
+      console.error('Error auto-marcando notificaciones:', error)
     }
   }
 
@@ -273,7 +304,8 @@ export default function NotificacionesPage() {
       if (!response.ok) throw new Error("Error cargando historial")
       
       const data = await response.json()
-      setNotifications(data.notifications || [])
+      const notificationsList = data.notifications || []
+      setNotifications(notificationsList)
       setStats(data.stats || {
         total: 0,
         sent: 0,
@@ -281,6 +313,25 @@ export default function NotificacionesPage() {
         read: 0,
         failed: 0
       })
+
+      if (Array.isArray(notificationsList) && notificationsList.length > 0) {
+        await autoMarkNotifications(notificationsList)
+        const autoReadIds = notificationsList
+          .filter((notification: any) =>
+            notification?.status === 'delivered' &&
+            ['invitation', 'invitation_response'].includes(notification?.type)
+          )
+          .map((notification: any) => notification?._id)
+          .filter(Boolean)
+
+        if (autoReadIds.length > 0) {
+          setNotifications(notificationsList.map((notification: any) =>
+            autoReadIds.includes(notification._id)
+              ? { ...notification, status: 'read', readAt: new Date().toISOString() }
+              : notification
+          ))
+        }
+      }
     } catch (error) {
       console.error("Error:", error)
       toast.error("Error al cargar el historial de notificaciones")
@@ -302,6 +353,7 @@ export default function NotificacionesPage() {
       
       toast.success("Notificación marcada como leída")
       loadNotificationHistory()
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'))
     } catch (error) {
       console.error("Error:", error)
       toast.error("Error al marcar notificación")
