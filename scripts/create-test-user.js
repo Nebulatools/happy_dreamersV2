@@ -36,9 +36,9 @@ async function createTestUser() {
 
   // Datos del usuario de prueba
   const testUser = {
-    name: 'Jaco Test',
-    email: 'ventas@jacoagency.io',
-    password: 'test123456',
+    name: 'Jaco',
+    email: 'jaco.12.94@gmail.com',
+    password: 'jaco123456',
     role: 'parent'
   }
 

@@ -113,7 +113,7 @@ async function testMongoConnection() {
     console.log()
 
     // Buscar usuario específico
-    const targetEmail = 'ventas@jacoagency.io'
+    const targetEmail = 'test@test.com'
     log.info(`Buscando usuario: ${targetEmail}`)
 
     const user = await usersCollection.findOne({ email: targetEmail })
