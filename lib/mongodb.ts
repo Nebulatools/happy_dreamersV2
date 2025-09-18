@@ -61,7 +61,8 @@ if (process.env.NODE_ENV === "development") {
 // 🔌 FUNCIÓN DE CONEXIÓN SIMPLE Y ESTABLE
 export async function connectToDatabase(): Promise<{ client: MongoClient; db: Db }> {
   const client = await clientPromise
-  const db = client.db()
+  const dbName = process.env.MONGODB_DB_FINAL || process.env.MONGODB_DATABASE || process.env.MONGODB_DB
+  const db = client.db(dbName)
   return { client, db }
 }
 
