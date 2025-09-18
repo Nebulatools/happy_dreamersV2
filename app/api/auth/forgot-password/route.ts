@@ -1,54 +1,76 @@
-// API endpoint para manejar solicitudes de recuperación de contraseña
-// VERSIÓN TEMPORAL: Con persistencia en archivo para desarrollo
+// API para solicitar reset de contraseña
+// Envía email con link de reset usando MongoDB
 
 import { NextResponse } from "next/server"
-import crypto from "crypto"
-import { tempStorage } from "@/lib/temp-storage"
+import { connectToDatabase } from "@/lib/mongodb"
 import { sendPasswordResetEmail } from "@/lib/email/password-reset-email"
+import crypto from "crypto"
+import { createLogger } from "@/lib/logger"
 
-export async function POST(request: Request) {
+const logger = createLogger("API:auth:forgot-password")
+
+export async function POST(req: Request) {
   try {
-    const { email } = await request.json()
+    const { email } = await req.json()
 
+    // Validar email
     if (!email) {
-      return NextResponse.json(
-        { error: "El email es requerido" },
-        { status: 400 }
-      )
+      return NextResponse.json({
+        message: "El email es requerido"
+      }, { status: 400 })
+    }
+
+    // Conectar a la base de datos
+    const { db } = await connectToDatabase()
+    const usersCollection = db.collection("users")
+
+    // Verificar si el usuario existe
+    const user = await usersCollection.findOne({ email: email.toLowerCase() })
+
+    if (!user) {
+      // Por seguridad, no revelamos si el email existe o no
+      return NextResponse.json({
+        message: "Si el email existe, recibirás un enlace de recuperación"
+      }, { status: 200 })
     }
 
     // Generar token de reset
-    const resetToken = crypto.randomBytes(32).toString("hex")
-    const resetTokenExpiry = new Date(Date.now() + 3600000) // 1 hora
+    const resetToken = crypto.randomBytes(32).toString('hex')
+    const resetTokenExpiry = new Date()
+    resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1) // 1 hora de expiración
 
-    // Guardar el token en archivo temporal
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(resetToken)
-      .digest("hex")
-    
-    const emailLower = email.toLowerCase()
-    tempStorage.setToken(hashedToken, emailLower, resetTokenExpiry)
-    console.log("📝 Token guardado para email:", emailLower)
+    // Guardar token en la base de datos
+    await usersCollection.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          resetPasswordToken: resetToken,
+          resetPasswordExpiry: resetTokenExpiry,
+          updatedAt: new Date()
+        }
+      }
+    )
 
-    // Construir URL de reset
-    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
-    const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`
+    // Crear URL de reset
+    const resetUrl = `${process.env.NEXTAUTH_URL}/auth/reset-password?token=${resetToken}`
 
+    // Enviar email
     const emailResult = await sendPasswordResetEmail({
-      email: emailLower,
+      email: user.email,
       resetUrl,
       expiresInMinutes: 60
     })
 
     if (!emailResult.success) {
-      console.error("No se pudo enviar el email de recuperación:", emailResult.error)
-      return NextResponse.json(
-        { error: "No se pudo enviar el email de recuperación" },
-        { status: 500 }
-      )
+      logger.error("Error enviando email de reset:", emailResult.error)
+      return NextResponse.json({
+        message: "Error enviando el email de recuperación"
+      }, { status: 500 })
     }
 
+    logger.info(`Email de reset enviado a ${email}`)
+
+    // En desarrollo, mostrar el link
     if (process.env.NODE_ENV === "development") {
       console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
       console.log("🔑 LINK DE RESETEO DE CONTRASEÑA")
@@ -59,21 +81,20 @@ export async function POST(request: Request) {
       console.log("\n" + resetUrl + "\n")
       console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
       console.log("⏱️  Este link es válido por 1 hora")
-      console.log("📝 Token guardado en archivo temporal")
       console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
     }
 
     return NextResponse.json({
-      message: "Si el email existe en nuestro sistema, recibirás instrucciones para resetear tu contraseña.",
+      message: "Si el email existe, recibirás un enlace de recuperación",
+      success: true,
       // En desarrollo, incluir el link para facilitar las pruebas
       ...(process.env.NODE_ENV === "development" && { resetUrl })
-    })
+    }, { status: 200 })
 
   } catch (error) {
-    console.error("Error en forgot password:", error)
-    return NextResponse.json(
-      { error: "Error al procesar la solicitud" },
-      { status: 500 }
-    )
+    logger.error("Error en forgot-password:", error)
+    return NextResponse.json({
+      message: "Error interno del servidor"
+    }, { status: 500 })
   }
 }
