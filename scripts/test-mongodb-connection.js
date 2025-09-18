@@ -41,13 +41,14 @@ async function testMongoConnection() {
     process.exit(1)
   }
 
-  if (!process.env.MONGODB_DB) {
-    log.error('MONGODB_DB no está definida en .env')
+  const dbName = process.env.MONGODB_DB_FINAL || process.env.MONGODB_DATABASE || process.env.MONGODB_DB
+  if (!dbName) {
+    log.error('Ninguna variable de base de datos está definida (MONGODB_DB_FINAL, MONGODB_DATABASE, MONGODB_DB)')
     process.exit(1)
   }
 
   log.data(`URI: ${process.env.MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@')}`)
-  log.data(`DB: ${process.env.MONGODB_DB}`)
+  log.data(`DB: ${dbName}`)
   console.log()
 
   let client
