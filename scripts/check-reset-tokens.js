@@ -1,10 +1,10 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 /**
- * Script para verificar tokens de reset de contraseña
+ * Script para verificar tokens de reset de contraseÃ±a
  */
 
-const { MongoClient } = require('mongodb')
+const { connect, getDb, disconnect } = require('./mongoose-util')
 require('dotenv').config({ path: '.env' })
 
 const colors = {
@@ -19,37 +19,34 @@ const colors = {
 }
 
 const log = {
-  success: (msg) => console.log(`${colors.green}✅ ${msg}${colors.reset}`),
-  error: (msg) => console.log(`${colors.red}❌ ${msg}${colors.reset}`),
-  warning: (msg) => console.log(`${colors.yellow}⚠️  ${msg}${colors.reset}`),
-  info: (msg) => console.log(`${colors.blue}ℹ️  ${msg}${colors.reset}`),
-  header: (msg) => console.log(`${colors.bold}${colors.cyan}🔑 ${msg}${colors.reset}`),
+  success: (msg) => console.log(`${colors.green}âœ… ${msg}${colors.reset}`),
+  error: (msg) => console.log(`${colors.red}âŒ ${msg}${colors.reset}`),
+  warning: (msg) => console.log(`${colors.yellow}âš ï¸  ${msg}${colors.reset}`),
+  info: (msg) => console.log(`${colors.blue}â„¹ï¸  ${msg}${colors.reset}`),
+  header: (msg) => console.log(`${colors.bold}${colors.cyan}ðŸ”‘ ${msg}${colors.reset}`),
   data: (msg) => console.log(`${colors.white}   ${msg}${colors.reset}`)
 }
 
 async function checkResetTokens() {
-  log.header('VERIFICACIÓN DE TOKENS DE RESET')
+  log.header('VERIFICACIÃ“N DE TOKENS DE RESET')
   console.log()
 
   let client
 
   try {
     // Conectar a MongoDB
-    log.info('🔌 Conectando a MongoDB...')
-    client = new MongoClient(process.env.MONGODB_URI, {
-      maxPoolSize: 5,
-      serverSelectionTimeoutMS: 5000,
-    })
+    log.info('ðŸ”Œ Conectando a MongoDB...')
+    client = /* mongoose connection handled in connect() */
 
-    await client.connect()
-    log.success('Conexión establecida')
+    await connect()
+    log.success('ConexiÃ³n establecida')
 
     const dbName = process.env.MONGODB_DB_FINAL || process.env.MONGODB_DATABASE || process.env.MONGODB_DB
-    const db = client.db(dbName)
+    const db = await getDb()
     const usersCollection = db.collection('users')
 
     // Buscar usuarios con tokens de reset
-    log.info('🔍 Buscando usuarios con tokens de reset...')
+    log.info('ðŸ” Buscando usuarios con tokens de reset...')
     const usersWithTokens = await usersCollection.find({
       resetPasswordToken: { $exists: true, $ne: null }
     }).toArray()
@@ -64,13 +61,13 @@ async function checkResetTokens() {
         log.data(`${index + 1}. Usuario: ${user.email}`)
         log.data(`   Token: ${user.resetPasswordToken}`)
         log.data(`   Expira: ${user.resetPasswordExpiry}`)
-        log.data(`   Es válido: ${user.resetPasswordExpiry > new Date() ? 'Sí' : 'No (expirado)'}`)
+        log.data(`   Es vÃ¡lido: ${user.resetPasswordExpiry > new Date() ? 'SÃ­' : 'No (expirado)'}`)
       })
     }
 
-    // Buscar específicamente jaco.12.94@gmail.com
+    // Buscar especÃ­ficamente jaco.12.94@gmail.com
     console.log()
-    log.info('🔍 Verificando usuario jaco.12.94@gmail.com...')
+    log.info('ðŸ” Verificando usuario jaco.12.94@gmail.com...')
     const jacoUser = await usersCollection.findOne({ email: 'jaco.12.94@gmail.com' })
 
     if (!jacoUser) {
@@ -82,13 +79,13 @@ async function checkResetTokens() {
 
       if (jacoUser.resetPasswordToken) {
         log.data(`Token de reset: ${jacoUser.resetPasswordToken}`)
-        log.data(`Fecha de expiración: ${jacoUser.resetPasswordExpiry}`)
-        log.data(`Estado: ${jacoUser.resetPasswordExpiry > new Date() ? 'Válido' : 'Expirado'}`)
+        log.data(`Fecha de expiraciÃ³n: ${jacoUser.resetPasswordExpiry}`)
+        log.data(`Estado: ${jacoUser.resetPasswordExpiry > new Date() ? 'VÃ¡lido' : 'Expirado'}`)
 
         // Crear URL de reset
         const resetUrl = `${process.env.NEXTAUTH_URL}/auth/reset-password?token=${jacoUser.resetPasswordToken}`
         console.log()
-        log.header('🔗 URL DE RESET GENERADA')
+        log.header('ðŸ”— URL DE RESET GENERADA')
         log.data(resetUrl)
       } else {
         log.warning('Usuario no tiene token de reset activo')
@@ -96,11 +93,11 @@ async function checkResetTokens() {
     }
 
   } catch (error) {
-    log.error('💥 Error durante la verificación:', error)
+    log.error('ðŸ’¥ Error durante la verificaciÃ³n:', error)
   } finally {
     if (client) {
-      await client.close()
-      log.info('🔌 Conexión cerrada')
+      await disconnect()
+      log.info('ðŸ”Œ ConexiÃ³n cerrada')
     }
   }
 }

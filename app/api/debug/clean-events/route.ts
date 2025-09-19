@@ -2,14 +2,14 @@
 // Limpia eventos duplicados y problemáticos
 
 import { NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 
 export async function POST(req: NextRequest) {
   try {
     console.log('🧹 INICIANDO LIMPIEZA DE EVENTOS...')
     
-    const { db } = await connectToDatabase()
+  const db = await getDb()
     
     // Obtener todos los niños con eventos
     const children = await db.collection("children").find({}).toArray()

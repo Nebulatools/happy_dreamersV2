@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { createLogger } from "@/lib/logger"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { compare, hash } from "bcryptjs"
 
 const logger = createLogger("UserPasswordAPI")
@@ -51,7 +51,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Connect to database and get user
-    const { db } = await connectToDatabase()
+  const db = await getDb()
     
     const user = await db.collection("users").findOne({
       email: session.user.email

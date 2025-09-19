@@ -4,7 +4,7 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { checkUserAccess, getAccessibleChildren } from "@/lib/db/user-child-access"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 import { Child, UserChildAccess } from "@/types/models"
 import { createLogger } from "@/lib/logger"
@@ -50,7 +50,7 @@ export async function verifyChildAccess(
     // Si es el dueño, tiene todos los permisos
     if (accessResult.isOwner) {
       // Obtener información del niño
-      const { db } = await connectToDatabase()
+      const db = await getDb()
       const child = await db.collection<Child>("children").findOne({
         _id: new ObjectId(childId)
       })
@@ -84,7 +84,7 @@ export async function verifyChildAccess(
     }
 
     // Obtener información del niño
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     const child = await db.collection<Child>("children").findOne({
       _id: new ObjectId(childId)
     })
@@ -237,7 +237,7 @@ export async function getUserRoleForChild(
   childId: string
 ): Promise<"owner" | "viewer" | "caregiver" | "editor" | null> {
   try {
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     
     // Verificar si es el dueño
     const child = await db.collection<Child>("children").findOne({

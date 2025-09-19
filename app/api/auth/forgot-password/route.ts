@@ -2,7 +2,7 @@
 // Envía email con link de reset usando MongoDB
 
 import { NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { sendPasswordResetEmail } from "@/lib/email/password-reset-email"
 import crypto from "crypto"
 import { createLogger } from "@/lib/logger"
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+  const db = await getDb()
     const usersCollection = db.collection("users")
 
     // Verificar si el usuario existe

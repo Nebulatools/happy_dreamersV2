@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("API:users:search")
@@ -26,8 +26,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Conectar a la base de datos
-    const client = await clientPromise
-    const db = client.db()
+  const db = await getDb()
 
     // Buscar usuarios por email (búsqueda parcial, case-insensitive)
     const users = await db.collection("users")

@@ -39,12 +39,12 @@ jest.mock('next-auth/react', () => ({
   SessionProvider: ({ children }) => children,
 }))
 
-// Mock de MongoDB para tests
-jest.mock('@/lib/mongodb', () => ({
-  connectToDatabase: jest.fn().mockResolvedValue({
-    db: {},
-    client: {},
-  }),
+// Mock de capa de datos unificada (Mongoose)
+jest.mock('@/lib/mongoose', () => ({
+  getDb: jest.fn().mockResolvedValue({}),
+  getMongoClientPromise: jest.fn().mockResolvedValue({}),
+  __esModule: true,
+  default: jest.fn().mockResolvedValue(undefined), // dbConnect
 }))
 
 // Mock del logger para evitar logs en tests

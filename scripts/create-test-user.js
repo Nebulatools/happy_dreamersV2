@@ -1,15 +1,15 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 /**
  * Script para crear un usuario de prueba directamente en MongoDB
- * Esto nos ayuda a verificar que la conexión funciona ANTES de probarlo en web
+ * Esto nos ayuda a verificar que la conexiÃ³n funciona ANTES de probarlo en web
  */
 
-const { MongoClient } = require('mongodb')
+const { connect, getDb, disconnect } = require('./mongoose-util')
 const bcrypt = require('bcryptjs')
 require('dotenv').config({ path: '.env' })
 
-// Configuración de colores para la consola
+// ConfiguraciÃ³n de colores para la consola
 const colors = {
   green: '\x1b[32m',
   red: '\x1b[31m',
@@ -22,16 +22,16 @@ const colors = {
 }
 
 const log = {
-  success: (msg) => console.log(`${colors.green}✅ ${msg}${colors.reset}`),
-  error: (msg) => console.log(`${colors.red}❌ ${msg}${colors.reset}`),
-  warning: (msg) => console.log(`${colors.yellow}⚠️  ${msg}${colors.reset}`),
-  info: (msg) => console.log(`${colors.blue}ℹ️  ${msg}${colors.reset}`),
-  header: (msg) => console.log(`${colors.bold}${colors.cyan}🧪 ${msg}${colors.reset}`),
+  success: (msg) => console.log(`${colors.green}âœ… ${msg}${colors.reset}`),
+  error: (msg) => console.log(`${colors.red}âŒ ${msg}${colors.reset}`),
+  warning: (msg) => console.log(`${colors.yellow}âš ï¸  ${msg}${colors.reset}`),
+  info: (msg) => console.log(`${colors.blue}â„¹ï¸  ${msg}${colors.reset}`),
+  header: (msg) => console.log(`${colors.bold}${colors.cyan}ðŸ§ª ${msg}${colors.reset}`),
   data: (msg) => console.log(`${colors.white}   ${msg}${colors.reset}`)
 }
 
 async function createTestUser() {
-  log.header('SCRIPT DE PRUEBA - CREACIÓN DE USUARIO')
+  log.header('SCRIPT DE PRUEBA - CREACIÃ“N DE USUARIO')
   console.log()
 
   // Datos del usuario de prueba
@@ -42,7 +42,7 @@ async function createTestUser() {
     role: 'parent'
   }
 
-  log.info('Configuración actual:')
+  log.info('ConfiguraciÃ³n actual:')
   log.data(`URI: ${process.env.MONGODB_URI?.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@')}`)
   log.data(`DB: ${process.env.MONGODB_DB}`)
   log.data(`NEXTAUTH_URL: ${process.env.NEXTAUTH_URL}`)
@@ -60,34 +60,31 @@ async function createTestUser() {
 
   try {
     // Conectar a MongoDB
-    log.info('🔌 Conectando a MongoDB...')
-    client = new MongoClient(process.env.MONGODB_URI, {
-      maxPoolSize: 5,
-      serverSelectionTimeoutMS: 5000,
-    })
+    log.info('ðŸ”Œ Conectando a MongoDB...')
+    client = /* mongoose connection handled in connect() */
 
-    await client.connect()
-    log.success('Conexión establecida')
+    await connect()
+    log.success('ConexiÃ³n establecida')
 
-    const db = client.db(process.env.MONGODB_DB)
+    const db = await getDb()
     const usersCollection = db.collection('users')
 
     // Limpiar usuario existente primero
-    log.info('🧹 Limpiando usuario existente (si existe)...')
+    log.info('ðŸ§¹ Limpiando usuario existente (si existe)...')
     const deleteResult = await usersCollection.deleteMany({ email: testUser.email })
     if (deleteResult.deletedCount > 0) {
       log.warning(`Eliminados ${deleteResult.deletedCount} usuarios con ese email`)
     } else {
-      log.data('No había usuarios previos con ese email')
+      log.data('No habÃ­a usuarios previos con ese email')
     }
 
-    // Hashear la contraseña
-    log.info('🔐 Hasheando contraseña...')
+    // Hashear la contraseÃ±a
+    log.info('ðŸ” Hasheando contraseÃ±a...')
     const hashedPassword = await bcrypt.hash(testUser.password, 12)
-    log.success('Contraseña hasheada')
+    log.success('ContraseÃ±a hasheada')
 
     // Crear el usuario
-    log.info('👤 Creando usuario en la base de datos...')
+    log.info('ðŸ‘¤ Creando usuario en la base de datos...')
     const result = await usersCollection.insertOne({
       name: testUser.name,
       email: testUser.email,
@@ -99,50 +96,50 @@ async function createTestUser() {
     })
 
     if (result.insertedId) {
-      log.success('¡Usuario creado exitosamente!')
+      log.success('Â¡Usuario creado exitosamente!')
       log.data(`ID: ${result.insertedId}`)
       console.log()
 
       // Verificar inmediatamente
-      log.info('🔍 Verificando que el usuario se creó...')
+      log.info('ðŸ” Verificando que el usuario se creÃ³...')
       const verifyUser = await usersCollection.findOne({ _id: result.insertedId })
 
       if (verifyUser) {
-        log.success('✅ VERIFICACIÓN EXITOSA')
-        log.data(`✓ ID: ${verifyUser._id}`)
-        log.data(`✓ Email: ${verifyUser.email}`)
-        log.data(`✓ Nombre: ${verifyUser.name}`)
-        log.data(`✓ Rol: ${verifyUser.role}`)
-        log.data(`✓ Contraseña hasheada: ${verifyUser.password ? 'Sí' : 'No'}`)
-        log.data(`✓ Fecha: ${verifyUser.createdAt}`)
+        log.success('âœ… VERIFICACIÃ“N EXITOSA')
+        log.data(`âœ“ ID: ${verifyUser._id}`)
+        log.data(`âœ“ Email: ${verifyUser.email}`)
+        log.data(`âœ“ Nombre: ${verifyUser.name}`)
+        log.data(`âœ“ Rol: ${verifyUser.role}`)
+        log.data(`âœ“ ContraseÃ±a hasheada: ${verifyUser.password ? 'SÃ­' : 'No'}`)
+        log.data(`âœ“ Fecha: ${verifyUser.createdAt}`)
         console.log()
 
         // Verificar login simulado
-        log.info('🔑 Probando validación de contraseña...')
+        log.info('ðŸ”‘ Probando validaciÃ³n de contraseÃ±a...')
         const isPasswordValid = await bcrypt.compare(testUser.password, verifyUser.password)
         if (isPasswordValid) {
-          log.success('✅ Contraseña válida - Login funcionaría')
+          log.success('âœ… ContraseÃ±a vÃ¡lida - Login funcionarÃ­a')
         } else {
-          log.error('❌ Error en validación de contraseña')
+          log.error('âŒ Error en validaciÃ³n de contraseÃ±a')
         }
 
         console.log()
-        log.header('🎉 ÉXITO TOTAL - EL USUARIO SE CREÓ CORRECTAMENTE')
+        log.header('ðŸŽ‰ Ã‰XITO TOTAL - EL USUARIO SE CREÃ“ CORRECTAMENTE')
         log.info('Ahora puedes probar en la web con:')
         log.data(`Email: ${testUser.email}`)
         log.data(`Password: ${testUser.password}`)
 
       } else {
-        log.error('❌ Error: No se pudo verificar el usuario')
+        log.error('âŒ Error: No se pudo verificar el usuario')
       }
 
     } else {
-      log.error('❌ Error: No se obtuvo ID de inserción')
+      log.error('âŒ Error: No se obtuvo ID de inserciÃ³n')
     }
 
-    // Mostrar estadísticas finales
+    // Mostrar estadÃ­sticas finales
     console.log()
-    log.info('📊 Estadísticas de la base de datos:')
+    log.info('ðŸ“Š EstadÃ­sticas de la base de datos:')
     const totalUsers = await usersCollection.countDocuments()
     log.data(`Total usuarios: ${totalUsers}`)
 
@@ -155,18 +152,18 @@ async function createTestUser() {
     }
 
   } catch (error) {
-    log.error('💥 Error durante la operación:')
+    log.error('ðŸ’¥ Error durante la operaciÃ³n:')
     log.error(error.message)
     console.log()
     log.warning('Posibles causas:')
-    log.data('• Variables de entorno incorrectas')
-    log.data('• Problemas de conectividad')
-    log.data('• Permisos de base de datos')
+    log.data('â€¢ Variables de entorno incorrectas')
+    log.data('â€¢ Problemas de conectividad')
+    log.data('â€¢ Permisos de base de datos')
     process.exit(1)
   } finally {
     if (client) {
-      await client.close()
-      log.info('🔌 Conexión cerrada')
+      await disconnect()
+      log.info('ðŸ”Œ ConexiÃ³n cerrada')
     }
   }
 }

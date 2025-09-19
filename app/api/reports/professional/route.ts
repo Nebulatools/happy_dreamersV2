@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import dbConnect from "@/lib/mongodb"
+import dbConnect from "@/lib/mongoose"
 import ProfessionalReport from "@/models/professional-report"
 import User from "@/models/User"
 import Child from "@/models/Child"

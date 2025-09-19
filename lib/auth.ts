@@ -3,8 +3,7 @@
 
 import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
-import { connectToDatabase } from "@/lib/mongodb"
-import clientPromise from "@/lib/mongodb"
+import { getDb, getMongoClientPromise } from "@/lib/mongoose"
 import { compare, hash } from "bcryptjs"
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
 import type { Adapter } from "next-auth/adapters"
@@ -29,7 +28,7 @@ declare module "next-auth" {
 }
 
 export const authOptions: NextAuthOptions = {
-  adapter: MongoDBAdapter(clientPromise) as Adapter,
+  adapter: MongoDBAdapter(getMongoClientPromise()) as Adapter,
   session: {
     strategy: "jwt",
   },
@@ -60,7 +59,7 @@ export const authOptions: NextAuthOptions = {
         
         // Verificar en la base de datos directamente
         try {
-          const { db } = await connectToDatabase()
+          const db = await getDb()
           const user = await db.collection("users").findOne({
             email: credentials.email,
           })

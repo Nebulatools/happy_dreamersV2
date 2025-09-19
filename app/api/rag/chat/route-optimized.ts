@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 import { getDoctorSystemPrompt } from "@/lib/rag/doctor-personality"
 import { differenceInDays, differenceInMinutes, parseISO, subDays } from "date-fns"
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     } = ai
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     
     // Estado del multi-agente
     const MultiAgentState = Annotation.Root({

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 import {
   format,
@@ -45,8 +45,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Conectar a la base de datos
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
 
     // Obtener datos del niño
     const child = await db.collection("children").findOne({ _id: new ObjectId(childId) })

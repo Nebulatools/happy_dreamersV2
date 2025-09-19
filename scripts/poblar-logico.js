@@ -1,44 +1,44 @@
-// Script para poblar primera semana de junio - LÓGICA CORRECTA
-// Los sleep events aparecen en el día donde TERMINAN (despiertan)
-// Es más lógico para los padres ver la rutina completa del día
+﻿// Script para poblar primera semana de junio - LÃ“GICA CORRECTA
+// Los sleep events aparecen en el dÃ­a donde TERMINAN (despiertan)
+// Es mÃ¡s lÃ³gico para los padres ver la rutina completa del dÃ­a
 
 require('dotenv').config()
-const { MongoClient, ObjectId } = require('mongodb')
+const { ObjectId } = require('mongodb')
+const { connect, getDb, disconnect } = require('./mongoose-util')
 
 const MONGODB_URI = process.env.MONGODB_URI
 const USER_ID = '688ce146d2d5ff9616549d86'
 
 async function poblarSemanaLogica() {
   try {
-    console.log('🌟 POBLAR PRIMERA SEMANA JUNIO - LÓGICA CORRECTA')
+    console.log('ðŸŒŸ POBLAR PRIMERA SEMANA JUNIO - LÃ“GICA CORRECTA')
     console.log('================================================')
-    console.log('📌 Sleep events aparecen en el día donde DESPIERTAN')
+    console.log('ðŸ“Œ Sleep events aparecen en el dÃ­a donde DESPIERTAN')
     
-    const client = new MongoClient(MONGODB_URI)
-    await client.connect()
-    console.log('✅ Conectado a MongoDB')
+    /* mongoose connection handled in connect() */await connect()
+    console.log('âœ… Conectado a MongoDB')
     
-    const db = client.db()
+    const db = await getDb()
     
-    // Obtener niños
+    // Obtener niÃ±os
     const children = await db.collection('children')
       .find({ parentId: USER_ID })
       .toArray()
       
     if (children.length === 0) {
-      console.error('❌ No hay niños')
+      console.error('âŒ No hay niÃ±os')
       return
     }
     
-    console.log(`\n📝 Generando eventos para todos los niños...`)
+    console.log(`\nðŸ“ Generando eventos para todos los niÃ±os...`)
     
-    // Generar eventos para cada niño
+    // Generar eventos para cada niÃ±o
     for (const child of children) {
-      console.log(`   🔄 Procesando ${child.firstName}...`)
+      console.log(`   ðŸ”„ Procesando ${child.firstName}...`)
       
       const eventos = generarEventosLogicos()
       
-      // Guardar eventos para este niño
+      // Guardar eventos para este niÃ±o
       await db.collection('children').updateOne(
         { _id: child._id },
         { 
@@ -49,19 +49,19 @@ async function poblarSemanaLogica() {
         }
       )
       
-      console.log(`   ✅ ${child.firstName}: ${eventos.length} eventos generados`)
+      console.log(`   âœ… ${child.firstName}: ${eventos.length} eventos generados`)
     }
     
-    console.log(`\n🎉 COMPLETADO CON LÓGICA CORRECTA`)
+    console.log(`\nðŸŽ‰ COMPLETADO CON LÃ“GICA CORRECTA`)
     console.log('==================================')
-    console.log(`👶 ${children.length} niños procesados`)
-    console.log(`📅 Período: 1-7 junio 2025`)
-    console.log(`✅ Sleep events en días correctos`)
+    console.log(`ðŸ‘¶ ${children.length} niÃ±os procesados`)
+    console.log(`ðŸ“… PerÃ­odo: 1-7 junio 2025`)
+    console.log(`âœ… Sleep events en dÃ­as correctos`)
     
-    await client.close()
+    await disconnect()
     
   } catch (error) {
-    console.error('❌ Error:', error)
+    console.error('âŒ Error:', error)
   }
 }
 
@@ -69,7 +69,7 @@ function generarEventosLogicos() {
   const eventos = []
   
   // ========================================
-  // DÍA 1: DOMINGO 1 JUNIO 2025
+  // DÃA 1: DOMINGO 1 JUNIO 2025
   // ========================================
   
   // Despertar domingo (viene de dormir la noche anterior)
@@ -78,20 +78,20 @@ function generarEventosLogicos() {
     eventType: "wake",
     startTime: "2025-06-01T08:00:00-06:00",
     emotionalState: "feliz",
-    notes: "Bernardo despertó domingo",
+    notes: "Bernardo despertÃ³ domingo",
     createdAt: new Date().toISOString()
   })
 
-  // Sleep que TERMINÓ en domingo (empezó sábado noche)
+  // Sleep que TERMINÃ“ en domingo (empezÃ³ sÃ¡bado noche)
   eventos.push({
     _id: new ObjectId().toString(),
     eventType: "sleep",
-    startTime: "2025-05-31T20:30:00-06:00", // 8:30 PM sábado
+    startTime: "2025-05-31T20:30:00-06:00", // 8:30 PM sÃ¡bado
     endTime: "2025-06-01T08:00:00-06:00",   // 8:00 AM domingo
     duration: 690, // 11h 30min
     durationReadable: "11h 30min",
     emotionalState: "tranquilo",
-    notes: "Bernardo durmió desde la noche anterior",
+    notes: "Bernardo durmiÃ³ desde la noche anterior",
     sleepDelay: 15,
     createdAt: new Date().toISOString()
   })
@@ -168,7 +168,7 @@ function generarEventosLogicos() {
   })
   
   // ========================================
-  // DÍA 2: LUNES 2 JUNIO 2025
+  // DÃA 2: LUNES 2 JUNIO 2025
   // ========================================
   
   // Despertar lunes
@@ -177,11 +177,11 @@ function generarEventosLogicos() {
     eventType: "wake",
     startTime: "2025-06-02T08:00:00-06:00",
     emotionalState: "tranquilo",
-    notes: "Bernardo despertó lunes",
+    notes: "Bernardo despertÃ³ lunes",
     createdAt: new Date().toISOString()
   })
 
-  // Sleep que TERMINÓ en lunes (empezó domingo noche)
+  // Sleep que TERMINÃ“ en lunes (empezÃ³ domingo noche)
   eventos.push({
     _id: new ObjectId().toString(),
     eventType: "sleep",
@@ -190,7 +190,7 @@ function generarEventosLogicos() {
     duration: 690, // 11h 30min
     durationReadable: "11h 30min",
     emotionalState: "tranquilo",
-    notes: "Bernardo durmió bien el domingo",
+    notes: "Bernardo durmiÃ³ bien el domingo",
     sleepDelay: 10,
     createdAt: new Date().toISOString()
   })
@@ -204,7 +204,7 @@ function generarEventosLogicos() {
     duration: 15,
     durationReadable: "15min",
     emotionalState: "irritable",
-    notes: "Despertar nocturno - se calmó rápido",
+    notes: "Despertar nocturno - se calmÃ³ rÃ¡pido",
     awakeDelay: 15,
     createdAt: new Date().toISOString()
   })
@@ -243,17 +243,17 @@ function generarEventosLogicos() {
     _id: new ObjectId().toString(),
     eventType: "extra_activities",
     startTime: "2025-06-02T10:00:00-06:00",
-    activityDescription: "Juego con bloques de construcción",
+    activityDescription: "Juego con bloques de construcciÃ³n",
     activityDuration: 30,
     activityImpact: "neutral",
-    activityNotes: "Jugó concentrado por media hora",
+    activityNotes: "JugÃ³ concentrado por media hora",
     emotionalState: "feliz",
     notes: "",
     createdAt: new Date().toISOString()
   })
   
   // ========================================
-  // DÍA 3: MARTES 3 JUNIO 2025
+  // DÃA 3: MARTES 3 JUNIO 2025
   // ========================================
   
   // Despertar martes
@@ -262,11 +262,11 @@ function generarEventosLogicos() {
     eventType: "wake",
     startTime: "2025-06-03T07:30:00-06:00",
     emotionalState: "feliz",
-    notes: "Bernardo despertó temprano el martes",
+    notes: "Bernardo despertÃ³ temprano el martes",
     createdAt: new Date().toISOString()
   })
 
-  // Sleep que TERMINÓ en martes (empezó lunes noche)
+  // Sleep que TERMINÃ“ en martes (empezÃ³ lunes noche)
   eventos.push({
     _id: new ObjectId().toString(),
     eventType: "sleep",
@@ -275,7 +275,7 @@ function generarEventosLogicos() {
     duration: 690, // 11h 30min
     durationReadable: "11h 30min",
     emotionalState: "tranquilo",
-    notes: "Bernardo se durmió temprano el lunes",
+    notes: "Bernardo se durmiÃ³ temprano el lunes",
     sleepDelay: 5,
     createdAt: new Date().toISOString()
   })
@@ -324,34 +324,34 @@ function generarEventosLogicos() {
   })
   
   // ========================================
-  // DÍA 4: MIÉRCOLES 4 JUNIO 2025
+  // DÃA 4: MIÃ‰RCOLES 4 JUNIO 2025
   // ========================================
   
-  // Despertar miércoles
+  // Despertar miÃ©rcoles
   eventos.push({
     _id: new ObjectId().toString(),
     eventType: "wake",
     startTime: "2025-06-04T08:15:00-06:00",
     emotionalState: "tranquilo",
-    notes: "Bernardo despertó miércoles",
+    notes: "Bernardo despertÃ³ miÃ©rcoles",
     createdAt: new Date().toISOString()
   })
 
-  // Sleep que TERMINÓ en miércoles (empezó martes noche)
+  // Sleep que TERMINÃ“ en miÃ©rcoles (empezÃ³ martes noche)
   eventos.push({
     _id: new ObjectId().toString(),
     eventType: "sleep",
     startTime: "2025-06-03T21:00:00-06:00", // 9:00 PM martes
-    endTime: "2025-06-04T08:15:00-06:00",   // 8:15 AM miércoles
+    endTime: "2025-06-04T08:15:00-06:00",   // 8:15 AM miÃ©rcoles
     duration: 675, // 11h 15min
     durationReadable: "11h 15min",
     emotionalState: "tranquilo",
-    notes: "Bernardo durmió más tarde el martes",
+    notes: "Bernardo durmiÃ³ mÃ¡s tarde el martes",
     sleepDelay: 20,
     createdAt: new Date().toISOString()
   })
   
-  // Desayuno miércoles
+  // Desayuno miÃ©rcoles
   eventos.push({
     _id: new ObjectId().toString(),
     eventType: "feeding",
@@ -360,13 +360,13 @@ function generarEventosLogicos() {
     feedingAmount: 155,
     feedingDuration: 21,
     babyState: "awake",
-    feedingNotes: "Desayuno miércoles",
+    feedingNotes: "Desayuno miÃ©rcoles",
     emotionalState: "feliz",
     notes: "",
     createdAt: new Date().toISOString()
   })
   
-  // Siesta vespertina miércoles
+  // Siesta vespertina miÃ©rcoles
   eventos.push({
     _id: new ObjectId().toString(),
     eventType: "nap",
@@ -375,12 +375,12 @@ function generarEventosLogicos() {
     duration: 90,
     durationReadable: "1h 30min",
     emotionalState: "tranquilo",
-    notes: "Bernardo siesta vespertina miércoles",
+    notes: "Bernardo siesta vespertina miÃ©rcoles",
     createdAt: new Date().toISOString()
   })
   
   // ========================================
-  // DÍA 5: JUEVES 5 JUNIO 2025
+  // DÃA 5: JUEVES 5 JUNIO 2025
   // ========================================
   
   // Despertar jueves
@@ -389,25 +389,25 @@ function generarEventosLogicos() {
     eventType: "wake",
     startTime: "2025-06-05T07:45:00-06:00",
     emotionalState: "feliz",
-    notes: "Bernardo despertó jueves temprano",
+    notes: "Bernardo despertÃ³ jueves temprano",
     createdAt: new Date().toISOString()
   })
 
-  // Sleep que TERMINÓ en jueves (empezó miércoles noche)
+  // Sleep que TERMINÃ“ en jueves (empezÃ³ miÃ©rcoles noche)
   eventos.push({
     _id: new ObjectId().toString(),
     eventType: "sleep",
-    startTime: "2025-06-04T20:45:00-06:00", // 8:45 PM miércoles
+    startTime: "2025-06-04T20:45:00-06:00", // 8:45 PM miÃ©rcoles
     endTime: "2025-06-05T07:45:00-06:00",   // 7:45 AM jueves
     duration: 660, // 11h
     durationReadable: "11h",
     emotionalState: "tranquilo",
-    notes: "Bernardo durmió bien el miércoles",
+    notes: "Bernardo durmiÃ³ bien el miÃ©rcoles",
     sleepDelay: 12,
     createdAt: new Date().toISOString()
   })
   
-  // Despertar nocturno miércoles noche
+  // Despertar nocturno miÃ©rcoles noche
   eventos.push({
     _id: new ObjectId().toString(),
     eventType: "night_waking",
@@ -416,7 +416,7 @@ function generarEventosLogicos() {
     duration: 15,
     durationReadable: "15min",
     emotionalState: "irritable",
-    notes: "Despertar nocturno - se calmó rápido",
+    notes: "Despertar nocturno - se calmÃ³ rÃ¡pido",
     awakeDelay: 15,
     createdAt: new Date().toISOString()
   })
@@ -444,14 +444,14 @@ function generarEventosLogicos() {
     activityDescription: "Tiempo boca abajo (tummy time)",
     activityDuration: 20,
     activityImpact: "positive",
-    activityNotes: "Fortaleció músculos del cuello",
+    activityNotes: "FortaleciÃ³ mÃºsculos del cuello",
     emotionalState: "feliz",
     notes: "",
     createdAt: new Date().toISOString()
   })
   
   // ========================================
-  // DÍA 6: VIERNES 6 JUNIO 2025
+  // DÃA 6: VIERNES 6 JUNIO 2025
   // ========================================
   
   // Despertar viernes
@@ -460,11 +460,11 @@ function generarEventosLogicos() {
     eventType: "wake",
     startTime: "2025-06-06T08:00:00-06:00",
     emotionalState: "feliz",
-    notes: "Bernardo despertó viernes con energía",
+    notes: "Bernardo despertÃ³ viernes con energÃ­a",
     createdAt: new Date().toISOString()
   })
 
-  // Sleep que TERMINÓ en viernes (empezó jueves noche)
+  // Sleep que TERMINÃ“ en viernes (empezÃ³ jueves noche)
   eventos.push({
     _id: new ObjectId().toString(),
     eventType: "sleep",
@@ -473,7 +473,7 @@ function generarEventosLogicos() {
     duration: 690, // 11h 30min
     durationReadable: "11h 30min",
     emotionalState: "tranquilo",
-    notes: "Bernardo durmió perfecto el jueves",
+    notes: "Bernardo durmiÃ³ perfecto el jueves",
     sleepDelay: 8,
     createdAt: new Date().toISOString()
   })
@@ -522,34 +522,34 @@ function generarEventosLogicos() {
   })
   
   // ========================================
-  // DÍA 7: SÁBADO 7 JUNIO 2025
+  // DÃA 7: SÃBADO 7 JUNIO 2025
   // ========================================
   
-  // Despertar sábado
+  // Despertar sÃ¡bado
   eventos.push({
     _id: new ObjectId().toString(),
     eventType: "wake",
     startTime: "2025-06-07T08:30:00-06:00",
     emotionalState: "feliz",
-    notes: "Bernardo despertó sábado para fin de semana",
+    notes: "Bernardo despertÃ³ sÃ¡bado para fin de semana",
     createdAt: new Date().toISOString()
   })
 
-  // Sleep que TERMINÓ en sábado (empezó viernes noche)
+  // Sleep que TERMINÃ“ en sÃ¡bado (empezÃ³ viernes noche)
   eventos.push({
     _id: new ObjectId().toString(),
     eventType: "sleep",
     startTime: "2025-06-06T21:15:00-06:00", // 9:15 PM viernes
-    endTime: "2025-06-07T08:30:00-06:00",   // 8:30 AM sábado
+    endTime: "2025-06-07T08:30:00-06:00",   // 8:30 AM sÃ¡bado
     duration: 675, // 11h 15min
     durationReadable: "11h 15min",
     emotionalState: "tranquilo",
-    notes: "Bernardo se durmió tarde el viernes",
+    notes: "Bernardo se durmiÃ³ tarde el viernes",
     sleepDelay: 25,
     createdAt: new Date().toISOString()
   })
   
-  // Desayuno sábado
+  // Desayuno sÃ¡bado
   eventos.push({
     _id: new ObjectId().toString(),
     eventType: "feeding",
@@ -558,13 +558,13 @@ function generarEventosLogicos() {
     feedingAmount: 170,
     feedingDuration: 24,
     babyState: "awake",
-    feedingNotes: "Desayuno sábado relajado",
+    feedingNotes: "Desayuno sÃ¡bado relajado",
     emotionalState: "feliz",
     notes: "",
     createdAt: new Date().toISOString()
   })
   
-  // Medicamento sábado
+  // Medicamento sÃ¡bado
   eventos.push({
     _id: new ObjectId().toString(),
     eventType: "medication",
@@ -578,7 +578,7 @@ function generarEventosLogicos() {
     createdAt: new Date().toISOString()
   })
   
-  // Siesta vespertina sábado
+  // Siesta vespertina sÃ¡bado
   eventos.push({
     _id: new ObjectId().toString(),
     eventType: "nap",
@@ -587,11 +587,11 @@ function generarEventosLogicos() {
     duration: 90,
     durationReadable: "1h 30min",
     emotionalState: "tranquilo",
-    notes: "Bernardo siesta vespertina sábado",
+    notes: "Bernardo siesta vespertina sÃ¡bado",
     createdAt: new Date().toISOString()
   })
   
-  // Actividad extra sábado
+  // Actividad extra sÃ¡bado
   eventos.push({
     _id: new ObjectId().toString(),
     eventType: "extra_activities",
@@ -599,13 +599,13 @@ function generarEventosLogicos() {
     activityDescription: "Paseo en carriola por el parque",
     activityDuration: 45,
     activityImpact: "positive",
-    activityNotes: "Bernardo disfrutó el aire fresco",
+    activityNotes: "Bernardo disfrutÃ³ el aire fresco",
     emotionalState: "feliz",
     notes: "",
     createdAt: new Date().toISOString()
   })
   
-  // Cena sábado
+  // Cena sÃ¡bado
   eventos.push({
     _id: new ObjectId().toString(),
     eventType: "feeding",
@@ -614,13 +614,13 @@ function generarEventosLogicos() {
     feedingAmount: 140,
     feedingDuration: 20,
     babyState: "awake",
-    feedingNotes: "Cena sábado después del paseo",
+    feedingNotes: "Cena sÃ¡bado despuÃ©s del paseo",
     emotionalState: "tranquilo",
     notes: "",
     createdAt: new Date().toISOString()
   })
   
-  console.log(`✅ Generados ${eventos.length} eventos con lógica correcta`)
+  console.log(`âœ… Generados ${eventos.length} eventos con lÃ³gica correcta`)
   
   return eventos
 }

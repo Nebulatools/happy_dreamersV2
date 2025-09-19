@@ -2,7 +2,7 @@
 // Accepts provider + resource identifiers, fetches/normalizes transcript, analyzes, and stores report
 
 import { NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 import { createLogger } from "@/lib/logger"
 import { parseVTTToPlainText, parseGoogleDocText } from "@/lib/transcripts/parse"
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     const analysis = await analyzeTranscriptLLM(rawText, process.env.GEMINI_API_KEY ? "gemini" : "openai")
 
     // 3) Store consultation report
-    const { db } = await connectToDatabase()
+  const db = await getDb()
     const report = await db.collection("consultation_reports").insertOne({
       childId: new ObjectId(childId),
       userId: new ObjectId(userId),

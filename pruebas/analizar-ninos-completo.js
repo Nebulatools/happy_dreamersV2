@@ -1,50 +1,51 @@
-// 🌟 SCRIPT DE ANÁLISIS COMPLETO DE NIÑOS - HAPPY DREAMERS
+﻿// ðŸŒŸ SCRIPT DE ANÃLISIS COMPLETO DE NIÃ‘OS - HAPPY DREAMERS
 // =========================================================
-// Analiza todos los niños registrados y su información completa
+// Analiza todos los niÃ±os registrados y su informaciÃ³n completa
 // Genera reporte detallado en consola y archivo markdown
 
 require('dotenv').config()
-const { MongoClient, ObjectId } = require('mongodb')
+const { ObjectId } = require('mongodb')
+const { connect, getDb, disconnect } = require('../scripts/mongoose-util')
 const fs = require('fs').promises
 
-// Configuración de la conexión
+// ConfiguraciÃ³n de la conexiÃ³n
 const MONGODB_URI = process.env.MONGODB_URI
 const DATABASE_NAME = process.env.MONGODB_DB || 'happy-dreamers'
 
-// Función principal de análisis
+// FunciÃ³n principal de anÃ¡lisis
 async function analizarNinosCompleto() {
   try {
-    console.log('🌟 ANÁLISIS COMPLETO DE NIÑOS - HAPPY DREAMERS')
+    console.log('ðŸŒŸ ANÃLISIS COMPLETO DE NIÃ‘OS - HAPPY DREAMERS')
     console.log('===============================================')
     
     // Conectar a MongoDB
-    const client = new MongoClient(MONGODB_URI)
-    await client.connect()
-    console.log('✅ Conectado a MongoDB')
+    const client = /* mongoose connection handled in connect() */
+    await connect()
+    console.log('âœ… Conectado a MongoDB')
     
-    const db = client.db(DATABASE_NAME)
+    const db = await getDb()
     
-    // Obtener estadísticas generales
+    // Obtener estadÃ­sticas generales
     const estadisticasGenerales = await obtenerEstadisticasGenerales(db)
     mostrarEstadisticasGenerales(estadisticasGenerales)
     
-    // Analizar cada niño individualmente
+    // Analizar cada niÃ±o individualmente
     const children = await db.collection('children').find({}).toArray()
     
     if (children.length === 0) {
-      console.log('\n❌ No se encontraron niños registrados')
-      await client.close()
+      console.log('\nâŒ No se encontraron niÃ±os registrados')
+      await disconnect()
       return
     }
     
-    console.log(`\n👶 ANÁLISIS INDIVIDUAL DE ${children.length} NIÑOS`)
+    console.log(`\nðŸ‘¶ ANÃLISIS INDIVIDUAL DE ${children.length} NIÃ‘OS`)
     console.log('='.repeat(50))
     
     const reporteNinos = []
     
     for (let i = 0; i < children.length; i++) {
       const child = children[i]
-      console.log(`\n📊 ANALIZANDO NIÑO ${i + 1}/${children.length}`)
+      console.log(`\nðŸ“Š ANALIZANDO NIÃ‘O ${i + 1}/${children.length}`)
       
       const analisisNino = await analizarNinoIndividual(db, child)
       reporteNinos.push(analisisNino)
@@ -53,21 +54,21 @@ async function analizarNinosCompleto() {
     }
     
     // Generar reporte markdown
-    console.log('\n📄 GENERANDO REPORTE MARKDOWN...')
+    console.log('\nðŸ“„ GENERANDO REPORTE MARKDOWN...')
     await generarReporteMarkdown(estadisticasGenerales, reporteNinos)
     
-    await client.close()
-    console.log('\n🎉 ANÁLISIS COMPLETADO EXITOSAMENTE')
+    await disconnect()
+    console.log('\nðŸŽ‰ ANÃLISIS COMPLETADO EXITOSAMENTE')
     
   } catch (error) {
-    console.error('❌ Error en el análisis:', error)
+    console.error('âŒ Error en el anÃ¡lisis:', error)
     process.exit(1)
   }
 }
 
-// Obtener estadísticas generales de la base de datos
+// Obtener estadÃ­sticas generales de la base de datos
 async function obtenerEstadisticasGenerales(db) {
-  console.log('\n📊 Obteniendo estadísticas generales...')
+  console.log('\nðŸ“Š Obteniendo estadÃ­sticas generales...')
   
   const [
     totalUsers,
@@ -96,26 +97,26 @@ async function obtenerEstadisticasGenerales(db) {
   }
 }
 
-// Mostrar estadísticas generales
+// Mostrar estadÃ­sticas generales
 function mostrarEstadisticasGenerales(stats) {
-  console.log('\n🔢 ESTADÍSTICAS GENERALES')
+  console.log('\nðŸ”¢ ESTADÃSTICAS GENERALES')
   console.log('========================')
-  console.log(`👥 Total Usuarios: ${stats.totalUsers}`)
-  console.log(`👶 Total Niños: ${stats.totalChildren}`)
-  console.log(`📝 Total Eventos: ${stats.totalEvents}`)
-  console.log(`📋 Total Planes: ${stats.totalPlans}`)
-  console.log(`💬 Total Consultas: ${stats.totalConsultations}`)
-  console.log(`✅ Surveys Completados: ${stats.surveysCompletos}/${stats.totalChildren} (${stats.porcentajeSurveys}%)`)
+  console.log(`ðŸ‘¥ Total Usuarios: ${stats.totalUsers}`)
+  console.log(`ðŸ‘¶ Total NiÃ±os: ${stats.totalChildren}`)
+  console.log(`ðŸ“ Total Eventos: ${stats.totalEvents}`)
+  console.log(`ðŸ“‹ Total Planes: ${stats.totalPlans}`)
+  console.log(`ðŸ’¬ Total Consultas: ${stats.totalConsultations}`)
+  console.log(`âœ… Surveys Completados: ${stats.surveysCompletos}/${stats.totalChildren} (${stats.porcentajeSurveys}%)`)
 }
 
-// Analizar un niño individual
+// Analizar un niÃ±o individual
 async function analizarNinoIndividual(db, child) {
   const childId = child._id
   
   // Calcular edad en meses
   const edadMeses = calcularEdadMeses(child.birthDate)
   
-  // Obtener información del padre/usuario
+  // Obtener informaciÃ³n del padre/usuario
   let parentInfo = null
   if (child.parentId) {
     parentInfo = await db.collection('users').findOne({ _id: new ObjectId(child.parentId) })
@@ -124,7 +125,7 @@ async function analizarNinoIndividual(db, child) {
   // Analizar datos del survey
   const surveyAnalysis = analizarSurveyData(child.surveyData)
   
-  // Obtener eventos de sueño
+  // Obtener eventos de sueÃ±o
   const eventos = await db.collection('events').find({ childId: childId }).sort({ createdAt: -1 }).toArray()
   const eventAnalysis = analizarEventos(eventos)
   
@@ -136,21 +137,21 @@ async function analizarNinoIndividual(db, child) {
   const consultas = await db.collection('consultation_reports').find({ childId: childId }).sort({ createdAt: -1 }).toArray()
   
   return {
-    // Información básica
+    // InformaciÃ³n bÃ¡sica
     id: childId.toString(),
     nombre: `${child.firstName} ${child.lastName}`,
     fechaNacimiento: child.birthDate,
     edadMeses: edadMeses,
     edadTexto: formatearEdad(edadMeses),
     
-    // Información del padre
+    // InformaciÃ³n del padre
     padre: parentInfo ? {
       nombre: parentInfo.name,
       email: parentInfo.email,
       rol: parentInfo.role
     } : null,
     
-    // Análisis de datos
+    // AnÃ¡lisis de datos
     survey: surveyAnalysis,
     eventos: eventAnalysis,
     planes: planAnalysis,
@@ -194,9 +195,9 @@ function formatearEdad(meses) {
   if (anos === 0) {
     return `${meses} meses`
   } else if (mesesRestantes === 0) {
-    return `${anos} ${anos === 1 ? 'año' : 'años'}`
+    return `${anos} ${anos === 1 ? 'aÃ±o' : 'aÃ±os'}`
   } else {
-    return `${anos} ${anos === 1 ? 'año' : 'años'} y ${mesesRestantes} ${mesesRestantes === 1 ? 'mes' : 'meses'}`
+    return `${anos} ${anos === 1 ? 'aÃ±o' : 'aÃ±os'} y ${mesesRestantes} ${mesesRestantes === 1 ? 'mes' : 'meses'}`
   }
 }
 
@@ -254,7 +255,7 @@ function analizarEventos(eventos) {
     tiposEventos[tipo] = (tiposEventos[tipo] || 0) + 1
   })
   
-  // Calcular eventos por día
+  // Calcular eventos por dÃ­a
   const primerEvento = new Date(eventos[eventos.length - 1].createdAt)
   const ultimoEvento = new Date(eventos[0].createdAt)
   const diasTranscurridos = Math.max(1, Math.ceil((ultimoEvento - primerEvento) / (1000 * 60 * 60 * 24)))
@@ -292,13 +293,13 @@ function analizarPlanes(planes) {
     fecha: p.createdAt
   })).sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
   
-  // Determinar progresión
-  let progresion = 'Sin progresión'
+  // Determinar progresiÃ³n
+  let progresion = 'Sin progresiÃ³n'
   if (versiones.length === 1) {
     progresion = `Solo ${versiones[0].version}`
   } else if (versiones.length > 1) {
     const ultimaVersion = versiones[0].version
-    progresion = `Evolucionó hasta Plan ${ultimaVersion}`
+    progresion = `EvolucionÃ³ hasta Plan ${ultimaVersion}`
   }
   
   return {
@@ -313,19 +314,19 @@ function analizarPlanes(planes) {
   }
 }
 
-// Mostrar resumen de un niño
+// Mostrar resumen de un niÃ±o
 function mostrarResumenNino(analisis) {
-  console.log(`\n👶 ${analisis.nombre}`)
+  console.log(`\nðŸ‘¶ ${analisis.nombre}`)
   console.log('-'.repeat(40))
-  console.log(`📅 Edad: ${analisis.edadTexto} (${analisis.edadMeses} meses)`)
-  console.log(`👤 Padre: ${analisis.padre ? `${analisis.padre.nombre} (${analisis.padre.email})` : 'No encontrado'}`)
+  console.log(`ðŸ“… Edad: ${analisis.edadTexto} (${analisis.edadMeses} meses)`)
+  console.log(`ðŸ‘¤ Padre: ${analisis.padre ? `${analisis.padre.nombre} (${analisis.padre.email})` : 'No encontrado'}`)
   
   // Survey
-  console.log(`📋 Survey: ${analisis.survey.completado ? '✅ Completado' : '❌ Incompleto'} (${analisis.survey.porcentajeCompleto}%)`)
+  console.log(`ðŸ“‹ Survey: ${analisis.survey.completado ? 'âœ… Completado' : 'âŒ Incompleto'} (${analisis.survey.porcentajeCompleto}%)`)
   
   // Eventos
   if (analisis.eventos.total > 0) {
-    console.log(`📊 Eventos: ${analisis.eventos.total} total (${analisis.eventos.eventosPorDia}/día, ${analisis.eventos.diasRegistrando} días)`)
+    console.log(`ðŸ“Š Eventos: ${analisis.eventos.total} total (${analisis.eventos.eventosPorDia}/dÃ­a, ${analisis.eventos.diasRegistrando} dÃ­as)`)
     const tiposEvento = Object.keys(analisis.eventos.tiposEventos)
     if (tiposEvento.length > 0) {
       const tiposPrincipales = tiposEvento.slice(0, 3).map(tipo => 
@@ -334,20 +335,20 @@ function mostrarResumenNino(analisis) {
       console.log(`   Tipos: ${tiposPrincipales}`)
     }
   } else {
-    console.log('📊 Eventos: ❌ Sin registros')
+    console.log('ðŸ“Š Eventos: âŒ Sin registros')
   }
   
   // Planes
-  console.log(`📋 Planes: ${analisis.planes.progresion}`)
+  console.log(`ðŸ“‹ Planes: ${analisis.planes.progresion}`)
   if (analisis.planes.planActivo) {
     console.log(`   Activo: Plan ${analisis.planes.planActivo.version} (${analisis.planes.planActivo.tipo})`)
   }
   
   // Consultas
   if (analisis.consultas.total > 0) {
-    console.log(`💬 Consultas: ${analisis.consultas.total} realizadas`)
+    console.log(`ðŸ’¬ Consultas: ${analisis.consultas.total} realizadas`)
   } else {
-    console.log('💬 Consultas: ❌ Sin consultas')
+    console.log('ðŸ’¬ Consultas: âŒ Sin consultas')
   }
 }
 
@@ -357,46 +358,46 @@ async function generarReporteMarkdown(estadisticas, reporteNinos) {
   const nombreArchivo = `reporte-ninos-${fecha}.md`
   const rutaArchivo = `/Users/jaco/Desktop/nebula/proyectos_clientes/happy_dreamers_v0/pruebas/${nombreArchivo}`
   
-  let contenido = `# 📊 Reporte de Análisis de Niños - Happy Dreamers
-**Fecha de generación:** ${new Date().toLocaleDateString('es-ES')}  
-**Total niños analizados:** ${reporteNinos.length}
+  let contenido = `# ðŸ“Š Reporte de AnÃ¡lisis de NiÃ±os - Happy Dreamers
+**Fecha de generaciÃ³n:** ${new Date().toLocaleDateString('es-ES')}  
+**Total niÃ±os analizados:** ${reporteNinos.length}
 
-## 🔢 Estadísticas Generales
+## ðŸ”¢ EstadÃ­sticas Generales
 
-| Métrica | Valor |
+| MÃ©trica | Valor |
 |---------|--------|
-| 👥 Total Usuarios | ${estadisticas.totalUsers} |
-| 👶 Total Niños | ${estadisticas.totalChildren} |
-| 📝 Total Eventos | ${estadisticas.totalEvents} |
-| 📋 Total Planes | ${estadisticas.totalPlans} |
-| 💬 Total Consultas | ${estadisticas.totalConsultations} |
-| ✅ Surveys Completados | ${estadisticas.surveysCompletos}/${estadisticas.totalChildren} (${estadisticas.porcentajeSurveys}%) |
+| ðŸ‘¥ Total Usuarios | ${estadisticas.totalUsers} |
+| ðŸ‘¶ Total NiÃ±os | ${estadisticas.totalChildren} |
+| ðŸ“ Total Eventos | ${estadisticas.totalEvents} |
+| ðŸ“‹ Total Planes | ${estadisticas.totalPlans} |
+| ðŸ’¬ Total Consultas | ${estadisticas.totalConsultations} |
+| âœ… Surveys Completados | ${estadisticas.surveysCompletos}/${estadisticas.totalChildren} (${estadisticas.porcentajeSurveys}%) |
 
-## 👶 Análisis Individual de Niños
+## ðŸ‘¶ AnÃ¡lisis Individual de NiÃ±os
 
 `
 
   reporteNinos.forEach((nino, index) => {
     contenido += `### ${index + 1}. ${nino.nombre}
 
-**📊 Información General:**
+**ðŸ“Š InformaciÃ³n General:**
 - **ID:** ${nino.id}
 - **Edad:** ${nino.edadTexto} (${nino.edadMeses} meses)
 - **Fecha nacimiento:** ${new Date(nino.fechaNacimiento).toLocaleDateString('es-ES')}
-- **Padre:** ${nino.padre ? `${nino.padre.nombre} (${nino.padre.email})` : '❌ No encontrado'}
+- **Padre:** ${nino.padre ? `${nino.padre.nombre} (${nino.padre.email})` : 'âŒ No encontrado'}
 - **Registrado:** ${new Date(nino.fechaCreacion).toLocaleDateString('es-ES')}
 
-**📋 Survey:**
-- **Estado:** ${nino.survey.completado ? '✅ Completado' : '❌ Incompleto'} (${nino.survey.porcentajeCompleto}%)
+**ðŸ“‹ Survey:**
+- **Estado:** ${nino.survey.completado ? 'âœ… Completado' : 'âŒ Incompleto'} (${nino.survey.porcentajeCompleto}%)
 - **Secciones completas:** ${nino.survey.seccionesCompletas.length}/6
 - **Fecha completado:** ${nino.survey.fechaCompletado ? new Date(nino.survey.fechaCompletado).toLocaleDateString('es-ES') : 'N/A'}
 
-**📊 Eventos de Sueño:**
+**ðŸ“Š Eventos de SueÃ±o:**
 - **Total eventos:** ${nino.eventos.total}
-- **Eventos por día:** ${nino.eventos.eventosPorDia}
-- **Días registrando:** ${nino.eventos.diasRegistrando}
+- **Eventos por dÃ­a:** ${nino.eventos.eventosPorDia}
+- **DÃ­as registrando:** ${nino.eventos.diasRegistrando}
 - **Primer evento:** ${nino.eventos.primerEvento ? new Date(nino.eventos.primerEvento).toLocaleDateString('es-ES') : 'N/A'}
-- **Último evento:** ${nino.eventos.ultimoEvento ? new Date(nino.eventos.ultimoEvento).toLocaleDateString('es-ES') : 'N/A'}
+- **Ãšltimo evento:** ${nino.eventos.ultimoEvento ? new Date(nino.eventos.ultimoEvento).toLocaleDateString('es-ES') : 'N/A'}
 
 `
 
@@ -409,9 +410,9 @@ async function generarReporteMarkdown(estadisticas, reporteNinos) {
       contenido += '\n'
     }
 
-    contenido += `**📋 Planes:**
+    contenido += `**ðŸ“‹ Planes:**
 - **Total planes:** ${nino.planes.total}
-- **Progresión:** ${nino.planes.progresion}
+- **ProgresiÃ³n:** ${nino.planes.progresion}
 - **Plan activo:** ${nino.planes.planActivo ? `Plan ${nino.planes.planActivo.version} (${nino.planes.planActivo.tipo})` : 'Ninguno'}
 
 `
@@ -425,9 +426,9 @@ async function generarReporteMarkdown(estadisticas, reporteNinos) {
       contenido += '\n'
     }
 
-    contenido += `**💬 Consultas:**
+    contenido += `**ðŸ’¬ Consultas:**
 - **Total consultas:** ${nino.consultas.total}
-- **Última consulta:** ${nino.consultas.ultima ? new Date(nino.consultas.ultima).toLocaleDateString('es-ES') : 'N/A'}
+- **Ãšltima consulta:** ${nino.consultas.ultima ? new Date(nino.consultas.ultima).toLocaleDateString('es-ES') : 'N/A'}
 
 `
 
@@ -442,38 +443,38 @@ async function generarReporteMarkdown(estadisticas, reporteNinos) {
     contenido += '\n---\n\n'
   })
 
-  contenido += `## 📈 Resumen de Insights
+  contenido += `## ðŸ“ˆ Resumen de Insights
 
-### 🎯 Niños Más Activos (por eventos)
+### ðŸŽ¯ NiÃ±os MÃ¡s Activos (por eventos)
 ${reporteNinos
   .sort((a, b) => b.eventos.total - a.eventos.total)
   .slice(0, 3)
   .map((nino, i) => `${i + 1}. **${nino.nombre}** - ${nino.eventos.total} eventos`)
   .join('\n')}
 
-### 📋 Surveys Completados
-- **Completados:** ${reporteNinos.filter(n => n.survey.completado).length}/${reporteNinos.length} niños
+### ðŸ“‹ Surveys Completados
+- **Completados:** ${reporteNinos.filter(n => n.survey.completado).length}/${reporteNinos.length} niÃ±os
 - **Promedio completitud:** ${(reporteNinos.reduce((acc, nino) => acc + nino.survey.porcentajeCompleto, 0) / reporteNinos.length).toFixed(1)}%
 
-### 📊 Evolución de Planes
-- **Niños con planes:** ${reporteNinos.filter(n => n.planes.total > 0).length}/${reporteNinos.length}
-- **Niños con plan activo:** ${reporteNinos.filter(n => n.planes.planActivo).length}/${reporteNinos.length}
-- **Promedio planes por niño:** ${(reporteNinos.reduce((acc, nino) => acc + nino.planes.total, 0) / reporteNinos.length).toFixed(1)}
+### ðŸ“Š EvoluciÃ³n de Planes
+- **NiÃ±os con planes:** ${reporteNinos.filter(n => n.planes.total > 0).length}/${reporteNinos.length}
+- **NiÃ±os con plan activo:** ${reporteNinos.filter(n => n.planes.planActivo).length}/${reporteNinos.length}
+- **Promedio planes por niÃ±o:** ${(reporteNinos.reduce((acc, nino) => acc + nino.planes.total, 0) / reporteNinos.length).toFixed(1)}
 
-### 💬 Actividad de Consultas
-- **Niños con consultas:** ${reporteNinos.filter(n => n.consultas.total > 0).length}/${reporteNinos.length}
+### ðŸ’¬ Actividad de Consultas
+- **NiÃ±os con consultas:** ${reporteNinos.filter(n => n.consultas.total > 0).length}/${reporteNinos.length}
 - **Total consultas:** ${reporteNinos.reduce((acc, nino) => acc + nino.consultas.total, 0)}
 
 ---
-*Reporte generado automáticamente el ${new Date().toLocaleString('es-ES')}*
+*Reporte generado automÃ¡ticamente el ${new Date().toLocaleString('es-ES')}*
 `
 
   await fs.writeFile(rutaArchivo, contenido, 'utf8')
-  console.log(`📄 Reporte guardado en: ${nombreArchivo}`)
+  console.log(`ðŸ“„ Reporte guardado en: ${nombreArchivo}`)
   
   return rutaArchivo
 }
 
-// Ejecutar análisis
-console.log('🚀 Iniciando análisis completo de niños...')
+// Ejecutar anÃ¡lisis
+console.log('ðŸš€ Iniciando anÃ¡lisis completo de niÃ±os...')
 analizarNinosCompleto()

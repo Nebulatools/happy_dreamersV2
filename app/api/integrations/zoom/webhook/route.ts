@@ -2,7 +2,7 @@
 // Sketch implementation: validates token, stores session stub, and returns 200.
 
 import { NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { createLogger } from "@/lib/logger"
 import { ingestZoomMeetingTranscripts } from "@/lib/integrations/zoom"
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       const topic = payload?.payload?.object?.topic || payload?.object?.topic
       const startTime = payload?.payload?.object?.start_time || payload?.object?.start_time
 
-      const { db } = await connectToDatabase()
+      const db = await getDb()
       await db.collection("consultation_sessions").insertOne({
         provider: "zoom",
         meetingId,

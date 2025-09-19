@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 import { getMongoDBVectorStoreManager } from "@/lib/rag/vector-store-mongodb"
 import { OpenAI } from "openai"
@@ -79,8 +79,7 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
   eventTypes: string[]
 }> {
   try {
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
     
     // Obtener eventos del campo 'events' del documento del niño
     const child = await db.collection("children").findOne({
@@ -120,8 +119,7 @@ async function hasAvailableTranscript(childId: string, afterDate?: Date): Promis
   latestReportId?: string
 }> {
   try {
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
     
     // Construir query - si se especifica afterDate, buscar transcripts después de esa fecha
     const query: any = { childId: new ObjectId(childId) }
@@ -177,8 +175,7 @@ export async function GET(req: NextRequest) {
       isParent
     })
 
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
     
     // Obtener todos los planes del niño ordenados por planNumber
     const plans = await db.collection("child_plans")
@@ -251,8 +248,7 @@ export async function POST(req: NextRequest) {
       adminId: session.user.id
     })
 
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
 
     // Verificar planes existentes
     const existingPlans = await db.collection("child_plans")
@@ -438,8 +434,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado para validar estos planes" }, { status: 403 })
     }
 
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
 
     // Obtener planes existentes
     const existingPlans = await db.collection("child_plans")
@@ -542,8 +537,7 @@ export async function PUT(req: NextRequest) {
 async function generateInitialPlan(userId: string, childId: string, adminId: string): Promise<ChildPlan> {
   logger.info("Generando plan inicial", { userId, childId })
 
-  const client = await clientPromise
-  const db = client.db()
+  const db = await getDb()
   
   // 1. Obtener datos del niño. Para flujos de administrador, permitir por _id
   //    y usar el parentId real del niño como owner del plan.
@@ -627,8 +621,7 @@ async function generateEventBasedPlan(
     newPlanVersion: planVersion 
   })
 
-  const client = await clientPromise
-  const db = client.db()
+  const db = await getDb()
   
   // 1. Obtener datos del niño. En flujo admin, basta con _id.
   const child = await db.collection("children").findOne({
@@ -740,8 +733,7 @@ async function generateTranscriptRefinementPlan(
     reportId
   })
 
-  const client = await clientPromise
-  const db = client.db()
+  const db = await getDb()
   
   // 1. Obtener el reporte de análisis completo
   const consultationReport = await db.collection("consultation_reports").findOne({
@@ -825,8 +817,7 @@ async function generateTranscriptBasedPlan(
     planNumber 
   })
 
-  const client = await clientPromise
-  const db = client.db()
+  const db = await getDb()
   
   // 1. Obtener el reporte de análisis completo
   const consultationReport = await db.collection("consultation_reports").findOne({

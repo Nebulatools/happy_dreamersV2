@@ -38,6 +38,18 @@ Una aplicación integral para el seguimiento y análisis del sueño infantil, co
 - **MongoDB** - Base de datos NoSQL con almacenamiento vectorial
 - **NextAuth.js** - Sistema de autenticación completo
 
+## Actualización T1: Capa de Datos (Mongoose)
+
+- Se unificó el acceso a datos usando `@/lib/mongoose` como único punto de conexión.
+- Nuevas utilidades:
+  - `getDb()` devuelve el `Db` nativo desde la conexión Mongoose (para operaciones con el driver).
+  - `getMongoClientPromise()` expone el `MongoClient` subyacente para adaptadores que lo requieren (p.ej., `MongoDBAdapter`).
+- Eliminado `@/lib/mongodb` y su export (`clientPromise`/`connectToDatabase`).
+- Autenticación: `MongoDBAdapter(getMongoClientPromise())` para evitar doble conexión.
+- Guía de uso en endpoints:
+  - `import { getDb } from "@/lib/mongoose"`
+  - `const db = await getDb()`
+
 ### Inteligencia Artificial
 - **OpenAI GPT-4** - Modelo de lenguaje avanzado
 - **LangChain** - Framework para aplicaciones con LLM

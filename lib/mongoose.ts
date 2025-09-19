@@ -3,6 +3,7 @@
 
 import mongoose from 'mongoose'
 import { createLogger } from "@/lib/logger"
+import type { Db, MongoClient } from 'mongodb'
 
 const logger = createLogger("Mongoose")
 
@@ -86,6 +87,21 @@ async function dbConnect(): Promise<typeof mongoose> {
 
   cached.conn = await cached.promise
   return cached.conn
+}
+
+// Utilidades unificadas de acceso a DB/Cliente nativo
+export async function getDb(): Promise<Db> {
+  await dbConnect()
+  if (!mongoose.connection.db) {
+    throw new Error('MongoDB database handle not available after connecting')
+  }
+  return mongoose.connection.db
+}
+
+export async function getMongoClientPromise(): Promise<MongoClient> {
+  await dbConnect()
+  const client = mongoose.connection.getClient()
+  return client as unknown as MongoClient
 }
 
 // Health check específico para Mongoose

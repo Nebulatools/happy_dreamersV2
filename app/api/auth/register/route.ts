@@ -3,7 +3,7 @@
 
 import { NextResponse } from "next/server"
 import { hash } from "bcryptjs"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 
 import { createLogger } from "@/lib/logger"
 
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+  const db = await getDb()
 
     // Verificar si el usuario ya existe
     const existingUser = await db.collection("users").findOne({ email })

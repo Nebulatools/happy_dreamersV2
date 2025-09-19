@@ -7,7 +7,7 @@
 
 import { NextRequest } from "next/server"
 import { z } from "zod"
-import clientPromise from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 import { createLogger } from "@/lib/logger"
 import {
@@ -96,8 +96,7 @@ export const GET = withErrorHandlerV2(async (request: NextRequest) => {
   })
   
   // 2. Conectar a base de datos
-  const client = await clientPromise
-  const db = client.db()
+  const db = await getDb()
   
   // 3. Construir query
   const targetUserId = isAdmin && userId ? userId : session.user.id
@@ -193,8 +192,7 @@ export const POST = withErrorHandlerV2(async (request: NextRequest) => {
   }
   
   // 3. Conectar a base de datos
-  const client = await clientPromise
-  const db = client.db()
+  const db = await getDb()
   
   // 4. Verificar duplicados
   const existingChild = await db.collection("children").findOne({

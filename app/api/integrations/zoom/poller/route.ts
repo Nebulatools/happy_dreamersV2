@@ -2,7 +2,7 @@
 // Lista grabaciones/transcripts por rango de fechas para un usuario y registra/upserta sesiones
 
 import { NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { createLogger } from "@/lib/logger"
 import { getZoomAccessToken, ingestZoomMeetingTranscripts } from "@/lib/integrations/zoom"
 
@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
     const data = await res.json()
     const meetings = data?.meetings || []
 
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     let inserted = 0
     for (const m of meetings) {
       const result = await db.collection("consultation_sessions").updateOne(

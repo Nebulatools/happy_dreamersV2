@@ -4,7 +4,7 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
 
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const db = await getDb()
 
     // Si se proporciona un ID de niño, obtener información relevante
     let childInfo = ""

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { createLogger } from "@/lib/logger"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 
 const logger = createLogger("UserProfileAPI")
@@ -46,7 +46,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update user in database
-    const { db } = await connectToDatabase()
+  const db = await getDb()
     
     const updateData: any = {
       name: name.trim(),
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch user data from database
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     
     const user = await db.collection("users").findOne(
       { email: session.user.email },

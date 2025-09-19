@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 import { getMongoDBVectorStoreManager } from "@/lib/rag/vector-store-mongodb"
 import { OpenAI } from "openai"
@@ -167,8 +167,7 @@ export async function POST(req: NextRequest) {
 // Función para obtener datos del niño con estadísticas calculadas usando lógica unificada
 async function getChildWithStats(userId: string, childId: string) {
   try {
-    const client = await clientPromise
-    const db = client.db()
+  const db = await getDb()
     
     // Obtener información básica del niño
     const child = await db.collection("children").findOne({
@@ -290,8 +289,7 @@ async function searchRAGKnowledge(transcript: string) {
 // Función para obtener consultas anteriores
 async function getPreviousConsultations(childId: string) {
   try {
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
     
     const previousConsultations = await db.collection("consultation_reports")
       .find({ childId: new ObjectId(childId) })
@@ -433,8 +431,7 @@ async function saveConsultationReport({
   adminId: string
 }) {
   try {
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
     
     const report = {
       userId: new ObjectId(userId),

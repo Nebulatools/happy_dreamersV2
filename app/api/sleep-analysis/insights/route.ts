@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 import { OpenAI } from "openai"
 import { subDays, parseISO, differenceInMinutes, format } from "date-fns"
@@ -64,8 +64,7 @@ export async function GET(req: NextRequest) {
       userId: session.user.id
     })
 
-    const client = await clientPromise
-    const db = client.db()
+  const db = await getDb()
 
     // 1. Obtener el plan activo del niño
     const activePlan = await db.collection<ChildPlan>("child_plans")

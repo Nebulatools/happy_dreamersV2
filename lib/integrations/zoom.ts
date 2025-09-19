@@ -1,7 +1,7 @@
 // Zoom integration helpers: token, transcript download, and ingestion
 
 import { NextRequest } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { createLogger } from "@/lib/logger"
 import { ObjectId } from "mongodb"
 import { parseVTTToPlainText } from "@/lib/transcripts/parse"
@@ -103,7 +103,7 @@ export async function ingestZoomMeetingTranscripts(opts: {
   const recMeetingId = recData?.id || meetingId || ""
 
   // Find an unprocessed session for this uuid/meeting
-  const { db } = await connectToDatabase()
+  const db = await getDb()
   const sessionQuery: any = { provider: "zoom" }
   if (recUuid) sessionQuery.uuid = recUuid
   if (recMeetingId) sessionQuery.meetingId = recMeetingId

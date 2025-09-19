@@ -1,37 +1,37 @@
-// Script para BORRAR TODOS los eventos de los niños
+﻿// Script para BORRAR TODOS los eventos de los niÃ±os
 require('dotenv').config()
-const { MongoClient, ObjectId } = require('mongodb')
+const { ObjectId } = require('mongodb')
+const { connect, getDb, disconnect } = require('./mongoose-util')
 
 const MONGODB_URI = process.env.MONGODB_URI
 const USER_ID = '688ce146d2d5ff9616549d86'
 
 async function limpiarTodosLosEventos() {
   try {
-    console.log('🗑️  LIMPIANDO TODOS LOS EVENTOS')
+    console.log('ðŸ—‘ï¸  LIMPIANDO TODOS LOS EVENTOS')
     console.log('===============================')
     
-    const client = new MongoClient(MONGODB_URI)
-    await client.connect()
-    console.log('✅ Conectado a MongoDB')
+    /* mongoose connection handled in connect() */await connect()
+    console.log('âœ… Conectado a MongoDB')
     
-    const db = client.db()
+    const db = await getDb()
     b
     
-    // Obtener todos los niños
+    // Obtener todos los niÃ±os
     const children = await db.collection('children')
       .find({ parentId: USER_ID })
       .toArray()
       
     if (children.length === 0) {
-      console.log('❌ No hay niños para limpiar')
+      console.log('âŒ No hay niÃ±os para limpiar')
       return
     }
     
-    console.log(`👶 Niños encontrados: ${children.length}`)
+    console.log(`ðŸ‘¶ NiÃ±os encontrados: ${children.length}`)
     
     let totalEventosEliminados = 0
     
-    // Limpiar eventos de cada niño
+    // Limpiar eventos de cada niÃ±o
     for (const child of children) {
       const eventosAntes = child.events ? child.events.length : 0
       
@@ -45,18 +45,18 @@ async function limpiarTodosLosEventos() {
       )
       
       totalEventosEliminados += eventosAntes
-      console.log(`   🧹 ${child.firstName}: ${eventosAntes} eventos eliminados`)
+      console.log(`   ðŸ§¹ ${child.firstName}: ${eventosAntes} eventos eliminados`)
     }
     
-    console.log('\n🎉 LIMPIEZA COMPLETADA')
+    console.log('\nðŸŽ‰ LIMPIEZA COMPLETADA')
     console.log('======================')
-    console.log(`📊 Total eventos eliminados: ${totalEventosEliminados}`)
-    console.log('✅ Base de datos limpia - listo para poblar desde cero')
+    console.log(`ðŸ“Š Total eventos eliminados: ${totalEventosEliminados}`)
+    console.log('âœ… Base de datos limpia - listo para poblar desde cero')
     
-    await client.close()
+    await disconnect()
     
   } catch (error) {
-    console.error('❌ Error:', error)
+    console.error('âŒ Error:', error)
   }
 }
 

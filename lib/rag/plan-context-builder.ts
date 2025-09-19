@@ -1,7 +1,7 @@
 // Builder de contexto para planes de niños en el sistema RAG
 // Obtiene y formatea información del plan activo para el asistente
 
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 import { ChildPlan } from "@/types/models"
 import { createLogger } from "@/lib/logger"
@@ -13,7 +13,7 @@ const logger = createLogger("PlanContextBuilder")
  */
 export async function getActivePlan(childId: string, userId: string): Promise<ChildPlan | null> {
   try {
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     
     const plan = await db.collection("child_plans")
       .findOne({
@@ -179,7 +179,7 @@ export async function getChildPlanContext(childId: string, userId: string): Prom
  */
 export async function getAllPlansContext(childId: string, userId: string): Promise<string> {
   try {
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     
     const plans = await db.collection("child_plans")
       .find({

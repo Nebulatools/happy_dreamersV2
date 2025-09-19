@@ -1,7 +1,7 @@
 // Sistema de sincronización entre children.events[] y collection("events")
 // Mantiene ambos sistemas en sync para operaciones y análisis
 
-import { connectToDatabase } from './mongodb'
+import { getDb } from '@/lib/mongoose'
 import { ObjectId } from 'mongodb'
 import { createLogger } from './logger'
 
@@ -44,7 +44,7 @@ export interface EventSyncData {
  */
 export async function syncEventToAnalyticsCollection(eventData: EventSyncData): Promise<void> {
   try {
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     
     // Verificar si ya existe el evento en la colección analytics
     const existingEvent = await db.collection("events").findOne({ _id: eventData._id })
@@ -82,7 +82,7 @@ export async function syncEventToAnalyticsCollection(eventData: EventSyncData): 
  */
 export async function removeEventFromAnalyticsCollection(eventId: string): Promise<void> {
   try {
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     
     await db.collection("events").deleteOne({ _id: eventId })
     logger.info(`Evento ${eventId} eliminado de colección analytics`)
@@ -98,7 +98,7 @@ export async function removeEventFromAnalyticsCollection(eventId: string): Promi
  */
 export async function syncChildEventsToAnalytics(childId: string): Promise<void> {
   try {
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     
     // Obtener el niño con todos sus eventos
     const child = await db.collection("children").findOne({ 
@@ -157,7 +157,7 @@ export async function syncChildEventsToAnalytics(childId: string): Promise<void>
  */
 export async function syncAllChildrenEvents(): Promise<void> {
   try {
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     
     const children = await db.collection("children").find({}).toArray()
     logger.info(`Iniciando sincronización masiva para ${children.length} niños`)

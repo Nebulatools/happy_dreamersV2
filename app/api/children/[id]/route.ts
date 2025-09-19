@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 import { checkUserAccess } from "@/lib/db/user-child-access"
 
@@ -47,8 +47,7 @@ export async function GET(
     }
     */
     
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
 
     const child = await db.collection("children").findOne({
       _id: new ObjectId(id)
@@ -108,8 +107,7 @@ export async function PUT(
       hasSurveyData: !!data.surveyData,
     })
 
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
 
     // Verificar que el niño pertenece al usuario
     const child = await db.collection("children").findOne({
@@ -175,8 +173,7 @@ export async function DELETE(
 
     const { id } = await params
     
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
 
     // Verificar que el niño pertenece al usuario
     const child = await db.collection("children").findOne({

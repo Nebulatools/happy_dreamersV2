@@ -2,7 +2,7 @@
 // Valida token y actualiza contraseña usando MongoDB
 
 import { NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { hash } from "bcryptjs"
 import { createLogger } from "@/lib/logger"
 
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+  const db = await getDb()
     const usersCollection = db.collection("users")
 
     // Buscar usuario con token válido
@@ -98,7 +98,7 @@ export async function GET(req: Request) {
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     const usersCollection = db.collection("users")
 
     // Verificar si el token es válido

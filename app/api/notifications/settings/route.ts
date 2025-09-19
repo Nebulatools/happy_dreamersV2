@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 
 // GET: Obtener configuración de notificaciones para un niño
@@ -14,8 +14,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    const client = await clientPromise
-    const db = client.db()
+  const db = await getDb()
 
     const { searchParams } = new URL(request.url)
     const childId = searchParams.get("childId")
@@ -96,8 +95,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
 
     const body = await request.json()
     const { childId, ...settingsData } = body
@@ -172,8 +170,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
 
     const body = await request.json()
     const { childId, token, platform } = body

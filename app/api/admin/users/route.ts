@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 
 import { createLogger } from "@/lib/logger"
 
@@ -24,8 +24,7 @@ export async function GET(req: NextRequest) {
     }
     
     // Conectar a la base de datos
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
     
     // Obtener la lista de usuarios
     const users = await db.collection("users")

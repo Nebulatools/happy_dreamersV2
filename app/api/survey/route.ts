@@ -4,7 +4,7 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 
 import { createLogger } from "@/lib/logger"
@@ -28,8 +28,7 @@ export async function GET(req: Request) {
     }
 
     // Conectar a la base de datos
-    const client = await clientPromise
-    const db = client.db()
+  const db = await getDb()
 
     // Verificar que el niño pertenece al usuario o es admin
     const child = await db.collection("children").findOne({ 
@@ -77,8 +76,7 @@ export async function POST(req: Request) {
     }
 
     // Conectar a la base de datos
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
 
     // Verificar que el niño pertenezca al usuario autenticado
     const child = await db.collection("children").findOne({

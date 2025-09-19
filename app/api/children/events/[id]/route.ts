@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 
 import { createLogger } from "@/lib/logger"
@@ -40,7 +40,7 @@ export async function PUT(
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     logger.info("Conectado a MongoDB")
 
     // Verificar que el niño exista y pertenezca al usuario
@@ -128,7 +128,7 @@ export async function DELETE(
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     logger.info("Conectado a MongoDB")
 
     // Encontrar y eliminar el evento del array de eventos del niño

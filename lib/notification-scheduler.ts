@@ -3,7 +3,7 @@
 import NotificationSettings from "@/models/notification-settings"
 import NotificationLog from "@/models/notification-log"
 import Child from "@/models/Child"
-import dbConnect from "@/lib/mongodb"
+import dbConnect from "@/lib/mongoose"
 import { Types } from "mongoose"
 import { NotificationType, NotificationStatus, NotificationChannel } from "@/models/notification-log"
 

@@ -1,7 +1,7 @@
 // ENDPOINT TEMPORAL - REVISAR EVENTOS DE UN NIÑO ESPECÍFICO
 
 import { NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 
 export async function GET(req: NextRequest) {
@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     
     console.log(`🔍 REVISANDO EVENTOS DEL NIÑO: ${childId}`)
     
-    const { db } = await connectToDatabase()
+  const db = await getDb()
     
     const child = await db.collection("children").findOne({ _id: new ObjectId(childId) })
     

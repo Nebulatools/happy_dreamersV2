@@ -2,7 +2,7 @@
 // Busca archivos recientes por carpeta/fecha para detectar transcripts o grabaciones
 
 import { NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("API:integrations:google:drive:poller")
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
 
     const files = res.data.files || []
 
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     let inserted = 0
     for (const f of files) {
       // Upsert por fileId para evitar duplicados

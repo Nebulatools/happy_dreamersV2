@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 import { createLogger } from "@/lib/logger"
 
@@ -32,7 +32,7 @@ export async function DELETE(
       )
     }
 
-    const { db } = await connectToDatabase()
+  const db = await getDb()
 
     // Usar la colección principal de planes
     const collection = db.collection("child_plans")
@@ -98,7 +98,7 @@ export async function PUT(
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     const plansCollection = db.collection("child_plans")
 
     // Verificar que el plan existe
@@ -240,7 +240,7 @@ export async function GET(
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     const plansCollection = db.collection("child_plans")
 
     // Obtener el plan

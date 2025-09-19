@@ -1,35 +1,36 @@
-/**
- * Script de mantenimiento para corregir parentId en la colección children
+﻿/**
+ * Script de mantenimiento para corregir parentId en la colecciÃ³n children
  * 
- * Problema: Algunos niños tienen parentId guardado como string en lugar de ObjectId
- * Solución: Convertir todos los parentId de string a ObjectId
+ * Problema: Algunos niÃ±os tienen parentId guardado como string en lugar de ObjectId
+ * SoluciÃ³n: Convertir todos los parentId de string a ObjectId
  * 
  * Uso: node scripts/fix-parent-ids.js
  */
 
-const { MongoClient, ObjectId } = require('mongodb');
+const { ObjectId } = require('mongodb')
+const { connect, getDb, disconnect } = require('./mongoose-util');
 require('dotenv').config({ path: '.env' });
 
 async function fixParentIds() {
   const uri = process.env.MONGODB_URI;
   
   if (!uri) {
-    console.error('❌ Error: MONGODB_URI no está configurado en .env');
+    console.error('âŒ Error: MONGODB_URI no estÃ¡ configurado en .env');
     process.exit(1);
   }
   
-  const client = new MongoClient(uri);
+  /* mongoose connection handled in connect() */
   
   try {
-    await client.connect();
-    console.log('✅ Conectado a MongoDB');
+    await connect();
+    console.log('âœ… Conectado a MongoDB');
     
-    const db = client.db(process.env.MONGODB_DB || 'happy-dreamers');
+    const db = await getDb();
     
-    console.log('\n🔧 CORRIGIENDO parentId EN COLECCIÓN children');
+    console.log('\nðŸ”§ CORRIGIENDO parentId EN COLECCIÃ“N children');
     console.log('==============================================\n');
     
-    // Buscar todos los niños
+    // Buscar todos los niÃ±os
     const children = await db.collection('children').find({}).toArray();
     
     let fixed = 0;
@@ -40,12 +41,12 @@ async function fixParentIds() {
       try {
         // Verificar si parentId es string
         if (typeof child.parentId === 'string') {
-          console.log(`🔄 Corrigiendo niño: ${child.firstName} ${child.lastName || ''}`);
+          console.log(`ðŸ”„ Corrigiendo niÃ±o: ${child.firstName} ${child.lastName || ''}`);
           console.log(`   parentId actual (string): ${child.parentId}`);
           
-          // Validar que el string es un ObjectId válido
+          // Validar que el string es un ObjectId vÃ¡lido
           if (!ObjectId.isValid(child.parentId)) {
-            console.log(`   ⚠️ parentId no es un ObjectId válido, saltando...`);
+            console.log(`   âš ï¸ parentId no es un ObjectId vÃ¡lido, saltando...`);
             errors++;
             continue;
           }
@@ -57,34 +58,34 @@ async function fixParentIds() {
           );
           
           if (result.modifiedCount > 0) {
-            console.log(`   ✅ Convertido a ObjectId\n`);
+            console.log(`   âœ… Convertido a ObjectId\n`);
             fixed++;
           }
         } else if (child.parentId instanceof ObjectId) {
           alreadyCorrect++;
         } else {
-          console.log(`⚠️ Niño ${child.firstName} tiene parentId de tipo desconocido:`, typeof child.parentId);
+          console.log(`âš ï¸ NiÃ±o ${child.firstName} tiene parentId de tipo desconocido:`, typeof child.parentId);
           errors++;
         }
       } catch (error) {
-        console.error(`❌ Error procesando niño ${child._id}:`, error.message);
+        console.error(`âŒ Error procesando niÃ±o ${child._id}:`, error.message);
         errors++;
       }
     }
     
     // Resumen
-    console.log('\n📊 RESUMEN:');
+    console.log('\nðŸ“Š RESUMEN:');
     console.log('============');
-    console.log(`Total de niños revisados: ${children.length}`);
-    console.log(`✅ Niños corregidos: ${fixed}`);
-    console.log(`✅ Niños ya correctos: ${alreadyCorrect}`);
+    console.log(`Total de niÃ±os revisados: ${children.length}`);
+    console.log(`âœ… NiÃ±os corregidos: ${fixed}`);
+    console.log(`âœ… NiÃ±os ya correctos: ${alreadyCorrect}`);
     if (errors > 0) {
-      console.log(`⚠️ Errores encontrados: ${errors}`);
+      console.log(`âš ï¸ Errores encontrados: ${errors}`);
     }
     
-    // Verificación final
+    // VerificaciÃ³n final
     if (fixed > 0) {
-      console.log('\n🔍 VERIFICACIÓN FINAL:');
+      console.log('\nðŸ” VERIFICACIÃ“N FINAL:');
       console.log('======================\n');
       
       const stillStrings = await db.collection('children').find({
@@ -92,18 +93,18 @@ async function fixParentIds() {
       }).toArray();
       
       if (stillStrings.length === 0) {
-        console.log('✅ Todos los parentId son ahora ObjectId');
+        console.log('âœ… Todos los parentId son ahora ObjectId');
       } else {
-        console.log(`⚠️ Aún quedan ${stillStrings.length} niños con parentId como string`);
+        console.log(`âš ï¸ AÃºn quedan ${stillStrings.length} niÃ±os con parentId como string`);
       }
     }
     
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error('âŒ Error:', error.message);
     process.exit(1);
   } finally {
-    await client.close();
-    console.log('\n🔒 Conexión cerrada');
+    await disconnect();
+    console.log('\nðŸ”’ ConexiÃ³n cerrada');
   }
 }
 

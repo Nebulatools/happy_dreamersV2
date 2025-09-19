@@ -4,7 +4,7 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 import { createLogger } from "@/lib/logger"
 
@@ -26,8 +26,7 @@ export async function GET(req: Request) {
     const endDate = searchParams.get("endDate")
 
     // Conectar a la base de datos
-    const client = await clientPromise
-    const db = client.db()
+  const db = await getDb()
 
     // Construir la consulta
     const query: any = {}
@@ -77,8 +76,7 @@ export async function POST(req: Request) {
     }
 
     // Conectar a la base de datos
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
 
     // Crear el evento
     const result = await db.collection("events").insertOne({
@@ -117,8 +115,7 @@ export async function PUT(req: Request) {
     }
 
     // Conectar a la base de datos
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
 
     // Verificar que el evento pertenece al usuario o es admin
     const event = await db.collection("events").findOne({ _id: new ObjectId(data.id) })
@@ -167,8 +164,7 @@ export async function DELETE(req: Request) {
     }
 
     // Conectar a la base de datos
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
 
     // Verificar que el evento pertenece al usuario o es admin
     const event = await db.collection("events").findOne({ _id: new ObjectId(id) })

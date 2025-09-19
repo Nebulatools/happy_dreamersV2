@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { getInvitationsForEmail } from "@/lib/db/invitations"
 import { ObjectId } from "mongodb"
 import { createLogger } from "@/lib/logger"
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const { db } = await connectToDatabase()
+  const db = await getDb()
 
     // Contar invitaciones pendientes del usuario (por email)
     const pendingInvites = await getInvitationsForEmail(session.user.email)

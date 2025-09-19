@@ -2,7 +2,7 @@
 // Este endpoint nos ayudará a ver exactamente qué está pasando
 
 import { NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 
 export async function GET() {
   try {
@@ -21,7 +21,7 @@ export async function GET() {
 
     // Intentar conectar
     console.log("🔍 Intentando conectar a MongoDB...")
-    const { db } = await connectToDatabase()
+  const db = await getDb()
 
     // Hacer ping
     await db.admin().ping()

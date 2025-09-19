@@ -1,10 +1,10 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 import { getMongoDBVectorStoreManager } from "@/lib/rag/vector-store-mongodb"
 import { getDoctorSystemPrompt } from "@/lib/rag/doctor-personality"
@@ -19,7 +19,7 @@ import { checkRateLimit } from "@/lib/rag/rate-limiter"
 
 const logger = createLogger('RAGChatAPI')
 
-// 🎛️ CONFIGURACIÓN DE LOGGING PROFESIONAL
+// ðŸŽ›ï¸ CONFIGURACIÃ“N DE LOGGING PROFESIONAL
 const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 const DEBUG_ENABLED = process.env.DEBUG_RAG === 'true'
 const VERBOSE_LOGGING = !IS_PRODUCTION || DEBUG_ENABLED
@@ -32,12 +32,12 @@ const logDebug = (...args: any[]) => {
   if (DEBUG_ENABLED) logger.debug(...args)
 }
 
-// 📦 CACHE INTELIGENTE PARA RAG (Optimización Profesional)
+// ðŸ“¦ CACHE INTELIGENTE PARA RAG (OptimizaciÃ³n Profesional)
 const ragCache = new Map<string, { result: any, timestamp: number, hitCount: number }>()
 const CACHE_TTL = 15 * 60 * 1000 // 15 minutos
-const MAX_CACHE_SIZE = 100 // Máximo 100 entradas en cache
+const MAX_CACHE_SIZE = 100 // MÃ¡ximo 100 entradas en cache
 
-// Función para limpiar cache automáticamente
+// FunciÃ³n para limpiar cache automÃ¡ticamente
 function cleanExpiredCache() {
   const now = Date.now()
   for (const [key, value] of ragCache.entries()) {
@@ -46,7 +46,7 @@ function cleanExpiredCache() {
     }
   }
   
-  // Si el cache está muy grande, eliminar las entradas menos usadas
+  // Si el cache estÃ¡ muy grande, eliminar las entradas menos usadas
   if (ragCache.size > MAX_CACHE_SIZE) {
     const entries = Array.from(ragCache.entries())
       .sort((a, b) => a[1].hitCount - b[1].hitCount)
@@ -59,7 +59,7 @@ function cleanExpiredCache() {
   }
 }
 
-// 🗓️ HELPER PARA CONVERTIR NOMBRES DE MESES
+// ðŸ—“ï¸ HELPER PARA CONVERTIR NOMBRES DE MESES
 function getMonthIndex(monthName: string): number {
   const months = {
     'january': 0, 'enero': 0,
@@ -78,7 +78,7 @@ function getMonthIndex(monthName: string): number {
   return months[monthName.toLowerCase()] ?? -1;
 }
 
-// 📅 FUNCIÓN PARA FILTRAR EVENTOS POR PERIODO
+// ðŸ“… FUNCIÃ“N PARA FILTRAR EVENTOS POR PERIODO
 function filterEventsByPeriod(events: any[], period?: string): any[] {
   if (!period || period === 'all') {
     logger.info(`Sin filtro de periodo - usando todos los eventos: ${events.length}`)
@@ -112,7 +112,7 @@ function filterEventsByPeriod(events: any[], period?: string): any[] {
     filteredEvents = events.filter(event => 
       new Date(event.startTime) >= sevenDaysAgo
     );
-    logger.info(`Filtrado últimos 7 días: ${filteredEvents.length} eventos`);
+    logger.info(`Filtrado Ãºltimos 7 dÃ­as: ${filteredEvents.length} eventos`);
     
   } else if (period === 'current-month') {
     filteredEvents = events.filter(event => {
@@ -123,8 +123,8 @@ function filterEventsByPeriod(events: any[], period?: string): any[] {
     logger.info(`Filtrado mes actual: ${filteredEvents.length} eventos`);
     
   } else if (period === 'since-current-plan') {
-    // Este caso especial se maneja en el tool, aquí solo retornamos todos los eventos
-    logger.info(`Periodo since-current-plan - se procesará en el tool con fecha del plan actual`);
+    // Este caso especial se maneja en el tool, aquÃ­ solo retornamos todos los eventos
+    logger.info(`Periodo since-current-plan - se procesarÃ¡ en el tool con fecha del plan actual`);
     return events;
   } else {
     logger.warn(`Periodo no reconocido: ${period}`);
@@ -134,68 +134,68 @@ function filterEventsByPeriod(events: any[], period?: string): any[] {
   return filteredEvents;
 }
 
-// 🔍 HELPER PARA EXTRAER KEYWORDS RELEVANTES PARA RAG
+// ðŸ” HELPER PARA EXTRAER KEYWORDS RELEVANTES PARA RAG
 function extractRelevantKeywords(question: string): string {
-  // Mantener la pregunta original pero reformular para RAG si es muy específica
+  // Mantener la pregunta original pero reformular para RAG si es muy especÃ­fica
   const lowerQuestion = question.toLowerCase()
   
-  // Si la pregunta es muy específica sobre el niño, agregar contexto médico
-  if (lowerQuestion.includes('mi niño') || lowerQuestion.includes('mi hijo') || 
-      lowerQuestion.includes('alejandro') || lowerQuestion.includes('cómo está')) {
-    return question + " desarrollo infantil sueño pediátrico"
+  // Si la pregunta es muy especÃ­fica sobre el niÃ±o, agregar contexto mÃ©dico
+  if (lowerQuestion.includes('mi niÃ±o') || lowerQuestion.includes('mi hijo') || 
+      lowerQuestion.includes('alejandro') || lowerQuestion.includes('cÃ³mo estÃ¡')) {
+    return question + " desarrollo infantil sueÃ±o pediÃ¡trico"
   }
   
   // Si pregunta sobre plan, agregar contexto
   if (lowerQuestion.includes('plan')) {
-    return question + " plan sueño rutina infantil"
+    return question + " plan sueÃ±o rutina infantil"
   }
   
-  // Para estadísticas, agregar contexto de sueño
-  if (lowerQuestion.includes('estadísticas') || lowerQuestion.includes('duerme') || 
+  // Para estadÃ­sticas, agregar contexto de sueÃ±o
+  if (lowerQuestion.includes('estadÃ­sticas') || lowerQuestion.includes('duerme') || 
       lowerQuestion.includes('horas')) {
-    return question + " sueño infantil estadísticas"
+    return question + " sueÃ±o infantil estadÃ­sticas"
   }
   
   // Por defecto, usar la pregunta original
   return question
 }
 
-// ✅ SISTEMA SIMPLIFICADO - YA NO NECESITAMOS MULTI-AGENT STATE COMPLEJO
+// âœ… SISTEMA SIMPLIFICADO - YA NO NECESITAMOS MULTI-AGENT STATE COMPLEJO
 
-// 🎯 DEFINICIÓN DE HERRAMIENTAS PARA LOS AGENTES
+// ðŸŽ¯ DEFINICIÃ“N DE HERRAMIENTAS PARA LOS AGENTES
 const ragSearchTool = new DynamicStructuredTool({
   name: "rag_search",
-  description: "Busca información en documentos especializados sobre desarrollo infantil, sueño, alimentación y técnicas de crianza",
+  description: "Busca informaciÃ³n en documentos especializados sobre desarrollo infantil, sueÃ±o, alimentaciÃ³n y tÃ©cnicas de crianza",
   schema: z.object({
     query: z.string().describe("La consulta para buscar en los documentos especializados"),
   }),
   func: async ({ query }) => {
     try {
-      // 📦 VERIFICAR CACHE PRIMERO (Optimización Profesional)
+      // ðŸ“¦ VERIFICAR CACHE PRIMERO (OptimizaciÃ³n Profesional)
       const cacheKey = `rag:${query.toLowerCase().trim()}`
       const cached = ragCache.get(cacheKey)
       
       if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
         cached.hitCount++
-        logInfo(`📦 Cache HIT para: "${query}" (usado ${cached.hitCount} veces)`)
+        logInfo(`ðŸ“¦ Cache HIT para: "${query}" (usado ${cached.hitCount} veces)`)
         return cached.result
       }
       
-      logInfo(`🔍 Buscando en RAG: "${query}"`)
+      logInfo(`ðŸ” Buscando en RAG: "${query}"`)
       
-      // Limpiar cache automáticamente cada vez que hacemos búsqueda nueva
+      // Limpiar cache automÃ¡ticamente cada vez que hacemos bÃºsqueda nueva
       cleanExpiredCache()
       
       const vectorStore = getMongoDBVectorStoreManager()
       const results = await vectorStore.searchSimilar(query, 3)
       
       if (results.length === 0) {
-        logInfo(`❌ No se encontraron documentos relevantes para: "${query}"`)
-        return "No se encontró información relevante en los documentos"
+        logInfo(`âŒ No se encontraron documentos relevantes para: "${query}"`)
+        return "No se encontrÃ³ informaciÃ³n relevante en los documentos"
       }
 
-      // 📋 LOGGING DETALLADO DE DOCUMENTOS ENCONTRADOS (SIEMPRE EN DESARROLLO)
-      logInfo(`✅ Encontrados ${results.length} documentos relevantes para: "${query}"`)
+      // ðŸ“‹ LOGGING DETALLADO DE DOCUMENTOS ENCONTRADOS (SIEMPRE EN DESARROLLO)
+      logInfo(`âœ… Encontrados ${results.length} documentos relevantes para: "${query}"`)
       
       // Mostrar fuentes SIEMPRE en desarrollo para debugging
       if (VERBOSE_LOGGING) {
@@ -203,8 +203,8 @@ const ragSearchTool = new DynamicStructuredTool({
           const metadata = doc.metadata as any
           const source = metadata.source || 'Fuente desconocida'
           const similarity = doc.score ? ` (similitud: ${(doc.score * 100).toFixed(1)}%)` : ''
-          logger.info(`   📄 ${i + 1}. ${source}${similarity}`)
-          logger.info(`      📝 Preview: ${doc.pageContent.substring(0, 100)}...`)
+          logger.info(`   ðŸ“„ ${i + 1}. ${source}${similarity}`)
+          logger.info(`      ðŸ“ Preview: ${doc.pageContent.substring(0, 100)}...`)
         })
       }
 
@@ -213,17 +213,17 @@ const ragSearchTool = new DynamicStructuredTool({
         return `Fuente: ${metadata.source}\nContenido: ${doc.pageContent}`
       }).join("\n\n---\n\n")
 
-      // 📦 GUARDAR EN CACHE (Optimización Profesional)
+      // ðŸ“¦ GUARDAR EN CACHE (OptimizaciÃ³n Profesional)
       ragCache.set(cacheKey, {
         result: ragContext,
         timestamp: Date.now(),
         hitCount: 1
       })
-      logInfo(`💾 Resultado guardado en cache para: "${query}"`)
+      logInfo(`ðŸ’¾ Resultado guardado en cache para: "${query}"`)
 
       return ragContext
     } catch (error) {
-      logger.error(`❌ Error buscando en RAG para "${query}":`, error)
+      logger.error(`âŒ Error buscando en RAG para "${query}":`, error)
       return "Error al buscar en los documentos"
     }
   },
@@ -231,9 +231,9 @@ const ragSearchTool = new DynamicStructuredTool({
 
 const childDataTool = new DynamicStructuredTool({
   name: "child_data_search",
-  description: "Busca estadísticas procesadas del niño: promedios de sueño, patrones, métricas calculadas para un periodo específico",
+  description: "Busca estadÃ­sticas procesadas del niÃ±o: promedios de sueÃ±o, patrones, mÃ©tricas calculadas para un periodo especÃ­fico",
   schema: z.object({
-    childId: z.string().describe("ID del niño"),
+    childId: z.string().describe("ID del niÃ±o"),
     userId: z.string().describe("ID del usuario padre"),
     dataType: z.string().describe("Tipo de datos: 'stats', 'patterns', 'metrics'"),
     period: z.string().optional().describe("Periodo detectado: 'july-2025', 'june-2025', 'august-2024', 'last-7-days', 'current-month', 'all'"),
@@ -243,12 +243,12 @@ const childDataTool = new DynamicStructuredTool({
       logDebug('childDataTool invocado', { childId, userId, dataType, period })
       
       if (!childId || childId === "null" || childId === "") {
-        logger.warn('childId inválido o no proporcionado')
-        return "Por favor selecciona un niño específico para obtener sus estadísticas"
+        logger.warn('childId invÃ¡lido o no proporcionado')
+        return "Por favor selecciona un niÃ±o especÃ­fico para obtener sus estadÃ­sticas"
       }
 
-      // 📊 ACCESO DIRECTO A LA BASE DE DATOS (MÁS EFICIENTE QUE FETCH)
-      const { db } = await connectToDatabase()
+      // ðŸ“Š ACCESO DIRECTO A LA BASE DE DATOS (MÃS EFICIENTE QUE FETCH)
+      const db = await getDb()
       
       const childDoc = await db.collection("children").findOne({
         _id: new ObjectId(childId),
@@ -256,92 +256,92 @@ const childDataTool = new DynamicStructuredTool({
       })
       
       if (!childDoc) {
-        logger.warn('Niño no encontrado en la base de datos', { childId })
-        return "No se encontró información del niño"
+        logger.warn('NiÃ±o no encontrado en la base de datos', { childId })
+        return "No se encontrÃ³ informaciÃ³n del niÃ±o"
       }
       
-      logInfo('Niño encontrado', { name: `${childDoc.firstName} ${childDoc.lastName}` })
+      logInfo('NiÃ±o encontrado', { name: `${childDoc.firstName} ${childDoc.lastName}` })
       
       const events = childDoc.events || []
       logDebug('Eventos encontrados', { count: events.length })
       
-      // 📅 FILTRAR EVENTOS POR PERIODO SI SE ESPECIFICÓ
+      // ðŸ“… FILTRAR EVENTOS POR PERIODO SI SE ESPECIFICÃ“
       let filteredEvents = filterEventsByPeriod(events, period)
       
-      // 🎯 LÓGICA ESPECIAL PARA ESTADÍSTICAS COHERENTES CON PLANES
+      // ðŸŽ¯ LÃ“GICA ESPECIAL PARA ESTADÃSTICAS COHERENTES CON PLANES
       if (period === 'since-current-plan') {
-        // Obtener fecha del plan actual para filtrar eventos desde que empezó
+        // Obtener fecha del plan actual para filtrar eventos desde que empezÃ³
         const currentPlanDate = await getCurrentPlanDate(childId, userId)
         if (currentPlanDate) {
           filteredEvents = events.filter(event => 
             new Date(event.startTime) >= currentPlanDate
           )
-          logInfo(`📊 Estadísticas desde plan actual (${currentPlanDate.toLocaleDateString()}): ${filteredEvents.length} eventos`)
+          logInfo(`ðŸ“Š EstadÃ­sticas desde plan actual (${currentPlanDate.toLocaleDateString()}): ${filteredEvents.length} eventos`)
         } else {
-          // Si no hay plan actual, usar últimos 30 días
+          // Si no hay plan actual, usar Ãºltimos 30 dÃ­as
           const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
           filteredEvents = events.filter(event => 
             new Date(event.startTime) >= thirtyDaysAgo
           )
-          logInfo(`📊 No hay plan actual - usando últimos 30 días: ${filteredEvents.length} eventos`)
+          logInfo(`ðŸ“Š No hay plan actual - usando Ãºltimos 30 dÃ­as: ${filteredEvents.length} eventos`)
         }
       }
       
-      // 🧮 PROCESAR ESTADÍSTICAS CON EVENTOS FILTRADOS
+      // ðŸ§® PROCESAR ESTADÃSTICAS CON EVENTOS FILTRADOS
       const sleepStats = await processSleepStatistics(filteredEvents)
       
-      // 🏗️ CONSTRUIR CONTEXTO CON INFORMACIÓN DEL PERIODO
+      // ðŸ—ï¸ CONSTRUIR CONTEXTO CON INFORMACIÃ“N DEL PERIODO
       let context = buildProcessedStatsContext(childDoc, sleepStats)
       
       if (period && period !== 'all') {
-        context += `\n📅 PERIODO ANALIZADO: ${period}\n`
-        context += `📊 Eventos en este periodo: ${filteredEvents.length} de ${events.length} totales\n`
+        context += `\nðŸ“… PERIODO ANALIZADO: ${period}\n`
+        context += `ðŸ“Š Eventos en este periodo: ${filteredEvents.length} de ${events.length} totales\n`
       }
       
       return context
     } catch (error) {
       logger.error('Error en childDataTool', error)
-      return "Error al acceder a las estadísticas del niño"
+      return "Error al acceder a las estadÃ­sticas del niÃ±o"
     }
   },
 })
 
 const childPlanTool = new DynamicStructuredTool({
   name: "child_plan_search",
-  description: "Obtiene información del plan de sueño activo del niño: horarios, actividades, recomendaciones específicas",
+  description: "Obtiene informaciÃ³n del plan de sueÃ±o activo del niÃ±o: horarios, actividades, recomendaciones especÃ­ficas",
   schema: z.object({
-    childId: z.string().describe("ID del niño"),
+    childId: z.string().describe("ID del niÃ±o"),
     userId: z.string().describe("ID del usuario padre"),
-    infoType: z.string().describe("Tipo de información: 'full_plan', 'schedule', 'recommendations', 'summary'"),
+    infoType: z.string().describe("Tipo de informaciÃ³n: 'full_plan', 'schedule', 'recommendations', 'summary'"),
   }),
   func: async ({ childId, userId, infoType }) => {
     try {
       logger.debug('childPlanTool invocado', { childId, userId, infoType })
       
       if (!childId || childId === "null" || childId === "") {
-        logger.warn('childId inválido para obtener plan')
-        return "Por favor selecciona un niño específico para obtener su plan de sueño"
+        logger.warn('childId invÃ¡lido para obtener plan')
+        return "Por favor selecciona un niÃ±o especÃ­fico para obtener su plan de sueÃ±o"
       }
 
-      // Obtener el contexto completo del plan del niño
+      // Obtener el contexto completo del plan del niÃ±o
       const planContext = await getChildPlanContext(childId, userId)
       
       if (planContext.includes("no tiene un plan")) {
-        return "Este niño no tiene un plan de sueño activo. Se recomienda generar un plan inicial."
+        return "Este niÃ±o no tiene un plan de sueÃ±o activo. Se recomienda generar un plan inicial."
       }
 
-      // Filtrar información según el tipo solicitado
+      // Filtrar informaciÃ³n segÃºn el tipo solicitado
       if (infoType === 'schedule') {
-        // Extraer solo la sección de horarios
-        const scheduleMatch = planContext.match(/⏰ HORARIOS ESTABLECIDOS:(.*?)(?=\n\n|💡|📊|===)/s)
-        return scheduleMatch ? `⏰ HORARIOS ESTABLECIDOS:${scheduleMatch[1]}` : "No hay horarios definidos en el plan"
+        // Extraer solo la secciÃ³n de horarios
+        const scheduleMatch = planContext.match(/â° HORARIOS ESTABLECIDOS:(.*?)(?=\n\n|ðŸ’¡|ðŸ“Š|===)/s)
+        return scheduleMatch ? `â° HORARIOS ESTABLECIDOS:${scheduleMatch[1]}` : "No hay horarios definidos en el plan"
       } else if (infoType === 'recommendations') {
         // Extraer solo las recomendaciones
-        const recMatch = planContext.match(/💡 RECOMENDACIONES ESPECÍFICAS:(.*?)(?=\n\n|📊|===)/s)
-        return recMatch ? `💡 RECOMENDACIONES ESPECÍFICAS:${recMatch[1]}` : "No hay recomendaciones específicas en el plan"
+        const recMatch = planContext.match(/ðŸ’¡ RECOMENDACIONES ESPECÃFICAS:(.*?)(?=\n\n|ðŸ“Š|===)/s)
+        return recMatch ? `ðŸ’¡ RECOMENDACIONES ESPECÃFICAS:${recMatch[1]}` : "No hay recomendaciones especÃ­ficas en el plan"
       } else if (infoType === 'summary') {
-        // Extraer solo información básica
-        const summaryMatch = planContext.match(/=== PLAN ACTUAL DEL NIÑO ===(.*?)(?=⏰|💡|📊)/s)
+        // Extraer solo informaciÃ³n bÃ¡sica
+        const summaryMatch = planContext.match(/=== PLAN ACTUAL DEL NIÃ‘O ===(.*?)(?=â°|ðŸ’¡|ðŸ“Š)/s)
         return summaryMatch ? `=== RESUMEN DEL PLAN ===${summaryMatch[1]}` : "No se pudo obtener resumen del plan"
       }
       
@@ -349,12 +349,12 @@ const childPlanTool = new DynamicStructuredTool({
       return planContext
     } catch (error) {
       logger.error('Error en childPlanTool', error)
-      return "Error al acceder al plan de sueño del niño"
+      return "Error al acceder al plan de sueÃ±o del niÃ±o"
     }
   },
 })
 
-// 🧠 SUPER AGENTE COMPREHENSIVO - COMBINA TODO AUTOMÁTICAMENTE
+// ðŸ§  SUPER AGENTE COMPREHENSIVO - COMBINA TODO AUTOMÃTICAMENTE
 const superComprehensiveAgent = async (
   question: string, 
   conversationHistory: any[], 
@@ -363,48 +363,48 @@ const superComprehensiveAgent = async (
 ) => {
   const startTime = Date.now()
   
-  logInfo(`🚀 Super Agente ejecutándose para: "${question}"`)
+  logInfo(`ðŸš€ Super Agente ejecutÃ¡ndose para: "${question}"`)
   
-  // 1. DETECCIÓN INTELIGENTE DE PERIODO PARA ESTADÍSTICAS
+  // 1. DETECCIÃ“N INTELIGENTE DE PERIODO PARA ESTADÃSTICAS
   let period = detectPeriodFromQuestion(question)
   let usesPlanBasedPeriod = false
   
-  // 🎯 LÓGICA INTELIGENTE: Si no hay período específico, usar estadísticas coherentes con el plan
+  // ðŸŽ¯ LÃ“GICA INTELIGENTE: Si no hay perÃ­odo especÃ­fico, usar estadÃ­sticas coherentes con el plan
   if (!period) {
     const isPlanProgressQuestion = await detectPlanProgressQuestionWithAI(question)
     if (isPlanProgressQuestion) {
-      period = "since-current-plan" // Estadísticas desde el plan actual para ver cómo va
+      period = "since-current-plan" // EstadÃ­sticas desde el plan actual para ver cÃ³mo va
       usesPlanBasedPeriod = true
-      logInfo(`🤖 AI detectó pregunta sobre progreso del plan - usando estadísticas desde el plan actual`)
+      logInfo(`ðŸ¤– AI detectÃ³ pregunta sobre progreso del plan - usando estadÃ­sticas desde el plan actual`)
     } else {
       period = "last-30-days" // Por defecto si no es sobre progreso del plan
-      logInfo(`🤖 AI detectó pregunta general - usando últimos 30 días`)
+      logInfo(`ðŸ¤– AI detectÃ³ pregunta general - usando Ãºltimos 30 dÃ­as`)
     }
   }
   
-  logInfo(`📅 Periodo detectado para estadísticas: ${period} ${usesPlanBasedPeriod ? '(coherente con plan)' : ''}`)
+  logInfo(`ðŸ“… Periodo detectado para estadÃ­sticas: ${period} ${usesPlanBasedPeriod ? '(coherente con plan)' : ''}`)
   
-  // 2. EJECUCIÓN PARALELA DE TODOS LOS TOOLS
-  logInfo(`⚡ Ejecutando todos los tools en paralelo...`)
+  // 2. EJECUCIÃ“N PARALELA DE TODOS LOS TOOLS
+  logInfo(`âš¡ Ejecutando todos los tools en paralelo...`)
   
   const [ragResults, statistics, currentPlan, plansHistory] = await Promise.all([
-    // RAG - Búsqueda contextual
+    // RAG - BÃºsqueda contextual
     ragSearchTool.func({ 
       query: extractRelevantKeywords(question) 
     }).catch(err => {
       logger.error("Error en RAG:", err)
-      return "Error obteniendo información médica"
+      return "Error obteniendo informaciÃ³n mÃ©dica"
     }),
     
-    // Estadísticas con periodo inteligente
+    // EstadÃ­sticas con periodo inteligente
     childDataTool.func({ 
       childId, 
       userId, 
       dataType: "stats",
       period 
     }).catch(err => {
-      logger.error("Error en estadísticas:", err)
-      return "Error obteniendo estadísticas del niño"
+      logger.error("Error en estadÃ­sticas:", err)
+      return "Error obteniendo estadÃ­sticas del niÃ±o"
     }),
     
     // Plan actual
@@ -424,48 +424,48 @@ const superComprehensiveAgent = async (
     })
   ])
   
-  logInfo(`✅ Todos los tools completados, sintetizando respuesta...`)
+  logInfo(`âœ… Todos los tools completados, sintetizando respuesta...`)
   
-  // 3. CONSTRUCCIÓN DE CONTEXTO PARA GPT
+  // 3. CONSTRUCCIÃ“N DE CONTEXTO PARA GPT
   const conversationContext = conversationHistory && conversationHistory.length > 0
     ? `Contexto conversacional: ${conversationHistory.slice(-4).map(msg => `${msg.role}: ${msg.content}`).join(' | ')}`
     : "Sin contexto previo."
   
-  // 4. SÍNTESIS INTELIGENTE CON GPT
+  // 4. SÃNTESIS INTELIGENTE CON GPT
   const llm = new ChatOpenAI({
     modelName: "gpt-4o-mini",
     temperature: 0.7,
     maxTokens: 1000
   })
   
-  const synthesisPrompt = `Eres la Dra. Mariana, pediatra especialista en sueño infantil.
+  const synthesisPrompt = `Eres la Dra. Mariana, pediatra especialista en sueÃ±o infantil.
 
 PREGUNTA DEL USUARIO: "${question}"
 ${conversationContext}
 
-INFORMACIÓN DISPONIBLE:
+INFORMACIÃ“N DISPONIBLE:
 
-📊 ESTADÍSTICAS DEL NIÑO (${period}):
+ðŸ“Š ESTADÃSTICAS DEL NIÃ‘O (${period}):
 ${statistics}
 
-📋 PLAN ACTUAL:
+ðŸ“‹ PLAN ACTUAL:
 ${currentPlan}
 
-📈 EVOLUCIÓN DE PLANES:
+ðŸ“ˆ EVOLUCIÃ“N DE PLANES:
 ${plansHistory}
 
-📚 CONOCIMIENTO MÉDICO:
+ðŸ“š CONOCIMIENTO MÃ‰DICO:
 ${ragResults}
 
 INSTRUCCIONES:
-- Responde de forma profesional y empática
-- USA SOLO la información relevante para la pregunta específica
-- Si pregunta sobre estadísticas, enfócate en los datos pero contextualiza con el plan
-- Si pregunta sobre el plan, enfócate en el plan pero relaciona con estadísticas si es útil
-- Si es pregunta general ("¿cómo está?"), combina todo lo relevante
-- Compara con planes anteriores cuando sea útil para mostrar progreso
-- Máximo 3 párrafos, sé conciso y directo
-- Si no tienes información específica, dilo claramente`
+- Responde de forma profesional y empÃ¡tica
+- USA SOLO la informaciÃ³n relevante para la pregunta especÃ­fica
+- Si pregunta sobre estadÃ­sticas, enfÃ³cate en los datos pero contextualiza con el plan
+- Si pregunta sobre el plan, enfÃ³cate en el plan pero relaciona con estadÃ­sticas si es Ãºtil
+- Si es pregunta general ("Â¿cÃ³mo estÃ¡?"), combina todo lo relevante
+- Compara con planes anteriores cuando sea Ãºtil para mostrar progreso
+- MÃ¡ximo 3 pÃ¡rrafos, sÃ© conciso y directo
+- Si no tienes informaciÃ³n especÃ­fica, dilo claramente`
 
   const response = await llm.invoke([
     new SystemMessage(synthesisPrompt),
@@ -473,7 +473,7 @@ INSTRUCCIONES:
   ])
   
   const executionTime = Date.now() - startTime
-  logInfo(`🎯 Super Agente completado en ${executionTime}ms`)
+  logInfo(`ðŸŽ¯ Super Agente completado en ${executionTime}ms`)
   
   return {
     finalAnswer: response.content,
@@ -486,7 +486,7 @@ INSTRUCCIONES:
   }
 }
 
-// 🎯 ROUTER INTELIGENTE - DECIDE QUÉ AGENTES USAR (100% PROMPTING)
+// ðŸŽ¯ ROUTER INTELIGENTE - DECIDE QUÃ‰ AGENTES USAR (100% PROMPTING)
 async function intelligentAgentRouter(question: string): Promise<{
   agents: string[],
   reasoning: string,
@@ -499,42 +499,42 @@ async function intelligentAgentRouter(question: string): Promise<{
       maxTokens: 200
     })
 
-    const routerPrompt = `Eres un experto en sueño infantil que decide qué información necesitas para responder preguntas.
+    const routerPrompt = `Eres un experto en sueÃ±o infantil que decide quÃ© informaciÃ³n necesitas para responder preguntas.
 
 PREGUNTA DEL USUARIO: "${question}"
 
 AGENTES DISPONIBLES:
-1. "plan_progress" - Plan actual + estadísticas desde que empezó el plan (para evaluar efectividad)
-2. "medical_rag" - Conocimiento médico especializado en sueño infantil
-3. "statistics" - Estadísticas por período específico (julio, junio, semana, etc.)
-4. "general_insights" - Vista integral del niño (últimos 30 días + plan como contexto)
-5. "plan_context" - Solo información del plan actual (horarios, objetivos)
+1. "plan_progress" - Plan actual + estadÃ­sticas desde que empezÃ³ el plan (para evaluar efectividad)
+2. "medical_rag" - Conocimiento mÃ©dico especializado en sueÃ±o infantil
+3. "statistics" - EstadÃ­sticas por perÃ­odo especÃ­fico (julio, junio, semana, etc.)
+4. "general_insights" - Vista integral del niÃ±o (Ãºltimos 30 dÃ­as + plan como contexto)
+5. "plan_context" - Solo informaciÃ³n del plan actual (horarios, objetivos)
 
 EJEMPLOS DE DECISIONES:
-- "¿Funciona el plan?" → ["plan_progress"] 
-- "¿Consejos para mejorar sueño?" → ["medical_rag", "plan_context"]
-- "¿Estadísticas de julio?" → ["statistics"] + period="july-2025"
-- "¿Cómo está mi niño?" → ["general_insights"]
-- "¿Es normal que despierte?" → ["medical_rag", "general_insights"]
-- "¿Qué ajustes hacer al plan?" → ["plan_progress", "medical_rag"]
+- "Â¿Funciona el plan?" â†’ ["plan_progress"] 
+- "Â¿Consejos para mejorar sueÃ±o?" â†’ ["medical_rag", "plan_context"]
+- "Â¿EstadÃ­sticas de julio?" â†’ ["statistics"] + period="july-2025"
+- "Â¿CÃ³mo estÃ¡ mi niÃ±o?" â†’ ["general_insights"]
+- "Â¿Es normal que despierte?" â†’ ["medical_rag", "general_insights"]
+- "Â¿QuÃ© ajustes hacer al plan?" â†’ ["plan_progress", "medical_rag"]
 
 INSTRUCCIONES:
-- Selecciona SOLO los agentes necesarios para la pregunta específica
-- Si menciona un período (julio, junio, semana), usar "statistics" con ese período
+- Selecciona SOLO los agentes necesarios para la pregunta especÃ­fica
+- Si menciona un perÃ­odo (julio, junio, semana), usar "statistics" con ese perÃ­odo
 - Si pregunta sobre efectividad/progreso del plan, usar "plan_progress"
-- Si pide consejos médicos, incluir "medical_rag"
+- Si pide consejos mÃ©dicos, incluir "medical_rag"
 - Si es pregunta general, usar "general_insights"
 
 Responde en JSON exacto:
 {
   "agents": ["agent1", "agent2"],
-  "reasoning": "explicación breve",
+  "reasoning": "explicaciÃ³n breve",
   "period": "july-2025" (solo si aplica)
 }`
 
     const response = await llm.invoke([
       new SystemMessage(routerPrompt),
-      new HumanMessage("Decide qué agentes usar")
+      new HumanMessage("Decide quÃ© agentes usar")
     ])
 
     const result = response.content.toString().trim()
@@ -560,12 +560,12 @@ Responde en JSON exacto:
   }
 }
 
-// 🔍 FUNCIÓN INTELIGENTE PARA DETECTAR PERIODO EN LA PREGUNTA
+// ðŸ” FUNCIÃ“N INTELIGENTE PARA DETECTAR PERIODO EN LA PREGUNTA
 function detectPeriodFromQuestion(question: string): string | null {
   const lowerQuestion = question.toLowerCase()
   const currentYear = new Date().getFullYear()
   
-  // Detección de meses específicos (esto sí se mantiene porque es preciso)
+  // DetecciÃ³n de meses especÃ­ficos (esto sÃ­ se mantiene porque es preciso)
   const monthPatterns = {
     'enero': `january-${currentYear}`,
     'febrero': `february-${currentYear}`,
@@ -581,35 +581,35 @@ function detectPeriodFromQuestion(question: string): string | null {
     'diciembre': `december-${currentYear}`
   }
   
-  // Buscar mes específico primero (esto es preciso)
+  // Buscar mes especÃ­fico primero (esto es preciso)
   for (const [month, period] of Object.entries(monthPatterns)) {
     if (lowerQuestion.includes(month)) {
-      logInfo(`📅 Mes específico detectado: ${month} → ${period}`)
+      logInfo(`ðŸ“… Mes especÃ­fico detectado: ${month} â†’ ${period}`)
       return period
     }
   }
   
-  // Períodos relativos claros
+  // PerÃ­odos relativos claros
   if (lowerQuestion.includes('este mes') || lowerQuestion.includes('mes actual')) {
     return 'current-month'
   }
   
-  if (lowerQuestion.includes('semana') || lowerQuestion.includes('últimos días')) {
+  if (lowerQuestion.includes('semana') || lowerQuestion.includes('Ãºltimos dÃ­as')) {
     return 'last-7-days'
   }
   
-  if (lowerQuestion.includes('evolución') || lowerQuestion.includes('últimos meses')) {
+  if (lowerQuestion.includes('evoluciÃ³n') || lowerQuestion.includes('Ãºltimos meses')) {
     return 'last-90-days'
   }
   
-  // No hay período específico detectado - AI decidirá el contexto
+  // No hay perÃ­odo especÃ­fico detectado - AI decidirÃ¡ el contexto
   return null
 }
 
-// 🎯 AGENTE ESPECIALIZADO: PROGRESO DEL PLAN
+// ðŸŽ¯ AGENTE ESPECIALIZADO: PROGRESO DEL PLAN
 async function planProgressAgent(childId: string, userId: string): Promise<string> {
   try {
-    logInfo(`🎯 Ejecutando PlanProgressAgent`)
+    logInfo(`ðŸŽ¯ Ejecutando PlanProgressAgent`)
     
     // 1. Obtener plan actual
     const currentPlan = await childPlanTool.func({ 
@@ -618,10 +618,10 @@ async function planProgressAgent(childId: string, userId: string): Promise<strin
       infoType: "full_plan" 
     })
     
-    // 2. Obtener fecha del plan para estadísticas coherentes
+    // 2. Obtener fecha del plan para estadÃ­sticas coherentes
     const planDate = await getCurrentPlanDate(childId, userId)
     
-    // 3. Obtener estadísticas desde el plan actual
+    // 3. Obtener estadÃ­sticas desde el plan actual
     let statistics
     if (planDate) {
       statistics = await childDataTool.func({ 
@@ -642,10 +642,10 @@ async function planProgressAgent(childId: string, userId: string): Promise<strin
     return `=== PROGRESO DEL PLAN ===
 ${currentPlan}
 
-=== ESTADÍSTICAS DESDE EL PLAN ===
+=== ESTADÃSTICAS DESDE EL PLAN ===
 ${statistics}
 
-=== ANÁLISIS ===
+=== ANÃLISIS ===
 Datos para evaluar efectividad del plan actual`
     
   } catch (error) {
@@ -654,31 +654,31 @@ Datos para evaluar efectividad del plan actual`
   }
 }
 
-// 🧠 AGENTE ESPECIALIZADO: CONOCIMIENTO MÉDICO
+// ðŸ§  AGENTE ESPECIALIZADO: CONOCIMIENTO MÃ‰DICO
 async function medicalRAGAgent(question: string): Promise<string> {
   try {
-    logInfo(`🧠 Ejecutando MedicalRAGAgent`)
+    logInfo(`ðŸ§  Ejecutando MedicalRAGAgent`)
     
     const ragResults = await ragSearchTool.func({ 
       query: extractRelevantKeywords(question)
     })
     
-    return `=== CONOCIMIENTO MÉDICO ESPECIALIZADO ===
+    return `=== CONOCIMIENTO MÃ‰DICO ESPECIALIZADO ===
 ${ragResults}
 
-=== ANÁLISIS ===
-Información médica relevante para la consulta`
+=== ANÃLISIS ===
+InformaciÃ³n mÃ©dica relevante para la consulta`
     
   } catch (error) {
     logger.error("Error en MedicalRAGAgent:", error)
-    return "Error obteniendo conocimiento médico"
+    return "Error obteniendo conocimiento mÃ©dico"
   }
 }
 
-// 📊 AGENTE ESPECIALIZADO: ESTADÍSTICAS POR PERÍODO
+// ðŸ“Š AGENTE ESPECIALIZADO: ESTADÃSTICAS POR PERÃODO
 async function statisticsAgent(childId: string, userId: string, period: string): Promise<string> {
   try {
-    logInfo(`📊 Ejecutando StatisticsAgent con período: ${period}`)
+    logInfo(`ðŸ“Š Ejecutando StatisticsAgent con perÃ­odo: ${period}`)
     
     const statistics = await childDataTool.func({ 
       childId, 
@@ -687,22 +687,22 @@ async function statisticsAgent(childId: string, userId: string, period: string):
       period
     })
     
-    return `=== ESTADÍSTICAS DEL PERÍODO: ${period.toUpperCase()} ===
+    return `=== ESTADÃSTICAS DEL PERÃODO: ${period.toUpperCase()} ===
 ${statistics}
 
-=== ANÁLISIS ===
-Datos específicos del período solicitado`
+=== ANÃLISIS ===
+Datos especÃ­ficos del perÃ­odo solicitado`
     
   } catch (error) {
     logger.error("Error en StatisticsAgent:", error)
-    return "Error obteniendo estadísticas del período"
+    return "Error obteniendo estadÃ­sticas del perÃ­odo"
   }
 }
 
-// 🌍 AGENTE ESPECIALIZADO: VISTA INTEGRAL
+// ðŸŒ AGENTE ESPECIALIZADO: VISTA INTEGRAL
 async function generalInsightsAgent(childId: string, userId: string): Promise<string> {
   try {
-    logInfo(`🌍 Ejecutando GeneralInsightsAgent`)
+    logInfo(`ðŸŒ Ejecutando GeneralInsightsAgent`)
     
     // Ejecutar en paralelo para eficiencia
     const [statistics, currentPlan, plansHistory] = await Promise.all([
@@ -720,17 +720,17 @@ async function generalInsightsAgent(childId: string, userId: string): Promise<st
       getAllPlansContext(childId, userId)
     ])
     
-    return `=== VISTA INTEGRAL DEL NIÑO ===
+    return `=== VISTA INTEGRAL DEL NIÃ‘O ===
 ${statistics}
 
 === PLAN COMO CONTEXTO ===
 ${currentPlan}
 
-=== EVOLUCIÓN ===
+=== EVOLUCIÃ“N ===
 ${plansHistory}
 
-=== ANÁLISIS ===
-Visión completa del estado actual del niño`
+=== ANÃLISIS ===
+VisiÃ³n completa del estado actual del niÃ±o`
     
   } catch (error) {
     logger.error("Error en GeneralInsightsAgent:", error)
@@ -738,10 +738,10 @@ Visión completa del estado actual del niño`
   }
 }
 
-// 📋 AGENTE ESPECIALIZADO: CONTEXTO DEL PLAN
+// ðŸ“‹ AGENTE ESPECIALIZADO: CONTEXTO DEL PLAN
 async function planContextAgent(childId: string, userId: string): Promise<string> {
   try {
-    logInfo(`📋 Ejecutando PlanContextAgent`)
+    logInfo(`ðŸ“‹ Ejecutando PlanContextAgent`)
     
     const currentPlan = await childPlanTool.func({ 
       childId, 
@@ -752,8 +752,8 @@ async function planContextAgent(childId: string, userId: string): Promise<string
     return `=== CONTEXTO DEL PLAN ACTUAL ===
 ${currentPlan}
 
-=== ANÁLISIS ===
-Información específica del plan de sueño actual`
+=== ANÃLISIS ===
+InformaciÃ³n especÃ­fica del plan de sueÃ±o actual`
     
   } catch (error) {
     logger.error("Error en PlanContextAgent:", error)
@@ -761,25 +761,25 @@ Información específica del plan de sueño actual`
   }
 }
 
-// 📅 FUNCIÓN PARA OBTENER FECHA DEL PLAN ACTUAL
+// ðŸ“… FUNCIÃ“N PARA OBTENER FECHA DEL PLAN ACTUAL
 async function getCurrentPlanDate(childId: string, userId: string): Promise<Date | null> {
   try {
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     
     const currentPlan = await db.collection("child_plans").findOne({
       childId: new ObjectId(childId),
       userId: new ObjectId(userId),
       status: "active"
     }, {
-      sort: { planNumber: -1 } // El más reciente
+      sort: { planNumber: -1 } // El mÃ¡s reciente
     })
     
     if (currentPlan && currentPlan.createdAt) {
-      logInfo(`✅ Plan actual encontrado - creado el: ${currentPlan.createdAt}`)
+      logInfo(`âœ… Plan actual encontrado - creado el: ${currentPlan.createdAt}`)
       return new Date(currentPlan.createdAt)
     }
     
-    logInfo(`❌ No se encontró plan actual para el niño`)
+    logInfo(`âŒ No se encontrÃ³ plan actual para el niÃ±o`)
     return null
   } catch (error) {
     logger.error("Error obteniendo fecha del plan actual:", error)
@@ -787,7 +787,7 @@ async function getCurrentPlanDate(childId: string, userId: string): Promise<Date
   }
 }
 
-// 🎯 ORQUESTADOR INTELIGENTE - NUEVA ARQUITECTURA CON AGENTES ESPECIALIZADOS
+// ðŸŽ¯ ORQUESTADOR INTELIGENTE - NUEVA ARQUITECTURA CON AGENTES ESPECIALIZADOS
 const intelligentOrchestrator = async (
   question: string, 
   conversationHistory: any[], 
@@ -796,13 +796,13 @@ const intelligentOrchestrator = async (
 ) => {
   const startTime = Date.now()
   
-  logInfo(`🎯 Orquestador Inteligente ejecutándose para: "${question}"`)
+  logInfo(`ðŸŽ¯ Orquestador Inteligente ejecutÃ¡ndose para: "${question}"`)
   
-  // 1. ROUTER INTELIGENTE DECIDE QUÉ AGENTES USAR
+  // 1. ROUTER INTELIGENTE DECIDE QUÃ‰ AGENTES USAR
   const routing = await intelligentAgentRouter(question)
   
-  logInfo(`🤖 Router AI decidió usar agentes: [${routing.agents.join(', ')}]`)
-  logInfo(`💭 Razón: ${routing.reasoning}`)
+  logInfo(`ðŸ¤– Router AI decidiÃ³ usar agentes: [${routing.agents.join(', ')}]`)
+  logInfo(`ðŸ’­ RazÃ³n: ${routing.reasoning}`)
   
   // 2. EJECUTAR AGENTES SELECCIONADOS EN PARALELO
   const agentPromises: Promise<string>[] = []
@@ -826,24 +826,24 @@ const intelligentOrchestrator = async (
         agentPromises.push(planContextAgent(childId, userId))
         break
       default:
-        logInfo(`⚠️ Agente desconocido: ${agentName}, usando general_insights`)
+        logInfo(`âš ï¸ Agente desconocido: ${agentName}, usando general_insights`)
         agentPromises.push(generalInsightsAgent(childId, userId))
     }
   }
   
-  logInfo(`⚡ Ejecutando ${agentPromises.length} agentes en paralelo...`)
+  logInfo(`âš¡ Ejecutando ${agentPromises.length} agentes en paralelo...`)
   
   // 3. OBTENER RESULTADOS DE TODOS LOS AGENTES
   const agentResults = await Promise.all(agentPromises)
   
-  logInfo(`✅ Todos los agentes completados, sintetizando respuesta...`)
+  logInfo(`âœ… Todos los agentes completados, sintetizando respuesta...`)
   
-  // 4. CONSTRUCCIÓN DE CONTEXTO PARA GPT
+  // 4. CONSTRUCCIÃ“N DE CONTEXTO PARA GPT
   const conversationContext = conversationHistory && conversationHistory.length > 0
     ? `Contexto conversacional: ${conversationHistory.slice(-4).map(msg => `${msg.role}: ${msg.content}`).join(' | ')}`
     : "Sin contexto previo."
   
-  // 5. SÍNTESIS INTELIGENTE CON GPT
+  // 5. SÃNTESIS INTELIGENTE CON GPT
   const llm = new ChatOpenAI({
     modelName: "gpt-4o-mini",
     temperature: 0.7,
@@ -852,22 +852,22 @@ const intelligentOrchestrator = async (
   
   const combinedInformation = agentResults.join('\n\n')
   
-  const synthesisPrompt = `Eres la Dra. Mariana, pediatra especialista en sueño infantil.
+  const synthesisPrompt = `Eres la Dra. Mariana, pediatra especialista en sueÃ±o infantil.
 
 PREGUNTA DEL USUARIO: "${question}"
 ${conversationContext}
 
-INFORMACIÓN RECOPILADA POR AGENTES ESPECIALIZADOS:
+INFORMACIÃ“N RECOPILADA POR AGENTES ESPECIALIZADOS:
 ${combinedInformation}
 
 INSTRUCCIONES:
-- Responde de forma profesional y empática
-- Usa TODA la información relevante proporcionada por los agentes
+- Responde de forma profesional y empÃ¡tica
+- Usa TODA la informaciÃ³n relevante proporcionada por los agentes
 - Integra los datos de manera coherente para dar una respuesta completa
-- Si hay múltiples fuentes, combínalas inteligentemente
-- Máximo 3 párrafos, sé conciso y directo
-- Si no tienes información específica, dilo claramente
-- Enfócate en responder exactamente lo que se preguntó`
+- Si hay mÃºltiples fuentes, combÃ­nalas inteligentemente
+- MÃ¡ximo 3 pÃ¡rrafos, sÃ© conciso y directo
+- Si no tienes informaciÃ³n especÃ­fica, dilo claramente
+- EnfÃ³cate en responder exactamente lo que se preguntÃ³`
 
   const response = await llm.invoke([
     new SystemMessage(synthesisPrompt),
@@ -875,7 +875,7 @@ INSTRUCCIONES:
   ])
   
   const executionTime = Date.now() - startTime
-  logInfo(`🎯 Orquestador completado en ${executionTime}ms con agentes: [${routing.agents.join(', ')}]`)
+  logInfo(`ðŸŽ¯ Orquestador completado en ${executionTime}ms con agentes: [${routing.agents.join(', ')}]`)
   
   return {
     finalAnswer: response.content,
@@ -890,7 +890,7 @@ INSTRUCCIONES:
   }
 }
 
-// ✅ NUEVA ARQUITECTURA CON ORQUESTADOR INTELIGENTE IMPLEMENTADA
+// âœ… NUEVA ARQUITECTURA CON ORQUESTADOR INTELIGENTE IMPLEMENTADA
 
 export async function POST(req: NextRequest) {
   try {
@@ -899,11 +899,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    // 🚦 VERIFICAR RATE LIMIT (Protección Profesional)
+    // ðŸš¦ VERIFICAR RATE LIMIT (ProtecciÃ³n Profesional)
     const rateLimitCheck = checkRateLimit(session.user.id)
     if (!rateLimitCheck.allowed) {
       const waitTime = Math.ceil((rateLimitCheck.resetTime - Date.now()) / 1000)
-      logger.warn(`⛔ Rate limit excedido para usuario ${session.user.email} - Espera ${waitTime}s`)
+      logger.warn(`â›” Rate limit excedido para usuario ${session.user.email} - Espera ${waitTime}s`)
       
       return NextResponse.json({ 
         error: "Demasiadas solicitudes. Por favor espera un momento.",
@@ -925,34 +925,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Mensaje requerido" }, { status: 400 })
     }
 
-    // 💬 LOGGING DE PREGUNTA RECIBIDA (Solo en desarrollo/debug)
-    logInfo(`💬 Nueva pregunta recibida: "${message}"`)
-    logDebug(`👶 ChildId: ${childId || 'No especificado'}`)
-    logDebug(`👤 Usuario: ${session.user.email || session.user.id}`)
+    // ðŸ’¬ LOGGING DE PREGUNTA RECIBIDA (Solo en desarrollo/debug)
+    logInfo(`ðŸ’¬ Nueva pregunta recibida: "${message}"`)
+    logDebug(`ðŸ‘¶ ChildId: ${childId || 'No especificado'}`)
+    logDebug(`ðŸ‘¤ Usuario: ${session.user.email || session.user.id}`)
 
-    // 🔍 OBTENER EL PARENT ID CORRECTO DEL NIÑO
+    // ðŸ” OBTENER EL PARENT ID CORRECTO DEL NIÃ‘O
     let parentUserId = session.user.id // Default para usuarios normales
     
     if (childId) {
       try {
-        const { db } = await connectToDatabase()
+        const db = await getDb()
         const child = await db.collection("children").findOne({
           _id: new ObjectId(childId)
         })
         
         if (child && child.parentId) {
           parentUserId = child.parentId
-          logInfo('Niño encontrado', { name: `${child.firstName} ${child.lastName}`, parentId: parentUserId })
+          logInfo('NiÃ±o encontrado', { name: `${child.firstName} ${child.lastName}`, parentId: parentUserId })
         } else {
-          logger.warn('Niño no encontrado', { childId })
+          logger.warn('NiÃ±o no encontrado', { childId })
         }
       } catch (error) {
         logger.error('Error obteniendo parent ID', error)
       }
     }
 
-    // 🎯 EJECUTAR ORQUESTADOR INTELIGENTE CON AGENTES ESPECIALIZADOS
-    logInfo(`🎯 Ejecutando Orquestador Inteligente para: "${message}"`)
+    // ðŸŽ¯ EJECUTAR ORQUESTADOR INTELIGENTE CON AGENTES ESPECIALIZADOS
+    logInfo(`ðŸŽ¯ Ejecutando Orquestador Inteligente para: "${message}"`)
     
     const result = await intelligentOrchestrator(
       message,
@@ -961,20 +961,20 @@ export async function POST(req: NextRequest) {
       parentUserId
     )
 
-    // 📊 CALCULAR MÉTRICAS DE PERFORMANCE
+    // ðŸ“Š CALCULAR MÃ‰TRICAS DE PERFORMANCE
     const executionTime = result.performance?.executionTime || 0
 
-    // 🎭 OBTENER CONTEXTO DEL NIÑO PARA RESPUESTA (con parent ID correcto)
+    // ðŸŽ­ OBTENER CONTEXTO DEL NIÃ‘O PARA RESPUESTA (con parent ID correcto)
     const childContext = childId ? await getChildContextForResponse(childId, parentUserId) : null
 
-    // 📝 LOGGING DE RESPUESTA FINAL (Siempre mostrar en desarrollo, condensado en producción)
+    // ðŸ“ LOGGING DE RESPUESTA FINAL (Siempre mostrar en desarrollo, condensado en producciÃ³n)
     if (VERBOSE_LOGGING) {
-      logger.info(`✅ Respuesta generada por: ${result.performance?.agent || "SUPER_COMPREHENSIVE"}`)
-      logger.info(`⏱️  Tiempo de ejecución: ${executionTime}ms`)
-      logger.info(`💡 Respuesta: ${result.finalAnswer.substring(0, 200)}...`)
+      logger.info(`âœ… Respuesta generada por: ${result.performance?.agent || "SUPER_COMPREHENSIVE"}`)
+      logger.info(`â±ï¸  Tiempo de ejecuciÃ³n: ${executionTime}ms`)
+      logger.info(`ðŸ’¡ Respuesta: ${result.finalAnswer.substring(0, 200)}...`)
     } else {
-      // En producción, solo un log condensado
-      logger.info(`✅ ${result.performance?.agent || "SUPER"} | ${executionTime}ms | ${message.substring(0, 50)}...`)
+      // En producciÃ³n, solo un log condensado
+      logger.info(`âœ… ${result.performance?.agent || "SUPER"} | ${executionTime}ms | ${message.substring(0, 50)}...`)
     }
 
     return NextResponse.json({
@@ -997,7 +997,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// 🧮 FUNCIONES PARA PROCESAR ESTADÍSTICAS (COPIADAS DE useSleepData)
+// ðŸ§® FUNCIONES PARA PROCESAR ESTADÃSTICAS (COPIADAS DE useSleepData)
 async function processSleepStatistics(events: any[]) {
   if (events.length === 0) {
     return {
@@ -1014,7 +1014,7 @@ async function processSleepStatistics(events: any[]) {
     }
   }
 
-  // Filtrar eventos de la última semana para "recientes"
+  // Filtrar eventos de la Ãºltima semana para "recientes"
   const now = new Date()
   const weekAgo = subDays(now, 7)
   const recentEvents = events.filter((e: any) => {
@@ -1028,7 +1028,7 @@ async function processSleepStatistics(events: any[]) {
   const meals = events.filter((e: any) => e.eventType === 'meal')
   const bedtimeEvents = events.filter((e: any) => e.eventType === 'bedtime')
 
-  // Calcular promedios usando la misma lógica que useSleepData
+  // Calcular promedios usando la misma lÃ³gica que useSleepData
   const avgSleepDuration = calculateInferredSleepDuration(events)
   const avgNapDuration = naps.length > 0
     ? naps.reduce((sum: number, event: any) => {
@@ -1162,11 +1162,11 @@ function calculateInferredWakeTime(events: any[]): string {
   return calculateAverageTime(wakeTimes)
 }
 
-// 🏗️ FUNCIÓN PARA CONSTRUIR CONTEXTO CON ESTADÍSTICAS PROCESADAS
+// ðŸ—ï¸ FUNCIÃ“N PARA CONSTRUIR CONTEXTO CON ESTADÃSTICAS PROCESADAS
 function buildProcessedStatsContext(childData: any, stats: any): string {
-  let context = "=== ESTADÍSTICAS DE SUEÑO PROCESADAS ===\n"
+  let context = "=== ESTADÃSTICAS DE SUEÃ‘O PROCESADAS ===\n"
   
-  // Información básica
+  // InformaciÃ³n bÃ¡sica
   const birthDate = childData.birthDate ? new Date(childData.birthDate) : null
   const ageInMonths = birthDate ? Math.floor(differenceInDays(new Date(), birthDate) / 30.44) : null
   
@@ -1175,30 +1175,30 @@ function buildProcessedStatsContext(childData: any, stats: any): string {
     context += `Edad: ${ageInMonths} meses\n`
   }
 
-  // ESTADÍSTICAS PRINCIPALES
-  context += "\n📊 MÉTRICAS PRINCIPALES:\n"
-  context += `- Duración promedio de sueño nocturno: ${stats.avgSleepDuration.toFixed(1)} horas\n`
-  context += `- Duración promedio de siestas: ${stats.avgNapDuration.toFixed(1)} horas\n`
+  // ESTADÃSTICAS PRINCIPALES
+  context += "\nðŸ“Š MÃ‰TRICAS PRINCIPALES:\n"
+  context += `- DuraciÃ³n promedio de sueÃ±o nocturno: ${stats.avgSleepDuration.toFixed(1)} horas\n`
+  context += `- DuraciÃ³n promedio de siestas: ${stats.avgNapDuration.toFixed(1)} horas\n`
   context += `- Hora promedio de acostarse: ${stats.avgBedtime}\n`
   context += `- Hora promedio de dormir: ${stats.avgSleepTime}\n`
   context += `- Hora promedio de despertar: ${stats.avgWakeTime}\n`
 
   // CONTADORES DE EVENTOS
-  context += "\n📈 RESUMEN DE EVENTOS:\n"
+  context += "\nðŸ“ˆ RESUMEN DE EVENTOS:\n"
   context += `- Total de eventos registrados: ${stats.totalEvents}\n`
-  context += `- Eventos de sueño nocturno: ${stats.totalSleepEvents}\n`
+  context += `- Eventos de sueÃ±o nocturno: ${stats.totalSleepEvents}\n`
   context += `- Total de siestas: ${stats.totalNaps}\n`
   context += `- Total de comidas: ${stats.totalMeals}\n`
-  context += `- Eventos recientes (última semana): ${stats.recentEventsCount}\n`
+  context += `- Eventos recientes (Ãºltima semana): ${stats.recentEventsCount}\n`
 
-  return context + "=== FIN DE ESTADÍSTICAS ===\n\n"
+  return context + "=== FIN DE ESTADÃSTICAS ===\n\n"
 }
 
-// 🏗️ FUNCIÓN AUXILIAR PARA CONSTRUIR CONTEXTO DEL NIÑO (LEGACY)
+// ðŸ—ï¸ FUNCIÃ“N AUXILIAR PARA CONSTRUIR CONTEXTO DEL NIÃ‘O (LEGACY)
 function buildChildContext(activeChild: any): string {
-  let context = "=== INFORMACIÓN ESPECÍFICA DEL NIÑO ===\n"
+  let context = "=== INFORMACIÃ“N ESPECÃFICA DEL NIÃ‘O ===\n"
   
-  // Información básica
+  // InformaciÃ³n bÃ¡sica
   const birthDate = activeChild.birthDate ? new Date(activeChild.birthDate) : null
   const ageInMonths = birthDate ? Math.floor(differenceInDays(new Date(), birthDate) / 30.44) : null
   
@@ -1213,14 +1213,14 @@ function buildChildContext(activeChild: any): string {
       new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
     )
 
-    // ESTADÍSTICAS GENERALES
+    // ESTADÃSTICAS GENERALES
     const totalNaps = allEvents.filter((e: any) => e.eventType === "nap").length
     const totalSleep = allEvents.filter((e: any) => e.eventType === "sleep").length
     const totalMeals = allEvents.filter((e: any) => e.eventType === "meal").length
     
-    context += "\nESTADÍSTICAS:\n"
+    context += "\nESTADÃSTICAS:\n"
     context += `- Total siestas: ${totalNaps}\n`
-    context += `- Total eventos sueño: ${totalSleep}\n`
+    context += `- Total eventos sueÃ±o: ${totalSleep}\n`
     context += `- Total comidas: ${totalMeals}\n`
 
     // ESTADOS EMOCIONALES
@@ -1241,13 +1241,13 @@ function buildChildContext(activeChild: any): string {
     }
   }
 
-  return context + "=== FIN DE INFORMACIÓN ===\n\n"
+  return context + "=== FIN DE INFORMACIÃ“N ===\n\n"
 }
 
-// 🎭 FUNCIÓN PARA OBTENER CONTEXTO PARA RESPUESTA
+// ðŸŽ­ FUNCIÃ“N PARA OBTENER CONTEXTO PARA RESPUESTA
 async function getChildContextForResponse(childId: string, userId: string) {
   try {
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     
     const activeChild = await db.collection("children").findOne({
       _id: new ObjectId(childId),
@@ -1256,7 +1256,7 @@ async function getChildContextForResponse(childId: string, userId: string) {
 
     if (!activeChild) return null
 
-    // 🔧 CARGAR EVENTOS RECIENTES DEL NIÑO
+    // ðŸ”§ CARGAR EVENTOS RECIENTES DEL NIÃ‘O
     const events = await db.collection("events")
       .find({ childId: activeChild._id.toString() })
       .sort({ startTime: -1 })
@@ -1275,7 +1275,7 @@ async function getChildContextForResponse(childId: string, userId: string) {
       recentEventsCount,
     }
   } catch (error) {
-    logger.error("Error obteniendo contexto del niño:", error)
+    logger.error("Error obteniendo contexto del niÃ±o:", error)
     return null
   }
 }

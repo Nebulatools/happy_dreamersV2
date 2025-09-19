@@ -2,7 +2,7 @@
 // Maneja permisos compartidos y control de acceso para cuidadores
 
 import { ObjectId, Db, Collection } from "mongodb"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { UserChildAccess, Child } from "@/types/models"
 import { createLogger } from "@/lib/logger"
 import crypto from "crypto"
@@ -50,13 +50,13 @@ function generateInvitationToken(): string {
 
 // Obtener la colección de accesos
 async function getAccessCollection(): Promise<Collection<UserChildAccess>> {
-  const { db } = await connectToDatabase()
+  const db = await getDb()
   return db.collection<UserChildAccess>(COLLECTION_NAME)
 }
 
 // Obtener la colección de niños
 async function getChildrenCollection(): Promise<Collection<Child>> {
-  const { db } = await connectToDatabase()
+  const db = await getDb()
   return db.collection<Child>(CHILDREN_COLLECTION)
 }
 
@@ -182,7 +182,7 @@ export async function grantAccess(
     }
     
     // Buscar el usuario por email
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     const usersCollection = db.collection("users")
     const caregiverUser = await usersCollection.findOne({ email: caregiverEmail.toLowerCase() })
     
@@ -376,7 +376,7 @@ export async function getCaregivers(
     }).toArray()
     
     // Obtener información de usuarios
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     const usersCollection = db.collection("users")
     
     const caregivers = await Promise.all(

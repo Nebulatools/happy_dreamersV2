@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 import { createLogger } from "@/lib/logger"
 import { createInvitation } from "@/lib/db/invitations"
@@ -45,8 +45,7 @@ export async function POST(
     }
 
     // Conectar a la base de datos
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
 
     // Verificar que el niño existe y pertenece al usuario
     const child = await db.collection("children").findOne({

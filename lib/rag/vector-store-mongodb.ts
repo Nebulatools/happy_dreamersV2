@@ -1,7 +1,7 @@
 import { OpenAIEmbeddings } from "@langchain/openai"
 import { Document } from "@langchain/core/documents"
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 
 import { createLogger } from "@/lib/logger"
 
@@ -43,7 +43,7 @@ export class MongoDBVectorStoreManager {
   }
 
   async addDocuments(documents: Document[]): Promise<number> {
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     
     const textSplitter = new RecursiveCharacterTextSplitter({
       chunkSize: 1000,
@@ -83,7 +83,7 @@ export class MongoDBVectorStoreManager {
   }
 
   private async saveDocumentsMeta(documents: Document[]) {
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     
     // Agrupar documentos por source para evitar duplicados
     const groupedBySources = new Map<string, {
@@ -131,7 +131,7 @@ export class MongoDBVectorStoreManager {
   }
 
   async searchSimilar(query: string, k: number = 4): Promise<Document[]> {
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     
     logger.info(`🔍 Búsqueda vectorial en MongoDB: "${query}"`)
     
@@ -191,7 +191,7 @@ export class MongoDBVectorStoreManager {
 
   async getDocumentCount(): Promise<number> {
     try {
-      const { db } = await connectToDatabase()
+      const db = await getDb()
       return await db.collection(this.metaCollectionName).countDocuments()
     } catch (error) {
       logger.error("Error obteniendo count de documentos:", error)
@@ -201,7 +201,7 @@ export class MongoDBVectorStoreManager {
 
   async getDocumentsList(): Promise<any[]> {
     try {
-      const { db } = await connectToDatabase()
+      const db = await getDb()
       const documents = await db.collection(this.metaCollectionName)
         .find({})
         .sort({ createdAt: -1 })
@@ -225,7 +225,7 @@ export class MongoDBVectorStoreManager {
 
   async clearVectorStore(): Promise<void> {
     try {
-      const { db } = await connectToDatabase()
+      const db = await getDb()
       
       // Limpiar ambas colecciones
       await db.collection(this.collectionName).deleteMany({})
@@ -240,7 +240,7 @@ export class MongoDBVectorStoreManager {
 
   async clearAll(): Promise<number> {
     try {
-      const { db } = await connectToDatabase()
+      const db = await getDb()
       
       // Contar documentos antes de eliminar
       const vectorCount = await db.collection(this.collectionName).countDocuments()
@@ -260,7 +260,7 @@ export class MongoDBVectorStoreManager {
 
   async deleteDocument(documentId: string): Promise<boolean> {
     try {
-      const { db } = await connectToDatabase()
+      const db = await getDb()
       
       // Obtener metadata del documento
       const docMeta = await db.collection(this.metaCollectionName)

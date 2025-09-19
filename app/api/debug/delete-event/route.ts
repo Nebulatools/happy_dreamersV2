@@ -1,7 +1,7 @@
 // ENDPOINT TEMPORAL - ELIMINAR EVENTO ESPECÍFICO
 
 import { NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 
 export async function DELETE(req: NextRequest) {
@@ -10,7 +10,7 @@ export async function DELETE(req: NextRequest) {
     
     console.log(`🗑️ ELIMINANDO EVENTO: ${eventId} del niño: ${childId}`)
     
-    const { db } = await connectToDatabase()
+  const db = await getDb()
     
     // Eliminar el evento específico
     const result = await db.collection("children").updateOne(

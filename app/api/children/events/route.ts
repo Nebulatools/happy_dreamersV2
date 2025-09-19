@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 import { differenceInMinutes, parseISO } from "date-fns"
 
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     logger.info("Conectado a MongoDB")
 
     // Verificar si el usuario es administrador
@@ -459,7 +459,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     
     // Verificar si el usuario es administrador
     const isAdmin = session.user.role === "admin"
@@ -553,7 +553,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     logger.info("Conectado a MongoDB")
 
     // Verificar si el usuario es administrador
@@ -663,7 +663,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     
     // Verificar si el usuario es administrador
     const isAdmin = session.user.role === "admin"
@@ -832,7 +832,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Conectar a la base de datos
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     logger.info("Conectado a MongoDB")
     
     // Verificar si el usuario es administrador

@@ -1,22 +1,23 @@
-const { MongoClient, ObjectId } = require('mongodb');
+﻿const { ObjectId } = require('mongodb');
+const { connect, getDb, disconnect } = require('../../scripts/mongoose-util');
 
 const MONGODB_URI = 'mongodb+srv://ventas:Piano81370211@cluster0.hf4ej.mongodb.net/happy-dreamers?retryWrites=true&w=majority&appName=Cluster0';
 const DB_NAME = 'happy-dreamers';
 
 async function crearJourneyCompletoJosefina() {
-  const client = new MongoClient(MONGODB_URI);
+  const client = /* mongoose connect handled */;
   
   try {
-    await client.connect();
-    console.log('✅ Conectado a MongoDB');
+    await connect();
+    console.log('âœ… Conectado a MongoDB');
     
-    const db = client.db(DB_NAME);
+    const db = await getDb();
     
     const josefinaId = new ObjectId('68b1e890cc3fa58befd037c3');
     const testUserId = new ObjectId('688ce146d2d5ff9616549d86'); // test@test.com
     const adminUserId = new ObjectId('687999869a879ac61e9fb873'); // admin@test.com
     
-    console.log('🧹 LIMPIANDO DATOS EXISTENTES');
+    console.log('ðŸ§¹ LIMPIANDO DATOS EXISTENTES');
     console.log('=============================');
     
     // Limpiar eventos y planes existentes
@@ -24,13 +25,13 @@ async function crearJourneyCompletoJosefina() {
     await db.collection('sleepPlans').deleteMany({ childId: josefinaId });
     await db.collection('consultation_transcripts').deleteMany({ childId: josefinaId });
     
-    console.log('🗑️ Datos anteriores eliminados');
+    console.log('ðŸ—‘ï¸ Datos anteriores eliminados');
     
-    console.log('\\n📈 CREANDO JOURNEY PROGRESIVO DE JOSEFINA');
+    console.log('\\nðŸ“ˆ CREANDO JOURNEY PROGRESIVO DE JOSEFINA');
     console.log('==========================================');
     
     // === FASE 1: EVENTOS INICIALES (Enero 1 - Enero 20, 2025) ===
-    console.log('\\n📅 FASE 1: Eventos iniciales (Enero 1-20, 2025)');
+    console.log('\\nðŸ“… FASE 1: Eventos iniciales (Enero 1-20, 2025)');
     console.log('Problemas: Muchos despertares nocturnos, tardanza para dormir');
     
     const eventos = [];
@@ -38,23 +39,23 @@ async function crearJourneyCompletoJosefina() {
     const fase1End = new Date('2025-01-20T00:00:00Z');
     
     while (currentDate <= fase1End) {
-      // Patrón problemático: muchos despertares, tardanza para dormir
+      // PatrÃ³n problemÃ¡tico: muchos despertares, tardanza para dormir
       
-      // BEDTIME (20:00-21:30) - más tarde de lo ideal
+      // BEDTIME (20:00-21:30) - mÃ¡s tarde de lo ideal
       const bedtimeDate = new Date(currentDate);
       bedtimeDate.setHours(20 + Math.floor(Math.random() * 2), Math.floor(Math.random() * 60), 0, 0);
       
-      // SLEEP (30-90 min después) - mucha tardanza
+      // SLEEP (30-90 min despuÃ©s) - mucha tardanza
       const sleepDelay = 30 + Math.floor(Math.random() * 60); // 30-90 min
       const sleepDate = new Date(bedtimeDate);
       sleepDate.setMinutes(sleepDate.getMinutes() + sleepDelay);
       
-      // WAKE (6:00-8:00 siguiente día)
+      // WAKE (6:00-8:00 siguiente dÃ­a)
       const wakeDate = new Date(sleepDate);
       wakeDate.setDate(wakeDate.getDate() + 1);
       wakeDate.setHours(6 + Math.floor(Math.random() * 2), Math.floor(Math.random() * 60), 0, 0);
       
-      // Eventos básicos
+      // Eventos bÃ¡sicos
       eventos.push(
         {
           _id: new ObjectId(),
@@ -66,7 +67,7 @@ async function crearJourneyCompletoJosefina() {
           endTime: sleepDate,
           duration: sleepDelay,
           emotionalState: Math.random() > 0.5 ? 'fussy' : 'crying',
-          notes: 'Dificultad para conciliar el sueño',
+          notes: 'Dificultad para conciliar el sueÃ±o',
           metadata: { sleepDelay: sleepDelay },
           createdAt: bedtimeDate
         },
@@ -86,7 +87,7 @@ async function crearJourneyCompletoJosefina() {
         }
       );
       
-      // MÚLTIPLES DESPERTARES NOCTURNOS (2-4 por noche)
+      // MÃšLTIPLES DESPERTARES NOCTURNOS (2-4 por noche)
       const numDespertares = 2 + Math.floor(Math.random() * 3); // 2-4
       for (let i = 0; i < numDespertares; i++) {
         const despertarTime = new Date(sleepDate);
@@ -156,33 +157,33 @@ async function crearJourneyCompletoJosefina() {
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
-    console.log(`✅ Fase 1: ${eventos.length} eventos creados (problemas evidentes)`);
+    console.log(`âœ… Fase 1: ${eventos.length} eventos creados (problemas evidentes)`);
     
     // === INSERTAR EVENTOS FASE 1 ===
     await db.collection('events').insertMany(eventos);
     
-    // === PLAN 0: EVALUACIÓN INICIAL (Enero 21, 2025) ===
-    console.log('\\n📋 CREANDO PLAN 0: Evaluación Inicial (Enero 21, 2025)');
+    // === PLAN 0: EVALUACIÃ“N INICIAL (Enero 21, 2025) ===
+    console.log('\\nðŸ“‹ CREANDO PLAN 0: EvaluaciÃ³n Inicial (Enero 21, 2025)');
     
     const plan0 = {
       _id: new ObjectId(),
       childId: josefinaId,
       parentId: adminUserId, // Creado por admin
-      title: 'Plan 0: Evaluación Inicial - Diagnóstico de Problemas',
-      description: 'Evaluación inicial basada en 20 días de registros. Se identifican múltiples despertares nocturnos y dificultades para conciliar el sueño.',
+      title: 'Plan 0: EvaluaciÃ³n Inicial - DiagnÃ³stico de Problemas',
+      description: 'EvaluaciÃ³n inicial basada en 20 dÃ­as de registros. Se identifican mÃºltiples despertares nocturnos y dificultades para conciliar el sueÃ±o.',
       startDate: new Date('2025-01-21T00:00:00Z'),
       endDate: new Date('2025-02-20T00:00:00Z'),
       status: 'completed',
       aiRecommendations: [
-        'Establecer horario fijo de acostarse: 20:00 máximo',
-        'Crear rutina pre-sueño de 30 minutos con actividades calmantes',
-        'Implementar técnica de extinción gradual para despertares nocturnos',
-        'Mantener registro detallado para identificar patrones específicos'
+        'Establecer horario fijo de acostarse: 20:00 mÃ¡ximo',
+        'Crear rutina pre-sueÃ±o de 30 minutos con actividades calmantes',
+        'Implementar tÃ©cnica de extinciÃ³n gradual para despertares nocturnos',
+        'Mantener registro detallado para identificar patrones especÃ­ficos'
       ],
       goals: [
-        'Reducir despertares nocturnos de 3.2 promedio a máximo 2 por noche',
-        'Disminuir tiempo para conciliar sueño de 60 minutos a 30 minutos',
-        'Establecer rutina pre-sueño consistente'
+        'Reducir despertares nocturnos de 3.2 promedio a mÃ¡ximo 2 por noche',
+        'Disminuir tiempo para conciliar sueÃ±o de 60 minutos a 30 minutos',
+        'Establecer rutina pre-sueÃ±o consistente'
       ],
       metrics: {
         baselineNightWakings: 3.2,
@@ -192,16 +193,16 @@ async function crearJourneyCompletoJosefina() {
         baselineRoutineConsistency: 30,
         targetRoutineConsistency: 80
       },
-      analysis: 'Análisis inicial revela patrón clásico de resistencia al sueño con múltiples despertares. Se requiere intervención estructurada.',
+      analysis: 'AnÃ¡lisis inicial revela patrÃ³n clÃ¡sico de resistencia al sueÃ±o con mÃºltiples despertares. Se requiere intervenciÃ³n estructurada.',
       createdAt: new Date('2025-01-21T08:00:00Z'),
       updatedAt: new Date('2025-02-20T00:00:00Z')
     };
     
     await db.collection('sleepPlans').insertOne(plan0);
-    console.log('✅ Plan 0 creado por admin');
+    console.log('âœ… Plan 0 creado por admin');
     
-    // === FASE 2: IMPLEMENTACIÓN PLAN 0 (Enero 21 - Febrero 28, 2025) ===
-    console.log('\\n📅 FASE 2: Implementación Plan 0 (Enero 21 - Feb 28, 2025)');
+    // === FASE 2: IMPLEMENTACIÃ“N PLAN 0 (Enero 21 - Febrero 28, 2025) ===
+    console.log('\\nðŸ“… FASE 2: ImplementaciÃ³n Plan 0 (Enero 21 - Feb 28, 2025)');
     console.log('Mejoras graduales: Menos despertares, mejor rutina');
     
     const eventos2 = [];
@@ -209,13 +210,13 @@ async function crearJourneyCompletoJosefina() {
     const fase2End = new Date('2025-02-28T00:00:00Z');
     
     while (currentDate <= fase2End) {
-      // Mejora gradual: horarios más consistentes, menos despertares
+      // Mejora gradual: horarios mÃ¡s consistentes, menos despertares
       
-      // BEDTIME (19:30-20:30) - más temprano y consistente
+      // BEDTIME (19:30-20:30) - mÃ¡s temprano y consistente
       const bedtimeDate = new Date(currentDate);
       bedtimeDate.setHours(19, 30 + Math.floor(Math.random() * 60), 0, 0);
       
-      // SLEEP (20-45 min después) - mejora gradual
+      // SLEEP (20-45 min despuÃ©s) - mejora gradual
       const sleepDelay = 20 + Math.floor(Math.random() * 25); // 20-45 min
       const sleepDate = new Date(bedtimeDate);
       sleepDate.setMinutes(sleepDate.getMinutes() + sleepDelay);
@@ -276,7 +277,7 @@ async function crearJourneyCompletoJosefina() {
             endTime: backToSleepTime,
             duration: Math.floor((backToSleepTime - despertarTime) / (1000 * 60)),
             emotionalState: Math.random() > 0.6 ? 'fussy' : 'calm',
-            notes: 'Despertar nocturno - menor duración',
+            notes: 'Despertar nocturno - menor duraciÃ³n',
             awakeDelay: Math.floor((backToSleepTime - despertarTime) / (1000 * 60)),
             createdAt: despertarTime
           });
@@ -294,15 +295,15 @@ async function crearJourneyCompletoJosefina() {
         endTime: wakeDate,
         duration: 0,
         emotionalState: Math.random() > 0.3 ? 'happy' : 'calm',
-        notes: 'Despertar más descansada',
+        notes: 'Despertar mÃ¡s descansada',
         metadata: { morningWake: true, planActive: 'Plan 0' },
         createdAt: wakeDate
       });
       
-      // SIESTA más consistente
+      // SIESTA mÃ¡s consistente
       if (Math.random() > 0.2) {
         const napStart = new Date(currentDate);
-        napStart.setHours(13, 45 + Math.floor(Math.random() * 30), 0, 0); // Más consistente
+        napStart.setHours(13, 45 + Math.floor(Math.random() * 30), 0, 0); // MÃ¡s consistente
         const napDuration = 60 + Math.floor(Math.random() * 60); // 60-120 min
         const napEnd = new Date(napStart);
         napEnd.setMinutes(napStart.getMinutes() + napDuration);
@@ -317,7 +318,7 @@ async function crearJourneyCompletoJosefina() {
           endTime: napEnd,
           duration: napDuration,
           emotionalState: Math.random() > 0.8 ? 'fussy' : 'calm',
-          notes: 'Siesta más regular - Plan 0',
+          notes: 'Siesta mÃ¡s regular - Plan 0',
           metadata: { sleepType: 'nap', planActive: 'Plan 0' },
           createdAt: napStart
         });
@@ -326,7 +327,7 @@ async function crearJourneyCompletoJosefina() {
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
-    console.log(`✅ Fase 2: ${eventos2.length} eventos adicionales (mejoras evidentes)`);
+    console.log(`âœ… Fase 2: ${eventos2.length} eventos adicionales (mejoras evidentes)`);
     await db.collection('events').insertMany(eventos2);
     
     // Actualizar Plan 0 como completado
@@ -347,28 +348,28 @@ async function crearJourneyCompletoJosefina() {
       }
     );
     
-    // === PLAN 1: CONSOLIDACIÓN (Marzo 1, 2025) ===
-    console.log('\\n📋 CREANDO PLAN 1: Consolidación (Marzo 1, 2025)');
+    // === PLAN 1: CONSOLIDACIÃ“N (Marzo 1, 2025) ===
+    console.log('\\nðŸ“‹ CREANDO PLAN 1: ConsolidaciÃ³n (Marzo 1, 2025)');
     
     const plan1 = {
       _id: new ObjectId(),
       childId: josefinaId,
       parentId: adminUserId,
-      title: 'Plan 1: Consolidación del Sueño',
-      description: 'Plan de consolidación basado en los avances del Plan 0. Enfoque en eliminar despertares restantes y optimizar calidad del sueño.',
+      title: 'Plan 1: ConsolidaciÃ³n del SueÃ±o',
+      description: 'Plan de consolidaciÃ³n basado en los avances del Plan 0. Enfoque en eliminar despertares restantes y optimizar calidad del sueÃ±o.',
       startDate: new Date('2025-03-01T00:00:00Z'),
       endDate: new Date('2025-04-15T00:00:00Z'),
       status: 'completed',
       aiRecommendations: [
         'Mantener rutina establecida pero optimizar timing',
-        'Introducir objeto de transición (peluche favorito) para autoconsuelo',
-        'Ajustar horario de siesta para no interferir con sueño nocturno',
-        'Implementar técnica de verificaciones programadas para despertares'
+        'Introducir objeto de transiciÃ³n (peluche favorito) para autoconsuelo',
+        'Ajustar horario de siesta para no interferir con sueÃ±o nocturno',
+        'Implementar tÃ©cnica de verificaciones programadas para despertares'
       ],
       goals: [
         'Eliminar despertares nocturnos por completo (objetivo: 0-1 por semana)',
         'Reducir tiempo para dormir a menos de 20 minutos consistentemente',
-        'Lograr siestas de duración óptima (90-120 minutos)'
+        'Lograr siestas de duraciÃ³n Ã³ptima (90-120 minutos)'
       ],
       metrics: {
         baselineNightWakings: 1.6,
@@ -378,24 +379,24 @@ async function crearJourneyCompletoJosefina() {
         baselineNapDuration: 75,
         targetNapDuration: 105
       },
-      analysis: 'Plan 0 exitoso con reducción significativa de problemas. Plan 1 enfocado en consolidación y optimización.',
+      analysis: 'Plan 0 exitoso con reducciÃ³n significativa de problemas. Plan 1 enfocado en consolidaciÃ³n y optimizaciÃ³n.',
       createdAt: new Date('2025-03-01T08:00:00Z'),
       updatedAt: new Date('2025-04-15T00:00:00Z')
     };
     
     await db.collection('sleepPlans').insertOne(plan1);
-    console.log('✅ Plan 1 creado por admin');
+    console.log('âœ… Plan 1 creado por admin');
     
-    // === FASE 3: IMPLEMENTACIÓN PLAN 1 (Marzo 1 - Abril 15, 2025) ===
-    console.log('\\n📅 FASE 3: Implementación Plan 1 (Marzo 1 - Abril 15, 2025)');
-    console.log('Consolidación: Sueño más estable, pocos despertares');
+    // === FASE 3: IMPLEMENTACIÃ“N PLAN 1 (Marzo 1 - Abril 15, 2025) ===
+    console.log('\\nðŸ“… FASE 3: ImplementaciÃ³n Plan 1 (Marzo 1 - Abril 15, 2025)');
+    console.log('ConsolidaciÃ³n: SueÃ±o mÃ¡s estable, pocos despertares');
     
     const eventos3 = [];
     currentDate = new Date('2025-03-01T00:00:00Z');
     const fase3End = new Date('2025-04-15T00:00:00Z');
     
     while (currentDate <= fase3End) {
-      // Sueño consolidado: horarios muy consistentes, mínimos despertares
+      // SueÃ±o consolidado: horarios muy consistentes, mÃ­nimos despertares
       
       const bedtimeDate = new Date(currentDate);
       bedtimeDate.setHours(19, 45 + Math.floor(Math.random() * 15), 0, 0); // 19:45-20:00
@@ -439,7 +440,7 @@ async function crearJourneyCompletoJosefina() {
         }
       );
       
-      // MUY POCOS DESPERTARES (0-1 por noche, mayoría sin despertares)
+      // MUY POCOS DESPERTARES (0-1 por noche, mayorÃ­a sin despertares)
       if (Math.random() > 0.7) { // Solo 30% de las noches tienen despertar
         const despertarTime = new Date(sleepDate);
         despertarTime.setHours(sleepDate.getHours() + 4 + Math.floor(Math.random() * 2));
@@ -458,7 +459,7 @@ async function crearJourneyCompletoJosefina() {
             endTime: backToSleepTime,
             duration: Math.floor((backToSleepTime - despertarTime) / (1000 * 60)),
             emotionalState: 'calm',
-            notes: 'Despertar breve - se autoconsuelo rápidamente',
+            notes: 'Despertar breve - se autoconsuelo rÃ¡pidamente',
             awakeDelay: Math.floor((backToSleepTime - despertarTime) / (1000 * 60)),
             createdAt: despertarTime
           });
@@ -481,7 +482,7 @@ async function crearJourneyCompletoJosefina() {
         createdAt: wakeDate
       });
       
-      // SIESTA ÓPTIMA
+      // SIESTA Ã“PTIMA
       const napStart = new Date(currentDate);
       napStart.setHours(13, 15 + Math.floor(Math.random() * 30), 0, 0); // 13:15-13:45
       const napDuration = 90 + Math.floor(Math.random() * 30); // 90-120 min
@@ -498,7 +499,7 @@ async function crearJourneyCompletoJosefina() {
         endTime: napEnd,
         duration: napDuration,
         emotionalState: 'calm',
-        notes: 'Siesta óptima - Plan 1',
+        notes: 'Siesta Ã³ptima - Plan 1',
         metadata: { sleepType: 'nap', planActive: 'Plan 1' },
         createdAt: napStart
       });
@@ -506,11 +507,11 @@ async function crearJourneyCompletoJosefina() {
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
-    console.log(`✅ Fase 3: ${eventos3.length} eventos adicionales (sueño consolidado)`);
+    console.log(`âœ… Fase 3: ${eventos3.length} eventos adicionales (sueÃ±o consolidado)`);
     await db.collection('events').insertMany(eventos3);
     
-    // === CREAR TRANSCRIPCIÓN DE CONSULTA PARA PLAN 1.1 ===
-    console.log('\\n💬 CREANDO TRANSCRIPCIÓN DE CONSULTA (Abril 16, 2025)');
+    // === CREAR TRANSCRIPCIÃ“N DE CONSULTA PARA PLAN 1.1 ===
+    console.log('\\nðŸ’¬ CREANDO TRANSCRIPCIÃ“N DE CONSULTA (Abril 16, 2025)');
     
     const consultaTranscript = {
       _id: new ObjectId(),
@@ -518,103 +519,103 @@ async function crearJourneyCompletoJosefina() {
       parentId: testUserId,
       consultationDate: new Date('2025-04-16T10:00:00Z'),
       transcript: `
-CONSULTA DE SEGUIMIENTO - JOSEFINA GARCÍA
+CONSULTA DE SEGUIMIENTO - JOSEFINA GARCÃA
 Fecha: 16 de abril, 2025
-Duración: 25 minutos
+DuraciÃ³n: 25 minutos
 Participantes: Madre (test@test.com) y Dr. Assistant
 
-[10:00] MADRE: Buenos días doctor. Quería hacer seguimiento del Plan 1 que implementamos en marzo.
+[10:00] MADRE: Buenos dÃ­as doctor. QuerÃ­a hacer seguimiento del Plan 1 que implementamos en marzo.
 
-[10:01] DR. ASSISTANT: Buenos días. Me da mucho gusto escucharla. ¿Cómo ha ido la implementación del Plan 1 de consolidación?
+[10:01] DR. ASSISTANT: Buenos dÃ­as. Me da mucho gusto escucharla. Â¿CÃ³mo ha ido la implementaciÃ³n del Plan 1 de consolidaciÃ³n?
 
-[10:02] MADRE: Ha funcionado muy bien en general. Los despertares nocturnos prácticamente desaparecieron. Josefina ahora duerme toda la noche la mayoría de días.
+[10:02] MADRE: Ha funcionado muy bien en general. Los despertares nocturnos prÃ¡cticamente desaparecieron. Josefina ahora duerme toda la noche la mayorÃ­a de dÃ­as.
 
-[10:03] DR. ASSISTANT: Excelente progreso. Según veo en los registros, hemos pasado de 1.6 despertares promedio a aproximadamente 0.4. ¿Hay algún aspecto que le preocupe?
+[10:03] DR. ASSISTANT: Excelente progreso. SegÃºn veo en los registros, hemos pasado de 1.6 despertares promedio a aproximadamente 0.4. Â¿Hay algÃºn aspecto que le preocupe?
 
-[10:04] MADRE: Bueno, hay dos cosas. Primero, algunos días todavía tarda hasta 30 minutos en dormirse, especialmente después de días muy estimulantes.
+[10:04] MADRE: Bueno, hay dos cosas. Primero, algunos dÃ­as todavÃ­a tarda hasta 30 minutos en dormirse, especialmente despuÃ©s de dÃ­as muy estimulantes.
 
-[10:05] DR. ASSISTANT: Es normal que haya cierta variabilidad. ¿Qué tipo de días nota que son más estimulantes?
+[10:05] DR. ASSISTANT: Es normal que haya cierta variabilidad. Â¿QuÃ© tipo de dÃ­as nota que son mÃ¡s estimulantes?
 
-[10:06] MADRE: Los fines de semana cuando salimos al parque, o cuando tiene visitas de los abuelos. También cuando cambiamos rutinas.
+[10:06] MADRE: Los fines de semana cuando salimos al parque, o cuando tiene visitas de los abuelos. TambiÃ©n cuando cambiamos rutinas.
 
-[10:07] DR. ASSISTANT: Perfecto, eso me da una pista importante. ¿Y cuál es la segunda preocupación?
+[10:07] DR. ASSISTANT: Perfecto, eso me da una pista importante. Â¿Y cuÃ¡l es la segunda preocupaciÃ³n?
 
-[10:08] MADRE: Las siestas. Algunas veces son muy largas, de más de 2 horas, y otras muy cortas. No sé si eso afecta el sueño nocturno.
+[10:08] MADRE: Las siestas. Algunas veces son muy largas, de mÃ¡s de 2 horas, y otras muy cortas. No sÃ© si eso afecta el sueÃ±o nocturno.
 
-[10:09] DR. ASSISTANT: Buena observación. Las siestas inconsistentes pueden crear cierta variabilidad en el sueño nocturno. ¿Ha notado algún patrón?
+[10:09] DR. ASSISTANT: Buena observaciÃ³n. Las siestas inconsistentes pueden crear cierta variabilidad en el sueÃ±o nocturno. Â¿Ha notado algÃºn patrÃ³n?
 
-[10:11] MADRE: Creo que cuando duerme siesta muy larga, después le cuesta más trabajo dormirse en la noche.
+[10:11] MADRE: Creo que cuando duerme siesta muy larga, despuÃ©s le cuesta mÃ¡s trabajo dormirse en la noche.
 
-[10:12] DR. ASSISTANT: Exactamente. Esa es una conexión muy importante que ha identificado. Vamos a trabajar en optimizar ese balance.
+[10:12] DR. ASSISTANT: Exactamente. Esa es una conexiÃ³n muy importante que ha identificado. Vamos a trabajar en optimizar ese balance.
 
-[10:13] MADRE: ¿Qué sugiere?
+[10:13] MADRE: Â¿QuÃ© sugiere?
 
-[10:14] DR. ASSISTANT: Propongo crear un Plan 1.1 de refinamiento que se enfoque en dos áreas: gestión de activación después de días estimulantes y optimización del timing de siestas.
+[10:14] DR. ASSISTANT: Propongo crear un Plan 1.1 de refinamiento que se enfoque en dos Ã¡reas: gestiÃ³n de activaciÃ³n despuÃ©s de dÃ­as estimulantes y optimizaciÃ³n del timing de siestas.
 
-[10:15] MADRE: Me parece perfecto. ¿Cómo funcionaría?
+[10:15] MADRE: Me parece perfecto. Â¿CÃ³mo funcionarÃ­a?
 
-[10:16] DR. ASSISTANT: Para días estimulantes, implementaremos una "rutina de desactivación extendida" de 45 minutos en lugar de 30, con actividades extra calmantes.
+[10:16] DR. ASSISTANT: Para dÃ­as estimulantes, implementaremos una "rutina de desactivaciÃ³n extendida" de 45 minutos en lugar de 30, con actividades extra calmantes.
 
-[10:17] MADRE: ¿Como qué actividades?
+[10:17] MADRE: Â¿Como quÃ© actividades?
 
-[10:18] DR. ASSISTANT: Baño tibio, masaje suave, música muy suave, y perhaps dimming progresivo de luces comenzando más temprano.
+[10:18] DR. ASSISTANT: BaÃ±o tibio, masaje suave, mÃºsica muy suave, y perhaps dimming progresivo de luces comenzando mÃ¡s temprano.
 
 [10:19] MADRE: Y para las siestas?
 
-[10:20] DR. ASSISTANT: Vamos a establecer un límite máximo de siesta de 90 minutos, y un horario fijo de inicio entre 1:00 y 1:30 PM.
+[10:20] DR. ASSISTANT: Vamos a establecer un lÃ­mite mÃ¡ximo de siesta de 90 minutos, y un horario fijo de inicio entre 1:00 y 1:30 PM.
 
-[10:21] MADRE: ¿Y si todavía tiene sueño después de 90 minutos?
+[10:21] MADRE: Â¿Y si todavÃ­a tiene sueÃ±o despuÃ©s de 90 minutos?
 
-[10:22] DR. ASSISTANT: Es mejor despertar suavemente y compensar con hora de dormir ligeramente más temprana esa noche. Esto mantendrá el balance.
+[10:22] DR. ASSISTANT: Es mejor despertar suavemente y compensar con hora de dormir ligeramente mÃ¡s temprana esa noche. Esto mantendrÃ¡ el balance.
 
-[10:23] MADRE: Suena lógico. ¿Cuánto tiempo implementamos esto?
+[10:23] MADRE: Suena lÃ³gico. Â¿CuÃ¡nto tiempo implementamos esto?
 
-[10:24] DR. ASSISTANT: Sugiero 6 semanas, hasta finales de mayo. Después evaluamos y posiblemente pasamos a un plan de mantenimiento a largo plazo.
+[10:24] DR. ASSISTANT: Sugiero 6 semanas, hasta finales de mayo. DespuÃ©s evaluamos y posiblemente pasamos a un plan de mantenimiento a largo plazo.
 
 [10:25] MADRE: Perfecto doctor. Me siento muy confiada con el progreso de Josefina. Gracias por su ayuda.
 
-[10:25] DR. ASSISTANT: Ha sido un placer acompañarla en este proceso. Josefina ha tenido un progreso excepcional gracias a su consistencia. Nos vemos en el seguimiento.
+[10:25] DR. ASSISTANT: Ha sido un placer acompaÃ±arla en este proceso. Josefina ha tenido un progreso excepcional gracias a su consistencia. Nos vemos en el seguimiento.
 
 FIN DE CONSULTA
       `,
-      summary: 'Consulta de seguimiento exitosa. Plan 1 funcionó bien con reducción significativa de despertares nocturnos. Se identificaron oportunidades de refinamiento en gestión de días estimulantes y optimización de siestas. Se propone Plan 1.1.',
+      summary: 'Consulta de seguimiento exitosa. Plan 1 funcionÃ³ bien con reducciÃ³n significativa de despertares nocturnos. Se identificaron oportunidades de refinamiento en gestiÃ³n de dÃ­as estimulantes y optimizaciÃ³n de siestas. Se propone Plan 1.1.',
       recommendations: [
-        'Implementar rutina de desactivación extendida para días estimulantes',
-        'Establecer límite máximo de siesta de 90 minutos',
+        'Implementar rutina de desactivaciÃ³n extendida para dÃ­as estimulantes',
+        'Establecer lÃ­mite mÃ¡ximo de siesta de 90 minutos',
         'Horario fijo de siesta entre 1:00-1:30 PM',
-        'Compensar siestas cortas con hora de dormir más temprana'
+        'Compensar siestas cortas con hora de dormir mÃ¡s temprana'
       ],
       nextSteps: ['Crear Plan 1.1 de refinamiento', 'Implementar por 6 semanas', 'Evaluar para plan de mantenimiento'],
       createdAt: new Date('2025-04-16T10:25:00Z')
     };
     
     await db.collection('consultation_transcripts').insertOne(consultaTranscript);
-    console.log('✅ Transcripción de consulta creada');
+    console.log('âœ… TranscripciÃ³n de consulta creada');
     
     // === PLAN 1.1: REFINAMIENTO (Abril 17, 2025) ===
-    console.log('\\n📋 CREANDO PLAN 1.1: Refinamiento (Abril 17, 2025)');
+    console.log('\\nðŸ“‹ CREANDO PLAN 1.1: Refinamiento (Abril 17, 2025)');
     
     const plan11 = {
       _id: new ObjectId(),
       childId: josefinaId,
       parentId: adminUserId,
       title: 'Plan 1.1: Refinamiento Basado en Consulta',
-      description: 'Plan de refinamiento desarrollado a partir de consulta del 16 de abril. Enfoque en optimización de siestas y gestión de días estimulantes.',
+      description: 'Plan de refinamiento desarrollado a partir de consulta del 16 de abril. Enfoque en optimizaciÃ³n de siestas y gestiÃ³n de dÃ­as estimulantes.',
       startDate: new Date('2025-04-17T00:00:00Z'),
       endDate: new Date('2025-05-31T00:00:00Z'),
       status: 'active',
       consultationTranscriptId: consultaTranscript._id,
       aiRecommendations: [
-        'Rutina de desactivación extendida (45 min) para días estimulantes',
-        'Límite máximo de siesta: 90 minutos',
+        'Rutina de desactivaciÃ³n extendida (45 min) para dÃ­as estimulantes',
+        'LÃ­mite mÃ¡ximo de siesta: 90 minutos',
         'Horario fijo de siesta: 1:00-1:30 PM',
         'Despertar suave si siesta excede 90 minutos',
-        'Compensar siestas cortas con hora de dormir más temprana'
+        'Compensar siestas cortas con hora de dormir mÃ¡s temprana'
       ],
       goals: [
-        'Reducir variabilidad en tiempo para dormir después de días estimulantes',
-        'Optimizar duración de siestas (objetivo: 75-90 minutos)',
-        'Mantener consistencia en sueño nocturno independientemente de actividades diurnas'
+        'Reducir variabilidad en tiempo para dormir despuÃ©s de dÃ­as estimulantes',
+        'Optimizar duraciÃ³n de siestas (objetivo: 75-90 minutos)',
+        'Mantener consistencia en sueÃ±o nocturno independientemente de actividades diurnas'
       ],
       metrics: {
         baselineNightWakings: 0.3,
@@ -626,7 +627,7 @@ FIN DE CONSULTA
         napConsistency: 0.6,
         targetNapConsistency: 0.9
       },
-      analysis: 'Plan basado en análisis de transcripción de consulta. Enfoque en refinamientos específicos identificados por la madre.',
+      analysis: 'Plan basado en anÃ¡lisis de transcripciÃ³n de consulta. Enfoque en refinamientos especÃ­ficos identificados por la madre.',
       derivedFrom: {
         consultationId: consultaTranscript._id,
         previousPlan: plan1._id,
@@ -637,18 +638,18 @@ FIN DE CONSULTA
     };
     
     await db.collection('sleepPlans').insertOne(plan11);
-    console.log('✅ Plan 1.1 creado basado en transcripción de consulta');
+    console.log('âœ… Plan 1.1 creado basado en transcripciÃ³n de consulta');
     
-    // === FASE 4: IMPLEMENTACIÓN PLAN 1.1 (Abril 17 - Agosto 29, 2025) ===
-    console.log('\\n📅 FASE 4: Implementación Plan 1.1 (Abril 17 - Agosto 29, 2025)');
-    console.log('Refinamiento: Sueño optimizado, siestas consistentes');
+    // === FASE 4: IMPLEMENTACIÃ“N PLAN 1.1 (Abril 17 - Agosto 29, 2025) ===
+    console.log('\\nðŸ“… FASE 4: ImplementaciÃ³n Plan 1.1 (Abril 17 - Agosto 29, 2025)');
+    console.log('Refinamiento: SueÃ±o optimizado, siestas consistentes');
     
     const eventos4 = [];
     currentDate = new Date('2025-04-17T00:00:00Z');
     const fase4End = new Date('2025-08-29T00:00:00Z');
     
     while (currentDate <= fase4End) {
-      // Sueño refinado: máxima consistencia, siestas optimizadas
+      // SueÃ±o refinado: mÃ¡xima consistencia, siestas optimizadas
       
       const bedtimeDate = new Date(currentDate);
       bedtimeDate.setHours(19, 45 + Math.floor(Math.random() * 10), 0, 0); // 19:45-19:55
@@ -692,7 +693,7 @@ FIN DE CONSULTA
         }
       );
       
-      // DESPERTARES MÍNIMOS (solo 20% de las noches)
+      // DESPERTARES MÃNIMOS (solo 20% de las noches)
       if (Math.random() > 0.8) {
         const despertarTime = new Date(sleepDate);
         despertarTime.setHours(sleepDate.getHours() + 5);
@@ -711,7 +712,7 @@ FIN DE CONSULTA
             endTime: backToSleepTime,
             duration: Math.floor((backToSleepTime - despertarTime) / (1000 * 60)),
             emotionalState: 'calm',
-            notes: 'Autoconsuelo rápido - Plan 1.1',
+            notes: 'Autoconsuelo rÃ¡pido - Plan 1.1',
             awakeDelay: Math.floor((backToSleepTime - despertarTime) / (1000 * 60)),
             createdAt: despertarTime
           });
@@ -759,10 +760,10 @@ FIN DE CONSULTA
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
-    console.log(`✅ Fase 4: ${eventos4.length} eventos adicionales (sueño refinado y optimizado)`);
+    console.log(`âœ… Fase 4: ${eventos4.length} eventos adicionales (sueÃ±o refinado y optimizado)`);
     await db.collection('events').insertMany(eventos4);
     
-    // Actualizar niño con plan activo
+    // Actualizar niÃ±o con plan activo
     await db.collection('children').updateOne(
       { _id: josefinaId },
       {
@@ -795,74 +796,74 @@ FIN DE CONSULTA
       }
     );
     
-    // === VERIFICACIÓN FINAL ===
+    // === VERIFICACIÃ“N FINAL ===
     const totalEvents = await db.collection('events').countDocuments({ childId: josefinaId });
     const totalPlans = await db.collection('sleepPlans').countDocuments({ childId: josefinaId });
     const totalTranscripts = await db.collection('consultation_transcripts').countDocuments({ childId: josefinaId });
     
-    console.log('\\n🎉 ¡JOURNEY COMPLETO DE JOSEFINA CREADO!');
+    console.log('\\nðŸŽ‰ Â¡JOURNEY COMPLETO DE JOSEFINA CREADO!');
     console.log('=======================================');
-    console.log(`👶 Niña: Josefina García`);
-    console.log(`📊 Total eventos: ${totalEvents}`);
-    console.log(`📋 Total planes: ${totalPlans}`);
-    console.log(`💬 Transcripciones: ${totalTranscripts}`);
-    console.log(`⏰ Período completo: Enero 1 - Agosto 29, 2025`);
+    console.log(`ðŸ‘¶ NiÃ±a: Josefina GarcÃ­a`);
+    console.log(`ðŸ“Š Total eventos: ${totalEvents}`);
+    console.log(`ðŸ“‹ Total planes: ${totalPlans}`);
+    console.log(`ðŸ’¬ Transcripciones: ${totalTranscripts}`);
+    console.log(`â° PerÃ­odo completo: Enero 1 - Agosto 29, 2025`);
     console.log('');
-    console.log('📈 JOURNEY PROGRESIVO:');
+    console.log('ðŸ“ˆ JOURNEY PROGRESIVO:');
     console.log('======================');
-    console.log('🔴 FASE 1 (Ene 1-20): Problemas severos');
+    console.log('ðŸ”´ FASE 1 (Ene 1-20): Problemas severos');
     console.log('   - Despertares: 3.2 por noche');
     console.log('   - Tardanza para dormir: 60 min');
-    console.log('   - Estado: Problemático');
+    console.log('   - Estado: ProblemÃ¡tico');
     console.log('');
-    console.log('📋 PLAN 0 (Ene 21): Evaluación inicial por admin');
-    console.log('   - Diagnóstico de problemas identificados');
+    console.log('ðŸ“‹ PLAN 0 (Ene 21): EvaluaciÃ³n inicial por admin');
+    console.log('   - DiagnÃ³stico de problemas identificados');
     console.log('   - Objetivos: Reducir despertares y tardanza');
     console.log('');
-    console.log('🟡 FASE 2 (Ene 21-Feb 28): Implementación Plan 0');
-    console.log('   - Despertares: 3.2 → 1.6 por noche');
-    console.log('   - Tardanza para dormir: 60 → 32 min');
+    console.log('ðŸŸ¡ FASE 2 (Ene 21-Feb 28): ImplementaciÃ³n Plan 0');
+    console.log('   - Despertares: 3.2 â†’ 1.6 por noche');
+    console.log('   - Tardanza para dormir: 60 â†’ 32 min');
     console.log('   - Estado: Mejorando gradualmente');
     console.log('');
-    console.log('📋 PLAN 1 (Mar 1): Consolidación por admin');
+    console.log('ðŸ“‹ PLAN 1 (Mar 1): ConsolidaciÃ³n por admin');
     console.log('   - Enfoque en eliminar despertares restantes');
-    console.log('   - Optimizar calidad del sueño');
+    console.log('   - Optimizar calidad del sueÃ±o');
     console.log('');
-    console.log('🟢 FASE 3 (Mar 1-Abr 15): Implementación Plan 1');
-    console.log('   - Despertares: 1.6 → 0.4 por noche');
-    console.log('   - Tardanza para dormir: 32 → 22 min');
-    console.log('   - Estado: Sueño consolidado');
+    console.log('ðŸŸ¢ FASE 3 (Mar 1-Abr 15): ImplementaciÃ³n Plan 1');
+    console.log('   - Despertares: 1.6 â†’ 0.4 por noche');
+    console.log('   - Tardanza para dormir: 32 â†’ 22 min');
+    console.log('   - Estado: SueÃ±o consolidado');
     console.log('');
-    console.log('💬 CONSULTA (Abr 16): Seguimiento con madre');
-    console.log('   - Evaluación de progreso');
-    console.log('   - Identificación de refinamientos necesarios');
-    console.log('   - Transcripción detallada guardada');
+    console.log('ðŸ’¬ CONSULTA (Abr 16): Seguimiento con madre');
+    console.log('   - EvaluaciÃ³n de progreso');
+    console.log('   - IdentificaciÃ³n de refinamientos necesarios');
+    console.log('   - TranscripciÃ³n detallada guardada');
     console.log('');
-    console.log('📋 PLAN 1.1 (Abr 17): Refinamiento basado en consulta');
-    console.log('   - Gestión de días estimulantes');
-    console.log('   - Optimización de siestas');
+    console.log('ðŸ“‹ PLAN 1.1 (Abr 17): Refinamiento basado en consulta');
+    console.log('   - GestiÃ³n de dÃ­as estimulantes');
+    console.log('   - OptimizaciÃ³n de siestas');
     console.log('');
-    console.log('✅ FASE 4 (Abr 17-Ago 29): Implementación Plan 1.1');
-    console.log('   - Despertares: 0.4 → 0.2 por noche');
-    console.log('   - Tardanza para dormir: 22 → 18 min');
+    console.log('âœ… FASE 4 (Abr 17-Ago 29): ImplementaciÃ³n Plan 1.1');
+    console.log('   - Despertares: 0.4 â†’ 0.2 por noche');
+    console.log('   - Tardanza para dormir: 22 â†’ 18 min');
     console.log('   - Siestas: Optimizadas a 75-90 min');
-    console.log('   - Estado: ÓPTIMO - Sueño refinado');
+    console.log('   - Estado: Ã“PTIMO - SueÃ±o refinado');
     console.log('');
-    console.log('🏆 RESULTADO FINAL: ÉXITO TOTAL');
+    console.log('ðŸ† RESULTADO FINAL: Ã‰XITO TOTAL');
     console.log('- Journey coherente y progresivo');
     console.log('- Planes evolutivos basados en datos');
-    console.log('- Transcripción real de consulta');
+    console.log('- TranscripciÃ³n real de consulta');
     console.log('- Visible desde admin@test.com en /dashboard/consultas');
     console.log('');
-    console.log('🎯 ACCESO PARA VERIFICACIÓN:');
+    console.log('ðŸŽ¯ ACCESO PARA VERIFICACIÃ“N:');
     console.log('- Admin: admin@test.com / password');
     console.log('- Usuario: test@test.com / password');
     console.log('- URL consultas: http://localhost:3000/dashboard/consultas');
     
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error('âŒ Error:', error);
   } finally {
-    await client.close();
+    await disconnect();
   }
 }
 

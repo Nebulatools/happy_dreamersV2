@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { ObjectId } from "mongodb"
 import { createLogger } from "@/lib/logger"
 import { 
@@ -37,8 +37,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const id = searchParams.get("id")
   const requestedUserId = searchParams.get("userId") // Para admins que quieren ver niños de otro usuario
 
-  const client = await clientPromise
-  const db = client.db()
+  const db = await getDb()
   
   const isAdmin = session.user.role === "admin"
   logger.info("API Request", { userId: session.user.id, isAdmin, requestedUserId })
@@ -153,8 +152,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   }
 
   logger.debug("Conectando a MongoDB...")
-  const client = await clientPromise
-  const db = client.db()
+  const db = await getDb()
   logger.debug("Conexión a MongoDB establecida")
 
   // Crear documento completo con datos básicos y encuesta
@@ -209,8 +207,7 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
     throw new ApiError(ApiErrorType.BAD_REQUEST, "ID de niño inválido", 400)
   }
 
-  const client = await clientPromise
-  const db = client.db()
+  const db = await getDb()
 
   // Verificar que el niño pertenece al usuario
   const child = await db.collection<Child>("children").findOne({
@@ -266,8 +263,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Se requiere el ID del niño" }, { status: 400 })
     }
 
-    const client = await clientPromise
-    const db = client.db()
+    const db = await getDb()
 
     // Verificar que el niño pertenece al usuario
     const child = await db.collection("children").findOne({

@@ -1,15 +1,15 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 /**
- * Script para resetear contraseñas de usuarios en MongoDB
- * Permite cambiar la contraseña de cualquier usuario por email
+ * Script para resetear contraseÃ±as de usuarios en MongoDB
+ * Permite cambiar la contraseÃ±a de cualquier usuario por email
  */
 
-const { MongoClient } = require('mongodb')
+const { connect, getDb, disconnect } = require('./mongoose-util')
 const bcrypt = require('bcryptjs')
 require('dotenv').config({ path: '.env' })
 
-// Configuración de colores para la consola
+// ConfiguraciÃ³n de colores para la consola
 const colors = {
   green: '\x1b[32m',
   red: '\x1b[31m',
@@ -22,27 +22,27 @@ const colors = {
 }
 
 const log = {
-  success: (msg) => console.log(`${colors.green}✅ ${msg}${colors.reset}`),
-  error: (msg) => console.log(`${colors.red}❌ ${msg}${colors.reset}`),
-  warning: (msg) => console.log(`${colors.yellow}⚠️  ${msg}${colors.reset}`),
-  info: (msg) => console.log(`${colors.blue}ℹ️  ${msg}${colors.reset}`),
-  header: (msg) => console.log(`${colors.bold}${colors.cyan}🔑 ${msg}${colors.reset}`),
+  success: (msg) => console.log(`${colors.green}âœ… ${msg}${colors.reset}`),
+  error: (msg) => console.log(`${colors.red}âŒ ${msg}${colors.reset}`),
+  warning: (msg) => console.log(`${colors.yellow}âš ï¸  ${msg}${colors.reset}`),
+  info: (msg) => console.log(`${colors.blue}â„¹ï¸  ${msg}${colors.reset}`),
+  header: (msg) => console.log(`${colors.bold}${colors.cyan}ðŸ”‘ ${msg}${colors.reset}`),
   data: (msg) => console.log(`${colors.white}   ${msg}${colors.reset}`)
 }
 
 async function resetPassword() {
-  log.header('SCRIPT DE RESET DE CONTRASEÑA')
+  log.header('SCRIPT DE RESET DE CONTRASEÃ‘A')
   console.log()
 
-  // Configuración del reset
+  // ConfiguraciÃ³n del reset
   const resetConfig = {
     email: 'jaco.12.94@gmail.com',  // Email del usuario
-    newPassword: 'nuevaPassword123', // Nueva contraseña
+    newPassword: 'nuevaPassword123', // Nueva contraseÃ±a
   }
 
-  log.info('Configuración actual del script:')
+  log.info('ConfiguraciÃ³n actual del script:')
   log.data(`Email objetivo: ${resetConfig.email}`)
-  log.data(`Nueva contraseña: ${resetConfig.newPassword}`)
+  log.data(`Nueva contraseÃ±a: ${resetConfig.newPassword}`)
   log.data(`Base de datos: ${process.env.MONGODB_DB_FINAL || process.env.MONGODB_DATABASE || process.env.MONGODB_DB}`)
   console.log()
 
@@ -50,21 +50,18 @@ async function resetPassword() {
 
   try {
     // Conectar a MongoDB
-    log.info('🔌 Conectando a MongoDB...')
-    client = new MongoClient(process.env.MONGODB_URI, {
-      maxPoolSize: 5,
-      serverSelectionTimeoutMS: 5000,
-    })
+    log.info('ðŸ”Œ Conectando a MongoDB...')
+    client = /* mongoose connection handled in connect() */
 
-    await client.connect()
-    log.success('Conexión establecida')
+    await connect()
+    log.success('ConexiÃ³n establecida')
 
     const dbName = process.env.MONGODB_DB_FINAL || process.env.MONGODB_DATABASE || process.env.MONGODB_DB
-    const db = client.db(dbName)
+    const db = await getDb()
     const usersCollection = db.collection('users')
 
     // Buscar usuario
-    log.info('👤 Buscando usuario...')
+    log.info('ðŸ‘¤ Buscando usuario...')
     const user = await usersCollection.findOne({ email: resetConfig.email })
 
     if (!user) {
@@ -90,13 +87,13 @@ async function resetPassword() {
     log.data(`Rol: ${user.role}`)
     console.log()
 
-    // Hashear nueva contraseña
-    log.info('🔐 Generando hash de nueva contraseña...')
+    // Hashear nueva contraseÃ±a
+    log.info('ðŸ” Generando hash de nueva contraseÃ±a...')
     const newPasswordHash = await bcrypt.hash(resetConfig.newPassword, 12)
     log.success('Hash generado correctamente')
 
-    // Actualizar contraseña
-    log.info('💾 Actualizando contraseña en la base de datos...')
+    // Actualizar contraseÃ±a
+    log.info('ðŸ’¾ Actualizando contraseÃ±a en la base de datos...')
     const updateResult = await usersCollection.updateOne(
       { _id: user._id },
       {
@@ -108,65 +105,65 @@ async function resetPassword() {
     )
 
     if (updateResult.modifiedCount === 1) {
-      log.success('¡Contraseña actualizada exitosamente!')
+      log.success('Â¡ContraseÃ±a actualizada exitosamente!')
       console.log()
 
       // Verificar el cambio
-      log.info('🔍 Verificando el cambio...')
+      log.info('ðŸ” Verificando el cambio...')
       const updatedUser = await usersCollection.findOne({ _id: user._id })
 
       if (updatedUser && updatedUser.password !== user.password) {
-        log.success('✅ VERIFICACIÓN EXITOSA')
-        log.data(`✓ Contraseña cambiada`)
-        log.data(`✓ Fecha actualizada: ${updatedUser.updatedAt}`)
+        log.success('âœ… VERIFICACIÃ“N EXITOSA')
+        log.data(`âœ“ ContraseÃ±a cambiada`)
+        log.data(`âœ“ Fecha actualizada: ${updatedUser.updatedAt}`)
         console.log()
 
         // Probar login simulado
-        log.info('🔑 Probando nueva contraseña...')
+        log.info('ðŸ”‘ Probando nueva contraseÃ±a...')
         const isValid = await bcrypt.compare(resetConfig.newPassword, updatedUser.password)
 
         if (isValid) {
-          log.success('✅ Nueva contraseña válida - Login funcionaría')
+          log.success('âœ… Nueva contraseÃ±a vÃ¡lida - Login funcionarÃ­a')
           console.log()
 
-          log.header('🎉 RESET COMPLETADO EXITOSAMENTE')
+          log.header('ðŸŽ‰ RESET COMPLETADO EXITOSAMENTE')
           log.info('Credenciales actualizadas:')
           log.data(`Email: ${resetConfig.email}`)
           log.data(`Password: ${resetConfig.newPassword}`)
           console.log()
-          log.warning('🔐 IMPORTANTE: Cambia esta contraseña temporal desde la aplicación')
+          log.warning('ðŸ” IMPORTANTE: Cambia esta contraseÃ±a temporal desde la aplicaciÃ³n')
 
         } else {
-          log.error('❌ Error en la validación de la nueva contraseña')
+          log.error('âŒ Error en la validaciÃ³n de la nueva contraseÃ±a')
         }
       } else {
-        log.error('❌ Error: No se pudo verificar el cambio')
+        log.error('âŒ Error: No se pudo verificar el cambio')
       }
 
     } else {
-      log.error('❌ Error: No se pudo actualizar la contraseña')
+      log.error('âŒ Error: No se pudo actualizar la contraseÃ±a')
     }
 
-    // Estadísticas finales
+    // EstadÃ­sticas finales
     console.log()
-    log.info('📊 Estadísticas de la base de datos:')
+    log.info('ðŸ“Š EstadÃ­sticas de la base de datos:')
     const totalUsers = await usersCollection.countDocuments()
     log.data(`Total usuarios: ${totalUsers}`)
 
   } catch (error) {
-    log.error('💥 Error durante el reset de contraseña:')
+    log.error('ðŸ’¥ Error durante el reset de contraseÃ±a:')
     log.error(error.message)
     console.log()
     log.warning('Posibles causas:')
-    log.data('• Problemas de conectividad con MongoDB')
-    log.data('• Usuario no existe en la base de datos')
-    log.data('• Permisos insuficientes')
-    log.data('• Error en el hash de la contraseña')
+    log.data('â€¢ Problemas de conectividad con MongoDB')
+    log.data('â€¢ Usuario no existe en la base de datos')
+    log.data('â€¢ Permisos insuficientes')
+    log.data('â€¢ Error en el hash de la contraseÃ±a')
     process.exit(1)
   } finally {
     if (client) {
-      await client.close()
-      log.info('🔌 Conexión cerrada')
+      await disconnect()
+      log.info('ðŸ”Œ ConexiÃ³n cerrada')
     }
   }
 }
@@ -174,16 +171,16 @@ async function resetPassword() {
 // Mostrar ayuda si se ejecuta sin argumentos
 if (process.argv.length > 2) {
   console.log(`
-🔑 SCRIPT DE RESET DE CONTRASEÑA
+ðŸ”‘ SCRIPT DE RESET DE CONTRASEÃ‘A
 
 Uso:
-  node reset-password.js                    # Reset con configuración predeterminada
+  node reset-password.js                    # Reset con configuraciÃ³n predeterminada
 
-Configuración actual:
+ConfiguraciÃ³n actual:
   Email: jaco.12.94@gmail.com
-  Nueva contraseña: nuevaPassword123
+  Nueva contraseÃ±a: nuevaPassword123
 
-Para cambiar email o contraseña, edita las variables en el archivo.
+Para cambiar email o contraseÃ±a, edita las variables en el archivo.
 `)
 } else {
   // Ejecutar el script

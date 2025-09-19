@@ -2,7 +2,8 @@
 // Agregar eventos ADICIONALES para generar Plan 1
 
 require('dotenv').config()
-const { MongoClient, ObjectId } = require('mongodb')
+const { ObjectId } = require('mongodb')
+const { connect, getDb, disconnect } = require('../scripts/mongoose-util')
 
 const MONGODB_URI = process.env.MONGODB_URI
 const USER_ID = '688ce146d2d5ff9616549d86'
@@ -14,11 +15,11 @@ async function poblarSegundaSemana() {
     console.log('================================================')
     console.log('📌 Agregando eventos ADICIONALES para Plan 1')
     
-    const client = new MongoClient(MONGODB_URI)
-    await client.connect()
+    // Conexion via Mongoose
+    await connect()
     console.log('✅ Conectado a MongoDB')
     
-    const db = client.db()
+    const db = await getDb()
     
     // Obtener datos actuales de Esteban
     const child = await db.collection('children').findOne({
@@ -59,7 +60,7 @@ async function poblarSegundaSemana() {
     console.log(`📅 Período nuevo: 8-14 junio 2025`)
     console.log(`🎯 Listo para generar Plan 1`)
     
-    await client.close()
+    await disconnect()
     
   } catch (error) {
     console.error('❌ Error:', error)

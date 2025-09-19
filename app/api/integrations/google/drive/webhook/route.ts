@@ -2,7 +2,7 @@
 // Sketch implementation: validates channel token, stores change stub, returns 200.
 
 import { NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
+import { getDb } from "@/lib/mongoose"
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("API:integrations:google:drive:webhook")
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     logger.info("Drive change notification", changed)
 
-    const { db } = await connectToDatabase()
+    const db = await getDb()
     await db.collection("consultation_sessions").insertOne({
       provider: "google",
       resourceId,

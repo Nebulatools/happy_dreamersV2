@@ -1,14 +1,14 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 /**
- * Script de diagnóstico para verificar la conexión a MongoDB
- * y buscar usuarios específicos en la base de datos
+ * Script de diagnÃ³stico para verificar la conexiÃ³n a MongoDB
+ * y buscar usuarios especÃ­ficos en la base de datos
  */
 
-const { MongoClient } = require('mongodb')
+const { connect, getDb, disconnect } = require('./mongoose-util')
 require('dotenv').config({ path: '.env' })
 
-// Configuración de colores para la consola
+// ConfiguraciÃ³n de colores para la consola
 const colors = {
   green: '\x1b[32m',
   red: '\x1b[31m',
@@ -21,29 +21,29 @@ const colors = {
 }
 
 const log = {
-  success: (msg) => console.log(`${colors.green}✅ ${msg}${colors.reset}`),
-  error: (msg) => console.log(`${colors.red}❌ ${msg}${colors.reset}`),
-  warning: (msg) => console.log(`${colors.yellow}⚠️  ${msg}${colors.reset}`),
-  info: (msg) => console.log(`${colors.blue}ℹ️  ${msg}${colors.reset}`),
-  header: (msg) => console.log(`${colors.bold}${colors.cyan}🔍 ${msg}${colors.reset}`),
+  success: (msg) => console.log(`${colors.green}âœ… ${msg}${colors.reset}`),
+  error: (msg) => console.log(`${colors.red}âŒ ${msg}${colors.reset}`),
+  warning: (msg) => console.log(`${colors.yellow}âš ï¸  ${msg}${colors.reset}`),
+  info: (msg) => console.log(`${colors.blue}â„¹ï¸  ${msg}${colors.reset}`),
+  header: (msg) => console.log(`${colors.bold}${colors.cyan}ðŸ” ${msg}${colors.reset}`),
   data: (msg) => console.log(`${colors.white}   ${msg}${colors.reset}`)
 }
 
 async function testMongoConnection() {
-  log.header('DIAGNÓSTICO DE CONEXIÓN MONGODB - Happy Dreamers')
+  log.header('DIAGNÃ“STICO DE CONEXIÃ“N MONGODB - Happy Dreamers')
   console.log()
 
   // Verificar variables de entorno
   log.info('Verificando variables de entorno...')
 
   if (!process.env.MONGODB_URI) {
-    log.error('MONGODB_URI no está definida en .env')
+    log.error('MONGODB_URI no estÃ¡ definida en .env')
     process.exit(1)
   }
 
   const dbName = process.env.MONGODB_DB_FINAL || process.env.MONGODB_DATABASE || process.env.MONGODB_DB
   if (!dbName) {
-    log.error('Ninguna variable de base de datos está definida (MONGODB_DB_FINAL, MONGODB_DATABASE, MONGODB_DB)')
+    log.error('Ninguna variable de base de datos estÃ¡ definida (MONGODB_DB_FINAL, MONGODB_DATABASE, MONGODB_DB)')
     process.exit(1)
   }
 
@@ -57,42 +57,37 @@ async function testMongoConnection() {
     log.info('Conectando a MongoDB...')
 
     // Crear cliente con opciones optimizadas
-    client = new MongoClient(process.env.MONGODB_URI, {
-      maxPoolSize: 5,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-      connectTimeoutMS: 10000,
-    })
+    client = /* mongoose connection handled in connect() */
 
     // Conectar
-    await client.connect()
-    log.success('Conexión establecida correctamente')
+    await connect()
+    log.success('ConexiÃ³n establecida correctamente')
 
     // Verificar ping
     log.info('Verificando ping al servidor...')
-    const pingResult = await client.db().admin().ping()
+    const pingResult = await await getDb().admin().ping()
     log.success('Ping exitoso')
     log.data(`Resultado: ${JSON.stringify(pingResult)}`)
     console.log()
 
-    // Obtener información del servidor (opcional)
-    log.info('Intentando obtener información del servidor...')
+    // Obtener informaciÃ³n del servidor (opcional)
+    log.info('Intentando obtener informaciÃ³n del servidor...')
     try {
-      const serverStatus = await client.db().admin().serverStatus()
-      log.success('Información del servidor obtenida')
+      const serverStatus = await await getDb().admin().serverStatus()
+      log.success('InformaciÃ³n del servidor obtenida')
       log.data(`Host: ${serverStatus.host}`)
-      log.data(`Versión MongoDB: ${serverStatus.version}`)
+      log.data(`VersiÃ³n MongoDB: ${serverStatus.version}`)
       log.data(`Uptime: ${Math.floor(serverStatus.uptime / 60)} minutos`)
       log.data(`Conexiones activas: ${serverStatus.connections.current}`)
     } catch (serverError) {
-      log.warning('No se pudo obtener información del servidor (permisos limitados)')
+      log.warning('No se pudo obtener informaciÃ³n del servidor (permisos limitados)')
       log.data('Esto es normal en conexiones con permisos limitados')
     }
     console.log()
 
-    // Verificar base de datos específica
+    // Verificar base de datos especÃ­fica
     const dbName = process.env.MONGODB_DB
-    const db = client.db(dbName)
+    const db = await getDb()
 
     log.info(`Verificando base de datos '${dbName}'...`)
     const collections = await db.listCollections().toArray()
@@ -107,27 +102,27 @@ async function testMongoConnection() {
     console.log()
 
     // Buscar usuarios
-    log.info('Verificando colección de usuarios...')
+    log.info('Verificando colecciÃ³n de usuarios...')
     const usersCollection = db.collection('users')
     const userCount = await usersCollection.countDocuments()
-    log.success(`Colección 'users' encontrada con ${userCount} documentos`)
+    log.success(`ColecciÃ³n 'users' encontrada con ${userCount} documentos`)
     console.log()
 
-    // Buscar usuario específico
+    // Buscar usuario especÃ­fico
     const targetEmail = 'test@test.com'
     log.info(`Buscando usuario: ${targetEmail}`)
 
     const user = await usersCollection.findOne({ email: targetEmail })
 
     if (user) {
-      log.success('¡Usuario encontrado!')
+      log.success('Â¡Usuario encontrado!')
       log.data(`ID: ${user._id}`)
       log.data(`Nombre: ${user.name}`)
       log.data(`Email: ${user.email}`)
       log.data(`Rol: ${user.role}`)
-      log.data(`Fecha creación: ${user.createdAt}`)
-      log.data(`Tiene contraseña: ${user.password ? 'Sí' : 'No'}`)
-      log.data(`Número de hijos: ${user.children ? user.children.length : 0}`)
+      log.data(`Fecha creaciÃ³n: ${user.createdAt}`)
+      log.data(`Tiene contraseÃ±a: ${user.password ? 'SÃ­' : 'No'}`)
+      log.data(`NÃºmero de hijos: ${user.children ? user.children.length : 0}`)
     } else {
       log.warning('Usuario NO encontrado en la base de datos')
 
@@ -156,25 +151,25 @@ async function testMongoConnection() {
       }
     }
 
-    log.success('Diagnóstico completado exitosamente')
+    log.success('DiagnÃ³stico completado exitosamente')
 
   } catch (error) {
-    log.error('Error durante el diagnóstico:')
+    log.error('Error durante el diagnÃ³stico:')
     log.error(error.message)
 
     if (error.name === 'MongoServerSelectionError') {
       log.warning('Problemas de conectividad - verificar:')
-      log.data('• URL de conexión correcta')
-      log.data('• Credenciales válidas')
-      log.data('• Whitelist de IP configurado')
-      log.data('• Firewall/proxy no bloqueando')
+      log.data('â€¢ URL de conexiÃ³n correcta')
+      log.data('â€¢ Credenciales vÃ¡lidas')
+      log.data('â€¢ Whitelist de IP configurado')
+      log.data('â€¢ Firewall/proxy no bloqueando')
     }
 
     process.exit(1)
   } finally {
     if (client) {
-      await client.close()
-      log.info('Conexión cerrada')
+      await disconnect()
+      log.info('ConexiÃ³n cerrada')
     }
   }
 }

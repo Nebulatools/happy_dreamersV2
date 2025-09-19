@@ -2,7 +2,7 @@
 // Este endpoint será llamado cada minuto por Vercel Cron o servicio externo
 
 import { NextRequest, NextResponse } from "next/server"
-import dbConnect from "@/lib/mongodb"
+import dbConnect from "@/lib/mongoose"
 import NotificationSettings from "@/models/notification-settings"
 import NotificationLog from "@/models/notification-log"
 import Child from "@/models/Child"
