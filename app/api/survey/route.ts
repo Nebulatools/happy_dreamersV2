@@ -31,11 +31,23 @@ export async function GET(req: Request) {
     const client = await clientPromise
     const db = client.db()
 
-    // Verificar que el niño pertenece al usuario o es admin
-    const child = await db.collection("children").findOne({ 
-      _id: new ObjectId(childId),
-      parentId: session.user.id,
-    })
+    const childObjectId = new ObjectId(childId)
+    const userObjectId = new ObjectId(session.user.id)
+
+    // Verificar que el niño pertenece al usuario
+    const childQuery: Record<string, any> = { _id: childObjectId }
+
+    if (session.user.role === "admin") {
+      // Admin puede acceder a cualquier niño
+      childQuery._id = childObjectId
+    } else {
+      childQuery.$or = [
+        { parentId: userObjectId },
+        { sharedWith: { $in: [userObjectId] } },
+      ]
+    }
+
+    const child = await db.collection("children").findOne(childQuery)
 
     if (!child) {
       return NextResponse.json({ message: "Niño no encontrado o no autorizado" }, { status: 404 })
@@ -80,11 +92,22 @@ export async function POST(req: Request) {
     const client = await clientPromise
     const db = client.db()
 
+    const childObjectId = new ObjectId(childId)
+    const userObjectId = new ObjectId(session.user.id)
+
+    const childQuery: Record<string, any> = { _id: childObjectId }
+
+    if (session.user.role === "admin") {
+      childQuery._id = childObjectId
+    } else {
+      childQuery.$or = [
+        { parentId: userObjectId },
+        { sharedWith: { $in: [userObjectId] } },
+      ]
+    }
+
     // Verificar que el niño pertenezca al usuario autenticado
-    const child = await db.collection("children").findOne({
-      _id: new ObjectId(childId),
-      parentId: session.user.id,
-    })
+    const child = await db.collection("children").findOne(childQuery)
 
     if (!child) {
       return NextResponse.json({ message: "Niño no encontrado o no autorizado" }, { status: 404 })
@@ -123,7 +146,7 @@ export async function POST(req: Request) {
     }
     
     const result = await db.collection("children").updateOne(
-      { _id: new ObjectId(childId) },
+      childQuery,
       { $set: updateFields }
     )
 
