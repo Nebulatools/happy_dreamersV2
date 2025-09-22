@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { connectToDatabase } from "@/lib/mongodb"
+import clientPromise from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { getMongoDBVectorStoreManager } from "@/lib/rag/vector-store-mongodb"
 import { OpenAI } from "openai"
@@ -175,8 +176,7 @@ export async function GET(req: NextRequest) {
       isParent
     })
 
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
     
     // Obtener todos los planes del niño ordenados por planNumber
     const plans = await db.collection("child_plans")
@@ -249,8 +249,7 @@ export async function POST(req: NextRequest) {
       adminId: session.user.id
     })
 
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
 
     // Verificar planes existentes
     const existingPlans = await db.collection("child_plans")
@@ -436,8 +435,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado para validar estos planes" }, { status: 403 })
     }
 
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
 
     // Obtener planes existentes
     const existingPlans = await db.collection("child_plans")
@@ -478,6 +476,7 @@ export async function PUT(req: NextRequest) {
       }
       
     } else if (planType === "transcript_refinement") {
+      let transcriptCheck: any = null
       if (existingPlans.length === 0) {
         canGenerate = false
         reason = "Debe existir al menos un plan base antes de crear un refinamiento"
@@ -498,7 +497,7 @@ export async function PUT(req: NextRequest) {
         } else {
           // Para refinamientos, verificar transcripts DESPUÉS del último plan
           const lastPlanDate = new Date(existingPlans[0].createdAt)
-          const transcriptCheck = await hasAvailableTranscript(childId, lastPlanDate)
+          transcriptCheck = await hasAvailableTranscript(childId, lastPlanDate)
           
           canGenerate = transcriptCheck.hasTranscript
           reason = canGenerate
@@ -560,8 +559,8 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
     childId: new ObjectId(childId),
   }).sort({ startTime: -1 }).toArray()
 
-  const statsStartDate = subDays(new Date(), 30)
-  const stats = processSleepStatistics(events, statsStartDate)
+  // Usar TODA la historia de eventos para Plan 0 (no limitar a 30 días)
+  const stats = processSleepStatistics(events)
   
   const birthDate = child.birthDate ? new Date(child.birthDate) : null
   const ageInMonths = birthDate ? Math.floor(differenceInDays(new Date(), birthDate) / 30.44) : null
@@ -820,8 +819,7 @@ async function generateTranscriptBasedPlan(
     planNumber 
   })
 
-  const client = await clientPromise
-  const db = client.db()
+  const { db } = await connectToDatabase()
   
   // 1. Obtener el reporte de análisis completo
   const consultationReport = await db.collection("consultation_reports").findOne({
