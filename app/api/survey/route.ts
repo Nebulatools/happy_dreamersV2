@@ -4,7 +4,7 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
 import { createLogger } from "@/lib/logger"
@@ -28,13 +28,12 @@ export async function GET(req: Request) {
     }
 
     // Conectar a la base de datos
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
 
     // Verificar que el niño pertenece al usuario o es admin
     const child = await db.collection("children").findOne({ 
       _id: new ObjectId(childId),
-      parentId: session.user.id,
+      parentId: new ObjectId(session.user.id),
     })
 
     if (!child) {
@@ -77,13 +76,12 @@ export async function POST(req: Request) {
     }
 
     // Conectar a la base de datos
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
 
     // Verificar que el niño pertenezca al usuario autenticado
     const child = await db.collection("children").findOne({
       _id: new ObjectId(childId),
-      parentId: session.user.id,
+      parentId: new ObjectId(session.user.id),
     })
 
     if (!child) {
@@ -99,8 +97,10 @@ export async function POST(req: Request) {
       surveyDataToSave = {
         ...surveyData,
         isPartial: true,
+        completed: false,
         currentStep: currentStep,
-        lastSavedAt: new Date()
+        lastSavedAt: new Date(),
+        lastUpdated: new Date()
       }
       updateFields = {
         surveyData: surveyDataToSave,
@@ -112,7 +112,9 @@ export async function POST(req: Request) {
       surveyDataToSave = {
         ...surveyData,
         isPartial: false,
+        completed: true,
         completedAt: surveyData.completedAt || new Date(),
+        lastUpdated: new Date(),
         currentStep: undefined // Limpiar paso actual ya que está completo
       }
       updateFields = {

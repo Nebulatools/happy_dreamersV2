@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { createLogger } from "@/lib/logger"
 import { 
@@ -23,11 +23,24 @@ import { checkUserAccess, getAccessibleChildren } from "@/lib/db/user-child-acce
 
 const logger = createLogger("API:Children")
 
-const serializeChild = (child: Child | any) => ({
-  ...child,
-  _id: child?._id?.toString?.() ?? child?._id,
-  parentId: child?.parentId?.toString?.() ?? child?.parentId,
-})
+const serializeChild = (child: Child | any) => {
+  const surveyData = child?.surveyData
+    ? {
+        ...child.surveyData,
+        completed:
+          child.surveyData.completed ??
+          (!!child.surveyData.completedAt && child.surveyData.isPartial !== true),
+        lastUpdated: child.surveyData.lastUpdated ?? (child.surveyUpdatedAt || child.updatedAt || child.createdAt),
+      }
+    : undefined
+
+  return {
+    ...child,
+    _id: child?._id?.toString?.() ?? child?._id,
+    parentId: child?.parentId?.toString?.() ?? child?.parentId,
+    ...(surveyData && { surveyData }),
+  }
+}
 
 // GET /api/children - obtener todos los niños del usuario autenticado
 // GET /api/children?id=123 - obtener un niño específico
@@ -37,8 +50,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const id = searchParams.get("id")
   const requestedUserId = searchParams.get("userId") // Para admins que quieren ver niños de otro usuario
 
-  const client = await clientPromise
-  const db = client.db()
+  const { db } = await connectToDatabase()
   
   const isAdmin = session.user.role === "admin"
   logger.info("API Request", { userId: session.user.id, isAdmin, requestedUserId })
@@ -66,18 +78,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       throw new ApiError(ApiErrorType.NOT_FOUND, "Niño no encontrado o no tienes permiso para verlo", 404)
     }
 
-    // Serializar datos correctamente
-    const childData = {
-      _id: child._id.toString(),
-      firstName: child.firstName || '',
-      lastName: child.lastName || '',
-      birthDate: child.birthDate,
-      parentId: child.parentId,
-      createdAt: child.createdAt,
-      updatedAt: child.updatedAt,
-      surveyData: child.surveyData,
-      ...(child.events && { events: child.events })
-    }
+    // Serializar datos correctamente (incluye flags de survey)
+    const childData = serializeChild(child)
     
     // Asegurar que no se cachea la respuesta
     const response = createSuccessResponse(childData)
@@ -153,8 +155,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   }
 
   logger.debug("Conectando a MongoDB...")
-  const client = await clientPromise
-  const db = client.db()
+  const { db } = await connectToDatabase()
   logger.debug("Conexión a MongoDB establecida")
 
   // Crear documento completo con datos básicos y encuesta
@@ -209,8 +210,7 @@ export const PUT = withErrorHandler(async (request: NextRequest) => {
     throw new ApiError(ApiErrorType.BAD_REQUEST, "ID de niño inválido", 400)
   }
 
-  const client = await clientPromise
-  const db = client.db()
+  const { db } = await connectToDatabase()
 
   // Verificar que el niño pertenece al usuario
   const child = await db.collection<Child>("children").findOne({
@@ -266,8 +266,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Se requiere el ID del niño" }, { status: 400 })
     }
 
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
 
     // Verificar que el niño pertenece al usuario
     const child = await db.collection("children").findOne({

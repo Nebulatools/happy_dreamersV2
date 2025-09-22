@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { checkUserAccess } from "@/lib/db/user-child-access"
 
@@ -47,8 +47,7 @@ export async function GET(
     }
     */
     
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
 
     const child = await db.collection("children").findOne({
       _id: new ObjectId(id)
@@ -67,9 +66,21 @@ export async function GET(
     
     logger.info(`Comparando parentId: ${childParentId} con userId: ${currentUserId}`)
     
+    // Enriquecer surveyData con flags estándar
+    const surveyData = child?.surveyData
+      ? {
+          ...child.surveyData,
+          completed:
+            child.surveyData.completed ??
+            (!!child.surveyData.completedAt && child.surveyData.isPartial !== true),
+          lastUpdated: child.surveyData.lastUpdated ?? (child.surveyUpdatedAt || child.updatedAt || child.createdAt),
+        }
+      : undefined
+
     // Agregar información sobre el tipo de acceso
     const childWithAccess = {
       ...child,
+      ...(surveyData && { surveyData }),
       isOwner: isOwner,
       userPermissions: null // TEMPORAL: sin permisos específicos
     }
@@ -108,13 +119,12 @@ export async function PUT(
       hasSurveyData: !!data.surveyData,
     })
 
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
 
     // Verificar que el niño pertenece al usuario
     const child = await db.collection("children").findOne({
       _id: new ObjectId(id),
-      parentId: session.user.id,
+      parentId: new ObjectId(session.user.id),
     })
 
     if (!child) {
@@ -175,13 +185,12 @@ export async function DELETE(
 
     const { id } = await params
     
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
 
     // Verificar que el niño pertenece al usuario
     const child = await db.collection("children").findOne({
       _id: new ObjectId(id),
-      parentId: session.user.id,
+      parentId: new ObjectId(session.user.id),
     })
 
     if (!child) {
