@@ -267,12 +267,19 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {plan.objectives.map((objective, index) => (
-                  <div key={index} className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm">{objective}</p>
-                  </div>
-                ))}
+                {plan.objectives.map((objective: any, index: number) => {
+                  const text = typeof objective === 'string'
+                    ? objective
+                    : objective && typeof objective === 'object'
+                      ? (objective.description || JSON.stringify(objective))
+                      : String(objective ?? '')
+                  return (
+                    <div key={index} className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm">{text}</p>
+                    </div>
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
@@ -287,11 +294,18 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {plan.recommendations.map((recommendation, index) => (
-                  <div key={index} className="p-3 bg-muted rounded-lg">
-                    <p className="text-sm">{recommendation}</p>
-                  </div>
-                ))}
+                {plan.recommendations.map((recommendation: any, index: number) => {
+                  const text = typeof recommendation === 'string'
+                    ? recommendation
+                    : recommendation && typeof recommendation === 'object'
+                      ? (recommendation.description || JSON.stringify(recommendation))
+                      : String(recommendation ?? '')
+                  return (
+                    <div key={index} className="p-3 bg-muted rounded-lg">
+                      <p className="text-sm">{text}</p>
+                    </div>
+                  )
+                })}
               </div>
             </CardContent>
           </Card>

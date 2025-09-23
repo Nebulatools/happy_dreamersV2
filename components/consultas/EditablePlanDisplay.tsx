@@ -607,31 +607,38 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {editedPlan.objectives.map((objective, index) => (
-                  <div key={index} className="flex items-start gap-2">
-                    {isEditing ? (
-                      <>
-                        <Textarea
-                          value={objective}
-                          onChange={(e) => handleObjectiveChange(index, e.target.value)}
-                          className="flex-1 min-h-[60px]"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeObjective(index)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <p className="text-sm">{objective}</p>
-                      </>
-                    )}
-                  </div>
-                ))}
+                {editedPlan.objectives.map((objective: any, index: number) => {
+                  const text = typeof objective === 'string'
+                    ? objective
+                    : objective && typeof objective === 'object'
+                      ? (objective.description || JSON.stringify(objective))
+                      : String(objective ?? '')
+                  return (
+                    <div key={index} className="flex items-start gap-2">
+                      {isEditing ? (
+                        <>
+                          <Textarea
+                            value={text}
+                            onChange={(e) => handleObjectiveChange(index, e.target.value)}
+                            className="flex-1 min-h-[60px]"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeObjective(index)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                          <p className="text-sm">{text}</p>
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
                 {isEditing && (
                   <Button
                     variant="outline"
@@ -656,28 +663,35 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {editedPlan.recommendations.map((recommendation, index) => (
-                  <div key={index} className={isEditing ? "flex items-start gap-2" : "p-3 bg-muted rounded-lg"}>
-                    {isEditing ? (
-                      <>
-                        <Textarea
-                          value={recommendation}
-                          onChange={(e) => handleRecommendationChange(index, e.target.value)}
-                          className="flex-1 min-h-[60px]"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeRecommendation(index)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </>
-                    ) : (
-                      <p className="text-sm">{recommendation}</p>
-                    )}
-                  </div>
-                ))}
+                {editedPlan.recommendations.map((recommendation: any, index: number) => {
+                  const text = typeof recommendation === 'string'
+                    ? recommendation
+                    : recommendation && typeof recommendation === 'object'
+                      ? (recommendation.description || JSON.stringify(recommendation))
+                      : String(recommendation ?? '')
+                  return (
+                    <div key={index} className={isEditing ? "flex items-start gap-2" : "p-3 bg-muted rounded-lg"}>
+                      {isEditing ? (
+                        <>
+                          <Textarea
+                            value={text}
+                            onChange={(e) => handleRecommendationChange(index, e.target.value)}
+                            className="flex-1 min-h-[60px]"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeRecommendation(index)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      ) : (
+                        <p className="text-sm">{text}</p>
+                      )}
+                    </div>
+                  )
+                })}
                 {isEditing && (
                   <Button
                     variant="outline"
@@ -692,8 +706,8 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
             </CardContent>
           </Card>
 
-          {/* Información adicional para planes basados en transcript */}
-          {editedPlan.planType === "transcript_based" && editedPlan.transcriptAnalysis && (
+          {/* Información adicional para planes de refinamiento por transcript */}
+          {editedPlan.planType === "transcript_refinement" && editedPlan.transcriptAnalysis && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">Ajustes Realizados</CardTitle>
@@ -763,6 +777,19 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                           : editedPlan.basedOn}
                   </span>
                 </div>
+                {/* Resumen mínimo de datos usados para Progresión */}
+                {editedPlan.planType === "event_based" && (
+                  <>
+                    <Separator className="my-2" />
+                    <div className="text-xs">
+                      Usado: base v{editedPlan.basedOnPlan?.planVersion || editedPlan.eventAnalysis?.basePlanVersion || 'N/A'} • eventos {editedPlan.eventsDateRange?.totalEventsAnalyzed ?? editedPlan.eventAnalysis?.eventsAnalyzed ?? 'N/A'} • {
+                        editedPlan.eventsDateRange?.fromDate ? new Date(editedPlan.eventsDateRange.fromDate as any).toLocaleDateString() : 'N/A'
+                      } → {
+                        editedPlan.eventsDateRange?.toDate ? new Date(editedPlan.eventsDateRange.toDate as any).toLocaleDateString() : 'N/A'
+                      } • RAG {(editedPlan.eventAnalysis?.ragSources && editedPlan.eventAnalysis.ragSources.length) || 0}
+                    </div>
+                  </>
+                )}
                 {editedPlan.sourceData && (
                   <>
                     <Separator className="my-2" />

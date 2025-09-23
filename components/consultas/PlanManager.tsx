@@ -555,13 +555,17 @@ export function PlanManager({
                   
                   <div className="mt-2">
                     <p className="text-sm text-muted-foreground">
-                      {plan.objectives.length > 0 && (
-                        <span className="flex items-center gap-1">
-                          <Target className="h-3 w-3" />
-                          {plan.objectives[0]}
-                          {plan.objectives.length > 1 && ` (+${plan.objectives.length - 1} más)`}
-                        </span>
-                      )}
+                      {plan.objectives.length > 0 && (() => {
+                        const first = plan.objectives[0] as any
+                        const text = typeof first === 'string' ? first : (first?.description || JSON.stringify(first))
+                        return (
+                          <span className="flex items-center gap-1">
+                            <Target className="h-3 w-3" />
+                            {text}
+                            {plan.objectives.length > 1 && ` (+${plan.objectives.length - 1} más)`}
+                          </span>
+                        )
+                      })()}
                     </p>
                   </div>
                 </div>

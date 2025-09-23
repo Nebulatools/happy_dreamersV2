@@ -151,31 +151,33 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
 }> {
   try {
     const { db } = await connectToDatabase()
-    
-    // Obtener eventos del campo 'events' del documento del niño
-    const child = await db.collection("children").findOne({
-      _id: new ObjectId(childId)
-    })
-    
-    if (!child || !child.events) {
-      return { hasEvents: false, eventCount: 0, eventTypes: [] }
-    }
-    
-    // Filtrar eventos después de la fecha y HASTA ahora (excluir futuros)
     const now = new Date()
-    const eventsAfterDate = child.events.filter((event: any) => {
-      if (!event.startTime) return false
-      const eventDate = new Date(event.startTime)
-      return eventDate > afterDate && eventDate <= now
-    })
-    
-    const eventTypes = [...new Set(eventsAfterDate.map((e: any) => e.eventType))]
-    
-    return {
-      hasEvents: eventsAfterDate.length > 0,
-      eventCount: eventsAfterDate.length,
-      eventTypes
+
+    // Preferir colección canónica 'events'
+    const eventsCol = db.collection('events')
+    const events = await eventsCol.find({
+      childId: new ObjectId(childId),
+      startTime: { $gt: afterDate.toISOString(), $lte: now.toISOString() }
+    }, { projection: { eventType: 1 } as any }).toArray()
+
+    if (events.length > 0) {
+      const eventTypes = [...new Set(events.map((e: any) => e.eventType).filter(Boolean))]
+      return { hasEvents: true, eventCount: events.length, eventTypes }
     }
+
+    // Fallback: eventos embebidos en el documento del niño (compatibilidad)
+    const child = await db.collection('children').findOne({ _id: new ObjectId(childId) })
+    if (child?.events?.length) {
+      const filtered = child.events.filter((event: any) => {
+        if (!event?.startTime) return false
+        const eventDate = new Date(event.startTime)
+        return eventDate > afterDate && eventDate <= now
+      })
+      const eventTypes = [...new Set(filtered.map((e: any) => e.eventType))]
+      return { hasEvents: filtered.length > 0, eventCount: filtered.length, eventTypes }
+    }
+
+    return { hasEvents: false, eventCount: 0, eventTypes: [] }
   } catch (error) {
     logger.error("Error verificando eventos después de fecha:", error)
     return { hasEvents: false, eventCount: 0, eventTypes: [] }
@@ -354,8 +356,8 @@ export async function POST(req: NextRequest) {
 
     // Validar que hay eventos disponibles para planes basados en eventos
     if (planType === "event_based") {
-      const latestPlan = existingPlans[0]
-      const eventsCheck = await hasEventsAfterDate(childId, new Date(latestPlan.createdAt))
+      const latestByCreatedAt = [...existingPlans].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+      const eventsCheck = await hasEventsAfterDate(childId, new Date(latestByCreatedAt.createdAt))
       
       if (!eventsCheck.hasEvents) {
         return NextResponse.json({ 
@@ -384,14 +386,17 @@ export async function POST(req: NextRequest) {
       generatedPlan = await generateInitialPlan(userId, childId, session.user.id)
     } else if (planType === "event_based") {
       // Generar Plan N basado en eventos + plan anterior + RAG
-      const basePlan = existingPlans[0]
+      // Base para todo: el plan más reciente (incluye refinamientos)
+      const baseLatest = [...existingPlans].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+
       generatedPlan = await generateEventBasedPlan(
-        userId, 
-        childId, 
-        basePlan,
+        userId,
+        childId,
+        baseLatest,            // schedule base
         planNumber,
         planVersion,
-        session.user.id
+        session.user.id,
+        new Date(baseLatest.createdAt) // eventos desde el ÚLTIMO plan (ej: 1.1 → 2)
       )
     } else if (planType === "transcript_refinement") {
       // Generar Plan N.1 basado en plan N + transcript
@@ -529,22 +534,23 @@ export async function PUT(req: NextRequest) {
         canGenerate = false
         reason = "Debe existir un plan inicial antes de crear planes basados en eventos"
       } else {
-        const latestPlan = existingPlans[0]
-        const eventsCheck = await hasEventsAfterDate(childId, new Date(latestPlan.createdAt))
-        
+        // Usar SIEMPRE el último plan generado (incluye refinamientos) como frontera del rango de eventos
+        const latestByCreatedAt = [...existingPlans].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+        const eventsCheck = await hasEventsAfterDate(childId, new Date(latestByCreatedAt.createdAt))
+
         canGenerate = eventsCheck.hasEvents
-        reason = canGenerate 
+        reason = canGenerate
           ? `${eventsCheck.eventCount} eventos disponibles desde el último plan`
           : "No hay eventos registrados después del último plan"
-        
+
         additionalInfo = {
           eventsAvailable: eventsCheck.eventCount,
           eventTypes: eventsCheck.eventTypes,
-          lastPlanDate: latestPlan.createdAt,
-          lastPlanVersion: latestPlan.planVersion
+          lastPlanDate: latestByCreatedAt.createdAt,
+          lastPlanVersion: latestByCreatedAt.planVersion
         }
       }
-      
+
     } else if (planType === "transcript_refinement") {
       let transcriptCheck: any = null
       if (existingPlans.length === 0) {
@@ -686,12 +692,13 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
 
 // Función para generar Plan N basado en eventos + plan anterior + RAG
 async function generateEventBasedPlan(
-  userId: string, 
-  childId: string, 
+  userId: string,
+  childId: string,
   basePlan: any,
   planNumber: number,
   planVersion: string,
-  adminId: string
+  adminId: string,
+  eventsFromDateOverride?: Date
 ): Promise<ChildPlan> {
   logger.info("Generando plan basado en eventos", { 
     userId, 
@@ -714,8 +721,8 @@ async function generateEventBasedPlan(
   // Owner efectivo para el plan (padre real del niño)
   const effectiveUserId = child.parentId?.toString?.() || userId
 
-  // 2. Obtener eventos desde el último plan (preferir colección events; fallback a child.events)
-  const eventsFromDate = new Date(basePlan.createdAt)
+  // 2. Obtener eventos desde el último plan de PROGRESIÓN (o desde el basePlan si no se especifica override)
+  const eventsFromDate = eventsFromDateOverride ? new Date(eventsFromDateOverride) : new Date(basePlan.createdAt)
   const eventsToDate = new Date()
   let newEvents: any[] = []
   try {

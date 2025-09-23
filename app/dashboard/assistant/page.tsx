@@ -138,8 +138,20 @@ export default function AssistantPage() {
         const plans = data.plans || []
         
         // Buscar el plan activo (status: "active") o el más reciente
-        const activePlan = plans.find((plan: ChildPlan) => plan.status === "active") || 
-                          plans[plans.length - 1] // El último si no hay activo
+        const activePlans = plans.filter((plan: ChildPlan) => plan.status === "active")
+        let activePlan = null as any
+        if (activePlans.length > 0) {
+          activePlan = activePlans.sort((a: any, b: any) => {
+            const an = a.planNumber || 0
+            const bn = b.planNumber || 0
+            if (bn !== an) return bn - an
+            const ad = new Date(a.createdAt).getTime()
+            const bd = new Date(b.createdAt).getTime()
+            return bd - ad
+          })[0]
+        } else {
+          activePlan = plans[plans.length - 1] // fallback
+        }
         
         setCurrentPlan(activePlan || null)
         
@@ -442,7 +454,7 @@ export default function AssistantPage() {
                       <span className="text-gray-400">Cargando plan...</span>
                     ) : currentPlan ? (
                       <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                        Plan {currentPlan.planNumber} Activo
+                        Plan {currentPlan.planVersion || currentPlan.planNumber} Activo
                       </span>
                     ) : (
                       <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">

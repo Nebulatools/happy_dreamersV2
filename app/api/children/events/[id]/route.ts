@@ -131,37 +131,35 @@ export async function DELETE(
     const { db } = await connectToDatabase()
     logger.info("Conectado a MongoDB")
 
-    // Encontrar y eliminar el evento del array de eventos del niño
-    const result = await db.collection("children").updateOne(
-      { 
-        parentId: new ObjectId(session.user.id),
-        "events._id": eventId, 
-      },
-      { $pull: { events: { _id: eventId } } as any }
-    )
-
-    logger.info("Resultado de la eliminación:", result)
-
-    if (result.matchedCount === 0) {
-      logger.error("Evento no encontrado o no pertenece al usuario")
-      return NextResponse.json(
-        { error: "Evento no encontrado o no pertenece al usuario" },
-        { status: 404 }
-      )
+    // 1) Intentar eliminar en la colección canónica 'events'
+    let deleted = 0
+    try {
+      const eventsCol = db.collection('events')
+      const filter: any = { _id: new ObjectId(eventId), parentId: new ObjectId(session.user.id) }
+      const res = await eventsCol.deleteOne(filter)
+      logger.info('Resultado deleteOne en events:', res)
+      deleted += res.deletedCount || 0
+    } catch (e) {
+      // Si eventId no es ObjectId válido, ignorar y pasar al fallback
+      logger.warn('No se pudo usar ObjectId para events, intentando fallback en children.events')
     }
 
-    if (result.modifiedCount === 0) {
-      logger.error("No se pudo eliminar el evento")
-      return NextResponse.json(
-        { error: "No se pudo eliminar el evento" },
-        { status: 500 }
+    // 2) Fallback: intentar eliminar en el array embebido children.events (compatibilidad)
+    if (deleted === 0) {
+      const resChild = await db.collection('children').updateOne(
+        { parentId: new ObjectId(session.user.id), "events._id": eventId },
+        { $pull: { events: { _id: eventId } } as any }
       )
+      logger.info('Resultado updateOne en children.events:', resChild)
+      if (resChild.modifiedCount > 0) deleted += resChild.modifiedCount
     }
 
-    return NextResponse.json(
-      { message: "Evento eliminado exitosamente" },
-      { status: 200 }
-    )
+    if (deleted === 0) {
+      logger.error('Evento no encontrado o no pertenece al usuario')
+      return NextResponse.json({ error: 'Evento no encontrado o no pertenece al usuario' }, { status: 404 })
+    }
+
+    return NextResponse.json({ message: 'Evento eliminado exitosamente' }, { status: 200 })
   } catch (error: any) {
     logger.error("Error al eliminar evento:", error.message, error.stack)
     return NextResponse.json(
@@ -169,4 +167,4 @@ export async function DELETE(
       { status: 500 }
     )
   }
-} 
+}

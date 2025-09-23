@@ -1,6 +1,6 @@
 Transcripto mock – Consulta con la Dra. Mariana (Zoom)
 
-Fecha: 05 de agosto de 2025  
+Fecha: 01 de agosto de 2025  
 Participantes: Dra. Mariana (DM), Madre (M), Padre (P)
 
 [00:00:05] DM: ¡Hola! ¿Me escuchan bien? ¿Cómo han estado esta semana con jakitooo?

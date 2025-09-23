@@ -222,3 +222,42 @@ export async function POST(req: NextRequest) {
     }, { status: 500 })
   }
 }
+
+// Eliminar una consulta específica (admin)
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user || session.user.role !== "admin") {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(req.url)
+    const idFromQuery = searchParams.get("id")
+    let id = idFromQuery
+    if (!id) {
+      try {
+        const body = await req.json().catch(() => null)
+        if (body?.id) id = body.id
+      } catch (_) {}
+    }
+
+    if (!id) {
+      return NextResponse.json({ error: "Se requiere el ID de la consulta" }, { status: 400 })
+    }
+    if (!ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "ID inválido" }, { status: 400 })
+    }
+
+    const { db } = await connectToDatabase()
+    const result = await db.collection("consultation_reports").deleteOne({ _id: new ObjectId(id) })
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: "Consulta no encontrada" }, { status: 404 })
+    }
+
+    return NextResponse.json({ success: true, deletedId: id })
+  } catch (error) {
+    logger.error("Error eliminando consulta:", error)
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
+  }
+}

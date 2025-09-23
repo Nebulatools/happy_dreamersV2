@@ -18,7 +18,8 @@ import {
   User,
   Baby,
   Mic,
-  Lightbulb
+  Lightbulb,
+  Trash2
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -99,6 +100,23 @@ export function ConsultationHistory({
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const deleteConsultation = async (id: string) => {
+    if (!id) return
+    const confirmed = typeof window !== 'undefined' ? window.confirm('¿Eliminar esta consulta de forma permanente?') : true
+    if (!confirmed) return
+    try {
+      const resp = await fetch(`/api/consultas/history?id=${id}`, { method: 'DELETE' })
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({} as any))
+        throw new Error(err.error || 'No se pudo eliminar la consulta')
+      }
+      await loadConsultationHistory()
+      toast({ title: 'Consulta eliminada', description: 'Se eliminó del historial.' })
+    } catch (e: any) {
+      toast({ title: 'Error', description: e?.message || 'No se pudo eliminar', variant: 'destructive' })
     }
   }
 
@@ -367,6 +385,14 @@ Generado por Happy Dreamers AI Assistant
                           onClick={() => downloadConsultation(consultation)}
                         >
                           <Download className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteConsultation(consultation._id)}
+                          title="Eliminar consulta"
+                        >
+                          <Trash2 className="h-3 w-3 text-destructive" />
                         </Button>
                       </div>
                     </div>

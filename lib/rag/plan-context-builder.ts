@@ -21,7 +21,7 @@ export async function getActivePlan(childId: string, userId: string): Promise<Ch
         userId: new ObjectId(userId),
         status: "active"
       }, {
-        sort: { planNumber: -1 } // El más reciente
+        sort: { planNumber: -1, createdAt: -1 } // Preferir refinamientos (más recientes)
       })
 
     if (!plan) {
