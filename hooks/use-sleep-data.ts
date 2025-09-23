@@ -408,36 +408,65 @@ function calculateInferredWakeTime(events: any[]): string {
   for (let i = 0; i < sortedEvents.length - 1; i++) {
     const currentEvent = sortedEvents[i]
     const nextEvent = sortedEvents[i + 1]
-    
-    // CASO 1: Par ideal bedtime/sleep → wake
-    if (
-      ['bedtime', 'sleep'].includes(currentEvent.eventType) &&
-      nextEvent.eventType === 'wake' &&
-      nextEvent.startTime
-    ) {
+
+    // Solo considerar sueño NOCTURNO (18:00–06:00) como origen para despertar matutino
+    if (!['bedtime', 'sleep'].includes(currentEvent.eventType)) continue
+    const bedTime = parseISO(currentEvent.startTime)
+    const bedHour = bedTime.getHours()
+    const isNocturnal = (bedHour >= 18 || bedHour <= 6)
+    if (!isNocturnal) continue
+
+    // Caso ideal: siguiente evento es wake → despertar matutino
+    if (nextEvent.eventType === 'wake' && nextEvent.startTime) {
       wakeTimes.push(parseISO(nextEvent.startTime))
+      continue
     }
-    
-    // CASO 2: Inferir despertar desde sleep → nap/activity
-    else if (
-      ['bedtime', 'sleep'].includes(currentEvent.eventType) &&
-      ['nap', 'activity'].includes(nextEvent.eventType) &&
-      currentEvent.startTime && nextEvent.startTime
-    ) {
-      const bedTime = parseISO(currentEvent.startTime)
-      const nextEventTime = parseISO(nextEvent.startTime)
-      
-      if (nextEventTime.getTime() > bedTime.getTime()) {
-        // Inferir despertar 1 hora antes del primer evento
-        const inferredWakeTime = new Date(nextEventTime.getTime() - 60 * 60 * 1000)
-        wakeTimes.push(inferredWakeTime)
-      }
+
+    // Formato antiguo: el propio evento sleep tiene endTime → úsalo como despertar
+    if (currentEvent.endTime) {
+      wakeTimes.push(parseISO(currentEvent.endTime))
+      continue
     }
+
+    // NO inferimos desde siestas/actividades para evitar sesgo (se elimina caso anterior)
   }
   
-  if (wakeTimes.length === 0) return "--:--"
-  
-  return calculateAverageTime(wakeTimes)
+  // Filtrar candidatos a ventana matutina razonable (04:00–11:00)
+  const morningWakes = wakeTimes.filter(d => {
+    const h = d.getHours()
+    return h >= 4 && h <= 11
+  })
+
+  if (morningWakes.length === 0) {
+    // Fallback adicional: tomar todos los endTime de eventos 'sleep' nocturnos en ventana 04:00–11:00
+    const altWakes: Date[] = events
+      .filter((e: any) => e.eventType === 'sleep' && e.startTime && e.endTime)
+      .map((e: any) => ({ start: parseISO(e.startTime), end: parseISO(e.endTime) }))
+      .filter(({ start, end }) => {
+        const sh = start.getHours()
+        const eh = end.getHours()
+        const nocturnal = (sh >= 18 || sh <= 6)
+        const morning = (eh >= 4 && eh <= 11)
+        return nocturnal && morning
+      })
+      .map(({ end }) => end)
+
+    if (altWakes.length === 0) return "--:--"
+    const avgAlt = calculateAverageTime(altWakes)
+    try {
+      const [hStr] = avgAlt.split(':')
+      const h = parseInt(hStr, 10)
+      if (isNaN(h) || h < 4 || h > 11) return "--:--"
+    } catch {}
+    return avgAlt
+  }
+  const avg = calculateAverageTime(morningWakes)
+  try {
+    const [hStr] = avg.split(':')
+    const h = parseInt(hStr, 10)
+    if (isNaN(h) || h < 4 || h > 11) return "--:--"
+  } catch {}
+  return avg
 }
 
 // Función para calcular el promedio de tiempo para dormirse

@@ -257,6 +257,58 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
     }
   }, [sleepData, dateRange])
 
+  // ——— Cálculo explícito: Hora promedio matutina de despertar (04:00–11:00) ———
+  const morningWakeAvg = React.useMemo(() => {
+    try {
+      const evts = sleepData?.events || []
+      if (!evts.length) return "--:--"
+      const sorted = [...evts]
+        .filter((e: any) => e?.startTime)
+        .sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+
+      const wakes: Date[] = []
+      for (let i = 0; i < sorted.length; i++) {
+        const e = sorted[i]
+        if (!['sleep','bedtime'].includes(e.eventType)) continue
+        const start = parseISO(e.startTime)
+        const hour = start.getHours()
+        const nocturnal = (hour >= 18 || hour <= 6)
+        if (!nocturnal) continue
+
+        // Preferir endTime si existe (formato antiguo)
+        if (e.endTime) {
+          wakes.push(parseISO(e.endTime))
+          continue
+        }
+        // Buscar siguiente wake
+        for (let j = i + 1; j < sorted.length; j++) {
+          const n = sorted[j]
+          if (n.eventType === 'wake' && n.startTime) {
+            wakes.push(parseISO(n.startTime))
+            break
+          }
+          // Si aparece otro ciclo de sueño nocturno, detener búsqueda
+          if (['sleep','bedtime'].includes(n.eventType)) break
+        }
+      }
+
+      // Filtrar solo mañanas razonables
+      const morning = wakes.filter(d => {
+        const h = d.getHours()
+        return h >= 4 && h <= 11
+      })
+      if (!morning.length) return "--:--"
+
+      const total = morning.reduce((sum, d) => sum + d.getHours() * 60 + d.getMinutes(), 0)
+      const avg = Math.round(total / morning.length)
+      const hh = String(Math.floor(avg / 60)).padStart(2,'0')
+      const mm = String(avg % 60).padStart(2,'0')
+      return `${hh}:${mm}`
+    } catch {
+      return "--:--"
+    }
+  }, [sleepData])
+
   // Funciones de formato
   const formatDuration = (hours: number): string => {
     const h = Math.floor(hours)
@@ -345,11 +397,11 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
               </div>
               <div className="flex-1">
                 <p className="text-xs text-gray-600 font-medium">Hora de Despertar</p>
-                <p className="text-2xl font-bold text-gray-900">{sleepData.avgWakeTime}</p>
+                <p className="text-2xl font-bold text-gray-900">{morningWakeAvg}</p>
               </div>
             </div>
-            <Badge variant={wakeTimeStatus.variant} className="text-xs">
-              {wakeTimeStatus.label}
+            <Badge variant={getWakeTimeStatus(morningWakeAvg).variant} className="text-xs">
+              {getWakeTimeStatus(morningWakeAvg).label}
             </Badge>
           </div>
 

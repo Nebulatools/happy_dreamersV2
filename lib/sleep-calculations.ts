@@ -172,19 +172,7 @@ function calculateInferredWakeTime(events: SleepEvent[]): string {
     }
     
     // CASO 2: Inferir despertar desde sleep → nap/activity
-    else if (
-      ['bedtime', 'sleep'].includes(currentEvent.eventType) &&
-      ['nap', 'activity'].includes(nextEvent.eventType)
-    ) {
-      const bedTime = parseISO(currentEvent.startTime)
-      const nextEventTime = parseISO(nextEvent.startTime)
-      
-      if (nextEventTime.getTime() > bedTime.getTime()) {
-        // Inferir despertar 1 hora antes del primer evento
-        const inferredWakeTime = new Date(nextEventTime.getTime() - 60 * 60 * 1000)
-        wakeTimes.push(inferredWakeTime)
-      }
-    }
+    // Nota: Ya NO inferimos wake desde siestas/actividades para evitar sesgos matutinos.
   }
   
   if (wakeTimes.length === 0) return "--:--"
