@@ -372,18 +372,22 @@ export default function AddChildPage() {
             <DialogTitle className="text-center text-xl">
               ¡{formData.firstName} ha sido registrado!
             </DialogTitle>
-            <DialogDescription className="text-center space-y-3">
-              <p className="text-gray-700">
-                Para personalizar las recomendaciones de sueño, necesitamos conocer mejor 
-                los hábitos y rutinas de {formData.firstName}.
-              </p>
-              <div className="bg-blue-50 rounded-lg p-3 mt-4">
-                <div className="flex items-start gap-2">
-                  <FileQuestion className="w-5 h-5 text-blue-600 mt-0.5" />
-                  <div className="text-sm text-gray-700 text-left">
-                    <p className="font-semibold mb-1">Encuesta de Sueño Infantil</p>
-                    <p>Toma aproximadamente 10-15 minutos y nos ayudará a crear un plan 
-                    de sueño personalizado.</p>
+            <DialogDescription asChild>
+              <div className="text-center space-y-3">
+                <p className="text-gray-700">
+                  Para personalizar las recomendaciones de sueño, necesitamos conocer mejor 
+                  los hábitos y rutinas de {formData.firstName}.
+                </p>
+                <div className="bg-blue-50 rounded-lg p-3 mt-4">
+                  <div className="flex items-start gap-2">
+                    <FileQuestion className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div className="text-sm text-gray-700 text-left">
+                      <p className="font-semibold mb-1">Encuesta de Sueño Infantil</p>
+                      <p>
+                        Toma aproximadamente 10-15 minutos y nos ayudará a crear un plan 
+                        de sueño personalizado.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

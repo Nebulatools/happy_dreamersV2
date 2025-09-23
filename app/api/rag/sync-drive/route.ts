@@ -11,7 +11,7 @@ const logger = createLogger("sync-drive-api")
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}))
-    const { fullSync = false, testConnection = false } = body
+    const { fullSync = false, testConnection = false, async: runAsync = false } = body as { fullSync?: boolean; testConnection?: boolean; async?: boolean }
     
     if (testConnection) {
       logger.info("🔗 Probando conexión con Google Drive")
@@ -31,6 +31,25 @@ export async function POST(request: NextRequest) {
     
     // Ejecutar sincronización
     const syncService = getGoogleDriveSyncService()
+
+    if (runAsync) {
+      // Lanzar en background y responder de inmediato
+      ;(async () => {
+        try {
+          await syncService.syncWithDrive(fullSync)
+        } catch (err) {
+          logger.error("❌ Error en sync async:", err)
+        }
+      })()
+
+      return NextResponse.json({
+        success: true,
+        started: true,
+        syncType: fullSync ? 'completa' : 'incremental',
+        message: 'Sincronización iniciada en segundo plano'
+      })
+    }
+
     const result = await syncService.syncWithDrive(fullSync)
     
     logger.info("✅ Sincronización completada", { 
@@ -100,4 +119,54 @@ export async function GET(request: NextRequest) {
       error: error instanceof Error ? error.message : "Error desconocido"
     }, { status: 500 })
   }
+}
+
+// Control del scheduler y CORS preflight
+export async function PUT(request: NextRequest) {
+  try {
+    const { action, minutes } = await request.json().catch(() => ({})) as { action?: string; minutes?: number }
+    const scheduler = (await import("@/lib/google-drive/scheduler")).getGoogleDriveScheduler()
+    const syncService = (await import("@/lib/google-drive/sync-service")).getGoogleDriveSyncService()
+
+    if (!syncService.isEnabled()) {
+      return NextResponse.json({ success: false, error: "Google Drive sync no está habilitado" }, { status: 400 })
+    }
+
+    switch (action) {
+      case 'start':
+        scheduler.start()
+        break
+      case 'stop':
+        scheduler.stop()
+        break
+      case 'restart':
+        scheduler.restart()
+        break
+      case 'interval':
+        if (typeof minutes !== 'number') {
+          return NextResponse.json({ success: false, error: 'Se requiere minutes (número)' }, { status: 400 })
+        }
+        scheduler.setInterval(minutes)
+        break
+      default:
+        return NextResponse.json({ success: false, error: 'Acción inválida' }, { status: 400 })
+    }
+
+    const status = scheduler.getStatus()
+    return NextResponse.json({ success: true, message: 'Scheduler actualizado', scheduler: status })
+
+  } catch (error) {
+    logger.error('❌ Error en PUT /sync-drive:', error)
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Error desconocido' }, { status: 500 })
+  }
+}
+
+export async function OPTIONS() {
+  return NextResponse.json({}, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    }
+  })
 }

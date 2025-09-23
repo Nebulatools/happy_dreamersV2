@@ -44,7 +44,8 @@ export async function GET(
           schedule: 1, 
           planNumber: 1, 
           title: 1 
-        } 
+        },
+        sort: { planNumber: -1, createdAt: -1 }
       }
     )
 

@@ -4,7 +4,7 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
 import { createLogger } from "@/lib/logger"
@@ -28,26 +28,13 @@ export async function GET(req: Request) {
     }
 
     // Conectar a la base de datos
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
 
-    const childObjectId = new ObjectId(childId)
-    const userObjectId = new ObjectId(session.user.id)
-
-    // Verificar que el niño pertenece al usuario
-    const childQuery: Record<string, any> = { _id: childObjectId }
-
-    if (session.user.role === "admin") {
-      // Admin puede acceder a cualquier niño
-      childQuery._id = childObjectId
-    } else {
-      childQuery.$or = [
-        { parentId: userObjectId },
-        { sharedWith: { $in: [userObjectId] } },
-      ]
-    }
-
-    const child = await db.collection("children").findOne(childQuery)
+    // Verificar que el niño pertenece al usuario o es admin
+    const child = await db.collection("children").findOne({
+      _id: new ObjectId(childId),
+      parentId: new ObjectId(session.user.id),
+    })
 
     if (!child) {
       return NextResponse.json({ message: "Niño no encontrado o no autorizado" }, { status: 404 })
@@ -89,25 +76,13 @@ export async function POST(req: Request) {
     }
 
     // Conectar a la base de datos
-    const client = await clientPromise
-    const db = client.db()
-
-    const childObjectId = new ObjectId(childId)
-    const userObjectId = new ObjectId(session.user.id)
-
-    const childQuery: Record<string, any> = { _id: childObjectId }
-
-    if (session.user.role === "admin") {
-      childQuery._id = childObjectId
-    } else {
-      childQuery.$or = [
-        { parentId: userObjectId },
-        { sharedWith: { $in: [userObjectId] } },
-      ]
-    }
+    const { db } = await connectToDatabase()
 
     // Verificar que el niño pertenezca al usuario autenticado
-    const child = await db.collection("children").findOne(childQuery)
+    const child = await db.collection("children").findOne({
+      _id: new ObjectId(childId),
+      parentId: new ObjectId(session.user.id),
+    })
 
     if (!child) {
       return NextResponse.json({ message: "Niño no encontrado o no autorizado" }, { status: 404 })
@@ -122,8 +97,10 @@ export async function POST(req: Request) {
       surveyDataToSave = {
         ...surveyData,
         isPartial: true,
+        completed: false,
         currentStep: currentStep,
-        lastSavedAt: new Date()
+        lastSavedAt: new Date(),
+        lastUpdated: new Date()
       }
       updateFields = {
         surveyData: surveyDataToSave,
@@ -135,7 +112,9 @@ export async function POST(req: Request) {
       surveyDataToSave = {
         ...surveyData,
         isPartial: false,
+        completed: true,
         completedAt: surveyData.completedAt || new Date(),
+        lastUpdated: new Date(),
         currentStep: undefined // Limpiar paso actual ya que está completo
       }
       updateFields = {
@@ -146,7 +125,7 @@ export async function POST(req: Request) {
     }
     
     const result = await db.collection("children").updateOne(
-      childQuery,
+      { _id: new ObjectId(childId), parentId: new ObjectId(session.user.id) },
       { $set: updateFields }
     )
 

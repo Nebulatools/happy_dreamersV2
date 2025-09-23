@@ -71,6 +71,7 @@ export function GoogleDriveSync() {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [testingConnection, setTestingConnection] = useState(false)
+  const [autoRefreshing, setAutoRefreshing] = useState(false)
 
   // Cargar estado inicial
   useEffect(() => {
@@ -149,15 +150,15 @@ export function GoogleDriveSync() {
       const response = await fetch('/api/rag/sync-drive', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullSync })
+        body: JSON.stringify({ fullSync, async: true })
       })
       
-      const data: SyncResult = await response.json()
+      const data = await response.json()
       
       if (data.success) {
         toast({
-          title: "Sincronización exitosa",
-          description: `${data.stats.filesProcessed} archivos procesados, ${data.stats.chunksAdded} chunks agregados`,
+          title: data.started ? "Sincronización iniciada" : "Sincronización exitosa",
+          description: data.started ? `Ejecutándose en segundo plano (${fullSync ? 'completa' : 'incremental'})` : `${data.stats.filesProcessed} archivos procesados, ${data.stats.chunksAdded} chunks agregados`,
           variant: "default"
         })
       } else {
@@ -181,6 +182,20 @@ export function GoogleDriveSync() {
       setSyncing(false)
     }
   }
+
+  // Auto-refresh mientras está sincronizando o cuando el backend reporta 'running'
+  useEffect(() => {
+    const isRunning = syncing || (status?.googleDrive?.lastSyncStatus === 'running')
+    if (!isRunning) {
+      setAutoRefreshing(false)
+      return
+    }
+    setAutoRefreshing(true)
+    const id = setInterval(() => {
+      loadStatus()
+    }, 3000)
+    return () => clearInterval(id)
+  }, [syncing, status?.googleDrive?.lastSyncStatus])
 
   const controlScheduler = async (action: 'start' | 'stop' | 'restart') => {
     try {

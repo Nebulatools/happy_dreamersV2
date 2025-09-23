@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { connectToDatabase } from "@/lib/mongodb"
 import clientPromise from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { getMongoDBVectorStoreManager } from "@/lib/rag/vector-store-mongodb"
@@ -70,6 +71,76 @@ function calculateNextPlanVersion(existingPlans: any[], planType: "initial" | "e
   throw new Error(`Tipo de plan no válido: ${planType}`)
 }
 
+// ================================
+// ENRIQUECIMIENTO DE ESTADÍSTICAS (NAPS / BEDTIME / FEEDING)
+// ================================
+
+function __minutesBetween(a: Date, b: Date) {
+  return Math.round((b.getTime() - a.getTime()) / 60000)
+}
+
+function __avgMinutesFromDates(dates: Date[], nocturnal = false): number | null {
+  if (!dates || dates.length === 0) return null
+  const mins = dates.map((d) => {
+    let m = d.getHours() * 60 + d.getMinutes()
+    if (nocturnal && d.getHours() <= 6) m += 24 * 60
+    return m
+  })
+  const avg = Math.round(mins.reduce((a, b) => a + b, 0) / mins.length)
+  return avg % (24 * 60)
+}
+
+function __minutesToHHMM(mins: number | null): string | null {
+  if (mins == null) return null
+  const h = Math.floor(mins / 60) % 24
+  const m = mins % 60
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+}
+
+function computeNapStatsFromEvents(events: any[]) {
+  const naps = (events || []).filter(e => e?.eventType === 'nap' && e?.startTime && e?.endTime)
+  if (!naps.length) return { count: 0, avgDuration: 0, typicalTime: null as string | null }
+  const starts = naps.map((e: any) => new Date(e.startTime))
+  const durations = naps.map((e: any) => __minutesBetween(new Date(e.startTime), new Date(e.endTime)))
+  const avgDur = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+  const typicalMin = __avgMinutesFromDates(starts, false)
+  return { count: naps.length, avgDuration: avgDur, typicalTime: __minutesToHHMM(typicalMin) }
+}
+
+function computeBedtimeAvgFromEvents(events: any[]) {
+  const sleeps = (events || []).filter(e => e?.eventType === 'sleep' && e?.startTime)
+  if (!sleeps.length) return { avgBedtime: null as string | null }
+  const starts = sleeps.map((e: any) => new Date(e.startTime))
+  const typicalMin = __avgMinutesFromDates(starts, true)
+  return { avgBedtime: __minutesToHHMM(typicalMin) }
+}
+
+function computeFeedingTypicalTimesFromEvents(events: any[]) {
+  const fed = (events || []).filter(e => e?.eventType === 'feeding' && e?.startTime)
+  const buckets: any = {
+    breakfast: { from: 6 * 60, to: 10 * 60, times: [] as Date[] },
+    lunch: { from: 11 * 60, to: 14 * 60, times: [] as Date[] },
+    snack: { from: 15 * 60, to: 17 * 60, times: [] as Date[] },
+    dinner: { from: 18 * 60, to: 20 * 60 + 59, times: [] as Date[] },
+  }
+  for (const e of fed) {
+    const d = new Date(e.startTime)
+    const m = d.getHours() * 60 + d.getMinutes()
+    for (const key of Object.keys(buckets)) {
+      const b = buckets[key]
+      if (m >= b.from && m <= b.to) { b.times.push(d); break }
+    }
+  }
+  const result: any = {}
+  for (const key of Object.keys(buckets)) {
+    const arr: Date[] = buckets[key].times
+    const avg = __avgMinutesFromDates(arr, false)
+    result[key] = arr.length ? __minutesToHHMM(avg) : null
+    result[key + 'Count'] = arr.length
+  }
+  return result
+}
+
 /**
  * Verifica si hay eventos disponibles después de una fecha específica
  */
@@ -79,33 +150,34 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
   eventTypes: string[]
 }> {
   try {
-    const client = await clientPromise
-    const db = client.db()
-    
-    // Obtener eventos del campo 'events' del documento del niño
-    const child = await db.collection("children").findOne({
-      _id: new ObjectId(childId)
-    })
-    
-    if (!child || !child.events) {
-      return { hasEvents: false, eventCount: 0, eventTypes: [] }
-    }
-    
-    // Filtrar eventos después de la fecha y HASTA ahora (excluir futuros)
+    const { db } = await connectToDatabase()
     const now = new Date()
-    const eventsAfterDate = child.events.filter((event: any) => {
-      if (!event.startTime) return false
-      const eventDate = new Date(event.startTime)
-      return eventDate > afterDate && eventDate <= now
-    })
-    
-    const eventTypes = [...new Set(eventsAfterDate.map((e: any) => e.eventType))]
-    
-    return {
-      hasEvents: eventsAfterDate.length > 0,
-      eventCount: eventsAfterDate.length,
-      eventTypes
+
+    // Preferir colección canónica 'events'
+    const eventsCol = db.collection('events')
+    const events = await eventsCol.find({
+      childId: new ObjectId(childId),
+      startTime: { $gt: afterDate.toISOString(), $lte: now.toISOString() }
+    }, { projection: { eventType: 1 } as any }).toArray()
+
+    if (events.length > 0) {
+      const eventTypes = [...new Set(events.map((e: any) => e.eventType).filter(Boolean))]
+      return { hasEvents: true, eventCount: events.length, eventTypes }
     }
+
+    // Fallback: eventos embebidos en el documento del niño (compatibilidad)
+    const child = await db.collection('children').findOne({ _id: new ObjectId(childId) })
+    if (child?.events?.length) {
+      const filtered = child.events.filter((event: any) => {
+        if (!event?.startTime) return false
+        const eventDate = new Date(event.startTime)
+        return eventDate > afterDate && eventDate <= now
+      })
+      const eventTypes = [...new Set(filtered.map((e: any) => e.eventType))]
+      return { hasEvents: filtered.length > 0, eventCount: filtered.length, eventTypes }
+    }
+
+    return { hasEvents: false, eventCount: 0, eventTypes: [] }
   } catch (error) {
     logger.error("Error verificando eventos después de fecha:", error)
     return { hasEvents: false, eventCount: 0, eventTypes: [] }
@@ -120,8 +192,7 @@ async function hasAvailableTranscript(childId: string, afterDate?: Date): Promis
   latestReportId?: string
 }> {
   try {
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
     
     // Construir query - si se especifica afterDate, buscar transcripts después de esa fecha
     const query: any = { childId: new ObjectId(childId) }
@@ -177,8 +248,7 @@ export async function GET(req: NextRequest) {
       isParent
     })
 
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
     
     // Obtener todos los planes del niño ordenados por planNumber
     const plans = await db.collection("child_plans")
@@ -251,8 +321,7 @@ export async function POST(req: NextRequest) {
       adminId: session.user.id
     })
 
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
 
     // Verificar planes existentes
     const existingPlans = await db.collection("child_plans")
@@ -287,8 +356,8 @@ export async function POST(req: NextRequest) {
 
     // Validar que hay eventos disponibles para planes basados en eventos
     if (planType === "event_based") {
-      const latestPlan = existingPlans[0]
-      const eventsCheck = await hasEventsAfterDate(childId, new Date(latestPlan.createdAt))
+      const latestByCreatedAt = [...existingPlans].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+      const eventsCheck = await hasEventsAfterDate(childId, new Date(latestByCreatedAt.createdAt))
       
       if (!eventsCheck.hasEvents) {
         return NextResponse.json({ 
@@ -317,14 +386,17 @@ export async function POST(req: NextRequest) {
       generatedPlan = await generateInitialPlan(userId, childId, session.user.id)
     } else if (planType === "event_based") {
       // Generar Plan N basado en eventos + plan anterior + RAG
-      const basePlan = existingPlans[0]
+      // Base para todo: el plan más reciente (incluye refinamientos)
+      const baseLatest = [...existingPlans].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+
       generatedPlan = await generateEventBasedPlan(
-        userId, 
-        childId, 
-        basePlan,
+        userId,
+        childId,
+        baseLatest,            // schedule base
         planNumber,
         planVersion,
-        session.user.id
+        session.user.id,
+        new Date(baseLatest.createdAt) // eventos desde el ÚLTIMO plan (ej: 1.1 → 2)
       )
     } else if (planType === "transcript_refinement") {
       // Generar Plan N.1 basado en plan N + transcript
@@ -438,8 +510,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado para validar estos planes" }, { status: 403 })
     }
 
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
 
     // Obtener planes existentes
     const existingPlans = await db.collection("child_plans")
@@ -463,23 +534,25 @@ export async function PUT(req: NextRequest) {
         canGenerate = false
         reason = "Debe existir un plan inicial antes de crear planes basados en eventos"
       } else {
-        const latestPlan = existingPlans[0]
-        const eventsCheck = await hasEventsAfterDate(childId, new Date(latestPlan.createdAt))
-        
+        // Usar SIEMPRE el último plan generado (incluye refinamientos) como frontera del rango de eventos
+        const latestByCreatedAt = [...existingPlans].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+        const eventsCheck = await hasEventsAfterDate(childId, new Date(latestByCreatedAt.createdAt))
+
         canGenerate = eventsCheck.hasEvents
-        reason = canGenerate 
+        reason = canGenerate
           ? `${eventsCheck.eventCount} eventos disponibles desde el último plan`
           : "No hay eventos registrados después del último plan"
-        
+
         additionalInfo = {
           eventsAvailable: eventsCheck.eventCount,
           eventTypes: eventsCheck.eventTypes,
-          lastPlanDate: latestPlan.createdAt,
-          lastPlanVersion: latestPlan.planVersion
+          lastPlanDate: latestByCreatedAt.createdAt,
+          lastPlanVersion: latestByCreatedAt.planVersion
         }
       }
-      
+
     } else if (planType === "transcript_refinement") {
+      let transcriptCheck: any = null
       if (existingPlans.length === 0) {
         canGenerate = false
         reason = "Debe existir al menos un plan base antes de crear un refinamiento"
@@ -500,7 +573,7 @@ export async function PUT(req: NextRequest) {
         } else {
           // Para refinamientos, verificar transcripts DESPUÉS del último plan
           const lastPlanDate = new Date(existingPlans[0].createdAt)
-          const transcriptCheck = await hasAvailableTranscript(childId, lastPlanDate)
+          transcriptCheck = await hasAvailableTranscript(childId, lastPlanDate)
           
           canGenerate = transcriptCheck.hasTranscript
           reason = canGenerate
@@ -542,8 +615,7 @@ export async function PUT(req: NextRequest) {
 async function generateInitialPlan(userId: string, childId: string, adminId: string): Promise<ChildPlan> {
   logger.info("Generando plan inicial", { userId, childId })
 
-  const client = await clientPromise
-  const db = client.db()
+  const { db } = await connectToDatabase()
   
   // 1. Obtener datos del niño. Para flujos de administrador, permitir por _id
   //    y usar el parentId real del niño como owner del plan.
@@ -563,15 +635,21 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
     childId: new ObjectId(childId),
   }).sort({ startTime: -1 }).toArray()
 
-  const statsStartDate = subDays(new Date(), 30)
-  const stats = processSleepStatistics(events, statsStartDate)
+  // Usar TODA la historia de eventos para Plan 0 (no limitar a 30 días)
+  const stats = processSleepStatistics(events)
   
   const birthDate = child.birthDate ? new Date(child.birthDate) : null
   const ageInMonths = birthDate ? Math.floor(differenceInDays(new Date(), birthDate) / 30.44) : null
 
   // 3. Buscar información relevante en RAG
   const ragContext = await searchRAGForPlan(ageInMonths)
-  // 4. Generar plan con IA (incluir políticas de ajuste seguras)
+  
+  // 4. Enriquecer estadísticas (siestas/bedtime/feeding) para reflejar patrones reales
+  const napStats = computeNapStatsFromEvents(events)
+  const bedtimeStats = computeBedtimeAvgFromEvents(events)
+  const feedingStats = computeFeedingTypicalTimesFromEvents(events)
+
+  // 5. Generar plan con IA (incluir políticas de ajuste seguras)
   const policies = derivePlanPolicy({ ageInMonths, events })
   const aiPlan = await generatePlanWithAI({
     planType: "initial",
@@ -583,7 +661,8 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
     },
     ragContext,
     surveyData: child.surveyData,
-    policies
+    policies,
+    enrichedStats: { napStats, bedtimeStats, feedingStats }
   })
 
   return {
@@ -613,12 +692,13 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
 
 // Función para generar Plan N basado en eventos + plan anterior + RAG
 async function generateEventBasedPlan(
-  userId: string, 
-  childId: string, 
+  userId: string,
+  childId: string,
   basePlan: any,
   planNumber: number,
   planVersion: string,
-  adminId: string
+  adminId: string,
+  eventsFromDateOverride?: Date
 ): Promise<ChildPlan> {
   logger.info("Generando plan basado en eventos", { 
     userId, 
@@ -627,8 +707,7 @@ async function generateEventBasedPlan(
     newPlanVersion: planVersion 
   })
 
-  const client = await clientPromise
-  const db = client.db()
+  const { db } = await connectToDatabase()
   
   // 1. Obtener datos del niño. En flujo admin, basta con _id.
   const child = await db.collection("children").findOne({
@@ -642,17 +721,24 @@ async function generateEventBasedPlan(
   // Owner efectivo para el plan (padre real del niño)
   const effectiveUserId = child.parentId?.toString?.() || userId
 
-  // 2. Obtener eventos desde el último plan
-  const eventsFromDate = new Date(basePlan.createdAt)
+  // 2. Obtener eventos desde el último plan de PROGRESIÓN (o desde el basePlan si no se especifica override)
+  const eventsFromDate = eventsFromDateOverride ? new Date(eventsFromDateOverride) : new Date(basePlan.createdAt)
   const eventsToDate = new Date()
-  
-  // Filtrar eventos desde la fecha del plan base
-  const allEvents = child.events || []
-  const newEvents = allEvents.filter((event: any) => {
-    if (!event.startTime) return false
-    const eventDate = new Date(event.startTime)
-    return eventDate > eventsFromDate && eventDate <= eventsToDate
-  })
+  let newEvents: any[] = []
+  try {
+    const eventsCol = db.collection("events")
+    newEvents = await eventsCol.find({
+      childId: new ObjectId(childId),
+      startTime: { $gt: eventsFromDate.toISOString(), $lte: eventsToDate.toISOString() }
+    }).sort({ startTime: 1 }).toArray()
+  } catch (e) {
+    const allEvents = child.events || []
+    newEvents = allEvents.filter((event: any) => {
+      if (!event.startTime) return false
+      const eventDate = new Date(event.startTime)
+      return eventDate > eventsFromDate && eventDate <= eventsToDate
+    })
+  }
 
   if (newEvents.length === 0) {
     throw new Error("No hay eventos nuevos para analizar")
@@ -667,6 +753,11 @@ async function generateEventBasedPlan(
   // 4. Buscar información relevante en RAG (para mantener metodología fresca)
   const ragContext = await searchRAGForPlan(ageInMonths)
   const policies = derivePlanPolicy({ ageInMonths, events: newEvents })
+  
+  // Enriquecer estadísticas del período para prompt
+  const napStats = computeNapStatsFromEvents(newEvents)
+  const bedtimeStats = computeBedtimeAvgFromEvents(newEvents)
+  const feedingStats = computeFeedingTypicalTimesFromEvents(newEvents)
   
   // 5. Generar plan con IA basado en progresión de eventos
   const aiPlan = await generatePlanWithAI({
@@ -685,7 +776,8 @@ async function generateEventBasedPlan(
       eventTypes: [...new Set(newEvents.map((e: any) => e.eventType))],
       dateRange: { from: eventsFromDate, to: eventsToDate },
       basePlanVersion: basePlan.planVersion
-    }
+    },
+    enrichedStats: { napStats, bedtimeStats, feedingStats }
   })
 
   return {
@@ -740,8 +832,7 @@ async function generateTranscriptRefinementPlan(
     reportId
   })
 
-  const client = await clientPromise
-  const db = client.db()
+  const { db } = await connectToDatabase()
   
   // 1. Obtener el reporte de análisis completo
   const consultationReport = await db.collection("consultation_reports").findOne({
@@ -825,8 +916,7 @@ async function generateTranscriptBasedPlan(
     planNumber 
   })
 
-  const client = await clientPromise
-  const db = client.db()
+  const { db } = await connectToDatabase()
   
   // 1. Obtener el reporte de análisis completo
   const consultationReport = await db.collection("consultation_reports").findOne({
@@ -876,6 +966,8 @@ async function generateTranscriptBasedPlan(
     },
     scheduleChanges
   })
+
+  // (sin normalización adicional)
 
   return {
     childId: new ObjectId(childId),
@@ -1071,7 +1163,8 @@ async function generatePlanWithAI({
   previousPlan,
   transcriptAnalysis,
   scheduleChanges,
-  eventAnalysis
+  eventAnalysis,
+  enrichedStats
 }: {
   planType: "initial" | "event_based" | "transcript_refinement"
   childData: any
@@ -1081,6 +1174,7 @@ async function generatePlanWithAI({
   transcriptAnalysis?: any
   scheduleChanges?: any
   eventAnalysis?: any
+  enrichedStats?: any
 }) {
   let systemPrompt = ""
 
@@ -1094,8 +1188,11 @@ Genera un PLAN DETALLADO Y ESTRUCTURADO para ${childData.firstName} (${childData
 INFORMACIÓN DEL NIÑO:
 - Edad: ${childData.ageInMonths} meses
 - Eventos de sueño registrados: ${childData.events?.length || 0}
-- Duración promedio de sueño: ${childData.stats?.avgSleepDurationMinutes || 0} minutos
+- Sueño nocturno (promedio): ${childData.stats?.avgSleepDurationMinutes || 0} minutos
 - Hora promedio de despertar: ${Math.floor((childData.stats?.avgWakeTimeMinutes || 0) / 60)}:${((childData.stats?.avgWakeTimeMinutes || 0) % 60).toString().padStart(2, "0")}
+${enrichedStats ? `- Hora media de acostarse observada: ${enrichedStats?.bedtimeStats?.avgBedtime || 'N/A'}
+- Siestas: total=${enrichedStats?.napStats?.count || 0}, hora típica=${enrichedStats?.napStats?.typicalTime || 'N/A'}, duración prom=${enrichedStats?.napStats?.avgDuration || 0} min
+- Comidas típicas (si existen eventos): desayuno=${enrichedStats?.feedingStats?.breakfast || 'N/A'} (n=${enrichedStats?.feedingStats?.breakfastCount || 0}), almuerzo=${enrichedStats?.feedingStats?.lunch || 'N/A'} (n=${enrichedStats?.feedingStats?.lunchCount || 0}), merienda=${enrichedStats?.feedingStats?.snack || 'N/A'} (n=${enrichedStats?.feedingStats?.snackCount || 0}), cena=${enrichedStats?.feedingStats?.dinner || 'N/A'} (n=${enrichedStats?.feedingStats?.dinnerCount || 0})` : ''}
 
 ${surveyData ? `
 DATOS DEL CUESTIONARIO:
@@ -1116,6 +1213,8 @@ INSTRUCCIONES:
 3. Adapta las recomendaciones a la edad del niño
 4. Proporciona objetivos claros y medibles
 5. Incluye recomendaciones específicas para los padres
+6. Si hubo siestas registradas en el histórico, DEBES incluir al menos 1 siesta en un horario cercano a la hora típica observada (${enrichedStats?.napStats?.typicalTime || '14:00'}) y duración aproximada (${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min)
+7. Para comidas, si no hubo eventos en una categoría (n=0), no inventes el horario; puedes omitirla o marcarla como opcional
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {
@@ -1155,8 +1254,11 @@ ${JSON.stringify(previousPlan?.schedule, null, 2)}
 ANÁLISIS DE EVENTOS RECIENTES (${eventAnalysis?.eventsAnalyzed || 0} eventos):
 - Tipos de eventos: ${eventAnalysis?.eventTypes?.join(", ") || "No especificado"}
 - Período analizado: ${eventAnalysis?.dateRange?.from || "No especificado"} a ${eventAnalysis?.dateRange?.to || "No especificado"}
-- Duración promedio de sueño: ${childData.stats?.avgSleepDurationMinutes || 0} minutos
+- Sueño nocturno (promedio): ${childData.stats?.avgSleepDurationMinutes || 0} minutos
 - Hora promedio de despertar: ${Math.floor((childData.stats?.avgWakeTimeMinutes || 0) / 60)}:${((childData.stats?.avgWakeTimeMinutes || 0) % 60).toString().padStart(2, "0")}
+${enrichedStats ? `- Siestas (período): total=${enrichedStats?.napStats?.count || 0}, hora típica=${enrichedStats?.napStats?.typicalTime || 'N/A'}, duración prom=${enrichedStats?.napStats?.avgDuration || 0} min
+- Hora media de acostarse (período): ${enrichedStats?.bedtimeStats?.avgBedtime || 'N/A'}
+- Comidas típicas (período): desayuno=${enrichedStats?.feedingStats?.breakfast || 'N/A'} (n=${enrichedStats?.feedingStats?.breakfastCount || 0}), almuerzo=${enrichedStats?.feedingStats?.lunch || 'N/A'} (n=${enrichedStats?.feedingStats?.lunchCount || 0}), merienda=${enrichedStats?.feedingStats?.snack || 'N/A'} (n=${enrichedStats?.feedingStats?.snackCount || 0}), cena=${enrichedStats?.feedingStats?.dinner || 'N/A'} (n=${enrichedStats?.feedingStats?.dinnerCount || 0})` : ''}
 
 ${ragContext ? `
 CONOCIMIENTO ESPECIALIZADO ACTUALIZADO:
@@ -1169,6 +1271,8 @@ INSTRUCCIONES PARA PROGRESIÓN:
 3. ✨ EVOLUCIONA el plan manteniendo coherencia con el anterior
 4. 📈 IDENTIFICA mejoras basadas en el comportamiento real del niño
 5. 🔧 OPTIMIZA horarios según los datos reales registrados
+6. Si el período contiene siestas (conteo>0), DEBES incluir al menos 1 siesta con hora cercana a ${enrichedStats?.napStats?.typicalTime || '14:00'} y duración ~${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min
+7. Para comidas, no inventes categorías sin eventos; puedes omitirlas o marcarlas como opcionales
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {

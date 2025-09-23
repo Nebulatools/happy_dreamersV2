@@ -14,6 +14,8 @@ interface Document {
   uploadDate: string;
   extractedWith?: string;
   size: number;
+  displayName?: string;
+  webViewLink?: string | null;
   createdAt: string;
 }
 
@@ -245,11 +247,23 @@ export function DocumentsList({ onDocumentDeleted }: DocumentsListProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium truncate">{doc.source}</h4>
+                      <h4 className="font-medium truncate">{doc.displayName || doc.source}</h4>
                       <Badge variant="outline" className="text-xs">
                         {doc.type}
                       </Badge>
                       {getExtractedWithBadge(doc.extractedWith)}
+                      <Badge variant="secondary" className="text-xs ml-1">{`chunks: ${ (doc as any).chunksCount ?? 1 }`}</Badge>
+                      {doc.webViewLink && (
+                        <a
+                          href={doc.webViewLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs underline text-blue-600"
+                          title="Ver en Google Drive"
+                        >
+                          Ver
+                        </a>
+                      )}
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">

@@ -10,7 +10,6 @@ import SleepConsistencyChart from "@/components/sleep-statistics/SleepConsistenc
 import NightWakeupsEvolutionChart from "@/components/sleep-statistics/NightWakeupsEvolutionChart"
 import SleepDistributionChart from "@/components/sleep-statistics/SleepDistributionChart"
 import SleepDataStorytellingCard from "@/components/sleep-statistics/SleepDataStorytellingCard"
-import SleepInsightsCard from "@/components/sleep-statistics/SleepInsightsCard"
 import PositiveFeedbackCard from "@/components/sleep-statistics/PositiveFeedbackCard"
 import TodayInstructionsCard from "@/components/parent/TodayInstructionsCard"
 import MedicalSurveyPrompt from "@/components/alerts/MedicalSurveyPrompt"
@@ -78,8 +77,8 @@ export default function SleepStatisticsPage() {
           {/* Para Hoy (solo padres) */}
           <TodayInstructionsCard childId={activeChildId} />
 
-          {/* Card de Análisis y Recomendaciones */}
-          <SleepInsightsCard childId={activeChildId} dateRange={dateRange} />
+          {/* Card de Análisis y Recomendaciones (Deshabilitada por ahora) */}
+          {/* <SleepInsightsCard childId={activeChildId} dateRange={dateRange} /> */}
 
           {/* Encuesta médica sugerida ante empeoramiento */}
           <MedicalSurveyPrompt childId={activeChildId} dateRange={dateRange} />

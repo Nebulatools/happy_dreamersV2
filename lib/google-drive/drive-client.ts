@@ -149,11 +149,11 @@ export class GoogleDriveClient {
           switch (type.toLowerCase()) {
             case 'pdf': return "mimeType='application/pdf'"
             case 'doc': return "mimeType='application/msword'"
-            case 'docx': return "mimeType='application/vnd.openxmlformats-officedocument.wordprocessingml.document'"
+            case 'docx': return "mimeType='application/vnd.openxmlformats-officedocument.wordprocessingml.document' or mimeType='application/vnd.google-apps.document'"
             case 'txt': return "mimeType='text/plain'"
             case 'md': return "mimeType='text/markdown' or mimeType='text/x-markdown'"
-            case 'pptx': return "mimeType='application/vnd.openxmlformats-officedocument.presentationml.presentation'"
-            case 'xlsx': return "mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'"
+            case 'pptx': return "mimeType='application/vnd.openxmlformats-officedocument.presentationml.presentation' or mimeType='application/vnd.google-apps.presentation'"
+            case 'xlsx': return "mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' or mimeType='application/vnd.google-apps.spreadsheet'"
             case 'png': return "mimeType='image/png'"
             case 'jpg': case 'jpeg': return "mimeType='image/jpeg'"
             case 'zip': return "mimeType='application/zip'"
@@ -230,20 +230,38 @@ export class GoogleDriveClient {
   /**
    * Descarga un archivo de Google Drive
    */
-  async downloadFile(fileId: string): Promise<Buffer> {
+  async downloadFile(fileId: string, mimeType?: string): Promise<Buffer> {
     try {
       if (!this.drive) {
         throw new Error('Cliente de Google Drive no inicializado')
       }
 
-      logger.info(`⬇️  Descargando archivo: ${fileId}`)
+      logger.info(`⬇️  Descargando archivo: ${fileId}${mimeType ? ` (${mimeType})` : ''}`)
 
-      const response = await this.drive.files.get({
-        fileId: fileId,
-        alt: 'media'
-      }, { responseType: 'arraybuffer' })
+      let buffer: Buffer
+      // Si es un documento de Google (Docs/Sheets/Slides), usar export
+      if (mimeType && mimeType.startsWith('application/vnd.google-apps.')) {
+        let exportMime = 'application/pdf'
+        if (mimeType === 'application/vnd.google-apps.document') {
+          exportMime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // .docx
+        } else if (mimeType === 'application/vnd.google-apps.spreadsheet') {
+          exportMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' // .xlsx
+        } else if (mimeType === 'application/vnd.google-apps.presentation') {
+          exportMime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation' // .pptx
+        }
 
-      const buffer = Buffer.from(response.data)
+        const response = await this.drive.files.export({
+          fileId,
+          mimeType: exportMime,
+        }, { responseType: 'arraybuffer' })
+        buffer = Buffer.from(response.data)
+      } else {
+        const response = await this.drive.files.get({
+          fileId: fileId,
+          alt: 'media'
+        }, { responseType: 'arraybuffer' })
+        buffer = Buffer.from(response.data)
+      }
       logger.info(`✅ Archivo descargado: ${buffer.length} bytes`)
       
       return buffer

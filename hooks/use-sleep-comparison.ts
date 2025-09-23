@@ -261,8 +261,12 @@ function calculateInferredWakeTime(events: any[]): Date[] {
 
   for (let i = 0; i < sortedEvents.length; i++) {
     const event = sortedEvents[i]
-    
+    // Solo considerar sueño nocturno (18:00–06:00) para calcular despertar matutino
     if (['sleep', 'bedtime', 'dormir'].includes(event.eventType)) {
+      const start = new Date(event.startTime)
+      const hour = start.getHours()
+      const isNocturnal = (hour >= 18 || hour <= 6)
+      if (!isNocturnal) continue
       if (event.endTime) {
         wakeTimes.push(parseISO(event.endTime))
       } else {
@@ -330,7 +334,12 @@ function calculateAverageTime(dates: Date[]): string {
   if (dates.length === 0) return "--:--"
   
   const totalMinutes = dates.reduce((sum, date) => {
-    return sum + date.getHours() * 60 + date.getMinutes()
+    let minutes = date.getHours() * 60 + date.getMinutes()
+    // Ajustar madrugadas (00:00–06:00) para evitar promedios erróneos
+    if (date.getHours() >= 0 && date.getHours() <= 6) {
+      minutes += 24 * 60
+    }
+    return sum + minutes
   }, 0)
   
   const avgMinutes = totalMinutes / dates.length

@@ -13,7 +13,7 @@ const logger = createLogger('api/consultas/plans/[id]')
 // DELETE endpoint para eliminar un plan específico (solo admin)
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -24,7 +24,7 @@ export async function DELETE(
       )
     }
 
-    const { id: planId } = await params
+    const { id: planId } = params
     if (!planId || !ObjectId.isValid(planId)) {
       return NextResponse.json(
         { error: "ID de plan inválido" },
@@ -37,13 +37,22 @@ export async function DELETE(
     // Usar la colección principal de planes
     const collection = db.collection("child_plans")
 
-    const result = await collection.deleteOne({ _id: new ObjectId(planId) })
+    // Intentar borrar por ObjectId (forma estándar)
+    let result = { deletedCount: 0 }
+    if (ObjectId.isValid(planId)) {
+      result = await collection.deleteOne({ _id: new ObjectId(planId) })
+    }
 
+    // Si no se encontró, intentar por _id como string (compatibilidad con datos antiguos)
     if (result.deletedCount === 0) {
-      return NextResponse.json(
-        { error: "Plan no encontrado" },
-        { status: 404 }
-      )
+      const altResult = await collection.deleteOne({ _id: planId as unknown as any })
+      if (altResult.deletedCount === 0) {
+        return NextResponse.json(
+          { error: "Plan no encontrado" },
+          { status: 404 }
+        )
+      }
+      result = altResult
     }
 
     logger.info("Plan eliminado", { planId, adminId: session.user.id })
@@ -60,7 +69,7 @@ export async function DELETE(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     // Verificar sesión
@@ -72,7 +81,7 @@ export async function PUT(
       )
     }
 
-    const { id: planId } = await params
+    const { id: planId } = params
     
     // Log para depuración
     logger.info("Solicitud de actualización/creación de plan", { planId })
@@ -218,7 +227,7 @@ export async function PUT(
 // GET endpoint para obtener un plan específico
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     // Verificar sesión
@@ -230,7 +239,7 @@ export async function GET(
       )
     }
 
-    const { id: planId } = await params
+    const { id: planId } = params
     
     if (!planId || !ObjectId.isValid(planId)) {
       return NextResponse.json(

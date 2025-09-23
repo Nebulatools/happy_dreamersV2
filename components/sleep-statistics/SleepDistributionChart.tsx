@@ -1,5 +1,6 @@
 import React from "react"
 import { useSleepData } from "@/hooks/use-sleep-data"
+import { aggregateDailySleep } from "@/lib/sleep-calculations"
 import { Clock, Moon, Sun, Activity, Info } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
@@ -13,6 +14,13 @@ interface SleepDistributionChartProps {
 
 export default function SleepDistributionChart({ childId, dateRange = "7-days" }: SleepDistributionChartProps) {
   const { data, loading, error } = useSleepData(childId, dateRange)
+
+  // Calcular porcentajes coherentes con promedios diarios agregados
+  // Importante: los hooks (useMemo) deben ejecutarse en cada render, no después de returns condicionales
+  const agg = React.useMemo(() => {
+    const events = data?.events ? (data.events as any[]) : []
+    return aggregateDailySleep(events, dateRange, { denominator: 'dataDays' })
+  }, [data, dateRange])
 
   if (loading) {
     return (
@@ -46,10 +54,8 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
     )
   }
 
-  // Calcular porcentajes para nocturno vs siestas
-  const totalSleep = data.nightSleepHours + data.napHours
-  const nightPercentage = totalSleep > 0 ? (data.nightSleepHours / totalSleep) * 100 : 0
-  const napPercentage = totalSleep > 0 ? (data.napHours / totalSleep) * 100 : 0
+  const nightPercentage = agg.nightPercentage
+  const napPercentage = agg.napPercentage
 
   // Función para obtener color según duración del período
   const getWindowColor = (minutes: number) => {
@@ -149,10 +155,10 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <Moon className="w-4 h-4 mr-2 text-[#1E40AF]" />
-              <span className="text-sm">Nocturno:</span>
+              <span className="text-sm">Sueño nocturno:</span>
             </div>
             <span className="text-sm font-semibold text-[#1E40AF]">
-              {data.nightSleepHours.toFixed(1)}h ({nightPercentage.toFixed(0)}%)
+              {agg.avgNightHoursPerDay.toFixed(1)}h ({nightPercentage.toFixed(0)}%)
             </span>
           </div>
           
@@ -162,7 +168,7 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
               <span className="text-sm">Siestas:</span>
             </div>
             <span className="text-sm font-semibold text-[#FBBF24]">
-              {data.napHours.toFixed(1)}h ({napPercentage.toFixed(0)}%)
+              {agg.avgNapHoursPerDay.toFixed(1)}h ({napPercentage.toFixed(0)}%)
             </span>
           </div>
           {/* Nota: la métrica de total diario se muestra arriba, se omite aquí */}

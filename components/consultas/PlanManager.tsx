@@ -41,6 +41,16 @@ export function PlanManager({
   const [historyReports, setHistoryReports] = useState<any[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [showDebug, setShowDebug] = useState(false)
+
+  // Utilidad para normalizar el ID del plan desde distintas formas (_id string, ObjectId, {$oid})
+  const getPlanId = (plan: any): string | null => {
+    const raw = plan?._id
+    if (!raw) return null
+    if (typeof raw === 'string') return raw
+    if (typeof raw === 'object' && typeof raw.$oid === 'string') return raw.$oid
+    if (typeof raw.toString === 'function') return raw.toString()
+    try { return String(raw) } catch { return null }
+  }
   
   // Estados para validaciones de plan
   const [planValidations, setPlanValidations] = useState<{
@@ -494,7 +504,7 @@ export function PlanManager({
             <div className="grid gap-3">
               {plans.map((plan, index) => (
                 <div
-                  key={plan._id?.toString()}
+                  key={getPlanId(plan) || `plan-${index}`}
                   className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                     selectedPlanIndex === index
                       ? "border-primary bg-primary/5"
@@ -530,8 +540,12 @@ export function PlanManager({
                       <Button 
                         variant="ghost" 
                         size="icon"
-                        onClick={(e) => { e.stopPropagation(); deletePlan(String(plan._id)) }}
-                        disabled={deletingPlanId === String(plan._id)}
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          const pid = getPlanId(plan)
+                          if (pid) deletePlan(pid)
+                        }}
+                        disabled={deletingPlanId === (getPlanId(plan) || String(plan._id))}
                         title="Eliminar plan"
                       >
                         <Trash2 className={`h-4 w-4 ${deletingPlanId === String(plan._id) ? 'text-muted-foreground' : 'text-destructive'}`} />
@@ -541,13 +555,17 @@ export function PlanManager({
                   
                   <div className="mt-2">
                     <p className="text-sm text-muted-foreground">
-                      {plan.objectives.length > 0 && (
-                        <span className="flex items-center gap-1">
-                          <Target className="h-3 w-3" />
-                          {plan.objectives[0]}
-                          {plan.objectives.length > 1 && ` (+${plan.objectives.length - 1} más)`}
-                        </span>
-                      )}
+                      {plan.objectives.length > 0 && (() => {
+                        const first = plan.objectives[0] as any
+                        const text = typeof first === 'string' ? first : (first?.description || JSON.stringify(first))
+                        return (
+                          <span className="flex items-center gap-1">
+                            <Target className="h-3 w-3" />
+                            {text}
+                            {plan.objectives.length > 1 && ` (+${plan.objectives.length - 1} más)`}
+                          </span>
+                        )
+                      })()}
                     </p>
                   </div>
                 </div>

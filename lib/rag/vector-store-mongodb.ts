@@ -93,6 +93,8 @@ export class MongoDBVectorStoreManager {
       extractedWith: string,
       totalSize: number,
       chunksCount: number,
+      displayName?: string,
+      driveWebViewLink?: string,
     }>()
 
     documents.forEach(doc => {
@@ -105,6 +107,8 @@ export class MongoDBVectorStoreManager {
           extractedWith: doc.metadata.extractedWith || "unknown",
           totalSize: 0,
           chunksCount: 0,
+          displayName: (doc.metadata as any).displayName,
+          driveWebViewLink: (doc.metadata as any).driveWebViewLink,
         })
       }
       
@@ -121,12 +125,23 @@ export class MongoDBVectorStoreManager {
       extractedWith: group.extractedWith,
       size: group.totalSize,
       chunksCount: group.chunksCount,
+      displayName: group.displayName,
+      driveWebViewLink: group.driveWebViewLink,
       createdAt: new Date(),
     }))
 
     if (metaDocuments.length > 0) {
-      await db.collection(this.metaCollectionName).insertMany(metaDocuments)
-      logger.info(`📝 Metadata guardada para ${metaDocuments.length} documento(s) único(s)`)
+      const collection = db.collection(this.metaCollectionName)
+      let upserts = 0
+      for (const meta of metaDocuments) {
+        const res = await collection.updateOne(
+          { source: meta.source },
+          { $set: { ...meta, updatedAt: new Date() } },
+          { upsert: true }
+        )
+        if (res.upsertedCount || res.modifiedCount) upserts++
+      }
+      logger.info(`📝 Metadata upsert para ${upserts} documento(s) único(s)`)
     }
   }
 
@@ -215,6 +230,8 @@ export class MongoDBVectorStoreManager {
         extractedWith: doc.extractedWith,
         size: doc.size,
         chunksCount: doc.chunksCount || 1,
+        displayName: doc.displayName || (doc.source?.startsWith('drive:') ? doc.source.replace(/^drive:/, '') : doc.source),
+        webViewLink: doc.driveWebViewLink || null,
         createdAt: doc.createdAt,
       }))
     } catch (error) {

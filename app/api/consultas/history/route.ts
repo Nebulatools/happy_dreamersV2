@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
 import { createLogger } from "@/lib/logger"
@@ -31,8 +31,7 @@ export async function GET(req: NextRequest) {
       }, { status: 400 })
     }
 
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
 
     // Construir query
     const query: any = { childId: new ObjectId(childId) }
@@ -115,8 +114,7 @@ export async function GET(req: NextRequest) {
 // Función para obtener estadísticas del historial
 async function getConsultationStats(childId: string) {
   try {
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
 
     const stats = await db.collection("consultation_reports")
       .aggregate([
@@ -185,8 +183,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
 
     const query: any = {
       childId: new ObjectId(childId),
@@ -223,5 +220,44 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ 
       error: "Error interno del servidor", 
     }, { status: 500 })
+  }
+}
+
+// Eliminar una consulta específica (admin)
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user || session.user.role !== "admin") {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(req.url)
+    const idFromQuery = searchParams.get("id")
+    let id = idFromQuery
+    if (!id) {
+      try {
+        const body = await req.json().catch(() => null)
+        if (body?.id) id = body.id
+      } catch (_) {}
+    }
+
+    if (!id) {
+      return NextResponse.json({ error: "Se requiere el ID de la consulta" }, { status: 400 })
+    }
+    if (!ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "ID inválido" }, { status: 400 })
+    }
+
+    const { db } = await connectToDatabase()
+    const result = await db.collection("consultation_reports").deleteOne({ _id: new ObjectId(id) })
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: "Consulta no encontrada" }, { status: 404 })
+    }
+
+    return NextResponse.json({ success: true, deletedId: id })
+  } catch (error) {
+    logger.error("Error eliminando consulta:", error)
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }
