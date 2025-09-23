@@ -94,6 +94,17 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     return <Utensils className="h-4 w-4" />
   }
 
+
+  // Normaliza hora a HH:MM y valida
+  const normalizeTime = (t?: string | null) => {
+    if (!t || typeof t !== 'string') return null
+    const m = t.match(/^(\d{1,2}):(\d{2})$/)
+    if (!m) return null
+    const hh = Math.max(0, Math.min(23, parseInt(m[1], 10)))
+    const mm = Math.max(0, Math.min(59, parseInt(m[2], 10)))
+    return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`
+  }
+
   // Crear timeline combinado de todos los eventos del día
   const createTimeline = () => {
     const events: Array<{
@@ -109,35 +120,44 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     }> = []
 
     // Agregar hora de despertar
-    events.push({
-      time: editedPlan.schedule.wakeTime,
-      type: 'wake',
-      title: 'Despertar',
-      description: 'Hora de levantarse',
-      icon: <Sun className="h-4 w-4" />
-    })
+    const wakeT = normalizeTime(editedPlan.schedule?.wakeTime)
+    if (wakeT) {
+      events.push({
+        time: wakeT,
+        type: 'wake',
+        title: 'Despertar',
+        description: 'Hora de levantarse',
+        icon: <Sun className="h-4 w-4" />
+      })
+    }
 
     // Agregar comidas
-    editedPlan.schedule.meals.forEach((meal, index) => {
+    (editedPlan.schedule?.meals || []).forEach((meal, index) => {
+      const mt = normalizeTime(meal?.time as any)
+      if (!mt) return
+      const type = typeof meal?.type === 'string' ? meal.type : 'comida'
       events.push({
-        time: meal.time,
+        time: mt,
         type: 'meal',
-        title: meal.type.charAt(0).toUpperCase() + meal.type.slice(1),
-        description: meal.description,
-        icon: getMealIcon(meal.type),
+        title: type && type.length ? type.charAt(0).toUpperCase() + type.slice(1) : 'Comida',
+        description: meal?.description || '',
+        icon: getMealIcon(type),
         mealIndex: index
       })
     })
 
     // Agregar siestas
-    if (editedPlan.schedule.naps) {
-      editedPlan.schedule.naps.forEach((nap, index) => {
+    if (editedPlan.schedule?.naps) {
+      editedPlan.schedule.naps.forEach((nap: any, index: number) => {
+        const napTime = normalizeTime(nap?.time || nap?.start)
+        if (!napTime) return
+        const dur = typeof nap?.duration === 'number' ? nap.duration : undefined
         events.push({
-          time: nap.time,
+          time: napTime,
           type: 'nap',
           title: 'Siesta',
-          description: nap.description || `Siesta de ${nap.duration} minutos`,
-          duration: nap.duration,
+          description: nap?.description || (dur ? `Siesta de ${dur} minutos` : 'Siesta'),
+          duration: dur,
           icon: <Nap className="h-4 w-4" />,
           napIndex: index
         })
@@ -145,20 +165,25 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     }
 
     // Agregar hora de dormir
-    events.push({
-      time: editedPlan.schedule.bedtime,
-      type: 'bedtime',
-      title: 'Hora de dormir',
-      description: 'Ir a la cama',
-      icon: <Moon className="h-4 w-4" />
-    })
+    const bedT = normalizeTime(editedPlan.schedule?.bedtime)
+    if (bedT) {
+      events.push({
+        time: bedT,
+        type: 'bedtime',
+        title: 'Hora de dormir',
+        description: 'Ir a la cama',
+        icon: <Moon className="h-4 w-4" />
+      })
+    }
 
     // Ordenar por hora
-    return events.sort((a, b) => {
-      const timeA = a.time.split(':').map(Number)
-      const timeB = b.time.split(':').map(Number)
-      return timeA[0] * 60 + timeA[1] - (timeB[0] * 60 + timeB[1])
-    })
+    return events
+      .filter(e => typeof e.time === 'string')
+      .sort((a, b) => {
+        const [ah, am] = a.time.split(':').map(Number)
+        const [bh, bm] = b.time.split(':').map(Number)
+        return ah * 60 + am - (bh * 60 + bm)
+      })
   }
 
   // Manejar cambios en la rutina diaria
@@ -719,12 +744,23 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                 </div>
                 <div className="flex justify-between">
                   <span>Tipo:</span>
-                  <span>{editedPlan.planType === "initial" ? "Inicial" : "Actualización"}</span>
+                  <span>
+                    {editedPlan.planType === "initial" ? "Inicial" : 
+                     editedPlan.planType === "event_based" ? "Progresión basada en eventos" :
+                     editedPlan.planType === "transcript_refinement" ? "Refinamiento por transcript" : 
+                     "Actualización"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Basado en:</span>
                   <span>
-                    {editedPlan.basedOn === "survey_stats_rag" ? "Survey + Stats + RAG" : "Análisis de transcript"}
+                    {editedPlan.basedOn === "survey_stats_rag" 
+                      ? "Survey + Stats + RAG" 
+                      : editedPlan.basedOn === "events_stats_rag"
+                        ? `Plan ${editedPlan.basedOnPlan?.planVersion || 'anterior'} + ${editedPlan.eventAnalysis?.eventsAnalyzed || 'X'} eventos + RAG`
+                        : editedPlan.basedOn === "transcript_analysis"
+                          ? "Análisis de transcript"
+                          : editedPlan.basedOn}
                   </span>
                 </div>
                 {editedPlan.sourceData && (

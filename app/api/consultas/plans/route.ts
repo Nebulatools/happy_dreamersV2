@@ -71,6 +71,76 @@ function calculateNextPlanVersion(existingPlans: any[], planType: "initial" | "e
   throw new Error(`Tipo de plan no válido: ${planType}`)
 }
 
+// ================================
+// ENRIQUECIMIENTO DE ESTADÍSTICAS (NAPS / BEDTIME / FEEDING)
+// ================================
+
+function __minutesBetween(a: Date, b: Date) {
+  return Math.round((b.getTime() - a.getTime()) / 60000)
+}
+
+function __avgMinutesFromDates(dates: Date[], nocturnal = false): number | null {
+  if (!dates || dates.length === 0) return null
+  const mins = dates.map((d) => {
+    let m = d.getHours() * 60 + d.getMinutes()
+    if (nocturnal && d.getHours() <= 6) m += 24 * 60
+    return m
+  })
+  const avg = Math.round(mins.reduce((a, b) => a + b, 0) / mins.length)
+  return avg % (24 * 60)
+}
+
+function __minutesToHHMM(mins: number | null): string | null {
+  if (mins == null) return null
+  const h = Math.floor(mins / 60) % 24
+  const m = mins % 60
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+}
+
+function computeNapStatsFromEvents(events: any[]) {
+  const naps = (events || []).filter(e => e?.eventType === 'nap' && e?.startTime && e?.endTime)
+  if (!naps.length) return { count: 0, avgDuration: 0, typicalTime: null as string | null }
+  const starts = naps.map((e: any) => new Date(e.startTime))
+  const durations = naps.map((e: any) => __minutesBetween(new Date(e.startTime), new Date(e.endTime)))
+  const avgDur = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+  const typicalMin = __avgMinutesFromDates(starts, false)
+  return { count: naps.length, avgDuration: avgDur, typicalTime: __minutesToHHMM(typicalMin) }
+}
+
+function computeBedtimeAvgFromEvents(events: any[]) {
+  const sleeps = (events || []).filter(e => e?.eventType === 'sleep' && e?.startTime)
+  if (!sleeps.length) return { avgBedtime: null as string | null }
+  const starts = sleeps.map((e: any) => new Date(e.startTime))
+  const typicalMin = __avgMinutesFromDates(starts, true)
+  return { avgBedtime: __minutesToHHMM(typicalMin) }
+}
+
+function computeFeedingTypicalTimesFromEvents(events: any[]) {
+  const fed = (events || []).filter(e => e?.eventType === 'feeding' && e?.startTime)
+  const buckets: any = {
+    breakfast: { from: 6 * 60, to: 10 * 60, times: [] as Date[] },
+    lunch: { from: 11 * 60, to: 14 * 60, times: [] as Date[] },
+    snack: { from: 15 * 60, to: 17 * 60, times: [] as Date[] },
+    dinner: { from: 18 * 60, to: 20 * 60 + 59, times: [] as Date[] },
+  }
+  for (const e of fed) {
+    const d = new Date(e.startTime)
+    const m = d.getHours() * 60 + d.getMinutes()
+    for (const key of Object.keys(buckets)) {
+      const b = buckets[key]
+      if (m >= b.from && m <= b.to) { b.times.push(d); break }
+    }
+  }
+  const result: any = {}
+  for (const key of Object.keys(buckets)) {
+    const arr: Date[] = buckets[key].times
+    const avg = __avgMinutesFromDates(arr, false)
+    result[key] = arr.length ? __minutesToHHMM(avg) : null
+    result[key + 'Count'] = arr.length
+  }
+  return result
+}
+
 /**
  * Verifica si hay eventos disponibles después de una fecha específica
  */
@@ -567,7 +637,13 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
 
   // 3. Buscar información relevante en RAG
   const ragContext = await searchRAGForPlan(ageInMonths)
-  // 4. Generar plan con IA (incluir políticas de ajuste seguras)
+  
+  // 4. Enriquecer estadísticas (siestas/bedtime/feeding) para reflejar patrones reales
+  const napStats = computeNapStatsFromEvents(events)
+  const bedtimeStats = computeBedtimeAvgFromEvents(events)
+  const feedingStats = computeFeedingTypicalTimesFromEvents(events)
+
+  // 5. Generar plan con IA (incluir políticas de ajuste seguras)
   const policies = derivePlanPolicy({ ageInMonths, events })
   const aiPlan = await generatePlanWithAI({
     planType: "initial",
@@ -579,7 +655,8 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
     },
     ragContext,
     surveyData: child.surveyData,
-    policies
+    policies,
+    enrichedStats: { napStats, bedtimeStats, feedingStats }
   })
 
   return {
@@ -637,17 +714,24 @@ async function generateEventBasedPlan(
   // Owner efectivo para el plan (padre real del niño)
   const effectiveUserId = child.parentId?.toString?.() || userId
 
-  // 2. Obtener eventos desde el último plan
+  // 2. Obtener eventos desde el último plan (preferir colección events; fallback a child.events)
   const eventsFromDate = new Date(basePlan.createdAt)
   const eventsToDate = new Date()
-  
-  // Filtrar eventos desde la fecha del plan base
-  const allEvents = child.events || []
-  const newEvents = allEvents.filter((event: any) => {
-    if (!event.startTime) return false
-    const eventDate = new Date(event.startTime)
-    return eventDate > eventsFromDate && eventDate <= eventsToDate
-  })
+  let newEvents: any[] = []
+  try {
+    const eventsCol = db.collection("events")
+    newEvents = await eventsCol.find({
+      childId: new ObjectId(childId),
+      startTime: { $gt: eventsFromDate.toISOString(), $lte: eventsToDate.toISOString() }
+    }).sort({ startTime: 1 }).toArray()
+  } catch (e) {
+    const allEvents = child.events || []
+    newEvents = allEvents.filter((event: any) => {
+      if (!event.startTime) return false
+      const eventDate = new Date(event.startTime)
+      return eventDate > eventsFromDate && eventDate <= eventsToDate
+    })
+  }
 
   if (newEvents.length === 0) {
     throw new Error("No hay eventos nuevos para analizar")
@@ -662,6 +746,11 @@ async function generateEventBasedPlan(
   // 4. Buscar información relevante en RAG (para mantener metodología fresca)
   const ragContext = await searchRAGForPlan(ageInMonths)
   const policies = derivePlanPolicy({ ageInMonths, events: newEvents })
+  
+  // Enriquecer estadísticas del período para prompt
+  const napStats = computeNapStatsFromEvents(newEvents)
+  const bedtimeStats = computeBedtimeAvgFromEvents(newEvents)
+  const feedingStats = computeFeedingTypicalTimesFromEvents(newEvents)
   
   // 5. Generar plan con IA basado en progresión de eventos
   const aiPlan = await generatePlanWithAI({
@@ -680,7 +769,8 @@ async function generateEventBasedPlan(
       eventTypes: [...new Set(newEvents.map((e: any) => e.eventType))],
       dateRange: { from: eventsFromDate, to: eventsToDate },
       basePlanVersion: basePlan.planVersion
-    }
+    },
+    enrichedStats: { napStats, bedtimeStats, feedingStats }
   })
 
   return {
@@ -869,6 +959,8 @@ async function generateTranscriptBasedPlan(
     },
     scheduleChanges
   })
+
+  // (sin normalización adicional)
 
   return {
     childId: new ObjectId(childId),
@@ -1064,7 +1156,8 @@ async function generatePlanWithAI({
   previousPlan,
   transcriptAnalysis,
   scheduleChanges,
-  eventAnalysis
+  eventAnalysis,
+  enrichedStats
 }: {
   planType: "initial" | "event_based" | "transcript_refinement"
   childData: any
@@ -1074,6 +1167,7 @@ async function generatePlanWithAI({
   transcriptAnalysis?: any
   scheduleChanges?: any
   eventAnalysis?: any
+  enrichedStats?: any
 }) {
   let systemPrompt = ""
 
@@ -1087,8 +1181,11 @@ Genera un PLAN DETALLADO Y ESTRUCTURADO para ${childData.firstName} (${childData
 INFORMACIÓN DEL NIÑO:
 - Edad: ${childData.ageInMonths} meses
 - Eventos de sueño registrados: ${childData.events?.length || 0}
-- Duración promedio de sueño: ${childData.stats?.avgSleepDurationMinutes || 0} minutos
+- Sueño nocturno (promedio): ${childData.stats?.avgSleepDurationMinutes || 0} minutos
 - Hora promedio de despertar: ${Math.floor((childData.stats?.avgWakeTimeMinutes || 0) / 60)}:${((childData.stats?.avgWakeTimeMinutes || 0) % 60).toString().padStart(2, "0")}
+${enrichedStats ? `- Hora media de acostarse observada: ${enrichedStats?.bedtimeStats?.avgBedtime || 'N/A'}
+- Siestas: total=${enrichedStats?.napStats?.count || 0}, hora típica=${enrichedStats?.napStats?.typicalTime || 'N/A'}, duración prom=${enrichedStats?.napStats?.avgDuration || 0} min
+- Comidas típicas (si existen eventos): desayuno=${enrichedStats?.feedingStats?.breakfast || 'N/A'} (n=${enrichedStats?.feedingStats?.breakfastCount || 0}), almuerzo=${enrichedStats?.feedingStats?.lunch || 'N/A'} (n=${enrichedStats?.feedingStats?.lunchCount || 0}), merienda=${enrichedStats?.feedingStats?.snack || 'N/A'} (n=${enrichedStats?.feedingStats?.snackCount || 0}), cena=${enrichedStats?.feedingStats?.dinner || 'N/A'} (n=${enrichedStats?.feedingStats?.dinnerCount || 0})` : ''}
 
 ${surveyData ? `
 DATOS DEL CUESTIONARIO:
@@ -1109,6 +1206,8 @@ INSTRUCCIONES:
 3. Adapta las recomendaciones a la edad del niño
 4. Proporciona objetivos claros y medibles
 5. Incluye recomendaciones específicas para los padres
+6. Si hubo siestas registradas en el histórico, DEBES incluir al menos 1 siesta en un horario cercano a la hora típica observada (${enrichedStats?.napStats?.typicalTime || '14:00'}) y duración aproximada (${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min)
+7. Para comidas, si no hubo eventos en una categoría (n=0), no inventes el horario; puedes omitirla o marcarla como opcional
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {
@@ -1148,8 +1247,11 @@ ${JSON.stringify(previousPlan?.schedule, null, 2)}
 ANÁLISIS DE EVENTOS RECIENTES (${eventAnalysis?.eventsAnalyzed || 0} eventos):
 - Tipos de eventos: ${eventAnalysis?.eventTypes?.join(", ") || "No especificado"}
 - Período analizado: ${eventAnalysis?.dateRange?.from || "No especificado"} a ${eventAnalysis?.dateRange?.to || "No especificado"}
-- Duración promedio de sueño: ${childData.stats?.avgSleepDurationMinutes || 0} minutos
+- Sueño nocturno (promedio): ${childData.stats?.avgSleepDurationMinutes || 0} minutos
 - Hora promedio de despertar: ${Math.floor((childData.stats?.avgWakeTimeMinutes || 0) / 60)}:${((childData.stats?.avgWakeTimeMinutes || 0) % 60).toString().padStart(2, "0")}
+${enrichedStats ? `- Siestas (período): total=${enrichedStats?.napStats?.count || 0}, hora típica=${enrichedStats?.napStats?.typicalTime || 'N/A'}, duración prom=${enrichedStats?.napStats?.avgDuration || 0} min
+- Hora media de acostarse (período): ${enrichedStats?.bedtimeStats?.avgBedtime || 'N/A'}
+- Comidas típicas (período): desayuno=${enrichedStats?.feedingStats?.breakfast || 'N/A'} (n=${enrichedStats?.feedingStats?.breakfastCount || 0}), almuerzo=${enrichedStats?.feedingStats?.lunch || 'N/A'} (n=${enrichedStats?.feedingStats?.lunchCount || 0}), merienda=${enrichedStats?.feedingStats?.snack || 'N/A'} (n=${enrichedStats?.feedingStats?.snackCount || 0}), cena=${enrichedStats?.feedingStats?.dinner || 'N/A'} (n=${enrichedStats?.feedingStats?.dinnerCount || 0})` : ''}
 
 ${ragContext ? `
 CONOCIMIENTO ESPECIALIZADO ACTUALIZADO:
@@ -1162,6 +1264,8 @@ INSTRUCCIONES PARA PROGRESIÓN:
 3. ✨ EVOLUCIONA el plan manteniendo coherencia con el anterior
 4. 📈 IDENTIFICA mejoras basadas en el comportamiento real del niño
 5. 🔧 OPTIMIZA horarios según los datos reales registrados
+6. Si el período contiene siestas (conteo>0), DEBES incluir al menos 1 siesta con hora cercana a ${enrichedStats?.napStats?.typicalTime || '14:00'} y duración ~${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min
+7. Para comidas, no inventes categorías sin eventos; puedes omitirlas o marcarlas como opcionales
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {
