@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { getMongoDBVectorStoreManager } from "@/lib/rag/vector-store-mongodb"
 import { OpenAI } from "openai"
@@ -167,14 +167,21 @@ export async function POST(req: NextRequest) {
 // Función para obtener datos del niño con estadísticas calculadas usando lógica unificada
 async function getChildWithStats(userId: string, childId: string) {
   try {
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
     
     // Obtener información básica del niño
+    // Como esta ruta es solo para admin, permitimos obtener por _id directamente.
+    // Si deseas validar ownership, puedes comparar child.parentId con userId y solo loggear una advertencia.
     const child = await db.collection("children").findOne({
       _id: new ObjectId(childId),
-      parentId: userId,
     })
+
+    if (child && child.parentId && child.parentId.toString && child.parentId.toString() !== userId) {
+      logger.warn("Advertencia: child.parentId difiere del userId solicitado", {
+        childParentId: child.parentId.toString(),
+        requestedUserId: userId
+      })
+    }
 
     if (!child) return null
 
@@ -433,8 +440,7 @@ async function saveConsultationReport({
   adminId: string
 }) {
   try {
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
     
     const report = {
       userId: new ObjectId(userId),
