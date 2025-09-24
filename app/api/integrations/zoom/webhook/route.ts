@@ -20,6 +20,10 @@ export async function POST(req: NextRequest) {
     // Support Zoom URL validation handshake
     if (payload?.event === "endpoint.url_validation" && (payload?.payload?.plainToken || payload?.payload?.plain_token)) {
       const secret = process.env.ZOOM_WEBHOOK_SECRET || ""
+      if (!secret) {
+        // Fail fast to surface misconfiguration during Zoom's URL validation
+        return NextResponse.json({ error: "ZOOM_WEBHOOK_SECRET is not configured" }, { status: 500 })
+      }
       const plainToken: string = payload.payload.plainToken || payload.payload.plain_token
       // Per Zoom docs: encryptedToken = Base64(HMAC_SHA256(plainToken, secretToken))
       const hmac = crypto.createHmac("sha256", secret).update(plainToken).digest("base64")
