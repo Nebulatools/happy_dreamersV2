@@ -81,3 +81,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message || "Internal error" }, { status: 500 })
   }
 }
+
+// Support Zoom "Authentication Header Option" validation via GET
+// If enabled, Zoom may send a simple GET with Authorization header to validate the endpoint.
+export async function GET(req: NextRequest) {
+  try {
+    // If a verification token is configured, require it in the Authorization header
+    const headerToken = process.env.ZOOM_VERIFICATION_TOKEN
+
+    if (headerToken) {
+      const authHeader = req.headers.get("authorization") || ""
+      // Accept either exact token or Bearer <token>
+      const ok = authHeader === headerToken || authHeader === `Bearer ${headerToken}`
+      if (!ok) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
+    }
+
+    // Additionally, if Zoom (or a manual test) provides a plainToken via query, respond with HMAC as convenience
+    const url = new URL(req.url)
+    const plainToken = url.searchParams.get("plainToken") || url.searchParams.get("plain_token")
+    const secret = process.env.ZOOM_WEBHOOK_SECRET || ""
+    if (plainToken && secret) {
+      const hmac = crypto.createHmac("sha256", secret).update(plainToken).digest("base64")
+      return NextResponse.json({ plainToken, encryptedToken: hmac })
+    }
+
+    // Default OK for header-based validation
+    return NextResponse.json({ success: true })
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || "Internal error" }, { status: 500 })
+  }
+}
