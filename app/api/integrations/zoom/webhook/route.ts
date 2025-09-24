@@ -5,22 +5,36 @@ import { NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import { createLogger } from "@/lib/logger"
 import { ingestZoomMeetingTranscripts } from "@/lib/integrations/zoom"
+import crypto from "crypto"
+
+// Ensure Node.js runtime (crypto required on Vercel)
+export const runtime = 'nodejs'
 
 const logger = createLogger("API:integrations:zoom:webhook")
 
 export async function POST(req: NextRequest) {
   try {
-    // Basic validation via verification token (Marketplace legacy) or header auth
-    const token = process.env.ZOOM_VERIFICATION_TOKEN
-    if (token) {
+    const payload = await req.json().catch(() => null)
+    if (!payload) return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
+
+    // Support Zoom URL validation handshake
+    if (payload?.event === "endpoint.url_validation" && (payload?.payload?.plainToken || payload?.payload?.plain_token)) {
+      const secret = process.env.ZOOM_WEBHOOK_SECRET || ""
+      const plainToken: string = payload.payload.plainToken || payload.payload.plain_token
+      // Per Zoom docs: encryptedToken = Base64(HMAC_SHA256(plainToken, secretToken))
+      const hmac = crypto.createHmac("sha256", secret).update(plainToken).digest("base64")
+      // Respond ONLY with the required fields
+      return NextResponse.json({ plainToken, encryptedToken: hmac })
+    }
+
+    // Basic validation via verification token (legacy) if configured
+    const legacyToken = process.env.ZOOM_VERIFICATION_TOKEN
+    if (legacyToken) {
       const authHeader = req.headers.get("authorization") || ""
-      if (!authHeader.includes(token)) {
+      if (!authHeader.includes(legacyToken)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
       }
     }
-
-    const payload = await req.json().catch(() => null)
-    if (!payload) return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
 
     logger.info("Zoom webhook received", {
       event: payload.event,

@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 
 import { createLogger } from "@/lib/logger"
+import { ZoomTranscriptsList } from "@/components/consultas/ZoomTranscriptsList"
 
 const logger = createLogger("TranscriptInput")
 
@@ -404,6 +405,15 @@ export function TranscriptInput({ value, onChange, disabled = false }: Transcrip
           )}
         </CardContent>
       </Card>
+
+      {/* Transcripts recientes de Zoom (solo lectura, con insertar/copiar) */}
+      <ZoomTranscriptsList
+        onInsert={(text) => {
+          const header = "--- TRANSCRIPT DE ZOOM ---\n"
+          const newValue = value ? `${value}\n\n${header}${text}` : `${header}${text}`
+          onChange(newValue)
+        }}
+      />
     </div>
   )
 }
