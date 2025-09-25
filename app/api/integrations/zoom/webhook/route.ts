@@ -25,10 +25,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "ZOOM_WEBHOOK_SECRET is not configured" }, { status: 500 })
       }
       const plainToken: string = payload.payload.plainToken || payload.payload.plain_token
-      // Per Zoom docs: encryptedToken = Base64(HMAC_SHA256(plainToken, secretToken))
-      const hmac = crypto.createHmac("sha256", secret).update(plainToken).digest("base64")
+      // Per Zoom docs: encryptedToken = hex(HMAC_SHA256(plainToken, secretToken))
+      // Some older guides mention Base64; Zoom's current docs expect hex for CRC response.
+      const hmacHex = crypto.createHmac("sha256", secret).update(plainToken).digest("hex")
       // Respond ONLY with the required fields
-      return NextResponse.json({ plainToken, encryptedToken: hmac })
+      return NextResponse.json({ plainToken, encryptedToken: hmacHex })
     }
 
     // Basic validation via verification token (legacy) if configured
@@ -103,8 +104,8 @@ export async function GET(req: NextRequest) {
     const plainToken = url.searchParams.get("plainToken") || url.searchParams.get("plain_token")
     const secret = process.env.ZOOM_WEBHOOK_SECRET || ""
     if (plainToken && secret) {
-      const hmac = crypto.createHmac("sha256", secret).update(plainToken).digest("base64")
-      return NextResponse.json({ plainToken, encryptedToken: hmac })
+      const hmacHex = crypto.createHmac("sha256", secret).update(plainToken).digest("hex")
+      return NextResponse.json({ plainToken, encryptedToken: hmacHex })
     }
 
     // Default OK for header-based validation

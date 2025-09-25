@@ -1,6 +1,6 @@
-# Guía Completa: Zoom Webhooks + Ingesta Automática de Transcripts (Happy Dreamers)
+# Guía Operativa: Zoom Webhooks + Ingesta Automática de Transcripts (Happy Dreamers)
 
-Esta guía explica, de principio a fin, cómo configurar Zoom para que los transcripts de grabaciones en la nube lleguen automáticamente a la app (se guardan en Mongo y aparecen en el Dashboard → Consultas → History), incluyendo validación del webhook, obtención de token Server‑to‑Server (S2S), poller de grabaciones e ingesta.
+Guía actualizada y verificada para configurar Zoom y lograr que los transcripts de grabaciones en la nube lleguen automáticamente a la app (Mongo → Dashboard → Consultas → History). Incluye solo lo que funciona hoy, con pasos concretos y troubleshooting probado en este proyecto.
 
 Índice
 - Arquitectura y flujo
@@ -14,6 +14,21 @@ Esta guía explica, de principio a fin, cómo configurar Zoom para que los trans
 - Enlace con la UI y buenas prácticas
 - Troubleshooting (errores comunes y soluciones)
 - Checklist final (end‑to‑end)
+
+---
+
+## Resumen operativo (lo verificado y lo pendiente)
+
+Lo que ya funciona (verificado en producción):
+- Endpoint live `GET https://<dominio>/api/integrations/zoom/webhook` → responde `{ success: true }`.
+- Challenge estándar (POST con `plainToken`) devuelve `{ plainToken, encryptedToken }` con HMAC correcto en formato hex usando `ZOOM_WEBHOOK_SECRET`.
+- Opción alternativa habilitada: validación por GET con cabecera `Authorization` usando `ZOOM_VERIFICATION_TOKEN` (si la activas).
+
+Lo que falta para cerrar end‑to‑end:
+- En Zoom → Feature → Event Subscriptions: usar la URL EXACTA `/api/integrations/zoom/webhook` (sin barra final), pulsar Save y luego Validate.
+- Si el Validate sigue fallando: activar “Authentication Header Option”, poner el mismo token en Authorization y en Vercel `ZOOM_VERIFICATION_TOKEN`, redeploy, Save → Validate.
+- Tras validar: Activation → Install/Enable la app S2S (sin esto el token da `invalid_client`).
+- Probar token S2S (curl). Si devuelve `access_token`, ejecutar el poller y verificar transcripts en la UI.
 
 ---
 
@@ -52,6 +67,9 @@ Colecciones usadas en Mongo
 - En Zoom Admin → Settings → Recording:
   - Cloud Recording = ON
   - Audio Transcript = ON
+- Scopes mínimos en la app S2S (App → Scopes):
+  - Recording (lectura a nivel cuenta), por ejemplo: “View all user recordings (admin)” y “View cloud recording transcripts (admin)”.
+  - Estos scopes desbloquean los eventos de Recording en la sección “Add Events”.
 - Acceso al proyecto (local y/o Vercel) para definir variables de entorno y hacer deploy.
 
 ---
@@ -112,12 +130,14 @@ Tras cambiar variables en Vercel: redeploy para aplicarlas.
 
 ## Validación del Webhook en Zoom
 
+ATENCIÓN: La URL debe apuntar EXACTAMENTE a `/api/integrations/zoom/webhook`. No usar `/api/integrations/zoom/` (sin `webhook`) ni agregar barra final.
+
 1) En Zoom Marketplace → tu app → Feature → Event Subscriptions
    - Event Subscriptions: ON
    - Secret Token: pon EXACTAMENTE el mismo valor de `ZOOM_WEBHOOK_SECRET` de Vercel.
    - Add Event Subscription:
      - Method: Webhook
-     - Endpoint URL: `https://<tu-dominio-vercel>/api/integrations/zoom/webhook`
+     - Endpoint URL: `https://<tu-dominio-vercel>/api/integrations/zoom/webhook` (sin barra al final)
      - Add Events: al menos “Recording.completed”.
    - MUY IMPORTANTE: pulsa “Save” antes de “Validate”.
 
@@ -129,19 +149,21 @@ Tras cambiar variables en Vercel: redeploy para aplicarlas.
 
 3) Opción alternativa (si usas cabecera)
    - Habilita “Authentication Header Option”.
-   - En Zoom, campo Authorization: `XXXXXXXX`.
-   - En Vercel, añade `ZOOM_VERIFICATION_TOKEN=XXXXXXXX` (además del `ZOOM_WEBHOOK_SECRET`).
-   - Save → Validate. (El challenge estándar sigue usando `ZOOM_WEBHOOK_SECRET`).
+   - En Zoom, campo Authorization: el mismo valor que `ZOOM_VERIFICATION_TOKEN`.
+   - En Vercel, añade `ZOOM_VERIFICATION_TOKEN=<mismo valor>` (además de `ZOOM_WEBHOOK_SECRET`).
+   - Redeploy. Luego Save → Validate.
 
-Comprobación manual del handshake (curl)
+Comprobación manual del handshake (curl) — Formato HEX
 ```
 PLAINTOKEN=$(openssl rand -hex 16)
-EXPECTED=$(printf "$PLAINTOKEN" | openssl dgst -sha256 -hmac "$ZOOM_WEBHOOK_SECRET" -binary | openssl base64)
+EXPECTED=$(printf "$PLAINTOKEN" | openssl dgst -sha256 -hmac "$ZOOM_WEBHOOK_SECRET" -hex | awk '{print $2}')
 curl -s -X POST https://<tu-dominio-vercel>/api/integrations/zoom/webhook \
   -H 'Content-Type: application/json' \
   -d "{\"event\":\"endpoint.url_validation\",\"payload\":{\"plainToken\":\"$PLAINTOKEN\"}}"
 # Debe responder: { "plainToken": "$PLAINTOKEN", "encryptedToken": "$EXPECTED" }
 ```
+
+Nota importante (CRC Zoom): la documentación vigente de Zoom exige que `encryptedToken` sea el HMAC‑SHA256 en formato hexadecimal (no base64). El endpoint de este proyecto ya responde en hex para cumplir con esta verificación.
 
 ---
 
@@ -152,7 +174,7 @@ Tras validar la URL del webhook:
 1) Zoom → tu app → Activation → “Install”/“Enable” para TU cuenta.
    - Sin esto, pedir el token S2S devolverá `invalid_client`.
 
-2) Asegúrate de copiar credenciales EXACTAS y del MISMO entorno (Development/Production):
+2) Asegúrate de copiar credenciales EXACTAS:
    - `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`.
    - Evita confusiones visuales (I mayúscula vs l minúscula). Siempre copiar/pegar desde Zoom.
 
@@ -285,4 +307,3 @@ HTTP 401 en `/api/integrations/zoom/debug`
 Notas de seguridad
 - Nunca publiques `client_secret`, `account_id` ni secretos del webhook/cron.
 - Rota secretos si se compartieron accidentalmente y restringe acceso a variables en Vercel.
-
