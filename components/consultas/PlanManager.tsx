@@ -171,11 +171,17 @@ export function PlanManager({
       }
 
       const data = await response.json()
-      setPlans(data.plans || [])
-      
-      // Seleccionar el plan más reciente por defecto
-      if (data.plans && data.plans.length > 0) {
-        setSelectedPlanIndex(data.plans.length - 1)
+      // Ordenar de más reciente a más antiguo por createdAt
+      const sorted = (data.plans || []).slice().sort((a: any, b: any) => {
+        const ta = new Date(a?.createdAt || 0).getTime()
+        const tb = new Date(b?.createdAt || 0).getTime()
+        return tb - ta
+      })
+      setPlans(sorted)
+
+      // Seleccionar el más reciente por defecto (primer elemento)
+      if (sorted.length > 0) {
+        setSelectedPlanIndex(0)
       }
     } catch (error) {
       toast({
@@ -202,13 +208,9 @@ export function PlanManager({
         throw new Error(err.error || 'No se pudo eliminar el plan')
       }
 
-      // Refrescar lista y selección
+      // Refrescar lista y seleccionar el más reciente (índice 0)
       await loadPlans()
-      setSelectedPlanIndex((prev) => {
-        if (prev === null) return prev
-        // Si el índice apuntaba a un plan al final, moverlo hacia atrás
-        return Math.max(0, Math.min((plans.length - 2), prev))
-      })
+      setSelectedPlanIndex(0)
 
       toast({
         title: 'Plan eliminado',
