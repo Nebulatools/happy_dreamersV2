@@ -41,6 +41,8 @@ export function PlanManager({
   const [historyReports, setHistoryReports] = useState<any[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [showDebug, setShowDebug] = useState(false)
+  // Mostrar solo el plan más reciente por defecto; permitir "ver todos"
+  const [showAllPlans, setShowAllPlans] = useState(false)
 
   // Utilidad para normalizar el ID del plan desde distintas formas (_id string, ObjectId, {$oid})
   const getPlanId = (plan: any): string | null => {
@@ -505,6 +507,8 @@ export function PlanManager({
           <CardContent>
             <div className="grid gap-3">
               {plans.map((plan, index) => (
+                // Si no mostramos todos, ocultar a partir del segundo plan
+                (!showAllPlans && index > 0) ? null : (
                 <div
                   key={getPlanId(plan) || `plan-${index}`}
                   className={`p-4 border rounded-lg cursor-pointer transition-colors ${
@@ -571,8 +575,20 @@ export function PlanManager({
                     </p>
                   </div>
                 </div>
+                )
               ))}
             </div>
+            {plans.length > 1 && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  className="text-sm text-primary hover:underline"
+                  onClick={() => setShowAllPlans((v) => !v)}
+                >
+                  {showAllPlans ? "Ver menos" : "Ver todos"}
+                </button>
+              </div>
+            )}
           </CardContent>
         ) : (
           <CardContent>
