@@ -585,7 +585,7 @@ export function PlanManager({
                   className="text-sm text-primary hover:underline"
                   onClick={() => setShowAllPlans((v) => !v)}
                 >
-                  {showAllPlans ? "Ver menos" : "Ver todos"}
+                  {showAllPlans ? "Ver menos" : `Ver todos (${Math.max(0, plans.length - 1)})`}
                 </button>
               </div>
             )}
