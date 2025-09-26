@@ -210,6 +210,7 @@ export default function ConsultasPage() {
               value={transcript}
               onChange={setTranscript}
               disabled={isAnalyzing}
+              onAnalyzeRequested={handleAnalyze}
             />
             
             <div className="flex justify-center mt-6">

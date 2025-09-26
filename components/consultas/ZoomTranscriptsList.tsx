@@ -18,7 +18,7 @@ type ZoomReport = {
   source?: any
 }
 
-export function ZoomTranscriptsList({ onInsert }: { onInsert?: (text: string) => void }) {
+export function ZoomTranscriptsList({ onInsert, onInsertAndAnalyze }: { onInsert?: (text: string) => void, onInsertAndAnalyze?: (text: string) => void }) {
   const { activeChildId } = useActiveChild()
   const { toast } = useToast()
 
@@ -44,6 +44,11 @@ export function ZoomTranscriptsList({ onInsert }: { onInsert?: (text: string) =>
 
   useEffect(() => {
     fetchReports()
+    // Auto-refresh every 30s and on tab focus
+    const iv = setInterval(fetchReports, 30000)
+    const onVis = () => { if (document.visibilityState === 'visible') fetchReports() }
+    document.addEventListener('visibilitychange', onVis)
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChildId])
 
@@ -145,6 +150,11 @@ export function ZoomTranscriptsList({ onInsert }: { onInsert?: (text: string) =>
                       {onInsert && (
                         <Button size="sm" onClick={() => onInsert(r.transcript)} title="Insertar en el editor">
                           Insertar
+                        </Button>
+                      )}
+                      {onInsertAndAnalyze && (
+                        <Button size="sm" onClick={() => onInsertAndAnalyze(r.transcript)} title="Insertar y analizar">
+                          Usar para análisis
                         </Button>
                       )}
                     </div>
