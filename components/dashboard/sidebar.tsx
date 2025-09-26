@@ -14,7 +14,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useActiveChild } from "@/context/active-child-context"
-import { LayoutDashboard, Calendar, BarChart3, Users, Settings, Menu, MessageSquare, List, Stethoscope, ClipboardList, HelpCircle, Mail, FileText } from "lucide-react"
+import { LayoutDashboard, Calendar, BarChart3, Users, Settings, Menu, MessageSquare, List, Stethoscope, ClipboardList, HelpCircle, Mail, FileText, Cloud } from "lucide-react"
 import { useEventsInvalidation } from "@/hooks/use-events-cache"
 import { useToast } from "@/hooks/use-toast"
 import { createLogger } from "@/lib/logger"
@@ -119,6 +119,12 @@ export function Sidebar({ className }: { className?: string }) {
       href: "/dashboard/planes",
       icon: <FileText className="h-5 w-5" />,
       role: ["parent", "user", "admin"],
+    },
+    {
+      title: "Transcripts",
+      href: "/dashboard/transcripts",
+      icon: <Cloud className="h-5 w-5" />,
+      role: ["admin"],
     },
     // Opción A: Eliminar elemento "Notificaciones" del sidebar y
     // hacer que "Configuración" apunte al contenido de notificaciones.
