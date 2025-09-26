@@ -10,7 +10,7 @@ const logger = createLogger('PlanManager')
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Calendar, Plus, Clock, Target, CheckCircle, AlertCircle, Trash2 } from "lucide-react"
+import { Loader2, Calendar, Plus, Clock, Target, CheckCircle, AlertCircle, Trash2, Edit } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { EditablePlanDisplay } from "./EditablePlanDisplay"
@@ -41,6 +41,7 @@ export function PlanManager({
   const [historyReports, setHistoryReports] = useState<any[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [showDebug, setShowDebug] = useState(false)
+  const [editTrigger, setEditTrigger] = useState(0)
   // Mostrar solo el plan más reciente por defecto; permitir "ver todos"
   const [showAllPlans, setShowAllPlans] = useState(false)
 
@@ -544,6 +545,19 @@ export function PlanManager({
                         year: 'numeric'
                       })}
                       <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setSelectedPlanIndex(index);
+                          setEditTrigger((t) => t + 1)
+                        }}
+                        title="Editar plan"
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        Editar
+                      </Button>
+                      <Button 
                         variant="ghost" 
                         size="icon"
                         onClick={(e) => { 
@@ -610,6 +624,7 @@ export function PlanManager({
         <EditablePlanDisplay 
           plan={plans[selectedPlanIndex]} 
           key={plans[selectedPlanIndex]._id?.toString() || `plan-${selectedPlanIndex}`}
+          startEditingTrigger={editTrigger}
           onSave={async (updatedPlan) => {
             // Recargar los planes después de guardar
             await loadPlans()

@@ -41,9 +41,11 @@ import { ChildPlan } from "@/types/models"
 interface EditablePlanDisplayProps {
   plan: ChildPlan
   onPlanUpdate?: (updatedPlan: ChildPlan) => void
+  // Cuando cambia este valor, el componente entra a modo edición
+  startEditingTrigger?: number
 }
 
-export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayProps) {
+export function EditablePlanDisplay({ plan, onPlanUpdate, startEditingTrigger }: EditablePlanDisplayProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editedPlan, setEditedPlan] = useState<ChildPlan>(plan)
@@ -61,6 +63,13 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     setIsEditing(false)
     setHasChanges(false)
   }, [plan])
+
+  // Entrar en modo edición cuando el trigger cambie
+  useEffect(() => {
+    if (typeof startEditingTrigger === 'number') {
+      setIsEditing(true)
+    }
+  }, [startEditingTrigger])
 
   // Validación defensiva
   if (!plan) {
@@ -378,60 +387,6 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
 
   return (
     <div className="space-y-6">
-      {/* Header del plan con botón de editar */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <Badge variant={editedPlan.planType === "initial" ? "default" : "secondary"}>
-                  {editedPlan.planType === "initial" ? "Plan Inicial" : "Actualización"}
-                </Badge>
-                {editedPlan.status === "active" && (
-                  <Badge variant="outline" className="text-green-600 border-green-600">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Activo
-                  </Badge>
-                )}
-              </div>
-              {/* Título y fecha ocultados a solicitud: se mantienen badges */}
-            </div>
-            
-            {/* Botones de acción */}
-            <div className="flex gap-2">
-              {!isEditing ? (
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditing(true)}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar
-                </Button>
-              ) : (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={handleCancel}
-                    disabled={isSaving}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Cancelar
-                  </Button>
-                  {hasChanges && (
-                    <Button
-                      onClick={handleSave}
-                      disabled={isSaving}
-                    >
-                      <Save className="h-4 w-4 mr-2" />
-                      {isSaving ? 'Guardando...' : 'Guardar cambios'}
-                    </Button>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Timeline principal - Rutina Diaria */}
