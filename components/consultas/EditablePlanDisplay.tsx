@@ -384,10 +384,6 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  {editedPlan.title}
-                </CardTitle>
                 <Badge variant={editedPlan.planType === "initial" ? "default" : "secondary"}>
                   {editedPlan.planType === "initial" ? "Plan Inicial" : "Actualización"}
                 </Badge>
@@ -398,17 +394,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                   </Badge>
                 )}
               </div>
-              <CardDescription>
-                Creado el {new Date(editedPlan.createdAt).toLocaleDateString('es-ES', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-                {editedPlan.basedOn === "transcript_analysis" && (
-                  <span className="ml-2">• Basado en análisis de transcript</span>
-                )}
-              </CardDescription>
+              {/* Título y fecha ocultados a solicitud: se mantienen badges */}
             </div>
             
             {/* Botones de acción */}
