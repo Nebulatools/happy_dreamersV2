@@ -41,11 +41,9 @@ import { ChildPlan } from "@/types/models"
 interface EditablePlanDisplayProps {
   plan: ChildPlan
   onPlanUpdate?: (updatedPlan: ChildPlan) => void
-  // Cuando cambia este valor, el componente entra a modo edición
-  startEditingTrigger?: number
 }
 
-export function EditablePlanDisplay({ plan, onPlanUpdate, startEditingTrigger }: EditablePlanDisplayProps) {
+export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editedPlan, setEditedPlan] = useState<ChildPlan>(plan)
@@ -64,12 +62,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate, startEditingTrigger }:
     setHasChanges(false)
   }, [plan])
 
-  // Entrar en modo edición cuando el trigger cambie
-  useEffect(() => {
-    if (typeof startEditingTrigger === 'number') {
-      setIsEditing(true)
-    }
-  }, [startEditingTrigger])
+  // (sin trigger externo)
 
   // Validación defensiva
   if (!plan) {
@@ -387,6 +380,26 @@ export function EditablePlanDisplay({ plan, onPlanUpdate, startEditingTrigger }:
 
   return (
     <div className="space-y-6">
+      {/* Barra de acciones general (Editar / Guardar / Cancelar) */}
+      <div className="flex justify-end gap-2">
+        {!isEditing ? (
+          <Button variant="outline" onClick={() => setIsEditing(true)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Editar plan
+          </Button>
+        ) : (
+          <>
+            <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
+              <X className="h-4 w-4 mr-2" />
+              Cancelar
+            </Button>
+            <Button onClick={handleSave} disabled={isSaving || !hasChanges}>
+              <Save className="h-4 w-4 mr-2" />
+              {isSaving ? 'Guardando...' : 'Guardar cambios'}
+            </Button>
+          </>
+        )}
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Timeline principal - Rutina Diaria */}
