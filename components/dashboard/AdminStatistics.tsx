@@ -138,7 +138,7 @@ export default function AdminStatistics() {
       for (const child of allChildren) {
         try {
           // 1. Verificar si tiene un plan activo (consultas recientes)
-          const consultasResponse = await fetch(`/api/consultas/plans?childId=${child._id}`)
+          const consultasResponse = await fetch(`/api/consultas/plans?childId=${child._id}&userId=${child.parentId}`)
           let hasPlan = false
           
           if (consultasResponse.ok) {

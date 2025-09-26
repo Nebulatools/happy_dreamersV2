@@ -42,15 +42,11 @@ export async function POST(req: NextRequest) {
     if (uuid) sessQuery.uuid = uuid
     if (meetingId) sessQuery.meetingId = meetingId
     const sess = await db.collection("consultation_sessions").findOne(sessQuery)
-    if (!sess) {
-      return NextResponse.json({ error: "Sesión no encontrada" }, { status: 404 })
-    }
-
-    // Use the ingestion helper to create the report and update the session
+    // Use the ingestion helper to create the report and update (or create) the session
     const result = await ingestZoomMeetingTranscripts({
-      uuid: sess.uuid,
-      meetingId: sess.meetingId,
-      topic: sess.topic,
+      uuid: sess?.uuid || uuid,
+      meetingId: sess?.meetingId || meetingId,
+      topic: sess?.topic,
       fallbackChildId: childId,
       fallbackUserId: linkUserId,
     })
@@ -60,4 +56,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e?.message || "Error interno" }, { status: 500 })
   }
 }
-
