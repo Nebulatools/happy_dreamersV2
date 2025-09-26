@@ -605,21 +605,7 @@ export function PlanManager({
         )}
       </Card>
 
-      {/* Mostrar plan seleccionado */}
-      {selectedPlanIndex !== null && plans && plans.length > selectedPlanIndex && plans[selectedPlanIndex] && (
-        <EditablePlanDisplay 
-          plan={plans[selectedPlanIndex]} 
-          key={plans[selectedPlanIndex]._id?.toString() || `plan-${selectedPlanIndex}`}
-          onSave={async (updatedPlan) => {
-            // Recargar los planes después de guardar
-            await loadPlans()
-            toast({
-              title: "Plan actualizado",
-              description: "Los cambios se han guardado correctamente.",
-            })
-          }}
-        />
-      )}
+      {/* Vista detallada desactivada para evitar duplicación bajo la lista */}
     </div>
   )
 }
