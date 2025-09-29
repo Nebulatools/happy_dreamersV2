@@ -9,8 +9,9 @@ const MONGODB_URI = process.env.MONGODB_URI
 const DB_NAME = process.env.MONGODB_DB_FINAL || process.env.MONGODB_DATABASE || process.env.MONGODB_DB
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 
-// Parámetros por defecto (puedes sobreescribir con env)
-const TARGET_CHILD_ID = process.env.SEED_CHILD_ID || '68d1af5315d0e9b1cc189544'
+// Acepta argumentos: node script.js <childId> <userId>
+const TARGET_CHILD_ID = process.argv[2] || process.env.SEED_CHILD_ID || '68d1af5315d0e9b1cc189544'
+const TARGET_PARENT_ID = process.argv[3] || process.env.SEED_PARENT_ID || null
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'mariana@admin.com'
 
 if (!MONGODB_URI || !DB_NAME) {
@@ -169,8 +170,12 @@ async function main() {
     // 2) Niño y owner real
     const child = await db.collection('children').findOne({ _id: new ObjectId(TARGET_CHILD_ID) })
     if (!child) { console.error(`❌ Niño no encontrado: ${TARGET_CHILD_ID}`); process.exit(1) }
-    const effectiveUserId = child.parentId
+
+    // Si se pasó parentId como argumento, usar ese; si no, usar el del niño
+    const effectiveUserId = TARGET_PARENT_ID ? new ObjectId(TARGET_PARENT_ID) : child.parentId
     if (!effectiveUserId) { console.error('❌ Niño sin parentId asignado'); process.exit(1) }
+
+    console.log(`📝 Generando Plan 1 para childId: ${TARGET_CHILD_ID}, parentId: ${effectiveUserId}`)
 
     // 3) Plan 0 existente
     const plan0 = await db.collection('child_plans').findOne({ childId: new ObjectId(TARGET_CHILD_ID), userId: new ObjectId(effectiveUserId), planNumber: 0 })

@@ -8,9 +8,9 @@ const { MongoClient, ObjectId } = require('mongodb')
 const MONGODB_URI = process.env.MONGODB_URI
 const DB_NAME = process.env.MONGODB_DB_FINAL || process.env.MONGODB_DATABASE || process.env.MONGODB_DB
 
-// Parámetros solicitados
-const TARGET_CHILD_ID = process.env.SEED_CHILD_ID || '68d1af5315d0e9b1cc189544'
-const TARGET_USER_EMAIL = process.env.SEED_USER_EMAIL || 'ventas@jacoagency.io'
+// Acepta argumentos: node script.js <childId> <userId>
+const TARGET_CHILD_ID = process.argv[2] || process.env.SEED_CHILD_ID || '68d1af5315d0e9b1cc189544'
+const TARGET_PARENT_ID = process.argv[3] || process.env.SEED_PARENT_ID || null
 
 if (!MONGODB_URI || !DB_NAME) {
   console.error('Faltan variables de entorno MONGODB_URI o base de datos (MONGODB_DB_FINAL/MONGODB_DATABASE/MONGODB_DB)')
@@ -47,25 +47,16 @@ async function main() {
   const eventsCol = db.collection('events')
 
   try {
-    const user = await users.findOne({ email: TARGET_USER_EMAIL.toLowerCase() })
-    if (!user) {
-      console.error(`❌ Usuario no encontrado por email: ${TARGET_USER_EMAIL}`)
-      process.exit(1)
-    }
-
     const child = await children.findOne({ _id: new ObjectId(TARGET_CHILD_ID) })
     if (!child) {
       console.error(`❌ Niño no encontrado con ID: ${TARGET_CHILD_ID}`)
       process.exit(1)
     }
 
-    if (child.parentId?.toString() !== user._id.toString()) {
-      console.warn('⚠️ Advertencia: El parentId del niño no coincide con el usuario esperado.')
-      console.warn(`   child.parentId=${child.parentId}  user._id=${user._id}`)
-      console.warn('   Continuaré usando el parentId del niño para mantener aislamiento de datos.')
-    }
+    // Si se pasó parentId como argumento, usar ese; si no, usar el del niño
+    const parentId = TARGET_PARENT_ID ? new ObjectId(TARGET_PARENT_ID) : child.parentId
 
-    const parentId = child.parentId
+    console.log(`📝 Usando childId: ${TARGET_CHILD_ID}, parentId: ${parentId}`)
 
     // Rango de julio 2025 (local)
     const from = dtLocal(2025, 7, 1, 0, 0)

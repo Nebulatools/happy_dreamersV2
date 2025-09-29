@@ -153,12 +153,23 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
     const { db } = await connectToDatabase()
     const now = new Date()
 
+    logger.info("hasEventsAfterDate: Buscando eventos", {
+      childId,
+      afterDate: afterDate.toISOString(),
+      now: now.toISOString()
+    })
+
     // Preferir colección canónica 'events'
     const eventsCol = db.collection('events')
     const events = await eventsCol.find({
       childId: new ObjectId(childId),
       startTime: { $gt: afterDate.toISOString(), $lte: now.toISOString() }
-    }, { projection: { eventType: 1 } as any }).toArray()
+    }, { projection: { eventType: 1, startTime: 1 } as any }).toArray()
+
+    logger.info("hasEventsAfterDate: Eventos encontrados en colección", {
+      count: events.length,
+      eventDates: events.map((e: any) => e.startTime).slice(0, 5) // Primeros 5 para debug
+    })
 
     if (events.length > 0) {
       const eventTypes = [...new Set(events.map((e: any) => e.eventType).filter(Boolean))]
@@ -166,6 +177,7 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
     }
 
     // Fallback: eventos embebidos en el documento del niño (compatibilidad)
+    logger.info("hasEventsAfterDate: Buscando en child.events (fallback)")
     const child = await db.collection('children').findOne({ _id: new ObjectId(childId) })
     if (child?.events?.length) {
       const filtered = child.events.filter((event: any) => {
@@ -173,10 +185,18 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
         const eventDate = new Date(event.startTime)
         return eventDate > afterDate && eventDate <= now
       })
+
+      logger.info("hasEventsAfterDate: Eventos encontrados en child.events", {
+        totalEvents: child.events.length,
+        filteredCount: filtered.length,
+        filteredDates: filtered.map((e: any) => e.startTime).slice(0, 5)
+      })
+
       const eventTypes = [...new Set(filtered.map((e: any) => e.eventType))]
       return { hasEvents: filtered.length > 0, eventCount: filtered.length, eventTypes }
     }
 
+    logger.info("hasEventsAfterDate: No se encontraron eventos nuevos")
     return { hasEvents: false, eventCount: 0, eventTypes: [] }
   } catch (error) {
     logger.error("Error verificando eventos después de fecha:", error)
@@ -536,7 +556,20 @@ export async function PUT(req: NextRequest) {
       } else {
         // Usar SIEMPRE el último plan generado (incluye refinamientos) como frontera del rango de eventos
         const latestByCreatedAt = [...existingPlans].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+
+        logger.info("PUT Validación: Verificando eventos para plan basado en eventos", {
+          childId,
+          lastPlanVersion: latestByCreatedAt.planVersion,
+          lastPlanCreatedAt: latestByCreatedAt.createdAt
+        })
+
         const eventsCheck = await hasEventsAfterDate(childId, new Date(latestByCreatedAt.createdAt))
+
+        logger.info("PUT Validación: Resultado de verificación de eventos", {
+          hasEvents: eventsCheck.hasEvents,
+          eventCount: eventsCheck.eventCount,
+          eventTypes: eventsCheck.eventTypes
+        })
 
         canGenerate = eventsCheck.hasEvents
         reason = canGenerate
@@ -724,6 +757,15 @@ async function generateEventBasedPlan(
   // 2. Obtener eventos desde el último plan de PROGRESIÓN (o desde el basePlan si no se especifica override)
   const eventsFromDate = eventsFromDateOverride ? new Date(eventsFromDateOverride) : new Date(basePlan.createdAt)
   const eventsToDate = new Date()
+
+  logger.info("generateEventBasedPlan: Buscando eventos para plan", {
+    childId,
+    eventsFromDate: eventsFromDate.toISOString(),
+    eventsToDate: eventsToDate.toISOString(),
+    basePlanVersion: basePlan.planVersion,
+    basePlanCreatedAt: basePlan.createdAt
+  })
+
   let newEvents: any[] = []
   try {
     const eventsCol = db.collection("events")
@@ -731,16 +773,32 @@ async function generateEventBasedPlan(
       childId: new ObjectId(childId),
       startTime: { $gt: eventsFromDate.toISOString(), $lte: eventsToDate.toISOString() }
     }).sort({ startTime: 1 }).toArray()
+
+    logger.info("generateEventBasedPlan: Eventos encontrados", {
+      count: newEvents.length,
+      eventDates: newEvents.map((e: any) => e.startTime).slice(0, 5)
+    })
   } catch (e) {
+    logger.warn("generateEventBasedPlan: Error en query MongoDB, usando fallback", { error: e })
     const allEvents = child.events || []
     newEvents = allEvents.filter((event: any) => {
       if (!event.startTime) return false
       const eventDate = new Date(event.startTime)
       return eventDate > eventsFromDate && eventDate <= eventsToDate
     })
+
+    logger.info("generateEventBasedPlan: Eventos encontrados (fallback)", {
+      totalEvents: allEvents.length,
+      filteredCount: newEvents.length
+    })
   }
 
   if (newEvents.length === 0) {
+    logger.error("generateEventBasedPlan: No hay eventos nuevos", {
+      eventsFromDate: eventsFromDate.toISOString(),
+      eventsToDate: eventsToDate.toISOString(),
+      childId
+    })
     throw new Error("No hay eventos nuevos para analizar")
   }
 
