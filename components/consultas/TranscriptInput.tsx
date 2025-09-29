@@ -282,7 +282,8 @@ export function TranscriptInput({ value, onChange, disabled = false, onAnalyzeRe
         </p>
       </div>
 
-      {/* Panel de grabación */}
+      {/* Panel de grabación - TEMPORALMENTE DESHABILITADO */}
+      {/* TODO: Reactivar la grabación de audio cuando se resuelva el problema de permisos
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -294,10 +295,9 @@ export function TranscriptInput({ value, onChange, disabled = false, onAnalyzeRe
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Controles de grabación */}
           {!isRecording && !audioBlob && (
-            <Button 
-              onClick={startRecording} 
+            <Button
+              onClick={startRecording}
               disabled={disabled}
               className="w-full"
             >
@@ -316,19 +316,19 @@ export function TranscriptInput({ value, onChange, disabled = false, onAnalyzeRe
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex gap-2">
-                <Button 
-                  onClick={togglePauseRecording} 
-                  variant="outline" 
+                <Button
+                  onClick={togglePauseRecording}
+                  variant="outline"
                   className="flex-1"
                 >
                   {isPaused ? <Play className="h-4 w-4 mr-2" /> : <Pause className="h-4 w-4 mr-2" />}
                   {isPaused ? "Reanudar" : "Pausar"}
                 </Button>
-                
-                <Button 
-                  onClick={stopRecording} 
+
+                <Button
+                  onClick={stopRecording}
                   variant="destructive"
                   className="flex-1"
                 >
@@ -339,7 +339,6 @@ export function TranscriptInput({ value, onChange, disabled = false, onAnalyzeRe
             </div>
           )}
 
-          {/* Controles de audio grabado */}
           {audioBlob && !isRecording && (
             <div className="space-y-4">
               <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
@@ -353,32 +352,32 @@ export function TranscriptInput({ value, onChange, disabled = false, onAnalyzeRe
               </div>
 
               <div className="flex gap-2">
-                <Button 
-                  onClick={togglePlayback} 
-                  variant="outline" 
+                <Button
+                  onClick={togglePlayback}
+                  variant="outline"
                   size="sm"
                 >
                   {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 </Button>
-                
-                <Button 
-                  onClick={downloadAudio} 
-                  variant="outline" 
+
+                <Button
+                  onClick={downloadAudio}
+                  variant="outline"
                   size="sm"
                 >
                   <Download className="h-4 w-4" />
                 </Button>
-                
-                <Button 
-                  onClick={clearRecording} 
-                  variant="outline" 
+
+                <Button
+                  onClick={clearRecording}
+                  variant="outline"
                   size="sm"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
 
-                <Button 
-                  onClick={transcribeAudio} 
+                <Button
+                  onClick={transcribeAudio}
                   disabled={isTranscribing || disabled}
                   className="flex-1"
                 >
@@ -391,7 +390,6 @@ export function TranscriptInput({ value, onChange, disabled = false, onAnalyzeRe
                 </Button>
               </div>
 
-              {/* Progreso de transcripción */}
               {isTranscribing && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
@@ -405,6 +403,7 @@ export function TranscriptInput({ value, onChange, disabled = false, onAnalyzeRe
           )}
         </CardContent>
       </Card>
+      */}
 
       {/* Transcripts recientes de Zoom (insertar/copiar/analizar) */}
       <ZoomTranscriptsList

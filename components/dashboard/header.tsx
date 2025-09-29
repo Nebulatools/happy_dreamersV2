@@ -25,6 +25,7 @@ import { ChildSelector } from "@/components/dashboard/child-selector"
 import { usePageHeader } from "@/context/page-header-context"
 import { ChildAgeFromContext } from "@/components/ui/child-age-badge"
 import { Icons } from "@/components/icons"
+import { Video, FileText } from "lucide-react"
 
 import { createLogger } from "@/lib/logger"
 
@@ -52,7 +53,7 @@ export function Header() {
     const fetchNotificationCount = async () => {
       if (!isMountedComponent) return
       if (!session?.user?.email) return
-      
+
       try {
         const response = await fetch('/api/notifications/count')
         if (response.ok) {
@@ -65,8 +66,10 @@ export function Header() {
     }
 
     fetchNotificationCount()
-    // Actualizar cada minuto
-    const interval = setInterval(fetchNotificationCount, 60000)
+
+    // Para admins, actualizar más frecuentemente para capturar nuevos transcripts de Zoom
+    const refreshInterval = session?.user?.role === 'admin' ? 30000 : 60000 // 30s para admins, 60s para otros
+    const interval = setInterval(fetchNotificationCount, refreshInterval)
 
     const handleNotificationsUpdated = () => {
       fetchNotificationCount()
@@ -127,8 +130,14 @@ export function Header() {
   useEffect(() => {
     if (notificationsOpen) {
       fetchNotificationsList()
+
+      // Para admins, auto-refrescar la lista de notificaciones mientras está abierta
+      if (session?.user?.role === 'admin') {
+        const refreshInterval = setInterval(fetchNotificationsList, 15000) // Cada 15 segundos
+        return () => clearInterval(refreshInterval)
+      }
     }
-  }, [notificationsOpen])
+  }, [notificationsOpen, session?.user?.role])
 
   if (!mounted) return null
 
@@ -257,18 +266,41 @@ export function Header() {
                     <div className="divide-y">
                       {notifications.map((notification) => {
                         const createdAt = notification?.createdAt ? new Date(notification.createdAt) : null
+                        const isZoomTranscript = notification.type === 'zoom_transcript'
+
                         return (
-                          <div key={notification._id || notification.title} className="p-4 hover:bg-gray-50">
+                          <div
+                            key={notification._id || notification.title}
+                            className="p-4 hover:bg-gray-50 cursor-pointer"
+                            onClick={() => {
+                              // Navegar a consultas si es transcript de Zoom
+                              if (isZoomTranscript && notification.childId) {
+                                // Guardar el childId en localStorage para que se seleccione automáticamente
+                                if (notification.childId) {
+                                  localStorage.setItem("admin_selected_child_id", notification.childId.toString())
+                                  if (notification.metadata?.childName) {
+                                    localStorage.setItem("admin_selected_child_name", notification.metadata.childName)
+                                  }
+                                }
+                                setNotificationsOpen(false)
+                                router.push('/dashboard/consultas')
+                              }
+                            }}
+                          >
                             <div className="flex items-start gap-3">
                               <div className="mt-1">
-                                <Icons.bell className="h-4 w-4 text-[#68A1C8]" />
+                                {isZoomTranscript ? (
+                                  <Video className="h-4 w-4 text-blue-600" />
+                                ) : (
+                                  <Icons.bell className="h-4 w-4 text-[#68A1C8]" />
+                                )}
                               </div>
                               <div className="flex-1">
                                 <p className="text-sm font-medium text-[#1F2937]">
                                   {notification.title || 'Nueva notificación'}
                                 </p>
                                 {notification.message && (
-                                  <p className="text-xs text-muted-foreground mt-1">
+                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                                     {notification.message}
                                   </p>
                                 )}
@@ -287,17 +319,6 @@ export function Header() {
                       })}
                     </div>
                   )}
-                </div>
-                <div className="p-4 border-t flex items-center justify-between">
-                  <Button variant="ghost" size="sm" onClick={() => setNotificationsOpen(false)}>
-                    Cerrar
-                  </Button>
-                  <Button variant="link" size="sm" onClick={() => {
-                    setNotificationsOpen(false)
-                    router.push('/dashboard/notificaciones')
-                  }}>
-                    Ver todas
-                  </Button>
                 </div>
               </PopoverContent>
             </Popover>
