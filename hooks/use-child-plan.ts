@@ -35,6 +35,17 @@ export function useChildPlan(childId: string | null) {
     }
   )
 
+  // Helper seguro para convertir "HH:MM" a minutos desde 00:00
+  const toMinutes = (t?: string | null): number | null => {
+    if (!t || typeof t !== 'string') return null
+    const parts = t.split(':')
+    if (parts.length !== 2) return null
+    const h = Number(parts[0])
+    const m = Number(parts[1])
+    if (Number.isNaN(h) || Number.isNaN(m)) return null
+    return Math.max(0, Math.min(23, h)) * 60 + Math.max(0, Math.min(59, m))
+  }
+
   // Función helper para determinar si es horario nocturno
   const isNightTime = (date: Date = new Date()): boolean => {
     if (!data?.schedule) return false
@@ -43,11 +54,8 @@ export function useChildPlan(childId: string | null) {
     const currentMinutes = date.getMinutes()
     const currentTime = currentHour * 60 + currentMinutes
     
-    const [bedtimeHour, bedtimeMin] = data.schedule.bedtime.split(':').map(Number)
-    const [wakeHour, wakeMin] = data.schedule.wakeTime.split(':').map(Number)
-    
-    const bedtime = bedtimeHour * 60 + bedtimeMin
-    const wakeTime = wakeHour * 60 + wakeMin
+    const bedtime = toMinutes(data.schedule.bedtime) ?? toMinutes('20:00')!
+    const wakeTime = toMinutes(data.schedule.wakeTime) ?? toMinutes('07:00')!
     
     // Si bedtime es después de medianoche (ej: 01:00)
     if (bedtime < wakeTime) {
@@ -68,9 +76,10 @@ export function useChildPlan(childId: string | null) {
     const currentTime = currentHour * 60 + currentMinutes
     
     return naps.some(nap => {
-      const [napHour, napMin] = nap.time.split(':').map(Number)
-      const napStart = napHour * 60 + napMin
-      const napEnd = napStart + nap.duration
+      const napStart = toMinutes(nap?.time)
+      const dur = typeof nap?.duration === 'number' ? nap.duration : 0
+      if (napStart === null || dur <= 0) return false
+      const napEnd = napStart + dur
       
       return currentTime >= napStart && currentTime <= napEnd
     })
