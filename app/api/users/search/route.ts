@@ -1,58 +1,44 @@
-// API para buscar usuarios por email
-// Permite encontrar usuarios existentes para vincularlos como cuidadores
-
+// API para buscar usuarios por email (para vincular como cuidadores)
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { connectToDatabase } from "@/lib/mongodb"
+import { ObjectId } from "mongodb"
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("API:users:search")
 
 export async function GET(request: NextRequest) {
   try {
-    // Verificar sesión
     const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    // Obtener parámetro de búsqueda
     const { searchParams } = new URL(request.url)
-    const email = searchParams.get("email")
-
-    if (!email || email.length < 3) {
+    const emailRaw = searchParams.get("email") || ""
+    const email = emailRaw.trim()
+    if (email.length < 3) {
       return NextResponse.json({ users: [] })
     }
 
-    // Conectar a la base de datos
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
+    const escaped = email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 
-    // Buscar usuarios por email (búsqueda parcial, case-insensitive)
     const users = await db.collection("users")
       .find({
-        email: { $regex: email, $options: "i" },
-        // Excluir el usuario actual de los resultados
-        _id: { $ne: session.user.id }
+        email: { $regex: escaped, $options: "i" },
+        ...(session.user.id ? { _id: { $ne: new ObjectId(session.user.id) } } : {})
       })
-      .project({
-        _id: 1,
-        name: 1,
-        email: 1,
-        image: 1
-      })
+      .project({ _id: 1, name: 1, email: 1, image: 1 })
       .limit(10)
       .toArray()
 
-    logger.info(`Búsqueda de usuarios: ${email}, encontrados: ${users.length}`)
-
+    logger.info(`User search '${email}' → ${users.length}`)
     return NextResponse.json({ users })
   } catch (error) {
     logger.error("Error buscando usuarios:", error)
-    return NextResponse.json(
-      { error: "Error al buscar usuarios" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Error al buscar usuarios" }, { status: 500 })
   }
 }
+
