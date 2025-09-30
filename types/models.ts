@@ -32,7 +32,10 @@ export interface Child {
 
 // Datos del cuestionario completo de sueño infantil
 export interface SurveyData {
+  // Estado general
+  completed?: boolean
   completedAt?: Date
+  lastUpdated?: Date
   
   // INFORMACIÓN FAMILIAR
   informacionFamiliar: {

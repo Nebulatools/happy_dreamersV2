@@ -67,12 +67,46 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener notificaciones con paginación
-    const notifications = await db.collection("notificationlogs")
+    let notifications = await db.collection("notificationlogs")
       .find(filter)
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip(offset)
       .toArray()
+
+    // Si es admin, incluir TODOS los transcripts de Zoom no leídos como notificaciones
+    if (session.user.role === "admin") {
+      const zoomTranscripts = await db.collection("zoom_transcripts")
+        .find({
+          $or: [
+            { readByAdmin: { $ne: true } },
+            { readByAdmin: { $exists: false } }
+          ]
+        })
+        .sort({ createdAt: -1 })
+        .limit(20) // Mostrar hasta 20 transcripts no leídos
+        .toArray()
+
+      // Convertir transcripts de Zoom a formato de notificación
+      const zoomNotifications = zoomTranscripts.map(transcript => ({
+        _id: transcript._id,
+        type: "zoom_transcript",
+        title: "Nuevo Transcript de Zoom",
+        message: `${transcript.childName || "Paciente"} - ${transcript.transcript?.slice(0, 100) || ""}...`,
+        status: transcript.readByAdmin ? "read" : "delivered",
+        createdAt: transcript.createdAt,
+        childId: transcript.childId,
+        metadata: {
+          transcriptId: transcript._id,
+          childName: transcript.childName
+        }
+      }))
+
+      // Combinar y ordenar por fecha
+      notifications = [...zoomNotifications, ...notifications]
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, limit)
+    }
 
     const total = await db.collection("notificationlogs").countDocuments(filter)
 
@@ -149,7 +183,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Buscar la notificación
+    // Primero verificar si es un transcript de Zoom (para admins)
+    if (session.user.role === "admin") {
+      const zoomTranscript = await db.collection("zoom_transcripts").findOne({
+        _id: new ObjectId(notificationId)
+      })
+
+      if (zoomTranscript) {
+        // Marcar transcript de Zoom como leído
+        if (action === "read") {
+          await db.collection("zoom_transcripts").updateOne(
+            { _id: new ObjectId(notificationId) },
+            { $set: { readByAdmin: true, readAt: new Date() } }
+          )
+
+          return NextResponse.json({
+            success: true,
+            message: "Transcript de Zoom marcado como leído"
+          })
+        }
+      }
+    }
+
+    // Buscar la notificación normal
     const notification = await db.collection("notificationlogs").findOne({
       _id: new ObjectId(notificationId),
       userId: new ObjectId(session.user.id)

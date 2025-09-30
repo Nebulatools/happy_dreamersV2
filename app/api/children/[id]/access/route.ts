@@ -106,7 +106,8 @@ export async function POST(
       role,
       relationshipType,
       relationshipDescription,
-      expiresAt ? new Date(expiresAt) : undefined
+      expiresAt ? new Date(expiresAt) : undefined,
+      (session.user as any).role === 'admin'
     )
 
     if (!result.success) {

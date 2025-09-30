@@ -89,25 +89,18 @@ export default function SleepDataStorytellingCard({
       const dayStart = startOfDay(date)
       const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
       
-      // Filtrar eventos de este día específico
+      // Filtrar eventos que tocan este día: start dentro del día O end dentro del día
       const dayEvents = allEvents.filter(event => {
         if (!event.startTime) return false
-        const eventDate = parseISO(event.startTime)
-        return eventDate >= dayStart && eventDate < dayEnd
+        const start = parseISO(event.startTime)
+        const end = event.endTime ? parseISO(event.endTime) : null
+        const startsToday = start >= dayStart && start < dayEnd
+        const endsToday = end ? (end >= dayStart && end < dayEnd) : false
+        return startsToday || endsToday
       })
       
-      // Incluir también el evento wake del día siguiente si existe
-      const nextDayStart = new Date(dayEnd)
-      const nextDayEnd = new Date(nextDayStart.getTime() + 12 * 60 * 60 * 1000) // Hasta mediodía del siguiente día
-      
-      const wakeEvents = allEvents.filter(event => {
-        if (!event.startTime || event.eventType !== 'wake') return false
-        const eventDate = parseISO(event.startTime)
-        return eventDate >= nextDayStart && eventDate < nextDayEnd
-      })
-      
-      // Combinar eventos del día con posibles wake del día siguiente
-      const eventsToProcess = [...dayEvents, ...wakeEvents].sort((a, b) => 
+      // Combinar eventos del día (no dependemos de wakes sueltos)
+      const eventsToProcess = [...dayEvents].sort((a, b) => 
         new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
       )
       

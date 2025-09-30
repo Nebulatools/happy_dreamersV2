@@ -196,9 +196,10 @@ export default function PlanesPage() {
         <CardContent className="text-sm text-slate-700 space-y-2">
           {activePlan.recommendations && activePlan.recommendations.length > 0 ? (
             <ul className="list-disc ml-6">
-              {activePlan.recommendations.map((r, i) => (
-                <li key={i}>{r}</li>
-              ))}
+              {activePlan.recommendations.map((r: any, i: number) => {
+                const text = typeof r === 'string' ? r : (r?.description || JSON.stringify(r))
+                return <li key={i}>{text}</li>
+              })}
             </ul>
           ) : (
             <p>Sin recomendaciones registradas.</p>
@@ -213,9 +214,10 @@ export default function PlanesPage() {
           </CardHeader>
           <CardContent className="text-sm text-slate-700 space-y-2">
             <ul className="list-disc ml-6">
-              {activePlan.objectives.map((o, i) => (
-                <li key={i}>{o}</li>
-              ))}
+              {activePlan.objectives.map((o: any, i: number) => {
+                const text = typeof o === 'string' ? o : (o?.description || JSON.stringify(o))
+                return <li key={i}>{text}</li>
+              })}
             </ul>
           </CardContent>
         </Card>

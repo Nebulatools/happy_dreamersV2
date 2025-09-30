@@ -11,7 +11,7 @@ const logger = createLogger("api/notifications/count")
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.email || !session.user.id) {
       return NextResponse.json(
         { error: "No autenticado" },
@@ -31,7 +31,19 @@ export async function GET(request: NextRequest) {
       status: { $in: ["sent", "delivered"] }
     })
 
-    const totalCount = invitationsCount + unreadNotifications
+    let zoomTranscriptsCount = 0
+
+    // Si es admin, contar TODOS los transcripts de Zoom no leídos
+    if (session.user.role === "admin") {
+      zoomTranscriptsCount = await db.collection("zoom_transcripts").countDocuments({
+        $or: [
+          { readByAdmin: { $ne: true } },
+          { readByAdmin: { $exists: false } }
+        ]
+      })
+    }
+
+    const totalCount = invitationsCount + unreadNotifications + zoomTranscriptsCount
 
     return NextResponse.json({ success: true, count: totalCount })
 

@@ -53,8 +53,21 @@ export class GoogleDriveDocumentLoader {
         return []
       }
 
-      // Generar ruta temporal
-      const tempFilePath = path.join(this.tempDir, `${fileInfo.id}_${fileInfo.name}`)
+      // Determinar nombre efectivo con extensión adecuada (soporte Google Docs)
+      let effectiveName = fileInfo.name || `file_${fileInfo.id}`
+      const isGoogleDoc = fileInfo.mimeType?.startsWith('application/vnd.google-apps.')
+      if (isGoogleDoc) {
+        if (fileInfo.mimeType === 'application/vnd.google-apps.document' && !/\.docx$/i.test(effectiveName)) {
+          effectiveName = `${effectiveName}.docx`
+        } else if (fileInfo.mimeType === 'application/vnd.google-apps.spreadsheet' && !/\.xlsx$/i.test(effectiveName)) {
+          effectiveName = `${effectiveName}.xlsx`
+        } else if (fileInfo.mimeType === 'application/vnd.google-apps.presentation' && !/\.pptx$/i.test(effectiveName)) {
+          effectiveName = `${effectiveName}.pptx`
+        }
+      }
+
+      // Generar ruta temporal con nombre efectivo
+      const tempFilePath = path.join(this.tempDir, `${fileInfo.id}_${effectiveName}`)
 
       try {
         // Descargar archivo desde Google Drive
@@ -66,14 +79,16 @@ export class GoogleDriveDocumentLoader {
         logger.info(`💾 Archivo guardado temporalmente: ${tempFilePath}`)
 
         // Procesar documento usando el sistema existente
-        const documents = await processDocument(tempFilePath, fileInfo.name)
+        const documents = await processDocument(tempFilePath, effectiveName)
 
         // Agregar metadata específica de Google Drive
         const driveDocuments = documents.map(doc => new Document({
           pageContent: doc.pageContent,
           metadata: {
             ...doc.metadata,
-            source: `drive:${fileInfo.name}`, // Prefijo para identificar origen
+            // Usar fileId como clave estable de documento para agrupar todos los chunks como un solo doc
+            source: `drive:${fileInfo.id}`,
+            displayName: effectiveName,
             driveFileId: fileInfo.id,
             driveModifiedTime: fileInfo.modifiedTime,
             driveWebViewLink: fileInfo.webViewLink,

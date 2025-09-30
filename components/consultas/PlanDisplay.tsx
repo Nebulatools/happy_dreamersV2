@@ -57,6 +57,16 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
     return <Utensils className="h-4 w-4" />
   }
 
+
+  const normalizeTime = (t?: string | null) => {
+    if (!t || typeof t !== 'string') return null
+    const m = t.match(/^(\d{1,2}):(\d{2})$/)
+    if (!m) return null
+    const hh = Math.max(0, Math.min(23, parseInt(m[1], 10)))
+    const mm = Math.max(0, Math.min(59, parseInt(m[2], 10)))
+    return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`
+  }
+
   // Crear timeline combinado de todos los eventos del día
   const createTimeline = () => {
     const events: Array<{
@@ -69,55 +79,68 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
     }> = []
 
     // Agregar hora de despertar
-    events.push({
-      time: plan.schedule.wakeTime,
-      type: 'wake',
-      title: 'Despertar',
-      description: 'Hora de levantarse',
-      icon: <Sun className="h-4 w-4" />
-    })
+    const wakeT = normalizeTime(plan.schedule?.wakeTime)
+    if (wakeT) {
+      events.push({
+        time: wakeT,
+        type: 'wake',
+        title: 'Despertar',
+        description: 'Hora de levantarse',
+        icon: <Sun className="h-4 w-4" />
+      })
+    }
 
     // Agregar comidas
-    plan.schedule.meals.forEach(meal => {
+    (plan.schedule?.meals || []).forEach((meal: any) => {
+      const mt = normalizeTime(meal?.time)
+      if (!mt) return
+      const type = typeof meal?.type === 'string' ? meal.type : 'comida'
       events.push({
-        time: meal.time,
+        time: mt,
         type: 'meal',
-        title: meal.type.charAt(0).toUpperCase() + meal.type.slice(1),
-        description: meal.description,
-        icon: getMealIcon(meal.type)
+        title: type && type.length ? type.charAt(0).toUpperCase() + type.slice(1) : 'Comida',
+        description: meal?.description || '',
+        icon: getMealIcon(type)
       })
     })
 
 
     // Agregar siestas
-    if (plan.schedule.naps) {
-      plan.schedule.naps.forEach(nap => {
+    if (plan.schedule?.naps) {
+      plan.schedule.naps.forEach((nap: any) => {
+        const nt = normalizeTime(nap?.time || nap?.start)
+        if (!nt) return
         events.push({
-          time: nap.time,
+          time: nt,
           type: 'nap',
           title: 'Siesta',
-          description: nap.description || `Siesta de ${nap.duration} minutos`,
-          duration: nap.duration,
+          description: nap?.description || (nap?.duration ? `Siesta de ${nap.duration} minutos` : 'Siesta'),
+          duration: typeof nap?.duration === 'number' ? nap.duration : undefined,
           icon: <Nap className="h-4 w-4" />
         })
       })
     }
 
     // Agregar hora de dormir
-    events.push({
-      time: plan.schedule.bedtime,
-      type: 'bedtime',
-      title: 'Hora de dormir',
-      description: 'Ir a la cama',
-      icon: <Moon className="h-4 w-4" />
-    })
+    const bedT = normalizeTime(plan.schedule?.bedtime)
+    if (bedT) {
+      events.push({
+        time: bedT,
+        type: 'bedtime',
+        title: 'Hora de dormir',
+        description: 'Ir a la cama',
+        icon: <Moon className="h-4 w-4" />
+      })
+    }
 
     // Ordenar por hora
-    return events.sort((a, b) => {
-      const timeA = a.time.split(':').map(Number)
-      const timeB = b.time.split(':').map(Number)
-      return timeA[0] * 60 + timeA[1] - (timeB[0] * 60 + timeB[1])
-    })
+    return events
+      .filter(e => typeof e.time === 'string')
+      .sort((a, b) => {
+        const [ah, am] = a.time.split(':').map(Number)
+        const [bh, bm] = b.time.split(':').map(Number)
+        return ah * 60 + am - (bh * 60 + bm)
+      })
   }
 
   const timeline = createTimeline()
@@ -244,12 +267,19 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {plan.objectives.map((objective, index) => (
-                  <div key={index} className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm">{objective}</p>
-                  </div>
-                ))}
+                {plan.objectives.map((objective: any, index: number) => {
+                  const text = typeof objective === 'string'
+                    ? objective
+                    : objective && typeof objective === 'object'
+                      ? (objective.description || JSON.stringify(objective))
+                      : String(objective ?? '')
+                  return (
+                    <div key={index} className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm">{text}</p>
+                    </div>
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
@@ -264,11 +294,18 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {plan.recommendations.map((recommendation, index) => (
-                  <div key={index} className="p-3 bg-muted rounded-lg">
-                    <p className="text-sm">{recommendation}</p>
-                  </div>
-                ))}
+                {plan.recommendations.map((recommendation: any, index: number) => {
+                  const text = typeof recommendation === 'string'
+                    ? recommendation
+                    : recommendation && typeof recommendation === 'object'
+                      ? (recommendation.description || JSON.stringify(recommendation))
+                      : String(recommendation ?? '')
+                  return (
+                    <div key={index} className="p-3 bg-muted rounded-lg">
+                      <p className="text-sm">{text}</p>
+                    </div>
+                  )
+                })}
               </div>
             </CardContent>
           </Card>

@@ -29,18 +29,30 @@ export function useSurveyValidation() {
   // Enfocar campo con error
   const focusErrorField = useCallback((errors: ValidationErrors) => {
     const firstErrorField = getFirstErrorField(errors)
-    if (firstErrorField) {
-      setValidationState(prev => ({ ...prev, focusedField: firstErrorField }))
-      
-      // Hacer scroll al campo con error
-      setTimeout(() => {
-        const element = document.getElementById(firstErrorField)
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          element.focus()
+    if (!firstErrorField) return
+
+    setValidationState(prev => ({ ...prev, focusedField: firstErrorField }))
+
+    // Intentar mapear el path (mama.telefono) al id usado en inputs (mama-telefono)
+    const idCandidates = [firstErrorField, firstErrorField.replace(/\./g, '-')]
+
+    setTimeout(() => {
+      let element: HTMLElement | null = null
+      for (const id of idCandidates) {
+        element = document.getElementById(id) as HTMLElement | null
+        if (element) break
+      }
+
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        ;(element as HTMLElement).focus?.()
+      } else {
+        // Notificar a pasos con UI tabulada (p.ej., FamilyInfoStep) para cambiar a la pestaña correcta
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('survey:focus-field', { detail: { fieldPath: firstErrorField } }))
         }
-      }, 100)
-    }
+      }
+    }, 100)
   }, [])
 
   // Obtener clase CSS para campo con error

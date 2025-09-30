@@ -113,12 +113,12 @@ export class GoogleDriveSyncService {
       }
 
       // Obtener documentos existentes en el vector store si no es fullSync
-      let existingDocs: string[] = []
+      let existingDocs: { id: string, source: string, displayName?: string }[] = []
       if (!fullSync) {
         const vectorStoreDocs = await this.vectorStore.getDocumentsList()
         existingDocs = vectorStoreDocs
-          .filter(doc => doc.source.startsWith('drive:'))
-          .map(doc => doc.source.replace('drive:', ''))
+          .filter((doc: any) => doc.source.startsWith('drive:'))
+          .map((doc: any) => ({ id: doc.id, source: doc.source, displayName: doc.displayName }))
         
         logger.info(`📚 ${existingDocs.length} documentos de Google Drive ya en vector store`)
       }
@@ -127,18 +127,20 @@ export class GoogleDriveSyncService {
       for (const file of driveFiles) {
         try {
           const fileName = `drive:${file.name}`
+          const fileIdSource = `drive:${file.id}`
           
           // Saltar si ya existe y no es fullSync
-          if (!fullSync && existingDocs.includes(file.name)) {
+          if (!fullSync && existingDocs.some(d => d.source === fileIdSource || d.source === fileName)) {
             logger.info(`⏭️  Saltando archivo existente: ${file.name}`)
             result.stats.filesSkipped++
             continue
           }
 
           // Si es fullSync y existe, eliminar primero
-          if (fullSync && existingDocs.includes(file.name)) {
-            const existingDoc = (await this.vectorStore.getDocumentsList())
-              .find(doc => doc.source === fileName)
+          if (fullSync) {
+            const existingList = await this.vectorStore.getDocumentsList()
+            const existingDoc = existingList
+              .find((doc: any) => doc.source === fileIdSource || doc.source === fileName)
             
             if (existingDoc) {
               await this.vectorStore.deleteDocument(existingDoc.id)

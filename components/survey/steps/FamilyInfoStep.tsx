@@ -1,7 +1,7 @@
 // Paso 1: Información Familiar
 // Componente modular y reutilizable para datos familiares
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -30,6 +30,34 @@ export function FamilyInfoStep({ data, onChange, errors = {} }: SurveyStepProps)
   const hasError = (parent: string, field: string): boolean => {
     return !!getError(parent, field)
   }
+
+  // Cambiar de pestaña automáticamente cuando la validación indique un campo con error en otra sección
+  useEffect(() => {
+    const handler = (e: any) => {
+      const fieldPath: string | undefined = e?.detail?.fieldPath
+      if (!fieldPath) return
+      if (fieldPath.startsWith('mama.')) {
+        setActiveTab('mama')
+      } else if (fieldPath.startsWith('papa.')) {
+        setActiveTab('papa')
+      }
+
+      // Intentar enfocar el campo una vez cambie la pestaña
+      setTimeout(() => {
+        const mappedId = fieldPath.replace(/\./g, '-')
+        const el = document.getElementById(mappedId) as HTMLElement | null
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          el.focus?.()
+        }
+      }, 120)
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('survey:focus-field', handler)
+      return () => window.removeEventListener('survey:focus-field', handler)
+    }
+  }, [])
 
   return (
     <div className="space-y-6">

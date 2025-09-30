@@ -35,6 +35,222 @@ export interface ProcessedSleepStats {
   emotionalStates: Record<string, number>
 }
 
+// Estadísticas agregadas por día (para coherencia entre UI)
+export interface DailyAggregatedSleepStats {
+  daysInPeriod: number
+  daysWithData: number
+  nightsCount: number
+  napsCount: number
+  totalNightMinutes: number
+  totalNapMinutes: number
+  avgNightHoursPerDay: number
+  avgNapHoursPerDay: number
+  avgTotalHoursPerDay: number
+  nightPercentage: number
+  napPercentage: number
+}
+
+/**
+ * Agrega sueño por día: asigna cada sueño nocturno completo al día del despertar
+ * y las siestas al día de su inicio. Devuelve promedios diarios consistentes.
+ * El denominador por defecto son los días con datos para evitar sesgos por días vacíos.
+ */
+export function aggregateDailySleep(
+  events: SleepEvent[],
+  dateRange: string = '7-days',
+  options?: { denominator?: 'period' | 'dataDays' }
+): DailyAggregatedSleepStats {
+  const denominator = options?.denominator ?? 'dataDays'
+  if (!events || events.length === 0) {
+    return {
+      daysInPeriod: rangeToDays(dateRange),
+      daysWithData: 0,
+      nightsCount: 0,
+      napsCount: 0,
+      totalNightMinutes: 0,
+      totalNapMinutes: 0,
+      avgNightHoursPerDay: 0,
+      avgNapHoursPerDay: 0,
+      avgTotalHoursPerDay: 0,
+      nightPercentage: 0,
+      napPercentage: 0,
+    }
+  }
+
+  const daysInPeriod = rangeToDays(dateRange)
+  const now = new Date()
+  const fromDate = subDays(now, daysInPeriod)
+
+  // Filtrar por rango seleccionado
+  const relevant = events
+    .filter(e => e?.startTime)
+    .filter(e => {
+      const d = parseISO(e.startTime)
+      return d >= fromDate && d <= now
+    })
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+
+  // Mapa por fecha (YYYY-MM-DD) → minutos
+  const fmt = (d: Date) => `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`
+  const dayTotals = new Map<string, { night: number; nap: number }>()
+  const ensure = (key: string) => {
+    if (!dayTotals.has(key)) dayTotals.set(key, { night: 0, nap: 0 })
+    return dayTotals.get(key)!
+  }
+
+  // 1) Reconstruir noches: bedtime/sleep → wake; asignar a día del wake
+  let nightsCount = 0
+  const processedSleepIndices = new Set<number>()
+  for (let i = 0; i < relevant.length - 1; i++) {
+    const cur = relevant[i]
+    const nxt = relevant[i + 1]
+    if (!['bedtime', 'sleep'].includes(cur.eventType)) continue
+
+    // Solo noches (18:00–06:00)
+    const curDate = parseISO(cur.startTime)
+    const curHour = curDate.getHours()
+    if (curHour < 18 && curHour >= 6) continue
+
+    if (nxt.eventType === 'wake' && nxt.startTime) {
+      const wakeTime = parseISO(nxt.startTime)
+      const rawDelay = cur.sleepDelay || 0
+      const delay = Math.min(rawDelay, 180)
+      const actualSleep = new Date(curDate.getTime() + delay * 60 * 1000)
+      let minutes = differenceInMinutes(wakeTime, actualSleep)
+      if (minutes < 0) minutes += 24 * 60 // cruce de medianoche
+      if (minutes >= 120 && minutes <= 960) {
+        const key = fmt(wakeTime)
+        ensure(key).night += minutes
+        nightsCount++
+        processedSleepIndices.add(i)
+      }
+    }
+  }
+
+  // 1b) Formato antiguo: eventos 'sleep' con endTime válido, asignar al día del endTime
+  relevant.forEach((e, idx) => {
+    if (e.eventType !== 'sleep' || !e.endTime) return
+    if (processedSleepIndices.has(idx)) return
+    const start = parseISO(e.startTime)
+    const end = parseISO(e.endTime)
+    const startHour = start.getHours()
+    const minutes = differenceInMinutes(end, start)
+    if ((startHour >= 18 || startHour <= 6) && minutes >= 120 && minutes <= 960) {
+      const key = fmt(end)
+      ensure(key).night += minutes
+      nightsCount++
+    }
+  })
+
+  // 2) Siestas: start→end en el día del start
+  const napEvents = relevant.filter(e => e.eventType === 'nap' && e.endTime)
+  let napsCount = 0
+  napEvents.forEach(e => {
+    const start = parseISO(e.startTime)
+    const end = parseISO(e.endTime!)
+    const minutes = differenceInMinutes(end, start)
+    if (minutes > 0 && minutes < 300) {
+      const key = fmt(start)
+      ensure(key).nap += minutes
+      napsCount++
+    }
+  })
+
+  // 3) Totales y promedios
+  let totalNightMinutes = 0
+  let totalNapMinutes = 0
+  let daysWithData = 0
+  dayTotals.forEach(v => {
+    const total = v.night + v.nap
+    if (total > 0) daysWithData++
+    totalNightMinutes += v.night
+    totalNapMinutes += v.nap
+  })
+
+  const den = denominator === 'period' ? daysInPeriod : Math.max(daysWithData, 1)
+  const avgNightHoursPerDay = (totalNightMinutes / 60) / den
+  const avgNapHoursPerDay = (totalNapMinutes / 60) / den
+  const avgTotalHoursPerDay = avgNightHoursPerDay + avgNapHoursPerDay
+  const nightPercentage = avgTotalHoursPerDay > 0 ? (avgNightHoursPerDay / avgTotalHoursPerDay) * 100 : 0
+  const napPercentage = avgTotalHoursPerDay > 0 ? (avgNapHoursPerDay / avgTotalHoursPerDay) * 100 : 0
+
+  return {
+    daysInPeriod,
+    daysWithData,
+    nightsCount,
+    napsCount,
+    totalNightMinutes,
+    totalNapMinutes,
+    avgNightHoursPerDay,
+    avgNapHoursPerDay,
+    avgTotalHoursPerDay,
+    nightPercentage,
+    napPercentage,
+  }
+}
+
+// Utilidad: traducir range a días
+function rangeToDays(range: string): number {
+  if (range === '30-days') return 30
+  if (range === '90-days') return 90
+  return 7
+}
+
+/**
+ * Variante explícita para despertar matutino (04:00–11:00)
+ */
+export function calculateMorningWakeTime(events: SleepEvent[]): string {
+  if (!events || events.length === 0) return "--:--"
+  const sorted = [...events]
+    .filter(e => e?.startTime)
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+
+  const wakes: Date[] = []
+  for (let i = 0; i < sorted.length; i++) {
+    const e = sorted[i]
+    if (!['sleep','bedtime'].includes(e.eventType)) continue
+    const start = parseISO(e.startTime)
+    const hour = start.getHours()
+    const nocturnal = (hour >= 18 || hour <= 6)
+    if (!nocturnal) continue
+    if ((sorted[i] as any).endTime) {
+      wakes.push(parseISO((sorted[i] as any).endTime))
+      continue
+    }
+    for (let j = i + 1; j < sorted.length; j++) {
+      const n = sorted[j]
+      if (n.eventType === 'wake' && n.startTime) {
+        wakes.push(parseISO(n.startTime))
+        break
+      }
+      if (['sleep','bedtime'].includes(n.eventType)) break
+    }
+  }
+  let morning = wakes.filter(d => {
+    const h = d.getHours()
+    return h >= 4 && h <= 11
+  })
+  // Fallback: permitir wakes de mañana standalone cuando el sleep previo está fuera de rango
+  if (!morning.length) {
+    const standaloneMorningWakes = sorted
+      .filter(e => e.eventType === 'wake' && e.startTime)
+      .map(e => parseISO(e.startTime))
+      .filter(d => {
+        const h = d.getHours()
+        return h >= 4 && h <= 11
+      })
+    if (standaloneMorningWakes.length) {
+      morning = standaloneMorningWakes
+    }
+  }
+  if (!morning.length) return "--:--"
+  const total = morning.reduce((sum, d) => sum + d.getHours() * 60 + d.getMinutes(), 0)
+  const avg = Math.round(total / morning.length)
+  const hh = String(Math.floor(avg / 60)).padStart(2,'0')
+  const mm = String(avg % 60).padStart(2,'0')
+  return `${hh}:${mm}`
+}
+
 /**
  * Calcula duración promedio del sueño mediante inferencia de patrones
  * bedtime/sleep -> wake con emparejamiento mejorado día por día
@@ -122,7 +338,21 @@ function calculateInferredSleepDuration(events: SleepEvent[]): number {
         processedSleepEvents.add(i)
       }
     } else {
-      // Si no hay wake pero es un evento nocturno reciente, asumir duración basada en edad típica
+      // Formato antiguo: evento 'sleep' con endTime válido
+      if (currentEvent.endTime) {
+        const end = parseISO(currentEvent.endTime)
+        const rawSleepDelay = currentEvent.sleepDelay || 0
+        const sleepDelay = Math.min(rawSleepDelay, 180)
+        const actualSleepTime = new Date(bedTime.getTime() + sleepDelay * 60 * 1000)
+        let duration = differenceInMinutes(end, actualSleepTime)
+        if (duration < 0) duration += 24 * 60
+        if (duration >= 120 && duration <= 960) {
+          sleepDurations.push(duration)
+          processedSleepEvents.add(i)
+          continue
+        }
+      }
+      // Si no hay wake ni endTime válido pero es reciente, asumir duración típica
       const now = new Date()
       const daysSinceSleep = (now.getTime() - bedTime.getTime()) / (24 * 60 * 60 * 1000)
       
@@ -172,19 +402,7 @@ function calculateInferredWakeTime(events: SleepEvent[]): string {
     }
     
     // CASO 2: Inferir despertar desde sleep → nap/activity
-    else if (
-      ['bedtime', 'sleep'].includes(currentEvent.eventType) &&
-      ['nap', 'activity'].includes(nextEvent.eventType)
-    ) {
-      const bedTime = parseISO(currentEvent.startTime)
-      const nextEventTime = parseISO(nextEvent.startTime)
-      
-      if (nextEventTime.getTime() > bedTime.getTime()) {
-        // Inferir despertar 1 hora antes del primer evento
-        const inferredWakeTime = new Date(nextEventTime.getTime() - 60 * 60 * 1000)
-        wakeTimes.push(inferredWakeTime)
-      }
-    }
+    // Nota: Ya NO inferimos wake desde siestas/actividades para evitar sesgos matutinos.
   }
   
   if (wakeTimes.length === 0) return "--:--"
