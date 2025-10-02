@@ -166,38 +166,17 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
       startTime: { $gt: afterDate.toISOString(), $lte: now.toISOString() }
     }, { projection: { eventType: 1, startTime: 1 } as any }).toArray()
 
-    logger.info("hasEventsAfterDate: Eventos encontrados en colección", {
+    logger.info("hasEventsAfterDate: Eventos encontrados", {
       count: events.length,
-      eventDates: events.map((e: any) => e.startTime).slice(0, 5) // Primeros 5 para debug
+      eventDates: events.map((e: any) => e.startTime).slice(0, 5)
     })
 
-    if (events.length > 0) {
-      const eventTypes = [...new Set(events.map((e: any) => e.eventType).filter(Boolean))]
-      return { hasEvents: true, eventCount: events.length, eventTypes }
+    const eventTypes = [...new Set(events.map((e: any) => e.eventType).filter(Boolean))]
+    return {
+      hasEvents: events.length > 0,
+      eventCount: events.length,
+      eventTypes
     }
-
-    // Fallback: eventos embebidos en el documento del niño (compatibilidad)
-    logger.info("hasEventsAfterDate: Buscando en child.events (fallback)")
-    const child = await db.collection('children').findOne({ _id: new ObjectId(childId) })
-    if (child?.events?.length) {
-      const filtered = child.events.filter((event: any) => {
-        if (!event?.startTime) return false
-        const eventDate = new Date(event.startTime)
-        return eventDate > afterDate && eventDate <= now
-      })
-
-      logger.info("hasEventsAfterDate: Eventos encontrados en child.events", {
-        totalEvents: child.events.length,
-        filteredCount: filtered.length,
-        filteredDates: filtered.map((e: any) => e.startTime).slice(0, 5)
-      })
-
-      const eventTypes = [...new Set(filtered.map((e: any) => e.eventType))]
-      return { hasEvents: filtered.length > 0, eventCount: filtered.length, eventTypes }
-    }
-
-    logger.info("hasEventsAfterDate: No se encontraron eventos nuevos")
-    return { hasEvents: false, eventCount: 0, eventTypes: [] }
   } catch (error) {
     logger.error("Error verificando eventos después de fecha:", error)
     return { hasEvents: false, eventCount: 0, eventTypes: [] }
@@ -767,31 +746,16 @@ async function generateEventBasedPlan(
   })
 
   let newEvents: any[] = []
-  try {
-    const eventsCol = db.collection("events")
-    newEvents = await eventsCol.find({
-      childId: new ObjectId(childId),
-      startTime: { $gt: eventsFromDate.toISOString(), $lte: eventsToDate.toISOString() }
-    }).sort({ startTime: 1 }).toArray()
+  const eventsCol = db.collection("events")
+  newEvents = await eventsCol.find({
+    childId: new ObjectId(childId),
+    startTime: { $gt: eventsFromDate.toISOString(), $lte: eventsToDate.toISOString() }
+  }).sort({ startTime: 1 }).toArray()
 
-    logger.info("generateEventBasedPlan: Eventos encontrados", {
-      count: newEvents.length,
-      eventDates: newEvents.map((e: any) => e.startTime).slice(0, 5)
-    })
-  } catch (e) {
-    logger.warn("generateEventBasedPlan: Error en query MongoDB, usando fallback", { error: e })
-    const allEvents = child.events || []
-    newEvents = allEvents.filter((event: any) => {
-      if (!event.startTime) return false
-      const eventDate = new Date(event.startTime)
-      return eventDate > eventsFromDate && eventDate <= eventsToDate
-    })
-
-    logger.info("generateEventBasedPlan: Eventos encontrados (fallback)", {
-      totalEvents: allEvents.length,
-      filteredCount: newEvents.length
-    })
-  }
+  logger.info("generateEventBasedPlan: Eventos encontrados", {
+    count: newEvents.length,
+    eventDates: newEvents.map((e: any) => e.startTime).slice(0, 5)
+  })
 
   if (newEvents.length === 0) {
     logger.error("generateEventBasedPlan: No hay eventos nuevos", {
