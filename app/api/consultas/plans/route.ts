@@ -153,22 +153,34 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
     const { db } = await connectToDatabase()
     const now = new Date()
 
+    // Convertir afterDate a ISO string para comparación consistente
+    const afterDateISO = afterDate.toISOString()
+    const nowISO = now.toISOString()
+
     logger.info("hasEventsAfterDate: Buscando eventos", {
       childId,
-      afterDate: afterDate.toISOString(),
-      now: now.toISOString()
+      afterDate: afterDateISO,
+      now: nowISO
     })
 
     // Preferir colección canónica 'events'
     const eventsCol = db.collection('events')
+
+    // CORRECCIÓN CRÍTICA: Los eventos se guardan con childId como STRING, no como ObjectId
+    // Por eso debemos buscar usando el string directamente
     const events = await eventsCol.find({
-      childId: new ObjectId(childId),
-      startTime: { $gt: afterDate.toISOString(), $lte: now.toISOString() }
-    }, { projection: { eventType: 1, startTime: 1 } as any }).toArray()
+      childId: childId,  // Usar string directamente, NO ObjectId
+      startTime: {
+        $gt: afterDateISO,  // Mayor que (no igual) la fecha del plan
+        $lte: nowISO         // Menor o igual a ahora
+      }
+    }, { projection: { eventType: 1, startTime: 1, _id: 1 } as any }).toArray()
 
     logger.info("hasEventsAfterDate: Eventos encontrados", {
       count: events.length,
-      eventDates: events.map((e: any) => e.startTime).slice(0, 5)
+      eventDates: events.map((e: any) => e.startTime).slice(0, 5),
+      firstEventDate: events.length > 0 ? events[0].startTime : null,
+      afterDateForComparison: afterDateISO
     })
 
     const eventTypes = [...new Set(events.map((e: any) => e.eventType).filter(Boolean))]
@@ -539,7 +551,13 @@ export async function PUT(req: NextRequest) {
         logger.info("PUT Validación: Verificando eventos para plan basado en eventos", {
           childId,
           lastPlanVersion: latestByCreatedAt.planVersion,
-          lastPlanCreatedAt: latestByCreatedAt.createdAt
+          lastPlanCreatedAt: latestByCreatedAt.createdAt,
+          lastPlanCreatedAtISO: new Date(latestByCreatedAt.createdAt).toISOString(),
+          allPlansVersions: existingPlans.map((p: any) => ({
+            version: p.planVersion,
+            createdAt: p.createdAt,
+            createdAtISO: new Date(p.createdAt).toISOString()
+          }))
         })
 
         const eventsCheck = await hasEventsAfterDate(childId, new Date(latestByCreatedAt.createdAt))
@@ -547,7 +565,8 @@ export async function PUT(req: NextRequest) {
         logger.info("PUT Validación: Resultado de verificación de eventos", {
           hasEvents: eventsCheck.hasEvents,
           eventCount: eventsCheck.eventCount,
-          eventTypes: eventsCheck.eventTypes
+          eventTypes: eventsCheck.eventTypes,
+          searchedAfterDate: new Date(latestByCreatedAt.createdAt).toISOString()
         })
 
         canGenerate = eventsCheck.hasEvents
@@ -559,7 +578,8 @@ export async function PUT(req: NextRequest) {
           eventsAvailable: eventsCheck.eventCount,
           eventTypes: eventsCheck.eventTypes,
           lastPlanDate: latestByCreatedAt.createdAt,
-          lastPlanVersion: latestByCreatedAt.planVersion
+          lastPlanVersion: latestByCreatedAt.planVersion,
+          searchedAfterDateISO: new Date(latestByCreatedAt.createdAt).toISOString()
         }
       }
 
@@ -643,8 +663,9 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
   const effectiveUserId = child.parentId?.toString?.() || userId
 
   // 2. Calcular estadísticas del niño
+  // CORRECCIÓN: childId se guarda como string, no como ObjectId
   const events = await db.collection("events").find({
-    childId: new ObjectId(childId),
+    childId: childId,  // Usar string directamente
   }).sort({ startTime: -1 }).toArray()
 
   // Usar TODA la historia de eventos para Plan 0 (no limitar a 30 días)
@@ -747,8 +768,9 @@ async function generateEventBasedPlan(
 
   let newEvents: any[] = []
   const eventsCol = db.collection("events")
+  // CORRECCIÓN: childId se guarda como string, no como ObjectId
   newEvents = await eventsCol.find({
-    childId: new ObjectId(childId),
+    childId: childId,  // Usar string directamente
     startTime: { $gt: eventsFromDate.toISOString(), $lte: eventsToDate.toISOString() }
   }).sort({ startTime: 1 }).toArray()
 
