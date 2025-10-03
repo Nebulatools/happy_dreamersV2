@@ -94,8 +94,10 @@ export default function SleepStatisticsPage() {
           {/* Evolución de despertares nocturnos - Después del análisis del sueño */}
           <NightWakeupsEvolutionChart childId={activeChildId} dateRange={dateRange} />
 
-          {/* Distribución del sueño - Al final */}
-          <SleepDistributionChart childId={activeChildId} dateRange={dateRange} />
+          {/* Distribución del sueño (oculto para padres en esta vista) */}
+          {isAdmin && (
+            <SleepDistributionChart childId={activeChildId} dateRange={dateRange} />
+          )}
 
           {/* Tabla Comparativa temporalmente deshabilitada 
           <SleepComparison childId={activeChildId} dateRange={dateRange} />
