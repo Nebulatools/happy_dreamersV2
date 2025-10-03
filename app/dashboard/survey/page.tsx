@@ -131,7 +131,7 @@ export default function SurveyPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-[#2F2F2F]">
-              Encuesta de Sueño Infantil
+              Cuestionario Inicial
             </h1>
             <p className="text-gray-600 mt-2">
               Completa esta encuesta para recibir recomendaciones personalizadas

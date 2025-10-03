@@ -320,7 +320,7 @@ export default function ChildProfilePage() {
               <div className="space-y-6">
                 <div className="bg-[#F0F7FF] rounded-xl border border-blue-100 p-8 text-center">
                   <h3 className="text-xl font-semibold text-[#2F2F2F] mb-3">
-                    Encuesta de Sueño Infantil
+                    Cuestionario Inicial
                   </h3>
                   <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
                     {child.surveyData?.completed 

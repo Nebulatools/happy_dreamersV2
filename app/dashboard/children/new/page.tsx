@@ -382,7 +382,7 @@ export default function AddChildPage() {
                   <div className="flex items-start gap-2">
                     <FileQuestion className="w-5 h-5 text-blue-600 mt-0.5" />
                     <div className="text-sm text-gray-700 text-left">
-                      <p className="font-semibold mb-1">Encuesta de Sueño Infantil</p>
+                      <p className="font-semibold mb-1">Cuestionario Inicial</p>
                       <p>
                         Toma aproximadamente 10-15 minutos y nos ayudará a crear un plan 
                         de sueño personalizado.
