@@ -420,6 +420,17 @@ export default function DashboardPage() {
           </p>
         </div>
 
+        {/* Registro de eventos (prioritario para padres) */}
+        {activeChildId && child && (
+          <div className="mb-6">
+            <EventRegistration 
+              childId={activeChildId}
+              childName={child.firstName}
+              onEventRegistered={loadChildData}
+            />
+          </div>
+        )}
+
         {/* Instrucciones para hoy (solo padres) */}
         {activeChildId && (
           <Suspense fallback={<div className="h-16" />}> 
@@ -462,16 +473,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Sistema de Registro de Eventos - v1.0 MVP */}
-        {activeChildId && child && (
-          <div className="mb-8">
-            <EventRegistration 
-              childId={activeChildId}
-              childName={child.firstName}
-              onEventRegistered={loadChildData}
-            />
-          </div>
-        )}
+        {/* Registro de eventos ya se muestra al inicio para padres */}
 
         {/* Grid de contenido principal */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
