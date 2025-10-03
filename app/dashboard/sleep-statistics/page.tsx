@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useSession } from "next-auth/react"
 import { Download, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { usePageHeaderConfig } from "@/context/page-header-context"
@@ -22,9 +23,11 @@ import { createLogger } from "@/lib/logger"
 const logger = createLogger("SleepStatistics")
 
 export default function SleepStatisticsPage() {
+  const { data: session } = useSession()
   const { activeChildId } = useActiveChild()
   const { toast } = useToast()
   const [dateRange, setDateRange] = useState("7-days")
+  const isAdmin = session?.user?.role === "admin"
 
   // Configurar el header dinámico - usar useMemo para estabilizar las acciones
   const headerActions = useMemo(() => (
@@ -74,17 +77,19 @@ export default function SleepStatisticsPage() {
           {/* Mensajes positivos (solo padres) */}
           <PositiveFeedbackCard childId={activeChildId} dateRange={dateRange} />
 
-          {/* Para Hoy (solo padres) */}
-          <TodayInstructionsCard childId={activeChildId} />
+          {/* Para Hoy (oculto en estadísticas para padres; visible para admin) */}
+          {isAdmin && <TodayInstructionsCard childId={activeChildId} />}
 
           {/* Card de Análisis y Recomendaciones (Deshabilitada por ahora) */}
           {/* <SleepInsightsCard childId={activeChildId} dateRange={dateRange} /> */}
 
-          {/* Encuesta médica sugerida ante empeoramiento */}
-          <MedicalSurveyPrompt childId={activeChildId} dateRange={dateRange} />
+          {/* Encuesta médica (oculta en estadísticas para padres; visible para admin) */}
+          {isAdmin && <MedicalSurveyPrompt childId={activeChildId} dateRange={dateRange} />}
 
-          {/* Nuevo componente de Data Storytelling */}
-          <SleepDataStorytellingCard childId={activeChildId} dateRange={dateRange} />
+          {/* Análisis Detallado del Sueño (oculto para padres en esta vista) */}
+          {isAdmin && (
+            <SleepDataStorytellingCard childId={activeChildId} dateRange={dateRange} />
+          )}
 
           {/* Evolución de despertares nocturnos - Después del análisis del sueño */}
           <NightWakeupsEvolutionChart childId={activeChildId} dateRange={dateRange} />
