@@ -95,6 +95,7 @@ export function Sidebar({ className }: { className?: string }) {
       title: "Asistente IA",
       href: "/dashboard/assistant",
       icon: <MessageSquare className="h-5 w-5" />,
+      role: ["admin"],
     },
     {
       title: "Encuesta de Sueño",
