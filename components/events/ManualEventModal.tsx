@@ -88,7 +88,8 @@ export function ManualEventModal({
     
     try {
       // Validaciones básicas
-      if (hasEndTime && includeEndTime) {
+      // Validación de fin obligatorio para "Dormir"
+      if ((eventType === 'sleep') || (hasEndTime && includeEndTime)) {
         const startDateTime = new Date(`${startDate}T${startTime}`)
         const endDateTime = new Date(`${endDate}T${endTime}`)
         if (endDateTime <= startDateTime) {
@@ -146,8 +147,8 @@ export function ManualEventModal({
         notes: notes || undefined
       }
       
-      // Agregar endTime si corresponde
-      if (hasEndTime && includeEndTime) {
+      // Agregar endTime si corresponde (obligatorio para "Dormir")
+      if ((eventType === 'sleep') || (hasEndTime && includeEndTime)) {
         const endDateTime = new Date(`${endDate}T${endTime}`)
         eventData.endTime = endDateTime.toISOString()
       } else if (!hasEndTime && calculatedEndTime) {
@@ -263,6 +264,13 @@ export function ManualEventModal({
     setActivityNotes('')
   }
   
+  // Forzar hora de fin obligatoria para "Dormir"
+  useEffect(() => {
+    if (eventType === 'sleep') {
+      setIncludeEndTime(true)
+    }
+  }, [eventType])
+
   // Effect para ajustar endTime cuando cambia el tipo de evento
   useEffect(() => {
     if (hasEndTime && includeEndTime && startTime) {
@@ -335,39 +343,44 @@ export function ManualEventModal({
             </div>
           </div>
           
-          {/* Fecha y hora de fin (opcional) - solo para eventos con duración */}
+          {/* Fecha y hora de fin - obligatorio para "Dormir", opcional para otros tipos con duración */}
           {hasEndTime && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <input
-                  id="toggle-end-time"
-                  type="checkbox"
-                  checked={includeEndTime}
-                  onChange={(e) => setIncludeEndTime(e.target.checked)}
-                />
-                <Label htmlFor="toggle-end-time">Agregar hora de fin (opcional)</Label>
-              </div>
-              {includeEndTime && (
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label>Fecha de fin</Label>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  max={format(new Date(), 'yyyy-MM-dd')}
-                  min={startDate}
-                />
-              </div>
-              <div>
-                <Label>Hora de fin</Label>
-                <Input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                />
-              </div>
-            </div>
+              {eventType !== 'sleep' ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    id="toggle-end-time"
+                    type="checkbox"
+                    checked={includeEndTime}
+                    onChange={(e) => setIncludeEndTime(e.target.checked)}
+                  />
+                  <Label htmlFor="toggle-end-time">Agregar hora de fin (opcional)</Label>
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">Hora de fin requerida para "Dormir"</div>
+              )}
+
+              {(includeEndTime || eventType === 'sleep') && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>Fecha de fin</Label>
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      max={format(new Date(), 'yyyy-MM-dd')}
+                      min={startDate}
+                    />
+                  </div>
+                  <div>
+                    <Label>Hora de fin</Label>
+                    <Input
+                      type="time"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                    />
+                  </div>
+                </div>
               )}
             </div>
           )}

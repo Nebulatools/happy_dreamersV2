@@ -143,12 +143,11 @@ export async function grantAccess(
   role: "viewer" | "caregiver" | "editor" = "caregiver",
   relationshipType?: string,
   relationshipDescription?: string,
-  expiresAt?: Date
+  expiresAt?: Date,
+  isAdminOverride: boolean = false
 ): Promise<{ success: boolean; invitationToken?: string; error?: string }> {
   try {
-    // Verificar que el usuario que otorga el acceso es el dueño
     const childrenCollection = await getChildrenCollection()
-    
     // Si no se proporciona childId o es inválido, dar mensaje claro
     if (!childId || childId === "undefined" || childId === "null") {
       return {
@@ -156,29 +155,16 @@ export async function grantAccess(
         error: "Primero debes registrar un niño antes de compartir acceso"
       }
     }
-    
-    const child = await childrenCollection.findOne({
-      _id: new ObjectId(childId),
-      parentId: new ObjectId(grantedBy)
-    })
-    
+    // Obtener el niño
+    const child = await childrenCollection.findOne({ _id: new ObjectId(childId) })
     if (!child) {
-      // Verificar si el niño existe pero no es del usuario
-      const childExists = await childrenCollection.findOne({
-        _id: new ObjectId(childId)
-      })
-      
-      if (childExists) {
-        return {
-          success: false,
-          error: "No tienes permisos para compartir este perfil"
-        }
-      } else {
-        return {
-          success: false,
-          error: "El perfil del niño no existe. Por favor, registra un niño primero"
-        }
-      }
+      return { success: false, error: "El perfil del niño no existe. Por favor, registra un niño primero" }
+    }
+
+    // Validar permisos: dueño o admin override
+    const isOwner = child.parentId && child.parentId.toString() === grantedBy.toString()
+    if (!isOwner && !isAdminOverride) {
+      return { success: false, error: "No tienes permisos para compartir este perfil" }
     }
     
     // Buscar el usuario por email

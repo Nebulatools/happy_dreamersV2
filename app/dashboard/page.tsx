@@ -420,6 +420,17 @@ export default function DashboardPage() {
           </p>
         </div>
 
+        {/* Registro de eventos (prioritario para padres) */}
+        {activeChildId && child && (
+          <div className="mb-6">
+            <EventRegistration 
+              childId={activeChildId}
+              childName={child.firstName}
+              onEventRegistered={loadChildData}
+            />
+          </div>
+        )}
+
         {/* Instrucciones para hoy (solo padres) */}
         {activeChildId && (
           <Suspense fallback={<div className="h-16" />}> 
@@ -462,20 +473,12 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Sistema de Registro de Eventos - v1.0 MVP */}
-        {activeChildId && child && (
-          <div className="mb-8">
-            <EventRegistration 
-              childId={activeChildId}
-              childName={child.firstName}
-              onEventRegistered={loadChildData}
-            />
-          </div>
-        )}
+        {/* Registro de eventos ya se muestra al inicio para padres */}
 
-        {/* Grid de contenido principal */}
+        {/* Grid de contenido principal (ocultar widgets avanzados para padre) */}
+        {false && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-          {/* Tendencia de Sueño */}
+          {/* Tendencia de Sueño (oculto para padre) */}
           <Card className="bg-white shadow-sm border-0 col-span-1 lg:col-span-2">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
@@ -567,7 +570,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Estado de Ánimo */}
+          {/* Estado de Ánimo (oculto para padre) */}
           <Card className="bg-white shadow-sm border-0">
             <CardHeader className="pb-4">
               <CardTitle className="text-[#2F2F2F]">Estado de Ánimo</CardTitle>
@@ -626,10 +629,12 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
-
+        )}
+        
         {/* Segunda fila del grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {/* Calendario de Sueño */}
+          {/* Calendario de Sueño (oculto para padre) */}
+          {false && (
           <Card className="bg-white shadow-sm border-0">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
@@ -719,11 +724,12 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+          )}
 
-          {/* Notas Recientes */}
+          {/* Bitácora (antes: Notas Recientes) */}
           <Card className="bg-white shadow-sm border-0 col-span-1 md:col-span-1">
             <CardHeader className="pb-4">
-              <CardTitle className="text-[#2F2F2F]">Notas Recientes</CardTitle>
+              <CardTitle className="text-[#2F2F2F]">Bitácora</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Mostrar notas reales de eventos recientes */}
