@@ -87,6 +87,19 @@ export function PlanManager({
     }
   }, [selectedUserId, selectedChildId])
 
+  // Auto-revalidar cuando el usuario vuelve a la pestaña/ventana
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && selectedUserId && selectedChildId) {
+        logger.debug('Pestaña visible - revalidando capacidades de plan')
+        validatePlanCapabilities()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [selectedUserId, selectedChildId])
+
   // Validar capacidades de generar planes
   const validatePlanCapabilities = async () => {
     if (!selectedUserId || !selectedChildId) return
@@ -227,6 +240,36 @@ export function PlanManager({
       })
     } finally {
       setDeletingPlanId(null)
+    }
+  }
+
+  // Aplicar plan (cambiar de borrador a activo)
+  const applyPlan = async (planId: string) => {
+    if (!planId) return
+    const confirmed = typeof window !== 'undefined' ? window.confirm('¿Aplicar este plan? Los planes activos anteriores se marcarán como completados.') : true
+    if (!confirmed) return
+
+    try {
+      const response = await fetch(`/api/consultas/plans/${planId}`, { method: 'PATCH' })
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error || 'No se pudo aplicar el plan')
+      }
+
+      // Refrescar lista
+      await loadPlans()
+
+      toast({
+        title: 'Plan aplicado',
+        description: 'El plan ahora está activo y visible para el usuario.'
+      })
+    } catch (error) {
+      logger.error('Error aplicando plan:', error)
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'No se pudo aplicar el plan',
+        variant: 'destructive'
+      })
     }
   }
 
@@ -483,13 +526,37 @@ export function PlanManager({
                 {showDebug ? 'Ocultar' : 'Mostrar'} debug de validación
               </button>
               {showDebug && (
-                <pre className="mt-2 text-xs bg-muted/40 p-2 rounded border max-h-40 overflow-auto">
+                <div className="mt-2 space-y-2">
+                  <pre className="text-xs bg-muted/40 p-2 rounded border max-h-40 overflow-auto">
 {JSON.stringify({
   initial: planValidations.initial,
   event_based: planValidations.event_based,
   transcript_refinement: planValidations.transcript_refinement
 }, null, 2)}
-                </pre>
+                  </pre>
+
+                  {/* Mostrar detalles de eventos si existen */}
+                  {planValidations.event_based?.additionalInfo?.eventDetails?.length > 0 && (
+                    <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded border border-blue-200 dark:border-blue-800">
+                      <p className="text-xs font-semibold mb-2 text-blue-900 dark:text-blue-100">
+                        📋 Eventos encontrados ({planValidations.event_based.additionalInfo.eventDetails.length}):
+                      </p>
+                      <div className="space-y-1 max-h-48 overflow-auto">
+                        {planValidations.event_based.additionalInfo.eventDetails.map((event: any, idx: number) => (
+                          <div key={idx} className="text-xs bg-white dark:bg-gray-900 p-2 rounded border">
+                            <div className="flex justify-between gap-2">
+                              <span className="font-mono text-blue-600 dark:text-blue-400">{event.eventType}</span>
+                              <span className="text-gray-600 dark:text-gray-400">{event.formattedDate}</span>
+                            </div>
+                            <div className="text-gray-500 dark:text-gray-500 text-[10px] mt-1">
+                              ID: {event._id}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -522,15 +589,27 @@ export function PlanManager({
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">Plan {plan.planVersion || plan.planNumber}</span>
-                        <Badge variant={plan.planType === "initial" ? "default" : 
+                        <Badge variant={plan.planType === "initial" ? "default" :
                                       plan.planType === "event_based" ? "secondary" : "outline"}>
-                          {plan.planType === "initial" ? "Inicial" : 
+                          {plan.planType === "initial" ? "Inicial" :
                            plan.planType === "event_based" ? "Progresión" : "Refinamiento"}
                         </Badge>
-                        {plan.status === "active" && (
+                        {plan.status === "borrador" && (
+                          <Badge variant="outline" className="text-orange-600 border-orange-600">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            Borrador
+                          </Badge>
+                        )}
+                        {plan.status === "activo" && (
                           <Badge variant="outline" className="text-green-600 border-green-600">
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Activo
+                          </Badge>
+                        )}
+                        {plan.status === "completado" && (
+                          <Badge variant="outline" className="text-gray-600 border-gray-600">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Completado
                           </Badge>
                         )}
                       </div>
@@ -543,11 +622,26 @@ export function PlanManager({
                         month: '2-digit',
                         year: 'numeric'
                       })}
-                      <Button 
-                        variant="ghost" 
+                      {plan.status === "borrador" && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const pid = getPlanId(plan)
+                            if (pid) applyPlan(pid)
+                          }}
+                          className="ml-2"
+                        >
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Aplicar Plan
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
                         size="icon"
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
+                        onClick={(e) => {
+                          e.stopPropagation();
                           const pid = getPlanId(plan)
                           if (pid) deletePlan(pid)
                         }}

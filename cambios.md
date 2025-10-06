@@ -1,0 +1,5 @@
+1. agregar un buscador de pacienetes en el sidebar de pacienets de lado de admin, en doden cice mis pacientes, veo la lista de apcienets, queiro poder agregar un buscador para buscar mi pacineet y elejirlo tambiendel buscador!
+
+2.de lado del usuario, vamos a quitra temporalmenet el aisstente de ai, por lo pronto solo estara de lado del admin
+
+3. en lado de generacion de planes, queiro que funcione de la soiguienet manaera:,  cuando el admin genera el plan se va a generar como borrador, osea que el amdin v a pdoer ver ese plan y el user no va a ver ese plan hastq eue el admin una vez que le haya dado vsuto byeno aa ese borrador, le peuda dar aplicar , y una vez que le de aplicar, el plan ya va a esra publicaod de laod del user, y si el suer tiene planes anterior, el plan anteior pasa a ser de activo a completado, ok?, 

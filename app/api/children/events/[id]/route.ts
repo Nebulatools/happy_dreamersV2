@@ -135,9 +135,18 @@ export async function DELETE(
     let deleted = 0
     try {
       const eventsCol = db.collection('events')
-      const filter: any = { _id: new ObjectId(eventId), parentId: new ObjectId(session.user.id) }
-      const res = await eventsCol.deleteOne(filter)
-      logger.info('Resultado deleteOne en events:', res)
+      // Primero intentar con parentId para seguridad
+      let filter: any = { _id: new ObjectId(eventId), parentId: new ObjectId(session.user.id) }
+      let res = await eventsCol.deleteOne(filter)
+      logger.info('Resultado deleteOne en events (con parentId):', res)
+
+      // Si no se eliminó, intentar solo con _id (eventos antiguos pueden no tener parentId)
+      if (res.deletedCount === 0) {
+        filter = { _id: new ObjectId(eventId) }
+        res = await eventsCol.deleteOne(filter)
+        logger.info('Resultado deleteOne en events (sin parentId):', res)
+      }
+
       deleted += res.deletedCount || 0
     } catch (e) {
       // Si eventId no es ObjectId válido, ignorar y pasar al fallback

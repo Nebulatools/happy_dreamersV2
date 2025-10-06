@@ -6,8 +6,9 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Users } from "lucide-react"
+import { Loader2, Users, Search } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { createLogger } from "@/lib/logger"
 import {
@@ -41,6 +42,7 @@ export default function PatientsPage() {
   const [loading, setLoading] = useState(true)
   const [expandedUser, setExpandedUser] = useState<string | null>(null)
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
 
   // Cargar la lista de usuarios al iniciar
   useEffect(() => {
@@ -142,6 +144,12 @@ export default function PatientsPage() {
     window.location.href = `/dashboard?refresh=${timestamp}`;
   }
 
+  // Filtrar usuarios basándose en el término de búsqueda
+  const filteredUsers = users.filter(user =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -173,8 +181,25 @@ export default function PatientsPage() {
             <CardDescription>Selecciona un paciente para acceder a sus niños</CardDescription>
           </CardHeader>
           <CardContent>
-            <Accordion type="single" collapsible className="w-full">
-              {users.map(user => (
+            {/* Buscador de pacientes */}
+            <div className="relative mb-6">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Buscar paciente por nombre o email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {filteredUsers.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No se encontraron pacientes que coincidan con la búsqueda.
+              </p>
+            ) : (
+              <Accordion type="single" collapsible className="w-full">
+                {filteredUsers.map(user => (
                 <AccordionItem key={user._id} value={user._id}>
                   <AccordionTrigger 
                     onClick={() => handleAccordionChange(user._id)}
@@ -229,8 +254,9 @@ export default function PatientsPage() {
                     </div>
                   </AccordionContent>
                 </AccordionItem>
-              ))}
-            </Accordion>
+                ))}
+              </Accordion>
+            )}
           </CardContent>
         </Card>
       )}

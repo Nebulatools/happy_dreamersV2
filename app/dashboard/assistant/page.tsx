@@ -6,7 +6,7 @@
 import React, { useState, useRef, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -88,6 +88,18 @@ export default function AssistantPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const isAdmin = session?.user?.role === "admin"
+
+  // Verificar que el usuario es admin
+  useEffect(() => {
+    if (session && session.user.role !== "admin") {
+      toast({
+        title: "Acceso denegado",
+        description: "Solo los administradores pueden acceder a esta página.",
+        variant: "destructive",
+      })
+      return
+    }
+  }, [session, toast])
 
   // Reiniciar sessionId cuando se monta el componente (nueva sesión)
   useEffect(() => {
@@ -400,6 +412,21 @@ export default function AssistantPage() {
       }
       return <p key={index} className="mb-2">{line}</p>
     })
+  }
+
+  // Protección de acceso - solo admin
+  if (session?.user.role !== "admin") {
+    return (
+      <div className="container py-8">
+        <Card>
+          <CardContent className="py-10">
+            <div className="text-center">
+              <p>Acceso denegado. Solo los administradores pueden acceder a esta página.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (

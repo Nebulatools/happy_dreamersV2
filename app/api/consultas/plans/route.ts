@@ -184,14 +184,30 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
     })
 
     const eventTypes = [...new Set(events.map((e: any) => e.eventType).filter(Boolean))]
+
+    // Añadir detalles de eventos para debug
+    const eventDetails = events.map((e: any) => ({
+      _id: e._id?.toString() || 'sin-id',
+      eventType: e.eventType || 'desconocido',
+      startTime: e.startTime,
+      formattedDate: e.startTime ? new Date(e.startTime).toLocaleString('es-ES', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      }) : 'sin-fecha'
+    }))
+
     return {
       hasEvents: events.length > 0,
       eventCount: events.length,
-      eventTypes
+      eventTypes,
+      eventDetails
     }
   } catch (error) {
     logger.error("Error verificando eventos después de fecha:", error)
-    return { hasEvents: false, eventCount: 0, eventTypes: [] }
+    return { hasEvents: false, eventCount: 0, eventTypes: [], eventDetails: [] }
   }
 }
 
@@ -440,14 +456,14 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Guardar el nuevo plan
+    // Guardar el nuevo plan como BORRADOR
     const result = await db.collection("child_plans").insertOne({
       ...generatedPlan,
       planNumber,
       planVersion,
       createdAt: new Date(),
       updatedAt: new Date(),
-      status: "active"
+      status: "borrador"
     })
 
     const totalProcessingTime = Date.now() - startTime
@@ -471,7 +487,7 @@ export async function POST(req: NextRequest) {
         planVersion,
         createdAt: new Date(),
         updatedAt: new Date(),
-        status: "active"
+        status: "borrador"
       },
       metadata: {
         processingTime: totalProcessingTime,
@@ -577,6 +593,7 @@ export async function PUT(req: NextRequest) {
         additionalInfo = {
           eventsAvailable: eventsCheck.eventCount,
           eventTypes: eventsCheck.eventTypes,
+          eventDetails: eventsCheck.eventDetails || [],
           lastPlanDate: latestByCreatedAt.createdAt,
           lastPlanVersion: latestByCreatedAt.planVersion,
           searchedAfterDateISO: new Date(latestByCreatedAt.createdAt).toISOString()
@@ -719,7 +736,7 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
     createdAt: new Date(),
     updatedAt: new Date(),
     createdBy: new ObjectId(adminId),
-    status: "active"
+    status: "borrador"
   }
 }
 
@@ -854,7 +871,7 @@ async function generateEventBasedPlan(
     createdAt: new Date(),
     updatedAt: new Date(),
     createdBy: new ObjectId(adminId),
-    status: "active"
+    status: "borrador"
   }
 }
 
@@ -940,7 +957,7 @@ async function generateTranscriptRefinementPlan(
     createdAt: new Date(),
     updatedAt: new Date(),
     createdBy: new ObjectId(adminId),
-    status: "active"
+    status: "borrador"
   }
 }
 
@@ -1032,7 +1049,7 @@ async function generateTranscriptBasedPlan(
     createdAt: new Date(),
     updatedAt: new Date(),
     createdBy: new ObjectId(adminId),
-    status: "active"
+    status: "borrador"
   }
 }
 

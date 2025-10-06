@@ -277,3 +277,119 @@ export async function GET(
     )
   }
 }
+
+// PATCH endpoint para aplicar un plan (borrador → activo)
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // Verificar sesión de admin
+    const session = await getServerSession(authOptions)
+    if (!session || session.user.role !== "admin") {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      )
+    }
+
+    const { id: planId } = params
+
+    if (!planId || !ObjectId.isValid(planId)) {
+      return NextResponse.json(
+        { error: "ID de plan inválido" },
+        { status: 400 }
+      )
+    }
+
+    const { db } = await connectToDatabase()
+    const plansCollection = db.collection("child_plans")
+
+    // Obtener el plan a aplicar
+    const planToApply = await plansCollection.findOne({
+      _id: new ObjectId(planId)
+    })
+
+    if (!planToApply) {
+      return NextResponse.json(
+        { error: "Plan no encontrado" },
+        { status: 404 }
+      )
+    }
+
+    // Verificar que el plan esté en estado borrador
+    if (planToApply.status !== "borrador") {
+      return NextResponse.json(
+        { error: "Solo se pueden aplicar planes en estado borrador" },
+        { status: 400 }
+      )
+    }
+
+    logger.info("Aplicando plan", {
+      planId,
+      childId: planToApply.childId,
+      userId: planToApply.userId,
+      adminId: session.user.id
+    })
+
+    // 1. Cambiar todos los planes activos anteriores a "completado"
+    await plansCollection.updateMany(
+      {
+        childId: planToApply.childId,
+        userId: planToApply.userId,
+        status: "activo",
+        _id: { $ne: new ObjectId(planId) }
+      },
+      {
+        $set: {
+          status: "completado",
+          updatedAt: new Date()
+        }
+      }
+    )
+
+    // 2. Cambiar el plan actual de "borrador" a "activo"
+    const updateResult = await plansCollection.updateOne(
+      { _id: new ObjectId(planId) },
+      {
+        $set: {
+          status: "activo",
+          updatedAt: new Date(),
+          appliedBy: new ObjectId(session.user.id),
+          appliedAt: new Date()
+        }
+      }
+    )
+
+    if (updateResult.modifiedCount === 0) {
+      return NextResponse.json(
+        { error: "No se pudo aplicar el plan" },
+        { status: 500 }
+      )
+    }
+
+    // Obtener el plan actualizado
+    const updatedPlan = await plansCollection.findOne({
+      _id: new ObjectId(planId)
+    })
+
+    logger.info("Plan aplicado exitosamente", {
+      planId,
+      childId: planToApply.childId,
+      adminId: session.user.id
+    })
+
+    return NextResponse.json({
+      success: true,
+      plan: updatedPlan,
+      message: "Plan aplicado correctamente. Los planes anteriores han sido marcados como completados."
+    })
+
+  } catch (error) {
+    logger.error("Error aplicando plan:", error)
+    return NextResponse.json(
+      { error: "Error interno del servidor" },
+      { status: 500 }
+    )
+  }
+}

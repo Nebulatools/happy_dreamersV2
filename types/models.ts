@@ -425,5 +425,5 @@ export interface ChildPlan {
   createdAt: Date
   updatedAt: Date
   createdBy: ObjectId | string // admin ID que creó el plan
-  status: "active" | "superseded" | "archived" // Estado del plan
+  status: "borrador" | "activo" | "completado" | "superseded" | "archived" // Estado del plan
 }
