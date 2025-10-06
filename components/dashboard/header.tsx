@@ -170,7 +170,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: '#A0D8D0' }}>
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3 md:px-6 min-h-[64px] md:min-h-[80px] py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 md:px-6 pl-14 md:pl-6 min-h-[64px] md:min-h-[80px] py-2">
         {/* Título y acciones dinámicas a la izquierda */}
         <div className="flex items-center gap-2 md:gap-4 min-w-0 order-2 md:order-1 basis-full md:basis-auto">
           <div className="min-w-0">
@@ -218,8 +218,10 @@ export function Header() {
           
           {/* Child Selector con diseño de Figma */}
           {config.showChildSelector !== false && (
-            <div className="flex items-center gap-2">
-              <ChildSelector />
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <div className="max-w-[60%] md:max-w-none flex-1">
+                <ChildSelector />
+              </div>
               {/* Edad del niño: ocultar en móvil para ahorrar espacio */}
               <div className="hidden md:block">
                 <ChildAgeFromContext />

@@ -275,7 +275,7 @@ export function ChildSelector() {
                         if (activeChild) {
                           return (
                             <>
-                              <span className="text-[#2553A1] font-medium text-base">
+                              <span className="text-[#2553A1] font-medium text-base truncate max-w-[120px] md:max-w-none">
                                 {activeChild.firstName}
                               </span>
                               {activeChild.birthDate && (
