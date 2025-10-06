@@ -10,7 +10,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useActiveChild } from "@/context/active-child-context"
@@ -171,6 +171,10 @@ export function Sidebar({ className }: { className?: string }) {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-[256px] pr-0" style={{ backgroundColor: '#68A1C8' }}>
+          {/* Título accesible oculto para lectores de pantalla */}
+          <SheetHeader>
+            <SheetTitle className="sr-only">Menú</SheetTitle>
+          </SheetHeader>
           <MobileSidebar items={filteredItems} setOpen={setOpen} onItemClick={handleItemClick} />
         </SheetContent>
       </Sheet>
