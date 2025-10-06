@@ -170,9 +170,9 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: '#A0D8D0' }}>
-      <div className="flex h-16 md:h-20 items-center justify-between px-3 md:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 md:px-6 min-h-[64px] md:min-h-[80px] py-2">
         {/* Título y acciones dinámicas a la izquierda */}
-        <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+        <div className="flex items-center gap-2 md:gap-4 min-w-0 order-2 md:order-1 basis-full md:basis-auto">
           <div className="min-w-0">
             <h1 className="truncate text-white" style={{ fontFamily: 'Gotham, sans-serif', fontSize: '16px', fontWeight: 'normal' }}>
               {config.title}
@@ -193,7 +193,7 @@ export function Header() {
         </div>
         
         {/* Controles a la derecha - configurables */}
-        <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+        <div className="flex items-center gap-2 md:gap-4 flex-shrink-0 order-1 md:order-2 basis-full md:basis-auto justify-between md:justify-end">
           {/* Search Button - funcional y mejorado */}
           {config.showSearch !== false && (
             <div className="hidden lg:flex items-center bg-[#DEF1F1] rounded-[30px] px-4 py-2 h-12 w-[200px] xl:w-[289px] cursor-pointer hover:bg-[#c8e3e3] transition-colors">
@@ -220,8 +220,10 @@ export function Header() {
           {config.showChildSelector !== false && (
             <div className="flex items-center gap-2">
               <ChildSelector />
-              {/* Edad del niño - Siempre visible como solicitó la Dra. Mariana */}
-              <ChildAgeFromContext />
+              {/* Edad del niño: ocultar en móvil para ahorrar espacio */}
+              <div className="hidden md:block">
+                <ChildAgeFromContext />
+              </div>
             </div>
           )}
           

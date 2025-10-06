@@ -399,7 +399,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen px-4 pt-2 pb-4 md:px-6 md:pt-3 md:pb-6" style={{ backgroundColor: '#DEF1F1' }}>
+    <div className="min-h-screen px-4 pt-3 pb-4 md:px-6 md:pt-3 md:pb-6" style={{ backgroundColor: '#DEF1F1' }}>
       <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
         {/* Saludo personalizado */}
         <div className="space-y-2">
