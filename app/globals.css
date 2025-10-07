@@ -216,6 +216,11 @@
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
+  /* Prevent aggressive text autosizing on some Android browsers */
+  html, body {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
   
   /* Estilos base mejorados */
   h1, h2, h3, h4, h5, h6 {
@@ -282,6 +287,14 @@
 }
 
 @layer utilities {
+  /* Hide scrollbar helper */
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
   /* Text utilities específicas */
   .text-hd-primary {
     color: hsl(var(--text-primary));
