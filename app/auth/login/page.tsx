@@ -77,23 +77,23 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center"
+      className="min-h-screen flex flex-col md:flex-row items-stretch md:items-center justify-center overflow-y-auto py-6 px-4"
       style={{
         background: 'linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)'
       }}
     >
-      {/* Logo */}
-      <div className="flex flex-col items-center justify-center mr-16">
+      {/* Logo (oculto en móvil, visible en md+) */}
+      <div className="hidden md:flex items-center justify-center md:mr-12">
         <img
           src="/LOGO.svg"
           alt="Happy Dreamers Logo"
-          style={{ width: 594, height: 381.2064208984375 }}
+          className="max-w-[360px] lg:max-w-[420px] h-auto"
           draggable={false}
         />
       </div>
       {/* Login form */}
-      <div className="flex items-center justify-center">
-        <div className="w-[451px]">
+      <div className="flex items-center justify-center w-full md:w-auto">
+        <div className="w-full max-w-md md:max-w-[451px]">
           {/* Back button */}
           <div className="mb-6 lg:hidden">
             <Link href="/" className="flex items-center text-white/90 hover:text-white transition-colors">
@@ -103,10 +103,10 @@ export default function LoginPage() {
           </div>
 
           {/* Login Card */}
-          <div className="backdrop-blur-sm shadow-2xl border border-white/20" style={{ backgroundColor: '#EFFFFF', width: '451px', height: '624px', borderRadius: '20px', padding: '32px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div className="backdrop-blur-sm shadow-2xl border border-white/20 bg-[#EFFFFF] w-full rounded-2xl p-6 md:p-8 flex flex-col justify-center">
             {/* Header */}
             <div className="text-center mb-6">
-              <h1 className="mb-2 ludicrous-title" style={{ fontSize: '48px' }}>
+              <h1 className="mb-2 ludicrous-title text-3xl md:text-5xl">
                 Welcome Back!
               </h1>
               <p className="text-[#718096] text-sm century-gothic">

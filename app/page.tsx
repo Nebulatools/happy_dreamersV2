@@ -19,7 +19,7 @@ export default async function Home() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="container flex flex-wrap items-center justify-between gap-2 px-4 py-2">
           <div className="flex items-center gap-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -35,13 +35,15 @@ export default async function Home() {
             </svg>
             <span className="font-bold">Happy Dreamers</span>
           </div>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <Link href="/auth/login">
-              <Button variant="outline">Iniciar Sesión</Button>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <div className="hidden sm:block">
+              <ThemeToggle />
+            </div>
+            <Link href="/auth/login" className="shrink-0">
+              <Button variant="outline" size="sm" className="px-3">Iniciar Sesión</Button>
             </Link>
-            <Link href="/auth/register">
-              <Button>Registrarse</Button>
+            <Link href="/auth/register" className="shrink-0">
+              <Button size="sm" className="px-3">Registrarse</Button>
             </Link>
           </div>
         </div>

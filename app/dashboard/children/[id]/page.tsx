@@ -171,7 +171,7 @@ export default function ChildProfilePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#DEF1F1] p-10">
+    <div className="min-h-screen bg-[#DEF1F1] px-4 md:px-10 py-6 md:py-10">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Breadcrumb */}
         <button 
@@ -183,8 +183,8 @@ export default function ChildProfilePage() {
         </button>
 
         {/* Tarjeta de Perfil del Niño */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          <div className="flex items-center space-x-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-8">
+          <div className="flex flex-wrap items-center gap-4 md:gap-8">
             {/* Avatar */}
             <div className="relative">
               <div className="w-24 h-24 rounded-full border-4 border-[#4A90E2] overflow-hidden bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
@@ -203,9 +203,9 @@ export default function ChildProfilePage() {
             </div>
 
             {/* Información del niño */}
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-4">
-                <h1 className="text-3xl font-bold text-[#2F2F2F]">
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+                <h1 className="text-2xl sm:text-3xl font-bold text-[#2F2F2F] truncate">
                   {child.firstName} {child.lastName || ""}
                 </h1>
                 <Button 
@@ -218,7 +218,7 @@ export default function ChildProfilePage() {
                 </Button>
               </div>
 
-              <div className="flex items-center space-x-6 text-gray-600">
+              <div className="flex flex-wrap items-center gap-4 md:gap-6 text-gray-600">
                 <div className="flex items-center">
                   <ChildAgeBadge 
                     birthDate={child.birthDate}
@@ -239,13 +239,13 @@ export default function ChildProfilePage() {
         {/* Navegación por Tabs */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           {/* Tab Headers */}
-          <nav className="border-b border-gray-100">
-            <div className="flex">
+          <nav className="border-b border-gray-100 overflow-x-auto no-scrollbar">
+            <div className="flex whitespace-nowrap">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-6 py-4 text-center font-medium transition-colors relative ${
+                  className={`px-6 py-4 text-center font-medium transition-colors relative flex-shrink-0 ${
                     activeTab === tab.id
                       ? "text-[#4A90E2] bg-white border-b-2 border-[#4A90E2]"
                       : "text-gray-600 hover:text-gray-800 bg-white"
