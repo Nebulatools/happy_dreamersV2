@@ -11,6 +11,7 @@ import { createLogger } from "@/lib/logger"
 const logger = createLogger('api/consultas/plans/[id]')
 
 // DELETE endpoint para eliminar un plan específico (solo admin)
+// Si se elimina el plan activo, auto-activa el plan anterior (considerando refinamientos)
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -33,31 +34,130 @@ export async function DELETE(
     }
 
     const { db } = await connectToDatabase()
-
-    // Usar la colección principal de planes
     const collection = db.collection("child_plans")
 
-    // Intentar borrar por ObjectId (forma estándar)
-    let result = { deletedCount: 0 }
-    if (ObjectId.isValid(planId)) {
-      result = await collection.deleteOne({ _id: new ObjectId(planId) })
+    // 1. Obtener el plan a eliminar ANTES de eliminarlo
+    const planToDelete = await collection.findOne({ _id: new ObjectId(planId) })
+
+    if (!planToDelete) {
+      return NextResponse.json(
+        { error: "Plan no encontrado" },
+        { status: 404 }
+      )
     }
 
-    // Si no se encontró, intentar por _id como string (compatibilidad con datos antiguos)
-    if (result.deletedCount === 0) {
-      const altResult = await collection.deleteOne({ _id: planId as unknown as any })
-      if (altResult.deletedCount === 0) {
-        return NextResponse.json(
-          { error: "Plan no encontrado" },
-          { status: 404 }
-        )
+    logger.info("Plan a eliminar", {
+      planId,
+      planVersion: planToDelete.planVersion,
+      status: planToDelete.status,
+      childId: planToDelete.childId,
+      userId: planToDelete.userId
+    })
+
+    // 2. Si el plan a eliminar es ACTIVO, buscar el plan anterior para reactivarlo
+    let reactivatedPlan = null
+    if (planToDelete.status === "activo") {
+      // Obtener todos los planes del mismo niño (ordenados por versión)
+      const allPlans = await collection.find({
+        childId: planToDelete.childId,
+        userId: planToDelete.userId,
+        _id: { $ne: new ObjectId(planId) } // Excluir el plan a eliminar
+      }).toArray()
+
+      // Función para comparar versiones de planes (considera refinamientos como 1.1, 2.1, etc.)
+      const compareVersions = (versionA: string, versionB: string): number => {
+        const parseVersion = (v: string) => {
+          const parts = v.split('.')
+          const major = parseInt(parts[0]) || 0
+          const minor = parseInt(parts[1]) || 0
+          return { major, minor }
+        }
+
+        const a = parseVersion(versionA)
+        const b = parseVersion(versionB)
+
+        if (a.major !== b.major) {
+          return b.major - a.major // Mayor número primero
+        }
+        return b.minor - a.minor // Mayor refinamiento primero
       }
-      result = altResult
+
+      // Ordenar planes por versión (de mayor a menor)
+      const sortedPlans = allPlans.sort((a, b) =>
+        compareVersions(a.planVersion, b.planVersion)
+      )
+
+      logger.info("Planes disponibles para reactivación", {
+        totalPlans: sortedPlans.length,
+        versions: sortedPlans.map(p => ({
+          version: p.planVersion,
+          status: p.status
+        }))
+      })
+
+      // El primer plan en la lista ordenada es el más reciente (anterior al eliminado)
+      const previousPlan = sortedPlans[0]
+
+      if (previousPlan) {
+        // Reactivar el plan anterior (cambiar de "completado" a "activo")
+        await collection.updateOne(
+          { _id: previousPlan._id },
+          {
+            $set: {
+              status: "activo",
+              updatedAt: new Date(),
+              reactivatedAt: new Date(),
+              reactivatedBy: new ObjectId(session.user.id),
+              reactivatedReason: `Plan ${planToDelete.planVersion} eliminado`
+            }
+          }
+        )
+
+        reactivatedPlan = previousPlan
+
+        logger.info("Plan anterior reactivado", {
+          reactivatedPlanId: previousPlan._id,
+          reactivatedVersion: previousPlan.planVersion,
+          previousStatus: previousPlan.status,
+          newStatus: "activo"
+        })
+      } else {
+        logger.warn("No hay plan anterior para reactivar", {
+          childId: planToDelete.childId,
+          deletedPlanVersion: planToDelete.planVersion
+        })
+      }
     }
 
-    logger.info("Plan eliminado", { planId, adminId: session.user.id })
+    // 3. Eliminar el plan original
+    const result = await collection.deleteOne({ _id: new ObjectId(planId) })
 
-    return NextResponse.json({ success: true, message: "Plan eliminado correctamente" })
+    if (result.deletedCount === 0) {
+      return NextResponse.json(
+        { error: "No se pudo eliminar el plan" },
+        { status: 500 }
+      )
+    }
+
+    logger.info("Plan eliminado exitosamente", {
+      planId,
+      deletedVersion: planToDelete.planVersion,
+      wasActive: planToDelete.status === "activo",
+      reactivatedPlan: reactivatedPlan ? {
+        id: reactivatedPlan._id,
+        version: reactivatedPlan.planVersion
+      } : null,
+      adminId: session.user.id
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: "Plan eliminado correctamente",
+      reactivated: reactivatedPlan ? {
+        planId: reactivatedPlan._id,
+        planVersion: reactivatedPlan.planVersion
+      } : null
+    })
   } catch (error) {
     logger.error("Error eliminando plan:", error)
     return NextResponse.json(
