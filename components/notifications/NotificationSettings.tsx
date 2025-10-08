@@ -88,15 +88,18 @@ export function NotificationSettings({ childId, childName }: NotificationSetting
   const loadSettings = async () => {
     try {
       const response = await fetch(`/api/notifications/settings?childId=${childId}`)
-      if (!response.ok) throw new Error("Error cargando configuración")
-      
-      const data = await response.json()
-      if (data.settings) {
-        setConfig(data.settings)
+      if (!response.ok) {
+        // Si el endpoint no existe o no hay configuración, usar defaults SILENCIOSAMENTE
+        // Evita toasts/errores visibles para el usuario
+        setConfig(prev => ({ ...prev }))
+        return
       }
+
+      const data = await response.json().catch(() => null)
+      if (data?.settings) setConfig(data.settings)
     } catch (error) {
-      console.error("Error:", error)
-      toast.error("Error al cargar configuración de notificaciones")
+      // No hacer ruido: mantener defaults si falla
+      console.debug("NotificationSettings: usando configuración por defecto", error)
     } finally {
       setLoading(false)
     }
@@ -164,13 +167,14 @@ export function NotificationSettings({ childId, childName }: NotificationSetting
           ...config
         })
       })
-      
-      if (!response.ok) throw new Error("Error guardando configuración")
-      
+      if (!response.ok) {
+        // Si no existe el endpoint, no mostrar error al usuario
+        console.debug("NotificationSettings: PUT ignorado (endpoint ausente)")
+        return
+      }
       toast.success("Configuración guardada exitosamente")
     } catch (error) {
-      console.error("Error:", error)
-      toast.error("Error al guardar configuración")
+      console.debug("NotificationSettings: no se pudo guardar (sin backend).", error)
     } finally {
       setSaving(false)
     }

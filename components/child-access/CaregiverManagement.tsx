@@ -380,17 +380,17 @@ export function CaregiverManagement({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <CardTitle>Cuidadores con Acceso</CardTitle>
             <CardDescription>
               Gestiona quién puede ver y registrar eventos para {childName}
             </CardDescription>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
             <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline">
+                <Button variant="outline" size="sm">
                   <Icons.mail className="mr-2 h-4 w-4" />
                   Invitar por Email
                 </Button>
@@ -535,7 +535,7 @@ export function CaregiverManagement({
             
             <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button size="sm">
                   <Icons.userPlus className="mr-2 h-4 w-4" />
                   Vincular a Soñador
                 </Button>
@@ -653,34 +653,34 @@ export function CaregiverManagement({
                   {caregivers.map((caregiver) => (
                     <div
                       key={caregiver._id.toString()}
-                      className="flex items-center justify-between p-4 border rounded-lg"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border rounded-lg"
                     >
-                      <div className="flex items-center space-x-4">
+                      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                         <Avatar>
                           <AvatarImage src={caregiver.user?.image} />
                           <AvatarFallback>
                             {caregiver.user?.name?.charAt(0).toUpperCase() || "?"}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <div className="font-medium">{caregiver.user?.name || "Usuario"}</div>
-                          <div className="text-sm text-muted-foreground">
+                        <div className="min-w-0">
+                          <div className="font-medium truncate max-w-[60vw] sm:max-w-none">{caregiver.user?.name || "Usuario"}</div>
+                          <div className="text-sm text-muted-foreground truncate max-w-[60vw] sm:max-w-none">
                             {caregiver.user?.email}
                           </div>
                           {caregiver.relationshipDescription && (
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground truncate max-w-[60vw] sm:max-w-none">
                               {caregiver.relationshipDescription}
                             </div>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-2">
-                        <Badge variant={getRoleBadgeVariant(caregiver.role as string)}>
+                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                        <Badge variant={getRoleBadgeVariant(caregiver.role as string)} className="text-xs">
                           {getRoleDescription(caregiver.role as string)}
                         </Badge>
                         {caregiver.expiresAt && (
-                          <Badge variant="outline">
+                          <Badge variant="outline" className="text-xs">
                             Hasta {new Date(caregiver.expiresAt).toLocaleDateString()}
                           </Badge>
                         )}
@@ -708,33 +708,33 @@ export function CaregiverManagement({
                   {invitations.map((invitation) => (
                     <div
                       key={invitation._id.toString()}
-                      className="flex items-center justify-between p-4 border rounded-lg bg-yellow-50 border-yellow-200"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border rounded-lg bg-yellow-50 border-yellow-200"
                     >
-                      <div className="flex items-center space-x-4">
+                      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                         <div className="w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center">
                           <Icons.mail className="h-5 w-5 text-yellow-700" />
                         </div>
-                        <div>
-                          <div className="font-medium">{invitation.email}</div>
-                          <div className="text-sm text-muted-foreground">
+                        <div className="min-w-0">
+                          <div className="font-medium truncate max-w-[60vw] sm:max-w-none">{invitation.email}</div>
+                          <div className="text-sm text-muted-foreground truncate max-w-[60vw] sm:max-w-none">
                             Invitado hace {formatDistanceToNow(new Date(invitation.createdAt), { 
                               addSuffix: true,
                               locale: es 
                             })}
                           </div>
                           {invitation.relationshipDescription && (
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground truncate max-w-[60vw] sm:max-w-none">
                               {invitation.relationshipDescription}
                             </div>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="secondary">
+                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                        <Badge variant="secondary" className="text-xs">
                           Esperando aceptación
                         </Badge>
-                        <Badge variant={getRoleBadgeVariant(invitation.role)}>
+                        <Badge variant={getRoleBadgeVariant(invitation.role)} className="text-xs">
                           {getRoleDescription(invitation.role)}
                         </Badge>
                         <Button
