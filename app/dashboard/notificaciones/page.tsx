@@ -405,7 +405,7 @@ export default function NotificacionesPage() {
   const selectedChildData = children.find(c => c._id === selectedChild)
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="max-w-6xl mx-auto p-6 space-y-6 overflow-x-hidden">
 
       {/* Header */}
       <div>
