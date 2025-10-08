@@ -184,7 +184,70 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6">
+    <div>
+      {/* Mobile: carrusel horizontal */}
+      <div className="sm:hidden">
+        {loading ? (
+          <div className="flex justify-center items-center h-32">
+            <p className="text-gray-500">Cargando métricas...</p>
+          </div>
+        ) : error ? (
+          <div className="flex justify-center items-center h-32">
+            <p className="text-red-500">{error}</p>
+          </div>
+        ) : sleepMetrics.length === 0 ? (
+          <div className="flex justify-center items-center h-32">
+            <p className="text-gray-500">No hay suficientes datos para mostrar métricas</p>
+          </div>
+        ) : (
+          <div className="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory px-1">
+            {sleepMetrics.map((metric, index) => (
+              <div
+                key={index}
+                className="min-w-[260px] snap-start bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+              >
+                {metric.priority && (
+                  <div className="bg-gradient-to-r from-orange-50 to-yellow-50 px-3 py-2 border-b border-orange-100">
+                    <div className="flex items-center justify-center">
+                      <div className="bg-gradient-to-r from-orange-400 to-yellow-500 text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full">
+                        🌅 Métrica Prioritaria
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div className="p-3">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-600 mb-1 leading-tight">
+                        {metric.title}
+                      </p>
+                      <p className="text-lg font-bold text-[#2F2F2F] leading-snug break-words">
+                        {metric.value}
+                      </p>
+                    </div>
+                    <div className={`w-9 h-9 rounded-lg ${metric.iconBg} flex items-center justify-center ml-3 flex-shrink-0`}>
+                      <div className="text-gray-700">
+                        {metric.icon}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Badge variant={metric.status.variant} className="text-[10px] font-medium">
+                      {metric.status.label}
+                    </Badge>
+                    <p className="text-[11px] text-gray-600">
+                      {metric.change}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Desktop/Tablet: grid */}
+      <div className="hidden sm:grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6">
       {loading ? (
         <div className="col-span-full flex justify-center items-center h-32">
           <p className="text-gray-500">Cargando métricas...</p>
@@ -248,6 +311,7 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
         </div>
       ))
       )}
+      </div>
     </div>
   )
 }
