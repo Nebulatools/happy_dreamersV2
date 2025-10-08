@@ -1271,11 +1271,12 @@ ${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join
 INSTRUCCIONES:
 1. Crea un plan DETALLADO con horarios específicos
 2. Incluye horarios para: dormir, despertar, comidas y siestas (NO incluir actividades)
-3. Adapta las recomendaciones a la edad del niño
-4. Proporciona objetivos claros y medibles
-5. Incluye recomendaciones específicas para los padres
-6. Si hubo siestas registradas en el histórico, DEBES incluir al menos 1 siesta en un horario cercano a la hora típica observada (${enrichedStats?.napStats?.typicalTime || '14:00'}) y duración aproximada (${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min)
-7. Para comidas, si no hubo eventos en una categoría (n=0), no inventes el horario; puedes omitirla o marcarla como opcional
+3. ⚠️ CRÍTICO: NO puede haber DOS EVENTOS DIFERENTES a la MISMA HORA (ej: no puede haber "desayuno a las 08:00" y "jugar a las 08:00")
+4. Adapta las recomendaciones a la edad del niño
+5. Proporciona objetivos claros y medibles
+6. Incluye recomendaciones específicas para los padres
+7. Si hubo siestas registradas en el histórico, DEBES incluir al menos 1 siesta en un horario cercano a la hora típica observada (${enrichedStats?.napStats?.typicalTime || '14:00'}) y duración aproximada (${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min)
+8. Para comidas, si no hubo eventos en una categoría (n=0), no inventes el horario; puedes omitirla o marcarla como opcional
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {
@@ -1329,11 +1330,12 @@ ${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join
 INSTRUCCIONES PARA PROGRESIÓN:
 1. 🎯 PRIORIDAD: Utiliza el PLAN ANTERIOR como base sólida
 2. 📊 AJUSTA según los PATRONES REALES observados en los eventos
-3. ✨ EVOLUCIONA el plan manteniendo coherencia con el anterior
-4. 📈 IDENTIFICA mejoras basadas en el comportamiento real del niño
-5. 🔧 OPTIMIZA horarios según los datos reales registrados
-6. Si el período contiene siestas (conteo>0), DEBES incluir al menos 1 siesta con hora cercana a ${enrichedStats?.napStats?.typicalTime || '14:00'} y duración ~${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min
-7. Para comidas, no inventes categorías sin eventos; puedes omitirlas o marcarlas como opcionales
+3. ⚠️ CRÍTICO: NO puede haber DOS EVENTOS DIFERENTES a la MISMA HORA (ej: no puede haber "almuerzo a las 12:00" y "siesta a las 12:00")
+4. ✨ EVOLUCIONA el plan manteniendo coherencia con el anterior
+5. 📈 IDENTIFICA mejoras basadas en el comportamiento real del niño
+6. 🔧 OPTIMIZA horarios según los datos reales registrados
+7. Si el período contiene siestas (conteo>0), DEBES incluir al menos 1 siesta con hora cercana a ${enrichedStats?.napStats?.typicalTime || '14:00'} y duración ~${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min
+8. Para comidas, no inventes categorías sin eventos; puedes omitirlas o marcarlas como opcionales
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {
@@ -1378,10 +1380,11 @@ ${transcriptAnalysis?.transcript || "No disponible"}
 
 INSTRUCCIONES PARA REFINAMIENTO:
 1. 🎯 PRIORIDAD MÁXIMA: Aplica todos los cambios específicos de horarios extraídos del transcript
-2. Si hay conflicto entre plan base y horarios extraídos, USA LOS HORARIOS EXTRAÍDOS
-3. Mantén la coherencia general del plan base, pero aplica refinamientos específicos
-4. Enfócate en los problemas identificados y cambios solicitados en la consulta
-5. Conserva elementos que funcionan del plan base
+2. ⚠️ CRÍTICO: NO puede haber DOS EVENTOS DIFERENTES a la MISMA HORA (ej: no puede haber "cena a las 19:00" y "baño a las 19:00")
+3. Si hay conflicto entre plan base y horarios extraídos, USA LOS HORARIOS EXTRAÍDOS
+4. Mantén la coherencia general del plan base, pero aplica refinamientos específicos
+5. Enfócate en los problemas identificados y cambios solicitados en la consulta
+6. Conserva elementos que funcionan del plan base
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {
@@ -1504,7 +1507,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
       model: "gpt-4",
       messages: __messages,
       max_tokens: 2000,
-      temperature: 0.7,
+      temperature: 0.3, // Baja temperature para mayor consistencia y evitar horarios duplicados
     })
 
     let responseContent = completion.choices[0]?.message?.content || ""
