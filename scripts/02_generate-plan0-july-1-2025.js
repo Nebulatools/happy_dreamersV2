@@ -1,5 +1,5 @@
-// Genera Plan 0 (initial) con fecha 1 julio 2025
-// Usa: survey + estadísticas históricas (junio ya poblado) + RAG (MongoDB vector store) + políticas
+// Genera Plan 0 (initial) con fecha 1 septiembre 2025
+// Usa: survey + estadísticas históricas + RAG (MongoDB vector store) + políticas
 
 require('dotenv').config()
 const { MongoClient, ObjectId } = require('mongodb')
@@ -23,8 +23,8 @@ if (!OPENAI_API_KEY) {
   process.exit(1)
 }
 
-// Fecha de “generación” del plan 0
-const PLAN_DATE_ISO = '2025-07-01T10:00:00.000Z'
+// Fecha de "generación" del plan 0
+const PLAN_DATE_ISO = '2025-09-01T10:00:00.000Z'
 const PLAN_DATE = new Date(PLAN_DATE_ISO)
 
 function minutesBetween(a, b) {
@@ -272,7 +272,7 @@ async function main() {
 
     // 4) Cargar eventos de toda la historia (Plan 0 usa todo el histórico)
     const events = await db.collection('events')
-      .find({ childId: new ObjectId(TARGET_CHILD_ID) })
+      .find({ childId: TARGET_CHILD_ID })
       .sort({ startTime: -1 })
       .toArray()
 
@@ -282,7 +282,7 @@ async function main() {
       process.exit(1)
     }
 
-    // 5) Edad en meses al 1 de julio 2025
+    // 5) Edad en meses al 1 de septiembre 2025
     const birthDate = child.birthDate ? new Date(child.birthDate) : null
     const ageInMonths = birthDate
       ? Math.floor((PLAN_DATE.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44))

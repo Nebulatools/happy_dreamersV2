@@ -131,40 +131,23 @@ export async function DELETE(
     const { db } = await connectToDatabase()
     logger.info("Conectado a MongoDB")
 
-    // 1) Intentar eliminar en la colección canónica 'events'
-    let deleted = 0
-    try {
-      const eventsCol = db.collection('events')
-      // Primero intentar con parentId para seguridad
-      let filter: any = { _id: new ObjectId(eventId), parentId: new ObjectId(session.user.id) }
-      let res = await eventsCol.deleteOne(filter)
-      logger.info('Resultado deleteOne en events (con parentId):', res)
+    // Eliminar SOLO de la colección canónica 'events' (fuente única de verdad)
+    const eventsCol = db.collection('events')
 
-      // Si no se eliminó, intentar solo con _id (eventos antiguos pueden no tener parentId)
-      if (res.deletedCount === 0) {
-        filter = { _id: new ObjectId(eventId) }
-        res = await eventsCol.deleteOne(filter)
-        logger.info('Resultado deleteOne en events (sin parentId):', res)
-      }
+    // Primero intentar con parentId para seguridad (usuarios normales)
+    let filter: any = { _id: new ObjectId(eventId), parentId: new ObjectId(session.user.id) }
+    let res = await eventsCol.deleteOne(filter)
+    logger.info('✅ Resultado deleteOne en events (con parentId):', res)
 
-      deleted += res.deletedCount || 0
-    } catch (e) {
-      // Si eventId no es ObjectId válido, ignorar y pasar al fallback
-      logger.warn('No se pudo usar ObjectId para events, intentando fallback en children.events')
+    // Si no se eliminó y el usuario es admin, intentar sin parentId
+    if (res.deletedCount === 0 && session.user.role === 'admin') {
+      filter = { _id: new ObjectId(eventId) }
+      res = await eventsCol.deleteOne(filter)
+      logger.info('✅ Resultado deleteOne en events (admin sin parentId):', res)
     }
 
-    // 2) Fallback: intentar eliminar en el array embebido children.events (compatibilidad)
-    if (deleted === 0) {
-      const resChild = await db.collection('children').updateOne(
-        { parentId: new ObjectId(session.user.id), "events._id": eventId },
-        { $pull: { events: { _id: eventId } } as any }
-      )
-      logger.info('Resultado updateOne en children.events:', resChild)
-      if (resChild.modifiedCount > 0) deleted += resChild.modifiedCount
-    }
-
-    if (deleted === 0) {
-      logger.error('Evento no encontrado o no pertenece al usuario')
+    if (res.deletedCount === 0) {
+      logger.error('❌ Evento no encontrado o no pertenece al usuario')
       return NextResponse.json({ error: 'Evento no encontrado o no pertenece al usuario' }, { status: 404 })
     }
 

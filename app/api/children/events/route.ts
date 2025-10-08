@@ -372,19 +372,41 @@ export async function POST(req: NextRequest) {
 
     logger.info("Evento a registrar:", event)
 
-    // Actualizar el documento del niño para agregar el evento
-    // Usamos Object.assign para resolver el error de tipo con $push
-    const result = await db.collection("children").updateOne(
-      { _id: new ObjectId(data.childId) },
-      { $push: { events: event } as any }
-    )
-
-    logger.info("Resultado de la operación:", result)
-
-    if (result.modifiedCount === 0) {
-      logger.error("No se pudo registrar el evento")
+    // GUARDAR EN COLECCIÓN CANÓNICA 'events' (fuente principal de verdad)
+    try {
+      await db.collection('events').insertOne({
+        _id: new ObjectId(event._id),
+        childId: new ObjectId(event.childId),
+        parentId: new ObjectId(session.user.id),
+        eventType: event.eventType,
+        emotionalState: event.emotionalState,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        duration: event.duration,
+        durationReadable: event.durationReadable,
+        notes: event.notes,
+        sleepDelay: event.sleepDelay,
+        awakeDelay: event.awakeDelay,
+        feedingType: event.feedingType,
+        feedingAmount: event.feedingAmount,
+        feedingDuration: event.feedingDuration,
+        babyState: event.babyState,
+        feedingNotes: event.feedingNotes,
+        medicationName: event.medicationName,
+        medicationDose: event.medicationDose,
+        medicationTime: event.medicationTime,
+        medicationNotes: event.medicationNotes,
+        activityDescription: event.activityDescription,
+        activityDuration: event.activityDuration,
+        activityImpact: event.activityImpact,
+        activityNotes: event.activityNotes,
+        createdAt: event.createdAt
+      })
+      logger.info(`✅ Evento ${event._id} guardado en colección 'events'`)
+    } catch (insertError: any) {
+      logger.error(`❌ Error guardando evento ${event._id} en colección 'events':`, insertError)
       return NextResponse.json(
-        { error: "No se pudo registrar el evento" },
+        { error: "No se pudo registrar el evento", details: insertError.message },
         { status: 500 }
       )
     }
@@ -483,34 +505,25 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    logger.info(`Niño encontrado: ${child.firstName} ${child.lastName}, devolviendo eventos`)
-    
-    // PRIMERO: Buscar eventos en el documento del niño (legacy/migración)
-    const eventsFromChild = child.events || []
-    logger.info(`Eventos encontrados en child.events: ${eventsFromChild.length}`)
-    
-    // SEGUNDO: Buscar eventos en la colección separada 'events'
+    logger.info(`Niño encontrado: ${child.firstName} ${child.lastName}, buscando eventos`)
+
+    // Buscar eventos SOLO en la colección 'events' (fuente única de verdad)
     // Para admins, no filtrar por parentId
-    const eventsQuery = isAdmin 
+    const eventsQuery = isAdmin
       ? { childId: new ObjectId(childId) }
       : { childId: new ObjectId(childId), parentId: new ObjectId(session.user.id) }
-    
-    const eventsFromCollection = await db.collection("events").find(eventsQuery).toArray()
-    logger.info(`Eventos encontrados en colección events: ${eventsFromCollection.length}`)
-    
-    // Combinar ambas fuentes de eventos
-    const events = [...eventsFromChild, ...eventsFromCollection]
-    logger.info(`Total de eventos combinados: ${events.length}`)
-    
+
+    const events = await db.collection("events").find(eventsQuery).toArray()
+    logger.info(`✅ Eventos encontrados en colección 'events': ${events.length}`)
+
     // Ordenar eventos por startTime antes de devolver
-    // Esto asegura consistencia en el orden, evitando problemas de posicionamiento  
     const sortedEvents = events.sort((a: any, b: any) => {
       if (!a.startTime || !b.startTime) return 0
       const timeA = new Date(a.startTime).getTime()
       const timeB = new Date(b.startTime).getTime()
       return timeA - timeB // Orden cronológico ascendente
     })
-    
+
     logger.info(`Total de eventos ordenados: ${sortedEvents.length}`)
     
     // Devolver los detalles del niño, incluyendo sus eventos ordenados
@@ -853,24 +866,36 @@ export async function DELETE(req: NextRequest) {
       )
     }
 
-    // Encontrar y eliminar el evento del array de eventos del niño
+    // PASO 1: Eliminar de la colección canónica 'events'
+    let deletedFromEvents = 0
+    try {
+      const eventsCol = db.collection('events')
+      // Intentar eliminar con ObjectId
+      let deleteResult = await eventsCol.deleteOne({ _id: new ObjectId(eventId) })
+      deletedFromEvents = deleteResult.deletedCount || 0
+      logger.info(`Eliminado de colección events (ObjectId): ${deletedFromEvents}`)
+
+      // Si no se eliminó, intentar con string (eventos antiguos)
+      if (deletedFromEvents === 0) {
+        deleteResult = await eventsCol.deleteOne({ _id: eventId })
+        deletedFromEvents = deleteResult.deletedCount || 0
+        logger.info(`Eliminado de colección events (string): ${deletedFromEvents}`)
+      }
+    } catch (e) {
+      logger.warn('Error eliminando de colección events:', e)
+    }
+
+    // PASO 2: Eliminar del array embebido children.events (compatibilidad)
     const result = await db.collection("children").updateOne(
       { _id: new ObjectId(childId) },
       { $pull: { events: { _id: eventId } } as any }
     )
 
-    logger.info("Resultado de la eliminación:", result)
+    logger.info("Resultado de la eliminación del array embebido:", result)
 
-    if (result.matchedCount === 0) {
-      logger.error("Niño no encontrado")
-      return NextResponse.json(
-        { error: "Niño no encontrado" },
-        { status: 404 }
-      )
-    }
-
-    if (result.modifiedCount === 0) {
-      logger.error("No se pudo eliminar el evento o no existe")
+    // Verificar que al menos se eliminó de uno de los dos lugares
+    if (deletedFromEvents === 0 && result.modifiedCount === 0) {
+      logger.error("No se pudo eliminar el evento de ninguna colección")
       return NextResponse.json(
         { error: "No se pudo eliminar el evento o no existe" },
         { status: 404 }

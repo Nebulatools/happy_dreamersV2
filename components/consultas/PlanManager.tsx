@@ -225,6 +225,7 @@ export function PlanManager({
 
       // Refrescar lista y seleccionar el más reciente (índice 0)
       await loadPlans()
+      await validatePlanCapabilities() // Re-validar capacidades después de eliminar
       setSelectedPlanIndex(0)
 
       toast({

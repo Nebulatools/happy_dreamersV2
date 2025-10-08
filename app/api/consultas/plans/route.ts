@@ -166,10 +166,10 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
     // Preferir colección canónica 'events'
     const eventsCol = db.collection('events')
 
-    // CORRECCIÓN CRÍTICA: Los eventos se guardan con childId como STRING, no como ObjectId
-    // Por eso debemos buscar usando el string directamente
+    // CORRECCIÓN: Todos los eventos fueron migrados a childId como ObjectId
+    // Por eso debemos buscar usando ObjectId
     const events = await eventsCol.find({
-      childId: childId,  // Usar string directamente, NO ObjectId
+      childId: new ObjectId(childId),  // ✅ Usar ObjectId después de la migración
       startTime: {
         $gt: afterDateISO,  // Mayor que (no igual) la fecha del plan
         $lte: nowISO         // Menor o igual a ahora
