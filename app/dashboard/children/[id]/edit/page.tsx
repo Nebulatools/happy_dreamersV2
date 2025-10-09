@@ -313,11 +313,11 @@ export default function EditChildProfilePage() {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex items-center space-x-4 pt-4">
+                  <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-4">
                     <Button
                       type="submit"
                       disabled={isLoading}
-                      className="bg-gradient-to-r from-[#628BE6] to-[#67C5FF] text-white hover:from-[#5478D2] hover:to-[#5AB1E6] shadow-sm px-8 py-3 h-12 font-semibold rounded-xl"
+                      className="w-full sm:w-auto bg-gradient-to-r from-[#628BE6] to-[#67C5FF] text-white hover:from-[#5478D2] hover:to-[#5AB1E6] shadow-sm px-6 sm:px-8 py-3 h-12 font-semibold rounded-xl"
                     >
                       <Save className="w-4 h-4 mr-2" />
                       {isLoading ? "Guardando..." : "Guardar Cambios"}
@@ -328,7 +328,7 @@ export default function EditChildProfilePage() {
                       variant="outline"
                       onClick={handleCancel}
                       disabled={isLoading}
-                      className="border-gray-300 text-gray-600 hover:bg-gray-50 px-8 py-3 h-12 font-semibold rounded-xl"
+                      className="w-full sm:w-auto border-gray-300 text-gray-600 hover:bg-gray-50 px-6 sm:px-8 py-3 h-12 font-semibold rounded-xl"
                     >
                       <X className="w-4 h-4 mr-2" />
                       Cancelar
