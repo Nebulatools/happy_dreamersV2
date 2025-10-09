@@ -42,14 +42,14 @@ export default function EditChildProfilePage() {
     const fetchChild = async () => {
       try {
         setIsFetching(true)
-        const response = await fetch(`/api/children/${childId}`)
+        const response = await fetch(`/api/children/${childId}`, { cache: 'no-store' })
         if (!response.ok) {
           throw new Error("Error al cargar los datos del niño")
         }
         const data = await response.json()
 
         // Normalizar género entrante para que el combo quede preseleccionado
-        const normalizeToSpanish = (g: string | undefined) => {
+        const normalizeToSpanish = (g: string | undefined | null) => {
           if (!g) return ""
           const v = String(g).toLowerCase()
           if (["male", "m", "masculino"].includes(v)) return "Masculino"
@@ -63,7 +63,14 @@ export default function EditChildProfilePage() {
           firstName: data.firstName || "",
           lastName: data.lastName || "",
           birthDate: data.birthDate || "",
-          gender: normalizeToSpanish(data.gender),
+          // Buscar el género en varias rutas posibles por compatibilidad
+          gender: normalizeToSpanish(
+            data.gender ??
+            data.child?.gender ??
+            data.profile?.gender ??
+            data.surveyData?.genero ??
+            data.surveyData?.gender
+          ),
         })
       } catch (error) {
         logger.error("Error:", error)
