@@ -47,12 +47,23 @@ export default function EditChildProfilePage() {
           throw new Error("Error al cargar los datos del niño")
         }
         const data = await response.json()
+
+        // Normalizar género entrante para que el combo quede preseleccionado
+        const normalizeToSpanish = (g: string | undefined) => {
+          if (!g) return ""
+          const v = String(g).toLowerCase()
+          if (["male", "m", "masculino"].includes(v)) return "Masculino"
+          if (["female", "f", "femenino"].includes(v)) return "Femenino"
+          if (["other", "otro", "x"].includes(v)) return "Otro"
+          return g // dejar tal cual si ya viene en español u otro valor
+        }
+
         setChildData(data)
         setFormData({
           firstName: data.firstName || "",
           lastName: data.lastName || "",
           birthDate: data.birthDate || "",
-          gender: data.gender || "",
+          gender: normalizeToSpanish(data.gender),
         })
       } catch (error) {
         logger.error("Error:", error)
@@ -93,12 +104,25 @@ export default function EditChildProfilePage() {
 
     setIsLoading(true)
     try {
+      // Mapear género al formato canónico si el backend lo usa en inglés
+      const mapGenderForApi = (g: string) => {
+        const v = String(g).toLowerCase()
+        if (v === 'masculino' || v === 'm') return 'male'
+        if (v === 'femenino' || v === 'f') return 'female'
+        if (v === 'otro' || v === 'x') return 'other'
+        return g
+      }
+
+      const payload = {
+        ...formData,
+        gender: mapGenderForApi(formData.gender)
+      }
       const response = await fetch(`/api/children/${childId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
