@@ -162,7 +162,7 @@ export default function EditChildProfilePage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-20 py-8">
+      <main className="max-w-7xl mx-auto px-4 md:px-10 py-6 md:py-8">
         <div className="mb-6">
           {/* Breadcrumb */}
           <div className="flex items-center text-gray-500 mb-10">
@@ -174,7 +174,7 @@ export default function EditChildProfilePage() {
           </div>
 
           {/* Form Card */}
-          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-100">
+          <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-100">
             <div className="p-8">
               {/* Header */}
               <div className="mb-8">
@@ -190,7 +190,7 @@ export default function EditChildProfilePage() {
               <form onSubmit={(e) => { e.preventDefault(); handleSave() }}>
                 <div className="space-y-8">
                   {/* Avatar Section */}
-                  <div className="flex items-center space-x-6">
+                  <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
                     <div className="relative">
                       <div className="w-32 h-32 rounded-full border-4 border-[#4A90E2] overflow-hidden bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center">
                         <span className="text-4xl font-semibold text-pink-600">
@@ -208,7 +208,7 @@ export default function EditChildProfilePage() {
                   </div>
 
                   {/* Form Fields */}
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {/* Nombre */}
                     <div>
                       <Label htmlFor="firstName" className="text-sm font-medium text-[#3A3A3A] mb-2 block">
