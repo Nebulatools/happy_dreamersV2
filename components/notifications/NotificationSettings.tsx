@@ -488,7 +488,7 @@ export function NotificationSettings({ childId, childName }: NotificationSetting
 
               {config.quietHours.enabled && (
                 <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Label htmlFor="quiet-start">Desde</Label>
                     <Input
                       id="quiet-start"
@@ -500,7 +500,7 @@ export function NotificationSettings({ childId, childName }: NotificationSetting
                           quietHours: { ...prev.quietHours, start: e.target.value }
                         }))
                       }
-                      className="w-32"
+                      className="w-28 sm:w-32"
                       disabled={!config.globalEnabled}
                     />
                     <Label htmlFor="quiet-end">hasta</Label>
@@ -514,7 +514,7 @@ export function NotificationSettings({ childId, childName }: NotificationSetting
                           quietHours: { ...prev.quietHours, end: e.target.value }
                         }))
                       }
-                      className="w-32"
+                      className="w-28 sm:w-32"
                       disabled={!config.globalEnabled}
                     />
                   </div>
@@ -528,10 +528,11 @@ export function NotificationSettings({ childId, childName }: NotificationSetting
         </Tabs>
 
         {/* Botón guardar */}
-        <div className="flex justify-end pt-4">
+        <div className="flex flex-col sm:flex-row justify-end pt-4">
           <Button
             onClick={saveSettings}
             disabled={saving || !config.globalEnabled}
+            className="w-full sm:w-auto"
           >
             {saving ? (
               <>
