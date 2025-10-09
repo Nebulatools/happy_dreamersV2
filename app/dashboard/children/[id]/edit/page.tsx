@@ -46,7 +46,9 @@ export default function EditChildProfilePage() {
         if (!response.ok) {
           throw new Error("Error al cargar los datos del niño")
         }
-        const data = await response.json()
+        const raw = await response.json()
+        // Soportar varias formas de respuesta (envoltura estándar u objeto directo)
+        const data: any = raw?.data ?? raw?.child ?? (Array.isArray(raw?.children) ? raw.children[0] : raw)
 
         // Normalizar género entrante para que el combo quede preseleccionado
         const normalizeToSpanish = (g: string | undefined | null) => {
