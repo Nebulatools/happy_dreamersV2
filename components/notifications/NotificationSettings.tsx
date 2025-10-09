@@ -266,10 +266,17 @@ export function NotificationSettings({ childId, childName }: NotificationSetting
         )}
 
         <Tabs defaultValue="events" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="events">Eventos</TabsTrigger>
-            <TabsTrigger value="channels">Canales</TabsTrigger>
-            <TabsTrigger value="quiet">Horario Silencioso</TabsTrigger>
+          {/* Tabs list: scrollable in mobile to avoid overlap */}
+          <TabsList className="flex w-full gap-2 overflow-x-auto no-scrollbar whitespace-nowrap p-1 rounded-lg bg-muted/40">
+            <TabsTrigger value="events" className="flex-shrink-0 px-3 py-2 text-sm sm:text-base">
+              Eventos
+            </TabsTrigger>
+            <TabsTrigger value="channels" className="flex-shrink-0 px-3 py-2 text-sm sm:text-base">
+              Canales
+            </TabsTrigger>
+            <TabsTrigger value="quiet" className="flex-shrink-0 px-3 py-2 text-xs sm:text-sm">
+              Horario Silencioso
+            </TabsTrigger>
           </TabsList>
 
           {/* Configuración de eventos */}
