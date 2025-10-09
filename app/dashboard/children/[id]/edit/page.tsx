@@ -42,7 +42,7 @@ export default function EditChildProfilePage() {
     const fetchChild = async () => {
       try {
         setIsFetching(true)
-        const response = await fetch(`/api/children/${childId}`, { cache: 'no-store' })
+        const response = await fetch(`/api/children?id=${childId}`, { cache: 'no-store' })
         if (!response.ok) {
           throw new Error("Error al cargar los datos del niño")
         }
@@ -124,12 +124,12 @@ export default function EditChildProfilePage() {
         ...formData,
         gender: mapGenderForApi(formData.gender)
       }
-      const response = await fetch(`/api/children/${childId}`, {
+      const response = await fetch(`/api/children`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ id: childId, ...payload }),
       })
 
       if (!response.ok) {
