@@ -178,7 +178,7 @@ export default function ConfiguracionPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6 pb-24 safe-area-bottom min-h-[100svh]">
+    <div className="w-full max-w-[720px] md:max-w-6xl mx-auto px-4 md:px-6 space-y-6 pb-24 safe-area-bottom min-h-[100svh]">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-[#1F2937]">Configuración de Cuenta</h1>
