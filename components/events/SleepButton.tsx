@@ -12,6 +12,7 @@ import { useDevTime } from '@/context/dev-time-context'
 import { SleepDelayModal } from './SleepDelayModal'
 import { NightWakingModal } from './NightWakingModal'
 import { useChildPlan } from '@/hooks/use-child-plan'
+import { ManualEventModal } from './ManualEventModal'
 
 interface SleepButtonProps {
   childId: string
@@ -49,6 +50,7 @@ export function SleepButton({
     eventType: 'sleep' | 'nap',
     startTime: string
   } | null>(null)
+  const [showManualNap, setShowManualNap] = useState(false)
   
   // Obtener el plan del niño para determinar horarios
   const { schedule, isNightTime: isNightTimeByPlan } = useChildPlan(childId)
@@ -358,6 +360,13 @@ export function SleepButton({
       const now = getCurrentTime()
       const currentHour = now.getHours()
       
+      // Para Siesta, abrir el modal manual con hora inicio/fin
+      if (config.action === 'nap' && sleepState.status !== 'napping') {
+        setShowManualNap(true)
+        setIsProcessing(false)
+        return
+      }
+
       if (config.action === 'wake') {
         // DESPERTAR NORMAL (de siesta o despertar definitivo de la mañana)
         console.log('[DEBUG] Despertar normal detectado', {
@@ -554,6 +563,17 @@ export function SleepButton({
         onConfirm={handleNightWakingConfirm}
         childName={childName}
         childId={childId}
+      />
+
+      {/* Modal manual específico para siesta con inicio/fin */}
+      <ManualEventModal
+        open={showManualNap}
+        onClose={() => { setShowManualNap(false); refetch(); onEventRegistered?.() }}
+        childId={childId}
+        childName={childName}
+        onEventRegistered={() => { refetch(); onEventRegistered?.() }}
+        defaultEventType="nap"
+        lockEventType
       />
     </div>
   )

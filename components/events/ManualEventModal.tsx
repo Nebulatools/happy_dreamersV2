@@ -24,6 +24,9 @@ interface ManualEventModalProps {
   childId: string
   childName: string
   onEventRegistered?: () => void
+  // Opcionales: forzar tipo de evento inicial y/o bloquear selector
+  defaultEventType?: string
+  lockEventType?: boolean
 }
 
 /**
@@ -35,7 +38,9 @@ export function ManualEventModal({
   onClose, 
   childId, 
   childName, 
-  onEventRegistered 
+  onEventRegistered,
+  defaultEventType,
+  lockEventType
 }: ManualEventModalProps) {
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -48,7 +53,13 @@ export function ManualEventModal({
   }
 
   // Estado del formulario - completo y mejorado
-  const [eventType, setEventType] = useState<string>('sleep')
+  const [eventType, setEventType] = useState<string>(defaultEventType || 'sleep')
+  // Sincronizar tipo por defecto cuando se abre el modal
+  useEffect(() => {
+    if (open && defaultEventType) {
+      setEventType(defaultEventType)
+    }
+  }, [open, defaultEventType])
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [startTime, setStartTime] = useState(getCurrentHourRounded())
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
@@ -305,22 +316,24 @@ export function ManualEventModal({
         </DialogHeader>
         
         <div className="space-y-4">
-          {/* Tipo de evento */}
-          <div>
-            <Label>Tipo de evento</Label>
-            <Select value={eventType} onValueChange={(val: any) => setEventType(val)}>
-              <SelectTrigger className="min-h-[44px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {manualEventTypes.map((type) => (
-                  <SelectItem key={type.id} value={type.id}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Tipo de evento (ocultable) */}
+          {!lockEventType ? (
+            <div>
+              <Label>Tipo de evento</Label>
+              <Select value={eventType} onValueChange={(val: any) => setEventType(val)}>
+                <SelectTrigger className="min-h-[44px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {manualEventTypes.map((type) => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
           
           {/* Fecha y hora de inicio */}
           <div className="grid grid-cols-2 gap-2">
@@ -502,6 +515,43 @@ export function ManualEventModal({
                       </Button>
                     </div>
                   </div>
+                  <div>
+                    <Label>Duración (min)</Label>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setFeedingDuration(Math.max(1, feedingDuration - 5))}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Input
+                        type="number"
+                        value={feedingDuration}
+                        onChange={(e) => setFeedingDuration(parseInt(e.target.value) || 1)}
+                        className="text-center"
+                        min="1"
+                        max="120"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setFeedingDuration(Math.min(120, feedingDuration + 5))}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Duración para Pecho y Sólidos */}
+              {(feedingType === 'breast' || feedingType === 'solids') && (
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Espaciador para mantener consistencia visual */}
+                  <div className="hidden sm:block" />
                   <div>
                     <Label>Duración (min)</Label>
                     <div className="flex items-center gap-2">
