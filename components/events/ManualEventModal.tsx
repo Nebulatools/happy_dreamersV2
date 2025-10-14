@@ -547,11 +547,43 @@ export function ManualEventModal({
                 </div>
               )}
 
-              {/* Duración para Pecho y Sólidos */}
+              {/* Controles para Pecho y Sólidos: Duración y (para sólidos) Cantidad en gramos */}
               {(feedingType === 'breast' || feedingType === 'solids') && (
                 <div className="grid grid-cols-2 gap-2">
-                  {/* Espaciador para mantener consistencia visual */}
-                  <div className="hidden sm:block" />
+                  {/* Cantidad en gramos solo para sólidos */}
+                  {feedingType === 'solids' ? (
+                    <div>
+                      <Label>Cantidad (gr)</Label>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setFeedingAmount(Math.max(1, (feedingAmount || 0) - 10))}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <Input
+                          type="number"
+                          value={feedingAmount}
+                          onChange={(e) => setFeedingAmount(parseInt(e.target.value) || 0)}
+                          className="text-center"
+                          min="1"
+                          max="500"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setFeedingAmount(Math.min(500, (feedingAmount || 0) + 10))}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="hidden sm:block" />
+                  )}
                   <div>
                     <Label>Duración (min)</Label>
                     <div className="flex items-center gap-2">
