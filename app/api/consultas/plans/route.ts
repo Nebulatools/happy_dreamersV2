@@ -680,9 +680,9 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
   const effectiveUserId = child.parentId?.toString?.() || userId
 
   // 2. Calcular estadísticas del niño
-  // CORRECCIÓN: childId se guarda como string, no como ObjectId
+  // CORRECCIÓN: Todos los eventos fueron migrados a childId como ObjectId
   const events = await db.collection("events").find({
-    childId: childId,  // Usar string directamente
+    childId: new ObjectId(childId),  // ✅ Usar ObjectId después de la migración
   }).sort({ startTime: -1 }).toArray()
 
   // Usar TODA la historia de eventos para Plan 0 (no limitar a 30 días)
@@ -785,9 +785,9 @@ async function generateEventBasedPlan(
 
   let newEvents: any[] = []
   const eventsCol = db.collection("events")
-  // CORRECCIÓN: childId se guarda como string, no como ObjectId
+  // CORRECCIÓN: Todos los eventos fueron migrados a childId como ObjectId
   newEvents = await eventsCol.find({
-    childId: childId,  // Usar string directamente
+    childId: new ObjectId(childId),  // ✅ Usar ObjectId después de la migración
     startTime: { $gt: eventsFromDate.toISOString(), $lte: eventsToDate.toISOString() }
   }).sort({ startTime: 1 }).toArray()
 

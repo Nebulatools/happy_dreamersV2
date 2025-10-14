@@ -272,7 +272,7 @@ async function main() {
 
     // 4) Cargar eventos de toda la historia (Plan 0 usa todo el histórico)
     const events = await db.collection('events')
-      .find({ childId: TARGET_CHILD_ID })
+      .find({ childId: new ObjectId(TARGET_CHILD_ID) })
       .sort({ startTime: -1 })
       .toArray()
 

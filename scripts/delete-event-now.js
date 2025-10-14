@@ -1,9 +1,9 @@
-// Script para eliminar evento fantasma AHORA
+a// Script para eliminar evento fantasma AHORA
 const { MongoClient, ObjectId } = require('mongodb')
 
 const MONGODB_URI = 'mongodb+srv://jaco:nebulatools@nebulacluster01.1rmm8s4.mongodb.net/?retryWrites=true&w=majority&appName=NebulaCluster01'
 const DB_NAME = 'jaco_db_ultimate_2025'
-const EVENT_ID = '68e56276048989ba85217995'
+const EVENT_ID = '68e554a124bd3e59c4fddb60'
 const CHILD_ID = '68d1af5315d0e9b1cc189544'
 
 async function deleteEvent() {
