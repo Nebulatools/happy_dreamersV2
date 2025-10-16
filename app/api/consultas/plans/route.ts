@@ -1279,10 +1279,11 @@ INSTRUCCIONES:
 1. Crea un plan DETALLADO con horarios específicos
 2. Incluye horarios para: dormir, despertar, comidas y siestas (NO incluir actividades)
 3. ⚠️ CRÍTICO: NO puede haber DOS EVENTOS DIFERENTES a la MISMA HORA (ej: no puede haber "desayuno a las 08:00" y "jugar a las 08:00")
-4. 🕐 HORARIOS CERRADOS OBLIGATORIOS: TODOS los horarios deben usar números CERRADOS/REDONDOS
-   - ✅ CORRECTO: 7:00, 8:00, 12:00, 14:00, 19:00, 20:00
-   - ❌ INCORRECTO: 8:01, 5:03, 12:30, 14:15, 19:45
-   - Solo usar :00 o :30 si es absolutamente necesario para evitar conflictos
+4. 🕐 USA HORARIOS NATURALES (COMO LO HARÍA UN HUMANO):
+   - Sigue los horarios del RAG y las estadísticas del niño
+   - ❌ NO INVENTES números aleatorios raros de minutos como: :01, :03, :05, :07, :11, :13, :17, :23, :27, :33, :37, :42, :47, :51, :53, :57
+   - ✅ Usa horarios naturales/sensatos como: 7:00, 8:00, 8:30, 12:00, 14:00, 14:30, 19:00, 20:00
+   - SIGUE el RAG para determinar los horarios apropiados
 5. 📊 ESTRATEGIA PROGRESIVA (Plan 0):
    - USA los registros actuales (estadísticas del niño) como PUNTO DE PARTIDA
    - Identifica la diferencia entre estadísticas actuales y horarios ideales del RAG
@@ -1354,10 +1355,11 @@ INSTRUCCIONES PARA PROGRESIÓN:
 1. 🎯 PRIORIDAD: Utiliza el PLAN ANTERIOR como base sólida
 2. 📊 AJUSTA según los PATRONES REALES observados en los eventos
 3. ⚠️ CRÍTICO: NO puede haber DOS EVENTOS DIFERENTES a la MISMA HORA (ej: no puede haber "almuerzo a las 12:00" y "siesta a las 12:00")
-4. 🕐 HORARIOS CERRADOS OBLIGATORIOS: TODOS los horarios deben usar números CERRADOS/REDONDOS
-   - ✅ CORRECTO: 7:00, 8:00, 12:00, 14:00, 19:00, 20:00
-   - ❌ INCORRECTO: 8:01, 5:03, 12:30, 14:15, 19:45
-   - Solo usar :00 o :30 si es absolutamente necesario para evitar conflictos
+4. 🕐 USA HORARIOS NATURALES (COMO LO HARÍA UN HUMANO):
+   - Sigue los horarios del RAG y las estadísticas del niño
+   - ❌ NO INVENTES números aleatorios raros de minutos como: :01, :03, :05, :07, :11, :13, :17, :23, :27, :33, :37, :42, :47, :51, :53, :57
+   - ✅ Usa horarios naturales/sensatos como: 7:00, 8:00, 8:30, 12:00, 14:00, 14:30, 19:00, 20:00
+   - SIGUE el RAG para determinar los horarios apropiados
 5. 📈 ESTRATEGIA PROGRESIVA (Plan N):
    - CONTINÚA avanzando desde el plan anterior hacia el objetivo ideal del RAG
    - Evalúa qué tan lejos está el plan anterior del objetivo ideal
