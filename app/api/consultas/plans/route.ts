@@ -1188,10 +1188,11 @@ async function searchRAGForPlan(ageInMonths: number | null) {
     const vectorStore = getMongoDBVectorStoreManager()
     
     const searchQueries = [
+      `horarios ideales para niños de ${ageInMonths} meses`,  // 🎯 PRIORIDAD: encontrar documento 4 (HD Horarios de sueño)
       `rutina de sueño para niños de ${ageInMonths} meses`,
       "horarios de comida infantil",
       "siestas apropiadas por edad",
-      "rutinas de acostarse"
+      "transición de siestas según edad"  // Para capturar info de transiciones
     ]
 
     let allResults: any[] = []
@@ -1264,19 +1265,35 @@ DATOS DEL CUESTIONARIO:
 ` : ''}
 
 ${ragContext ? `
-CONOCIMIENTO ESPECIALIZADO:
+🎯 OBJETIVO IDEAL (hacia donde queremos llegar progresivamente):
+El siguiente contenido muestra los HORARIOS IDEALES y MEJORES PRÁCTICAS según la edad del niño.
+Este es el OBJETIVO FINAL hacia donde queremos llevar al niño de forma GRADUAL (no de golpe).
+
 ${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join("\n\n---\n\n")}
+
+⚠️ IMPORTANTE: Estos son horarios IDEALES. En el Plan 0, usa los registros actuales como punto de partida
+y da el PRIMER PASO suave hacia estos objetivos ideales.
 ` : ''}
 
 INSTRUCCIONES:
 1. Crea un plan DETALLADO con horarios específicos
 2. Incluye horarios para: dormir, despertar, comidas y siestas (NO incluir actividades)
 3. ⚠️ CRÍTICO: NO puede haber DOS EVENTOS DIFERENTES a la MISMA HORA (ej: no puede haber "desayuno a las 08:00" y "jugar a las 08:00")
-4. Adapta las recomendaciones a la edad del niño
-5. Proporciona objetivos claros y medibles
-6. Incluye recomendaciones específicas para los padres
-7. Si hubo siestas registradas en el histórico, DEBES incluir al menos 1 siesta en un horario cercano a la hora típica observada (${enrichedStats?.napStats?.typicalTime || '14:00'}) y duración aproximada (${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min)
-8. Para comidas, si no hubo eventos en una categoría (n=0), no inventes el horario; puedes omitirla o marcarla como opcional
+4. 🕐 HORARIOS CERRADOS OBLIGATORIOS: TODOS los horarios deben usar números CERRADOS/REDONDOS
+   - ✅ CORRECTO: 7:00, 8:00, 12:00, 14:00, 19:00, 20:00
+   - ❌ INCORRECTO: 8:01, 5:03, 12:30, 14:15, 19:45
+   - Solo usar :00 o :30 si es absolutamente necesario para evitar conflictos
+5. 📊 ESTRATEGIA PROGRESIVA (Plan 0):
+   - USA los registros actuales (estadísticas del niño) como PUNTO DE PARTIDA
+   - Identifica la diferencia entre estadísticas actuales y horarios ideales del RAG
+   - Da el PRIMER PASO SUAVE (NO saltar directamente al ideal)
+   - Ejemplo: Si el niño se duerme a las 22:00 y el ideal es 20:00, propón 21:00 para Plan 0 (no 20:00)
+   - Los planes 1, 2, 3... irán acercándose progresivamente al ideal
+6. Adapta las recomendaciones a la edad del niño
+7. Proporciona objetivos claros y medibles basados en el PRIMER PASO hacia el ideal
+8. Incluye recomendaciones específicas para los padres sobre cómo implementar este primer ajuste
+9. Si hubo siestas registradas en el histórico, DEBES incluir al menos 1 siesta en un horario cercano a la hora típica observada (${enrichedStats?.napStats?.typicalTime || '14:00'}) y duración aproximada (${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min)
+10. Para comidas, si no hubo eventos en una categoría (n=0), no inventes el horario; puedes omitirla o marcarla como opcional
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {
@@ -1323,19 +1340,34 @@ ${enrichedStats ? `- Siestas (período): total=${enrichedStats?.napStats?.count 
 - Comidas típicas (período): desayuno=${enrichedStats?.feedingStats?.breakfast || 'N/A'} (n=${enrichedStats?.feedingStats?.breakfastCount || 0}), almuerzo=${enrichedStats?.feedingStats?.lunch || 'N/A'} (n=${enrichedStats?.feedingStats?.lunchCount || 0}), merienda=${enrichedStats?.feedingStats?.snack || 'N/A'} (n=${enrichedStats?.feedingStats?.snackCount || 0}), cena=${enrichedStats?.feedingStats?.dinner || 'N/A'} (n=${enrichedStats?.feedingStats?.dinnerCount || 0})` : ''}
 
 ${ragContext ? `
-CONOCIMIENTO ESPECIALIZADO ACTUALIZADO:
+🎯 OBJETIVO IDEAL (hacia donde continuamos avanzando):
+El siguiente contenido muestra los HORARIOS IDEALES y MEJORES PRÁCTICAS según la edad del niño.
+Este es el OBJETIVO FINAL hacia donde seguimos avanzando progresivamente desde el plan anterior.
+
 ${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join("\n\n---\n\n")}
+
+⚠️ IMPORTANTE: Usa el plan anterior como base y da el SIGUIENTE PASO progresivo hacia estos horarios ideales.
+NO saltes directamente al ideal si el plan anterior está lejos. Avanza gradualmente.
 ` : ''}
 
 INSTRUCCIONES PARA PROGRESIÓN:
 1. 🎯 PRIORIDAD: Utiliza el PLAN ANTERIOR como base sólida
 2. 📊 AJUSTA según los PATRONES REALES observados en los eventos
 3. ⚠️ CRÍTICO: NO puede haber DOS EVENTOS DIFERENTES a la MISMA HORA (ej: no puede haber "almuerzo a las 12:00" y "siesta a las 12:00")
-4. ✨ EVOLUCIONA el plan manteniendo coherencia con el anterior
-5. 📈 IDENTIFICA mejoras basadas en el comportamiento real del niño
-6. 🔧 OPTIMIZA horarios según los datos reales registrados
-7. Si el período contiene siestas (conteo>0), DEBES incluir al menos 1 siesta con hora cercana a ${enrichedStats?.napStats?.typicalTime || '14:00'} y duración ~${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min
-8. Para comidas, no inventes categorías sin eventos; puedes omitirlas o marcarlas como opcionales
+4. 🕐 HORARIOS CERRADOS OBLIGATORIOS: TODOS los horarios deben usar números CERRADOS/REDONDOS
+   - ✅ CORRECTO: 7:00, 8:00, 12:00, 14:00, 19:00, 20:00
+   - ❌ INCORRECTO: 8:01, 5:03, 12:30, 14:15, 19:45
+   - Solo usar :00 o :30 si es absolutamente necesario para evitar conflictos
+5. 📈 ESTRATEGIA PROGRESIVA (Plan N):
+   - CONTINÚA avanzando desde el plan anterior hacia el objetivo ideal del RAG
+   - Evalúa qué tan lejos está el plan anterior del objetivo ideal
+   - Da el SIGUIENTE PASO PROGRESIVO (no saltes directamente al ideal)
+   - Ejemplo: Si Plan 0 propuso 21:00 y el ideal es 20:00, ahora propón 20:30 o 20:00 según tolerancia observada
+   - Usa los eventos reales para validar si el niño está tolerando bien los ajustes
+6. ✨ EVOLUCIONA el plan manteniendo coherencia con el anterior
+7. 🔧 OPTIMIZA horarios según los datos reales registrados y el siguiente paso hacia el ideal
+8. Si el período contiene siestas (conteo>0), DEBES incluir al menos 1 siesta con hora cercana a ${enrichedStats?.napStats?.typicalTime || '14:00'} y duración ~${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min
+9. Para comidas, no inventes categorías sin eventos; puedes omitirlas o marcarlas como opcionales
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {
