@@ -14,12 +14,22 @@ import { processSleepStatistics } from "@/lib/sleep-calculations"
 import { createLogger } from "@/lib/logger"
 import { ChildPlan } from "@/types/models"
 import { derivePlanPolicy } from "@/lib/plan-policies"
+import * as fs from "fs"
+import * as path from "path"
 
 const logger = createLogger("API:consultas:plans:route")
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
+
+// ================================
+// CONFIGURACIÓN DE FUENTE RAG
+// ================================
+// Para cambiar entre RAG_SUMMARY.md (archivo estático) y RAG vectorial (MongoDB):
+// - 'summary': Usa docs/RAG_SUMMARY.md (recomendado para garantizar horarios ideales)
+// - 'vector': Usa MongoDB vector search (escalable pero requiere queries precisas)
+const RAG_SOURCE: 'summary' | 'vector' = 'summary'
 
 // ================================
 // FUNCIONES UTILITARIAS PARA VERSIONES DE PLANES
@@ -1182,11 +1192,128 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
   }
 }
 
-// Función para buscar información relevante en RAG para planes
+// ================================
+// FUNCIONES DE LECTURA DE RAG
+// ================================
+
+/**
+ * Carga contenido RAG desde el archivo RAG_SUMMARY.md
+ * Prioriza Document 4 (HD Horarios de sueño.pdf) que contiene horarios ideales por edad
+ */
+async function loadRAGFromSummary(ageInMonths: number | null): Promise<Array<{source: string, content: string}>> {
+  try {
+    // Ruta al archivo RAG_SUMMARY.md
+    const ragFilePath = path.join(process.cwd(), 'docs', 'RAG_SUMMARY.md')
+
+    logger.info(`Leyendo RAG desde archivo: ${ragFilePath}`)
+
+    // Leer el archivo
+    const fileContent = fs.readFileSync(ragFilePath, 'utf-8')
+
+    // Parsear el contenido para extraer los 4 documentos
+    // Estructura del archivo:
+    // ## Document 1: MANUAL HAPPY DREAMERS.pdf
+    // ## Document 2: HAPPY_DREAMERS_SIESTA.pdf
+    // ## Document 3: SLEEP_BASICS.pdf
+    // ## Document 4: HD Horarios de sueño.pdf (PRIORIDAD - contiene horarios ideales)
+
+    const documents: Array<{source: string, content: string}> = []
+
+    // Split por "## Document" para separar cada documento
+    const docSections = fileContent.split(/## Document \d+:/).filter(s => s.trim().length > 0)
+
+    // Extraer metadata de cada sección
+    const docPattern = /## Document (\d+): (.+?)\n/g
+    let match
+    const docMetadata: Array<{num: number, name: string}> = []
+
+    while ((match = docPattern.exec(fileContent)) !== null) {
+      docMetadata.push({
+        num: parseInt(match[1]),
+        name: match[2].trim()
+      })
+    }
+
+    // Procesar cada documento
+    docSections.forEach((section, index) => {
+      const docInfo = docMetadata[index]
+      if (!docInfo) return
+
+      // Limpiar el contenido (eliminar metadata de chunks)
+      const cleanContent = section
+        .replace(/^\s*\d+\)\s+/gm, '')  // Eliminar numeración de chunks
+        .replace(/\*\*Metadata\*\*:[\s\S]*?(?=\n\n|\n\d+\)|\n##|$)/g, '')  // Eliminar secciones de metadata
+        .trim()
+
+      if (cleanContent.length > 100) {  // Solo incluir si tiene contenido significativo
+        documents.push({
+          source: docInfo.name,
+          content: cleanContent
+        })
+      }
+    })
+
+    logger.info(`📚 RAG Summary cargado: ${documents.length} documentos encontrados`)
+
+    // Priorizar Document 4 (HD Horarios de sueño.pdf) - moverlo al principio
+    const doc4Index = documents.findIndex(doc => doc.source.includes('Horarios de sueño'))
+    if (doc4Index > 0) {
+      const doc4 = documents.splice(doc4Index, 1)[0]
+      documents.unshift(doc4)
+      logger.info(`🎯 Document 4 (Horarios ideales) priorizado`)
+    }
+
+    // Si tenemos edad del niño, podemos filtrar/priorizar contenido relevante
+    if (ageInMonths !== null) {
+      logger.info(`👶 Edad del niño: ${ageInMonths} meses - filtrando contenido relevante`)
+
+      // Filtrar Document 4 por edad si es posible
+      const doc4 = documents.find(doc => doc.source.includes('Horarios de sueño'))
+      if (doc4) {
+        // Buscar sección relevante por edad en el contenido
+        const ageRanges = [
+          { min: 0, max: 8, keywords: ['6 meses', '6m', 'seis meses'] },
+          { min: 8, max: 12, keywords: ['9 meses', '9m', 'nueve meses'] },
+          { min: 12, max: 16, keywords: ['13-15 meses', '13 meses', '15 meses'] },
+          { min: 15, max: 24, keywords: ['15-18 meses', '18 meses', '2 años'] },
+          { min: 24, max: 36, keywords: ['2.5 años', '2 años', '30 meses'] },
+          { min: 36, max: 60, keywords: ['3-4 años', '3 años', '4 años'] }
+        ]
+
+        const relevantRange = ageRanges.find(range => ageInMonths >= range.min && ageInMonths < range.max)
+        if (relevantRange) {
+          logger.info(`🔍 Rango de edad detectado: ${relevantRange.keywords.join(', ')}`)
+        }
+      }
+    }
+
+    // Limitar a 6 documentos totales (igual que vector search)
+    return documents.slice(0, 6)
+
+  } catch (error) {
+    logger.error("Error leyendo RAG_SUMMARY.md:", error)
+    // Retornar array vacío en caso de error (fallback silencioso)
+    return []
+  }
+}
+
+/**
+ * Función para buscar información relevante en RAG para planes
+ * Usa RAG_SOURCE para determinar si buscar en RAG_SUMMARY.md o en vector search
+ */
 async function searchRAGForPlan(ageInMonths: number | null) {
   try {
+    // ✅ SWITCH: Elegir fuente RAG según configuración
+    if (RAG_SOURCE === 'summary') {
+      logger.info("🗂️  Usando RAG_SUMMARY.md como fuente (Document 4 priorizado)")
+      return await loadRAGFromSummary(ageInMonths)
+    }
+
+    // 🔍 VECTOR SEARCH: Búsqueda semántica en MongoDB
+    logger.info("🔍 Usando búsqueda vectorial como fuente")
+
     const vectorStore = getMongoDBVectorStoreManager()
-    
+
     const searchQueries = [
       `horarios ideales para niños de ${ageInMonths} meses`,  // 🎯 PRIORIDAD: encontrar documento 4 (HD Horarios de sueño)
       `rutina de sueño para niños de ${ageInMonths} meses`,
@@ -1196,13 +1323,13 @@ async function searchRAGForPlan(ageInMonths: number | null) {
     ]
 
     let allResults: any[] = []
-    
+
     for (const query of searchQueries) {
       const results = await vectorStore.searchSimilar(query, 2)
       allResults = [...allResults, ...results]
     }
 
-    const uniqueResults = allResults.filter((item, index, arr) => 
+    const uniqueResults = allResults.filter((item, index, arr) =>
       index === arr.findIndex(t => t.metadata?.source === item.metadata?.source)
     ).slice(0, 6)
 
