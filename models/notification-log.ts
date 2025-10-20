@@ -314,3 +314,6 @@ const NotificationLog = mongoose.models.NotificationLog ||
   mongoose.model<INotificationLog>("NotificationLog", NotificationLogSchema)
 
 export default NotificationLog
+
+// Re-export NotificationType for convenience in API routes
+export { NotificationType } from './notification-settings'

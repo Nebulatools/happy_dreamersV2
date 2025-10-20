@@ -4,7 +4,7 @@ import { requireRole } from '@/core-v3/api/rbac'
 import { getRateLimiter } from '@/lib/rate-limit/adapter'
 import { getUserOrIPKey } from '@/lib/rate-limit/identity'
 import { applyRateLimitHeaders } from '@/lib/rate-limit/headers'
-import { stdOk, stdError, sanitizeText, httpStatusFor, logApi } from '@/lib/api-utils-v2'
+import { stdOk, stdError, sanitizeText, httpStatusFor, logApi, ApiErrorV2, ApiErrorType } from '@/lib/api-utils-v2'
 import { hashId } from '@/lib/observability/hash'
 import { observeEndpointLatency } from '@/core-v3/observability/metrics'
 import { isV2ApiEnabled } from '@/lib/flags'
@@ -128,4 +128,105 @@ function withHeaders(res: NextResponse, requestId: string, t0?: number) {
   return res
 }
 
-export const schemas = { z }
+export function createApiMiddleware(options: {
+  allowedMethods: string[]
+  validateBody?: ZodSchema<any>
+  validateQuery?: ZodSchema<any>
+  validateParams?: ZodSchema<any>
+  sanitizeHtml?: boolean
+  maxBodySize?: number
+  customValidators?: Array<(req: Request) => Promise<void> | void>
+  rateLimitConfig?: { enabled: boolean; limit: number; windowMs: number; key?: string }
+}) {
+  return async (req: Request, ctx?: { params?: any }) => {
+    const rid = getRequestId(req)
+    const method = req.method.toUpperCase()
+    if (options.allowedMethods && !options.allowedMethods.includes(method)) {
+      throw new ApiErrorV2(ApiErrorType.FORBIDDEN, 'Método no permitido')
+    }
+
+    // Rate limit (if enabled)
+    if (options.rateLimitConfig?.enabled) {
+      const id = getUserOrIPKey(req)
+      const key = `${options.rateLimitConfig.key || 'api_v2'}:${id}`
+      const limiter = getRateLimiter()
+      const rl = await limiter.check(key, options.rateLimitConfig.windowMs, options.rateLimitConfig.limit)
+      if (rl.limited) {
+        const res429 = stdError('rate_limited', 'Too many requests', rid, 429)
+        applyRateLimitHeaders(res429 as any, rl)
+        // Convert to error so withErrorHandlerV2 can catch if bubbled
+        const err = new ApiErrorV2(ApiErrorType.RATE_LIMIT_EXCEEDED, 'Demasiadas solicitudes')
+        ;(err as any).response = res429
+        throw err
+      }
+    }
+
+    // Parse query
+    const url = new URL(req.url)
+    const queryObj: Record<string, any> = {}
+    url.searchParams.forEach((v, k) => {
+      queryObj[k] = v
+    })
+
+    // Parse body when applicable
+    let body: any = undefined
+    if (method !== 'GET' && method !== 'HEAD') {
+      try {
+        body = await req.json()
+      } catch {
+        throw new ApiErrorV2(ApiErrorType.BAD_REQUEST, 'JSON malformado')
+      }
+      if (options.sanitizeHtml) body = sanitizeText(body)
+    }
+
+    // Validate
+    if (options.validateBody && typeof body !== 'undefined') {
+      const parsed = options.validateBody.safeParse(body)
+      if (!parsed.success) {
+        throw new ApiErrorV2(ApiErrorType.VALIDATION_ERROR, 'Cuerpo inválido', parsed.error.issues)
+      }
+      body = parsed.data
+    }
+
+    let query = queryObj
+    if (options.validateQuery) {
+      const parsed = options.validateQuery.safeParse(queryObj)
+      if (!parsed.success) {
+        throw new ApiErrorV2(ApiErrorType.VALIDATION_ERROR, 'Query inválida', parsed.error.issues)
+      }
+      query = parsed.data
+      // Enriquecer con skip si hay page/pageSize
+      const page = Number(query.page) || 1
+      const pageSize = Number(query.pageSize) || 20
+      ;(query as any).skip = Math.max(0, (page - 1) * pageSize)
+    }
+
+    let params = ctx?.params || {}
+    if (options.validateParams) {
+      const parsed = options.validateParams.safeParse(params)
+      if (!parsed.success) {
+        throw new ApiErrorV2(ApiErrorType.VALIDATION_ERROR, 'Parámetros inválidos', parsed.error.issues)
+      }
+      params = parsed.data
+    }
+
+    // Custom validators
+    if (options.customValidators?.length) {
+      for (const fn of options.customValidators) await fn(req)
+    }
+
+    return { body, query, params, requestId: rid }
+  }
+}
+
+export function postMiddleware(schema: ZodSchema<any>) {
+  return createApiMiddleware({ allowedMethods: ['POST'], validateBody: schema })
+}
+
+export const schemas = {
+  z,
+  pagination: z.object({
+    page: z.coerce.number().int().min(1).default(1),
+    pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  }),
+}
