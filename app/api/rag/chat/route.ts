@@ -15,7 +15,10 @@ import { z } from "zod"
 import { createLogger } from "@/lib/logger"
 import { SystemMessage, HumanMessage } from "@langchain/core/messages"
 import { getChildPlanContext, getAllPlansContext } from "@/lib/rag/plan-context-builder"
+import * as PlanCtxV2 from "@/lib/rag/plan-context-builder-v2"
+import { isV2RagContextEnabled } from '@/lib/flags'
 import { checkRateLimit } from "@/lib/rag/rate-limiter"
+import { inc as incMetric } from '@/core-v3/observability/metrics'
 
 const logger = createLogger('RAGChatAPI')
 
@@ -178,6 +181,7 @@ const ragSearchTool = new DynamicStructuredTool({
       if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
         cached.hitCount++
         logInfo(`📦 Cache HIT para: "${query}" (usado ${cached.hitCount} veces)`)
+        incMetric('rag_context_hits_total')
         return cached.result
       }
       
@@ -191,6 +195,7 @@ const ragSearchTool = new DynamicStructuredTool({
       
       if (results.length === 0) {
         logInfo(`❌ No se encontraron documentos relevantes para: "${query}"`)
+        incMetric('rag_context_misses_total')
         return "No se encontró información relevante en los documentos"
       }
 
@@ -262,25 +267,26 @@ const childDataTool = new DynamicStructuredTool({
       
       logInfo('Niño encontrado', { name: `${childDoc.firstName} ${childDoc.lastName}` })
       
-      const events = childDoc.events || []
-      logDebug('Eventos encontrados', { count: events.length })
+      // Obtener eventos canónicos desde colección 'events'
+      const allEvents = await db.collection('events').find({ childId: new ObjectId(childId) }).toArray()
+      logDebug('Eventos encontrados (canónico)', { count: allEvents.length })
       
       // 📅 FILTRAR EVENTOS POR PERIODO SI SE ESPECIFICÓ
-      let filteredEvents = filterEventsByPeriod(events, period)
+      let filteredEvents = filterEventsByPeriod(allEvents, period)
       
       // 🎯 LÓGICA ESPECIAL PARA ESTADÍSTICAS COHERENTES CON PLANES
       if (period === 'since-current-plan') {
         // Obtener fecha del plan actual para filtrar eventos desde que empezó
         const currentPlanDate = await getCurrentPlanDate(childId, userId)
         if (currentPlanDate) {
-          filteredEvents = events.filter(event => 
+          filteredEvents = allEvents.filter(event => 
             new Date(event.startTime) >= currentPlanDate
           )
           logInfo(`📊 Estadísticas desde plan actual (${currentPlanDate.toLocaleDateString()}): ${filteredEvents.length} eventos`)
         } else {
           // Si no hay plan actual, usar últimos 30 días
           const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-          filteredEvents = events.filter(event => 
+          filteredEvents = allEvents.filter(event => 
             new Date(event.startTime) >= thirtyDaysAgo
           )
           logInfo(`📊 No hay plan actual - usando últimos 30 días: ${filteredEvents.length} eventos`)
@@ -324,7 +330,10 @@ const childPlanTool = new DynamicStructuredTool({
       }
 
       // Obtener el contexto completo del plan del niño
-      const planContext = await getChildPlanContext(childId, userId)
+      const useV2 = isV2RagContextEnabled()
+      const planContext = useV2
+        ? await PlanCtxV2.getChildPlanContext(childId, userId)
+        : await getChildPlanContext(childId, userId)
       
       if (planContext.includes("no tiene un plan")) {
         return "Este niño no tiene un plan de sueño activo. Se recomienda generar un plan inicial."

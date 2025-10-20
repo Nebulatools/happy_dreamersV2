@@ -1,395 +1,131 @@
-/**
- * Middleware de validación y procesamiento para API Routes
- * Proporciona validación, sanitización y transformación de datos
- */
+import { NextResponse } from 'next/server'
+import { z, ZodSchema } from 'zod'
+import { requireRole } from '@/core-v3/api/rbac'
+import { getRateLimiter } from '@/lib/rate-limit/adapter'
+import { getUserOrIPKey } from '@/lib/rate-limit/identity'
+import { applyRateLimitHeaders } from '@/lib/rate-limit/headers'
+import { stdOk, stdError, sanitizeText, httpStatusFor, logApi } from '@/lib/api-utils-v2'
+import { hashId } from '@/lib/observability/hash'
+import { observeEndpointLatency } from '@/core-v3/observability/metrics'
+import { isV2ApiEnabled } from '@/lib/flags'
 
-import { NextRequest, NextResponse } from "next/server"
-import { z } from "zod"
-import { ApiErrorV2, ApiErrorType, checkRateLimitV2 } from "./api-utils-v2"
-import { createLogger } from "./logger"
-
-const logger = createLogger("api-middleware")
-
-// ============================================
-// TIPOS
-// ============================================
-
-export interface MiddlewareOptions {
-  rateLimitConfig?: {
-    enabled: boolean
-    limit?: number
-    windowMs?: number
-    identifier?: (req: NextRequest) => string
-  }
-  validateBody?: z.ZodSchema
-  validateQuery?: z.ZodSchema
-  validateParams?: z.ZodSchema
-  sanitizeHtml?: boolean
-  maxBodySize?: number
-  allowedMethods?: string[]
-  requireAuth?: boolean
-  requireRoles?: string[]
-  customValidators?: Array<(req: NextRequest) => Promise<void> | void>
+export function getRequestId(req: Request): string {
+  const h = req.headers.get('x-request-id') || ''
+  if (h) return h
+  const rid = `rid_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`
+  return rid
 }
 
-// ============================================
-// SANITIZACIÓN
-// ============================================
-
-/**
- * Sanitiza strings HTML para prevenir XSS
- * Versión simple sin dependencias externas
- */
-function sanitizeHtmlString(str: string): string {
-  // Escapar caracteres HTML peligrosos
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;")
-    .replace(/\//g, "&#x2F;")
+type V2Auth = 'public' | 'user' | 'admin'
+type V2Options = {
+  auth?: V2Auth
+  rateLimit?: { key?: string; limit: number; windowMs: number }
+  validate?: { body?: ZodSchema<any>; query?: ZodSchema<any>; params?: ZodSchema<any> }
 }
 
-/**
- * Sanitiza recursivamente objetos
- */
-function sanitizeObject(obj: any): any {
-  if (typeof obj === "string") {
-    return sanitizeHtmlString(obj)
-  }
-  
-  if (Array.isArray(obj)) {
-    return obj.map(sanitizeObject)
-  }
-  
-  if (obj && typeof obj === "object") {
-    const sanitized: any = {}
-    for (const [key, value] of Object.entries(obj)) {
-      sanitized[key] = sanitizeObject(value)
-    }
-    return sanitized
-  }
-  
-  return obj
+type HandlerCtx = {
+  req: Request
+  body: any
+  query: any
+  params: any
+  requestId: string
+  userId: string
 }
 
-// ============================================
-// VALIDADORES
-// ============================================
+type HandlerV2 = (ctx: HandlerCtx) => Promise<NextResponse>
 
-/**
- * Valida el método HTTP
- */
-async function validateMethod(
-  request: NextRequest, 
-  allowedMethods: string[]
-): Promise<void> {
-  if (!allowedMethods.includes(request.method)) {
-    throw new ApiErrorV2(
-      ApiErrorType.BAD_REQUEST,
-      `Método ${request.method} no permitido. Métodos permitidos: ${allowedMethods.join(", ")}`,
-      { allowedMethods, receivedMethod: request.method }
-    )
-  }
-}
-
-/**
- * Valida el tamaño del body
- */
-async function validateBodySize(
-  request: NextRequest,
-  maxSize: number
-): Promise<void> {
-  const contentLength = request.headers.get("content-length")
-  
-  if (contentLength && parseInt(contentLength) > maxSize) {
-    throw new ApiErrorV2(
-      ApiErrorType.PAYLOAD_TOO_LARGE,
-      `El tamaño del request excede el límite de ${maxSize} bytes`,
-      { maxSize, receivedSize: parseInt(contentLength) }
-    )
-  }
-}
-
-/**
- * Valida y parsea el body con schema Zod
- */
-async function validateBody(
-  request: NextRequest,
-  schema: z.ZodSchema,
-  sanitize: boolean
-): Promise<any> {
-  try {
-    const body = await request.json()
-    const dataToValidate = sanitize ? sanitizeObject(body) : body
-    return schema.parse(dataToValidate)
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const firstError = error.errors[0]
-      throw new ApiErrorV2(
-        ApiErrorType.VALIDATION_ERROR,
-        `Error en campo ${firstError.path.join(".")}: ${firstError.message}`,
-        { errors: error.format() },
-        firstError.path.join(".")
-      )
-    }
-    throw new ApiErrorV2(
-      ApiErrorType.BAD_REQUEST,
-      "El body del request es inválido"
-    )
-  }
-}
-
-/**
- * Valida query parameters
- */
-function validateQuery(
-  request: NextRequest,
-  schema: z.ZodSchema
-): any {
-  const { searchParams } = new URL(request.url)
-  const params = Object.fromEntries(searchParams.entries())
-  
-  try {
-    return schema.parse(params)
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const firstError = error.errors[0]
-      throw new ApiErrorV2(
-        ApiErrorType.VALIDATION_ERROR,
-        `Parámetro de query inválido ${firstError.path.join(".")}: ${firstError.message}`,
-        { errors: error.format() }
-      )
-    }
-    throw error
-  }
-}
-
-// ============================================
-// MIDDLEWARE PRINCIPAL
-// ============================================
-
-/**
- * Crea un middleware con las opciones especificadas
- */
-export function createApiMiddleware(options: MiddlewareOptions = {}) {
-  return async function middleware(
-    request: NextRequest,
-    context?: any
-  ): Promise<{
-    body?: any
-    query?: any
-    params?: any
-    session?: any
-  }> {
-    const result: any = {}
-    
+export function withApi(handler: HandlerV2, options: V2Options = {}) {
+  return async (req: Request, ctx?: { params?: any }): Promise<NextResponse> => {
+    const t0 = Date.now()
+    const rid = getRequestId(req)
     try {
-      // 1. Validar método HTTP
-      if (options.allowedMethods) {
-        await validateMethod(request, options.allowedMethods)
+      // Strangler: block v2 endpoints unless enabled
+      const url = new URL(req.url)
+      if (url.pathname.startsWith('/api/v2') && !isV2ApiEnabled()) {
+        return withHeaders(stdError('not_found', 'Not found', rid, 404), rid, t0)
       }
-      
-      // 2. Rate limiting
-      if (options.rateLimitConfig?.enabled) {
-        const identifier = options.rateLimitConfig.identifier
-          ? options.rateLimitConfig.identifier(request)
-          : request.headers.get("x-forwarded-for") || "anonymous"
-          
-        await checkRateLimitV2(
-          identifier,
-          options.rateLimitConfig.limit,
-          options.rateLimitConfig.windowMs
-        )
-      }
-      
-      // 3. Validar tamaño del body
-      if (options.maxBodySize && request.method !== "GET") {
-        await validateBodySize(request, options.maxBodySize)
-      }
-      
-      // 4. Validar y parsear body
-      if (options.validateBody && request.method !== "GET") {
-        result.body = await validateBody(
-          request,
-          options.validateBody,
-          options.sanitizeHtml || false
-        )
-      }
-      
-      // 5. Validar query parameters
-      if (options.validateQuery) {
-        result.query = validateQuery(request, options.validateQuery)
-      }
-      
-      // 6. Validar route parameters
-      if (options.validateParams && context?.params) {
-        try {
-          result.params = options.validateParams.parse(context.params)
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            const firstError = error.errors[0]
-            throw new ApiErrorV2(
-              ApiErrorType.VALIDATION_ERROR,
-              `Parámetro de ruta inválido: ${firstError.message}`,
-              { errors: error.format() }
-            )
+      // AuthZ
+      let userId = 'anonymous'
+      const auth: V2Auth = options.auth || 'public'
+      if (auth !== 'public') {
+        const roles = auth === 'admin' ? ['admin'] : ['admin', 'parent']
+        const ar = await requireRole(req, roles as any)
+        // Be safe in test envs where NextResponse can be mocked as a plain object
+        const isResponse = (() => {
+          try {
+            return (typeof NextResponse === 'function' && ar instanceof NextResponse) || (ar && typeof (ar as any).json === 'function' && (ar as any).headers)
+          } catch {
+            return ar && typeof (ar as any).json === 'function' && (ar as any).headers
           }
-          throw error
+        })()
+        if (isResponse) return withHeaders(ar as any, rid, t0)
+        const authResult: any = ar as any
+        userId = authResult.userId
+      }
+      // Rate limit (distributed provider)
+      let rlDecision: any = null
+      if (options.rateLimit) {
+        const id = getUserOrIPKey(req)
+        const key = `${options.rateLimit.key || 'api_v2'}:${id}`
+        const limiter = getRateLimiter()
+        rlDecision = await limiter.check(key, options.rateLimit.windowMs, options.rateLimit.limit)
+        if (rlDecision.limited) {
+          const res429 = stdError('rate_limited', 'Too many requests', rid, 429)
+          applyRateLimitHeaders(res429 as any, rlDecision)
+          return withHeaders(res429, rid, t0)
         }
       }
-      
-      // 7. Validadores personalizados
-      if (options.customValidators) {
-        for (const validator of options.customValidators) {
-          await validator(request)
-        }
+      // Parse query/params
+      const queryObj: Record<string, any> = {}
+      url.searchParams.forEach((v, k) => { queryObj[k] = v })
+      let body: any = undefined
+      if (req.method !== 'GET' && req.method !== 'HEAD') {
+        try { body = await req.json() } catch { return withHeaders(stdError('invalid_json', 'Malformed JSON', rid, httpStatusFor('invalid_json')), rid, t0) }
       }
-      
-      // 8. Log de validación exitosa
-      logger.debug("Request validation successful", {
-        method: request.method,
-        url: request.url,
-        hasBody: !!result.body,
-        hasQuery: !!result.query,
-        hasParams: !!result.params,
-      })
-      
-      return result
-      
-    } catch (error) {
-      // Re-lanzar el error para que sea manejado por el error handler
-      throw error
+      // Validation
+      if (options.validate?.body && typeof body !== 'undefined') {
+        const parsed = options.validate.body.safeParse(sanitizeText(body))
+        if (!parsed.success) return withHeaders(stdError('invalid_body', 'Invalid body', rid, httpStatusFor('invalid_body'), parsed.error.issues), rid, t0)
+        body = parsed.data
+      } else if (typeof body !== 'undefined') {
+        body = sanitizeText(body)
+      }
+      let query = queryObj
+      if (options.validate?.query) {
+        const parsed = options.validate.query.safeParse(queryObj)
+        if (!parsed.success) return withHeaders(stdError('invalid_query', 'Invalid query', rid, httpStatusFor('invalid_query'), parsed.error.issues), rid, t0)
+        query = parsed.data
+      }
+      let params = ctx?.params || {}
+      if (options.validate?.params) {
+        const parsed = options.validate.params.safeParse(ctx?.params || {})
+        if (!parsed.success) return withHeaders(stdError('invalid_params', 'Invalid params', rid, httpStatusFor('invalid_params'), parsed.error.issues), rid, t0)
+        params = parsed.data
+      }
+      logApi('request', { rid, method: req.method, path: url.pathname })
+      const res = await handler({ req, body, query, params, requestId: rid, userId })
+      if (rlDecision) applyRateLimitHeaders(res as any, rlDecision)
+      const ms = Date.now() - t0!
+      try {
+        observeEndpointLatency(url.pathname, ms)
+      } catch {}
+      const status = (res as any)?.status || 200
+      const userHash = hashId(userId)
+      logApi('response', { rid, method: req.method, path: url.pathname, status, latencyMs: ms, user: userHash })
+      return withHeaders(res, rid, t0)
+    } catch (e: any) {
+      const code = e?.code || 'internal_error'
+      const msg = e?.message || 'Unexpected error'
+      const status = e?.status && Number.isFinite(e.status) ? e.status : httpStatusFor(code)
+      return withHeaders(stdError(code, msg, rid, status), rid, t0)
     }
   }
 }
 
-// ============================================
-// MIDDLEWARES PRE-CONFIGURADOS
-// ============================================
-
-/**
- * Middleware para endpoints GET estándar
- */
-export const getMiddleware = createApiMiddleware({
-  allowedMethods: ["GET"],
-  rateLimitConfig: {
-    enabled: true,
-    limit: 100,
-    windowMs: 60000,
-  },
-})
-
-/**
- * Middleware para endpoints POST estándar
- */
-export const postMiddleware = (bodySchema: z.ZodSchema) => 
-  createApiMiddleware({
-    allowedMethods: ["POST"],
-    validateBody: bodySchema,
-    sanitizeHtml: true,
-    maxBodySize: 1024 * 1024, // 1MB
-    rateLimitConfig: {
-      enabled: true,
-      limit: 50,
-      windowMs: 60000,
-    },
-  })
-
-/**
- * Middleware para endpoints PUT/PATCH estándar
- */
-export const updateMiddleware = (bodySchema: z.ZodSchema) =>
-  createApiMiddleware({
-    allowedMethods: ["PUT", "PATCH"],
-    validateBody: bodySchema,
-    sanitizeHtml: true,
-    maxBodySize: 1024 * 1024, // 1MB
-    rateLimitConfig: {
-      enabled: true,
-      limit: 50,
-      windowMs: 60000,
-    },
-  })
-
-/**
- * Middleware para endpoints DELETE estándar
- */
-export const deleteMiddleware = createApiMiddleware({
-  allowedMethods: ["DELETE"],
-  rateLimitConfig: {
-    enabled: true,
-    limit: 30,
-    windowMs: 60000,
-  },
-})
-
-// ============================================
-// SCHEMAS DE VALIDACIÓN COMUNES
-// ============================================
-
-export const schemas = {
-  // Esquema para IDs de MongoDB
-  mongoId: z.object({
-    id: z.string().regex(/^[0-9a-fA-F]{24}$/, "ID inválido"),
-  }),
-  
-  // Esquema para paginación
-  pagination: z.object({
-    page: z.coerce.number().min(1).default(1),
-    pageSize: z.coerce.number().min(1).max(100).default(20),
-    sortBy: z.string().optional(),
-    sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
-  }),
-  
-  // Esquema para filtros de fecha
-  dateFilter: z.object({
-    startDate: z.string().datetime().optional(),
-    endDate: z.string().datetime().optional(),
-  }),
-  
-  // Esquema para búsqueda
-  search: z.object({
-    q: z.string().min(1).max(100).optional(),
-    fields: z.array(z.string()).optional(),
-  }),
+function withHeaders(res: NextResponse, requestId: string, t0?: number) {
+  res.headers.set('X-Request-Id', requestId)
+  if (t0) res.headers.set('X-Processing-Time', String(Date.now() - t0))
+  return res
 }
 
-// ============================================
-// UTILIDADES HELPER
-// ============================================
-
-/**
- * Combina múltiples middlewares
- */
-export function combineMiddlewares(
-  ...middlewares: Array<ReturnType<typeof createApiMiddleware>>
-) {
-  return async function combinedMiddleware(
-    request: NextRequest,
-    context?: any
-  ) {
-    const results: any = {}
-    
-    for (const middleware of middlewares) {
-      const result = await middleware(request, context)
-      Object.assign(results, result)
-    }
-    
-    return results
-  }
-}
-
-/**
- * Crea un validador personalizado
- */
-export function createCustomValidator(
-  name: string,
-  validator: (req: NextRequest) => Promise<void> | void
-) {
-  return async function namedValidator(req: NextRequest) {
-    logger.debug(`Running custom validator: ${name}`)
-    await validator(req)
-  }
-}
+export const schemas = { z }

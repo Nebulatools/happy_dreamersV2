@@ -27,8 +27,7 @@ const nextConfig = {
   },
   // Headers de seguridad y cache
   async headers() {
-    if (process.env.NODE_ENV === 'production') {
-      return [
+    const base = [
         {
           source: '/:path*',
           headers: [
@@ -50,6 +49,16 @@ const nextConfig = {
             },
           ],
         },
+        // CSP básica para APIs
+        {
+          source: '/api/:path*',
+          headers: [
+            {
+              key: 'Content-Security-Policy',
+              value: "default-src 'none'; frame-ancestors 'none'"
+            },
+          ],
+        },
         // Cache estático para assets
         {
           source: '/static/:path*',
@@ -61,8 +70,8 @@ const nextConfig = {
           ],
         },
       ]
-    }
-    return []
+    if (process.env.NODE_ENV === 'production') return base
+    return base
   },
   // Configuración de Webpack para optimizaciones adicionales
   webpack: (config, { isServer, webpack }) => {

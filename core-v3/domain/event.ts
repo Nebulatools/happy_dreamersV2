@@ -1,4 +1,4 @@
-export type EventType = 'sleep' | 'nap' | 'feeding' | 'medication' | 'extra_activities' | 'night_waking' | 'wake'
+export type EventType = "sleep" | "nap" | "feeding" | "medication" | "extra_activities" | "night_waking" | "wake"
 
 export interface Event {
   id: string
@@ -8,4 +8,3 @@ export interface Event {
   endTime?: Date
   notes?: string
 }
-

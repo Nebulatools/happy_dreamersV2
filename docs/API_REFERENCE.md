@@ -8,6 +8,7 @@
   - [Auth API](#auth-api)
   - [Children API](#children-api)
   - [Events API](#events-api)
+  - [Plans API (v2)](#plans-api-v2)
   - [Consultas API](#consultas-api)
   - [RAG API](#rag-api)
   - [Admin API](#admin-api)
@@ -372,6 +373,75 @@ Elimina un evento.
   "message": "Evento eliminado correctamente"
 }
 ```
+
+### Plans API (v2)
+
+Base: `/api/v2/children/:childId/plans`
+
+Notas:
+- Respuestas usan el formato v2: `{ ok, data, error, meta }`.
+- `:childId` y `:planId` son `ObjectId` (24 hex).
+- Estados normalizados: `draft | active | completed | superseded` (mapeo legacy automático: `borrador/activo/completado`).
+
+#### GET /api/v2/children/:childId/plans
+Lista planes del niño (ordenados por `createdAt` desc) y el plan activo.
+
+Response 200:
+```json
+{
+  "ok": true,
+  "data": {
+    "items": [
+      { "_id": "...", "status": "draft", "planType": "initial", "createdAt": "..." }
+    ],
+    "active": { "_id": "...", "status": "active" }
+  },
+  "error": null,
+  "meta": {}
+}
+```
+
+#### POST /api/v2/children/:childId/plans
+Crea un plan en estado `draft`.
+
+Body:
+```json
+{ "planType": "initial", "planNumber": 0, "planVersion": 0, "output": {}, "sourceData": {} }
+```
+
+Response 200:
+```json
+{ "ok": true, "data": { "planId": "..." }, "error": null, "meta": {} }
+```
+
+#### PUT /api/v2/children/:childId/plans/:planId/apply
+Activa el plan indicado y marca cualquier plan previamente activo como `completed`. Idempotente.
+
+Response 200:
+```json
+{ "ok": true, "data": { "completedPrev": 1, "activated": 1 }, "error": null, "meta": {} }
+```
+
+#### PUT /api/v2/children/:childId/plans/:planId/complete
+Marca el plan como `completed`. Idempotente.
+
+Response 200:
+```json
+{ "ok": true, "data": { "completed": 1 }, "error": null, "meta": {} }
+```
+
+#### PUT /api/v2/children/:childId/plans/:planId/supersede
+Marca el plan como `superseded`. Idempotente.
+
+Response 200:
+```json
+{ "ok": true, "data": { "superseded": 1 }, "error": null, "meta": {} }
+```
+
+Reglas de estado:
+- Solo 1 `active` por `childId` (enforced en `apply`).
+- `findActive(childId)` usa mapeo legacy para considerar `activo` como `active`.
+- Operaciones seguras ante reintentos (idempotentes).
 
 ### Consultas API
 

@@ -1,0 +1,86 @@
+name: Migrate v3 Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Migration mode'
+        required: true
+        default: 'dry-run'
+        type: choice
+        options:
+          - dry-run
+          - apply
+
+jobs:
+  migrate-dry-run:
+    if: ${{ github.event.inputs.mode == 'dry-run' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build v3
+        run: npm run v3:build
+
+      - name: Run migrations (dry-run)
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_DB: ${{ secrets.MONGODB_DB }}
+        run: |
+          set -e
+          node core-v3/dist/migrations/index.js --dry-run | tee migration-dry-run.log
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-dry-run-logs
+          path: migration-dry-run.log
+
+  migrate-apply:
+    if: ${{ github.event.inputs.mode == 'apply' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: ${{ vars.APP_URL || '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build v3
+        run: npm run v3:build
+
+      - name: Run migrations (apply)
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_DB: ${{ secrets.MONGODB_DB }}
+        run: |
+          set -e
+          node core-v3/dist/migrations/index.js --apply | tee migration-apply.log
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-apply-logs
+          path: migration-apply.log
+

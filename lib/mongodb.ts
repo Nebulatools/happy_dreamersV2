@@ -80,8 +80,8 @@ export async function getConnectionStats() {
         host: stats.host
       }
     }
-  } catch (error) {
-    return { connected: false, stats: null, error: error.message }
+  } catch (error: any) {
+    return { connected: false, stats: null, error: error?.message }
   }
 }
 
@@ -94,8 +94,8 @@ export async function healthCheck(): Promise<{ healthy: boolean; latency?: numbe
     const latency = Date.now() - start
     
     return { healthy: true, latency }
-  } catch (error) {
-    return { healthy: false, error: error.message }
+  } catch (error: any) {
+    return { healthy: false, error: error?.message }
   }
 }
 

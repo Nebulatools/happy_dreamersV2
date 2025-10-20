@@ -8,8 +8,10 @@
     "start": "next start",
     "lint": "next lint",
     "v3:build": "tsc -p core-v3/tsconfig.json",
-    "v3:lint": "eslint core-v3 --ext .ts",
+    "v3:lint": "next lint --dir core-v3",
     "v3:migrate": "node core-v3/dist/migrations/index.js || node -e \"console.log('No JS build: ejecuta npm run v3:build')\"",
+    "v3:migrate:dry": "node core-v3/dist/migrations/index.js --dry-run",
+    "v3:migrate:apply": "node core-v3/dist/migrations/index.js --apply",
     "v3:seed:canario": "node -e \"console.log('seed canario ok (placeholder)')\"",
     "lint:fix": "next lint --fix",
     "lint:strict": "next lint --max-warnings=0",
@@ -18,7 +20,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:ci": "jest --ci --coverage --maxWorkers=2"
+    "test:ci": "jest --ci --coverage --maxWorkers=2",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@ai-sdk/openai": "latest",
@@ -124,6 +127,10 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.17",
     "ts-jest": "^29.1.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "husky": "^9.0.0",
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/config-conventional": "^19.5.0",
+    "prettier": "^3.4.0"
   }
 }

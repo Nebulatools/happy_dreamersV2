@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Ensure Jest gets CJS output it can execute without ESM flags
+    "module": "commonjs",
+    "moduleResolution": "node",
+    // Transpile JSX so Babel isn't needed for TSX
+    "jsx": "react-jsx",
+    // ts-jest handles emit; but avoid blocking transpile
+    "noEmit": false,
+    "allowJs": true,
+    "esModuleInterop": true,
+    "isolatedModules": false,
+    "types": ["jest", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@core-v3/*": ["core-v3/*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "jest.setup.ts"
+  ]
+}

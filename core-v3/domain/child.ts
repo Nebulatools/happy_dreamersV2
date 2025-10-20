@@ -3,6 +3,5 @@ export interface Child {
   firstName: string
   lastName?: string
   birthDate: Date
-  gender?: 'male' | 'female' | 'other'
+  gender?: "male" | "female" | "other"
 }
-

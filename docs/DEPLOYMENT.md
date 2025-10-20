@@ -1,16 +1,16 @@
-# =€ Guía de Despliegue - Happy Dreamers
+# =Â€ GuÃ­a de Despliegue - Happy Dreamers
 
-## =Ë Tabla de Contenidos
+## =Ã‹ Tabla de Contenidos
 
 - [Requisitos Previos](#requisitos-previos)
-- [Configuración de Entorno](#configuración-de-entorno)
+- [ConfiguraciÃ³n de Entorno](#configuraciÃ³n-de-entorno)
 - [Despliegue en Vercel](#despliegue-en-vercel)
-- [Configuración de MongoDB Atlas](#configuración-de-mongodb-atlas)
+- [ConfiguraciÃ³n de MongoDB Atlas](#configuraciÃ³n-de-mongodb-atlas)
 - [CI/CD Pipeline](#cicd-pipeline)
 - [Monitoreo](#monitoreo)
 - [Troubleshooting](#troubleshooting)
 
-## =Ë Requisitos Previos
+## =Ã‹ Requisitos Previos
 
 ### Herramientas Necesarias
 - Node.js 18+ 
@@ -24,9 +24,9 @@
 - **MongoDB Atlas**: Base de datos
 - **OpenAI**: API Key para GPT-4
 - **Google Cloud**: API Key para Gemini (opcional)
-- **GitHub**: Repositorio de código
+- **GitHub**: Repositorio de cÃ³digo
 
-## ™ Configuración de Entorno
+## Â™ ConfiguraciÃ³n de Entorno
 
 ### Variables de Entorno
 
@@ -35,7 +35,7 @@
 # Base de Datos
 MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/happy_dreamers?retryWrites=true&w=majority
 
-# Autenticación
+# AutenticaciÃ³n
 NEXTAUTH_URL=https://your-domain.vercel.app
 NEXTAUTH_SECRET=your-generated-secret-key-min-32-chars
 
@@ -44,7 +44,7 @@ OPENAI_API_KEY=sk-...
 GEMINI_API_KEY=...
 GOOGLE_GEMINI_API_KEY=...
 
-# Configuración
+# ConfiguraciÃ³n
 NODE_ENV=production
 
 # Email (opcional)
@@ -57,7 +57,7 @@ SMTP_PASS=your-app-password
 SENTRY_DSN=https://...@sentry.io/...
 ```
 
-### Generación de Secretos
+### GeneraciÃ³n de Secretos
 
 ```bash
 # Generar NEXTAUTH_SECRET
@@ -69,7 +69,7 @@ npx auth secret
 
 ## < Despliegue en Vercel
 
-### Método 1: Vercel Dashboard
+### MÃ©todo 1: Vercel Dashboard
 
 1. **Importar Proyecto**
    ```
@@ -79,7 +79,7 @@ npx auth secret
    4. Configurar proyecto
    ```
 
-2. **Configuración del Proyecto**
+2. **ConfiguraciÃ³n del Proyecto**
    ```yaml
    Framework Preset: Next.js
    Build Command: npm run build
@@ -90,17 +90,17 @@ npx auth secret
 3. **Variables de Entorno**
    ```
    Settings > Environment Variables
-   Añadir todas las variables de .env.production
+   AÃ±adir todas las variables de .env.production
    ```
 
 4. **Dominios**
    ```
    Settings > Domains
-   Añadir dominio personalizado
+   AÃ±adir dominio personalizado
    Configurar DNS
    ```
 
-### Método 2: Vercel CLI
+### MÃ©todo 2: Vercel CLI
 
 ```bash
 # Instalar Vercel CLI
@@ -115,13 +115,13 @@ vercel --prod
 # Configurar variables de entorno
 vercel env add MONGODB_URI production
 vercel env add NEXTAUTH_SECRET production
-# ... añadir todas las variables
+# ... aÃ±adir todas las variables
 
 # Redesplegar con nuevas variables
 vercel --prod --force
 ```
 
-### Método 3: GitHub Actions
+### MÃ©todo 3: GitHub Actions
 
 ```yaml
 # .github/workflows/deploy.yml
@@ -161,19 +161,19 @@ jobs:
           vercel-args: '--prod'
 ```
 
-## <C Configuración de MongoDB Atlas
+## <C ConfiguraciÃ³n de MongoDB Atlas
 
 ### 1. Crear Cluster
 
 ```yaml
 Provider: AWS / GCP / Azure
 Region: Closest to users
-Cluster Tier: M10 (producción mínimo)
+Cluster Tier: M10 (producciÃ³n mÃ­nimo)
 MongoDB Version: 7.0+
 Backup: Enabled
 ```
 
-### 2. Configuración de Red
+### 2. ConfiguraciÃ³n de Red
 
 ```yaml
 Network Access:
@@ -193,7 +193,7 @@ Database Access:
 mongodb+srv://happy_dreamers_prod:password@cluster.mongodb.net/happy_dreamers?retryWrites=true&w=majority
 ```
 
-### 4. Índices Requeridos
+### 4. Ãndices Requeridos
 
 ```javascript
 // Ejecutar en MongoDB Atlas Console
@@ -327,7 +327,7 @@ jobs:
 }
 ```
 
-## =Ê Monitoreo
+## =ÃŠ Monitoreo
 
 ### Vercel Analytics
 
@@ -407,14 +407,14 @@ export async function GET() {
 - Pingdom
 - StatusCake
 
-# Configuración:
+# ConfiguraciÃ³n:
 URL: https://your-domain.com/api/health
 Interval: 5 minutes
 Timeout: 30 seconds
 Alerts: Email, SMS, Slack
 ```
 
-## =' Configuración de Producción
+## =' ConfiguraciÃ³n de ProducciÃ³n
 
 ### next.config.js
 
@@ -515,7 +515,7 @@ vercel env pull
 ```javascript
 // Verificar whitelist IPs
 // MongoDB Atlas > Network Access
-// Añadir: 0.0.0.0/0 (temporal para debug)
+// AÃ±adir: 0.0.0.0/0 (temporal para debug)
 
 // Test connection
 const { MongoClient } = require('mongodb')
@@ -547,16 +547,16 @@ vercel logs [deployment-url]
 # Logs en tiempo real
 vercel logs [deployment-url] --follow
 
-# Logs de función específica
+# Logs de funciÃ³n especÃ­fica
 vercel logs [deployment-url] --filter=api/children
 ```
 
-## =Ë Checklist de Despliegue
+## =Ã‹ Checklist de Despliegue
 
 ### Pre-Despliegue
 - [ ] Todas las pruebas pasan
 - [ ] Variables de entorno configuradas
-- [ ] Base de datos configurada y con índices
+- [ ] Base de datos configurada y con Ã­ndices
 - [ ] Backup de base de datos activado
 - [ ] SSL/TLS configurado
 - [ ] Rate limiting configurado
@@ -569,9 +569,33 @@ vercel logs [deployment-url] --filter=api/children
 - [ ] Performance aceptable
 - [ ] Logs revisados
 - [ ] Backup verificado
-- [ ] Documentación actualizada
+- [ ] DocumentaciÃ³n actualizada
 
 ---
 
-**Última actualización:** Enero 2024  
-**Versión:** 1.0.0
+**Ãšltima actualizaciÃ³n:** Enero 2024  
+**VersiÃ³n:** 1.0.0
+
+## Rollouts v2 (Strangler Pattern)
+
+Flags (env)
+- `V2_API_ENABLED`: master switch para rutas `/api/v2`.
+  - ProducciÃ³n: debe ser `true` para habilitar v2.
+  - Dev/Test: habilitado por defecto salvo `false` explÃ­cito.
+- `V2_RAG_CONTEXT_ENABLED`: usa builder RAG v2 en chat.
+- `DUAL_WRITE_EVENTS`: dualâ€‘write temporal a `children.events` cuando se crean/eliminan eventos (aplica a v2/events).
+- `V2_API_CANARY_PERCENT`: porcentaje de canary (0â€“100) para habilitar v2 selectivamente (helper disponible).
+
+CI/CD
+- Workflow `.github/workflows/ci.yml` ejecuta lint (si existe), typecheck (si existe), tests y build.
+- El pipeline falla ante errores de lint/tests/build.
+
+Staging
+- Configure `V2_API_ENABLED=true` para activar rutas v2.
+- Verifique `GET /api/v2/health` â†’ `ok: true` y `GET /api/v2/health?metrics=1` para snapshot de mÃ©tricas.
+- Active `V2_RAG_CONTEXT_ENABLED=true` para que el chat consuma el builder RAG v2.
+
+Observabilidad
+- Logs estructurados: `rid`, `method`, `path`, `status`, `latencyMs`, `user` (hash). Sin PII.
+- MÃ©tricas inâ€‘memory: latencia por endpoint y contadores clave.
+- Consulte `docs/OBSERVABILITY.md` para detalles y extensiÃ³n hacia APM.
