@@ -22,6 +22,25 @@ Rollout & Flags
 - Overrides for debugging: headers `x-force-v3`, `x-disable-v3`
 - Summary: GET `/api/v3/admin/rollout/metrics`
 
+Pre‑Increment Checklist (antes de subir `HD_V3_PERCENT`)
+- `plan_validation_failed_total` estable y bajo (sin crecimiento respecto a la línea base de la semana).
+- p95 de `observeLLMDuration` por debajo del SLO pactado (p. ej., < 2s o el objetivo definido).
+- Health OK: `GET /api/v3/health` devuelve `llmReady:true`.
+- Drift de sync estable (sin incrementos anómalos de `sync_drift_detected_total`).
+
+Sanity manual (cURL)
+- Health (sin auth):
+  - `curl -sS https://<host>/api/v3/health | jq` (verificar `llmReady:true`).
+- Autenticación: obtener cookie de sesión NextAuth (ej.: `next-auth.session-token` o `__Secure-next-auth.session-token`).
+  - `export COOKIE="next-auth.session-token=<TOKEN>"`
+  - Nota: en algunos despliegues el nombre es `__Secure-next-auth.session-token`.
+- Initial plan:
+  - `curl -sS -X POST https://<host>/api/v3/plans/initial -H "Content-Type: application/json" -H "Cookie: $COOKIE" -d '{"childId":"<24hex>"}' | jq`
+- Progression plan:
+  - `curl -sS -X POST https://<host>/api/v3/plans/progression -H "Content-Type: application/json" -H "Cookie: $COOKIE" -d '{"childId":"<24hex>","afterPlanId":"<24hex>"}' | jq`
+- Refinement plan:
+  - `curl -sS -X POST https://<host>/api/v3/plans/refinement -H "Content-Type: application/json" -H "Cookie: $COOKIE" -d '{"childId":"<24hex>","basePlanId":"<24hex>","transcriptId":"<id>"}' | jq`
+
 Incidents
 - Symptoms: spikes in `plan_validation_failed_total`, LLM p95 above SLO, increased `sync_drift_detected_total`
 - Immediate actions: lower `HD_V3_PERCENT` (e.g., to 0) or set `HD_V3_ENABLED=false`
@@ -36,4 +55,3 @@ CI/CD Gates
 Environments
 - Dev/Preview/Prod with environment variables set via provider (e.g., Vercel) or GitHub Environments
 - Secrets: DB, CRON_SECRET, LLM keys; never logged (sanitizer)
-

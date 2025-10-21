@@ -437,6 +437,8 @@ El sistema de generación de Plan 0 está:
 
 **El sistema funciona según lo diseñado y está listo para producción.**
 
+> Nota de producción: LISTO PARA PRODUCCIÓN (CONDICIONADO). Para uso real, configurar proveedor LLM y validar `/api/v3/health` → `llmReady:true`.
+
 Las mejoras recomendadas son para **optimización y observabilidad**, no para funcionalidad básica.
 
 ---

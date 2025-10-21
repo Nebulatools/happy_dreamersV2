@@ -36,6 +36,23 @@ Gates para 100%
   - LLM p95 < SLO pactado.
   - Drift de sync sin crecimiento (ver `sync_drift_detected_total`).
 
+Checklist previo a subir `HD_V3_PERCENT`
+- `plan_validation_failed_total` estable y bajo vs. línea base.
+- p95 de `observeLLMDuration` bajo SLO pactado (p. ej., < 2s, ajustar a tu objetivo).
+- `GET /api/v3/health` → `llmReady:true`.
+- Monitoreo de drift: `sync_drift_detected_total` sin alzas.
+
+Sanity (cURL autenticado)
+- Health: `curl -sS https://<host>/api/v3/health | jq` debe mostrar `llmReady:true`.
+- Cookie NextAuth (JWT):
+  - `export COOKIE="next-auth.session-token=<TOKEN>"` (o `__Secure-next-auth.session-token` según entorno)
+- Initial:
+  - `curl -sS -X POST https://<host>/api/v3/plans/initial -H "Content-Type: application/json" -H "Cookie: $COOKIE" -d '{"childId":"<24hex>"}' | jq`
+- Progression:
+  - `curl -sS -X POST https://<host>/api/v3/plans/progression -H "Content-Type: application/json" -H "Cookie: $COOKIE" -d '{"childId":"<24hex>","afterPlanId":"<24hex>"}' | jq`
+- Refinement:
+  - `curl -sS -X POST https://<host>/api/v3/plans/refinement -H "Content-Type: application/json" -H "Cookie: $COOKIE" -d '{"childId":"<24hex>","basePlanId":"<24hex>","transcriptId":"<id>"}' | jq`
+
 Reversión inmediata
 - Bajar `HD_V3_PERCENT` a 0 o añadir `x-disable-v3` en clientes críticos.
 - `HD_V3_ENABLED=false` apaga por completo v3.
@@ -49,4 +66,3 @@ Plan de retiro de legacy
 Runbooks
 - Operación: modificar flags (ENV/Secrets), monitorear `GET /api/v3/admin/rollout/metrics` y cobertura de tests en CI.
 - Soporte: ante errores 5xx de LLM, revisar `plan_validation_failed_total` y logs `PlanObs` (sin PII), reducir `HD_V3_PERCENT` y abrir incidente.
-

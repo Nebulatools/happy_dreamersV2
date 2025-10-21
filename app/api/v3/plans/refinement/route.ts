@@ -5,6 +5,7 @@ import { refinementPlanBody } from '@/core-v3/api/schemas/plans'
 import { PlansRepo } from '@/core-v3/infra/repos/plans.repo'
 import { EventsRepo } from '@/core-v3/infra/repos/events.repo'
 import { PlanLLMService } from '@/core-v3/infra/llm/plan-llm-service'
+import { getLLM } from '@/core-v3/infra/llm'
 import { canRefine, markSupersededPreviousPlans } from '@/core-v3/domain/plan-engine'
 import { getUserOrIPKey, shouldRateLimit, rateLimitResponse } from '@/core-v3/security/rate-limit'
 import { safeLog } from '@/core-v3/security/sanitize'
@@ -44,9 +45,16 @@ export async function POST(req: Request) {
   if (!gate.ok) return NextResponse.json({ error: 'gate_failed', reason: gate.reason, context: gate.context }, { status: 400 })
 
   const window = gate.context.window
-  // LLM client placeholder – requiere configuración real para producción
-  const llm = { complete: async () => { throw new Error('LLM provider not configured') } }
-  const svc = new PlanLLMService(llm as any)
+  // LLM provider
+  let svc: PlanLLMService
+  try {
+    svc = new PlanLLMService(getLLM() as any)
+  } catch (e: any) {
+    if (e && e.message === 'llm_misconfigured') {
+      return NextResponse.json({ error: 'service_unavailable', reason: 'llm_misconfigured' }, { status: 503 })
+    }
+    throw e
+  }
   const out = await svc.generate(childId, 'transcript_refinement', window)
   if (!out.ok) return NextResponse.json({ error: out.error, reason: out.reason, attempts: out.attempts }, { status: 502 })
 

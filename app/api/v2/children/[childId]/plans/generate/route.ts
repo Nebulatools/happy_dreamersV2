@@ -1,10 +1,12 @@
 import { withApi } from '@/lib/api-middleware'
 import { stdOk, stdError } from '@/lib/api-utils-v2'
+import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { isObjectIdHex, toObjectId } from '@/src/domain/object-id'
 import { checkPlanSanityOrThrow } from '@/lib/plan-sanity'
 import { planRepo } from '@/src/repo/planRepo'
 import { PlanLLMService } from '@/core-v3/infra/llm/plan-llm-service'
+import { getLLM } from '@/core-v3/infra/llm'
 import { defaultWindow } from '@/core-v3/domain/plan-engine'
 import { EventsRepo } from '@/core-v3/infra/repos/events.repo'
 import { PlansRepo } from '@/core-v3/infra/repos/plans.repo'
@@ -35,10 +37,16 @@ export const POST = withApi(
     // Ventana por defecto definida en reglas
     const window = defaultWindow()
 
-    // LLM service con configuración determinista (temperatura 0.2 por defecto)
-    // El proveedor real debe inyectarse; en ausencia, este stub evita llamadas reales.
-    const llm = { complete: async () => { throw new Error('LLM provider not configured') } }
-    const svc = new PlanLLMService(llm as any)
+    // LLM service
+    let svc: PlanLLMService
+    try {
+      svc = new PlanLLMService(getLLM() as any)
+    } catch (e: any) {
+      if (e && e.message === 'llm_misconfigured') {
+        return NextResponse.json({ error: 'service_unavailable', reason: 'llm_misconfigured' }, { status: 503 })
+      }
+      throw e
+    }
 
     // Ejecutar generación
     const kind = body.planType
@@ -103,4 +111,3 @@ export const POST = withApi(
   },
   { auth: 'user', validate: { params: paramsSchema, body: bodySchema }, rateLimit: { limit: 5, windowMs: 60_000, key: 'v2_child_plan_generate' } }
 )
-

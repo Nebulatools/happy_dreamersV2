@@ -127,6 +127,8 @@ export class PlanLLMService {
     // Build prompt and call LLM
     const prompt = buildPrompt(kind, context)
     const attempts: string[] = []
+    // Inference start (no prompt or raw outputs logged)
+    logPlan('inference_start', { childId: String(childId), planType: kind, model: process.env.HD_PLAN_LLM_MODEL, provider: process.env.HD_LLM_PROVIDER })
 
     const infer = async (retry: boolean): Promise<PlanLLMOutput | null> => {
       const p = retry ? `${prompt}\n\nCorrige el JSON: debe cumplir el esquema y ser válido estrictamente.` : prompt
@@ -152,6 +154,7 @@ export class PlanLLMService {
     const first = await infer(false)
     if (first) {
       const t1 = Date.now()
+      logPlan('inference_end', { childId: String(childId), planType: kind, attempts: 1, ms: t1 - t0 })
       log('success', { attempts: 1, ms: t1 - t0 })
       observeLLMDuration(t1 - t0)
       incPlanGenerated(kind)
@@ -160,11 +163,13 @@ export class PlanLLMService {
     const second = await infer(true)
     const t2 = Date.now()
     if (second) {
+      logPlan('inference_end', { childId: String(childId), planType: kind, attempts: 2, ms: t2 - t0 })
       log('success', { attempts: 2, ms: t2 - t0 })
       observeLLMDuration(t2 - t0)
       incPlanGenerated(kind)
       return { ok: true, output: second, attempts: 2, inference_ms: t2 - t0 }
     }
+    logPlan('inference_end', { childId: String(childId), planType: kind, attempts: attempts.length, ms: t2 - t0 })
     log('abort', { reason: 'validation_failed', attempts: attempts.length, ms: t2 - t0 })
     incPlanAborted(kind, 'validation_failed')
     return { ok: false, error: 'validation_failed', attempts: attempts.length, inference_ms: t2 - t0 }

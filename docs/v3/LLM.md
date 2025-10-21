@@ -45,3 +45,5 @@ const llm = { complete: async ({ prompt, temperature, maxTokens }) => {
 ```
 - Wire this into the v3 plan endpoints before production use.
 
+Production Note
+- LISTO PARA PRODUCCIÓN (CONDICIONADO): Para producción real, configura el proveedor LLM (p. ej., OpenAI con `OPENAI_API_KEY`) y valida `GET /api/v3/health` → `llmReady:true`.

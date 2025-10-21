@@ -425,6 +425,8 @@ Plan 1 activo → Transcript consulta 16 junio (Dr. Rodríguez)
 
 El **sistema de planes progresivos** ha sido implementado exitosamente siguiendo todas las mejores prácticas de desarrollo de software y UX. El flujo Plan 0 → Plan 1 → Plan 1.1 → Plan 2 → Plan 2.1... está completamente funcional, validado y listo para producción.
 
+> Epígrafe de producción: LISTO PARA PRODUCCIÓN (CONDICIONADO). Para entornos reales, configura el proveedor LLM y verifica `/api/v3/health` con `llmReady:true`.
+
 ### 🏆 **Logros Principales**
 - ✅ **Arquitectura sólida** y escalable
 - ✅ **Validaciones robustas** que garantizan integridad

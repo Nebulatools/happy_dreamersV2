@@ -174,4 +174,5 @@
 
 **Implementación completada**: ✅ 100%  
 **Estado**: Listo para producción con datos reales  
+> Nota: LISTO PARA PRODUCCIÓN (CONDICIONADO). Para el sistema completo, requiere LLM configurado y `/api/v3/health` con `llmReady:true`.
 **Próxima prioridad**: Testing con usuarios reales y refinamiento UX

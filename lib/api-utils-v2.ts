@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
 import { safeLog } from '@/core-v3/security/sanitize'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { z } from 'zod'
 
 export type StdError = { code: string; message: string; details?: unknown }
@@ -180,14 +178,14 @@ function genRequestId() {
   return `req_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`
 }
 
-export function withErrorHandlerV2<T extends (req: Request) => Promise<NextResponse>>(
+export function withErrorHandlerV2<T extends (req: Request, ctx?: any) => Promise<NextResponse>>(
   handler: T
-): T {
-  return (async (req: Request, ...rest: any[]) => {
+): (req: Request, ctx?: any) => Promise<NextResponse> {
+  return (async (req: Request, ctx?: any) => {
     const t0 = Date.now()
     const rid = req.headers.get('x-request-id') || genRequestId()
     try {
-      const res = await handler(req, ...rest)
+      const res = await handler(req, ctx as any)
       // Attach tracking headers
       try {
         res.headers.set('X-Request-Id', rid)
@@ -204,14 +202,17 @@ export function withErrorHandlerV2<T extends (req: Request) => Promise<NextRespo
       const msg = e?.message || 'Error interno del servidor'
       return createErrorResponseV2(type, msg, rid)
     }
-  }) as T
+  })
 }
 
 // -----------------------------
 // Auth helpers
 // -----------------------------
 export async function requireAuthV2() {
-  const session = await getServerSession(authOptions)
+  // Avoid static ESM imports for test environments; load lazily
+  const { getServerSession } = await import('next-auth')
+  const { authOptions } = await import('@/lib/auth')
+  const session: any = await getServerSession(authOptions as any)
   if (!session?.user?.id) {
     throw new ApiErrorV2(ApiErrorType.UNAUTHORIZED, 'No autorizado')
   }
