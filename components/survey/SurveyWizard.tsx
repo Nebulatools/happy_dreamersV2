@@ -369,10 +369,10 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
         onStepClick={handleStepChange}
       />
       
-      <Card className="p-6 md:p-8 relative">
+      <Card className="p-4 md:p-8 relative">
         {/* Indicador de guardado automático */}
         {showSaveIndicator && (
-          <div className="absolute top-4 right-4 flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-full animate-fade-in">
+          <div className="flex items-center gap-2 text-xs md:text-sm text-green-700 bg-green-50 px-3 py-1.5 rounded-full animate-fade-in md:absolute md:top-4 md:right-4 md:text-green-600 md:mt-0 mt-2">
             <CheckCircle2 className="w-4 h-4" />
             <span>Guardado automático</span>
           </div>
