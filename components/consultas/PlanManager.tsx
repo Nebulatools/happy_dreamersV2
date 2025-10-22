@@ -401,16 +401,22 @@ export function PlanManager({
   const getAvailablePlans = () => {
     const availablePlans = []
 
-    // Plan Inicial
+    // Plan Inicial (habilitar por encuesta completa o por eventos mínimos)
     const initialValidation = planValidations.initial
     if (initialValidation) {
+      const isSurveyComplete = !!initialValidation?.details?.surveyComplete
+      const canGenerateEffective = !!(initialValidation.canGenerate || isSurveyComplete)
+      const description = canGenerateEffective
+        ? (initialValidation.canGenerate
+            ? "Crear el primer plan basado en survey, estadísticas y conocimiento especializado"
+            : "Encuesta completa: puedes generar el Plan Inicial ahora, aunque no haya suficientes eventos")
+        : initialValidation.reason
+
       availablePlans.push({
         planType: "initial" as const,
-        canGenerate: initialValidation.canGenerate,
+        canGenerate: canGenerateEffective,
         buttonText: "Generar Plan Inicial",
-        description: initialValidation.canGenerate 
-          ? "Crear el primer plan basado en survey, estadísticas y conocimiento especializado"
-          : initialValidation.reason,
+        description,
         nextVersion: initialValidation.nextVersion,
         validation: initialValidation
       })
