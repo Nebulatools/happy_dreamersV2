@@ -113,6 +113,25 @@ La aplicación creará automáticamente las colecciones necesarias:
 - `events` - Eventos de sueño, actividades y estados emocionales
 - Colecciones vectoriales para el sistema RAG
 
+### Sembrar eventos mínimos para QA (solo desarrollo/preview)
+
+En entornos no productivos puedes sembrar eventos de prueba para un niño y así generar un Plan Inicial rápidamente:
+
+```bash
+curl -X POST http://localhost:3000/api/dev/seed-min-events \
+  -H "Content-Type: application/json" \
+  -b "next-auth.session-token=<TU_TOKEN>" \
+  -d '{"childId":"<24hex>","count":12}'
+```
+
+Respuesta:
+
+```json
+{ "ok": true, "inserted": 12, "childId": "<24hex>" }
+```
+
+Luego puedes llamar a `/api/v3/plans/initial` para generar un plan en QA sin afectar datos reales.
+
 ## 📱 Uso de la Aplicación
 
 ### Para Padres
