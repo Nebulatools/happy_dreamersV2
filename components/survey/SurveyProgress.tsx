@@ -75,41 +75,45 @@ export function SurveyProgress({
         </div>
       </div>
 
-      {/* Indicadores de pasos */}
-      <div className="flex flex-wrap gap-2 justify-center">
-        {steps.map((step) => {
-          const isCompleted = completedSteps.has(step.id)
-          const hasError = stepsWithErrors.has(step.id)
-          const isCurrent = step.id === currentStep
-          
-          return (
-            <button
-              key={step.id}
-              onClick={() => onStepClick?.(step.id)}
-              className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm",
-                "transition-all duration-200",
-                {
-                  "bg-gradient-to-r from-[#628BE6] to-[#67C5FF] text-white": isCurrent,
-                  "bg-green-100 text-green-700": isCompleted && !hasError && !isCurrent,
-                  "bg-red-100 text-red-700": hasError && !isCurrent,
-                  "bg-gray-100 text-gray-600": !isCompleted && !hasError && !isCurrent,
-                  "hover:shadow-md cursor-pointer": onStepClick
-                }
-              )}
-            >
-              <span className="text-lg">{step.icon}</span>
-              <span className="hidden md:inline">{step.name}</span>
-              <span className="md:hidden">{step.id}</span>
-              {isCompleted && !hasError && (
-                <Check className="w-4 h-4" />
-              )}
-              {hasError && (
-                <AlertCircle className="w-4 h-4" />
-              )}
-            </button>
-          )
-        })}
+      {/* Indicadores de pasos - scroll horizontal en pantallas pequeñas */}
+      <div className="-mx-4 px-4 overflow-x-auto no-scrollbar">
+        <ol className="flex min-w-max items-center gap-3">
+          {steps.map((step) => {
+            const isCompleted = completedSteps.has(step.id)
+            const hasError = stepsWithErrors.has(step.id)
+            const isCurrent = step.id === currentStep
+
+            return (
+              <li key={step.id} className="shrink-0">
+                <button
+                  onClick={() => onStepClick?.(step.id)}
+                  className={cn(
+                    "flex items-center gap-2 h-8 px-3 rounded-full text-sm",
+                    "transition-all duration-200",
+                    {
+                      "bg-gradient-to-r from-[#628BE6] to-[#67C5FF] text-white": isCurrent,
+                      "bg-green-100 text-green-700": isCompleted && !hasError && !isCurrent,
+                      "bg-red-100 text-red-700": hasError && !isCurrent,
+                      "bg-gray-100 text-gray-600": !isCompleted && !hasError && !isCurrent,
+                      "hover:shadow-md cursor-pointer": onStepClick
+                    }
+                  )}
+                  title={step.name}
+                >
+                  <span className="text-base leading-none">{step.icon}</span>
+                  <span className="hidden md:inline whitespace-nowrap">{step.name}</span>
+                  <span className="md:hidden">{step.id}</span>
+                  {isCompleted && !hasError && (
+                    <Check className="w-4 h-4" />
+                  )}
+                  {hasError && (
+                    <AlertCircle className="w-4 h-4" />
+                  )}
+                </button>
+              </li>
+            )
+          })}
+        </ol>
       </div>
 
       {/* Mensaje de estado */}

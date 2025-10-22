@@ -10,6 +10,9 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+  /* Ocultar scrollbars en contenedores horizontales (sin afectar accesibilidad) */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
 @layer base {
