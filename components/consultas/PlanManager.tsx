@@ -312,7 +312,9 @@ export function PlanManager({
       // Si falla la revalidación, usamos el estado previo
     }
 
-    if (!validation || !validation.canGenerate) {
+    const surveyComplete = !!validation?.details?.surveyComplete
+    const canProceed = !!(validation && (validation.canGenerate || (planType === 'initial' && surveyComplete)))
+    if (!canProceed) {
       toast({
         title: "No disponible",
         description: validation?.reason || "Este tipo de plan no puede generarse ahora",
