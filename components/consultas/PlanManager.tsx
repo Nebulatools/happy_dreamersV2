@@ -127,9 +127,23 @@ export function PlanManager({
           const data = await response.json()
           validations[planType] = data
         } else {
+          // Intentar derivar un mensaje accionable del error JSON
+          let reason = 'No disponible por datos insuficientes'
+          try {
+            const err = await response.json()
+            if (err?.error === 'insufficient_data' && err?.details) {
+              const d = err.details
+              const req = d.required || {}
+              reason = `Necesitas al menos ${req.minEvents ?? 'N'} eventos y ${req.minDistinctTypes ?? 'K'} tipos distintos (tienes ${d.eventCount ?? 0}/${d.distinctTypes ?? 0}).` + (d.surveyComplete ? '' : ' Completa la encuesta para habilitar alternativa.')
+            } else if (err?.error === 'service_unavailable') {
+              reason = 'Servicio de IA no configurado. Contacta a soporte.'
+            } else if (err?.message) {
+              reason = err.message
+            }
+          } catch {}
           validations[planType] = {
             canGenerate: false,
-            reason: 'Error al validar',
+            reason,
             planType
           }
         }

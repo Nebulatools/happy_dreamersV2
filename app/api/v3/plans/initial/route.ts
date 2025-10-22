@@ -25,41 +25,40 @@ export async function POST(req: Request) {
   if (blocked) return blocked
   const auth = await requireRole(req, ['admin', 'parent'])
   if (auth instanceof NextResponse) return auth
-  // Rate limit per user/IP for plan generation
   const id = getUserOrIPKey(req)
   const rl = shouldRateLimit(id, { key: 'plans_initial', limit: 5, windowMs: 60_000 })
   if (rl.limited) return rateLimitResponse(rl.resetAt)
 
-  let body: unknown
-  try { body = await req.json() } catch { return NextResponse.json({ error: 'invalid_json' }, { status: 400 }) }
-  const parsed = initialPlanBody.safeParse(body)
-  if (!parsed.success) return NextResponse.json({ error: 'invalid_body', issues: parsed.error.issues }, { status: 400 })
-
-  const childId = toObjectId(parsed.data.childId)
-  const window = defaultWindow()
-  const gate = await canGenerateInitial(childId, window)
-  if (!gate.ok) {
-    const details = {
-      eventCount: gate.context.eventCount,
-      distinctTypes: gate.context.distinctTypes,
-      required: { minEvents: CONF.PLAN_MIN_EVENTS, minDistinctTypes: CONF.PLAN_MIN_DISTINCT_TYPES },
-      surveyComplete: !!gate.context.surveyComplete,
-    }
-    return NextResponse.json({ ok: false, error: 'insufficient_data', details }, { status: 422 })
-  }
-
-  // LLM provider
-  let svc: PlanLLMService
+  const corr = `cid_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
   try {
-    svc = new PlanLLMService(getLLM() as any)
-  } catch (e: any) {
-    if (e && e.message === 'llm_misconfigured') {
-      return NextResponse.json({ error: 'service_unavailable', reason: 'llm_misconfigured' }, { status: 503 })
+    const body = await req.json()
+    const parsed = initialPlanBody.safeParse(body)
+    if (!parsed.success) return NextResponse.json({ ok: false, error: 'invalid_body', issues: parsed.error.issues }, { status: 400 })
+
+    const childId = toObjectId(parsed.data.childId)
+    const window = defaultWindow()
+    const gate = await canGenerateInitial(childId, window)
+    if (!gate.ok) {
+      const details = {
+        eventCount: gate.context.eventCount,
+        distinctTypes: gate.context.distinctTypes,
+        required: { minEvents: CONF.PLAN_MIN_EVENTS, minDistinctTypes: CONF.PLAN_MIN_DISTINCT_TYPES },
+        surveyComplete: !!gate.context.surveyComplete,
+      }
+      return NextResponse.json({ ok: false, error: 'insufficient_data', message: 'Faltan datos para generar el plan', details }, { status: 422 })
     }
-    throw e
-  }
-  const out = await svc.generate(childId, 'initial', window)
-  if (!out.ok) return NextResponse.json({ error: out.error, reason: out.reason, attempts: out.attempts }, { status: 502 })
+
+    let svc: PlanLLMService
+    try {
+      svc = new PlanLLMService(getLLM() as any)
+    } catch (e: any) {
+      if (e && e.message === 'llm_misconfigured') {
+        return NextResponse.json({ ok: false, error: 'service_unavailable', reason: 'llm_misconfigured' }, { status: 503 })
+      }
+      throw e
+    }
+    const out = await svc.generate(childId, 'initial', window)
+    if (!out.ok) return NextResponse.json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, { status: 502 })
 
   const planNumber = 0
   const planVersion = 0
@@ -70,7 +69,7 @@ export async function POST(req: Request) {
     distinctTypes: gate.context.distinctTypes,
     ageInMonths: gate.context.ageInMonths,
   }
-  const created = await PlansRepo.createPlan({
+    const created = await PlansRepo.createPlan({
     childId,
     planType: 'initial',
     planNumber,
@@ -81,8 +80,11 @@ export async function POST(req: Request) {
     status: 'active',
   })
 
-  await markSupersededPreviousPlans(childId, String(created._id))
-  safeLog('audit', 'plan_created', { planType: 'initial', childId: String(childId), planId: String(created._id), createdBy: auth.userId })
+    await markSupersededPreviousPlans(childId, String(created._id))
+    safeLog('audit', 'plan_created', { planType: 'initial', childId: String(childId), planId: String(created._id), createdBy: auth.userId })
 
-  return NextResponse.json({ ok: true, planId: String(created._id), planNumber, planVersion, output: out.output, sourceData })
+    return NextResponse.json({ ok: true, planId: String(created._id), planNumber, planVersion, output: out.output, sourceData })
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: 'internal_error', correlationId: corr }, { status: 500 })
+  }
 }
