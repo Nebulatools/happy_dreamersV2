@@ -154,7 +154,7 @@ export default function AddChildPage() {
 
   return (
     <div className="min-h-screen bg-blue-50/30 p-6">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto min-w-0">
         {/* Back Button & Header */}
         <div className="flex items-center gap-4 mb-8">
           <Button 
@@ -237,7 +237,7 @@ export default function AddChildPage() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-8">
+            <form onSubmit={handleSubmit} className="space-y-8 pb-[calc(80px+env(safe-area-inset-bottom))]">
               {/* Name Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
@@ -332,30 +332,32 @@ export default function AddChildPage() {
                 />
               </div>
 
-              {/* Form Actions */}
-              <div className="flex items-center justify-end gap-4 pt-6 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.back()}
-                  className="px-8 py-2.5 rounded-xl border-gray-200 hover:bg-gray-50 transition-all"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="bg-gradient-to-r from-blue-500 to-blue-400 hover:from-blue-600 hover:to-blue-500 text-white font-medium px-8 py-2.5 rounded-xl shadow-sm transition-all duration-200 disabled:opacity-50"
-                >
-                  {loading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Guardando...
-                    </div>
-                  ) : (
-                    "Guardar Soñador"
-                  )}
-                </Button>
+              {/* Form Actions (sticky footer) */}
+              <div className="sticky bottom-0 inset-x-0 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/70 border-t px-4 pt-2 pb-[calc(16px+env(safe-area-inset-bottom))]">
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.back()}
+                    className="flex-1 min-h-11"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 min-h-11"
+                  >
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Guardando...
+                      </div>
+                    ) : (
+                      "Guardar Soñador"
+                    )}
+                  </Button>
+                </div>
               </div>
             </form>
           </div>
