@@ -55,7 +55,8 @@ export async function collectPlanContext(childId: ObjectId, window: PlanWindow):
   if (child?.birthdate instanceof Date) {
     ageInMonths = monthsBetween(child.birthdate as Date, to)
   }
-  const surveyComplete = !!(child as any)?.surveyData && Object.keys((child as any)?.surveyData || {}).length > 0
+  const s: any = (child as any)?.surveyData
+  const surveyComplete = !!(s?.completed === true || (s && Object.keys(s).length > 0 && s?.isPartial !== true))
   const baseCtx: any = { childId, window, eventCount, typeCounts: counts, distinctTypes, surveyComplete }
   if (typeof ageInMonths === 'number') baseCtx.ageInMonths = ageInMonths
   const context: PlanContext = baseCtx
