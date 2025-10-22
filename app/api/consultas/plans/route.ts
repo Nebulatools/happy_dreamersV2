@@ -44,8 +44,12 @@ export async function PUT(req: NextRequest) {
     if (planType === 'initial') {
       const gate = await canGenerateInitial(cid, defaultWindow())
       if (gate.ok) {
+        const surveyOnly = CONF.PLAN_ALLOW_SURVEY_ONLY && !!gate.context.surveyComplete && (
+          gate.context.eventCount < CONF.PLAN_MIN_EVENTS || gate.context.distinctTypes < CONF.PLAN_MIN_DISTINCT_TYPES
+        )
         return NextResponse.json({
           canGenerate: true,
+          mode: surveyOnly ? 'survey_only' : 'events',
           nextVersion: 0,
           additionalInfo: { eventCount: gate.context.eventCount, distinctTypes: gate.context.distinctTypes, surveyComplete: !!gate.context.surveyComplete },
         })

@@ -48,6 +48,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: 'insufficient_data', message: 'Faltan datos para generar el plan', details }, { status: 422 })
     }
 
+    // Determinar si el pase fue por encuesta (survey-only)
+    const surveyOnly = CONF.PLAN_ALLOW_SURVEY_ONLY && !!gate.context.surveyComplete && (
+      gate.context.eventCount < CONF.PLAN_MIN_EVENTS || gate.context.distinctTypes < CONF.PLAN_MIN_DISTINCT_TYPES
+    )
+
     let svc: PlanLLMService
     try {
       svc = new PlanLLMService(getLLM() as any)
@@ -83,7 +88,7 @@ export async function POST(req: Request) {
     await markSupersededPreviousPlans(childId, String(created._id))
     safeLog('audit', 'plan_created', { planType: 'initial', childId: String(childId), planId: String(created._id), createdBy: auth.userId })
 
-    return NextResponse.json({ ok: true, planId: String(created._id), planNumber, planVersion, output: out.output, sourceData })
+    return NextResponse.json({ ok: true, mode: surveyOnly ? 'survey_only' : 'events', planId: String(created._id), planNumber, planVersion, output: out.output, sourceData })
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: 'internal_error', correlationId: corr }, { status: 500 })
   }
