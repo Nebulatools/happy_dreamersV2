@@ -1,4 +1,5 @@
 import { connectToDatabase } from '@/lib/mongodb'
+import { CONF } from '@/core-v3/config'
 
 export class PlanSanityError extends Error {
   status = 422
@@ -74,6 +75,17 @@ export async function checkPlanSanityOrThrow(childId: any, userId: string) {
   const windowDays = parseInt(process.env.HD_PLAN_DEFAULT_WINDOW_DAYS || '30', 10)
   const minCount = parseInt(process.env.HD_PLAN_MIN_EVENTS || '10', 10)
   const minTypes = parseInt(process.env.HD_PLAN_MIN_DISTINCT_TYPES || '2', 10)
+
+  // Survey-only override
+  try {
+    const { db } = await connectToDatabase()
+    const child = await db.collection('children').findOne({ _id: childId }, { projection: { surveyData: 1 } })
+    const s: any = (child as any)?.surveyData
+    const surveyComplete = !!(s?.completed === true || (s && Object.keys(s).length > 0 && s?.isPartial !== true))
+    if (CONF.PLAN_ALLOW_SURVEY_ONLY && surveyComplete) {
+      return { ok: true, mode: 'survey_only' } as const
+    }
+  } catch {}
 
   const okEvents = await hasMinimumRecentEvents(childId, windowDays, minCount, minTypes)
   if (!okEvents) throw new PlanSanityError('not_enough_data', 'Insufficient recent events/types for plan generation')
