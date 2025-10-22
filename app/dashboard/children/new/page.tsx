@@ -333,7 +333,7 @@ export default function AddChildPage() {
               </div>
 
               {/* Form Actions (sticky footer) */}
-              <div className="sticky bottom-0 inset-x-0 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/70 border-t px-4 pt-2 pb-[calc(16px+env(safe-area-inset-bottom))]">
+              <div className="sticky bottom-0 inset-x-0 -mx-8 md:mx-0 z-30 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/70 border-t px-4 md:px-8 pt-2 pb-[calc(16px+env(safe-area-inset-bottom))]">
                 <div className="flex gap-3">
                   <Button
                     type="button"
@@ -346,7 +346,7 @@ export default function AddChildPage() {
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 min-h-11"
+                    className="flex-1 min-h-11 bg-gradient-to-r from-blue-500 to-blue-400 hover:from-blue-600 hover:to-blue-500 text-white shadow-sm"
                   >
                     {loading ? (
                       <div className="flex items-center gap-2">
