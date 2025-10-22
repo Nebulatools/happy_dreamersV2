@@ -360,7 +360,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-0 min-w-0">
+    <div className="max-w-4xl mx-auto px-4 md:px-0 min-w-0 overflow-x-hidden">
       <SurveyProgress
         currentStep={currentStep}
         totalSteps={6}

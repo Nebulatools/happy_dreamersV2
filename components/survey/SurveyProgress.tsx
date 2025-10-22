@@ -76,8 +76,8 @@ export function SurveyProgress({
       </div>
 
       {/* Indicadores de pasos - scroll horizontal en pantallas pequeñas */}
-      <div className="px-4 md:px-0 overflow-x-auto no-scrollbar">
-        <ol className="flex min-w-max items-center gap-2 justify-center">
+      <div className="w-full px-4 md:px-0 overflow-x-auto overscroll-x-contain no-scrollbar">
+        <ol className="flex items-center gap-2 whitespace-nowrap">
           {steps.map((step) => {
             const isCompleted = completedSteps.has(step.id)
             const hasError = stepsWithErrors.has(step.id)
