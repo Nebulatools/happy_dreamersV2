@@ -31,6 +31,9 @@ export const POST = withApi(
     } catch (e: any) {
       const status = Number.isFinite(e?.status) ? e.status : 422
       const code = e?.code || 'plan_sanity_failed'
+      if (code === 'insufficient_data' || code === 'not_enough_data') {
+        return stdError('insufficient_data', 'Faltan datos para generar el plan', requestId, 422, e?.details)
+      }
       return stdError(code, e?.message || 'Preconditions failed', requestId, status)
     }
 

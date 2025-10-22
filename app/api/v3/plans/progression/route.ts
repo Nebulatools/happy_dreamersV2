@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     const childId = toObjectId(parsed.data.childId)
     const gate = await canGenerateProgression(childId, parsed.data.afterPlanId)
     if (!gate.ok) {
-      return NextResponse.json({ ok: false, error: 'insufficient_data', message: 'Faltan datos para generar el plan', details: { eventCount: gate.context.eventCount, distinctTypes: gate.context.distinctTypes } }, { status: 422 })
+      return NextResponse.json({ ok: false, error: 'insufficient_data', message: 'Faltan datos para generar el plan', details: { eventCount: gate.context.eventCount, distinctTypes: gate.context.distinctTypes, required: { minEvents: 1, minDistinctTypes: 1 } } }, { status: 422 })
     }
 
     const window = gate.context.window

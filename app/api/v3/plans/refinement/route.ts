@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     if (!basePlan) return NextResponse.json({ ok: false, error: 'insufficient_data', message: 'Se requiere un plan base', details: {} }, { status: 422 })
 
     const gate = await canRefine(childId, parsed.data.basePlanId, parsed.data.transcriptId)
-    if (!gate.ok) return NextResponse.json({ ok: false, error: 'insufficient_data', message: 'Faltan datos para generar el refinamiento', details: { eventCount: gate.context.eventCount, distinctTypes: gate.context.distinctTypes } }, { status: 422 })
+    if (!gate.ok) return NextResponse.json({ ok: false, error: 'insufficient_data', message: 'Faltan datos para generar el refinamiento', details: { eventCount: gate.context.eventCount, distinctTypes: gate.context.distinctTypes, required: { minEvents: 1, minDistinctTypes: 1 } } }, { status: 422 })
 
     const window = gate.context.window
     let svc: PlanLLMService

@@ -4,9 +4,11 @@ import { CONF } from '@/core-v3/config'
 export class PlanSanityError extends Error {
   status = 422
   code: string
-  constructor(code: string, message: string) {
+  details?: any
+  constructor(code: string, message: string, details?: any) {
     super(message)
     this.code = code
+    this.details = details
   }
 }
 
@@ -71,6 +73,20 @@ export async function consistentIdTypesAcrossCollections(childId: any): Promise<
   })
 }
 
+async function getEventStats(childId: any, windowDays: number) {
+  const { db } = await connectToDatabase()
+  const now = new Date()
+  const from = new Date(now.getTime() - windowDays * 24 * 60 * 60 * 1000)
+  const match = { childId, startTime: { $gte: from, $lte: now } }
+  const eventCount = await db.collection('events').countDocuments(match)
+  const rows = await db
+    .collection('events')
+    .aggregate<{ _id: string; count: number }>([{ $match: match }, { $group: { _id: '$type', count: { $sum: 1 } } }])
+    .toArray()
+  const distinctTypes = rows.length
+  return { eventCount, distinctTypes }
+}
+
 export async function checkPlanSanityOrThrow(childId: any, userId: string) {
   const windowDays = parseInt(process.env.HD_PLAN_DEFAULT_WINDOW_DAYS || '30', 10)
   const minCount = parseInt(process.env.HD_PLAN_MIN_EVENTS || '10', 10)
@@ -87,8 +103,12 @@ export async function checkPlanSanityOrThrow(childId: any, userId: string) {
     }
   } catch {}
 
-  const okEvents = await hasMinimumRecentEvents(childId, windowDays, minCount, minTypes)
-  if (!okEvents) throw new PlanSanityError('not_enough_data', 'Insufficient recent events/types for plan generation')
+  const { eventCount, distinctTypes } = await getEventStats(childId, windowDays)
+  const okEvents = eventCount >= minCount && distinctTypes >= minTypes
+  if (!okEvents) {
+    const details = { eventCount, distinctTypes, required: { minEvents: minCount, minDistinctTypes: minTypes } }
+    throw new PlanSanityError('insufficient_data', 'Faltan datos para generar el plan', details)
+  }
 
   const okAge = await validAgeInMonths(childId)
   if (!okAge) throw new PlanSanityError('invalid_age', 'Invalid or missing child age')
