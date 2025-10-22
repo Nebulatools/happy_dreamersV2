@@ -2,6 +2,7 @@ import type { ObjectId } from 'mongodb'
 import { EventsRepo } from '@core-v3/infra/repos/events.repo'
 import { PlansRepo } from '@core-v3/infra/repos/plans.repo'
 import { ChildrenRepo } from '@core-v3/infra/repos/children.repo'
+import { CONF } from '@core-v3/config'
 
 export type PlanWindow = { from: Date; to: Date }
 
@@ -14,6 +15,7 @@ export type PlanContext = {
   ageInMonths?: number
   lastPlanId?: string
   lastPlanCreatedAt?: Date
+  surveyComplete?: boolean
 }
 
 export type GateResult = { ok: true; context: PlanContext } | { ok: false; reason: string; context: PlanContext }
@@ -53,7 +55,8 @@ export async function collectPlanContext(childId: ObjectId, window: PlanWindow):
   if (child?.birthdate instanceof Date) {
     ageInMonths = monthsBetween(child.birthdate as Date, to)
   }
-  const baseCtx: any = { childId, window, eventCount, typeCounts: counts, distinctTypes }
+  const surveyComplete = !!(child as any)?.surveyData && Object.keys((child as any)?.surveyData || {}).length > 0
+  const baseCtx: any = { childId, window, eventCount, typeCounts: counts, distinctTypes, surveyComplete }
   if (typeof ageInMonths === 'number') baseCtx.ageInMonths = ageInMonths
   const context: PlanContext = baseCtx
   log('plan_context', {
@@ -68,8 +71,8 @@ export async function collectPlanContext(childId: ObjectId, window: PlanWindow):
 }
 
 function sanityGate(context: PlanContext): { ok: true } | { ok: false; reason: string } {
-  const minN = intEnv('HD_PLAN_MIN_EVENTS', 10)
-  const minK = intEnv('HD_PLAN_MIN_DISTINCT_TYPES', 2)
+  const minN = CONF.PLAN_MIN_EVENTS
+  const minK = CONF.PLAN_MIN_DISTINCT_TYPES
   if (context.eventCount < minN) return { ok: false, reason: 'not_enough_events' }
   if (context.distinctTypes < minK) return { ok: false, reason: 'not_enough_distinct_types' }
   if (typeof context.ageInMonths !== 'number' || context.ageInMonths < 0) return { ok: false, reason: 'invalid_age' }
@@ -78,6 +81,10 @@ function sanityGate(context: PlanContext): { ok: true } | { ok: false; reason: s
 
 export async function canGenerateInitial(childId: ObjectId, window: PlanWindow = defaultWindow()): Promise<GateResult> {
   const context = await collectPlanContext(childId, window)
+  // Survey-only override for Plan Inicial
+  if (CONF.PLAN_ALLOW_SURVEY_ONLY && context.surveyComplete) {
+    return { ok: true, context }
+  }
   const check = sanityGate(context)
   if (check.ok) return { ok: true, context }
   log('gate_denied', { type: 'initial', reason: check.reason })

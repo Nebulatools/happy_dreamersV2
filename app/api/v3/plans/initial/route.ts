@@ -7,6 +7,7 @@ import { EventsRepo } from '@/core-v3/infra/repos/events.repo'
 import { PlanLLMService } from '@/core-v3/infra/llm/plan-llm-service'
 import { getLLM } from '@/core-v3/infra/llm'
 import { canGenerateInitial, defaultWindow, markSupersededPreviousPlans } from '@/core-v3/domain/plan-engine'
+import { CONF } from '@/core-v3/config'
 import { getUserOrIPKey, rateLimitResponse, shouldRateLimit } from '@/core-v3/security/rate-limit'
 import { safeLog } from '@/core-v3/security/sanitize'
 
@@ -37,7 +38,15 @@ export async function POST(req: Request) {
   const childId = toObjectId(parsed.data.childId)
   const window = defaultWindow()
   const gate = await canGenerateInitial(childId, window)
-  if (!gate.ok) return NextResponse.json({ error: 'gate_failed', reason: gate.reason, context: gate.context }, { status: 400 })
+  if (!gate.ok) {
+    const details = {
+      eventCount: gate.context.eventCount,
+      distinctTypes: gate.context.distinctTypes,
+      required: { minEvents: CONF.PLAN_MIN_EVENTS, minDistinctTypes: CONF.PLAN_MIN_DISTINCT_TYPES },
+      surveyComplete: !!gate.context.surveyComplete,
+    }
+    return NextResponse.json({ ok: false, error: 'insufficient_data', details }, { status: 422 })
+  }
 
   // LLM provider
   let svc: PlanLLMService

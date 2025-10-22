@@ -60,3 +60,9 @@ export function getConfig(): AppConfig {
   }
 }
 
+// Lightweight runtime configuration flags for plan generation
+export const CONF = {
+  PLAN_ALLOW_SURVEY_ONLY: String(process.env.HD_PLAN_ALLOW_SURVEY_ONLY || '').toLowerCase() === 'true',
+  PLAN_MIN_EVENTS: Number.parseInt(String(process.env.HD_PLAN_MIN_EVENTS ?? '10'), 10),
+  PLAN_MIN_DISTINCT_TYPES: Number.parseInt(String(process.env.HD_PLAN_MIN_DISTINCT_TYPES ?? '2'), 10),
+}
