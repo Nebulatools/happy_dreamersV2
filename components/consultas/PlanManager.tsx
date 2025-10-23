@@ -766,14 +766,16 @@ export function PlanManager({
                   
                   <div className="mt-2">
                     <p className="text-sm text-muted-foreground">
-                      {plan.objectives.length > 0 && (() => {
-                        const first = plan.objectives[0] as any
+                      {(() => {
+                        const objectives = Array.isArray((plan as any)?.objectives) ? (plan as any).objectives : []
+                        if (objectives.length === 0) return null
+                        const first = objectives[0] as any
                         const text = typeof first === 'string' ? first : (first?.description || JSON.stringify(first))
                         return (
                           <span className="flex items-center gap-1">
                             <Target className="h-3 w-3" />
                             {text}
-                            {plan.objectives.length > 1 && ` (+${plan.objectives.length - 1} más)`}
+                            {objectives.length > 1 && ` (+${objectives.length - 1} más)`}
                           </span>
                         )
                       })()}
