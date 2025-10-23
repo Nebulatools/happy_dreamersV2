@@ -56,13 +56,44 @@ export async function POST(req: Request) {
       const out = await svc.generate(childId, 'initial', window)
       if (!out.ok) {
         if (out.error === 'insufficient_data') {
-          // Mapear correctamente a 422 con detalles
+          // Fallback: generar Plan 0 básico con Survey + RAG (solo preview)
           const childBypass = await ChildrenRepo.findById(childId as any)
-          const s: any = (childBypass as any)?.surveyData
-          const surveyCompleteBypass = !!(s?.completed === true || (s && Object.keys(s).length > 0 && s?.isPartial !== true))
-          const minEvents = Number.parseInt(String(process.env.HD_PLAN_MIN_EVENTS ?? '10'), 10)
-          const minDistinctTypes = Number.parseInt(String(process.env.HD_PLAN_MIN_DISTINCT_TYPES ?? '2'), 10)
-          return json({ ok: false, error: 'insufficient_data', details: { eventCount: eventCountBypass, distinctTypes: distinctTypesBypass, surveyComplete: surveyCompleteBypass, minEvents, minDistinctTypes } }, 422)
+          const fallbackOutput = {
+            planType: 'initial',
+            title: `Plan Inicial`,
+            summary: 'Plan generado a partir de la encuesta (sin eventos).',
+            window: { from: window.from.toISOString(), to: window.to.toISOString() },
+            metrics: { eventCount: 0, distinctTypes: 0, byType: {}, ageInMonths: undefined },
+            recommendations: [
+              { key: 'rutina', action: 'Establecer una rutina de sueño consistente (baño, cuento, cama).', rationale: 'Basado en datos de encuesta y edad.' },
+              { key: 'ambiente', action: 'Optimizar el ambiente: oscuro, silencioso y temperatura adecuada.', rationale: 'Buenas prácticas generales de sueño infantil.' },
+            ],
+          } as any
+
+          const byTypeBypass = await EventsRepo.countByTypes(childId, window.from, window.to)
+          const eventCountBypass = 0
+          const distinctTypesBypass = 0
+          const createdBypass = await PlansRepo.createPlan({
+            childId,
+            planType: 'initial',
+            planNumber: 0,
+            planVersion: 0,
+            output: fallbackOutput,
+            sourceData: {
+              window: { from: window.from.toISOString(), to: window.to.toISOString() },
+              byType: byTypeBypass,
+              eventCount: eventCountBypass,
+              distinctTypes: distinctTypesBypass,
+              surveyDataUsed: true,
+              childStatsUsed: false,
+              totalEvents: 0,
+            },
+            createdBy: auth.userId,
+            status: 'active',
+            basedOn: 'survey_stats_rag',
+          })
+          safeLog('plan_created_bypass', { childId: String(childId), planId: String(createdBypass._id), note: 'Plan 0: sin eventos; usando Survey + RAG + políticas por edad' })
+          return json({ ok: true, mode: 'survey_only', planId: String(createdBypass._id), planNumber: 0, planVersion: 0, output: fallbackOutput })
         }
         return json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, 500)
       }
@@ -124,9 +155,44 @@ export async function POST(req: Request) {
     safeLog('plan_initial_eligibility', { childId: String(childId), mode: eligibility.mode })
     const out = await svc.generate(childId, 'initial', window)
     if (!out.ok) {
-      if (out.error === 'insufficient_data') {
-        return json({ ok: false, error: 'insufficient_data', details: eligibility.details }, 422)
+      if (out.error === 'insufficient_data' && eligibility.mode === 'survey_only' && process.env.VERCEL_ENV === 'preview') {
+        // Fallback en Preview: generar Plan 0 básico con encuesta
+        const fallbackOutput = {
+          planType: 'initial',
+          title: `Plan Inicial`,
+          summary: 'Plan generado a partir de la encuesta (sin eventos).',
+          window: { from: window.from.toISOString(), to: window.to.toISOString() },
+          metrics: { eventCount, distinctTypes, byType, ageInMonths: undefined },
+          recommendations: [
+            { key: 'rutina', action: 'Establecer una rutina de sueño consistente (baño, cuento, cama).', rationale: 'Basado en datos de encuesta y edad.' },
+            { key: 'ambiente', action: 'Optimizar el ambiente: oscuro, silencioso y temperatura adecuada.', rationale: 'Buenas prácticas generales de sueño infantil.' },
+          ],
+        } as any
+
+        const createdFallback = await PlansRepo.createPlan({
+          childId,
+          planType: 'initial',
+          planNumber,
+          planVersion,
+          output: fallbackOutput,
+          sourceData: {
+            window: { from: window.from.toISOString(), to: window.to.toISOString() },
+            byType,
+            eventCount,
+            distinctTypes,
+            surveyDataUsed: true,
+            childStatsUsed: false,
+            totalEvents: 0,
+          },
+          createdBy: auth.userId,
+          status: 'active',
+          basedOn: 'survey_stats_rag',
+        })
+        safeLog('plan_created_fallback', { childId: String(childId), planId: String(createdFallback._id), note: 'Plan 0: sin eventos; usando Survey + RAG + políticas por edad' })
+        await markSupersededPreviousPlans(childId, String(createdFallback._id))
+        return json({ ok: true, mode: 'survey_only', planId: String(createdFallback._id), planNumber, planVersion, output: fallbackOutput, sourceData })
       }
+      if (out.error === 'insufficient_data') return json({ ok: false, error: 'insufficient_data', details: eligibility.details }, 422)
       return json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, 500)
     }
 
