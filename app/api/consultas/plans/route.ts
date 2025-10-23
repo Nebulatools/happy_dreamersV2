@@ -43,6 +43,62 @@ function calcAgeInMonths(birth: unknown, reference: Date): number | undefined {
   return total >= 0 ? total : undefined
 }
 
+function normalizeSchedule(raw: any) {
+  if (!raw || typeof raw !== 'object') {
+    return { bedtime: '', wakeTime: '', meals: [], activities: [], naps: [] }
+  }
+  const meals = Array.isArray(raw.meals)
+    ? raw.meals.map((meal: any) => ({
+        time: typeof meal?.time === 'string' ? meal.time : '',
+        type: typeof meal?.type === 'string' ? meal.type : 'comida',
+        description: typeof meal?.description === 'string' ? meal.description : '',
+      }))
+    : []
+  const activities = Array.isArray(raw.activities)
+    ? raw.activities.map((activity: any) => ({
+        time: typeof activity?.time === 'string' ? activity.time : '',
+        activity: typeof activity?.activity === 'string' ? activity.activity : 'Actividad',
+        duration: typeof activity?.duration === 'number' ? activity.duration : 0,
+        description: typeof activity?.description === 'string' ? activity.description : '',
+      }))
+    : []
+  const naps = Array.isArray(raw.naps)
+    ? raw.naps.map((nap: any) => ({
+        time: typeof nap?.time === 'string' ? nap.time : '',
+        duration: typeof nap?.duration === 'number' ? nap.duration : 0,
+        description: typeof nap?.description === 'string' ? nap.description : '',
+      }))
+    : []
+  return {
+    bedtime: typeof raw.bedtime === 'string' ? raw.bedtime : '',
+    wakeTime: typeof raw.wakeTime === 'string' ? raw.wakeTime : '',
+    meals,
+    activities,
+    naps,
+  }
+}
+
+function normalizeLegacyPlanDoc(plan: any) {
+  const normalized: any = { ...plan }
+  normalized.schedule = normalizeSchedule(plan?.schedule)
+  normalized.objectives = normalizeStringArray(plan?.objectives)
+  normalized.recommendations = normalizeStringArray(plan?.recommendations)
+  if (!Array.isArray(normalized.objectives)) normalized.objectives = []
+  if (!Array.isArray(normalized.recommendations)) normalized.recommendations = []
+  if (!normalized.sourceData || typeof normalized.sourceData !== 'object') {
+    normalized.sourceData = { totalEvents: 0, surveyDataUsed: false, childStatsUsed: false, ragSources: [] }
+  } else {
+    normalized.sourceData = {
+      ...normalized.sourceData,
+      totalEvents: typeof normalized.sourceData.totalEvents === 'number' ? normalized.sourceData.totalEvents : Number(normalized.sourceData.eventCount ?? 0),
+      surveyDataUsed: Boolean(normalized.sourceData.surveyDataUsed),
+      childStatsUsed: Boolean(normalized.sourceData.childStatsUsed),
+      ragSources: Array.isArray(normalized.sourceData.ragSources) ? normalized.sourceData.ragSources : [],
+    }
+  }
+  return normalized
+}
+
 // GET /api/consultas/plans?childId=...&userId=...
 export async function GET(req: NextRequest) {
   try {
@@ -57,11 +113,12 @@ export async function GET(req: NextRequest) {
 
     const { db } = await connectToDatabase()
     // Compat: esta ruta usa la colección legacy `child_plans`
-    const plans = await db
+    const rawPlans = await db
       .collection('child_plans')
       .find({ childId, ...userFilter })
       .sort({ createdAt: -1 })
       .toArray()
+    const plans = rawPlans.map(normalizeLegacyPlanDoc)
 
     return NextResponse.json({ success: true, plans })
   } catch (e: any) {
