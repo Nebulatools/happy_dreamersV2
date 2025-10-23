@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { json, normalizeError } from '@/server/http'
 import { routeGuard } from '@/core-v3/api/feature-flag'
 import { requireRole } from '@/core-v3/api/rbac'
 import { initialPlanBody } from '@/core-v3/api/schemas/plans'
@@ -137,6 +138,9 @@ export async function POST(req: Request) {
 
     return json({ ok: true, mode: eligibility.mode, planId: String(created._id), planNumber, planVersion, output: out.output, sourceData })
   } catch (e: any) {
+    const kind = normalizeError(e)
+    if (kind.type === 'insufficient_data') return json({ ok: false, error: 'insufficient_data', details: kind.details, correlationId: corr }, 422)
+    if (kind.type === 'llm_misconfigured') return json({ ok: false, error: 'service_unavailable', reason: 'llm_misconfigured', correlationId: corr }, 503)
     return json({ ok: false, error: 'internal_error', correlationId: corr }, 500)
   }
 }
