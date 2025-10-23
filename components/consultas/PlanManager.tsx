@@ -482,11 +482,10 @@ export function PlanManager({
       // Manejo claro de respuestas
       if (res.status === 422 && data?.error === 'insufficient_data') {
         const d = data?.details || {}
-        const req = d.required || {}
-        toast({
-          title: 'Datos insuficientes',
-          description: `Faltan datos para generar el plan (eventos: ${d.eventCount ?? 0}/${req.minEvents ?? 'N'}, tipos: ${d.distinctTypes ?? 0}/${req.minDistinctTypes ?? 'K'}). ${d.surveyComplete ? 'La encuesta está completa; verifica que el flag HD_PLAN_ALLOW_SURVEY_ONLY esté activo.' : 'Completa la encuesta o añade eventos.'}`,
-          variant: 'destructive',
+        const minE = d.minEvents ?? d.required?.minEvents
+        const minK = d.minDistinctTypes ?? d.required?.minDistinctTypes
+        notify.warning('Faltan datos para generar el plan', {
+          description: `Eventos ${d.eventCount ?? 0}/${minE ?? 'N'}, Tipos ${d.distinctTypes ?? 0}/${minK ?? 'K'}, Encuesta: ${d.surveyComplete ? 'completa' : 'incompleta'}`,
         })
         return
       }

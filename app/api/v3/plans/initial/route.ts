@@ -40,20 +40,20 @@ export async function POST(req: Request) {
     const childId = toObjectId(parsed.data.childId)
     const window = defaultWindow()
 
-    // Kill-switch para QA/Preview: permitir generar sin validación de gates
-    const BYPASS_GATES = String(process.env.HD_PLAN_DISABLE_GATES || '').toLowerCase() === 'true'
+    // Kill-switch SOLO para Preview: permitir generar sin validación de gates
+    const BYPASS_GATES = String(process.env.HD_PLAN_DISABLE_GATES || '').toLowerCase() === 'true' && (process.env.VERCEL_ENV === 'preview')
     if (BYPASS_GATES) {
       let svc: PlanLLMService
       try {
         svc = new PlanLLMService(getLLM() as any)
       } catch (e: any) {
         if (e && e.message === 'llm_misconfigured') {
-          return NextResponse.json({ ok: false, error: 'service_unavailable', reason: 'llm_misconfigured' }, { status: 503 })
+          return json({ ok: false, error: 'service_unavailable', reason: 'llm_misconfigured' }, 503)
         }
         throw e
       }
       const out = await svc.generate(childId, 'initial', window)
-      if (!out.ok) return NextResponse.json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, { status: 502 })
+      if (!out.ok) return json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, 500)
 
       const byTypeBypass = await EventsRepo.countByTypes(childId, window.from, window.to)
       const eventCountBypass = Object.values(byTypeBypass).reduce((a, b) => a + (b as number), 0)
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
         status: 'active',
       })
       safeLog('plan_created_bypass', { childId: String(childId), planId: String(createdBypass._id) })
-      return NextResponse.json({ ok: true, mode: 'survey_only', planId: String(createdBypass._id), planNumber: 0, planVersion: 0, output: out.output })
+      return json({ ok: true, mode: 'survey_only', planId: String(createdBypass._id), planNumber: 0, planVersion: 0, output: out.output })
     }
     // Calcular métricas actuales
     const byType = await EventsRepo.countByTypes(childId, window.from, window.to)
@@ -97,21 +97,21 @@ export async function POST(req: Request) {
       allowSurveyOnly,
     })
     if (!eligibility.canGenerate) {
-      return NextResponse.json({ ok: false, error: 'insufficient_data', details: eligibility.details }, { status: 422 })
+      return json({ ok: false, error: 'insufficient_data', details: eligibility.details }, 422)
     }
 
     let svc: PlanLLMService
     try {
       svc = new PlanLLMService(getLLM() as any)
     } catch (e: any) {
-      if (e && e.message === 'llm_misconfigured') {
-        return NextResponse.json({ ok: false, error: 'service_unavailable', reason: 'llm_misconfigured' }, { status: 503 })
-      }
+    if (e && e.message === 'llm_misconfigured') {
+        return json({ ok: false, error: 'service_unavailable', reason: 'llm_misconfigured' }, 503)
+    }
       throw e
     }
     safeLog('plan_initial_eligibility', { childId: String(childId), mode: eligibility.mode })
     const out = await svc.generate(childId, 'initial', window)
-    if (!out.ok) return NextResponse.json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, { status: 502 })
+    if (!out.ok) return json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, 500)
 
   const planNumber = 0
   const planVersion = 0
@@ -135,15 +135,18 @@ export async function POST(req: Request) {
     await markSupersededPreviousPlans(childId, String(created._id))
     safeLog('audit', 'plan_created', { planType: 'initial', childId: String(childId), planId: String(created._id), createdBy: auth.userId })
 
-    return NextResponse.json({ ok: true, mode: eligibility.mode, planId: String(created._id), planNumber, planVersion, output: out.output, sourceData })
+    return json({ ok: true, mode: eligibility.mode, planId: String(created._id), planNumber, planVersion, output: out.output, sourceData })
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: 'internal_error', correlationId: corr }, { status: 500 })
+    return json({ ok: false, error: 'internal_error', correlationId: corr }, 500)
   }
 }
 
 export async function GET() {
-  return new Response(
-    JSON.stringify({ ok: false, error: 'method_not_allowed', hint: 'Usa POST a /api/v3/plans/initial con body { childId }' }),
-    { status: 405, headers: { 'Content-Type': 'application/json', 'Allow': 'POST' } }
-  )
+  return json({ ok: false, error: 'method_not_allowed', hint: 'Usa POST a /api/v3/plans/initial con body { childId }' }, 405, { 'Allow': 'POST' })
+}
+function json(data: any, status = 200, headers: Record<string, string> = {}) {
+  return new NextResponse(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...headers },
+  })
 }
