@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { json, normalizeError } from '@/server/http'
+import { json, normalizeError, InsufficientDataError } from '@/server/http'
 import { routeGuard } from '@/core-v3/api/feature-flag'
 import { requireRole } from '@/core-v3/api/rbac'
 import { initialPlanBody } from '@/core-v3/api/schemas/plans'
