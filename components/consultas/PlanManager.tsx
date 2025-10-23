@@ -484,7 +484,8 @@ export function PlanManager({
         const d = data?.details || {}
         const minE = d.minEvents ?? d.required?.minEvents
         const minK = d.minDistinctTypes ?? d.required?.minDistinctTypes
-        notify.warning('Faltan datos para generar el plan', {
+        toast({
+          title: 'Faltan datos para generar el plan',
           description: `Eventos ${d.eventCount ?? 0}/${minE ?? 'N'}, Tipos ${d.distinctTypes ?? 0}/${minK ?? 'K'}, Encuesta: ${d.surveyComplete ? 'completa' : 'incompleta'}`,
         })
         return
