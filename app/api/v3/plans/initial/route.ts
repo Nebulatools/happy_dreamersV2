@@ -13,6 +13,7 @@ import { computeInitialEligibility } from '@/core-v3/domain/eligibility'
 import { CONF } from '@/core-v3/config'
 import { getUserOrIPKey, rateLimitResponse, shouldRateLimit } from '@/core-v3/security/rate-limit'
 import { safeLog } from '@/core-v3/security/sanitize'
+import { connectToDatabase } from '@/lib/mongodb'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -92,6 +93,35 @@ export async function POST(req: Request) {
             status: 'active',
             basedOn: 'survey_stats_rag',
           })
+          // Dual-write a child_plans para UI legacy
+          try {
+            const { db } = await connectToDatabase()
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const { ObjectId } = require('mongodb') as { ObjectId: new (h?: string) => any }
+            await db.collection('child_plans').insertOne({
+              childId,
+              userId: new ObjectId(auth.userId),
+              planType: 'initial',
+              planNumber: 0,
+              planVersion: 0,
+              status: 'activo',
+              output: fallbackOutput,
+              sourceData: {
+                window: { from: window.from.toISOString(), to: window.to.toISOString() },
+                byType: byTypeBypass,
+                eventCount: eventCountBypass,
+                distinctTypes: distinctTypesBypass,
+                surveyDataUsed: true,
+                childStatsUsed: false,
+                totalEvents: 0,
+              },
+              basedOn: 'survey_stats_rag',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            })
+          } catch (err:any) {
+            safeLog('warn','dual_write_child_plans_failed',{ err: err?.message })
+          }
           safeLog('plan_created_bypass', { childId: String(childId), planId: String(createdBypass._id), note: 'Plan 0: sin eventos; usando Survey + RAG + políticas por edad' })
           return json({ ok: true, mode: 'survey_only', planId: String(createdBypass._id), planNumber: 0, planVersion: 0, output: fallbackOutput })
         }
@@ -188,6 +218,35 @@ export async function POST(req: Request) {
           status: 'active',
           basedOn: 'survey_stats_rag',
         })
+        // Dual-write a child_plans para UI legacy
+        try {
+          const { db } = await connectToDatabase()
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const { ObjectId } = require('mongodb') as { ObjectId: new (h?: string) => any }
+          await db.collection('child_plans').insertOne({
+            childId,
+            userId: new ObjectId(auth.userId),
+            planType: 'initial',
+            planNumber,
+            planVersion,
+            status: 'activo',
+            output: fallbackOutput,
+            sourceData: {
+              window: { from: window.from.toISOString(), to: window.to.toISOString() },
+              byType,
+              eventCount,
+              distinctTypes,
+              surveyDataUsed: true,
+              childStatsUsed: false,
+              totalEvents: 0,
+            },
+            basedOn: 'survey_stats_rag',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+        } catch (err:any) {
+          safeLog('warn','dual_write_child_plans_failed',{ err: err?.message })
+        }
         safeLog('plan_created_fallback', { childId: String(childId), planId: String(createdFallback._id), note: 'Plan 0: sin eventos; usando Survey + RAG + políticas por edad' })
         await markSupersededPreviousPlans(childId, String(createdFallback._id))
         return json({ ok: true, mode: 'survey_only', planId: String(createdFallback._id), planNumber, planVersion, output: fallbackOutput, sourceData })
@@ -218,6 +277,28 @@ export async function POST(req: Request) {
     await markSupersededPreviousPlans(childId, String(created._id))
     safeLog('audit', 'plan_created', { planType: 'initial', childId: String(childId), planId: String(created._id), createdBy: auth.userId })
 
+    // Dual-write a child_plans para UI legacy
+    try {
+      const { db } = await connectToDatabase()
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { ObjectId } = require('mongodb') as { ObjectId: new (h?: string) => any }
+      await db.collection('child_plans').insertOne({
+        childId,
+        userId: new ObjectId(auth.userId),
+        planType: 'initial',
+        planNumber,
+        planVersion,
+        status: 'activo',
+        output: out.output,
+        sourceData,
+        basedOn: 'survey_stats_rag',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+    } catch (err:any) {
+      safeLog('warn','dual_write_child_plans_failed',{ err: err?.message })
+    }
+
     return json({ ok: true, mode: eligibility.mode, planId: String(created._id), planNumber, planVersion, output: out.output, sourceData })
   } catch (e: any) {
     const kind = normalizeError(e)
@@ -229,10 +310,4 @@ export async function POST(req: Request) {
 
 export async function GET() {
   return json({ ok: false, error: 'method_not_allowed', hint: 'Usa POST a /api/v3/plans/initial con body { childId }' }, 405, { 'Allow': 'POST' })
-}
-function json(data: any, status = 200, headers: Record<string, string> = {}) {
-  return new NextResponse(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json', ...headers },
-  })
 }
