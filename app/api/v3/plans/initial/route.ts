@@ -39,6 +39,43 @@ export async function POST(req: Request) {
 
     const childId = toObjectId(parsed.data.childId)
     const window = defaultWindow()
+
+    // Kill-switch para QA/Preview: permitir generar sin validación de gates
+    const BYPASS_GATES = String(process.env.HD_PLAN_DISABLE_GATES || '').toLowerCase() === 'true'
+    if (BYPASS_GATES) {
+      let svc: PlanLLMService
+      try {
+        svc = new PlanLLMService(getLLM() as any)
+      } catch (e: any) {
+        if (e && e.message === 'llm_misconfigured') {
+          return NextResponse.json({ ok: false, error: 'service_unavailable', reason: 'llm_misconfigured' }, { status: 503 })
+        }
+        throw e
+      }
+      const out = await svc.generate(childId, 'initial', window)
+      if (!out.ok) return NextResponse.json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, { status: 502 })
+
+      const byTypeBypass = await EventsRepo.countByTypes(childId, window.from, window.to)
+      const eventCountBypass = Object.values(byTypeBypass).reduce((a, b) => a + (b as number), 0)
+      const distinctTypesBypass = Object.keys(byTypeBypass).length
+      const createdBypass = await PlansRepo.createPlan({
+        childId,
+        planType: 'initial',
+        planNumber: 0,
+        planVersion: 0,
+        output: out.output,
+        sourceData: {
+          window: { from: window.from.toISOString(), to: window.to.toISOString() },
+          byType: byTypeBypass,
+          eventCount: eventCountBypass,
+          distinctTypes: distinctTypesBypass,
+        },
+        createdBy: auth.userId,
+        status: 'active',
+      })
+      safeLog('plan_created_bypass', { childId: String(childId), planId: String(createdBypass._id) })
+      return NextResponse.json({ ok: true, mode: 'survey_only', planId: String(createdBypass._id), planNumber: 0, planVersion: 0, output: out.output })
+    }
     // Calcular métricas actuales
     const byType = await EventsRepo.countByTypes(childId, window.from, window.to)
     const eventCount = Object.values(byType).reduce((a, b) => a + b, 0)
