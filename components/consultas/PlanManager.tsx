@@ -471,6 +471,25 @@ export function PlanManager({
         body: JSON.stringify({ childId }),
       })
       const data = await res.json().catch(() => ({}))
+      // Manejo claro de respuestas
+      if (res.status === 422 && data?.error === 'insufficient_data') {
+        const d = data?.details || {}
+        const req = d.required || {}
+        toast({
+          title: 'Datos insuficientes',
+          description: `Faltan datos para generar el plan (eventos: ${d.eventCount ?? 0}/${req.minEvents ?? 'N'}, tipos: ${d.distinctTypes ?? 0}/${req.minDistinctTypes ?? 'K'}). ${d.surveyComplete ? 'La encuesta está completa; verifica que el flag HD_PLAN_ALLOW_SURVEY_ONLY esté activo.' : 'Completa la encuesta o añade eventos.'}`,
+          variant: 'destructive',
+        })
+        return
+      }
+      if (res.status === 503 && data?.error === 'service_unavailable' && data?.reason === 'llm_misconfigured') {
+        toast({
+          title: 'Servicio de IA no disponible',
+          description: 'El proveedor LLM no está configurado. Notifica al equipo para configurar OPENAI_API_KEY/HD_LLM_PROVIDER.',
+          variant: 'destructive',
+        })
+        return
+      }
       if (!res.ok) {
         const msg = data?.message || data?.error || res.statusText
         throw new Error(`${res.status} ${msg}`)
