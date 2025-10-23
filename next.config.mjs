@@ -1,5 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Evitar que Next/Webpack intente bundlear binarios nativos
+  serverExternalPackages: [
+    'snappy',
+    '@mongodb-js/zstd',
+    'mongodb-client-encryption',
+    'kerberos',
+    'gcp-metadata',
+  ],
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -78,8 +86,9 @@ const nextConfig = {
     // Optimizaciones solo para cliente
     if (!isServer) {
       // Reemplazar moment.js con date-fns si se usa
+      config.resolve = config.resolve || {}
       config.resolve.alias = {
-        ...config.resolve.alias,
+        ...(config.resolve.alias || {}),
         'moment': 'date-fns',
       }
       
@@ -92,7 +101,27 @@ const nextConfig = {
         })
       )
     }
-    
+    // Evitar que Webpack resuelva módulos nativos (cliente y servidor)
+    config.resolve = config.resolve || {}
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      snappy: false,
+      '@mongodb-js/zstd': false,
+      kerberos: false,
+      'mongodb-client-encryption': false,
+      'gcp-metadata': false,
+    }
+
+    const externals = Array.isArray(config.externals) ? config.externals : []
+    config.externals = [
+      ...externals,
+      'snappy',
+      '@mongodb-js/zstd',
+      'kerberos',
+      'mongodb-client-encryption',
+      'gcp-metadata',
+    ]
+
     return config
   },
 }
