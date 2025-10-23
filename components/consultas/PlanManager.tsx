@@ -630,7 +630,7 @@ export function PlanManager({
                         📋 Eventos encontrados ({planValidations.event_based.additionalInfo.eventDetails.length}):
                       </p>
                       <div className="space-y-1 max-h-48 overflow-auto">
-                        {planValidations.event_based.additionalInfo.eventDetails.map((event: any, idx: number) => (
+                        {(planValidations.event_based?.additionalInfo?.eventDetails ?? []).map((event: any, idx: number) => (
                           <div key={idx} className="text-xs bg-white dark:bg-gray-900 p-2 rounded border">
                             <div className="flex justify-between gap-2">
                               <span className="font-mono text-blue-600 dark:text-blue-400">{event.eventType}</span>
