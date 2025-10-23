@@ -52,8 +52,15 @@ export async function PUT(req: NextRequest) {
         !!(child as any)?.surveyData?.completedAt ||
         Object.keys((child as any)?.surveyData || {}).length > 0
       )
-      const existingPlans = await db.collection('child_plans').find({ childId: cid }).project({ planNumber: 1, planType: 1 }).toArray()
-      const alreadyHasInitial = existingPlans.some((p: any) => p.planNumber === 0 && p.planType === 'initial')
+      const ownerId = (child as any)?.parentId
+      // Preferir el userId explícito del request (admin selecciona padre), si no, usar owner del niño
+      const reqUserIdHex = (body?.userId && typeof body.userId === 'string' && isObjectIdHex(body.userId)) ? body.userId : null
+      const userToCheck = reqUserIdHex ? toObjectId(reqUserIdHex) : ownerId
+      // Sólo considerar Plan 0 existente del usuario objetivo
+      const existingInitial = userToCheck
+        ? await db.collection('child_plans').findOne({ childId: cid, userId: userToCheck, planNumber: 0, planType: 'initial' })
+        : await db.collection('child_plans').findOne({ childId: cid, planNumber: 0, planType: 'initial' })
+      const alreadyHasInitial = !!existingInitial
       const canGenerateInitial = hasSurvey && !alreadyHasInitial
       if (canGenerateInitial) {
         return NextResponse.json({ canGenerate: true, mode: 'survey_only', nextVersion: 0, additionalInfo: { surveyComplete: true } })
