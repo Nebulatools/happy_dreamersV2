@@ -624,25 +624,29 @@ export function PlanManager({
                   </pre>
 
                   {/* Mostrar detalles de eventos si existen */}
-                  {planValidations.event_based?.additionalInfo?.eventDetails?.length > 0 && (
-                    <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded border border-blue-200 dark:border-blue-800">
-                      <p className="text-xs font-semibold mb-2 text-blue-900 dark:text-blue-100">
-                        📋 Eventos encontrados ({planValidations.event_based.additionalInfo.eventDetails.length}):
-                      </p>
-                      <div className="space-y-1 max-h-48 overflow-auto">
-                        {(planValidations.event_based?.additionalInfo?.eventDetails ?? []).map((event: any, idx: number) => (
-                          <div key={idx} className="text-xs bg-white dark:bg-gray-900 p-2 rounded border">
-                            <div className="flex justify-between gap-2">
-                              <span className="font-mono text-blue-600 dark:text-blue-400">{event.eventType}</span>
-                              <span className="text-gray-600 dark:text-gray-400">{event.formattedDate}</span>
-                            </div>
-                            <div className="text-gray-500 dark:text-gray-500 text-[10px] mt-1">
-                              ID: {event._id}
-                            </div>
+                  {(planValidations.event_based?.additionalInfo?.eventDetails?.length ?? 0) > 0 && (
+                    (() => {
+                      const evLen = planValidations.event_based?.additionalInfo?.eventDetails?.length ?? 0
+                      const evs = planValidations.event_based?.additionalInfo?.eventDetails ?? []
+                      return (
+                        <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded border border-blue-200 dark:border-blue-800">
+                          <p className="text-xs font-semibold mb-2 text-blue-900 dark:text-blue-100">📋 Eventos encontrados ({evLen}):</p>
+                          <div className="space-y-1 max-h-48 overflow-auto">
+                            {evs.map((event: any, idx: number) => (
+                              <div key={idx} className="text-xs bg-white dark:bg-gray-900 p-2 rounded border">
+                                <div className="flex justify-between gap-2">
+                                  <span className="font-mono text-blue-600 dark:text-blue-400">{event.eventType}</span>
+                                  <span className="text-gray-600 dark:text-gray-400">{event.formattedDate}</span>
+                                </div>
+                                <div className="text-gray-500 dark:text-gray-500 text-[10px] mt-1">
+                                  ID: {event._id}
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
+                        </div>
+                      )
+                    })()
                   )}
                 </div>
               )}
