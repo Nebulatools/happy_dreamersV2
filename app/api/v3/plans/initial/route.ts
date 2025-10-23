@@ -98,9 +98,10 @@ export async function POST(req: Request) {
             const { db } = await connectToDatabase()
             // eslint-disable-next-line @typescript-eslint/no-var-requires
             const { ObjectId } = require('mongodb') as { ObjectId: new (h?: string) => any }
+            const ownerUserId = (childBypass as any)?.parentId ? (childBypass as any).parentId : new ObjectId(auth.userId)
             await db.collection('child_plans').insertOne({
               childId,
-              userId: new ObjectId(auth.userId),
+              userId: ownerUserId,
               planType: 'initial',
               planNumber: 0,
               planVersion: 0,
@@ -223,9 +224,10 @@ export async function POST(req: Request) {
           const { db } = await connectToDatabase()
           // eslint-disable-next-line @typescript-eslint/no-var-requires
           const { ObjectId } = require('mongodb') as { ObjectId: new (h?: string) => any }
+          const ownerUserId = (child as any)?.parentId ? (child as any).parentId : new ObjectId(auth.userId)
           await db.collection('child_plans').insertOne({
             childId,
-            userId: new ObjectId(auth.userId),
+            userId: ownerUserId,
             planType: 'initial',
             planNumber,
             planVersion,
@@ -282,9 +284,10 @@ export async function POST(req: Request) {
       const { db } = await connectToDatabase()
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { ObjectId } = require('mongodb') as { ObjectId: new (h?: string) => any }
+      const ownerUserId = (child as any)?.parentId ? (child as any).parentId : new ObjectId(auth.userId)
       await db.collection('child_plans').insertOne({
         childId,
-        userId: new ObjectId(auth.userId),
+        userId: ownerUserId,
         planType: 'initial',
         planNumber,
         planVersion,
