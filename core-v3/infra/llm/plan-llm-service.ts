@@ -12,6 +12,13 @@ type LLMClient = {
 
 export type PlanLLMKind = 'initial' | 'event_based' | 'transcript_refinement'
 
+type GenerateOptions = {
+  allowSurveyOnly?: boolean
+  surveyData?: Record<string, unknown> | null
+  surveyComplete?: boolean
+  extraContext?: Record<string, unknown>
+}
+
 export type GeneratePlanResult =
   | { ok: true; output: PlanLLMOutput; attempts: number; inference_ms: number }
   | { ok: false; error: 'insufficient_data' | 'validation_failed' | 'model_error'; reason?: string; attempts: number; inference_ms: number }
@@ -39,23 +46,60 @@ function log(event: string, data: Record<string, unknown>) {
   console.log(JSON.stringify({ scope: 'PlanLLMService', event, ...data }))
 }
 
+function sanitizeSurveyData(input: unknown, depth = 0): Record<string, unknown> | undefined {
+  if (!input || typeof input !== 'object' || depth > 4) return undefined
+  const out: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
+    if (value === undefined || value === null) continue
+    if (typeof value === 'function') continue
+    if (Array.isArray(value)) {
+      out[key] = value
+        .slice(0, 50)
+        .map((item) => {
+          if (item === null || item === undefined) return null
+          if (typeof item === 'object') return sanitizeSurveyData(item, depth + 1)
+          if (typeof item === 'string') return item.slice(0, 500)
+          return item
+        })
+    } else if (typeof value === 'object') {
+      const nested = sanitizeSurveyData(value, depth + 1)
+      if (nested && Object.keys(nested).length > 0) out[key] = nested
+    } else if (typeof value === 'string') {
+      out[key] = value.slice(0, 1000)
+    } else {
+      out[key] = value
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined
+}
+
 function buildPrompt(kind: PlanLLMKind, payload: any): string {
   const schemaHint = {
     planType: 'initial | event_based | transcript_refinement',
     title: 'string',
-    summary: 'string',
+    summary: 'string (2-3 oraciones máximo)',
+    schedule: {
+      bedtime: 'HH:MM',
+      wakeTime: 'HH:MM',
+      meals: [{ time: 'HH:MM', type: 'desayuno|comida|cena|snack', description: 'string' }],
+      activities: [{ time: 'HH:MM', activity: 'string', duration: 'minutos', description: 'string' }],
+      naps: [{ time: 'HH:MM', duration: 'minutos', description: 'string opcional' }],
+    },
+    objectives: ['string'],
+    recommendations: ['string'],
     window: { from: 'ISO string', to: 'ISO string' },
     metrics: { eventCount: 'number', distinctTypes: 'number', byType: 'record', ageInMonths: 'number' },
-    recommendations: [{ key: 'string', action: 'string', rationale: 'string' }],
+    metadata: { ragSources: ['string'], notes: 'string opcional' },
   }
-  return `Eres un asistente experto en sueño infantil.
-Tarea: generar un plan v3 del tipo "${kind}" basado en el contexto provisto.
+  return `Eres un asesor experto en sueño infantil.
+Debes generar un plan "${kind}" siguiendo exactamente el esquema indicado.
 
-REGLAS IMPORTANTES:
-- NO INVENTAR: Si los datos son insuficientes, responde exactamente con {"error":"insufficient_data","reason":"<explica causa>"}.
-- Devuelve un JSON válido y STRICTO que siga este schema conceptual: ${JSON.stringify(schemaHint)}.
-- No uses comentarios ni texto fuera del JSON final.
-- Mantén recomendaciones prácticas, accionables y coherentes con el contexto.
+Reglas:
+- Si la información es insuficiente responde EXACTAMENTE {"error":"insufficient_data","reason":"<causa>"}.
+- Si hay datos suficientes, responde con un JSON estrictamente válido que cumpla el siguiente esquema: ${JSON.stringify(schemaHint)}.
+- Usa horarios en formato 24h HH:MM y mantén actividades realistas para la edad.
+- Las recomendaciones deben ser concretas, accionables y alineadas con la encuesta y métricas.
+- No escribas texto adicional fuera del JSON.
 
 Contexto:
 ${JSON.stringify(payload)}
@@ -77,7 +121,7 @@ export class PlanLLMService {
     this.minTypes = intEnv('HD_PLAN_MIN_DISTINCT_TYPES', 2)
   }
 
-  async generate(childId: ObjectId, kind: PlanLLMKind, window = defaultWindow()): Promise<GeneratePlanResult> {
+  async generate(childId: ObjectId, kind: PlanLLMKind, window = defaultWindow(), options: GenerateOptions = {}): Promise<GeneratePlanResult> {
     const t0 = Date.now()
     const { from, to } = window
     // Build context
@@ -86,8 +130,24 @@ export class PlanLLMService {
     const distinctTypes = Object.keys(byType).length
     const child = await ChildrenRepo.findById(childId)
     const ageInMonths = child?.birthdate instanceof Date ? monthsBetween(child.birthdate as Date, to) : undefined
-    const context = { childId: String(childId), window: { from: from.toISOString(), to: to.toISOString() }, byType, eventCount, distinctTypes, ageInMonths }
-    log('context_built', { childId: String(childId), eventCount, distinctTypes, ageInMonths })
+    const surveyDataFromOptions = options.surveyData ?? (child && typeof (child as any)?.surveyData === 'object' ? (child as any).surveyData : undefined)
+    const sanitizedSurvey = sanitizeSurveyData(surveyDataFromOptions)
+    const context: Record<string, unknown> = {
+      childId: String(childId),
+      window: { from: from.toISOString(), to: to.toISOString() },
+      byType,
+      eventCount,
+      distinctTypes,
+      ageInMonths,
+    }
+    if (sanitizedSurvey) context.surveyData = sanitizedSurvey
+    if (options.extraContext) context.extra = options.extraContext
+    context.flags = {
+      allowSurveyOnly: options.allowSurveyOnly === true,
+      surveyComplete: options.surveyComplete === true,
+      eventsAvailable: eventCount > 0,
+    }
+    log('context_built', { childId: String(childId), eventCount, distinctTypes, ageInMonths, surveyIncluded: !!sanitizedSurvey, surveyComplete: options.surveyComplete === true })
     const ctxLog: any = {
       childId: String(childId),
       planType: kind,
@@ -101,7 +161,9 @@ export class PlanLLMService {
     logPlan('context', ctxLog)
 
     // Sanity gate
-    if (eventCount < this.minEvents || distinctTypes < this.minTypes || typeof ageInMonths !== 'number' || ageInMonths < 0) {
+    const gateFailed = eventCount < this.minEvents || distinctTypes < this.minTypes || typeof ageInMonths !== 'number' || ageInMonths < 0
+    const allowSurveyBypass = kind === 'initial' && options.allowSurveyOnly === true
+    if (gateFailed && !allowSurveyBypass) {
       const t1 = Date.now()
       const reason = eventCount < this.minEvents
         ? 'not_enough_events'
@@ -122,6 +184,15 @@ export class PlanLLMService {
       logPlan('gate_denied', denyLog)
       incPlanAborted(kind, reason)
       return { ok: false, error: 'insufficient_data', reason, attempts: 0, inference_ms: t1 - t0 }
+    }
+    if (gateFailed && allowSurveyBypass) {
+      logPlan('gate_bypassed', {
+        childId: String(childId),
+        planType: kind,
+        reason: 'survey_only',
+        eventCount,
+        typesCount: distinctTypes,
+      })
     }
 
     // Build prompt and call LLM

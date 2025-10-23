@@ -51,13 +51,16 @@ export function getConfig(): AppConfig {
   }
 
   const env = parsed.data
-  return {
+  const base: AppConfig = {
     mongodbUri: env.MONGODB_URI,
     mongodbDb: env.MONGODB_DB,
     cronSecret: env.CRON_SECRET,
     llmProvider: env.HD_LLM_PROVIDER,
-    openaiApiKey: env.OPENAI_API_KEY,
   }
+  if (env.OPENAI_API_KEY) {
+    return { ...base, openaiApiKey: env.OPENAI_API_KEY }
+  }
+  return base
 }
 
 // Lightweight runtime configuration flags for plan generation

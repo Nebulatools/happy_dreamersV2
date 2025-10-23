@@ -33,10 +33,25 @@ describe('PlanLLMService v3', () => {
     const good = JSON.stringify({
       planType: 'initial',
       title: 'Plan de Sueño',
-      summary: 'Resumen',
+      summary: 'Resumen breve del plan.',
+      schedule: {
+        bedtime: '20:00',
+        wakeTime: '07:00',
+        meals: [
+          { time: '08:00', type: 'desayuno', description: 'Desayuno equilibrado con proteína y fruta.' },
+        ],
+        activities: [
+          { time: '16:00', activity: 'Juego tranquilo', duration: 30, description: 'Juego de mesa o lectura relajante.' },
+        ],
+        naps: [
+          { time: '13:00', duration: 60, description: 'Siesta en cuarto oscuro con ruido blanco.' },
+        ],
+      },
+      objectives: ['Consolidar rutina de sueño estable.'],
+      recommendations: ['Implementar rutina relajante antes de dormir.'],
       window: { from: from.toISOString(), to: to.toISOString() },
       metrics: { eventCount: 10, distinctTypes: 2, byType: { sleep: 7, night_waking: 3 }, ageInMonths: 12 },
-      recommendations: [{ key: 'sleep-window', action: 'Dormir temprano', rationale: 'Mejora la calidad del sueño' }],
+      metadata: { ragSources: ['sleep-basics'] },
     })
     const llm = { complete: jest.fn().mockResolvedValue(good) }
     const svc = new PlanLLMService(llm as any)
@@ -53,10 +68,23 @@ describe('PlanLLMService v3', () => {
     const good = JSON.stringify({
       planType: 'event_based',
       title: 'Plan N',
-      summary: 'Resumen',
+      summary: 'Plan basado en eventos recientes.',
+      schedule: {
+        bedtime: '20:30',
+        wakeTime: '06:45',
+        meals: [
+          { time: '08:00', type: 'desayuno', description: 'Desayuno con proteína y carbohidratos complejos.' },
+        ],
+        activities: [
+          { time: '17:00', activity: 'Actividad física ligera', duration: 20, description: 'Juego exterior o caminata suave.' },
+        ],
+        naps: [],
+      },
+      objectives: ['Ajustar ventanas de sueño tras nuevos eventos.'],
+      recommendations: ['Registrar eventos nocturnos para evaluar progreso.'],
       window: { from: from.toISOString(), to: to.toISOString() },
       metrics: { eventCount: 10, distinctTypes: 2, byType: { sleep: 7, night_waking: 3 }, ageInMonths: 12 },
-      recommendations: [{ key: 'routine', action: 'Rutina consistente', rationale: 'Regulariza el ciclo de sueño' }],
+      metadata: { ragSources: ['events-analysis'] },
     })
     const llm = { complete: jest.fn().mockResolvedValueOnce(bad).mockResolvedValueOnce(good) }
     const svc = new PlanLLMService(llm as any)
@@ -65,4 +93,3 @@ describe('PlanLLMService v3', () => {
     expect(llm.complete).toHaveBeenCalledTimes(2)
   })
 })
-

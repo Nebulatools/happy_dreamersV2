@@ -1,12 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import { isObjectIdHex, toObjectId } from '@/src/domain/object-id'
-import { canGenerateInitial, canGenerateProgression, defaultWindow } from '@/core-v3/domain/plan-engine'
+import { canGenerateProgression, defaultWindow, markSupersededPreviousPlans } from '@/core-v3/domain/plan-engine'
 import { PlansRepo } from '@/core-v3/infra/repos/plans.repo'
 import { CONF } from '@/core-v3/config'
 import { EventsRepo } from '@/core-v3/infra/repos/events.repo'
 import { PlanLLMService } from '@/core-v3/infra/llm/plan-llm-service'
 import { getLLM } from '@/core-v3/infra/llm'
+import { computeInitialEligibility } from '@/core-v3/domain/eligibility'
+
+function toLegacyPlanVersion(planNumber: number, planVersion: number): string {
+  if (planNumber <= 0) return planVersion === 0 ? '0' : `0.${planVersion}`
+  return planVersion === 0 ? String(planNumber) : `${planNumber}.${planVersion}`
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((item) => {
+      if (typeof item === 'string') return item.trim()
+      if (item && typeof item === 'object') {
+        if (typeof (item as any).description === 'string') return (item as any).description.trim()
+        if (typeof (item as any).action === 'string') return (item as any).action.trim()
+      }
+      return typeof item === 'number' ? String(item) : ''
+    })
+    .filter(Boolean)
+}
+
+function now() {
+  return new Date()
+}
+
+function calcAgeInMonths(birth: unknown, reference: Date): number | undefined {
+  if (!birth) return undefined
+  const date = birth instanceof Date ? birth : new Date(birth as any)
+  if (!(date instanceof Date) || isNaN(date.getTime())) return undefined
+  const years = reference.getUTCFullYear() - date.getUTCFullYear()
+  const months = reference.getUTCMonth() - date.getUTCMonth()
+  let total = years * 12 + months
+  if (reference.getUTCDate() < date.getUTCDate()) total -= 1
+  return total >= 0 ? total : undefined
+}
 
 // GET /api/consultas/plans?childId=...&userId=...
 export async function GET(req: NextRequest) {
@@ -47,28 +82,54 @@ export async function PUT(req: NextRequest) {
     if (planType === 'initial') {
       const { db } = await connectToDatabase()
       const child = await db.collection('children').findOne({ _id: cid })
-      const hasSurvey = !!(child as any)?.surveyData && (
-        (child as any)?.surveyData?.completed === true ||
-        !!(child as any)?.surveyData?.completedAt ||
-        Object.keys((child as any)?.surveyData || {}).length > 0
-      )
-      const ownerId = (child as any)?.parentId
-      // Preferir el userId explícito del request (admin selecciona padre), si no, usar owner del niño
+      if (!child) {
+        return NextResponse.json({ canGenerate: false, reason: 'Niño no encontrado' })
+      }
+
+      const surveyData = (child as any)?.surveyData
+      const hasSurvey = !!(surveyData && (
+        surveyData.completed === true ||
+        surveyData.completedAt ||
+        Object.keys(surveyData).length > 0
+      ))
+
       const reqUserIdHex = (body?.userId && typeof body.userId === 'string' && isObjectIdHex(body.userId)) ? body.userId : null
+      const ownerId = (child as any)?.parentId
       const userToCheck = reqUserIdHex ? toObjectId(reqUserIdHex) : ownerId
-      // Sólo considerar Plan 0 existente del usuario objetivo
+
+      const window = defaultWindow()
+      const byType = await EventsRepo.countByTypes(cid, window.from, window.to)
+      const eventCount = Object.values(byType).reduce((a: number, b: number) => a + b, 0)
+      const distinctTypes = Object.keys(byType).length
+      const minEvents = Number.isFinite(CONF.PLAN_MIN_EVENTS) ? CONF.PLAN_MIN_EVENTS : 10
+      const minDistinctTypes = Number.isFinite(CONF.PLAN_MIN_DISTINCT_TYPES) ? CONF.PLAN_MIN_DISTINCT_TYPES : 2
+      const eligibility = computeInitialEligibility({
+        eventCount,
+        distinctTypes,
+        surveyComplete: hasSurvey,
+        minEvents,
+        minDistinctTypes,
+        allowSurveyOnly: CONF.PLAN_ALLOW_SURVEY_ONLY,
+      })
+
       const existingInitial = userToCheck
         ? await db.collection('child_plans').findOne({ childId: cid, userId: userToCheck, planNumber: 0, planType: 'initial' })
-        : await db.collection('child_plans').findOne({ childId: cid, planNumber: 0, planType: 'initial' })
-      const alreadyHasInitial = !!existingInitial
-      const canGenerateInitial = hasSurvey && !alreadyHasInitial
-      if (canGenerateInitial) {
-        return NextResponse.json({ canGenerate: true, mode: 'survey_only', nextVersion: 0, additionalInfo: { surveyComplete: true } })
+        : null
+
+      if (existingInitial) {
+        return NextResponse.json({ canGenerate: false, reason: 'Ya existe un Plan 0 para este niño', details: eligibility.details })
       }
-      const reason = !hasSurvey
-        ? 'Completa el survey para generar el Plan 0'
-        : 'Ya existe un Plan 0 para este niño'
-      return NextResponse.json({ canGenerate: false, reason })
+
+      if (!hasSurvey) {
+        return NextResponse.json({ canGenerate: false, reason: 'Completa el survey para generar el Plan 0', details: eligibility.details })
+      }
+
+      return NextResponse.json({
+        canGenerate: true,
+        mode: eligibility.mode ?? 'survey_only',
+        nextVersion: 0,
+        details: eligibility.details,
+      })
     }
 
     if (planType === 'event_based') {
@@ -113,19 +174,39 @@ export async function POST(req: NextRequest) {
     const window = defaultWindow()
     const { db } = await connectToDatabase()
     const child = await db.collection('children').findOne({ _id: cid })
-    const hasSurvey = !!(child as any)?.surveyData && (
-      (child as any)?.surveyData?.completed === true ||
-      !!(child as any)?.surveyData?.completedAt ||
-      Object.keys((child as any)?.surveyData || {}).length > 0
-    )
-    const existingPlans = await db.collection('child_plans').find({ childId: cid }).project({ planNumber: 1, planType: 1 }).toArray()
-    const alreadyHasInitial = existingPlans.some((p: any) => p.planNumber === 0 && p.planType === 'initial')
+    if (!child) {
+      return NextResponse.json({ ok: false, error: 'child_not_found' }, { status: 404 })
+    }
+
+    const surveyData = (child as any)?.surveyData
+    const ageInMonths = calcAgeInMonths((child as any)?.birthdate ?? (child as any)?.birthDate, window.to)
+    const hasSurvey = !!(surveyData && (
+      surveyData.completed === true ||
+      surveyData.completedAt ||
+      Object.keys(surveyData).length > 0
+    ))
+
     if (!hasSurvey) {
       return NextResponse.json({ ok: false, error: 'bad_request', message: 'Completa el survey para generar el Plan 0' }, { status: 400 })
     }
-    if (alreadyHasInitial) {
+
+    const requestedUserId = body?.userId && typeof body.userId === 'string' && isObjectIdHex(body.userId)
+      ? toObjectId(body.userId)
+      : null
+    const ownerId = (child as any)?.parentId
+    const targetUserId = requestedUserId || ownerId
+    if (!targetUserId) {
+      return NextResponse.json({ ok: false, error: 'bad_request', message: 'userId requerido para asignar el plan' }, { status: 400 })
+    }
+
+    const existingInitial = await db.collection('child_plans').findOne({ childId: cid, userId: targetUserId, planNumber: 0, planType: 'initial' })
+    if (existingInitial) {
       return NextResponse.json({ ok: false, error: 'bad_request', message: 'Ya existe un Plan 0 para este niño' }, { status: 400 })
     }
+
+    const byType = await EventsRepo.countByTypes(cid, window.from, window.to)
+    const eventCount = Object.values(byType).reduce((a: number, b: number) => a + b, 0)
+    const distinctTypes = Object.keys(byType).length
 
     let svc: PlanLLMService
     try {
@@ -136,22 +217,42 @@ export async function POST(req: NextRequest) {
       }
       throw e
     }
-    const out = await svc.generate(cid as any, 'initial', window)
+
+    const allowSurveyOnly = CONF.PLAN_ALLOW_SURVEY_ONLY && hasSurvey
+    const out = await svc.generate(cid as any, 'initial', window, {
+      allowSurveyOnly,
+      surveyData,
+      surveyComplete: hasSurvey,
+      extraContext: {
+        surveyOnly: allowSurveyOnly,
+        eventCount,
+        distinctTypes,
+      },
+    })
+
     if (!out.ok) {
       if (out.error === 'insufficient_data') {
-        // Forzar generación por encuesta aún sin eventos
-        // Nota: si el proveedor de LLM requiere contexto mínimo, aquí podríamos ajustar el prompt en PlanLLMService.
-        return NextResponse.json({ ok: false, error: 'insufficient_data', message: 'Faltan datos para generar el plan', details: { eventCount, distinctTypes } }, { status: 422 })
+        return NextResponse.json({ ok: false, error: 'insufficient_data', details: { eventCount, distinctTypes } }, { status: 422 })
       }
       return NextResponse.json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, { status: 500 })
     }
 
-    // Versionado
     const planNumber = 0
-    const planVersion = 0
-    const byType = await EventsRepo.countByTypes(cid as any, window.from, window.to)
-    const eventCount = Object.values(byType).reduce((a: number, b: number) => a + b, 0)
-    const distinctTypes = Object.keys(byType).length
+    const planVersion = await PlansRepo.getNextPlanVersion(cid, planNumber)
+    const planVersionLabel = toLegacyPlanVersion(planNumber, planVersion)
+    const createdAt = now()
+    const ragSources = Array.isArray((out.output as any)?.metadata?.ragSources)
+      ? ((out.output as any).metadata.ragSources as unknown[])
+          .map((src) => (typeof src === 'string' ? src : src != null ? String(src) : ''))
+          .filter(Boolean)
+      : []
+    const legacySourceData = {
+      surveyDataUsed: true,
+      childStatsUsed: eventCount > 0,
+      ragSources,
+      ageInMonths: (out.output as any)?.metrics?.ageInMonths ?? ageInMonths,
+      totalEvents: eventCount,
+    }
 
     const created = await PlansRepo.createPlan({
       childId: cid,
@@ -167,17 +268,111 @@ export async function POST(req: NextRequest) {
         surveyDataUsed: true,
         childStatsUsed: eventCount > 0,
         totalEvents: eventCount,
+        ragSources,
+        ageInMonths,
       },
       basedOn: 'survey_stats_rag',
-      createdBy: 'legacy_ui',
+      createdBy: String(targetUserId),
       status: 'active',
     })
 
-    const surveyOnly = CONF.PLAN_ALLOW_SURVEY_ONLY && !!gate.context.surveyComplete && (
-      gate.context.eventCount < CONF.PLAN_MIN_EVENTS || gate.context.distinctTypes < CONF.PLAN_MIN_DISTINCT_TYPES
-    )
+    await markSupersededPreviousPlans(cid, String(created._id))
 
-    return NextResponse.json({ ok: true, mode: surveyOnly ? 'survey_only' : 'events', plan: { planVersion }, planId: String(created._id) })
+    try {
+      const planOutput = out.output as any
+      const scheduleRaw = planOutput?.schedule && typeof planOutput.schedule === 'object' ? planOutput.schedule : {}
+      const schedule = {
+        bedtime: typeof scheduleRaw.bedtime === 'string' ? scheduleRaw.bedtime : '20:00',
+        wakeTime: typeof scheduleRaw.wakeTime === 'string' ? scheduleRaw.wakeTime : '07:00',
+        meals: Array.isArray(scheduleRaw.meals)
+          ? scheduleRaw.meals.map((meal: any) => ({
+              time: typeof meal?.time === 'string' ? meal.time : '12:00',
+              type: typeof meal?.type === 'string' ? meal.type : 'comida',
+              description: typeof meal?.description === 'string' ? meal.description : '',
+            }))
+          : [],
+        activities: Array.isArray(scheduleRaw.activities)
+          ? scheduleRaw.activities.map((activity: any) => ({
+              time: typeof activity?.time === 'string' ? activity.time : '16:00',
+              activity: typeof activity?.activity === 'string' ? activity.activity : 'Actividad',
+              duration: typeof activity?.duration === 'number' && activity.duration > 0 ? activity.duration : 30,
+              description: typeof activity?.description === 'string' ? activity.description : '',
+            }))
+          : [],
+        naps: Array.isArray(scheduleRaw.naps)
+          ? scheduleRaw.naps.map((nap: any) => ({
+              time: typeof nap?.time === 'string' ? nap.time : '13:00',
+              duration: typeof nap?.duration === 'number' && nap.duration > 0 ? nap.duration : 60,
+              description: typeof nap?.description === 'string' ? nap.description : '',
+            }))
+          : [],
+      }
+
+      if (schedule.meals.length === 0) {
+        schedule.meals.push({ time: '12:00', type: 'comida', description: 'Asegura una comida principal equilibrada a mediodía.' })
+      }
+      if (schedule.activities.length === 0) {
+        schedule.activities.push({ time: '16:00', activity: 'Actividad tranquila', duration: 30, description: 'Tiempo de juego calmado para preparar la siesta o la noche.' })
+      }
+      if (schedule.naps.length === 0) {
+        schedule.naps.push({ time: '13:00', duration: 60, description: 'Siesta recomendada según encuesta y edad.' })
+      }
+
+      const objectives = normalizeStringArray(planOutput?.objectives)
+      if (objectives.length === 0) {
+        objectives.push(
+          'Establecer una rutina de sueño consistente basada en la información de la encuesta.',
+          'Optimizar el ambiente del dormitorio para mejorar la conciliación.'
+        )
+      }
+
+      const recommendations = normalizeStringArray(planOutput?.recommendations)
+      if (recommendations.length === 0) {
+        recommendations.push(
+          'Mantener horario fijo de acostarse y despertar durante al menos 2 semanas.',
+          'Implementar una rutina relajante previa al sueño (baño tibio, lectura) cada noche.',
+          'Evitar pantallas 60 minutos antes de la hora de dormir.'
+        )
+      }
+
+      await db.collection('child_plans').insertOne({
+        childId: cid,
+        userId: targetUserId,
+        planType: 'initial',
+        planNumber,
+        planVersion: planVersionLabel,
+        title: typeof planOutput?.title === 'string' ? planOutput.title : 'Plan Inicial',
+        summary: typeof planOutput?.summary === 'string' ? planOutput.summary : 'Plan generado a partir de encuesta y políticas por edad.',
+        schedule,
+        objectives,
+        recommendations,
+        basedOn: 'survey_stats_rag',
+        sourceData: legacySourceData,
+        eventAnalysis: eventCount > 0
+          ? {
+              eventsAnalyzed: eventCount,
+              eventTypes: Object.keys(byType),
+              ragSources: legacySourceData.ragSources,
+              progressFromPrevious: 'Plan inicial generado con eventos recientes y encuesta.',
+              basePlanVersion: planVersionLabel,
+            }
+          : undefined,
+        createdAt,
+        updatedAt: createdAt,
+        createdBy: targetUserId,
+        status: 'active',
+      })
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('dual_write_child_plans_failed', { error: err instanceof Error ? err.message : err })
+    }
+
+    return NextResponse.json({
+      ok: true,
+      mode: eventCount > 0 ? 'events' : 'survey_only',
+      plan: { planVersion },
+      planId: String(created._id),
+    })
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: 'internal_error', message: e?.message || 'Error' }, { status: 500 })
   }

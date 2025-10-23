@@ -26,10 +26,25 @@ describe('E2E Canary - Plan generation or safe abort', () => {
     const good = JSON.stringify({
       planType: 'initial',
       title: 'Canary Plan',
-      summary: 'Resumen',
+      summary: 'Plan válido para canary test.',
+      schedule: {
+        bedtime: '20:15',
+        wakeTime: '06:45',
+        meals: [
+          { time: '07:30', type: 'desayuno', description: 'Desayuno equilibrado para iniciar el día.' },
+        ],
+        activities: [
+          { time: '18:00', activity: 'Lectura calmada', duration: 20, description: 'Lectura tranquila para bajar revoluciones.' },
+        ],
+        naps: [
+          { time: '13:30', duration: 60, description: 'Siesta corta para recuperar energía.' },
+        ],
+      },
+      objectives: ['Mantener consistencia en horarios de sueño.'],
+      recommendations: ['Registrar progreso semanalmente y ajustar si es necesario.'],
       window: { from: from.toISOString(), to: to.toISOString() },
       metrics: { eventCount: 12, distinctTypes: 2, byType: { sleep: 8, night_waking: 4 }, ageInMonths: 12 },
-      recommendations: [{ key: 'routine', action: 'Rutina', rationale: 'Consistencia' }],
+      metadata: { ragSources: ['canary'] },
     })
     const llm = { complete: jest.fn().mockResolvedValue(good) }
     const svc = new PlanLLMService(llm as any)
@@ -51,4 +66,3 @@ describe('E2E Canary - Plan generation or safe abort', () => {
     expect(Object.keys(m.counts)).toEqual(expect.arrayContaining([expect.stringContaining('plans_aborted_total')]))
   })
 })
-

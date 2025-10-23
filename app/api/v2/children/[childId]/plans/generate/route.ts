@@ -10,6 +10,7 @@ import { getLLM } from '@/core-v3/infra/llm'
 import { defaultWindow } from '@/core-v3/domain/plan-engine'
 import { EventsRepo } from '@/core-v3/infra/repos/events.repo'
 import { PlansRepo } from '@/core-v3/infra/repos/plans.repo'
+import { CONF } from '@/core-v3/config'
 
 const paramsSchema = z.object({ childId: z.string() })
 
@@ -53,7 +54,8 @@ export const POST = withApi(
 
     // Ejecutar generación
     const kind = body.planType
-    const result = await svc.generate(childId as any, kind as any, window)
+    const allowSurveyOnly = kind === 'initial' && CONF.PLAN_ALLOW_SURVEY_ONLY
+    const result = await svc.generate(childId as any, kind as any, window, allowSurveyOnly ? { allowSurveyOnly } : {})
     if (!result.ok) {
       if (result.error === 'insufficient_data') return stdError('insufficient_data', result.reason || 'Insufficient data', requestId, 422)
       if (result.error === 'validation_failed') return stdError('validation_failed', 'Model output failed validation', requestId, 502)
