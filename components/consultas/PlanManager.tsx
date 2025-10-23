@@ -459,6 +459,37 @@ export function PlanManager({
 
   const availablePlans = getAvailablePlans()
 
+  // Forzar POST limpio a /api/v3/plans/initial
+  const handleGenerateInitial = async (childId?: string | null) => {
+    if (!childId) return
+    try {
+      setGeneratingPlan(true)
+      const res = await fetch('/api/v3/plans/initial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-force-v3': '1' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ childId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        const msg = data?.message || data?.error || res.statusText
+        throw new Error(`${res.status} ${msg}`)
+      }
+      // Refrescar lista/validaciones tras generar
+      await loadPlans()
+      await validatePlanCapabilities()
+      toast({
+        title: 'Plan generado exitosamente',
+        description: data?.mode === 'survey_only' ? 'Generado a partir de la encuesta completa' : 'Generado a partir de eventos',
+      })
+    } catch (e: any) {
+      logger.error('Error generando plan inicial (v3):', e)
+      toast({ title: 'Error', description: e?.message || 'No se pudo generar el plan', variant: 'destructive' })
+    } finally {
+      setGeneratingPlan(false)
+    }
+  }
+
   if (!selectedUserId || !selectedChildId) {
     return (
       <Card>
@@ -507,7 +538,14 @@ export function PlanManager({
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
-                            onClick={() => generatePlan(planOption.planType)}
+                            type="button"
+                            onClick={() => {
+                              if (planOption.planType === 'initial') {
+                                handleGenerateInitial(selectedChildId)
+                              } else {
+                                generatePlan(planOption.planType)
+                              }
+                            }}
                             disabled={!planOption.canGenerate || generatingPlan}
                             size="sm"
                             variant={planOption.canGenerate ? "default" : "outline"}

@@ -93,3 +93,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: 'internal_error', correlationId: corr }, { status: 500 })
   }
 }
+
+export async function GET() {
+  return new Response(
+    JSON.stringify({ ok: false, error: 'method_not_allowed', hint: 'Usa POST a /api/v3/plans/initial con body { childId }' }),
+    { status: 405, headers: { 'Content-Type': 'application/json', 'Allow': 'POST' } }
+  )
+}
