@@ -6,7 +6,9 @@ import { PlansRepo } from '@/core-v3/infra/repos/plans.repo'
 import { EventsRepo } from '@/core-v3/infra/repos/events.repo'
 import { PlanLLMService } from '@/core-v3/infra/llm/plan-llm-service'
 import { getLLM } from '@/core-v3/infra/llm'
-import { canGenerateInitial, defaultWindow, markSupersededPreviousPlans } from '@/core-v3/domain/plan-engine'
+import { defaultWindow, markSupersededPreviousPlans } from '@/core-v3/domain/plan-engine'
+import { ChildrenRepo } from '@/core-v3/infra/repos/children.repo'
+import { computeInitialEligibility } from '@/core-v3/domain/eligibility'
 import { CONF } from '@/core-v3/config'
 import { getUserOrIPKey, rateLimitResponse, shouldRateLimit } from '@/core-v3/security/rate-limit'
 import { safeLog } from '@/core-v3/security/sanitize'
@@ -37,21 +39,29 @@ export async function POST(req: Request) {
 
     const childId = toObjectId(parsed.data.childId)
     const window = defaultWindow()
-    const gate = await canGenerateInitial(childId, window)
-    if (!gate.ok) {
-      const details = {
-        eventCount: gate.context.eventCount,
-        distinctTypes: gate.context.distinctTypes,
-        required: { minEvents: CONF.PLAN_MIN_EVENTS, minDistinctTypes: CONF.PLAN_MIN_DISTINCT_TYPES },
-        surveyComplete: !!gate.context.surveyComplete,
-      }
-      return NextResponse.json({ ok: false, error: 'insufficient_data', message: 'Faltan datos para generar el plan', details }, { status: 422 })
-    }
+    // Calcular métricas actuales
+    const byType = await EventsRepo.countByTypes(childId, window.from, window.to)
+    const eventCount = Object.values(byType).reduce((a, b) => a + b, 0)
+    const distinctTypes = Object.keys(byType).length
+    const child = await ChildrenRepo.findById(childId as any)
+    const s: any = (child as any)?.surveyData
+    const surveyComplete = !!(s?.completed === true || (s && Object.keys(s).length > 0 && s?.isPartial !== true))
+    // Flags desde entorno
+    const allowSurveyOnly = String(process.env.HD_PLAN_ALLOW_SURVEY_ONLY || '').toLowerCase() === 'true'
+    const minEvents = Number.parseInt(String(process.env.HD_PLAN_MIN_EVENTS ?? '10'), 10)
+    const minDistinctTypes = Number.parseInt(String(process.env.HD_PLAN_MIN_DISTINCT_TYPES ?? '2'), 10)
 
-    // Determinar si el pase fue por encuesta (survey-only)
-    const surveyOnly = CONF.PLAN_ALLOW_SURVEY_ONLY && !!gate.context.surveyComplete && (
-      gate.context.eventCount < CONF.PLAN_MIN_EVENTS || gate.context.distinctTypes < CONF.PLAN_MIN_DISTINCT_TYPES
-    )
+    const eligibility = computeInitialEligibility({
+      eventCount,
+      distinctTypes,
+      surveyComplete,
+      minEvents,
+      minDistinctTypes,
+      allowSurveyOnly,
+    })
+    if (!eligibility.canGenerate) {
+      return NextResponse.json({ ok: false, error: 'insufficient_data', details: eligibility.details }, { status: 422 })
+    }
 
     let svc: PlanLLMService
     try {
@@ -62,6 +72,7 @@ export async function POST(req: Request) {
       }
       throw e
     }
+    safeLog('plan_initial_eligibility', { childId: String(childId), mode: eligibility.mode })
     const out = await svc.generate(childId, 'initial', window)
     if (!out.ok) return NextResponse.json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, { status: 502 })
 
@@ -69,10 +80,9 @@ export async function POST(req: Request) {
   const planVersion = 0
   const sourceData = {
     window: { from: window.from.toISOString(), to: window.to.toISOString() },
-    byType: await EventsRepo.countByTypes(childId, window.from, window.to),
-    eventCount: gate.context.eventCount,
-    distinctTypes: gate.context.distinctTypes,
-    ageInMonths: gate.context.ageInMonths,
+    byType,
+    eventCount,
+    distinctTypes,
   }
     const created = await PlansRepo.createPlan({
     childId,
@@ -88,7 +98,7 @@ export async function POST(req: Request) {
     await markSupersededPreviousPlans(childId, String(created._id))
     safeLog('audit', 'plan_created', { planType: 'initial', childId: String(childId), planId: String(created._id), createdBy: auth.userId })
 
-    return NextResponse.json({ ok: true, mode: surveyOnly ? 'survey_only' : 'events', planId: String(created._id), planNumber, planVersion, output: out.output, sourceData })
+    return NextResponse.json({ ok: true, mode: eligibility.mode, planId: String(created._id), planNumber, planVersion, output: out.output, sourceData })
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: 'internal_error', correlationId: corr }, { status: 500 })
   }
