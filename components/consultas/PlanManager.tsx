@@ -357,14 +357,22 @@ export function PlanManager({
 
       if (!response.ok) {
         const raw = await response.text()
-        let details = ''
         try {
           const parsed = JSON.parse(raw)
-          details = parsed.details || parsed.error || raw
+          if (response.status === 422 && parsed?.error === 'insufficient_data') {
+            const d = parsed?.details || {}
+            const req = d.required || {}
+            toast({
+              title: 'Datos insuficientes',
+              description: `Faltan datos para generar el plan (eventos: ${d.eventCount ?? 0}/${req.minEvents ?? 'N'}, tipos: ${d.distinctTypes ?? 0}/${req.minDistinctTypes ?? 'K'}). ${d.surveyComplete ? 'La encuesta está completa; verifica el flag HD_PLAN_ALLOW_SURVEY_ONLY.' : 'Completa la encuesta o añade eventos.'}`,
+              variant: 'destructive',
+            })
+            return
+          }
+          throw new Error(`${parsed?.message || parsed?.error || raw} (HTTP ${response.status})`)
         } catch {
-          details = raw
+          throw new Error(`${raw} (HTTP ${response.status})`)
         }
-        throw new Error(`${details} (HTTP ${response.status})`)
       }
 
       const result = await response.json()
