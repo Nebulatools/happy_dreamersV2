@@ -267,7 +267,7 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {plan.objectives.map((objective: any, index: number) => {
+                {(Array.isArray((plan as any)?.objectives) ? (plan as any).objectives : []).map((objective: any, index: number) => {
                   const text = typeof objective === 'string'
                     ? objective
                     : objective && typeof objective === 'object'
@@ -294,7 +294,7 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {plan.recommendations.map((recommendation: any, index: number) => {
+                {(Array.isArray((plan as any)?.recommendations) ? (plan as any).recommendations : []).map((recommendation: any, index: number) => {
                   const text = typeof recommendation === 'string'
                     ? recommendation
                     : recommendation && typeof recommendation === 'object'
