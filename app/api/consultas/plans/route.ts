@@ -45,29 +45,23 @@ export async function PUT(req: NextRequest) {
     const cid = toObjectId(childId)
 
     if (planType === 'initial') {
-      const gate = await canGenerateInitial(cid, defaultWindow())
-      if (gate.ok) {
-        const surveyOnly = CONF.PLAN_ALLOW_SURVEY_ONLY && !!gate.context.surveyComplete && (
-          gate.context.eventCount < CONF.PLAN_MIN_EVENTS || gate.context.distinctTypes < CONF.PLAN_MIN_DISTINCT_TYPES
-        )
-        return NextResponse.json({
-          canGenerate: true,
-          mode: surveyOnly ? 'survey_only' : 'events',
-          nextVersion: 0,
-          additionalInfo: { eventCount: gate.context.eventCount, distinctTypes: gate.context.distinctTypes, surveyComplete: !!gate.context.surveyComplete },
-        })
+      const { db } = await connectToDatabase()
+      const child = await db.collection('children').findOne({ _id: cid })
+      const hasSurvey = !!(child as any)?.surveyData && (
+        (child as any)?.surveyData?.completed === true ||
+        !!(child as any)?.surveyData?.completedAt ||
+        Object.keys((child as any)?.surveyData || {}).length > 0
+      )
+      const existingPlans = await db.collection('child_plans').find({ childId: cid }).project({ planNumber: 1, planType: 1 }).toArray()
+      const alreadyHasInitial = existingPlans.some((p: any) => p.planNumber === 0 && p.planType === 'initial')
+      const canGenerateInitial = hasSurvey && !alreadyHasInitial
+      if (canGenerateInitial) {
+        return NextResponse.json({ canGenerate: true, mode: 'survey_only', nextVersion: 0, additionalInfo: { surveyComplete: true } })
       }
-      const reason = `Necesitas al menos ${CONF.PLAN_MIN_EVENTS} eventos y ${CONF.PLAN_MIN_DISTINCT_TYPES} tipos distintos, o completar la encuesta.`
-      return NextResponse.json({
-        canGenerate: false,
-        reason,
-        details: {
-          eventCount: gate.context.eventCount,
-          distinctTypes: gate.context.distinctTypes,
-          required: { minEvents: CONF.PLAN_MIN_EVENTS, minDistinctTypes: CONF.PLAN_MIN_DISTINCT_TYPES },
-          surveyComplete: !!gate.context.surveyComplete,
-        },
-      })
+      const reason = !hasSurvey
+        ? 'Completa el survey para generar el Plan 0'
+        : 'Ya existe un Plan 0 para este niño'
+      return NextResponse.json({ canGenerate: false, reason })
     }
 
     if (planType === 'event_based') {
@@ -110,9 +104,20 @@ export async function POST(req: NextRequest) {
     }
 
     const window = defaultWindow()
-    const gate = await canGenerateInitial(cid, window)
-    if (!gate.ok) {
-      return NextResponse.json({ ok: false, error: 'insufficient_data', message: 'Faltan datos para generar el plan', details: { eventCount: gate.context.eventCount, distinctTypes: gate.context.distinctTypes, required: { minEvents: CONF.PLAN_MIN_EVENTS, minDistinctTypes: CONF.PLAN_MIN_DISTINCT_TYPES }, surveyComplete: !!gate.context.surveyComplete } }, { status: 422 })
+    const { db } = await connectToDatabase()
+    const child = await db.collection('children').findOne({ _id: cid })
+    const hasSurvey = !!(child as any)?.surveyData && (
+      (child as any)?.surveyData?.completed === true ||
+      !!(child as any)?.surveyData?.completedAt ||
+      Object.keys((child as any)?.surveyData || {}).length > 0
+    )
+    const existingPlans = await db.collection('child_plans').find({ childId: cid }).project({ planNumber: 1, planType: 1 }).toArray()
+    const alreadyHasInitial = existingPlans.some((p: any) => p.planNumber === 0 && p.planType === 'initial')
+    if (!hasSurvey) {
+      return NextResponse.json({ ok: false, error: 'bad_request', message: 'Completa el survey para generar el Plan 0' }, { status: 400 })
+    }
+    if (alreadyHasInitial) {
+      return NextResponse.json({ ok: false, error: 'bad_request', message: 'Ya existe un Plan 0 para este niño' }, { status: 400 })
     }
 
     let svc: PlanLLMService
@@ -127,6 +132,8 @@ export async function POST(req: NextRequest) {
     const out = await svc.generate(cid as any, 'initial', window)
     if (!out.ok) {
       if (out.error === 'insufficient_data') {
+        // Forzar generación por encuesta aún sin eventos
+        // Nota: si el proveedor de LLM requiere contexto mínimo, aquí podríamos ajustar el prompt en PlanLLMService.
         return NextResponse.json({ ok: false, error: 'insufficient_data', message: 'Faltan datos para generar el plan', details: { eventCount, distinctTypes } }, { status: 422 })
       }
       return NextResponse.json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, { status: 500 })
@@ -150,7 +157,11 @@ export async function POST(req: NextRequest) {
         byType,
         eventCount,
         distinctTypes,
+        surveyDataUsed: true,
+        childStatsUsed: eventCount > 0,
+        totalEvents: eventCount,
       },
+      basedOn: 'survey_stats_rag',
       createdBy: 'legacy_ui',
       status: 'active',
     })
