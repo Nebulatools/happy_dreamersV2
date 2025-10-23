@@ -4,6 +4,9 @@ import { isObjectIdHex, toObjectId } from '@/src/domain/object-id'
 import { canGenerateInitial, canGenerateProgression, defaultWindow } from '@/core-v3/domain/plan-engine'
 import { PlansRepo } from '@/core-v3/infra/repos/plans.repo'
 import { CONF } from '@/core-v3/config'
+import { EventsRepo } from '@/core-v3/infra/repos/events.repo'
+import { PlanLLMService } from '@/core-v3/infra/llm/plan-llm-service'
+import { getLLM } from '@/core-v3/infra/llm'
 
 // GET /api/consultas/plans?childId=...&userId=...
 export async function GET(req: NextRequest) {
@@ -89,5 +92,70 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ canGenerate: false, reason: 'Tipo de plan no soportado' })
   } catch (e: any) {
     return NextResponse.json({ canGenerate: false, reason: 'Error de validación' })
+  }
+}
+
+// Generación de Plan (compat) — implementa sólo Plan Inicial aquí para evitar 405 del frontend legacy
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json().catch(() => ({}))
+    const { childId, planType } = body || {}
+    if (!isObjectIdHex(childId) || !planType) {
+      return NextResponse.json({ ok: false, error: 'invalid_body' }, { status: 400 })
+    }
+    const cid = toObjectId(childId)
+
+    if (planType !== 'initial') {
+      return NextResponse.json({ ok: false, error: 'not_implemented', message: 'Sólo initial implementado en este endpoint' }, { status: 405 })
+    }
+
+    const window = defaultWindow()
+    const gate = await canGenerateInitial(cid, window)
+    if (!gate.ok) {
+      return NextResponse.json({ ok: false, error: 'insufficient_data', message: 'Faltan datos para generar el plan', details: { eventCount: gate.context.eventCount, distinctTypes: gate.context.distinctTypes, required: { minEvents: CONF.PLAN_MIN_EVENTS, minDistinctTypes: CONF.PLAN_MIN_DISTINCT_TYPES }, surveyComplete: !!gate.context.surveyComplete } }, { status: 422 })
+    }
+
+    let svc: PlanLLMService
+    try {
+      svc = new PlanLLMService(getLLM() as any)
+    } catch (e: any) {
+      if (e && e.message === 'llm_misconfigured') {
+        return NextResponse.json({ ok: false, error: 'service_unavailable', reason: 'llm_misconfigured' }, { status: 503 })
+      }
+      throw e
+    }
+    const out = await svc.generate(cid as any, 'initial', window)
+    if (!out.ok) return NextResponse.json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, { status: 502 })
+
+    // Versionado
+    const planNumber = 0
+    const planVersion = 0
+    const byType = await EventsRepo.countByTypes(cid as any, window.from, window.to)
+    const eventCount = Object.values(byType).reduce((a: number, b: number) => a + b, 0)
+    const distinctTypes = Object.keys(byType).length
+
+    const created = await PlansRepo.createPlan({
+      childId: cid,
+      planType: 'initial',
+      planNumber,
+      planVersion,
+      output: out.output,
+      sourceData: {
+        window: { from: window.from.toISOString(), to: window.to.toISOString() },
+        byType,
+        eventCount,
+        distinctTypes,
+      },
+      createdBy: 'legacy_ui',
+      status: 'active',
+    })
+
+    const surveyOnly = CONF.PLAN_ALLOW_SURVEY_ONLY && !!gate.context.surveyComplete && (
+      gate.context.eventCount < CONF.PLAN_MIN_EVENTS || gate.context.distinctTypes < CONF.PLAN_MIN_DISTINCT_TYPES
+    )
+
+    return NextResponse.json({ ok: true, mode: surveyOnly ? 'survey_only' : 'events', plan: { planVersion }, planId: String(created._id) })
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: 'internal_error', message: e?.message || 'Error' }, { status: 500 })
   }
 }
