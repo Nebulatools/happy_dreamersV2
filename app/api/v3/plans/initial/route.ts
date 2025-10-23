@@ -54,7 +54,18 @@ export async function POST(req: Request) {
         throw e
       }
       const out = await svc.generate(childId, 'initial', window)
-      if (!out.ok) return json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, 500)
+      if (!out.ok) {
+        if (out.error === 'insufficient_data') {
+          // Mapear correctamente a 422 con detalles
+          const childBypass = await ChildrenRepo.findById(childId as any)
+          const s: any = (childBypass as any)?.surveyData
+          const surveyCompleteBypass = !!(s?.completed === true || (s && Object.keys(s).length > 0 && s?.isPartial !== true))
+          const minEvents = Number.parseInt(String(process.env.HD_PLAN_MIN_EVENTS ?? '10'), 10)
+          const minDistinctTypes = Number.parseInt(String(process.env.HD_PLAN_MIN_DISTINCT_TYPES ?? '2'), 10)
+          return json({ ok: false, error: 'insufficient_data', details: { eventCount: eventCountBypass, distinctTypes: distinctTypesBypass, surveyComplete: surveyCompleteBypass, minEvents, minDistinctTypes } }, 422)
+        }
+        return json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, 500)
+      }
 
       const byTypeBypass = await EventsRepo.countByTypes(childId, window.from, window.to)
       const eventCountBypass = Object.values(byTypeBypass).reduce((a, b) => a + (b as number), 0)
@@ -112,7 +123,12 @@ export async function POST(req: Request) {
     }
     safeLog('plan_initial_eligibility', { childId: String(childId), mode: eligibility.mode })
     const out = await svc.generate(childId, 'initial', window)
-    if (!out.ok) return json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, 500)
+    if (!out.ok) {
+      if (out.error === 'insufficient_data') {
+        return json({ ok: false, error: 'insufficient_data', details: eligibility.details }, 422)
+      }
+      return json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, 500)
+    }
 
   const planNumber = 0
   const planVersion = 0

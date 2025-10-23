@@ -125,7 +125,12 @@ export async function POST(req: NextRequest) {
       throw e
     }
     const out = await svc.generate(cid as any, 'initial', window)
-    if (!out.ok) return NextResponse.json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, { status: 502 })
+    if (!out.ok) {
+      if (out.error === 'insufficient_data') {
+        return NextResponse.json({ ok: false, error: 'insufficient_data', message: 'Faltan datos para generar el plan', details: { eventCount, distinctTypes } }, { status: 422 })
+      }
+      return NextResponse.json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, { status: 500 })
+    }
 
     // Versionado
     const planNumber = 0

@@ -54,8 +54,13 @@ export async function POST(req: Request) {
       }
       throw e
     }
-    const out = await svc.generate(childId, 'transcript_refinement', window)
-    if (!out.ok) return NextResponse.json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, { status: 502 })
+  const out = await svc.generate(childId, 'transcript_refinement', window)
+  if (!out.ok) {
+    if (out.error === 'insufficient_data') {
+      return NextResponse.json({ ok: false, error: 'insufficient_data', details: { eventCount: gate.context.eventCount, distinctTypes: gate.context.distinctTypes } }, { status: 422 })
+    }
+    return NextResponse.json({ ok: false, error: out.error, reason: out.reason, attempts: out.attempts }, { status: 500 })
+  }
 
   const planNumber = (basePlan as any)?.planNumber ?? 0
   const planVersion = await PlansRepo.getNextPlanVersion(childId, planNumber)
