@@ -468,15 +468,30 @@ export function PlanManager({
   const availablePlans = getAvailablePlans()
 
   // Forzar POST limpio a /api/v3/plans/initial
+  const normalizeId = (val: any): string => {
+    if (!val) return ''
+    if (typeof val === 'string') return val
+    if (typeof val === 'object') {
+      if (typeof val._oid === 'string') return val._oid
+      if (typeof val.$oid === 'string') return val.$oid
+      try { return String(val) } catch { return '' }
+    }
+    return ''
+  }
+
   const handleGenerateInitial = async (childId?: string | null) => {
-    if (!childId) return
+    const idNorm = normalizeId(childId)
+    if (!idNorm || !/^[a-f\d]{24}$/i.test(idNorm)) {
+      toast({ title: 'Selecciona un niño', description: 'No hay un niño válido seleccionado para generar el plan.' })
+      return
+    }
     try {
       setGeneratingPlan(true)
       const res = await fetch('/api/v3/plans/initial', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-force-v3': '1' },
         credentials: 'same-origin',
-        body: JSON.stringify({ childId }),
+        body: JSON.stringify({ childId: idNorm }),
       })
       const data = await res.json().catch(() => ({}))
       // Manejo claro de respuestas
@@ -496,6 +511,10 @@ export function PlanManager({
           description: 'El proveedor LLM no está configurado. Notifica al equipo para configurar OPENAI_API_KEY/HD_LLM_PROVIDER.',
           variant: 'destructive',
         })
+        return
+      }
+      if (res.status === 400) {
+        toast({ title: 'Solicitud inválida', description: 'El identificador del niño no es válido. Selecciona el niño nuevamente e inténtalo de nuevo.', variant: 'destructive' })
         return
       }
       if (!res.ok) {
