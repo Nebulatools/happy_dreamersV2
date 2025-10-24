@@ -1,3 +1,4 @@
+import OpenAI from 'openai'
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import { isObjectIdHex, toObjectId } from '@/src/domain/object-id'
@@ -8,7 +9,6 @@ import { EventsRepo } from '@/core-v3/infra/repos/events.repo'
 import { computeInitialEligibility } from '@/core-v3/domain/eligibility'
 import { derivePlanPolicy } from '@/lib/plan-policies'
 import { getMongoDBVectorStoreManager } from '@/lib/rag/vector-store-mongodb'
-import { generatePlan0WithAIFromSurvey, PROMPT_VERSION } from '@/app/lib/ai/generate-plan0'
 
 function toLegacyPlanVersion(planNumber: number, planVersion: number): string {
   if (planNumber <= 0) return planVersion === 0 ? '0' : `0.${planVersion}`
@@ -100,6 +100,106 @@ function normalizeLegacyPlanDoc(plan: any) {
   return normalized
 }
 
+// ---- UTILIDADES PARA NORMALIZAR/HIDRATAR PLAN 0 ----
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
+const hhmm = (s: any, fallback: string) => (typeof s === 'string' && TIME_RE.test(s) ? s : fallback)
+
+const getIn = (obj: any, path: string, dflt?: any) =>
+  path.split('.').reduce((o, k) => ((o && o[k] !== undefined) ? o[k] : undefined), obj) ?? dflt
+
+function surveyToFacts(s: any) {
+  const h = s?.rutinaHabitos || s?.rutina || {}
+  const alim = s?.alimentacion || {}
+  const goals = getIn(s, 'sleep_goals') ?? getIn(s, 'objetivos') ?? getIn(s, 'preocupaciones.objetivoPrincipal')
+  return {
+    bedtimeDeclared: getIn(h, 'horaDormir', getIn(h, 'horaAcostarse', null)),
+    bedtimeRoutine: getIn(h, 'rutinaAntesAcostarse', getIn(h, 'rutina', null)),
+    napsYesNo: getIn(h, 'haceSiestas', null),
+    sleepLocation: getIn(h, 'dondeDuermeNoche', null),
+    mealsDeclared: alim.horarioComidas ?? null,
+    goals: Array.isArray(goals) ? goals : (goals ? [goals] : []),
+  }
+}
+
+function defaultsFromSurvey(f: ReturnType<typeof surveyToFacts>) {
+  const bedtime = f.bedtimeDeclared && TIME_RE.test(f.bedtimeDeclared) ? f.bedtimeDeclared : '20:30'
+  const wakeTime = '07:00'
+  const meals = Array.isArray(f.mealsDeclared) && f.mealsDeclared.length
+    ? f.mealsDeclared.map((t: any) => ({
+        time: TIME_RE.test(t?.time || t) ? (t.time || t) : '07:30',
+        type: (t?.type ?? 'desayuno'),
+        description: String(t?.description ?? '').trim() || 'Comida',
+      }))
+    : [
+        { time: '07:30', type: 'desayuno', description: 'Desayuno después de despertar' },
+        { time: '12:00', type: 'almuerzo', description: 'Almuerzo balanceado' },
+        { time: '16:00', type: 'merienda', description: 'Merienda ligera' },
+        { time: '19:00', type: 'cena', description: 'Cena temprana' },
+      ]
+
+  const naps =
+    f.napsYesNo === false || f.napsYesNo === 'no'
+      ? []
+      : [{ time: '13:30', duration: 90, description: 'Siesta vespertina' }]
+
+  const objectives = (f.goals?.length ? f.goals : ['Establecer una rutina de sueño consistente.']).map((x: any) => String(x))
+
+  const recommendations = [
+    'Implementar una rutina relajante 20–30 minutos antes de dormir.',
+    'Evitar pantallas al menos 60 minutos antes de acostarse.',
+  ]
+
+  return {
+    schedule: { bedtime, wakeTime, meals, activities: [], naps },
+    objectives,
+    recommendations,
+  }
+}
+
+function ensurePlan0FromAI(ai: any, surveyData: any) {
+  const f = surveyToFacts(surveyData || {})
+  const d = defaultsFromSurvey(f)
+
+  const sc = ai?.schedule ?? {}
+  const meals = Array.isArray(sc.meals) ? sc.meals : []
+  const activities = Array.isArray(sc.activities) ? sc.activities : []
+  const naps = Array.isArray(sc.naps) ? sc.naps : []
+
+  const schedule = {
+    bedtime: hhmm(sc.bedtime, d.schedule.bedtime),
+    wakeTime: hhmm(sc.wakeTime, d.schedule.wakeTime),
+    meals: meals.length
+      ? meals.map((m: any) => ({
+          time: hhmm(m?.time, '07:30'),
+          type: (m?.type ?? 'desayuno'),
+          description: String(m?.description ?? '').trim() || '—',
+        }))
+      : d.schedule.meals,
+    activities: activities.length
+      ? activities.map((a: any) => ({
+          time: hhmm(a?.time, '17:00'),
+          activity: String(a?.activity ?? 'actividad'),
+          duration: Number.isFinite(a?.duration) ? Math.max(5, Math.min(180, Math.trunc(a.duration))) : 30,
+          description: String(a?.description ?? '').trim() || undefined,
+        }))
+      : d.schedule.activities,
+    naps: naps.length
+      ? naps.map((n: any) => ({
+          time: hhmm(n?.time, '13:30'),
+          duration: Number.isFinite(n?.duration) ? Math.max(20, Math.min(180, Math.trunc(n.duration))) : 90,
+          description: String(n?.description ?? '').trim() || undefined,
+        }))
+      : d.schedule.naps,
+  }
+
+  const objectives = Array.isArray(ai?.objectives) && ai.objectives.length ? ai.objectives.map(String) : d.objectives
+  const recommendations = Array.isArray(ai?.recommendations) && ai.recommendations.length
+    ? ai.recommendations.map(String)
+    : d.recommendations
+
+  return { schedule, objectives, recommendations }
+}
+
 function formatTwo(n: number) {
   return String(Math.floor(Math.max(0, n))).padStart(2, '0')
 }
@@ -145,7 +245,7 @@ function toDate(value: any): Date | null {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
-function computeNapStats(events: any[]) {
+function computeNapStatsFromEvents(events: any[]) {
   const naps = events.filter((e) => resolveEventType(e) === 'nap')
   if (!naps.length) return { count: 0, typicalTime: null, avgDuration: null }
 
@@ -170,7 +270,7 @@ function computeNapStats(events: any[]) {
   }
 }
 
-function computeBedtimeStats(events: any[]) {
+function computeBedtimeAvgFromEvents(events: any[]) {
   const sleeps = events.filter((e) => ['sleep', 'bedtime'].includes(resolveEventType(e) || ''))
   const starts = sleeps
     .map((e) => toDate(e.startTime))
@@ -180,7 +280,7 @@ function computeBedtimeStats(events: any[]) {
   }
 }
 
-function computeFeedingStats(events: any[]) {
+function computeFeedingTypicalTimesFromEvents(events: any[]) {
   const fed = events.filter((e) => resolveEventType(e) === 'feeding')
   const buckets: Record<string, { from: number; to: number; dates: Date[] }> = {
     breakfast: { from: 6 * 60, to: 10 * 60, dates: [] },
@@ -233,6 +333,70 @@ async function getPlanRagContext(ageInMonths?: number) {
   } catch (error) {
     console.warn('plan0_rag_context_failed', error instanceof Error ? error.message : String(error))
     return []
+  }
+}
+
+type GeneratePlanParams = {
+  planType: 'initial'
+  childData: any
+  ragContext: any
+  surveyData: any
+  policies: any
+  enrichedStats?: { napStats?: any; bedtimeStats?: any; feedingStats?: any }
+}
+
+async function generatePlanWithAI(params: GeneratePlanParams) {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('llm_misconfigured')
+  }
+
+  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, baseURL: process.env.HD_OPENAI_BASE_URL })
+  const model = process.env.HD_PLAN_LLM_MODEL || 'gpt-4o-mini'
+  const temperature = Number.isFinite(Number(process.env.HD_PLAN_LLM_TEMPERATURE)) ? Number(process.env.HD_PLAN_LLM_TEMPERATURE) : 0.4
+  const maxTokens = Number.isFinite(Number(process.env.HD_PLAN_LLM_MAX_TOKENS)) ? Number(process.env.HD_PLAN_LLM_MAX_TOKENS) : 2000
+
+  const ragBlock = Array.isArray(params.ragContext) && params.ragContext.length
+    ? params.ragContext.map((entry: any, idx: number) => `Fuente ${idx + 1}: ${(entry.title || entry.source || 'KB')} -> ${entry.content || ''}`).join('\n')
+    : 'Sin RAG específico; utiliza guías generales documentadas.'
+
+  const systemPrompt = [
+    'Eres pediatra del sueño. Genera un Plan Inicial (Plan 0) consistente, accionable y seguro.',
+    'Devuelve únicamente JSON con las claves exactas: {"schedule":{"bedtime","wakeTime","meals","activities","naps"},"objectives":[],"recommendations":[]}.',
+    'Reglas clave:',
+    '- Usa horario HH:MM (24h).',
+    '- Mantén un primer paso suave (no ajustes bruscos >30 min respecto a hábitos declarados).',
+    '- Si la familia reporta que no hay siestas, permite 0 siestas.',
+    '- No inventes comidas inexistentes; puedes sugerir bloques básicos.',
+    '- Objetivos y recomendaciones concretos, orientados a padres y en español neutro.',
+  ].join('\n')
+
+  const userPrompt = [
+    'PROMPT_VERSION=plan0-hydrate-2025-10-24',
+    `Niño: ${params.childData?.firstName || 'N/A'} (${params.childData?.ageInMonths ?? 'N/A'} meses)`,
+    `Encuesta:\n${JSON.stringify(params.surveyData || {}, null, 2)}`,
+    `Estadísticas (pueden provenir de eventos o encuesta):\n${JSON.stringify(params.enrichedStats || {}, null, 2)}`,
+    `Políticas por edad:\n${JSON.stringify(params.policies || {}, null, 2)}`,
+    `RAG relevante:\n${ragBlock}`,
+    'Responde solo con el JSON requerido. Sin comentarios extra.',
+  ].join('\n\n')
+
+  const completion = await client.chat.completions.create({
+    model,
+    temperature,
+    max_tokens: maxTokens,
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+  })
+
+  const raw = completion.choices?.[0]?.message?.content || '{}'
+  try {
+    return JSON.parse(raw)
+  } catch (error) {
+    console.warn('plan0_ai_parse_failed', error instanceof Error ? error.message : String(error), raw)
+    return {}
   }
 }
 
@@ -399,131 +563,65 @@ export async function POST(req: NextRequest) {
     }
 
     const events = await EventsRepo.findByChildAndRange(cid as any, window.from, window.to)
-    const hasEvents = events.length > 0
+    const hasEvents = Array.isArray(events) && events.length > 0
     const byType = await EventsRepo.countByTypes(cid, window.from, window.to)
     const eventCount = Object.values(byType).reduce((a: number, b: number) => a + b, 0)
     const distinctTypes = Object.keys(byType).length
 
-    const napStats = hasEvents ? computeNapStats(events) : undefined
-    const bedtimeStats = hasEvents ? computeBedtimeStats(events) : undefined
-    const feedingStats = hasEvents ? computeFeedingStats(events) : undefined
-    const enrichedStats = hasEvents ? { napStats, bedtimeStats, feedingStats } : undefined
+    const napStats = hasEvents ? computeNapStatsFromEvents(events) : undefined
+    const bedtimeStats = hasEvents ? computeBedtimeAvgFromEvents(events) : undefined
+    const feedingStats = hasEvents ? computeFeedingTypicalTimesFromEvents(events) : undefined
 
     const ragContext = await getPlanRagContext(ageInMonths)
-    const ragSources = Array.isArray(ragContext) ? ragContext.map((entry: any) => entry.source || entry.title || 'KB') : []
-
     const policies = derivePlanPolicy({ ageInMonths: ageInMonths ?? null, events })
 
-    let aiPlan
-    try {
-      aiPlan = await generatePlan0WithAIFromSurvey({
-        child: { firstName: child.firstName, lastName: child.lastName, ageInMonths },
-        surveyData: surveyData || {},
-        ragContext,
-        policies,
-        enrichedStats,
-      })
-    } catch (error: any) {
-      const message = error instanceof Error ? error.message : String(error)
-      if (message.includes('llm_misconfigured')) {
-        return NextResponse.json({ ok: false, error: 'service_unavailable', reason: 'llm_misconfigured' }, { status: 503 })
-      }
-      throw error
-    }
-
-    const generationMode: 'events' | 'survey_only' = hasEvents ? 'events' : 'survey_only'
-    console.log('[plan0.generate]', { childId: String(cid), mode: generationMode, promptVersion: PROMPT_VERSION })
-
-    const planOutput = {
+    const aiRaw = await generatePlanWithAI({
       planType: 'initial',
-      title: `Plan inicial para ${child.firstName || 'el niño'}`,
-      summary: hasEvents
-        ? 'Plan generado con datos históricos y encuesta familiar.'
-        : 'Plan generado a partir de la encuesta familiar (sin eventos registrados).',
-      schedule: aiPlan.schedule,
-      objectives: aiPlan.objectives,
-      recommendations: aiPlan.recommendations,
-      metrics: {
-        eventCount,
-        distinctTypes,
-        byType,
-        ageInMonths,
-      },
-      metadata: {
-        ragSources,
-        promptVersion: PROMPT_VERSION,
-        generationMode,
-      },
-    }
+      childData: { ...child, ageInMonths },
+      ragContext,
+      surveyData: child.surveyData,
+      policies,
+      enrichedStats: hasEvents ? { napStats, bedtimeStats, feedingStats } : undefined,
+    })
+
+    const aiPlan = ensurePlan0FromAI(aiRaw, child.surveyData)
 
     const planNumber = 0
-    const planVersion = await PlansRepo.getNextPlanVersion(cid, planNumber)
-    const planVersionLabel = toLegacyPlanVersion(planNumber, planVersion)
-    const createdAt = now()
+    const planVersionNumber = await PlansRepo.getNextPlanVersion(cid, planNumber)
+    const planVersionLabel = planVersionNumber.toString()
 
-    const legacySourceData: Record<string, unknown> = {
-      surveyDataUsed: !!child.surveyData,
-      childStatsUsed: hasEvents,
-      ragSources,
-      ageInMonths: ageInMonths || 0,
-      totalEvents: events.length,
-      promptVersion: PROMPT_VERSION,
-    }
-    if (enrichedStats) legacySourceData.enrichedStats = enrichedStats
-
-    const created = await PlansRepo.createPlan({
+    const planDocument = {
       childId: cid,
       planType: 'initial',
       planNumber,
-      planVersion,
-      output: planOutput,
+      planVersion: planVersionNumber,
+      title: `Plan Inicial para ${child.firstName}`,
+      schedule: aiPlan.schedule,
+      objectives: aiPlan.objectives,
+      recommendations: aiPlan.recommendations,
+      basedOn: 'survey_stats_rag',
       sourceData: {
-        window: { from: window.from.toISOString(), to: window.to.toISOString() },
-        byType,
-        eventCount,
-        distinctTypes,
         surveyDataUsed: !!child.surveyData,
         childStatsUsed: hasEvents,
+        ragSources: Array.isArray(ragContext) ? ragContext.map((r: any) => r.source || r.title || 'KB') : [],
+        ageInMonths: ageInMonths || 0,
         totalEvents: events.length,
-        ragSources,
-        ageInMonths,
-        promptVersion: PROMPT_VERSION,
-        ...(enrichedStats ? { enrichedStats } : {}),
+        promptVersion: 'plan0-hydrate-2025-10-24',
       },
-      basedOn: 'survey_stats_rag',
+      createdAt: now(),
+      updatedAt: now(),
       createdBy: String(targetUserId),
       status: 'active',
-    })
+    }
 
+    const created = await PlansRepo.createPlan(planDocument)
     await markSupersededPreviousPlans(cid, String(created._id))
 
     try {
       await db.collection('child_plans').insertOne({
-        childId: cid,
+        ...planDocument,
         userId: targetUserId,
-        planType: 'initial',
-        planNumber,
         planVersion: planVersionLabel,
-        title: planOutput.title,
-        summary: planOutput.summary,
-        schedule: aiPlan.schedule,
-        objectives: aiPlan.objectives,
-        recommendations: aiPlan.recommendations,
-        basedOn: 'survey_stats_rag',
-        sourceData: legacySourceData,
-        eventAnalysis: hasEvents
-          ? {
-              eventsAnalyzed: eventCount,
-              eventTypes: Object.keys(byType),
-              ragSources,
-              progressFromPrevious: 'Plan inicial generado con datos históricos y encuesta.',
-              basePlanVersion: planVersionLabel,
-            }
-          : undefined,
-        createdAt,
-        updatedAt: createdAt,
-        createdBy: targetUserId,
-        status: 'active',
       })
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -532,8 +630,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      mode: generationMode,
-      plan: { planVersion },
+      mode: hasEvents ? 'events' : 'survey_only',
+      plan: { planVersion: planVersionLabel },
       planId: String(created._id),
     })
   } catch (e: any) {
