@@ -82,8 +82,17 @@ function normalizeSchedule(raw: any) {
 function normalizeLegacyPlanDoc(plan: any) {
   const normalized: any = { ...plan }
   normalized.schedule = normalizeSchedule(plan?.schedule)
+  if ((!normalized.schedule?.bedtime || normalized.schedule.bedtime === '') && plan?.output?.schedule) {
+    normalized.schedule = normalizeSchedule(plan.output.schedule)
+  }
   normalized.objectives = normalizeStringArray(plan?.objectives)
+  if ((!normalized.objectives?.length) && Array.isArray(plan?.output?.objectives)) {
+    normalized.objectives = normalizeStringArray(plan.output.objectives)
+  }
   normalized.recommendations = normalizeStringArray(plan?.recommendations)
+  if ((!normalized.recommendations?.length) && Array.isArray(plan?.output?.recommendations)) {
+    normalized.recommendations = normalizeStringArray(plan.output.recommendations)
+  }
   if (!Array.isArray(normalized.objectives)) normalized.objectives = []
   if (!Array.isArray(normalized.recommendations)) normalized.recommendations = []
   if (!normalized.sourceData || typeof normalized.sourceData !== 'object') {
@@ -585,6 +594,8 @@ export async function POST(req: NextRequest) {
     })
 
     const aiPlan = ensurePlan0FromAI(aiRaw, child.surveyData)
+    console.log('[plan0.aiRaw]', aiRaw)
+    console.log('[plan0.aiPlan]', aiPlan)
 
     const planNumber = 0
     const planVersionNumber = await PlansRepo.getNextPlanVersion(cid, planNumber)
