@@ -1406,11 +1406,14 @@ INSTRUCCIONES:
 1. Crea un plan DETALLADO con horarios específicos
 2. Incluye horarios para: dormir, despertar, comidas y siestas (NO incluir actividades)
 3. ⚠️ CRÍTICO: NO puede haber DOS EVENTOS DIFERENTES a la MISMA HORA (ej: no puede haber "desayuno a las 08:00" y "jugar a las 08:00")
-4. 🕐 USA HORARIOS NATURALES (COMO LO HARÍA UN HUMANO):
-   - Sigue los horarios del RAG y las estadísticas del niño
-   - ❌ NO INVENTES números aleatorios raros de minutos como: :01, :03, :05, :07, :11, :13, :17, :23, :27, :33, :37, :42, :47, :51, :53, :57
-   - ✅ Usa horarios naturales/sensatos como: 7:00, 8:00, 8:30, 12:00, 14:00, 14:30, 19:00, 20:00
-   - SIGUE el RAG para determinar los horarios apropiados
+4. 🕐 USA HORARIOS EN INTERVALOS DE 15 MINUTOS (COMO LO HARÍA UN HUMANO):
+   - ⚠️ CRÍTICO: TODOS los horarios DEBEN estar en intervalos de 15 minutos
+   - ✅ Minutos PERMITIDOS: :00, :15, :30, :45 únicamente
+   - ❌ Minutos PROHIBIDOS: :01, :02, :03, :05, :07, :10, :12, :17, :20, :23, :25, :27, :33, :35, :37, :40, :42, :47, :50, :52, :55, :57
+   - ✅ Ejemplos CORRECTOS: 7:00, 7:15, 7:30, 7:45, 8:00, 8:15, 8:30, 8:45, 12:00, 12:15, 14:00, 14:30, 19:00, 19:45, 20:00
+   - ❌ Ejemplos INCORRECTOS: 7:05, 7:10, 8:25, 12:10, 14:20, 19:35
+   - Si las estadísticas del niño son (por ejemplo) 7:05 AM, redondea a 7:00 AM o 7:15 AM (el más cercano)
+   - SIGUE el RAG para determinar los horarios apropiados, pero SIEMPRE en intervalos de 15 minutos
 5. 📊 ESTRATEGIA PROGRESIVA (Plan 0):
    - USA los registros actuales (estadísticas del niño) como PUNTO DE PARTIDA
    - Identifica la diferencia entre estadísticas actuales y horarios ideales del RAG
@@ -1482,11 +1485,14 @@ INSTRUCCIONES PARA PROGRESIÓN:
 1. 🎯 PRIORIDAD: Utiliza el PLAN ANTERIOR como base sólida
 2. 📊 AJUSTA según los PATRONES REALES observados en los eventos
 3. ⚠️ CRÍTICO: NO puede haber DOS EVENTOS DIFERENTES a la MISMA HORA (ej: no puede haber "almuerzo a las 12:00" y "siesta a las 12:00")
-4. 🕐 USA HORARIOS NATURALES (COMO LO HARÍA UN HUMANO):
-   - Sigue los horarios del RAG y las estadísticas del niño
-   - ❌ NO INVENTES números aleatorios raros de minutos como: :01, :03, :05, :07, :11, :13, :17, :23, :27, :33, :37, :42, :47, :51, :53, :57
-   - ✅ Usa horarios naturales/sensatos como: 7:00, 8:00, 8:30, 12:00, 14:00, 14:30, 19:00, 20:00
-   - SIGUE el RAG para determinar los horarios apropiados
+4. 🕐 USA HORARIOS EN INTERVALOS DE 15 MINUTOS (COMO LO HARÍA UN HUMANO):
+   - ⚠️ CRÍTICO: TODOS los horarios DEBEN estar en intervalos de 15 minutos
+   - ✅ Minutos PERMITIDOS: :00, :15, :30, :45 únicamente
+   - ❌ Minutos PROHIBIDOS: :01, :02, :03, :05, :07, :10, :12, :17, :20, :23, :25, :27, :33, :35, :37, :40, :42, :47, :50, :52, :55, :57
+   - ✅ Ejemplos CORRECTOS: 7:00, 7:15, 7:30, 7:45, 8:00, 8:15, 8:30, 8:45, 12:00, 12:15, 14:00, 14:30, 19:00, 19:45, 20:00
+   - ❌ Ejemplos INCORRECTOS: 7:05, 7:10, 8:25, 12:10, 14:20, 19:35
+   - Si las estadísticas del niño son (por ejemplo) 7:05 AM, redondea a 7:00 AM o 7:15 AM (el más cercano)
+   - SIGUE el RAG para determinar los horarios apropiados, pero SIEMPRE en intervalos de 15 minutos
 5. 📈 ESTRATEGIA PROGRESIVA (Plan N):
    - CONTINÚA avanzando desde el plan anterior hacia el objetivo ideal del RAG
    - Evalúa qué tan lejos está el plan anterior del objetivo ideal

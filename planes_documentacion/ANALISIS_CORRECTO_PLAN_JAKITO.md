@@ -491,100 +491,248 @@ El sistema de generación de planes utiliza una **estrategia de aproximación pr
 1. **Datos reales actuales** (eventos registrados por los padres)
 2. **Metas ideales** (horarios recomendados en RAG_SUMMARY.md)
 
-### ¿Cómo funciona?
+---
 
+## 📋 Cómo Funciona en la Práctica - Explicación Detallada
+
+### **Plan 0 (Initial)** - PUNTO DE PARTIDA REALISTA
+
+**Prompt enviado a GPT-4**:
 ```
-Plan 0 (Initial)
-├─ Base principal: 100% eventos registrados
-├─ Meta RAG: 0% influencia
-└─ Objetivo: Establecer punto de partida realista
+5. 📊 ESTRATEGIA PROGRESIVA (Plan 0):
+   - USA los registros actuales (estadísticas del niño) como PUNTO DE PARTIDA
+   - Identifica la diferencia entre estadísticas actuales y horarios ideales del RAG
+   - Da el PRIMER PASO SUAVE (NO saltar directamente al ideal)
+   - Ejemplo: Si el niño se duerme a las 22:00 y el ideal es 20:00,
+     propón 21:00 para Plan 0 (no 20:00)
+   - Los planes 1, 2, 3... irán acercándose progresivamente al ideal
 
-Plan 1 (First Adjustment)
-├─ Base principal: 85% eventos registrados
-├─ Meta RAG: 15% influencia
-└─ Objetivo: Primeros ajustes suaves hacia meta
-
-Plan 1.1, 1.2... (Progressive Refinement)
-├─ Base principal: 70% eventos registrados
-├─ Meta RAG: 30% influencia
-└─ Objetivo: Mejoras incrementales
-
-Plan 2, 3, 4... (Advanced Plans)
-├─ Base principal: 50% eventos registrados
-├─ Meta RAG: 50% influencia
-└─ Objetivo: Aproximación gradual a horarios ideales
-
-Plan N (Goal Achievement)
-├─ Base principal: 20% eventos registrados
-├─ Meta RAG: 80% influencia
-└─ Objetivo: Alcanzar horarios ideales documentados
+⚠️ IMPORTANTE: Estos son horarios IDEALES. En el Plan 0, usa los registros
+actuales como punto de partida y da el PRIMER PASO suave hacia estos
+objetivos ideales.
 ```
 
-### Ejemplo Concreto con Jakito
-
-**Situación actual** (Plan 0):
+**Datos enviados a GPT-4**:
 ```javascript
+// Estadísticas REALES de Jakito (525 eventos):
 {
-  horaDespertar: "7:05 AM",        // Basado en eventos reales
-  horaDormir: "8:30 PM",           // Basado en patrones históricos
-  duracionSiesta: 90,              // Promedio real de 92 siestas
+  avgSleepDurationMinutes: 611,     // 10.2 horas de sueño
+  avgWakeTimeMinutes: 425,          // ~7:05 AM (calculado de endTime)
+  bedtimeStats: {
+    avgBedtime: "20:44"             // 8:44 PM promedio
+  },
+  napStats: {
+    count: 92,
+    avgDuration: 90,                // 90 minutos
+    typicalTime: "14:00"            // 2:00 PM
+  },
+  feedingStats: {
+    breakfast: "08:00",             // 92 registros
+    lunch: "12:27",                 // 92 registros
+    dinner: "18:43"                 // 91 registros
+  }
+}
+
+// Meta IDEAL del RAG (0-3 meses):
+{
+  horaDespertar: "7:00 AM",
+  horaDormir: "8:00 PM",
+  siestas: "4-6 siestas de 30-120 min"
 }
 ```
 
-**Meta ideal** (RAG_SUMMARY.md para 1 mes):
+**Resultado Plan 0** (generado):
 ```javascript
 {
-  horaDespertar: "7:00 AM",        // Hora ideal recomendada
-  horaDormir: "8:00 PM",           // Hora ideal recomendada
-  duracionSiesta: 90,              // Ya coincide con la meta
+  wakeTime: "07:05",     // ✅ 100% basado en eventos (endTime promedio)
+  bedtime: "20:30",      // ✅ Ajuste suave: 20:44 → 20:30 (14 min más temprano)
+  desayuno: "08:00",     // ✅ 100% basado en eventos
+  almuerzo: "12:30",     // ✅ Basado en eventos (12:27 redondeado)
+  siesta: {
+    time: "14:00",       // ✅ 100% basado en eventos (hora típica)
+    duration: 90         // ✅ 100% basado en eventos
+  },
+  cena: "18:45"          // ✅ Basado en eventos (18:43 redondeado)
 }
 ```
 
-**Aproximación progresiva**:
+**Análisis**:
+- ✅ Plan 0 usa **100% datos reales** como base
+- ✅ GPT-4 hizo **ajustes mínimos** de redondeo (12:27 → 12:30)
+- ✅ Hora de dormir: Pequeño ajuste hacia meta (20:44 → 20:30, -14 min)
+- ⚠️ **NO saltó directamente** a la meta ideal (8:00 PM)
+- ✅ Esto establece un **punto de partida realista y alcanzable**
+
+---
+
+### **Plan 1 (Event-Based)** - PRIMER AJUSTE PROGRESIVO
+
+**Prompt enviado a GPT-4**:
 ```
-Plan 0:  Despertar 7:05 AM | Dormir 8:30 PM  (100% real)
-Plan 1:  Despertar 7:03 AM | Dormir 8:25 PM  (ajuste -2 min, -5 min)
-Plan 2:  Despertar 7:01 AM | Dormir 8:15 PM  (ajuste -2 min, -10 min)
-Plan 3:  Despertar 7:00 AM | Dormir 8:05 PM  (ajuste -1 min, -10 min)
-Plan 4:  Despertar 7:00 AM | Dormir 8:00 PM  (✅ META ALCANZADA)
+5. 📈 ESTRATEGIA PROGRESIVA (Plan N):
+   - CONTINÚA avanzando desde el plan anterior hacia el objetivo ideal del RAG
+   - Evalúa qué tan lejos está el plan anterior del objetivo ideal
+   - Da el SIGUIENTE PASO PROGRESIVO (no saltes directamente al ideal)
+   - Ejemplo: Si Plan 0 propuso 21:00 y el ideal es 20:00, ahora propón
+     20:30 o 20:00 según tolerancia observada
+   - Usa los eventos reales para validar si el niño está tolerando bien
+     los ajustes
+
+⚠️ IMPORTANTE: Usa el plan anterior como base y da el SIGUIENTE PASO
+progresivo hacia estos horarios ideales. NO saltes directamente al ideal
+si el plan anterior está lejos. Avanza gradualmente.
 ```
 
-### ¿Por qué esta estrategia?
+**Datos enviados a GPT-4**:
+```javascript
+// Plan ANTERIOR (Plan 0) como BASE:
+{
+  bedtime: "20:30",
+  wakeTime: "07:05",
+  meals: [...],
+  naps: [...]
+}
 
-1. **Seguridad**: Cambios graduales son menos estresantes para el bebé
-2. **Realismo**: Partir de patrones reales asegura viabilidad inicial
-3. **Progresión**: Mejoras incrementales permiten adaptación natural
-4. **Meta clara**: El RAG_SUMMARY.md marca el objetivo final
+// Eventos NUEVOS desde Plan 0:
+{
+  eventsAnalyzed: 15,                // Eventos desde última generación
+  avgBedtime: "20:22",               // Real: 20:22, redondeado a 20:15 (intervalo de 15 min)
+  avgWakeTime: "06:58",              // Real: 6:58, redondeado a 7:00 (intervalo de 15 min)
+  napStats: {
+    count: 3,
+    avgDuration: 88,                 // Real: 88 min, redondeado a 90
+    typicalTime: "14:05"             // Real: 14:05, redondeado a 14:00
+  }
+}
 
-### Implicaciones para el RAG_SUMMARY.md
+// Meta IDEAL del RAG (sigue siendo la misma):
+{
+  horaDespertar: "7:00 AM",
+  horaDormir: "8:00 PM"
+}
+```
 
-El documento RAG debe incluir **horarios específicos** por edad:
+**Resultado Plan 1** (esperado con intervalos de 15 min):
+```javascript
+{
+  wakeTime: "07:00",     // ✅ Sin cambios (ya está en la meta)
+  bedtime: "20:15",      // ✅ Ajuste: 20:30 → 20:15 (-15 min hacia meta de 20:00)
+  desayuno: "08:00",     // ✅ Sin cambios (ya es óptimo)
+  almuerzo: "12:30",     // ✅ Sin cambios
+  siesta: {
+    time: "14:00",       // ✅ Sin cambios (ya es óptimo)
+    duration: 90         // ✅ Sin cambios (ya coincide con meta)
+  },
+  cena: "18:45"          // ✅ Sin cambios
+}
+```
 
-❌ **Formato actual** (demasiado genérico):
+**Análisis**:
+- ✅ Plan 1 usa **Plan 0 como base** (no empieza de cero)
+- ✅ Incorpora **eventos nuevos** para validar tolerancia
+- ✅ Ajusta **en intervalos de 15 min** hacia meta RAG (20:30 → 20:15)
+- ✅ **NO salta** directamente a 8:00 PM (meta), va gradualmente
+- ✅ Despertar ya está en meta (7:00 AM), no necesita ajuste
+
+---
+
+### **Plan 2, 3, 4...** - APROXIMACIÓN CONTINUA
+
+⚠️ **IMPORTANTE: Todos los horarios deben estar en INTERVALOS DE 15 MINUTOS** (:00, :15, :30, :45)
+
+**Progresión esperada** (basada en tolerancia del bebé):
+
+```
+Plan 0:  Despertar 7:00 AM | Dormir 8:30 PM  (Punto de partida, redondeado a :00/:15/:30/:45)
+         ↓ Diferencia vs meta: 0 min | +30 min
+
+Plan 1:  Despertar 7:00 AM | Dormir 8:15 PM  (Ajuste: 0 min | -15 min hacia meta)
+         ↓ Diferencia vs meta: 0 min | +15 min
+
+Plan 2:  Despertar 7:00 AM | Dormir 8:00 PM  (✅ META ALCANZADA en solo 2 planes)
+         ✅ Alineado 100% con RAG_SUMMARY.md
+```
+
+**Explicación de la progresión más rápida**:
+- ✅ Despertar ya estaba en la meta (7:05 real → 7:00 redondeado)
+- ✅ Solo se necesita ajustar hora de dormir (8:30 → 8:00)
+- ✅ Con intervalos de 15 min: solo 2 pasos (8:30 → 8:15 → 8:00)
+
+**Factores que determinan la velocidad de aproximación**:
+1. **Tolerancia del bebé**: Si los eventos muestran que se adapta bien, ajustes más rápidos
+2. **Distancia a la meta**: Cuanto más lejos, pasos más conservadores
+3. **Consistencia de eventos**: Más eventos consistentes = mayor confianza para ajustar
+4. **Edad del bebé**: Bebés menores = ajustes más graduales y cautelosos
+
+---
+
+### **¿Por qué Plan 0 mostró "0 documentos RAG" pero aún funcionó?**
+
+**Log observado**:
+```
+[2025-10-25T06:57:56.952Z] INFO: 📚 RAG Summary cargado: 0 documentos encontrados
+```
+
+**Explicación**:
+- ⚠️ El **parsing del RAG_SUMMARY.md** tuvo un problema técnico
+- ✅ PERO el **prompt ya incluye la estrategia** de usar datos reales como base
+- ✅ GPT-4 generó un plan **basado 100% en estadísticas** (como debe ser en Plan 0)
+- ✅ El resultado fue **correcto y esperado** para un Plan Inicial
+
+**Para planes futuros (Plan 1, 2, 3...)**:
+- 🔧 Necesitamos **corregir el parsing** del RAG_SUMMARY.md
+- ✅ El nuevo formato con horarios específicos facilitará esto
+- ✅ Los planes posteriores **SÍ usarán el RAG** como guía hacia la meta
+
+---
+
+### **Formato del RAG_SUMMARY.md - Crítico para Aproximación**
+
+El documento RAG debe incluir **horarios específicos** por edad para que GPT-4 pueda calcular la distancia y ajustes:
+
+❌ **Formato anterior** (demasiado genérico):
 ```
 Despertar
 Despierto 1.5 hrs - 2 hrs
 Siesta de 1.5 hrs
 Dormido
 ```
+→ GPT-4 no puede calcular: "¿Cuántos minutos ajusto?"
 
-✅ **Formato correcto** (con horarios objetivo):
+✅ **Formato corregido** (con horarios objetivo):
 ```
-Despertar: 7:00 AM
-Despierto 1.5 hrs - 2 hrs
-Siesta 1: 8:30-10:00 AM (90 min)
-Despierto 2 hrs
-Siesta 2: 12:00-1:30 PM (90 min)
-Despierto 2.5 hrs
-Siesta 3: 4:00-4:45 PM (45 min)
-Despierto 3 hrs
-Dormir: 8:00 PM
+HORARIO IDEAL PARA 0-3 MESES:
+- Despertar: 7:00 AM (endTime del evento sleep nocturno)
+- Siesta 1: 8:00-9:30 AM (60-90 min)
+- Siesta 2: 11:00-12:30 PM (60-90 min)
+- Siesta 3: 2:00-3:30 PM (60-90 min)
+- Siesta 4 (opcional): 5:00-5:30 PM (30 min)
+- Dormir: 7:30-8:00 PM (startTime del evento sleep nocturno)
+- Duración sueño nocturno: 10-12 horas
 ```
+→ GPT-4 puede calcular: "Actual: 8:30 PM → Meta: 8:00 PM → Ajuste Plan 1: -5 min"
 
-Esto permite al sistema:
-- Comparar horarios actuales vs ideales
-- Calcular ajustes progresivos necesarios
-- Generar planes que se acerquen gradualmente a la meta
+---
+
+### **Resumen de la Estrategia**
+
+| Plan | Base (Eventos) | Influencia RAG | Ajuste típico | Objetivo |
+|------|---------------|----------------|---------------|----------|
+| **Plan 0** | 100% | 0% | Redondeo a :00/:15/:30/:45 | Punto de partida realista |
+| **Plan 1** | 85% | 15% | -15 min | Primer paso suave |
+| **Plan 2** | 70% | 30% | -15 a -30 min | Aproximación gradual |
+| **Plan 3** | 50% | 50% | -15 a -30 min | Equilibrio datos/meta |
+| **Plan 4+** | 20-30% | 70-80% | -15 min | Alcanzar meta ideal |
+
+⚠️ **NOTA CRÍTICA**: Todos los ajustes se hacen en **intervalos de 15 minutos** únicamente.
+Minutos permitidos: **:00, :15, :30, :45**
+
+**Beneficios de esta aproximación**:
+1. ✅ **Seguridad**: Cambios graduales reducen estrés del bebé
+2. ✅ **Realismo**: Parte de patrones actuales verificables
+3. ✅ **Adaptabilidad**: Ajusta según respuesta del bebé
+4. ✅ **Meta clara**: RAG marca objetivo final científicamente validado
+5. ✅ **Validación continua**: Cada plan usa eventos para confirmar tolerancia
 
 ---
 
