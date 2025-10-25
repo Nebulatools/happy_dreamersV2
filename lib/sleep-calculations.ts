@@ -378,35 +378,32 @@ function calculateInferredSleepDuration(events: SleepEvent[]): number {
 
 /**
  * Calcula hora promedio de despertar mediante inferencia
+ * CORRECCIÓN: El despertar es el endTime del evento sleep, NO un evento "wake" separado
  */
 function calculateInferredWakeTime(events: SleepEvent[]): string {
   if (events.length === 0) return "--:--"
-  
-  // Ordenar eventos por fecha
-  const sortedEvents = events.sort((a, b) => 
-    new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-  )
-  
+
   const wakeTimes: Date[] = []
-  
-  for (let i = 0; i < sortedEvents.length - 1; i++) {
-    const currentEvent = sortedEvents[i]
-    const nextEvent = sortedEvents[i + 1]
-    
-    // CASO 1: Par ideal bedtime/sleep → wake
-    if (
-      ['bedtime', 'sleep'].includes(currentEvent.eventType) &&
-      nextEvent.eventType === 'wake'
-    ) {
-      wakeTimes.push(parseISO(nextEvent.startTime))
+
+  // Filtrar eventos de sueño nocturno (sleep) que tengan endTime
+  const nocturnalSleepEvents = events.filter(e => {
+    if (e.eventType !== 'sleep') return false
+    if (!e.endTime) return false
+
+    // Filtrar solo sueño nocturno (hora de inicio entre 18:00 y 06:00)
+    const hour = parseISO(e.startTime).getHours()
+    return hour >= 18 || hour <= 6
+  })
+
+  // Recopilar los endTime (hora de despertar) de cada evento sleep
+  for (const sleepEvent of nocturnalSleepEvents) {
+    if (sleepEvent.endTime) {
+      wakeTimes.push(parseISO(sleepEvent.endTime))
     }
-    
-    // CASO 2: Inferir despertar desde sleep → nap/activity
-    // Nota: Ya NO inferimos wake desde siestas/actividades para evitar sesgos matutinos.
   }
-  
+
   if (wakeTimes.length === 0) return "--:--"
-  
+
   return calculateAverageTime(wakeTimes)
 }
 

@@ -2629,38 +2629,80 @@ mañana.
 
 que realizamos como padres- la hora que debe ser fija o siempre la misma- es la hora de despertar por la
 mañana.
+
+IMPORTANTE: Para bebés menores de 6 meses, los horarios son más flexibles y se basan en señales de hambre y sueño.
+A continuación, los horarios ideales por edad a partir de 0 meses.
+
+0-3 meses (RECIÉN NACIDO)
+Los bebés recién nacidos duermen entre 14-17 horas al día distribuidas en 4-6 siestas. El sueño nocturno aún
+no está consolidado y despertarán para alimentarse cada 2-3 horas. No hay un "horario fijo" en esta etapa,
+pero podemos establecer rutinas suaves.
+
+HORARIO FLEXIBLE PARA 0-3 MESES:
+- Despertar: Variable (6:00-8:00 AM) - seguir señales del bebé
+- Ventanas despierto: 45-90 minutos entre siestas
+- Siestas: 4-6 siestas de 30-120 min cada una
+- Tomas nocturnas: 2-4 alimentaciones durante la noche (normal y esperado)
+- Dormir: 7:30-9:00 PM (startTime del evento sleep nocturno)
+- Duración sueño nocturno: 8-10 horas (con interrupciones para alimentarse)
+- Total sueño diurno: 6-7 horas en siestas
+
+3-6 meses
+A partir de los 3-4 meses, el sueño comienza a consolidarse. Los bebés duermen entre 12-15 horas al día,
+distribuidas en 3-4 siestas más organizadas. Pueden comenzar a dormir tramos más largos por la noche.
+
+HORARIO IDEAL PARA 3-6 MESES:
+- Despertar: 7:00 AM (endTime del evento sleep nocturno)
+- Ventana 1: Despierto 1-2 hrs
+- Siesta 1: 8:00-9:30 AM (60-90 min)
+- Ventana 2: Despierto 1.5-2 hrs
+- Siesta 2: 11:00-12:30 PM (60-90 min)
+- Ventana 3: Despierto 1.5-2 hrs
+- Siesta 3: 2:00-3:30 PM (60-90 min)
+- Ventana 4: Despierto 2-2.5 hrs
+- Siesta 4 (opcional): 5:00-5:30 PM (30 min)
+- Ventana 5: Despierto 2-2.5 hrs
+- Dormir: 7:30-8:00 PM (startTime del evento sleep nocturno)
+- Duración sueño nocturno: 10-12 horas (con 1-2 alimentaciones nocturnas)
+- Total sueño diurno: 4-5 horas en siestas
+
+NOTAS IMPORTANTES PARA 0-6 MESES:
+- Los horarios son orientativos, no rígidos
+- Priorizar señales de hambre y sueño del bebé
+- Las tomas nocturnas son normales y necesarias
+- La consistencia en rutinas es más importante que horarios exactos
+- Despertar para alimentarse por la noche NO es un problema a solucionar en esta etapa
+
 Les platico un poco los cambios de horario que tendrá un bebé a partir de los 6 meses.
 6 meses
 A los 6 meses un niño necesita alrededor de 11 horas de sueño en la noche y 3 – o 4 – siestas, divididas
 en dos largas y una corta.
-Su horario debería verse más o menos así:
-Despertar
-Despierto 1.5 hrs - 2 hrs
-Siesta de 1.5 hrs
-Despierto 2 hrs
-Siesta de 1.5hrs (podría ser hasta 2 hrs)
-Despierto 2.5 hrs
-Siesta de 45mins a 1 hra
-Despierto 3 hrs
-Dormido
+
+HORARIO IDEAL PARA 6 MESES:
+- Despertar: 7:00 AM (endTime del evento sleep nocturno)
+- Ventana 1: Despierto 1.5-2 hrs
+- Siesta 1: 8:30-10:00 AM (90 min)
+- Ventana 2: Despierto 2 hrs
+- Siesta 2: 12:00-1:30 PM (90 min, podría ser hasta 2 hrs)
+- Ventana 3: Despierto 2.5 hrs
+- Siesta 3: 4:00-4:45 PM (45-60 min)
+- Ventana 4: Despierto 3 hrs
+- Dormir: 8:00 PM (startTime del evento sleep nocturno)
+- Duración sueño nocturno: 11 horas (endTime - startTime)
 9 meses
 A los 9 meses tu hijo sigue necesitando 11 horas de sueño en la noche pero necesitará menos sueño en el
 día. La transición de 3 a 2 siestas sucede entre los 7 a 9 meses, aunque es más común que suceda entre
 los 8 y 9 meses. En este periodo el tiempo despierto comienza a alargarse y la tercer siesta desaparece.
-Su horario debería verse más o menos así:
-Despertar
-Despierto 2.5 - 3 hrs
-Siesta de 1.5 hrs
-Despierto 3 hrs
 
-Su horario debería verse más o menos así:
-Despertar
-Despierto 2.5 - 3 hrs
-Siesta de 1.5 hrs
-Despierto 3 hrs
-Siesta de 1.5hrs (podría ser hasta 2 hrs)
-Despierto 4 hrs
-Dormido
+HORARIO IDEAL PARA 9 MESES:
+- Despertar: 7:00 AM (endTime del evento sleep nocturno)
+- Ventana 1: Despierto 2.5-3 hrs
+- Siesta 1: 9:30-11:00 AM (90 min)
+- Ventana 2: Despierto 3 hrs
+- Siesta 2: 2:00-3:30 PM (90 min, podría ser hasta 2 hrs)
+- Ventana 3: Despierto 4 hrs
+- Dormir: 8:00 PM (startTime del evento sleep nocturno)
+- Duración sueño nocturno: 11 horas (endTime - startTime)
 Para hacer la transición hay que empezar a empujar cada periodo despierto 20 mins cada uno o dos días
 hasta llegar al tiempo despierto adecuado
 
@@ -2670,14 +2712,16 @@ siestas cortas, siempre tienes la opción de dormirlo más temprano o tener la t
 A esta edad tu hijo sigue necesitando 11 horas de sueño en la noche y dos siestas durante el día. Sin
 embargo, puede ser que el horario que tenía de dos siestas largas ya sea mucho para su edad.
 A partir de los 12 o 13 meses sus periodos despierto vuelven a alargarse y sus siestas a acortarse un poco.
-Su horario debería verse más o menos así:
-Despertar
-Despierto 3 hrs
-Siesta de 45 mins a 1hra
-Despierto 3.5 hrs
-Siesta de 1.5hrs
-Despierto 4 hrs
-Dormido
+
+HORARIO IDEAL PARA 13-15 MESES:
+- Despertar: 7:00 AM (endTime del evento sleep nocturno)
+- Ventana 1: Despierto 3 hrs
+- Siesta 1: 10:00-10:45 AM (45-60 min)
+- Ventana 2: Despierto 3.5 hrs
+- Siesta 2: 2:15-3:45 PM (90 min)
+- Ventana 3: Despierto 4 hrs
+- Dormir: 8:00 PM (startTime del evento sleep nocturno)
+- Duración sueño nocturno: 11 horas (endTime - startTime)
 Muchos niños tienden a alargar la primera siesta y no querer hacer la segunda. Por eso es muy importante
 despertarlos de la primera siesta para que si hagan la segunda, que es la más importante.
 15 a 18 meses
@@ -2702,33 +2746,33 @@ siesta. Esta transición usualmente tarda de 7 a 10 días.
 ¿Cómo hacerla?
 A partir de que comienzas la transición su primer siesta ahora será la larga y la segunda será de ayuda para
 que no llegue a la noche sobrecansado.
-Empuje la si
-
-esta de la mañana 20 minutos cada uno o dos días hasta llegar a la hora deseada y deje dormir
+Empuje la siesta de la mañana 20 minutos cada uno o dos días hasta llegar a la hora deseada y deje dormir
 a su hijo lo que quiera (max 2.5 hrs). Al principio, la ventana de la tarde quedará muy larga, ahí es donde
 tenemos la opción de la segunda siesta o dormirlo mas temprano en la noche durante la etapa de transición.
 Es muy importante que su ventana de la tarde no sea más larga de las 4.5 hrs.
 No lo dejes dormir cuando falten menos de 3 horas para su hora de dormir.
-Su horario debería verse más o menos así:
-Despertar
-Despierto 6 hrs
-Siesta de 2hrs a 2.5 hrs (podrían ser hasta 3 hrs)
-Despierto 4.5 hrs
-Dormido
+
+HORARIO IDEAL PARA 15-18 MESES (transición a 1 siesta):
+- Despertar: 7:00 AM (endTime del evento sleep nocturno)
+- Ventana: Despierto 6 hrs
+- Siesta única: 1:00-3:30 PM (120-150 min, podría ser hasta 3 hrs)
+- Ventana: Despierto 4.5 hrs
+- Dormir: 8:00 PM (startTime del evento sleep nocturno)
+- Duración sueño nocturno: 11 horas (endTime - startTime)
 2.5 años en adelante
 A los 2 años puede haber una regresión de sueño que se confunda con dejar la siesta. Esto no es cierto.
 La mayoría de los niños de esta edad siguen necesitando 11 horas de sueño en la noche y una siesta
-durante e I día. Lo que sí sucede es que a partir de los 2.5 años el promedio de siesta disminuye a 1.5 hrs
-
-durante e I día. Lo que sí sucede es que a partir de los 2.5 años el promedio de siesta disminuye a 1.5 hrs
+durante el día. Lo que sí sucede es que a partir de los 2.5 años el promedio de siesta disminuye a 1.5 hrs
 y el tiempo de sueño en la noche disminuye a 10.5 horas. Esto hace que sus ventanas se alarguen a hasta
 6.5 hrs en la mañana y 5.5 hrs en la tarde.
-Su horario debería verse más o menos así:
-Despertar
-Despierto 6- 6.5 hrs
-Siesta de 1.5hrs a 2 hrs (podrían ser hasta 3 hrs)
-Despierto 5-5.5 hrs
-Dormido
+
+HORARIO IDEAL PARA 2.5 AÑOS EN ADELANTE:
+- Despertar: 7:00 AM (endTime del evento sleep nocturno)
+- Ventana: Despierto 6-6.5 hrs
+- Siesta única: 1:00-2:30 PM (90-120 min, podrían ser hasta 3 hrs)
+- Ventana: Despierto 5-5.5 hrs
+- Dormir: 8:30 PM (startTime del evento sleep nocturno)
+- Duración sueño nocturno: 10.5 horas (endTime - startTime)
 3 a 4 años
 Alrededor de los 3 a 4 años se pierde la siesta y el tiempo que era de siesta se convierte en tiempo tranquilo.
 Al desaparecer la siesta, el promedio de horas dormido en la noche aumenta a 11.5 – 12 horas a los 4 años
@@ -2736,12 +2780,18 @@ y 11 horas a los 5 años de edad.
 Una vez que tu hijo entre al kínder, su horario de dormir será establecido por la hora en que debe despertar
 para ir al kínder. La idea es contar las horas que necesita de sueño hacia atrás partiendo de la hora en que
 despierta. Por ejemplo, si tu hijo de 5 años debe despertar a las 6:30am para ir a clases, entonces debe
-
-despierta. Por ejemplo, si tu hijo de 5 años debe despertar a las 6:30am para ir a clases, entonces debe
 estar ya dormido a las 7:30pm.
-Si batallas en despertar a tu hijo por la mañana, se queda dormido en el camino en el carro, se queda
-dormido en 2 minutos en la noche o ya está m
 
-uy necio a la hora de cenar, probablemente lo estás acostando
+HORARIO IDEAL PARA 3-5 AÑOS (sin siesta):
+- Despertar: 7:00 AM (endTime del evento sleep nocturno)
+- Tiempo tranquilo (en lugar de siesta): 1:00-2:00 PM
+- Dormir: 7:30-8:00 PM (startTime del evento sleep nocturno)
+- Duración sueño nocturno: 11-12 horas (endTime - startTime)
+
+NOTA IMPORTANTE: Si tu hijo debe despertar temprano para ir a clases (ej: 6:30 AM), calcula la hora de dormir
+restando las horas necesarias de sueño. Ejemplo: 6:30 AM - 11 hrs = 7:30 PM hora de dormir.
+
+Si batallas en despertar a tu hijo por la mañana, se queda dormido en el camino en el carro, se queda
+dormido en 2 minutos en la noche o ya está muy necio a la hora de cenar, probablemente lo estás acostando
 muy tarde.
 ```
