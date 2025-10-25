@@ -1202,96 +1202,95 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
  */
 async function loadRAGFromSummary(ageInMonths: number | null): Promise<Array<{source: string, content: string}>> {
   try {
-    // Ruta al archivo RAG_SUMMARY.md
-    const ragFilePath = path.join(process.cwd(), 'docs', 'RAG_SUMMARY.md')
+    // Ruta al archivo RAG_SUMMARY_OPTIMIZED.md
+    const ragFilePath = path.join(process.cwd(), 'docs', 'RAG_SUMMARY_OPTIMIZED.md')
 
-    logger.info(`Leyendo RAG desde archivo: ${ragFilePath}`)
+    logger.info(`📚 Leyendo RAG desde archivo: ${ragFilePath}`)
 
     // Leer el archivo
     const fileContent = fs.readFileSync(ragFilePath, 'utf-8')
 
-    // Parsear el contenido para extraer los 4 documentos
-    // Estructura del archivo:
-    // ## Document 1: MANUAL HAPPY DREAMERS.pdf
-    // ## Document 2: HAPPY_DREAMERS_SIESTA.pdf
-    // ## Document 3: SLEEP_BASICS.pdf
-    // ## Document 4: HD Horarios de sueño.pdf (PRIORIDAD - contiene horarios ideales)
-
     const documents: Array<{source: string, content: string}> = []
 
-    // Split por "## Document" para separar cada documento
-    const docSections = fileContent.split(/## Document \d+:/).filter(s => s.trim().length > 0)
+    // Determinar rango de edad relevante
+    let ageRange = '0-3'
+    if (ageInMonths !== null) {
+      if (ageInMonths >= 0 && ageInMonths < 3) ageRange = '0-3'
+      else if (ageInMonths >= 3 && ageInMonths < 6) ageRange = '3-6'
+      else if (ageInMonths >= 6 && ageInMonths < 9) ageRange = '6'
+      else if (ageInMonths >= 9 && ageInMonths < 13) ageRange = '9'
+      else if (ageInMonths >= 13 && ageInMonths < 15) ageRange = '13-15'
+      else if (ageInMonths >= 15 && ageInMonths < 30) ageRange = '15-18'
+      else if (ageInMonths >= 30 && ageInMonths < 36) ageRange = '30+'
+      else ageRange = '36-60'
 
-    // Extraer metadata de cada sección
-    const docPattern = /## Document (\d+): (.+?)\n/g
-    let match
-    const docMetadata: Array<{num: number, name: string}> = []
+      logger.info(`👶 Edad del niño: ${ageInMonths} meses → Rango: ${ageRange}`)
+    }
 
-    while ((match = docPattern.exec(fileContent)) !== null) {
-      docMetadata.push({
-        num: parseInt(match[1]),
-        name: match[2].trim()
+    // Extraer la sección relevante por edad (buscar con "MESES" o sin él)
+    const ageSectionPattern = new RegExp(`## EDAD: ${ageRange.replace(/\+/g, '\\+')}( MESES)?[\\s\\S]*?\`\`\`json([\\s\\S]*?)\`\`\``, 'i')
+    const match = fileContent.match(ageSectionPattern)
+
+    if (match && match[2]) {
+      try {
+        const scheduleData = JSON.parse(match[2].trim())
+
+        // Formatear el contenido para GPT-4
+        const formattedContent = `
+HORARIOS OBJETIVO PARA ${scheduleData.ageMonths} MESES:
+
+Hora de despertar: ${scheduleData.wakeTime}
+Hora de dormir: ${scheduleData.bedtime}
+Duración sueño nocturno: ${scheduleData.nightSleepDuration}
+
+${scheduleData.naps && scheduleData.naps.length > 0 ? `
+Siestas:
+${scheduleData.naps.map((nap: any) =>
+  `- Siesta ${nap.napNumber}: ${nap.time} (${nap.duration})${nap.optional ? ' - opcional' : ''}`
+).join('\n')}
+
+Tiempo total de siestas: ${scheduleData.totalNapTime}
+` : scheduleData.quietTime ? `
+Tiempo tranquilo (sin siesta): ${scheduleData.quietTime}
+` : ''}
+
+${scheduleData.awakeWindows ? `Ventanas despierto: ${Array.isArray(scheduleData.awakeWindows) ? scheduleData.awakeWindows.join(' → ') : scheduleData.awakeWindows}` : ''}
+
+${scheduleData.nightFeedings ? `Tomas nocturnas: ${scheduleData.nightFeedings}` : ''}
+
+${scheduleData.notes ? `NOTAS: ${scheduleData.notes}` : ''}
+        `.trim()
+
+        documents.push({
+          source: `HD Horarios de sueño - ${scheduleData.ageMonths} meses`,
+          content: formattedContent
+        })
+
+        logger.info(`✅ RAG cargado exitosamente: 1 documento para edad ${ageRange}`)
+
+      } catch (parseError) {
+        logger.error("Error parseando JSON del RAG:", parseError)
+      }
+    } else {
+      logger.warn(`⚠️ No se encontró sección para edad ${ageRange}`)
+    }
+
+    // Agregar reglas de ajuste progresivo
+    const rulesPattern = /## REGLAS DE AJUSTE PROGRESIVO[\s\S]*?(?=## NOTAS IMPORTANTES|$)/
+    const rulesMatch = fileContent.match(rulesPattern)
+
+    if (rulesMatch && documents.length > 0) {
+      documents.push({
+        source: 'Reglas de Ajuste Progresivo',
+        content: rulesMatch[0].trim()
       })
     }
 
-    // Procesar cada documento
-    docSections.forEach((section, index) => {
-      const docInfo = docMetadata[index]
-      if (!docInfo) return
-
-      // Limpiar el contenido (eliminar metadata de chunks)
-      const cleanContent = section
-        .replace(/^\s*\d+\)\s+/gm, '')  // Eliminar numeración de chunks
-        .replace(/\*\*Metadata\*\*:[\s\S]*?(?=\n\n|\n\d+\)|\n##|$)/g, '')  // Eliminar secciones de metadata
-        .trim()
-
-      if (cleanContent.length > 100) {  // Solo incluir si tiene contenido significativo
-        documents.push({
-          source: docInfo.name,
-          content: cleanContent
-        })
-      }
-    })
-
-    logger.info(`📚 RAG Summary cargado: ${documents.length} documentos encontrados`)
-
-    // Priorizar Document 4 (HD Horarios de sueño.pdf) - moverlo al principio
-    const doc4Index = documents.findIndex(doc => doc.source.includes('Horarios de sueño'))
-    if (doc4Index > 0) {
-      const doc4 = documents.splice(doc4Index, 1)[0]
-      documents.unshift(doc4)
-      logger.info(`🎯 Document 4 (Horarios ideales) priorizado`)
-    }
-
-    // Si tenemos edad del niño, podemos filtrar/priorizar contenido relevante
-    if (ageInMonths !== null) {
-      logger.info(`👶 Edad del niño: ${ageInMonths} meses - filtrando contenido relevante`)
-
-      // Filtrar Document 4 por edad si es posible
-      const doc4 = documents.find(doc => doc.source.includes('Horarios de sueño'))
-      if (doc4) {
-        // Buscar sección relevante por edad en el contenido
-        const ageRanges = [
-          { min: 0, max: 8, keywords: ['6 meses', '6m', 'seis meses'] },
-          { min: 8, max: 12, keywords: ['9 meses', '9m', 'nueve meses'] },
-          { min: 12, max: 16, keywords: ['13-15 meses', '13 meses', '15 meses'] },
-          { min: 15, max: 24, keywords: ['15-18 meses', '18 meses', '2 años'] },
-          { min: 24, max: 36, keywords: ['2.5 años', '2 años', '30 meses'] },
-          { min: 36, max: 60, keywords: ['3-4 años', '3 años', '4 años'] }
-        ]
-
-        const relevantRange = ageRanges.find(range => ageInMonths >= range.min && ageInMonths < range.max)
-        if (relevantRange) {
-          logger.info(`🔍 Rango de edad detectado: ${relevantRange.keywords.join(', ')}`)
-        }
-      }
-    }
-
-    // Limitar a 6 documentos totales (igual que vector search)
-    return documents.slice(0, 6)
+    logger.info(`📊 Total documentos RAG: ${documents.length}`)
+    return documents
 
   } catch (error) {
-    logger.error("Error leyendo RAG_SUMMARY.md:", error)
+    logger.error("❌ Error leyendo RAG_SUMMARY_OPTIMIZED.md:", error)
     // Retornar array vacío en caso de error (fallback silencioso)
     return []
   }
