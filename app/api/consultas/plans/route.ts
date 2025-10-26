@@ -1377,7 +1377,7 @@ INFORMACIÓN DEL NIÑO:
 - Edad: ${childData.ageInMonths} meses
 - Eventos de sueño registrados: ${childData.events?.length || 0}
 - Sueño nocturno (promedio): ${childData.stats?.avgSleepDurationMinutes || 0} minutos
-- Hora promedio de despertar: ${Math.floor((childData.stats?.avgWakeTimeMinutes || 0) / 60)}:${((childData.stats?.avgWakeTimeMinutes || 0) % 60).toString().padStart(2, "0")}
+- Hora promedio de despertar: ${String(Math.floor((childData.stats?.avgWakeTimeMinutes || 0) / 60)).padStart(2, '0')}:${((childData.stats?.avgWakeTimeMinutes || 0) % 60).toString().padStart(2, "0")} (formato 24h)
 ${enrichedStats ? `- Hora media de acostarse observada: ${enrichedStats?.bedtimeStats?.avgBedtime || 'N/A'}
 - Siestas: total=${enrichedStats?.napStats?.count || 0}, hora típica=${enrichedStats?.napStats?.typicalTime || 'N/A'}, duración prom=${enrichedStats?.napStats?.avgDuration || 0} min
 - Comidas típicas (si existen eventos): desayuno=${enrichedStats?.feedingStats?.breakfast || 'N/A'} (n=${enrichedStats?.feedingStats?.breakfastCount || 0}), almuerzo=${enrichedStats?.feedingStats?.lunch || 'N/A'} (n=${enrichedStats?.feedingStats?.lunchCount || 0}), merienda=${enrichedStats?.feedingStats?.snack || 'N/A'} (n=${enrichedStats?.feedingStats?.snackCount || 0}), cena=${enrichedStats?.feedingStats?.dinner || 'N/A'} (n=${enrichedStats?.feedingStats?.dinnerCount || 0})` : ''}
@@ -1404,8 +1404,12 @@ y da el PRIMER PASO suave hacia estos objetivos ideales.
 INSTRUCCIONES:
 1. Crea un plan DETALLADO con horarios específicos
 2. Incluye horarios para: dormir, despertar, comidas y siestas (NO incluir actividades)
-3. ⚠️ CRÍTICO: NO puede haber DOS EVENTOS DIFERENTES a la MISMA HORA (ej: no puede haber "desayuno a las 08:00" y "jugar a las 08:00")
-4. 🕐 USA HORARIOS EN INTERVALOS DE 15 MINUTOS (COMO LO HARÍA UN HUMANO):
+3. ⚠️ CRÍTICO: TODOS LOS HORARIOS DEBEN ESTAR EN FORMATO 24 HORAS (00:00-23:59)
+   - ✅ CORRECTO: "07:00" (7 AM), "13:30" (1:30 PM), "19:00" (7 PM), "20:30" (8:30 PM)
+   - ❌ INCORRECTO: "7:00 AM", "1:30 PM", "7 PM", "8:30pm"
+   - La hora de despertar (wakeTime) es en la MAÑANA (06:00-09:00), NO en la noche
+4. ⚠️ CRÍTICO: NO puede haber DOS EVENTOS DIFERENTES a la MISMA HORA (ej: no puede haber "desayuno a las 08:00" y "jugar a las 08:00")
+5. 🕐 USA HORARIOS EN INTERVALOS DE 15 MINUTOS (COMO LO HARÍA UN HUMANO):
    - ⚠️ CRÍTICO: TODOS los horarios DEBEN estar en intervalos de 15 minutos
    - ✅ Minutos PERMITIDOS: :00, :15, :30, :45 únicamente
    - ❌ Minutos PROHIBIDOS: :01, :02, :03, :05, :07, :10, :12, :17, :20, :23, :25, :27, :33, :35, :37, :40, :42, :47, :50, :52, :55, :57
@@ -1413,17 +1417,17 @@ INSTRUCCIONES:
    - ❌ Ejemplos INCORRECTOS: 7:05, 7:10, 8:25, 12:10, 14:20, 19:35
    - Si las estadísticas del niño son (por ejemplo) 7:05 AM, redondea a 7:00 AM o 7:15 AM (el más cercano)
    - SIGUE el RAG para determinar los horarios apropiados, pero SIEMPRE en intervalos de 15 minutos
-5. 📊 ESTRATEGIA PROGRESIVA (Plan 0):
+6. 📊 ESTRATEGIA PROGRESIVA (Plan 0):
    - USA los registros actuales (estadísticas del niño) como PUNTO DE PARTIDA
    - Identifica la diferencia entre estadísticas actuales y horarios ideales del RAG
    - Da el PRIMER PASO SUAVE (NO saltar directamente al ideal)
    - Ejemplo: Si el niño se duerme a las 22:00 y el ideal es 20:00, propón 21:00 para Plan 0 (no 20:00)
    - Los planes 1, 2, 3... irán acercándose progresivamente al ideal
-6. Adapta las recomendaciones a la edad del niño
-7. Proporciona objetivos claros y medibles basados en el PRIMER PASO hacia el ideal
-8. Incluye recomendaciones específicas para los padres sobre cómo implementar este primer ajuste
-9. Si hubo siestas registradas en el histórico, DEBES incluir al menos 1 siesta en un horario cercano a la hora típica observada (${enrichedStats?.napStats?.typicalTime || '14:00'}) y duración aproximada (${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min)
-10. Para comidas, si no hubo eventos en una categoría (n=0), no inventes el horario; puedes omitirla o marcarla como opcional
+7. Adapta las recomendaciones a la edad del niño
+8. Proporciona objetivos claros y medibles basados en el PRIMER PASO hacia el ideal
+9. Incluye recomendaciones específicas para los padres sobre cómo implementar este primer ajuste
+10. Si hubo siestas registradas en el histórico, DEBES incluir al menos 1 siesta en un horario cercano a la hora típica observada (${enrichedStats?.napStats?.typicalTime || '14:00'}) y duración aproximada (${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min)
+11. Para comidas, si no hubo eventos en una categoría (n=0), no inventes el horario; puedes omitirla o marcarla como opcional
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {
@@ -1464,7 +1468,7 @@ ANÁLISIS DE EVENTOS RECIENTES (${eventAnalysis?.eventsAnalyzed || 0} eventos):
 - Tipos de eventos: ${eventAnalysis?.eventTypes?.join(", ") || "No especificado"}
 - Período analizado: ${eventAnalysis?.dateRange?.from || "No especificado"} a ${eventAnalysis?.dateRange?.to || "No especificado"}
 - Sueño nocturno (promedio): ${childData.stats?.avgSleepDurationMinutes || 0} minutos
-- Hora promedio de despertar: ${Math.floor((childData.stats?.avgWakeTimeMinutes || 0) / 60)}:${((childData.stats?.avgWakeTimeMinutes || 0) % 60).toString().padStart(2, "0")}
+- Hora promedio de despertar: ${String(Math.floor((childData.stats?.avgWakeTimeMinutes || 0) / 60)).padStart(2, '0')}:${((childData.stats?.avgWakeTimeMinutes || 0) % 60).toString().padStart(2, "0")} (formato 24h)
 ${enrichedStats ? `- Siestas (período): total=${enrichedStats?.napStats?.count || 0}, hora típica=${enrichedStats?.napStats?.typicalTime || 'N/A'}, duración prom=${enrichedStats?.napStats?.avgDuration || 0} min
 - Hora media de acostarse (período): ${enrichedStats?.bedtimeStats?.avgBedtime || 'N/A'}
 - Comidas típicas (período): desayuno=${enrichedStats?.feedingStats?.breakfast || 'N/A'} (n=${enrichedStats?.feedingStats?.breakfastCount || 0}), almuerzo=${enrichedStats?.feedingStats?.lunch || 'N/A'} (n=${enrichedStats?.feedingStats?.lunchCount || 0}), merienda=${enrichedStats?.feedingStats?.snack || 'N/A'} (n=${enrichedStats?.feedingStats?.snackCount || 0}), cena=${enrichedStats?.feedingStats?.dinner || 'N/A'} (n=${enrichedStats?.feedingStats?.dinnerCount || 0})` : ''}
@@ -1483,8 +1487,12 @@ NO saltes directamente al ideal si el plan anterior está lejos. Avanza gradualm
 INSTRUCCIONES PARA PROGRESIÓN:
 1. 🎯 PRIORIDAD: Utiliza el PLAN ANTERIOR como base sólida
 2. 📊 AJUSTA según los PATRONES REALES observados en los eventos
-3. ⚠️ CRÍTICO: NO puede haber DOS EVENTOS DIFERENTES a la MISMA HORA (ej: no puede haber "almuerzo a las 12:00" y "siesta a las 12:00")
-4. 🕐 USA HORARIOS EN INTERVALOS DE 15 MINUTOS (COMO LO HARÍA UN HUMANO):
+3. ⚠️ CRÍTICO: TODOS LOS HORARIOS DEBEN ESTAR EN FORMATO 24 HORAS (00:00-23:59)
+   - ✅ CORRECTO: "07:00" (7 AM), "13:30" (1:30 PM), "19:00" (7 PM), "20:30" (8:30 PM)
+   - ❌ INCORRECTO: "7:00 AM", "1:30 PM", "7 PM", "8:30pm"
+   - La hora de despertar (wakeTime) es en la MAÑANA (06:00-09:00), NO en la noche
+4. ⚠️ CRÍTICO: NO puede haber DOS EVENTOS DIFERENTES a la MISMA HORA (ej: no puede haber "almuerzo a las 12:00" y "siesta a las 12:00")
+5. 🕐 USA HORARIOS EN INTERVALOS DE 15 MINUTOS (COMO LO HARÍA UN HUMANO):
    - ⚠️ CRÍTICO: TODOS los horarios DEBEN estar en intervalos de 15 minutos
    - ✅ Minutos PERMITIDOS: :00, :15, :30, :45 únicamente
    - ❌ Minutos PROHIBIDOS: :01, :02, :03, :05, :07, :10, :12, :17, :20, :23, :25, :27, :33, :35, :37, :40, :42, :47, :50, :52, :55, :57
@@ -1492,16 +1500,16 @@ INSTRUCCIONES PARA PROGRESIÓN:
    - ❌ Ejemplos INCORRECTOS: 7:05, 7:10, 8:25, 12:10, 14:20, 19:35
    - Si las estadísticas del niño son (por ejemplo) 7:05 AM, redondea a 7:00 AM o 7:15 AM (el más cercano)
    - SIGUE el RAG para determinar los horarios apropiados, pero SIEMPRE en intervalos de 15 minutos
-5. 📈 ESTRATEGIA PROGRESIVA (Plan N):
+6. 📈 ESTRATEGIA PROGRESIVA (Plan N):
    - CONTINÚA avanzando desde el plan anterior hacia el objetivo ideal del RAG
    - Evalúa qué tan lejos está el plan anterior del objetivo ideal
    - Da el SIGUIENTE PASO PROGRESIVO (no saltes directamente al ideal)
    - Ejemplo: Si Plan 0 propuso 21:00 y el ideal es 20:00, ahora propón 20:30 o 20:00 según tolerancia observada
    - Usa los eventos reales para validar si el niño está tolerando bien los ajustes
-6. ✨ EVOLUCIONA el plan manteniendo coherencia con el anterior
-7. 🔧 OPTIMIZA horarios según los datos reales registrados y el siguiente paso hacia el ideal
-8. Si el período contiene siestas (conteo>0), DEBES incluir al menos 1 siesta con hora cercana a ${enrichedStats?.napStats?.typicalTime || '14:00'} y duración ~${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min
-9. Para comidas, no inventes categorías sin eventos; puedes omitirlas o marcarlas como opcionales
+7. ✨ EVOLUCIONA el plan manteniendo coherencia con el anterior
+8. 🔧 OPTIMIZA horarios según los datos reales registrados y el siguiente paso hacia el ideal
+9. Si el período contiene siestas (conteo>0), DEBES incluir al menos 1 siesta con hora cercana a ${enrichedStats?.napStats?.typicalTime || '14:00'} y duración ~${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min
+10. Para comidas, no inventes categorías sin eventos; puedes omitirlas o marcarlas como opcionales
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {

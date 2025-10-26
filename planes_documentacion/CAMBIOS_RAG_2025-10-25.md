@@ -207,6 +207,67 @@ Plan 2:  Bedtime 20:00 | Wake 07:00  (✅ META ALCANZADA)
 
 ---
 
+## 🔧 Corrección Adicional: Formato de Hora Ambiguo (2025-10-25)
+
+### Problema Detectado
+
+**Síntoma**: El Plan 0 generado mostraba "Despertar: 7:15 PM" en lugar de "7:15 AM"
+
+**Causa raíz**:
+- Líneas 1380 y 1467 mostraban las estadísticas de hora de despertar en formato AMBIGUO
+- Ejemplo: `Hora promedio de despertar: 6:55` (sin AM/PM ni formato 24h)
+- GPT-4 interpretaba "6:55" como 6:55 PM (18:55) en lugar de 6:55 AM (06:55)
+- Al redondear a intervalos de 15 min, generaba "19:15" (7:15 PM) en lugar de "07:15" (7:15 AM)
+
+**Evidencia**:
+```
+Plan generado mostraba:
+- 8:00 AM - Desayuno
+- 12:30 PM - Almuerzo
+- 1:30 PM - Siesta
+- 6:45 PM - Cena
+- 7:15 PM - Despertar ❌ (debería ser 7:15 AM)
+- 8:30 PM - Hora de dormir
+```
+
+### Solución Implementada
+
+**Cambios en `/app/api/consultas/plans/route.ts`**:
+
+1. **Línea 1380** (Plan Inicial):
+```typescript
+// ANTES (ambiguo):
+- Hora promedio de despertar: ${Math.floor((childData.stats?.avgWakeTimeMinutes || 0) / 60)}:${...}
+
+// DESPUÉS (formato 24h explícito):
+- Hora promedio de despertar: ${String(Math.floor((childData.stats?.avgWakeTimeMinutes || 0) / 60)).padStart(2, '0')}:${...} (formato 24h)
+```
+
+2. **Línea 1467** (Plan basado en eventos):
+```typescript
+// Mismo cambio aplicado
+```
+
+3. **Instrucciones clarificadas** (Líneas ~1407 y ~1490):
+```
+3. ⚠️ CRÍTICO: TODOS LOS HORARIOS DEBEN ESTAR EN FORMATO 24 HORAS (00:00-23:59)
+   - ✅ CORRECTO: "07:00" (7 AM), "13:30" (1:30 PM), "19:00" (7 PM), "20:30" (8:30 PM)
+   - ❌ INCORRECTO: "7:00 AM", "1:30 PM", "7 PM", "8:30pm"
+   - La hora de despertar (wakeTime) es en la MAÑANA (06:00-09:00), NO en la noche
+```
+
+### Resultado Esperado
+
+**Antes**:
+- Prompt: "Hora promedio de despertar: 6:55" → GPT-4 genera "19:15"
+- Display: "7:15 PM" ❌
+
+**Después**:
+- Prompt: "Hora promedio de despertar: 06:55 (formato 24h)" → GPT-4 genera "07:15"
+- Display: "7:15 AM" ✅
+
+---
+
 **Fecha**: 2025-10-25
 **Autor**: Claude Code (Anthropic)
 **Estado**: ✅ Implementado y listo para producción
