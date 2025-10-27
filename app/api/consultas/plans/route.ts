@@ -190,7 +190,12 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
       count: events.length,
       eventDates: events.map((e: any) => e.startTime).slice(0, 5),
       firstEventDate: events.length > 0 ? events[0].startTime : null,
-      afterDateForComparison: afterDateISO
+      afterDateForComparison: afterDateISO,
+      allEventDetails: events.map((e: any) => ({
+        id: e._id?.toString(),
+        type: e.eventType,
+        startTime: e.startTime
+      }))
     })
 
     const eventTypes = [...new Set(events.map((e: any) => e.eventType).filter(Boolean))]
@@ -449,22 +454,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Marcar planes anteriores como superseded (excepto refinamientos)
-    if (existingPlans.length > 0 && planType !== "transcript_refinement") {
-      await db.collection("child_plans").updateMany(
-        { 
-          childId: new ObjectId(childId),
-          userId: new ObjectId(userId),
-          planNumber: { $lt: planNumber }
-        },
-        { 
-          $set: { 
-            status: "superseded",
-            updatedAt: new Date()
-          } 
-        }
-      )
-    }
+    // NO marcar planes anteriores como superseded cuando se crea un borrador
+    // Los planes solo se marcan como superseded cuando el nuevo plan se ACTIVA (mediante endpoint PATCH)
+    // Esto permite que el usuario siga viendo su plan activo mientras el admin prepara el borrador
 
     // Guardar el nuevo plan como BORRADOR
     const result = await db.collection("child_plans").insertOne({
@@ -592,7 +584,19 @@ export async function PUT(req: NextRequest) {
           hasEvents: eventsCheck.hasEvents,
           eventCount: eventsCheck.eventCount,
           eventTypes: eventsCheck.eventTypes,
-          searchedAfterDate: new Date(latestByCreatedAt.createdAt).toISOString()
+          searchedAfterDate: new Date(latestByCreatedAt.createdAt).toISOString(),
+          eventDetails: eventsCheck.eventDetails || []
+        })
+
+        console.log('🔍 DEBUG PUT - Eventos encontrados después del plan:', {
+          planCreatedAt: new Date(latestByCreatedAt.createdAt).toLocaleString('es-ES'),
+          planCreatedAtISO: new Date(latestByCreatedAt.createdAt).toISOString(),
+          eventCount: eventsCheck.eventCount,
+          eventos: (eventsCheck.eventDetails || []).map((e: any) => ({
+            tipo: e.eventType,
+            hora: e.startTime,
+            horaFormateada: e.formattedDate
+          }))
         })
 
         canGenerate = eventsCheck.hasEvents
@@ -664,6 +668,107 @@ export async function PUT(req: NextRequest) {
   } catch (error) {
     logger.error("Error validando posibilidad de generar plan:", error)
     return NextResponse.json({ 
+      error: "Error interno del servidor",
+      details: error instanceof Error ? error.message : "Error desconocido"
+    }, { status: 500 })
+  }
+}
+
+// PATCH: Aplicar plan (cambiar de "borrador" a "active" y marcar anteriores como "superseded")
+export async function PATCH(req: NextRequest) {
+  try {
+    // Verificar autenticación y permisos de admin
+    const session = await getServerSession(authOptions)
+    if (!session?.user || session.user.role !== "admin") {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+    }
+
+    const { planId, childId, userId } = await req.json()
+
+    if (!planId || !childId || !userId) {
+      return NextResponse.json({
+        error: "Faltan parámetros requeridos: planId, childId, userId"
+      }, { status: 400 })
+    }
+
+    logger.info("Aplicando plan (borrador → activo)", {
+      planId,
+      childId,
+      userId,
+      adminId: session.user.id
+    })
+
+    const { db } = await connectToDatabase()
+
+    // 1. Obtener el plan que se va a activar
+    const planToActivate = await db.collection("child_plans").findOne({
+      _id: new ObjectId(planId),
+      childId: new ObjectId(childId),
+      userId: new ObjectId(userId),
+      status: "borrador"
+    })
+
+    if (!planToActivate) {
+      return NextResponse.json({
+        error: "Plan no encontrado o ya está activo"
+      }, { status: 404 })
+    }
+
+    // 2. Marcar todos los planes anteriores (con planNumber menor) como superseded
+    const updatePreviousResult = await db.collection("child_plans").updateMany(
+      {
+        childId: new ObjectId(childId),
+        userId: new ObjectId(userId),
+        planNumber: { $lt: planToActivate.planNumber },
+        status: { $ne: "superseded" } // Solo actualizar si no están ya superseded
+      },
+      {
+        $set: {
+          status: "superseded",
+          updatedAt: new Date()
+        }
+      }
+    )
+
+    // 3. Activar el plan actual (borrador → active)
+    const updateCurrentResult = await db.collection("child_plans").updateOne(
+      { _id: new ObjectId(planId) },
+      {
+        $set: {
+          status: "active",
+          activatedAt: new Date(),
+          activatedBy: new ObjectId(session.user.id),
+          updatedAt: new Date()
+        }
+      }
+    )
+
+    if (updateCurrentResult.modifiedCount === 0) {
+      return NextResponse.json({
+        error: "No se pudo activar el plan"
+      }, { status: 500 })
+    }
+
+    logger.info("Plan aplicado exitosamente", {
+      planId,
+      planNumber: planToActivate.planNumber,
+      planVersion: planToActivate.planVersion,
+      previousPlansSuperseded: updatePreviousResult.modifiedCount,
+      childId
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: "Plan aplicado exitosamente",
+      planId,
+      planNumber: planToActivate.planNumber,
+      planVersion: planToActivate.planVersion,
+      previousPlansSuperseded: updatePreviousResult.modifiedCount
+    })
+
+  } catch (error) {
+    logger.error("Error aplicando plan:", error)
+    return NextResponse.json({
       error: "Error interno del servidor",
       details: error instanceof Error ? error.message : "Error desconocido"
     }, { status: 500 })

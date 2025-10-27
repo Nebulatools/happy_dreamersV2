@@ -124,7 +124,7 @@ export default function CalendarPage() {
   const { refreshTrigger, subscribe } = useEventsCache(activeChildId)
   const invalidateEvents = useEventsInvalidation()
   // Inicializar con octubre 2025 para ver los eventos de Bernardo
-  const [date, setDate] = useState<Date>(new Date('2025-10-15'))
+  const [date, setDate] = useState<Date>(new Date('2025-10-25'))
   const [activePlan, setActivePlan] = useState<any>(null)
   
   // Estado para vista del calendario con localStorage
@@ -254,11 +254,11 @@ export default function CalendarPage() {
   // Función auxiliar para filtrar eventos por vista
   const filterEventsByView = (eventsData: Event[], currentView: string, currentDate: Date) => {
     let filteredEvents = eventsData
-    
+
     if (currentView === "month") {
       filteredEvents = eventsData.filter((event: Event) => {
         const eventDate = new Date(event.startTime)
-        return eventDate.getMonth() === currentDate.getMonth() && 
+        return eventDate.getMonth() === currentDate.getMonth() &&
                eventDate.getFullYear() === currentDate.getFullYear()
       })
     } else if (currentView === "week") {
@@ -277,7 +277,7 @@ export default function CalendarPage() {
         return eventDate >= dayStart && eventDate <= dayEnd
       })
     }
-    
+
     return filteredEvents
   }
 

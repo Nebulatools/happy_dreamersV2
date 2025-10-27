@@ -56,7 +56,7 @@ export async function DELETE(
 
     // 2. Si el plan a eliminar es ACTIVO, buscar el plan anterior para reactivarlo
     let reactivatedPlan = null
-    if (planToDelete.status === "activo") {
+    if (planToDelete.status === "active") {
       // Obtener todos los planes del mismo niño (ordenados por versión)
       const allPlans = await collection.find({
         childId: planToDelete.childId,
@@ -99,12 +99,12 @@ export async function DELETE(
       const previousPlan = sortedPlans[0]
 
       if (previousPlan) {
-        // Reactivar el plan anterior (cambiar de "completado" a "activo")
+        // Reactivar el plan anterior (cambiar de "superseded" a "active")
         await collection.updateOne(
           { _id: previousPlan._id },
           {
             $set: {
-              status: "activo",
+              status: "active",
               updatedAt: new Date(),
               reactivatedAt: new Date(),
               reactivatedBy: new ObjectId(session.user.id),
@@ -119,7 +119,7 @@ export async function DELETE(
           reactivatedPlanId: previousPlan._id,
           reactivatedVersion: previousPlan.planVersion,
           previousStatus: previousPlan.status,
-          newStatus: "activo"
+          newStatus: "active"
         })
       } else {
         logger.warn("No hay plan anterior para reactivar", {
@@ -142,7 +142,7 @@ export async function DELETE(
     logger.info("Plan eliminado exitosamente", {
       planId,
       deletedVersion: planToDelete.planVersion,
-      wasActive: planToDelete.status === "activo",
+      wasActive: planToDelete.status === "active",
       reactivatedPlan: reactivatedPlan ? {
         id: reactivatedPlan._id,
         version: reactivatedPlan.planVersion
@@ -432,28 +432,28 @@ export async function PATCH(
       adminId: session.user.id
     })
 
-    // 1. Cambiar todos los planes activos anteriores a "completado"
+    // 1. Cambiar todos los planes activos anteriores a "superseded"
     await plansCollection.updateMany(
       {
         childId: planToApply.childId,
         userId: planToApply.userId,
-        status: "activo",
+        status: "active",
         _id: { $ne: new ObjectId(planId) }
       },
       {
         $set: {
-          status: "completado",
+          status: "superseded",
           updatedAt: new Date()
         }
       }
     )
 
-    // 2. Cambiar el plan actual de "borrador" a "activo"
+    // 2. Cambiar el plan actual de "borrador" a "active"
     const updateResult = await plansCollection.updateOne(
       { _id: new ObjectId(planId) },
       {
         $set: {
-          status: "activo",
+          status: "active",
           updatedAt: new Date(),
           appliedBy: new ObjectId(session.user.id),
           appliedAt: new Date()
@@ -482,7 +482,7 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       plan: updatedPlan,
-      message: "Plan aplicado correctamente. Los planes anteriores han sido marcados como completados."
+      message: "Plan aplicado correctamente. Los planes anteriores han sido marcados como supersedidos."
     })
 
   } catch (error) {

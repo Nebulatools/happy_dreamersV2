@@ -91,15 +91,15 @@ export default function PlanesPage() {
 
   const activePlan = useMemo(() => {
     if (!plans || plans.length === 0) return null
-    // Mostrar planes con status "activo" (después de que admin aplicó)
-    return plans.find(p => p.status === "activo") || null
+    // Mostrar planes con status "active" (después de que admin aplicó)
+    return plans.find(p => p.status === "active") || null
   }, [plans])
 
   const completedPlans = useMemo(() => {
     if (!plans || plans.length === 0) return []
-    // Mostrar planes completados, ordenados por fecha (más reciente primero)
+    // Mostrar planes supersedidos (completados), ordenados por fecha (más reciente primero)
     return plans
-      .filter(p => p.status === "completado")
+      .filter(p => p.status === "superseded")
       .sort((a, b) => {
         const dateA = new Date(a.createdAt || 0).getTime()
         const dateB = new Date(b.createdAt || 0).getTime()

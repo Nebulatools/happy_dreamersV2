@@ -59,31 +59,31 @@ export function CalendarWeekView({
   const getEventsForDay = (day: Date) => {
     const dayStart = startOfDay(day)
     const dayEnd = endOfDay(day)
-    
+
     const dayEvents = events.filter(event => {
       if (!event.startTime || event.startTime === '') return false
-      
+
       try {
         const eventStart = new Date(event.startTime)
         const eventEnd = event.endTime ? new Date(event.endTime) : eventStart
-        
+
         // Incluir evento si:
         // 1. Empieza en este día (comportamiento original)
-        // 2. Termina en este día  
+        // 2. Termina en este día
         // 3. Cruza este día (empieza antes y termina después)
         // 4. Es una sesión de sueño en progreso que empezó antes de este día
-        
+
         const startsThisDay = eventStart >= dayStart && eventStart <= dayEnd
         const endsThisDay = eventEnd >= dayStart && eventEnd <= dayEnd
         const crossesThisDay = eventStart < dayStart && eventEnd > dayEnd
         const sleepInProgress = event.eventType === 'sleep' && !event.endTime && eventStart < dayEnd
-        
+
         return startsThisDay || endsThisDay || crossesThisDay || sleepInProgress
       } catch (error) {
         return false
       }
     })
-    
+
     return dayEvents.sort((a, b) => {
       const timeA = new Date(a.startTime).getTime()
       const timeB = new Date(b.startTime).getTime()

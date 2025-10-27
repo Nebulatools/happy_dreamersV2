@@ -246,19 +246,31 @@ export function PlanManager({
 
   // Aplicar plan (cambiar de borrador a activo)
   const applyPlan = async (planId: string) => {
-    if (!planId) return
+    if (!planId || !selectedUserId || !selectedChildId) return
     const confirmed = typeof window !== 'undefined' ? window.confirm('¿Aplicar este plan? Los planes activos anteriores se marcarán como completados.') : true
     if (!confirmed) return
 
     try {
-      const response = await fetch(`/api/consultas/plans/${planId}`, { method: 'PATCH' })
+      const response = await fetch('/api/consultas/plans', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          planId,
+          childId: selectedChildId,
+          userId: selectedUserId
+        })
+      })
+
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
         throw new Error(err.error || 'No se pudo aplicar el plan')
       }
 
-      // Refrescar lista
+      // Refrescar lista y revalidar capacidades
       await loadPlans()
+      await validatePlanCapabilities()
 
       toast({
         title: 'Plan aplicado',
@@ -601,13 +613,13 @@ export function PlanManager({
                             Borrador
                           </Badge>
                         )}
-                        {plan.status === "activo" && (
+                        {plan.status === "active" && (
                           <Badge variant="outline" className="text-green-600 border-green-600">
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Activo
                           </Badge>
                         )}
-                        {plan.status === "completado" && (
+                        {plan.status === "superseded" && (
                           <Badge variant="outline" className="text-gray-600 border-gray-600">
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Completado
