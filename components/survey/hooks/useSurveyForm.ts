@@ -114,14 +114,43 @@ export function useSurveyForm(initialData?: Partial<SurveyData>) {
 
   // Función para establecer datos iniciales (útil para pre-llenar con datos del usuario)
   const setInitialData = useCallback((data: Partial<SurveyData>) => {
-    setFormData(prevData => ({
-      ...data,
-      ...prevData,
-      informacionFamiliar: {
-        ...data.informacionFamiliar,
-        ...prevData.informacionFamiliar
+    setFormData(prevData => {
+      const merged: Partial<SurveyData> = {
+        ...prevData,
+        ...data,
       }
-    }))
+
+      const prevFamily = prevData?.informacionFamiliar || {}
+      const incomingFamily = data?.informacionFamiliar || {}
+
+      merged.informacionFamiliar = {
+        ...prevFamily,
+        ...incomingFamily,
+        papa: {
+          ...(prevFamily.papa || {}),
+          ...(incomingFamily.papa || {}),
+        },
+        mama: {
+          ...(prevFamily.mama || {}),
+          ...(incomingFamily.mama || {}),
+        },
+      }
+
+      const mergeSection = <T extends keyof SurveyData>(section: T) => {
+        merged[section] = {
+          ...(prevData?.[section] as any || {}),
+          ...(data?.[section] as any || {}),
+        } as SurveyData[T]
+      }
+
+      mergeSection('dinamicaFamiliar')
+      mergeSection('historial')
+      mergeSection('desarrollo')
+      mergeSection('actividadFisica')
+      mergeSection('rutinaHabitos')
+
+      return merged
+    })
   }, [])
 
   return {
