@@ -162,14 +162,18 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
   // Pre-llenar datos con información del usuario y del niño
   useEffect(() => {
     if ((userProfile || childData) && !initialData && !isExisting) {
+      console.log('SurveyWizard prefill userProfile:', userProfile)
+      console.log('SurveyWizard prefill childData:', childData)
+      const fallbackName = userProfile?.name || session?.user?.name || ""
+      const fallbackEmail = userProfile?.email || session?.user?.email || ""
       // Pre-llenar información familiar con datos del usuario
       const prefilledData: Partial<SurveyData> = {
         informacionFamiliar: {
           papa: {
-            nombre: userProfile?.name || "",
+            nombre: fallbackName,
             ocupacion: "",
             direccion: "",
-            email: userProfile?.email || session?.user?.email || "",
+            email: fallbackEmail,
             trabajaFueraCasa: false,
             tieneAlergias: false
           },
