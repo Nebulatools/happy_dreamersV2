@@ -31,6 +31,22 @@ export function FamilyInfoStep({ data, onChange, errors = {} }: SurveyStepProps)
     return !!getError(parent, field)
   }
 
+  // Mantener sincronizada la ciudad de mamá cuando comparte dirección con papá
+  useEffect(() => {
+    if (!data?.mama?.mismaDireccionPapa) return
+    const papaCiudad = data?.papa?.ciudad
+    if (!papaCiudad) return
+    if (data?.mama?.ciudad === papaCiudad) return
+
+    onChange({
+      ...data,
+      mama: {
+        ...data.mama,
+        ciudad: papaCiudad
+      }
+    })
+  }, [data, onChange])
+
   // Cambiar de pestaña automáticamente cuando la validación indique un campo con error en otra sección
   useEffect(() => {
     const handler = (e: any) => {

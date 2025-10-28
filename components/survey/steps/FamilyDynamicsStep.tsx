@@ -34,7 +34,7 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
       {/* 1. ¿Cuántos hijos tienen? */}
       <div>
         <Label htmlFor="hijos-info">
-          1. ¿Cuántos hijos tienen? Escribe el nombre, fecha de nacimiento y edad de cada uno de ellos. (Pon un asterisco en el nombre del hijo(a) que desean ayudar) <span className="text-red-500">*</span>
+          1. Escribe el nombre, fecha de nacimiento y edad de cada hijo(a). (Pon un asterisco en el nombre del hijo(a) que desean ayudar) <span className="text-red-500">*</span>
         </Label>
         <Textarea
           id="hijos-info"
