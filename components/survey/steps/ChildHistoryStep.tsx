@@ -58,44 +58,10 @@ export function ChildHistoryStep({ data, onChange, errors = {} }: SurveyStepProp
       {/* Información básica del niño */}
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* 1. Nombre del hijo */}
-          <div>
-            <Label htmlFor="nombre-hijo">
-              1. Nombre de su hijo/a <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="nombre-hijo"
-              value={data.nombreHijo || ""}
-              onChange={(e) => updateField('nombreHijo', e.target.value)}
-              placeholder="Nombre del niño"
-              className={hasError('nombreHijo') ? 'border-red-500' : ''}
-            />
-            {hasError('nombreHijo') && (
-              <p className="text-red-500 text-sm mt-1">{getError('nombreHijo')}</p>
-            )}
-          </div>
-
-          {/* 2. Fecha de nacimiento */}
-          <div>
-            <Label htmlFor="fecha-nacimiento">
-              2. Fecha de Nacimiento <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="fecha-nacimiento"
-              type="date"
-              value={data.fechaNacimiento || ""}
-              onChange={(e) => updateField('fechaNacimiento', e.target.value)}
-              className={hasError('fechaNacimiento') ? 'border-red-500' : ''}
-            />
-            {hasError('fechaNacimiento') && (
-              <p className="text-red-500 text-sm mt-1">{getError('fechaNacimiento')}</p>
-            )}
-          </div>
-
-          {/* 3. Peso */}
+          {/* 1. Peso */}
           <div>
             <Label htmlFor="peso-hijo">
-              3. Peso <span className="text-red-500">*</span>
+              1. Peso <span className="text-red-500">*</span>
             </Label>
             <Input
               id="peso-hijo"
@@ -109,10 +75,10 @@ export function ChildHistoryStep({ data, onChange, errors = {} }: SurveyStepProp
             )}
           </div>
 
-          {/* 4. Percentil de peso */}
+          {/* 2. Percentil de peso */}
           <div>
             <Label htmlFor="percentil-peso">
-              4. Percentil de Peso
+              2. Percentil de peso
             </Label>
             <Input
               id="percentil-peso"
