@@ -161,51 +161,55 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
 
   // Pre-llenar datos con información del usuario y del niño
   useEffect(() => {
-    if ((userProfile || childData) && !initialData && !isExisting) {
-      console.log('SurveyWizard prefill userProfile:', userProfile)
-      console.log('SurveyWizard prefill childData:', childData)
-      const fallbackName = userProfile?.name || session?.user?.name || ""
-      const fallbackEmail = userProfile?.email || session?.user?.email || ""
-      // Pre-llenar información familiar con datos del usuario
-      const prefilledData: Partial<SurveyData> = {
-        informacionFamiliar: {
-          papa: {
-            nombre: fallbackName,
-            ocupacion: "",
-            direccion: "",
-            email: fallbackEmail,
-            trabajaFueraCasa: false,
-            tieneAlergias: false
-          },
-          mama: {
-            nombre: "",
-            ocupacion: "",
-            mismaDireccionPapa: true,
-            direccion: "",
-            email: "",
-            trabajaFueraCasa: false,
-            tieneAlergias: false
-          }
+    if (initialData || isExisting) {
+      return
+    }
+
+    const fallbackName = (userProfile?.name || session?.user?.name || "").trim()
+    const fallbackEmail = (userProfile?.email || session?.user?.email || "").trim()
+    const childFullName = childData
+      ? [childData.firstName, childData.lastName].filter(Boolean).join(" ")
+      : ""
+
+    const hasPrefillSource = Boolean(fallbackName || fallbackEmail || childData)
+
+    const prefilledData: Partial<SurveyData> = {
+      informacionFamiliar: {
+        papa: {
+          nombre: fallbackName,
+          ocupacion: "",
+          direccion: "",
+          email: fallbackEmail,
+          trabajaFueraCasa: false,
+          tieneAlergias: false
         },
-        dinamicaFamiliar: {},
-        historial: {
-          // Pre-llenar información del niño si está disponible
-          nombreNino: childData ? `${childData.firstName} ${childData.lastName}` : "",
-          fechaNacimiento: childData?.birthDate || "",
-          genero: childData?.gender || ""
-        },
-        desarrollo: {},
-        actividadFisica: {},
-        rutinaHabitos: {}
-      }
-      
-      // Actualizar los datos iniciales con la información pre-llenada
+        mama: {
+          nombre: "",
+          ocupacion: "",
+          mismaDireccionPapa: true,
+          direccion: "",
+          email: "",
+          trabajaFueraCasa: false,
+          tieneAlergias: false
+        }
+      },
+      dinamicaFamiliar: {},
+      historial: {
+        nombreNino: childFullName,
+        fechaNacimiento: childData?.birthDate || "",
+        genero: childData?.gender || ""
+      },
+      desarrollo: {},
+      actividadFisica: {},
+      rutinaHabitos: {}
+    }
+
+    // Cuando tenemos datos para prellenar, combinarlos con cualquier progreso almacenado
+    if (hasPrefillSource) {
       setInitialData(prefilledData)
-      
-      // También verificar si hay datos guardados en localStorage
+
       const savedData = loadFromLocalStorage()
       if (savedData) {
-        // Mezclar datos guardados con datos pre-llenados
         const mergedData = {
           ...prefilledData,
           ...savedData.formData,
@@ -214,14 +218,26 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
             ...savedData.formData.informacionFamiliar,
             papa: {
               ...prefilledData.informacionFamiliar?.papa,
-              ...savedData.formData.informacionFamiliar?.papa
+              ...savedData.formData.informacionFamiliar?.papa,
             },
             mama: {
               ...prefilledData.informacionFamiliar?.mama,
-              ...savedData.formData.informacionFamiliar?.mama
-            }
+              ...savedData.formData.informacionFamiliar?.mama,
+            },
+          },
+        }
+
+        // Solo actualizar si el nombre o email del padre no existen en los datos guardados
+        const mergedPapa = mergedData.informacionFamiliar?.papa
+        if (mergedPapa) {
+          if (!mergedPapa.nombre && fallbackName) {
+            mergedPapa.nombre = fallbackName
+          }
+          if (!mergedPapa.email && fallbackEmail) {
+            mergedPapa.email = fallbackEmail
           }
         }
+
         setFormData(mergedData)
         setCurrentStep(savedData.currentStep || 1)
         toast({
@@ -231,19 +247,21 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
       } else {
         setFormData(prefilledData)
       }
-    } else if (!initialData && !isExisting && !userProfile) {
-      // Si no hay perfil de usuario aún, solo cargar datos guardados
-      const savedData = loadFromLocalStorage()
-      if (savedData) {
-        setFormData(savedData.formData)
-        setCurrentStep(savedData.currentStep || 1)
-        toast({
-          title: "Progreso recuperado",
-          description: "Hemos recuperado tu progreso anterior en la encuesta"
-        })
-      }
+
+      return
     }
-  }, [userProfile, childData, initialData, isExisting, session])
+
+    // Si aún no tenemos fuente para prellenar, intentar recuperar datos locales
+    const savedData = loadFromLocalStorage()
+    if (savedData) {
+      setFormData(savedData.formData)
+      setCurrentStep(savedData.currentStep || 1)
+      toast({
+        title: "Progreso recuperado",
+        description: "Hemos recuperado tu progreso anterior en la encuesta"
+      })
+    }
+  }, [userProfile, childData, initialData, isExisting, session, loadFromLocalStorage, setInitialData, setFormData, toast])
 
   // Mostrar indicador de guardado
   useEffect(() => {
