@@ -337,7 +337,8 @@ export default function CalendarPage() {
 
   const activeChildName = useMemo(() => {
     if (!activeChildId) return "Tu hijo"
-    const child = children.find((c) => c._id === activeChildId)
+    const list = Array.isArray(children) ? children : []
+    const child = list.find((c) => c._id === activeChildId)
     if (!child) return "Tu hijo"
     const composedName = [child.name, child.firstName, child.lastName]
       .filter(Boolean)
