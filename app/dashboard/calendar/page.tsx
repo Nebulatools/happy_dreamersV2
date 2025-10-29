@@ -8,6 +8,7 @@ import { createLogger } from "@/lib/logger"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -146,6 +147,31 @@ export default function CalendarPage() {
   const calendarViewMode = useMemo<CalendarViewMode>(() => {
     return getViewModeForRole(session?.user?.role)
   }, [session?.user?.role])
+  const [overrideFullView, setOverrideFullView] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    if (calendarViewMode === "compact") {
+      const saved = localStorage.getItem("calendar-density-preference")
+      setOverrideFullView(saved === "full")
+    } else {
+      localStorage.removeItem("calendar-density-preference")
+      setOverrideFullView(false)
+    }
+  }, [calendarViewMode])
+
+  const handleDensityToggle = (checked: boolean) => {
+    setOverrideFullView(checked)
+    if (typeof window !== "undefined" && calendarViewMode === "compact") {
+      localStorage.setItem(
+        "calendar-density-preference",
+        checked ? "full" : "compact"
+      )
+    }
+  }
+
+  const effectiveViewMode: CalendarViewMode =
+    calendarViewMode === "compact" && overrideFullView ? "full" : calendarViewMode
   
   // Función para cambiar la vista y guardar en localStorage
   const handleViewChange = (newView: "month" | "week" | "day") => {
@@ -977,7 +1003,7 @@ export default function CalendarPage() {
       {/* Barra superior: Selector de vista + Leyenda de colores */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 px-6 pt-4">
         {/* Selector de vista */}
-        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+        <div className="flex items-center gap-3 bg-gray-100 p-1 rounded-lg w-fit">
           <Button
             variant={view === "month" ? "default" : "ghost"}
             size="sm"
@@ -1002,6 +1028,22 @@ export default function CalendarPage() {
           >
             Diario
           </Button>
+          {calendarViewMode === "compact" && (
+            <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-gray-200">
+              <Switch
+                id="calendar-density-toggle"
+                checked={overrideFullView}
+                onCheckedChange={handleDensityToggle}
+                aria-label="Cambiar a vista detallada"
+              />
+              <Label
+                htmlFor="calendar-density-toggle"
+                className="text-xs text-gray-600 cursor-pointer whitespace-nowrap"
+              >
+                Vista detallada
+              </Label>
+            </div>
+          )}
         </div>
 
         {/* Leyenda de colores */}
@@ -1115,7 +1157,7 @@ export default function CalendarPage() {
       {/* Calendario Principal - Nueva estructura limpia */}
       <div className="px-6 pb-6">
         <Card className={`p-4 ${view === 'month' ? 'h-[600px]' : view === 'day' ? 'h-[calc(100vh-320px)]' : ''}`} style={{ minHeight: '500px' }}>
-          {calendarViewMode === "compact" && (
+          {effectiveViewMode === "compact" && (
             <div className="flex justify-end mb-2">
               <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100 uppercase tracking-wide text-[10px]">
                 Vista ligera
@@ -1145,7 +1187,7 @@ export default function CalendarPage() {
               initialView={view}
               onDayNavigateBack={navigateOneDayBack}
               onDayNavigateForward={navigateOneDayForward}
-              viewMode={calendarViewMode}
+              viewMode={effectiveViewMode}
             />
           )}
         </Card>

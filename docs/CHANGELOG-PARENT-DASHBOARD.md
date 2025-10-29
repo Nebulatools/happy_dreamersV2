@@ -2,7 +2,7 @@
 
 Este archivo registra los cambios enfocados en lo que ve un padre en el panel y en la vista de estadísticas, desde la incorporación de las nuevas gráficas hasta ahora. Incluye dónde ver cada cambio y cómo probarlo.
 
-Última actualización: 2025-09-10
+Última actualización: 2025-10-28
 
 ---
 
@@ -116,6 +116,17 @@ Este archivo registra los cambios enfocados en lo que ve un padre en el panel y 
 - Dónde verlo: Modal de alimentación en `/dashboard`.
 - Archivos:
   - `components/events/FeedingModal.tsx` (entrada manual + paso dinámico)
+
+### 12) Calendario: vista ligera por defecto y alternancia manual
+- Qué: Los cuidadores ven una línea de tiempo compacta por defecto con badges condensados y eje más ligero; pueden habilitar “Vista detallada” para recuperar la densidad completa desde un switch. Administradores mantienen siempre la vista completa.
+- Dónde verlo: `/dashboard/calendar`.
+- Archivos:
+  - `app/dashboard/calendar/page.tsx`
+  - `components/calendar/CalendarMain.tsx`
+  - `components/calendar/CalendarWeekView.tsx`
+  - `components/calendar/CalendarDayView.tsx`
+  - `components/calendar/EventGlobe.tsx`
+  - `components/calendar/TimeAxis.tsx`
 
 ---
 
