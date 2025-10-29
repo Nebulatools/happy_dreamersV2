@@ -12,6 +12,7 @@ import { GridLines } from './GridLines'
 import { EventGlobe } from './EventGlobe'
 import { SleepSessionBlock } from './SleepSessionBlock'
 import { processSleepSessions, type Event as SleepEvent } from '@/lib/utils/sleep-sessions'
+import type { CalendarViewMode } from '@/types/calendar'
 
 interface Event {
   _id: string;
@@ -32,6 +33,7 @@ interface CalendarWeekViewProps {
   className?: string;
   onDayNavigateBack?: () => void;
   onDayNavigateForward?: () => void;
+  viewMode?: CalendarViewMode;
 }
 
 export function CalendarWeekView({
@@ -42,7 +44,8 @@ export function CalendarWeekView({
   onCalendarClick,
   className = "",
   onDayNavigateBack,
-  onDayNavigateForward
+  onDayNavigateForward,
+  viewMode = "full"
 }: CalendarWeekViewProps) {
   // CAMBIO: En lugar de mostrar la semana completa, mostrar 7 días consecutivos
   // centrando la fecha seleccionada en el medio (posición 3, índice 2)
@@ -91,10 +94,13 @@ export function CalendarWeekView({
     })
   }
   
+  const isCompact = viewMode === 'compact'
+  const axisInterval = isCompact ? 4 : 2
+
   return (
     <div className={`flex ${className}`} style={{ height: `${24 * hourHeight + 32}px` }}>
       {/* Eje de tiempo */}
-      <TimeAxis hourHeight={hourHeight} />
+      <TimeAxis hourHeight={hourHeight} labelInterval={axisInterval} className={isCompact ? 'w-10 text-[10px]' : undefined} />
       
       {/* Días de la semana */}
       <div className="flex-1 flex">
@@ -109,7 +115,8 @@ export function CalendarWeekView({
               {/* Header del día */}
               <div 
                 className={cn(
-                  "h-8 bg-white border-b border-gray-200 flex flex-col items-center justify-center text-xs font-medium relative",
+                  "bg-white border-b border-gray-200 flex flex-col items-center justify-center text-xs font-medium relative",
+                  isCompact ? "h-7" : "h-8",
                   isDayToday && "bg-blue-50 text-blue-600",
                   isSelectedDay && !isDayToday && "bg-gray-100 text-gray-800 font-bold"
                 )}
@@ -182,6 +189,7 @@ export function CalendarWeekView({
                           onNightWakingClick={(waking) => onEventClick?.(waking as Event)}
                           isContinuationFromPrevious={session.isContinuationFromPrevious}
                           continuesNextDay={session.continuesNextDay}
+                          className={isCompact ? 'text-[11px]' : undefined}
                         />
                       ))}
                       
@@ -192,6 +200,7 @@ export function CalendarWeekView({
                           event={event as Event} 
                           hourHeight={hourHeight}
                           onClick={onEventClick} 
+                          viewMode={viewMode}
                         />
                       ))}
                     </>

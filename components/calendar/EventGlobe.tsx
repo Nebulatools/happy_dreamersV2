@@ -3,6 +3,8 @@
 
 import React from 'react'
 import { Moon, Sun, AlertCircle, Clock } from "lucide-react"
+import { cn } from '@/lib/utils'
+import type { CalendarViewMode } from '@/types/calendar'
 
 interface Event {
   _id: string;
@@ -42,9 +44,10 @@ interface EventGlobeProps {
   event: Event;
   hourHeight: number;  // Ej: 30px por hora
   onClick?: (event: Event) => void;
+  viewMode?: CalendarViewMode;
 }
 
-export function EventGlobe({ event, hourHeight = 30, onClick }: EventGlobeProps) {
+export function EventGlobe({ event, hourHeight = 30, onClick, viewMode = 'full' }: EventGlobeProps) {
   const timeData = extractTimeFromISO(event.startTime)
   const endTimeData = event.endTime ? extractTimeFromISO(event.endTime) : null
   
@@ -103,13 +106,20 @@ export function EventGlobe({ event, hourHeight = 30, onClick }: EventGlobeProps)
     return names[event.eventType] || event.eventType
   }
   
+  const isCompact = viewMode === 'compact'
+  const baseClass = cn(
+    'absolute left-2 right-2 rounded-lg shadow-md flex items-center gap-1 cursor-pointer transition-shadow',
+    isCompact ? 'px-1.5 py-0.5 text-[11px] hover:shadow-md' : 'px-2 py-1 text-xs hover:shadow-lg',
+    getColor()
+  )
+
   return (
     <div
-      className={`absolute left-2 right-2 rounded-lg shadow-md px-2 py-1 text-xs font-medium flex items-center gap-1 cursor-pointer hover:shadow-lg transition-shadow ${getColor()}`}
+      className={baseClass}
       style={{
         top: `${position}px`,
         height: `${height}px`,
-        minHeight: '20px'
+        minHeight: isCompact ? '16px' : '20px'
       }}
       onClick={(e) => {
         e.stopPropagation()
@@ -117,9 +127,9 @@ export function EventGlobe({ event, hourHeight = 30, onClick }: EventGlobeProps)
       }}
     >
       {getIcon()}
-      <div className="flex-1 truncate">
-        <div>{getName()}</div>
-        <div className="text-xs opacity-90">
+      <div className="flex-1 truncate leading-tight">
+        {!isCompact && <div>{getName()}</div>}
+        <div className={cn('opacity-90', isCompact ? 'text-[10px]' : 'text-xs')}>
           {timeData.formatted}
           {endTimeData && `-${endTimeData.formatted}`}
         </div>

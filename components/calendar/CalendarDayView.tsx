@@ -10,6 +10,8 @@ import { GridLines } from './GridLines'
 import { EventGlobe } from './EventGlobe'
 import { SleepSessionBlock } from './SleepSessionBlock'
 import { processSleepSessions, type Event as SleepEvent } from '@/lib/utils/sleep-sessions'
+import { cn } from '@/lib/utils'
+import type { CalendarViewMode } from '@/types/calendar'
 
 interface Event {
   _id: string;
@@ -30,6 +32,7 @@ interface CalendarDayViewProps {
   className?: string;
   onDayNavigateBack?: () => void;
   onDayNavigateForward?: () => void;
+  viewMode?: CalendarViewMode;
 }
 
 export function CalendarDayView({
@@ -40,18 +43,23 @@ export function CalendarDayView({
   onCalendarClick,
   className = "",
   onDayNavigateBack,
-  onDayNavigateForward
+  onDayNavigateForward,
+  viewMode = "full"
 }: CalendarDayViewProps) {
-  
+  const isCompact = viewMode === 'compact'
+
   return (
     <div className={`flex ${className}`} style={{ height: `${24 * hourHeight + 32}px` }}>
       {/* Eje de tiempo */}
-      <TimeAxis hourHeight={hourHeight} />
+      <TimeAxis hourHeight={hourHeight} labelInterval={isCompact ? 4 : 2} className={isCompact ? 'w-10 text-[10px]' : undefined} />
       
       {/* Área de eventos */}
       <div className="flex-1 relative">
         {/* Header del día */}
-        <div className="h-8 bg-white border-b border-gray-200 flex items-center justify-center relative">
+        <div className={cn(
+          "bg-white border-b border-gray-200 flex items-center justify-center relative",
+          isCompact ? 'h-7' : 'h-8'
+        )}>
           {/* Flecha izquierda */}
           {onDayNavigateBack && (
             <button
@@ -67,7 +75,7 @@ export function CalendarDayView({
           )}
           
           {/* Contenido del día */}
-          <span className="font-medium text-sm">{format(date, "d")}</span>
+          <span className={cn('font-medium', isCompact ? 'text-xs' : 'text-sm')}>{format(date, "d")}</span>
           
           {/* Flecha derecha */}
           {onDayNavigateForward && (
@@ -116,6 +124,7 @@ export function CalendarDayView({
                     onNightWakingClick={(waking) => onEventClick?.(waking as Event)}
                     isContinuationFromPrevious={session.isContinuationFromPrevious}
                     continuesNextDay={session.continuesNextDay}
+                    className={isCompact ? 'text-[11px]' : undefined}
                   />
                 ))}
                 
@@ -126,6 +135,7 @@ export function CalendarDayView({
                     event={event as Event} 
                     hourHeight={hourHeight}
                     onClick={onEventClick} 
+                    viewMode={viewMode}
                   />
                 ))}
               </>

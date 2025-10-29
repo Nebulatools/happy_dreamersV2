@@ -7,6 +7,7 @@ import React, { useState, useEffect, useMemo } from "react"
 import { createLogger } from "@/lib/logger"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -1114,6 +1115,13 @@ export default function CalendarPage() {
       {/* Calendario Principal - Nueva estructura limpia */}
       <div className="px-6 pb-6">
         <Card className={`p-4 ${view === 'month' ? 'h-[600px]' : view === 'day' ? 'h-[calc(100vh-320px)]' : ''}`} style={{ minHeight: '500px' }}>
+          {calendarViewMode === "compact" && (
+            <div className="flex justify-end mb-2">
+              <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100 uppercase tracking-wide text-[10px]">
+                Vista ligera
+              </Badge>
+            </div>
+          )}
           {isLoading ? (
             <div className="flex justify-center items-center h-96">
               <div className="text-center">

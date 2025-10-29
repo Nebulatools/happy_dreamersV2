@@ -50,11 +50,12 @@ export function CalendarMain({
   onDayNavigateForward,
   viewMode = "full"
 }: CalendarMainProps) {
-  
+
   // Usar directamente las props del padre en lugar del estado interno
   const date = initialDate || new Date()
   const view = initialView || "day"
-  
+  const hourHeight = viewMode === "compact" ? 22 : HOUR_HEIGHT
+
   // Manejar click en calendario para crear eventos
   const handleClick = (clickEvent: React.MouseEvent, dayDate: Date) => {
     // Solo para vistas timeline (no mensual)
@@ -74,11 +75,12 @@ export function CalendarMain({
           <CalendarWeekView
             date={date}
             events={events}
-            hourHeight={HOUR_HEIGHT}
+            hourHeight={hourHeight}
             onEventClick={onEventClick}
             onCalendarClick={handleClick}
             onDayNavigateBack={onDayNavigateBack}
             onDayNavigateForward={onDayNavigateForward}
+            viewMode={viewMode}
           />
         )}
         
@@ -86,11 +88,12 @@ export function CalendarMain({
           <CalendarDayView
             date={date}
             events={events}
-            hourHeight={HOUR_HEIGHT}
+            hourHeight={hourHeight}
             onEventClick={onEventClick}
             onCalendarClick={handleClick}
             onDayNavigateBack={onDayNavigateBack}
             onDayNavigateForward={onDayNavigateForward}
+            viewMode={viewMode}
           />
         )}
         
