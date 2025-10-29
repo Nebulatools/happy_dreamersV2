@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { CalendarWeekView } from './CalendarWeekView'
 import { CalendarDayView } from './CalendarDayView'
 import { handleCalendarClick } from './CalendarClickHandler'
+import type { CalendarViewMode } from '@/types/calendar'
 
 // Configuración base
 const HOUR_HEIGHT = 30
@@ -33,6 +34,7 @@ interface CalendarMainProps {
   onViewChange?: (view: ViewMode) => void; // Callback cuando cambia la vista (opcional)
   onDayNavigateBack?: () => void; // Navegación día por día hacia atrás
   onDayNavigateForward?: () => void; // Navegación día por día hacia adelante
+  viewMode?: CalendarViewMode; // Variante visual según rol
 }
 
 export function CalendarMain({
@@ -45,7 +47,8 @@ export function CalendarMain({
   onDateChange,
   onViewChange,
   onDayNavigateBack,
-  onDayNavigateForward
+  onDayNavigateForward,
+  viewMode = "full"
 }: CalendarMainProps) {
   
   // Usar directamente las props del padre en lugar del estado interno
@@ -64,7 +67,7 @@ export function CalendarMain({
   }
   
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-calendar-view-mode={viewMode}>
       {/* Calendario */}
       <Card className="p-4">
         {view === "week" && (

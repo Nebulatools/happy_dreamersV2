@@ -31,7 +31,7 @@ import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache, useEventsInvalidation } from "@/hooks/use-events-cache"
 // TEMPORALMENTE COMENTADO - Sistema de eventos en reset
 // import { EventRegistrationModal, QuickEventSelector } from "@/components/events"
-import { 
+import {
   TimelineColumn, 
   CompactTimelineColumn, 
   EventBlock, 
@@ -40,6 +40,7 @@ import {
   SleepSessionBlock,
   CalendarMain
 } from "@/components/calendar"
+import { getViewModeForRole, type CalendarViewMode } from "@/types/calendar"
 import {
   Dialog,
   DialogContent,
@@ -140,6 +141,10 @@ export default function CalendarPage() {
     return "week"
   })
   const [isLoading, setIsLoading] = useState(true)
+
+  const calendarViewMode = useMemo<CalendarViewMode>(() => {
+    return getViewModeForRole(session?.user?.role)
+  }, [session?.user?.role])
   
   // Función para cambiar la vista y guardar en localStorage
   const handleViewChange = (newView: "month" | "week" | "day") => {
@@ -1132,6 +1137,7 @@ export default function CalendarPage() {
               initialView={view}
               onDayNavigateBack={navigateOneDayBack}
               onDayNavigateForward={navigateOneDayForward}
+              viewMode={calendarViewMode}
             />
           )}
         </Card>
