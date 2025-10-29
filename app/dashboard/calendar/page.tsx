@@ -33,7 +33,7 @@ import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache, useEventsInvalidation } from "@/hooks/use-events-cache"
 // TEMPORALMENTE COMENTADO - Sistema de eventos en reset
 // import { EventRegistrationModal, QuickEventSelector } from "@/components/events"
-import {
+import { 
   TimelineColumn, 
   CompactTimelineColumn, 
   EventBlock, 
@@ -43,6 +43,7 @@ import {
   CalendarMain
 } from "@/components/calendar"
 import { getViewModeForRole, type CalendarViewMode } from "@/types/calendar"
+import { ManualEventModal } from "@/components/events/ManualEventModal"
 import {
   Dialog,
   DialogContent,
@@ -323,7 +324,6 @@ export default function CalendarPage() {
     wakingsChange: 0,
   })
   const [eventModalOpen, setEventModalOpen] = useState(false)
-  const [quickSelectorOpen, setQuickSelectorOpen] = useState(false)
   const [selectedDateForEvent, setSelectedDateForEvent] = useState<Date | null>(null)
   const [children, setChildren] = useState<Child[]>([])
   
@@ -335,6 +335,17 @@ export default function CalendarPage() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
+  const activeChildName = useMemo(() => {
+    if (!activeChildId) return "Tu hijo"
+    const child = children.find((c) => c._id === activeChildId)
+    if (!child) return "Tu hijo"
+    const composedName = [child.name, child.firstName, child.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim()
+    return composedName || "Tu hijo"
+  }, [children, activeChildId])
+
   // Configurar el header dinámico - simplificado con solo botón de agregar
   const headerActions = useMemo(() => (
     <div className="flex items-center gap-2">
@@ -343,15 +354,16 @@ export default function CalendarPage() {
         size="sm"
         className="hd-gradient-button text-white"
         onClick={() => {
-          setSelectedDateForEvent(null)
-          setQuickSelectorOpen(true)
+          setSelectedDateForEvent(new Date())
+          setEventModalOpen(true)
         }}
+        disabled={!activeChildId}
       >
         <Plus className="w-4 h-4 mr-2" />
         Registrar evento
       </Button>
     </div>
-  ), [])
+  ), [activeChildId])
 
   usePageHeaderConfig({
     title: "Calendario",
@@ -469,7 +481,7 @@ export default function CalendarPage() {
 
   // Cargar lista de niños para el modal o el quick selector
   useEffect(() => {
-    if (eventModalOpen || quickSelectorOpen || activeChildId) {
+    if ((eventModalOpen && activeChildId) || activeChildId) {
       fetch("/api/children")
         .then(res => res.json())
         .then(data => {
@@ -479,7 +491,7 @@ export default function CalendarPage() {
         })
         .catch(error => logger.error("Error al cargar niños", error))
     }
-  }, [eventModalOpen, quickSelectorOpen, activeChildId])
+  }, [eventModalOpen, activeChildId])
 
   const fetchEvents = async (forceRefresh = false) => {
     if (!activeChildId || !session) {
@@ -1177,10 +1189,10 @@ export default function CalendarPage() {
               events={events}
               onEventClick={handleEventClick}
               onCreateEvent={(clickTime) => {
-                // Manejar creación de eventos desde clicks en el calendario
-                setSelectedDateForEvent(clickTime.date)
-                // TODO: Abrir modal de creación de eventos cuando esté disponible
-                // setQuickSelectorOpen(true)
+                const eventDate = new Date(clickTime.date)
+                eventDate.setHours(clickTime.hour, clickTime.minute, 0, 0)
+                setSelectedDateForEvent(eventDate)
+                setEventModalOpen(true)
               }}
               monthView={renderMonthView()}
               initialDate={date}
@@ -1193,39 +1205,21 @@ export default function CalendarPage() {
         </Card>
       </div>
 
-      {/* TEMPORALMENTE COMENTADO - Sistema de eventos en reset */}
-      {/* Selector rápido de eventos */}
-      {/* <QuickEventSelector
-        isOpen={quickSelectorOpen}
+      <ManualEventModal
+        open={eventModalOpen}
         onClose={() => {
-          setQuickSelectorOpen(false)
-          setSelectedDateForEvent(null) // Limpiar fecha seleccionada al cerrar
+          setEventModalOpen(false)
+          setSelectedDateForEvent(null)
         }}
         childId={activeChildId || ""}
-        children={children}
-        onEventCreated={() => {
-          invalidateEvents() // Invalidar cache global
-          setQuickSelectorOpen(false)
-          setSelectedDateForEvent(null) // Limpiar fecha seleccionada
-        }}
-      /> */}
-      
-      {/* Modal de registro de evento (mantenido para compatibilidad) */}
-      {/* <EventRegistrationModal
-        isOpen={eventModalOpen}
-        onClose={() => {
+        childName={activeChildName}
+        onEventRegistered={() => {
+          invalidateEvents()
           setEventModalOpen(false)
-          setSelectedDateForEvent(null) // Limpiar fecha seleccionada al cerrar
+          setSelectedDateForEvent(null)
         }}
-        childId={activeChildId || undefined}
-        children={children}
-        selectedDate={selectedDateForEvent || undefined}
-        onEventCreated={() => {
-          invalidateEvents() // Invalidar cache global
-          setEventModalOpen(false)
-          setSelectedDateForEvent(null) // Limpiar fecha seleccionada
-        }}
-      /> */}
+        defaultStartDateTime={selectedDateForEvent || undefined}
+      />
       
       {/* Modal de detalles del evento */}
       {selectedEvent && (
@@ -1386,7 +1380,7 @@ export default function CalendarPage() {
           setIsDetailsModalOpen(false)
           setSelectedEvent(null)
         }}
-        childName={children && Array.isArray(children) ? children.find((c: Child) => c._id === activeChildId)?.name || "el niño" : "el niño"}
+        childName={children && Array.isArray(children) ? (children.find((c: Child) => c._id === activeChildId)?.name || activeChildName || "el niño") : "el niño"}
       />
       
       {/* Modal de confirmación de eliminación */}

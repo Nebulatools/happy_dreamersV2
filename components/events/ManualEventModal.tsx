@@ -27,6 +27,7 @@ interface ManualEventModalProps {
   // Opcionales: forzar tipo de evento inicial y/o bloquear selector
   defaultEventType?: string
   lockEventType?: boolean
+  defaultStartDateTime?: Date
 }
 
 /**
@@ -40,7 +41,8 @@ export function ManualEventModal({
   childName, 
   onEventRegistered,
   defaultEventType,
-  lockEventType
+  lockEventType,
+  defaultStartDateTime
 }: ManualEventModalProps) {
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -66,6 +68,18 @@ export function ManualEventModal({
   const [endTime, setEndTime] = useState(getCurrentHourRounded())
   const [includeEndTime, setIncludeEndTime] = useState<boolean>(false) // Hora fin opcional
   const [notes, setNotes] = useState('')
+
+  useEffect(() => {
+    if (!open || !defaultStartDateTime) return
+    const start = defaultStartDateTime
+    if (isNaN(start.getTime())) return
+    const formattedDate = format(start, 'yyyy-MM-dd')
+    const formattedTime = format(start, 'HH:mm')
+    setStartDate(formattedDate)
+    setStartTime(formattedTime)
+    setEndDate(formattedDate)
+    setEndTime(formattedTime)
+  }, [open, defaultStartDateTime])
   
   // Campos específicos de sueño (sleep, nap, night_waking)
   const [sleepDelay, setSleepDelay] = useState(0)
