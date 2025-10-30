@@ -1,7 +1,7 @@
 import type React from "react"
 // Archivo principal de layout que configura la estructura básica de la aplicación
 // Incluye el ThemeProvider para gestionar el modo oscuro/claro y la configuración global
-
+//
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
