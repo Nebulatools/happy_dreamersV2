@@ -145,6 +145,40 @@ export function SleepSessionBlock({
   const height = calculateBlockHeight()
   const isInProgress = !endTime
   const isCompact = viewMode === 'compact'
+
+  const durationLabel = (() => {
+    try {
+      if (!endTime && !originalEndTime) return isInProgress ? 'En progreso' : ''
+      const start = parseISO(originalStartTime || startTime)
+      const effectiveEnd = parseISO(originalEndTime || endTime || startTime)
+      const minutes = Math.max(0, differenceInMinutes(effectiveEnd, start))
+      const hours = Math.floor(minutes / 60)
+      const mins = minutes % 60
+      if (!minutes) return ''
+      if (!hours) return `${mins}m`
+      if (!mins) return `${hours}h`
+      return `${hours}h ${mins}m`
+    } catch {
+      return ''
+    }
+  })()
+
+  const tooltipLabel = (() => {
+    const rawStart = formatTime(originalStartTime || startTime)
+    const start = rawStart !== '--:--' ? rawStart : null
+    const rawEnd = endTime || originalEndTime ? formatTime(originalEndTime || endTime!) : null
+    const end = rawEnd && rawEnd !== '--:--' ? rawEnd : null
+    const parts = [`Sueño`]
+    if (start && !isContinuationFromPrevious) parts.push(`desde ${start}`)
+    if (start && isContinuationFromPrevious) parts.push(`continúa (${start})`)
+    if (end && !continuesNextDay) {
+      parts.push(`hasta ${end}`)
+    } else if (continuesNextDay) {
+      parts.push(`continúa mañana`)
+    }
+    if (durationLabel) parts.push(`· ${durationLabel}`)
+    return parts.join(' ')
+  })()
   
   // Renderizar despertares nocturnos dentro de la sesión
   const renderNightWakings = () => {
@@ -192,18 +226,38 @@ export function SleepSessionBlock({
   
   if (isInProgress) {
     if (isCompact) {
+      const startLabel = formatTime(originalStartTime || startTime)
+      const endLabel = endTime || originalEndTime ? formatTime(originalEndTime || endTime!) : null
       return (
         <div
           className={cn(
-            "absolute left-1 right-1 rounded-md bg-blue-400/70",
+            "absolute left-1 right-1 rounded-md bg-blue-400/80 text-white flex items-center justify-between px-2",
             className
           )}
           style={{
             top: `${position}px`,
-            height: `${Math.max(height, 14)}px`
+            height: `${Math.max(height, 24)}px`
           }}
           onClick={onClick}
-        />
+          title={tooltipLabel}
+          aria-label={tooltipLabel}
+        >
+          <div className="flex items-center gap-1 text-[11px] font-medium">
+            <Moon className="w-3.5 h-3.5" />
+            {startLabel !== '--:--' && <span>{startLabel}</span>}
+          </div>
+          <div className="text-[10px] font-semibold">
+            {durationLabel}
+          </div>
+          {endLabel && endLabel !== '--:--' && (
+            <div className="text-[11px] font-medium">
+              {endLabel}
+            </div>
+          )}
+          {!endLabel && continuesNextDay && (
+            <div className="text-[10px] font-medium uppercase tracking-wide">→</div>
+          )}
+        </div>
       )
     }
     // SUEÑO EN PROGRESO - Con fade hacia abajo
@@ -250,18 +304,38 @@ export function SleepSessionBlock({
   }
   
   if (isCompact) {
+    const startLabel = formatTime(originalStartTime || startTime)
+    const endLabel = endTime || originalEndTime ? formatTime(originalEndTime || endTime!) : null
     return (
       <div
         className={cn(
-          "absolute left-1 right-1 rounded-md bg-blue-500/80",
+          "absolute left-1 right-1 rounded-md bg-blue-500/85 text-white flex items-center justify-between px-2",
           className
         )}
         style={{
           top: `${position}px`,
-          height: `${Math.max(height, 14)}px`
+          height: `${Math.max(height, 24)}px`
         }}
         onClick={onClick}
-      />
+        title={tooltipLabel}
+        aria-label={tooltipLabel}
+      >
+        <div className="flex items-center gap-1 text-[11px] font-medium">
+          <Moon className="w-3.5 h-3.5" />
+          {startLabel !== '--:--' && <span>{startLabel}</span>}
+        </div>
+        <div className="text-[10px] font-semibold">
+          {durationLabel}
+        </div>
+        {endLabel && endLabel !== '--:--' && (
+          <div className="text-[11px] font-medium">
+            {endLabel}
+          </div>
+        )}
+        {!endLabel && continuesNextDay && (
+          <div className="text-[10px] font-medium uppercase tracking-wide">→</div>
+        )}
+      </div>
     )
   }
 

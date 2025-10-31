@@ -108,21 +108,33 @@ export function EventGlobe({ event, hourHeight = 30, onClick, viewMode = 'full' 
   
   const isCompact = viewMode === 'compact'
   if (isCompact) {
+    const titleParts = [getName()]
+    titleParts.push(`a las ${timeData.formatted}`)
+    if (endTimeData) titleParts.push(`hasta ${endTimeData.formatted}`)
+    const title = titleParts.join(' · ')
+    const compactIcon = getIcon()
+
     return (
       <div
         className={cn(
-          'absolute left-1 right-1 rounded-md opacity-90',
+          'absolute left-1 right-1 rounded-md opacity-95 flex items-center justify-center shadow-sm',
           getColor()
         )}
         style={{
           top: `${position}px`,
-          height: `${Math.max(height, 12)}px`
+          height: `${Math.max(height, 20)}px`
         }}
         onClick={(e) => {
           e.stopPropagation()
           onClick?.(event)
         }}
-      />
+        title={title}
+        aria-label={title}
+      >
+        {React.isValidElement(compactIcon)
+          ? React.cloneElement(compactIcon, { className: 'w-3.5 h-3.5 text-white' })
+          : null}
+      </div>
     )
   }
 

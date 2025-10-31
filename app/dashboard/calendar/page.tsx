@@ -1123,6 +1123,24 @@ export default function CalendarPage() {
         </Card>
       </div>
 
+      {!isAdmin && (
+        <div className="px-6 flex flex-wrap gap-3 text-xs text-gray-500 mt-2">
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-blue-400" /> Sueño nocturno
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-orange-400" /> Siesta
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-wake" /> Despertar / actividades
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-night-wake" /> Despertar nocturno
+          </div>
+          <div className="text-xs text-gray-400">Toca un bloque para ver los detalles.</div>
+        </div>
+      )}
+
       {/* Calendario Principal - Nueva estructura limpia */}
       <div className="px-6 pb-6">
         <Card className={`p-4 ${view === 'month' ? 'h-[600px]' : view === 'day' ? 'h-[calc(100vh-320px)]' : ''}`} style={{ minHeight: '500px' }}>
