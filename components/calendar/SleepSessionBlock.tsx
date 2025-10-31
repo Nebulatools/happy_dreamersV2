@@ -242,9 +242,9 @@ export function SleepSessionBlock({
           title={tooltipLabel}
           aria-label={tooltipLabel}
         >
-          <div className="flex items-center gap-1 text-[11px] font-medium">
-            <Moon className="w-3.5 h-3.5" />
-            {startLabel !== '--:--' && <span>{startLabel}</span>}
+          <div className="flex items-center gap-1 text-[11px] font-semibold">
+            <span>Sueño nocturno</span>
+            {startLabel !== '--:--' && <span>· {startLabel}</span>}
           </div>
           <div className="text-[10px] font-semibold">
             {durationLabel}
@@ -320,9 +320,9 @@ export function SleepSessionBlock({
         title={tooltipLabel}
         aria-label={tooltipLabel}
       >
-        <div className="flex items-center gap-1 text-[11px] font-medium">
-          <Moon className="w-3.5 h-3.5" />
-          {startLabel !== '--:--' && <span>{startLabel}</span>}
+        <div className="flex items-center gap-1 text-[11px] font-semibold">
+          <span>Sueño nocturno</span>
+          {startLabel !== '--:--' && <span>· {startLabel}</span>}
         </div>
         <div className="text-[10px] font-semibold">
           {durationLabel}
