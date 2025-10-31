@@ -145,6 +145,7 @@ export function SleepSessionBlock({
   const height = calculateBlockHeight()
   const isInProgress = !endTime
   const isCompact = viewMode === 'compact'
+  const compactBlockHeight = 80
 
   const durationLabel = (() => {
     try {
@@ -243,7 +244,7 @@ export function SleepSessionBlock({
           )}
           style={{
             top: `${position}px`,
-            minHeight: `${Math.max(height, 32)}px`
+            minHeight: `${compactBlockHeight}px`
           }}
           onClick={onClick}
           title={tooltipLabel}
@@ -320,7 +321,7 @@ export function SleepSessionBlock({
         )}
         style={{
           top: `${position}px`,
-          minHeight: `${Math.max(height, 32)}px`
+          minHeight: `${compactBlockHeight}px`
         }}
         onClick={onClick}
         title={tooltipLabel}
