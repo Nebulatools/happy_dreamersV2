@@ -231,32 +231,26 @@ export function SleepSessionBlock({
       return (
         <div
           className={cn(
-            "absolute left-1 right-1 rounded-md bg-blue-400/80 text-white flex items-center justify-between px-2",
+            "absolute left-1 right-1 rounded-md bg-blue-400/90 text-white p-2",
+            "grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-1 items-center",
             className
           )}
           style={{
             top: `${position}px`,
-            height: `${Math.max(height, 24)}px`
+            minHeight: `${Math.max(height, 36)}px`
           }}
           onClick={onClick}
           title={tooltipLabel}
           aria-label={tooltipLabel}
         >
-          <div className="flex items-center gap-1 text-[11px] font-semibold">
-            <span>Sueño nocturno</span>
-            {startLabel !== '--:--' && <span>· {startLabel}</span>}
+          <div className="col-span-2 text-[11px] font-semibold leading-none">
+            Sueño nocturno
           </div>
-          <div className="text-[10px] font-semibold">
-            {durationLabel}
-          </div>
-          {endLabel && endLabel !== '--:--' && (
-            <div className="text-[11px] font-medium">
-              {endLabel}
-            </div>
-          )}
-          {!endLabel && continuesNextDay && (
-            <div className="text-[10px] font-medium uppercase tracking-wide">→</div>
-          )}
+          <span className="text-[10px] opacity-90">Inicio {startLabel !== '--:--' ? startLabel : '--'}</span>
+          <span className="text-[10px] opacity-90 text-right">Duración {durationLabel || '--'}</span>
+          <span className="text-[10px] opacity-90">
+            {endLabel && endLabel !== '--:--' ? `Fin ${endLabel}` : continuesNextDay ? 'Continúa mañana' : 'Fin --'}
+          </span>
         </div>
       )
     }
@@ -309,32 +303,26 @@ export function SleepSessionBlock({
     return (
       <div
         className={cn(
-          "absolute left-1 right-1 rounded-md bg-blue-500/85 text-white flex items-center justify-between px-2",
+          "absolute left-1 right-1 rounded-md bg-blue-500/95 text-white p-2",
+          "grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-1 items-center",
           className
         )}
         style={{
           top: `${position}px`,
-          height: `${Math.max(height, 24)}px`
+          minHeight: `${Math.max(height, 36)}px`
         }}
         onClick={onClick}
         title={tooltipLabel}
         aria-label={tooltipLabel}
       >
-        <div className="flex items-center gap-1 text-[11px] font-semibold">
-          <span>Sueño nocturno</span>
-          {startLabel !== '--:--' && <span>· {startLabel}</span>}
+        <div className="col-span-2 text-[11px] font-semibold leading-none">
+          Sueño nocturno
         </div>
-        <div className="text-[10px] font-semibold">
-          {durationLabel}
-        </div>
-        {endLabel && endLabel !== '--:--' && (
-          <div className="text-[11px] font-medium">
-            {endLabel}
-          </div>
-        )}
-        {!endLabel && continuesNextDay && (
-          <div className="text-[10px] font-medium uppercase tracking-wide">→</div>
-        )}
+        <span className="text-[10px] opacity-90">Inicio {startLabel !== '--:--' ? startLabel : '--'}</span>
+        <span className="text-[10px] opacity-90 text-right">Duración {durationLabel || '--'}</span>
+        <span className="text-[10px] opacity-90">
+          {endLabel && endLabel !== '--:--' ? `Fin ${endLabel}` : continuesNextDay ? 'Continúa mañana' : 'Fin --'}
+        </span>
       </div>
     )
   }
