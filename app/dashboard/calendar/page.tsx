@@ -25,6 +25,8 @@ import {
   Loader2,
   Clock,
   Calendar,
+  Utensils,
+  Baby
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
@@ -1124,24 +1126,26 @@ export default function CalendarPage() {
       </div>
 
       {!isAdmin && (
-        <div className="px-6 flex flex-wrap gap-3 text-xs text-gray-500 mt-2">
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-3 h-3 rounded-full bg-blue-400" /> Sueño nocturno
+        <div className="px-6 flex flex-wrap gap-3 text-xs text-gray-500 mt-2 items-center">
+          <div className="flex items-center gap-1.5">
+            <Moon className="w-3.5 h-3.5 text-blue-500" /> Sueño nocturno
           </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-3 h-3 rounded-full bg-orange-400" /> Siesta
+          <div className="flex items-center gap-1.5">
+            <Baby className="w-3.5 h-3.5 text-orange-400" /> Siesta
           </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-3 h-3 rounded-full bg-wake" /> Despertar / actividades
+          <div className="flex items-center gap-1.5">
+            <Sun className="w-3.5 h-3.5 text-green-500" /> Despertar / actividades
           </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-3 h-3 rounded-full bg-night-wake" /> Despertar nocturno
+          <div className="flex items-center gap-1.5">
+            <Utensils className="w-3.5 h-3.5 text-blue-400" /> Alimentación
           </div>
-          <div className="flex items-center gap-1 text-xs text-gray-400">
-            <span className="inline-block w-3 h-3 rounded-full border border-gray-300" />
-            <span>Horarios referenciales: 00:00 · 06:00 · 12:00 · 18:00 · 24:00</span>
+          <div className="flex items-center gap-1.5">
+            <AlertCircle className="w-3.5 h-3.5 text-red-500" /> Despertar nocturno
           </div>
-          <div className="text-xs text-gray-400">Toca un bloque para ver los detalles.</div>
+          <div className="flex items-center gap-1 text-xs text-gray-400 ml-auto">
+            <span>Horarios referencia: 00:00 · 06:00 · 12:00 · 18:00 · 24:00</span>
+          </div>
+          <div className="text-xs text-gray-400 w-full">Toca un bloque para ver los detalles.</div>
         </div>
       )}
 

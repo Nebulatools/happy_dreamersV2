@@ -2,7 +2,7 @@
 "use client"
 
 import React from 'react'
-import { Moon, Sun, AlertCircle, Clock } from "lucide-react"
+import { Moon, Sun, AlertCircle, Clock, Utensils, Baby } from "lucide-react"
 import { cn } from '@/lib/utils'
 import type { CalendarViewMode } from '@/types/calendar'
 
@@ -84,10 +84,11 @@ export function EventGlobe({ event, hourHeight = 30, onClick, viewMode = 'full' 
   // 🎭 ICONO POR TIPO
   const getIcon = () => {
     switch (event.eventType) {
-      case 'nap': return <Sun className="w-3 h-3" />
+      case 'nap': return <Baby className="w-3 h-3" />
       case 'sleep': return <Moon className="w-3 h-3" />
       case 'wake': return <Sun className="w-3 h-3" />
       case 'night_waking': return <AlertCircle className="w-3 h-3" />
+      case 'feeding': return <Utensils className="w-3 h-3" />
       default: return <Clock className="w-3 h-3" />
     }
   }
