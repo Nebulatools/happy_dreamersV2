@@ -3,7 +3,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger('PlanManager')
@@ -14,6 +14,7 @@ import { Loader2, Calendar, Plus, Clock, Target, CheckCircle, AlertCircle, Trash
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { EditablePlanDisplay } from "./EditablePlanDisplay"
+import { ManualPlanDialog, ManualPlanFormValues, ManualPlanItemOption } from "./ManualPlanDialog"
 import { ChildPlan } from "@/types/models"
 
 interface PlanManagerProps {
@@ -36,7 +37,9 @@ export function PlanManager({
   const [plans, setPlans] = useState<ChildPlan[]>([])
   const [loadingPlans, setLoadingPlans] = useState(false)
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null)
-  const [generatingPlan, setGeneratingPlan] = useState(false)
+  const [generatingAIPlan, setGeneratingAIPlan] = useState(false)
+  const [manualDialogOpen, setManualDialogOpen] = useState(false)
+  const [savingManualPlan, setSavingManualPlan] = useState(false)
   const [selectedPlanIndex, setSelectedPlanIndex] = useState<number | null>(null)
   const [historyReports, setHistoryReports] = useState<any[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
@@ -209,6 +212,149 @@ export function PlanManager({
     }
   }
 
+  const manualPlanOptions: ManualPlanItemOption[] = useMemo(() => {
+    if (!plans || plans.length === 0) {
+      return [
+        {
+          value: "initial",
+          label: "Plan inicial (0)",
+          enabled: true,
+          description: "Crea el primer plan manual para este niño.",
+          nextVersion: "Plan 0"
+        },
+        {
+          value: "event_based",
+          label: "Plan de progresión",
+          enabled: false,
+          description: "Necesita un plan inicial para avanzar."
+        },
+        {
+          value: "transcript_refinement",
+          label: "Plan de refinamiento",
+          enabled: false,
+          description: "Primero genera un plan de progresión." 
+        }
+      ]
+    }
+
+    const hasInitialPlan = plans.some(plan => plan.planNumber === 0)
+    const eventPlans = plans.filter(plan => plan.planType === "event_based")
+    const latestEventPlan = eventPlans.sort((a, b) => {
+      const ta = new Date(a?.createdAt || 0).getTime()
+      const tb = new Date(b?.createdAt || 0).getTime()
+      return tb - ta
+    })[0]
+
+    const highestEventNumber = eventPlans.reduce((max, plan) => {
+      const number = typeof plan?.planNumber === 'number' ? plan.planNumber : 0
+      return number > max ? number : max
+    }, 0)
+
+    const refinementCountForLatest = latestEventPlan
+      ? plans.filter(plan => plan.planType === "transcript_refinement" && plan.planNumber === latestEventPlan.planNumber).length
+      : 0
+
+    const options: ManualPlanItemOption[] = [
+      {
+        value: "initial",
+        label: "Plan inicial (0)",
+        enabled: !hasInitialPlan,
+        description: hasInitialPlan
+          ? "Ya existe un Plan 0. Puedes actualizarlo manualmente o crear progresiones."
+          : "Define el plan base sin necesidad de IA.",
+        nextVersion: "Plan 0"
+      },
+      {
+        value: "event_based",
+        label: `Plan de progresión (${highestEventNumber + 1 || 1})`,
+        enabled: hasInitialPlan,
+        description: hasInitialPlan
+          ? "Crea un nuevo plan manual basado en la experiencia reciente."
+          : "Primero crea un plan inicial manual.",
+        nextVersion: hasInitialPlan ? `Plan ${highestEventNumber + 1 || 1}` : undefined
+      },
+      {
+        value: "transcript_refinement",
+        label: "Plan de refinamiento",
+        enabled: !!latestEventPlan,
+        description: latestEventPlan
+          ? `Ajusta manualmente el plan ${latestEventPlan.planVersion}.`
+          : "Necesitas al menos un plan de progresión para refinarlo.",
+        nextVersion: latestEventPlan
+          ? `${latestEventPlan.planNumber}.${refinementCountForLatest + 1}`
+          : undefined
+      }
+    ]
+
+    return options
+  }, [plans])
+
+  const handleManualPlanSubmit = async (values: ManualPlanFormValues) => {
+    if (!selectedUserId || !selectedChildId) return
+
+    try {
+      setSavingManualPlan(true)
+
+      const response = await fetch('/api/consultas/plans', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: selectedUserId,
+          childId: selectedChildId,
+          planType: values.planType,
+          mode: 'manual',
+          manualPlan: {
+            title: values.title,
+            schedule: {
+              wakeTime: values.wakeTime,
+              bedtime: values.bedtime,
+              meals: values.meals,
+              activities: values.activities,
+              naps: values.naps
+            },
+            objectives: values.objectives,
+            recommendations: values.recommendations,
+            status: values.status,
+            notes: values.notes
+          }
+        })
+      })
+
+      if (!response.ok) {
+        const raw = await response.text()
+        let details = raw
+        try {
+          const parsed = JSON.parse(raw)
+          details = parsed.details || parsed.error || raw
+        } catch {
+          // mantener raw
+        }
+        throw new Error(details)
+      }
+
+      await loadPlans()
+      await validatePlanCapabilities()
+
+      toast({
+        title: 'Plan manual creado',
+        description: 'El plan se guardó correctamente.',
+      })
+
+      setManualDialogOpen(false)
+    } catch (error) {
+      logger.error('Error guardando plan manual:', error)
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'No se pudo guardar el plan manual.',
+        variant: 'destructive'
+      })
+    } finally {
+      setSavingManualPlan(false)
+    }
+  }
+
   // Eliminar plan (solo admin desde UI de administrador)
   const deletePlan = async (planId: string) => {
     if (!planId) return
@@ -286,8 +432,8 @@ export function PlanManager({
     }
   }
 
-  // Generar nuevo plan
-  const generatePlan = async (planType: "initial" | "event_based" | "transcript_refinement", reportId?: string) => {
+  // Generar nuevo plan usando IA (opcional)
+  const generatePlanAI = async (planType: "initial" | "event_based" | "transcript_refinement", reportId?: string) => {
     if (!selectedUserId || !selectedChildId) return
 
     // Validar que se puede generar el tipo de plan solicitado (revalida en tiempo real)
@@ -331,7 +477,7 @@ export function PlanManager({
     }
 
     try {
-      setGeneratingPlan(true)
+      setGeneratingAIPlan(true)
       
       const requestBody: any = {
         userId: selectedUserId,
@@ -391,7 +537,7 @@ export function PlanManager({
         variant: "destructive",
       })
     } finally {
-      setGeneratingPlan(false)
+      setGeneratingAIPlan(false)
     }
   }
 
@@ -470,7 +616,7 @@ export function PlanManager({
       {/* Header con información y botón de generar */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
@@ -483,50 +629,67 @@ export function PlanManager({
                 }
               </CardDescription>
             </div>
-            
-            {loadingValidations ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm text-muted-foreground">Validando opciones...</span>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full max-w-3xl">
-                {availablePlans.map((planOption) => (
-                  <div key={planOption.planType} className="flex flex-col items-stretch">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            onClick={() => generatePlan(planOption.planType)}
-                            disabled={!planOption.canGenerate || generatingPlan}
-                            size="sm"
-                            variant={planOption.canGenerate ? "default" : "outline"}
-                            className="min-w-[160px] text-xs"
-                          >
-                            {generatingPlan ? (
-                              <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                            ) : (
-                              <Plus className="h-3 w-3 mr-2" />
+
+            <div className="w-full md:w-auto flex flex-col gap-3">
+              <Button size="sm" className="justify-center" onClick={() => setManualDialogOpen(true)}>
+                <Plus className="h-3 w-3 mr-2" /> Crear plan manual
+              </Button>
+
+              <div className="rounded-lg border border-dashed border-slate-200 p-3 bg-slate-50">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase">Planes con IA (opcional)</p>
+                  {loadingValidations && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                </div>
+
+                {loadingValidations ? (
+                  <p className="text-xs text-muted-foreground">Validando opciones disponibles...</p>
+                ) : availablePlans.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {availablePlans.map((planOption) => (
+                      <div key={planOption.planType} className="flex flex-col items-stretch">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                onClick={() => generatePlanAI(planOption.planType)}
+                                disabled={!planOption.canGenerate || generatingAIPlan}
+                                size="sm"
+                                variant={planOption.canGenerate ? "default" : "outline"}
+                                className="min-w-[160px] text-xs"
+                              >
+                                {generatingAIPlan ? (
+                                  <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                                ) : (
+                                  <Plus className="h-3 w-3 mr-2" />
+                                )}
+                                {generatingAIPlan ? "Generando..." : planOption.buttonText}
+                              </Button>
+                            </TooltipTrigger>
+                            {planOption.description && (
+                              <TooltipContent>
+                                <p className="max-w-xs">{planOption.description}</p>
+                              </TooltipContent>
                             )}
-                            {generatingPlan ? "Generando..." : planOption.buttonText}
-                          </Button>
-                        </TooltipTrigger>
-                        {planOption.canGenerate && planOption.description && (
-                          <TooltipContent>
-                            <p className="max-w-xs">{planOption.description}</p>
-                          </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        {planOption.nextVersion && (
+                          <Badge variant="outline" className="mt-2 self-start">
+                            Próximo: {planOption.nextVersion}
+                          </Badge>
                         )}
-                      </Tooltip>
-                    </TooltipProvider>
-                    {!planOption.canGenerate && planOption.description && (
-                      <div className="mt-1 text-[11px] text-muted-foreground leading-snug">
-                        {planOption.description}
+                        {!planOption.canGenerate && planOption.description && (
+                          <p className="text-[11px] text-muted-foreground leading-snug mt-2">
+                            {planOption.description}
+                          </p>
+                        )}
                       </div>
-                    )}
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <p className="text-xs text-muted-foreground">No hay opciones con IA disponibles por ahora.</p>
+                )}
               </div>
-            )}
+            </div>
           </div>
           {/* Debug panel (solo admin) */}
           {(!loadingValidations) && (
@@ -711,6 +874,14 @@ export function PlanManager({
           </CardContent>
         )}
       </Card>
+
+      <ManualPlanDialog
+        open={manualDialogOpen}
+        onOpenChange={setManualDialogOpen}
+        options={manualPlanOptions}
+        onSubmit={handleManualPlanSubmit}
+        submitting={savingManualPlan}
+      />
 
       {/* Mostrar plan seleccionado */}
       {selectedPlanIndex !== null && plans && plans.length > selectedPlanIndex && plans[selectedPlanIndex] && (

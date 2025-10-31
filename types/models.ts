@@ -380,7 +380,9 @@ export interface ChildPlan {
   title: string          // "Plan Inicial para [Nombre]"
   objectives: string[]   // Objetivos principales del plan
   recommendations: string[] // Recomendaciones específicas
-  basedOn: "survey_stats_rag" | "events_stats_rag" | "transcript_refinement"
+  basedOn: "survey_stats_rag" | "events_stats_rag" | "transcript_refinement" | "manual_admin"
+  origin?: "ai" | "manual"
+  notes?: string
   
   // Referencia al plan base (para evolución progresiva)
   basedOnPlan?: {

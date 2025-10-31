@@ -49,7 +49,14 @@ export function buildPlanContext(plan: ChildPlan): string {
   // Información básica del plan
   context += `Plan Número: ${plan.planNumber}\n`
   context += `Título: ${plan.title}\n`
-  context += `Tipo: ${plan.planType === 'initial' ? 'Plan Inicial' : 'Plan Basado en Análisis'}\n\n`
+  const readableType = (() => {
+    if (plan.planType === 'initial') return 'Plan Inicial'
+    if (plan.planType === 'event_based') return 'Plan de Progresión'
+    if (plan.planType === 'transcript_refinement') return 'Plan de Refinamiento'
+    return 'Plan Personalizado'
+  })()
+
+  context += `Tipo: ${readableType}\n\n`
 
   // Objetivos del plan
   if (plan.objectives && plan.objectives.length > 0) {
@@ -116,11 +123,32 @@ export function buildPlanContext(plan: ChildPlan): string {
         context += `• Edad del niño: ${plan.sourceData.ageInMonths} meses\n`
         context += `• Eventos registrados: ${plan.sourceData.totalEvents}\n`
       }
-    } else if (plan.basedOn === "transcript_analysis") {
-      context += "• Basado en: Análisis de consulta médica transcrita\n"
-      if (plan.transcriptAnalysis) {
-        context += `• Plan anterior actualizado: Plan ${plan.transcriptAnalysis.previousPlanNumber}\n`
+    } else if (plan.basedOn === "events_stats_rag") {
+      context += "• Basado en: Eventos recientes + Estadísticas del niño + Conocimiento médico\n"
+      if (plan.eventAnalysis) {
+        context += `• Eventos analizados: ${plan.eventAnalysis.eventsAnalyzed}\n`
+        if (plan.eventAnalysis.progressFromPrevious) {
+          context += `• Progreso detectado: ${plan.eventAnalysis.progressFromPrevious}\n`
+        }
+        if (plan.eventAnalysis.basePlanVersion) {
+          context += `• Plan base: ${plan.eventAnalysis.basePlanVersion}\n`
+        }
       }
+    } else if (plan.basedOn === "transcript_refinement") {
+      context += "• Basado en: Ajustes tras una consulta profesional (transcript)\n"
+      if (plan.transcriptAnalysis) {
+        if (plan.transcriptAnalysis.basePlanVersion) {
+          context += `• Plan refinado: ${plan.transcriptAnalysis.basePlanVersion}\n`
+        }
+        if (plan.transcriptAnalysis.improvements?.length) {
+          context += "• Mejoras clave:\n"
+          plan.transcriptAnalysis.improvements.slice(0, 3).forEach((item, index) => {
+            context += `   ${index + 1}. ${item}\n`
+          })
+        }
+      }
+    } else if (plan.basedOn === "manual_admin") {
+      context += "• Basado en: Criterio clínico manual del equipo\n"
     }
     context += "\n"
   }
@@ -204,7 +232,14 @@ export async function getAllPlansContext(childId: string, userId: string): Promi
       const status = isActive ? "(ACTIVO)" : "(ANTERIOR)"
       
       context += `\n📋 PLAN ${plan.planNumber} ${status}:\n`
-      context += `• Tipo: ${plan.planType === 'initial' ? 'Plan Inicial' : 'Plan Basado en Análisis'}\n`
+      const readablePlanType = plan.planType === 'initial'
+        ? 'Plan Inicial'
+        : plan.planType === 'event_based'
+          ? 'Plan de Progresión'
+          : plan.planType === 'transcript_refinement'
+            ? 'Plan de Refinamiento'
+            : 'Plan Personalizado'
+      context += `• Tipo: ${readablePlanType}\n`
       
       if (plan.schedule) {
         if (plan.schedule.bedtime) {

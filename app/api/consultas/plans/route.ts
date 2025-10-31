@@ -333,7 +333,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    const { userId, childId, planType, reportId } = await req.json()
+    const body = await req.json()
+    const { userId, childId, planType, reportId, manualPlan, mode } = body
+    const creationMode: "manual" | "ai" = mode === "manual" ? "manual" : "ai"
+    const isManual = creationMode === "manual"
 
     if (!userId || !childId || !planType) {
       return NextResponse.json({ 
@@ -349,7 +352,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    if (planType === "transcript_refinement" && !reportId) {
+    if (!isManual && planType === "transcript_refinement" && !reportId) {
       return NextResponse.json({ 
         error: "Para planes de refinamiento con transcript se requiere el reportId del análisis" 
       }, { status: 400 })
@@ -397,7 +400,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validar que hay eventos disponibles para planes basados en eventos
-    if (planType === "event_based") {
+    if (!isManual && planType === "event_based") {
       const latestByCreatedAt = [...existingPlans].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
       const eventsCheck = await hasEventsAfterDate(childId, new Date(latestByCreatedAt.createdAt))
       
@@ -409,7 +412,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validar que hay transcript disponible para refinamientos
-    if (planType === "transcript_refinement") {
+    if (!isManual && planType === "transcript_refinement") {
       // Para refinamientos, verificar transcripts DESPUÉS del último plan
       const lastPlanDate = existingPlans.length > 0 ? new Date(existingPlans[0].createdAt) : null
       const transcriptCheck = await hasAvailableTranscript(childId, lastPlanDate)
@@ -421,52 +424,156 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    let generatedPlan: ChildPlan
+    const now = new Date()
+    let planDocument: ChildPlan
 
-    if (planType === "initial") {
-      // Generar Plan 0 basado en survey + stats + RAG
-      generatedPlan = await generateInitialPlan(userId, childId, session.user.id)
-    } else if (planType === "event_based") {
-      // Generar Plan N basado en eventos + plan anterior + RAG
-      // Base para todo: el plan más reciente (incluye refinamientos)
-      const baseLatest = [...existingPlans].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+    if (isManual) {
+      if (!manualPlan || typeof manualPlan !== "object") {
+        return NextResponse.json({ error: "Faltan datos del plan manual" }, { status: 400 })
+      }
 
-      generatedPlan = await generateEventBasedPlan(
-        userId,
-        childId,
-        baseLatest,            // schedule base
-        planNumber,
-        planVersion,
-        session.user.id,
-        new Date(baseLatest.createdAt) // eventos desde el ÚLTIMO plan (ej: 1.1 → 2)
-      )
-    } else if (planType === "transcript_refinement") {
-      // Generar Plan N.1 basado en plan N + transcript
+      const normalizeTime = (value: any): string => {
+        if (typeof value !== "string") return ""
+        const trimmed = value.trim()
+        if (!/^\d{1,2}:\d{2}$/.test(trimmed)) return trimmed
+        const [hh, mm] = trimmed.split(":").map(v => parseInt(v, 10))
+        const safeH = isNaN(hh) ? 0 : Math.max(0, Math.min(23, hh))
+        const safeM = isNaN(mm) ? 0 : Math.max(0, Math.min(59, mm))
+        return `${String(safeH).padStart(2, "0")}:${String(safeM).padStart(2, "0")}`
+      }
+
+      const sanitizeTextArray = (value: any): string[] => {
+        if (!Array.isArray(value)) return []
+        return value
+          .map(item => typeof item === "string" ? item.trim() : "")
+          .filter(item => item.length > 0)
+      }
+
+      const sanitizeMeals = (value: any): Array<{ time: string, type: string, description: string }> => {
+        if (!Array.isArray(value)) return []
+        return value
+          .map(item => {
+            const time = normalizeTime(item?.time)
+            const type = typeof item?.type === "string" ? item.type.trim() : ""
+            const description = typeof item?.description === "string" ? item.description.trim() : ""
+            return time ? { time, type, description } : null
+          })
+          .filter(Boolean) as Array<{ time: string, type: string, description: string }>
+      }
+
+      const sanitizeActivities = (value: any): Array<{ time: string, activity: string, duration: number, description: string }> => {
+        if (!Array.isArray(value)) return []
+        return value
+          .map(item => {
+            const time = normalizeTime(item?.time)
+            const activity = typeof item?.activity === "string" ? item.activity.trim() : ""
+            const description = typeof item?.description === "string" ? item.description.trim() : ""
+            const durationRaw = typeof item?.duration === "number" ? item.duration : parseInt(item?.duration ?? "0", 10)
+            const duration = isNaN(durationRaw) ? 0 : Math.max(0, durationRaw)
+            return time && activity ? { time, activity, duration, description } : null
+          })
+          .filter(Boolean) as Array<{ time: string, activity: string, duration: number, description: string }>
+      }
+
+      const sanitizeNaps = (value: any): Array<{ time: string, duration: number, description?: string }> => {
+        if (!Array.isArray(value)) return []
+        return value
+          .map(item => {
+            const time = normalizeTime(item?.time)
+            const durationRaw = typeof item?.duration === "number" ? item.duration : parseInt(item?.duration ?? "0", 10)
+            const duration = isNaN(durationRaw) ? 0 : Math.max(0, durationRaw)
+            const description = typeof item?.description === "string" ? item.description.trim() : undefined
+            return time && duration > 0 ? { time, duration, description } : null
+          })
+          .filter(Boolean) as Array<{ time: string, duration: number, description?: string }>
+      }
+
+      const bedtime = normalizeTime(manualPlan?.schedule?.bedtime)
+      const wakeTime = normalizeTime(manualPlan?.schedule?.wakeTime)
+
+      if (!bedtime || !wakeTime) {
+        return NextResponse.json({ error: "El horario debe incluir hora de dormir y de despertar" }, { status: 400 })
+      }
+
       const basePlan = existingPlans[0]
-      generatedPlan = await generateTranscriptRefinementPlan(
-        userId, 
-        childId, 
-        basePlan,
-        reportId,
+
+      const allowedStatuses = ["borrador", "activo", "completado", "superseded", "archived"] as const
+      const status = typeof manualPlan?.status === "string" && allowedStatuses.includes(manualPlan.status)
+        ? manualPlan.status as typeof allowedStatuses[number]
+        : "borrador"
+
+      planDocument = {
+        childId: new ObjectId(childId),
+        userId: new ObjectId(userId),
         planNumber,
         planVersion,
-        session.user.id
-      )
+        planType: planType as ChildPlan["planType"],
+        title: typeof manualPlan?.title === "string" && manualPlan.title.trim().length > 0
+          ? manualPlan.title.trim()
+          : `Plan ${planVersion} manual`,
+        schedule: {
+          bedtime,
+          wakeTime,
+          meals: sanitizeMeals(manualPlan?.schedule?.meals),
+          activities: sanitizeActivities(manualPlan?.schedule?.activities),
+          naps: sanitizeNaps(manualPlan?.schedule?.naps)
+        },
+        objectives: sanitizeTextArray(manualPlan?.objectives),
+        recommendations: sanitizeTextArray(manualPlan?.recommendations),
+        basedOn: "manual_admin",
+        basedOnPlan: basePlan ? {
+          planId: basePlan._id,
+          planVersion: basePlan.planVersion
+        } : undefined,
+        createdAt: now,
+        updatedAt: now,
+        createdBy: new ObjectId(session.user.id),
+        status,
+        origin: "manual",
+        notes: typeof manualPlan?.notes === "string" ? manualPlan.notes.trim() : undefined
+      }
+    } else {
+      let generatedPlan: ChildPlan
+
+      if (planType === "initial") {
+        generatedPlan = await generateInitialPlan(userId, childId, session.user.id)
+      } else if (planType === "event_based") {
+        const baseLatest = [...existingPlans].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+
+        generatedPlan = await generateEventBasedPlan(
+          userId,
+          childId,
+          baseLatest,
+          planNumber,
+          planVersion,
+          session.user.id,
+          new Date(baseLatest.createdAt)
+        )
+      } else {
+        const basePlan = existingPlans[0]
+        generatedPlan = await generateTranscriptRefinementPlan(
+          userId,
+          childId,
+          basePlan,
+          reportId,
+          planNumber,
+          planVersion,
+          session.user.id
+        )
+      }
+
+      planDocument = {
+        ...generatedPlan,
+        planNumber,
+        planVersion,
+        createdAt: now,
+        updatedAt: now,
+        status: "borrador",
+        origin: "ai"
+      }
     }
 
-    // NO marcar planes anteriores como superseded cuando se crea un borrador
-    // Los planes solo se marcan como superseded cuando el nuevo plan se ACTIVA (mediante endpoint PATCH)
-    // Esto permite que el usuario siga viendo su plan activo mientras el admin prepara el borrador
-
-    // Guardar el nuevo plan como BORRADOR
-    const result = await db.collection("child_plans").insertOne({
-      ...generatedPlan,
-      planNumber,
-      planVersion,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      status: "borrador"
-    })
+    const result = await db.collection("child_plans").insertOne(planDocument)
 
     const totalProcessingTime = Date.now() - startTime
 
@@ -476,26 +583,23 @@ export async function POST(req: NextRequest) {
       planVersion,
       planType,
       childId,
-      processingTime: totalProcessingTime
+      processingTime: totalProcessingTime,
+      mode: creationMode
     })
 
     return NextResponse.json({
       success: true,
       planId: result.insertedId,
       plan: {
-        ...generatedPlan,
-        _id: result.insertedId,
-        planNumber,
-        planVersion,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        status: "borrador"
+        ...planDocument,
+        _id: result.insertedId
       },
       metadata: {
         processingTime: totalProcessingTime,
         planNumber,
         planVersion,
-        totalPlans: existingPlans.length + 1
+        totalPlans: existingPlans.length + 1,
+        mode: creationMode
       }
     })
 
@@ -1132,7 +1236,7 @@ async function generateTranscriptBasedPlan(
 
   // 5. Generar nuevo plan enfocado en cambios del análisis
   const aiPlan = await generatePlanWithAI({
-    planType: "transcript_based",
+    planType: "transcript_refinement",
     childData: child,
     previousPlan,
     transcriptAnalysis: {
@@ -1149,17 +1253,17 @@ async function generateTranscriptBasedPlan(
     childId: new ObjectId(childId),
     userId: new ObjectId(userId),
     planNumber,
-    planType: "transcript_based",
+    planType: "transcript_refinement",
     title: `Plan ${planNumber} para ${child.firstName} (Actualización)`,
     schedule: aiPlan.schedule,
     objectives: aiPlan.objectives,
     recommendations: aiPlan.recommendations,
-    basedOn: "transcript_analysis",
+    basedOn: "transcript_refinement",
     transcriptAnalysis: {
       reportId: new ObjectId(reportId),
       improvements: aiPlan.improvements || [],
       adjustments: aiPlan.adjustments || [],
-      previousPlanNumber
+      basePlanVersion: previousPlan.planVersion
     },
     createdAt: new Date(),
     updatedAt: new Date(),

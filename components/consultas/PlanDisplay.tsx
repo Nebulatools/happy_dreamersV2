@@ -15,7 +15,8 @@ import {
   CheckCircle,
   Moon as Nap,
   Calendar,
-  Info
+  Info,
+  FileText
 } from "lucide-react"
 import { ChildPlan } from "@/types/models"
 
@@ -169,6 +170,11 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
                     Activo
                   </Badge>
                 )}
+                {plan.origin === "manual" && (
+                  <Badge variant="outline" className="border-slate-300 text-slate-600">
+                    Manual
+                  </Badge>
+                )}
               </div>
               <CardDescription>
                 Creado el {new Date(plan.createdAt).toLocaleDateString('es-ES', {
@@ -177,7 +183,7 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
                   month: 'long',
                   day: 'numeric'
                 })}
-                {plan.basedOn === "transcript_analysis" && (
+                {plan.basedOn === "transcript_refinement" && (
                   <span className="ml-2">• Basado en análisis de transcript</span>
                 )}
                 {plan.basedOn === "events_stats_rag" && (
@@ -187,6 +193,12 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
                 )}
                 {plan.basedOn === "survey_stats_rag" && (
                   <span className="ml-2">• Basado en survey + estadísticas + RAG</span>
+                )}
+                {plan.basedOn === "manual_admin" && (
+                  <span className="ml-2">• Plan definido manualmente por el equipo</span>
+                )}
+                {plan.origin === "manual" && plan.basedOn !== "manual_admin" && (
+                  <span className="ml-2">• Ajustado manualmente</span>
                 )}
               </CardDescription>
             </div>
@@ -310,8 +322,24 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
             </CardContent>
           </Card>
 
+          {plan.notes && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Notas internas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm whitespace-pre-line text-muted-foreground">
+                  {plan.notes}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Información adicional para planes basados en transcript */}
-          {plan.planType === "transcript_based" && plan.transcriptAnalysis && (
+          {plan.planType === "transcript_refinement" && plan.transcriptAnalysis && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">Ajustes Realizados</CardTitle>
@@ -367,15 +395,16 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
                      plan.planType === "event_based" ? "Progresión basada en eventos" :
                      plan.planType === "transcript_refinement" ? "Refinamiento por transcript" : 
                      "Actualización"}
-                  </span>
-                </div>
+                </span>
+              </div>
                 <div className="flex justify-between">
                   <span>Basado en:</span>
                   <span>
                     {plan.basedOn === "survey_stats_rag" ? "Survey + Stats + RAG" : 
                      plan.basedOn === "events_stats_rag" ? 
                        `Plan ${plan.basedOnPlan?.planVersion || 'anterior'} + ${plan.eventAnalysis?.eventsAnalyzed || 'X'} eventos + RAG` :
-                     plan.basedOn === "transcript_analysis" ? "Análisis de transcript" : 
+                     plan.basedOn === "transcript_refinement" ? "Análisis de transcript" : 
+                     plan.basedOn === "manual_admin" ? "Definición manual" :
                      plan.basedOn}
                   </span>
                 </div>

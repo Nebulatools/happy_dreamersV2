@@ -405,7 +405,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                   month: 'long',
                   day: 'numeric'
                 })}
-                {editedPlan.basedOn === "transcript_analysis" && (
+                {editedPlan.basedOn === "transcript_refinement" && (
                   <span className="ml-2">• Basado en análisis de transcript</span>
                 )}
               </CardDescription>
@@ -772,9 +772,11 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                       ? "Survey + Stats + RAG" 
                       : editedPlan.basedOn === "events_stats_rag"
                         ? `Plan ${editedPlan.basedOnPlan?.planVersion || 'anterior'} + ${editedPlan.eventAnalysis?.eventsAnalyzed || 'X'} eventos + RAG`
-                        : editedPlan.basedOn === "transcript_analysis"
+                        : editedPlan.basedOn === "transcript_refinement"
                           ? "Análisis de transcript"
-                          : editedPlan.basedOn}
+                          : editedPlan.basedOn === "manual_admin"
+                            ? "Definición manual"
+                            : editedPlan.basedOn}
                   </span>
                 </div>
                 {/* Resumen mínimo de datos usados para Progresión */}
