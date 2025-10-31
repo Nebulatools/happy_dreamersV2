@@ -114,12 +114,12 @@ export function EventGlobe({ event, hourHeight = 30, onClick, viewMode = 'full' 
     if (endTimeData) titleParts.push(`hasta ${endTimeData.formatted}`)
     const title = titleParts.join(' · ')
     const compactIcon = getIcon()
-    const label = getName()
+    const rangeLabel = endTimeData ? `${timeData.formatted} → ${endTimeData.formatted}` : timeData.formatted
 
     return (
       <div
         className={cn(
-          'absolute left-1 right-1 rounded-md opacity-95 flex items-center justify-between shadow-sm px-2',
+          'absolute left-1 right-1 rounded-md opacity-95 flex items-center gap-2 shadow-sm px-2 py-1',
           getColor()
         )}
         style={{
@@ -133,11 +133,11 @@ export function EventGlobe({ event, hourHeight = 30, onClick, viewMode = 'full' 
         title={title}
         aria-label={title}
       >
-        <span className="text-[11px] font-medium text-white/95 truncate">
-          {label}
-        </span>
-        <span className="text-[11px] text-white/80 font-semibold">
-          {timeData.formatted}
+        {React.isValidElement(compactIcon)
+          ? React.cloneElement(compactIcon, { className: 'w-3.5 h-3.5 text-white' })
+          : null}
+        <span className="text-[11px] font-semibold text-white/95 truncate">
+          {rangeLabel}
         </span>
       </div>
     )

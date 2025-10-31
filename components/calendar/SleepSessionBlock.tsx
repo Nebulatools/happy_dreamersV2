@@ -228,29 +228,34 @@ export function SleepSessionBlock({
     if (isCompact) {
       const startLabel = formatTime(originalStartTime || startTime)
       const endLabel = endTime || originalEndTime ? formatTime(originalEndTime || endTime!) : null
+      const rangeLabel = endLabel && endLabel !== '--:--'
+        ? `${startLabel !== '--:--' ? startLabel : '--'} → ${endLabel}`
+        : continuesNextDay
+          ? `${startLabel !== '--:--' ? startLabel : '--'} → …`
+          : startLabel !== '--:--' ? startLabel : '--'
+      const detailLabel = durationLabel || 'En progreso'
       return (
         <div
           className={cn(
             "absolute left-1 right-1 rounded-md bg-blue-400/90 text-white p-2",
-            "grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-1 items-center",
+            "flex flex-col gap-1",
             className
           )}
           style={{
             top: `${position}px`,
-            minHeight: `${Math.max(height, 36)}px`
+            minHeight: `${Math.max(height, 32)}px`
           }}
           onClick={onClick}
           title={tooltipLabel}
           aria-label={tooltipLabel}
         >
-          <div className="col-span-2 text-[11px] font-semibold leading-none">
-            Sueño nocturno
+          <div className="flex items-center gap-2 text-[11px] font-semibold">
+            <Moon className="w-3.5 h-3.5" />
+            <span>{rangeLabel}</span>
           </div>
-          <span className="text-[10px] opacity-90">Inicio {startLabel !== '--:--' ? startLabel : '--'}</span>
-          <span className="text-[10px] opacity-90 text-right">Duración {durationLabel || '--'}</span>
-          <span className="text-[10px] opacity-90">
-            {endLabel && endLabel !== '--:--' ? `Fin ${endLabel}` : continuesNextDay ? 'Continúa mañana' : 'Fin --'}
-          </span>
+          <div className="text-[10px] opacity-85">
+            {detailLabel}
+          </div>
         </div>
       )
     }
@@ -300,29 +305,36 @@ export function SleepSessionBlock({
   if (isCompact) {
     const startLabel = formatTime(originalStartTime || startTime)
     const endLabel = endTime || originalEndTime ? formatTime(originalEndTime || endTime!) : null
+    const rangeLabel = endLabel && endLabel !== '--:--'
+      ? `${startLabel !== '--:--' ? startLabel : '--'} → ${endLabel}`
+      : continuesNextDay
+        ? `${startLabel !== '--:--' ? startLabel : '--'} → …`
+        : startLabel !== '--:--' ? startLabel : '--'
+    const detailLabel = durationLabel || (continuesNextDay ? 'Continúa' : '')
     return (
       <div
         className={cn(
           "absolute left-1 right-1 rounded-md bg-blue-500/95 text-white p-2",
-          "grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-1 items-center",
+          "flex flex-col gap-1",
           className
         )}
         style={{
           top: `${position}px`,
-          minHeight: `${Math.max(height, 36)}px`
+          minHeight: `${Math.max(height, 32)}px`
         }}
         onClick={onClick}
         title={tooltipLabel}
         aria-label={tooltipLabel}
       >
-        <div className="col-span-2 text-[11px] font-semibold leading-none">
-          Sueño nocturno
+        <div className="flex items-center gap-2 text-[11px] font-semibold">
+          <Moon className="w-3.5 h-3.5" />
+          <span>{rangeLabel}</span>
         </div>
-        <span className="text-[10px] opacity-90">Inicio {startLabel !== '--:--' ? startLabel : '--'}</span>
-        <span className="text-[10px] opacity-90 text-right">Duración {durationLabel || '--'}</span>
-        <span className="text-[10px] opacity-90">
-          {endLabel && endLabel !== '--:--' ? `Fin ${endLabel}` : continuesNextDay ? 'Continúa mañana' : 'Fin --'}
-        </span>
+        {detailLabel && (
+          <div className="text-[10px] opacity-85">
+            {detailLabel}
+          </div>
+        )}
       </div>
     )
   }
