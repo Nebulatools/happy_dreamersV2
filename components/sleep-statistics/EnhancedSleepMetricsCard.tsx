@@ -177,6 +177,10 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
   const bedtimeStatus = getBedtimeConsistencyStatus(sleepData.bedtimeVariation)
   const wakeupsStatus = getWakeupsStatus(sleepData.totalWakeups)
 
+  const hasNightSleepData = breakdown.nightSleepCount > 0 && breakdown.nightSleepHours > 0
+  const hasNapSleepData = breakdown.napCount > 0 && breakdown.napHours > 0
+  const hasAnySleepData = hasNightSleepData || hasNapSleepData
+
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
       <div className="p-6 space-y-4">
@@ -251,7 +255,11 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
               </div>
               <div className="flex-1">
                 <p className="text-xs text-gray-600 font-medium">Sueño nocturno</p>
-                <p className="text-2xl font-bold text-gray-900">{breakdown.nightSleepHours.toFixed(1)}h</p>
+                {hasNightSleepData ? (
+                  <p className="text-2xl font-bold text-gray-900">{breakdown.nightSleepHours.toFixed(1)}h</p>
+                ) : (
+                  <p className="text-sm font-medium text-gray-500">Aún no registramos noches con sueño</p>
+                )}
               </div>
             </div>
           </motion.div>
@@ -268,102 +276,116 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
               <h3 className="font-semibold text-gray-800">Promedio Diario de Sueño</h3>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Columna izquierda - Desglose detallado */}
-              <div className="space-y-3">
-                {/* Sueño Nocturno */}
-                <div className="flex items-center justify-between bg-white/70 rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <Moon className="w-5 h-5 text-indigo-600" />
-                    <span className="font-medium text-gray-700">Promedio nocturno:</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-bold text-indigo-600 text-lg">
-                      {formatDuration(breakdown.nightSleepHours)}
-                    </span>
-                    <span className="text-sm text-gray-500 ml-2">
-                      ({Math.round(breakdown.nightSleepPercentage)}%)
-                    </span>
-                  </div>
-                </div>
-
-                {/* Siestas */}
-                <div className="flex items-center justify-between bg-white/70 rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <Sun className="w-5 h-5 text-orange-500" />
-                    <span className="font-medium text-gray-700">Promedio siestas:</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-bold text-orange-500 text-lg">
-                      {formatDuration(breakdown.napHours)}
-                    </span>
-                    <span className="text-sm text-gray-500 ml-2">
-                      ({Math.round(breakdown.napPercentage)}%)
-                    </span>
-                  </div>
-                </div>
-
-                {/* Barra de progreso visual */}
-                <div className="pt-2">
-                  <div className="flex gap-1 h-3 rounded-full overflow-hidden bg-gray-200">
-                    <div 
-                      className="bg-indigo-500 transition-all duration-500"
-                      style={{ width: `${breakdown.nightSleepPercentage}%` }}
-                    />
-                    <div 
-                      className="bg-orange-400 transition-all duration-500"
-                      style={{ width: `${breakdown.napPercentage}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Resumen adicional explícito */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-100">
-                    <span className="text-sm text-gray-600">Hora de despertar:</span>
-                    <span className="text-sm font-semibold text-gray-900">{morningWakeAvg}</span>
-                  </div>
-                  <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-100">
-                    <span className="text-sm text-gray-600">Sueño nocturno:</span>
-                    <span className="text-sm font-semibold text-gray-900">{breakdown.nightSleepHours.toFixed(1)}h</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Columna derecha - Totales y tendencia */}
-              <div className="flex flex-col justify-between">
-                {/* Total de Sueño */}
-                <div className="bg-white/70 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Promedio Total Diario</p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {formatDuration(breakdown.totalHours)}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Basado en {breakdown.nightSleepCount} {breakdown.nightSleepCount === 1 ? 'noche' : 'noches'} y {breakdown.napCount} {breakdown.napCount === 1 ? 'siesta' : 'siestas'}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    ({breakdown.nightsWithSleep} {breakdown.nightsWithSleep === 1 ? 'noche' : 'noches'} con sueño, {breakdown.daysWithNaps} {breakdown.daysWithNaps === 1 ? 'siesta' : 'siestas'})
-                  </p>
-                </div>
-
-                {/* Indicador de calidad */}
-                <div className="mt-3">
-                  {breakdown.totalHours > 0 && breakdown.nightSleepPercentage >= 70 ? (
-                    <div className="flex items-center gap-2 text-green-600">
-                      <TrendingUp className="w-4 h-4" />
-                      <span className="text-sm font-medium">Buen balance de sueño</span>
+            {hasAnySleepData ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Columna izquierda - Desglose detallado */}
+                <div className="space-y-3">
+                  {/* Sueño Nocturno */}
+                  {hasNightSleepData && (
+                    <div className="flex items-center justify-between bg-white/70 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <Moon className="w-5 h-5 text-indigo-600" />
+                        <span className="font-medium text-gray-700">Promedio nocturno:</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-bold text-indigo-600 text-lg">
+                          {formatDuration(breakdown.nightSleepHours)}
+                        </span>
+                        <span className="text-sm text-gray-500 ml-2">
+                          ({Math.round(breakdown.nightSleepPercentage)}%)
+                        </span>
+                      </div>
                     </div>
-                  ) : breakdown.totalHours > 0 ? (
-                    <div className="flex items-center gap-2 text-orange-600">
-                      <TrendingDown className="w-4 h-4" />
-                      <span className="text-sm font-medium">Balance mejorable</span>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-500">Sin datos suficientes</div>
                   )}
+
+                  {/* Siestas */}
+                  {hasNapSleepData && (
+                    <div className="flex items-center justify-between bg-white/70 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <Sun className="w-5 h-5 text-orange-500" />
+                        <span className="font-medium text-gray-700">Promedio siestas:</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-bold text-orange-500 text-lg">
+                          {formatDuration(breakdown.napHours)}
+                        </span>
+                        <span className="text-sm text-gray-500 ml-2">
+                          ({Math.round(breakdown.napPercentage)}%)
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Barra de progreso visual */}
+                  {hasNightSleepData && hasNapSleepData && (
+                    <div className="pt-2">
+                      <div className="flex gap-1 h-3 rounded-full overflow-hidden bg-gray-200">
+                        <div 
+                          className="bg-indigo-500 transition-all duration-500"
+                          style={{ width: `${breakdown.nightSleepPercentage}%` }}
+                        />
+                        <div 
+                          className="bg-orange-400 transition-all duration-500"
+                          style={{ width: `${breakdown.napPercentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Resumen adicional explícito */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-100">
+                      <span className="text-sm text-gray-600">Hora de despertar:</span>
+                      <span className="text-sm font-semibold text-gray-900">{morningWakeAvg}</span>
+                    </div>
+                    {hasNightSleepData && (
+                      <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-100">
+                        <span className="text-sm text-gray-600">Sueño nocturno:</span>
+                        <span className="text-sm font-semibold text-gray-900">{breakdown.nightSleepHours.toFixed(1)}h</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Columna derecha - Totales y tendencia */}
+                <div className="flex flex-col justify-between">
+                  {/* Total de Sueño */}
+                  <div className="bg-white/70 rounded-lg p-4">
+                    <p className="text-sm text-gray-600 mb-1">Promedio Total Diario</p>
+                    <p className="text-3xl font-bold text-gray-900">
+                      {formatDuration(breakdown.totalHours)}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Basado en {breakdown.nightSleepCount} {breakdown.nightSleepCount === 1 ? 'noche' : 'noches'} y {breakdown.napCount} {breakdown.napCount === 1 ? 'siesta' : 'siestas'}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      ({breakdown.nightsWithSleep} {breakdown.nightsWithSleep === 1 ? 'noche' : 'noches'} con sueño, {breakdown.daysWithNaps} {breakdown.daysWithNaps === 1 ? 'siesta' : 'siestas'})
+                    </p>
+                  </div>
+
+                  {/* Indicador de calidad */}
+                  <div className="mt-3">
+                    {breakdown.totalHours > 0 && breakdown.nightSleepPercentage >= 70 ? (
+                      <div className="flex items-center gap-2 text-green-600">
+                        <TrendingUp className="w-4 h-4" />
+                        <span className="text-sm font-medium">Buen balance de sueño</span>
+                      </div>
+                    ) : breakdown.totalHours > 0 ? (
+                      <div className="flex items-center gap-2 text-orange-600">
+                        <TrendingDown className="w-4 h-4" />
+                        <span className="text-sm font-medium">Balance mejorable</span>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-500">Sin datos suficientes</div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-white/70 rounded-lg p-6 text-center text-sm text-gray-600">
+                Aún no tenemos suficientes registros para calcular promedios diarios. Agrega noches y siestas para ver esta sección.
+              </div>
+            )}
         </motion.div>
       </div>
     </div>
