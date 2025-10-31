@@ -91,6 +91,7 @@ export function CalendarWeekView({
   
   const isCompact = viewMode === 'compact'
   const axisInterval = isCompact ? 4 : 2
+  const timeMarkers = [0, 6, 12, 18, 24]
 
   return (
     <div className={`flex ${className}`} style={{ height: `${24 * hourHeight + 32}px` }}>
@@ -99,7 +100,17 @@ export function CalendarWeekView({
       )}
       
       {/* Días de la semana */}
-      <div className={cn('flex-1 flex', isCompact && 'gap-1 bg-transparent') }>
+      <div className="flex-1 flex flex-col">
+        {isCompact && (
+          <div className="px-2 pb-1">
+            <div className="flex justify-between text-[10px] text-gray-400 uppercase tracking-wide">
+              {timeMarkers.map((hour) => (
+                <span key={hour}>{`${hour.toString().padStart(2, '0')}:00`}</span>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className={cn('flex-1 flex', isCompact && 'gap-1 bg-transparent') }>
         {days.map((day, index) => {
           const dayName = format(day, "EEE", { locale: es })
           const dayNumber = format(day, "d", { locale: es })
@@ -232,6 +243,7 @@ export function CalendarWeekView({
             </div>
           )
         })}
+        </div>
       </div>
     </div>
   )

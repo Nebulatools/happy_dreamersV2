@@ -1137,6 +1137,10 @@ export default function CalendarPage() {
           <div className="flex items-center gap-2">
             <span className="inline-block w-3 h-3 rounded-full bg-night-wake" /> Despertar nocturno
           </div>
+          <div className="flex items-center gap-1 text-xs text-gray-400">
+            <span className="inline-block w-3 h-3 rounded-full border border-gray-300" />
+            <span>Horarios referenciales: 00:00 · 06:00 · 12:00 · 18:00 · 24:00</span>
+          </div>
           <div className="text-xs text-gray-400">Toca un bloque para ver los detalles.</div>
         </div>
       )}

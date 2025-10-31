@@ -50,9 +50,10 @@ export function CalendarDayView({
   const isCompact = viewMode === 'compact'
   const compactLabel = format(date, "EEE d MMM", { locale: es })
   const fullLabel = format(date, "EEEE d 'de' MMMM", { locale: es })
+  const timeMarkers = [0, 3, 6, 9, 12, 15, 18, 21, 24]
 
   return (
-    <div className={`flex ${className}`} style={{ height: `${24 * hourHeight + 32}px` }}>
+    <div className={`flex ${className}`} style={{ height: `${24 * hourHeight + 48}px` }}>
       {!isCompact && (
         <TimeAxis hourHeight={hourHeight} labelInterval={isCompact ? 4 : 2} />
       )}
@@ -99,7 +100,16 @@ export function CalendarDayView({
             </button>
           )}
         </div>
-        
+        {isCompact && (
+          <div className="px-3 py-1">
+            <div className="flex justify-between text-[10px] text-gray-400 uppercase tracking-wide">
+              {timeMarkers.map((hour) => (
+                <span key={hour}>{`${hour.toString().padStart(2, '0')}:00`}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Container de eventos */}
         <div 
           className="relative overflow-hidden cursor-pointer"
