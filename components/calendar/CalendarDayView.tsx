@@ -48,6 +48,8 @@ export function CalendarDayView({
   viewMode = "full"
 }: CalendarDayViewProps) {
   const isCompact = viewMode === 'compact'
+  const compactLabel = format(date, "EEE d MMM", { locale: es })
+  const fullLabel = format(date, "EEEE d 'de' MMMM", { locale: es })
 
   return (
     <div className={`flex ${className}`} style={{ height: `${24 * hourHeight + 32}px` }}>
@@ -59,8 +61,8 @@ export function CalendarDayView({
       <div className="flex-1 relative">
         {/* Header del día */}
         <div className={cn(
-          "bg-white border-b border-gray-200 flex items-center justify-center relative",
-          isCompact ? 'h-7' : 'h-8'
+          "bg-white border-b border-gray-200 flex items-center justify-center relative px-3",
+          isCompact ? 'h-10' : 'h-10'
         )}>
           {/* Flecha izquierda */}
           {onDayNavigateBack && !isCompact && (
@@ -77,8 +79,10 @@ export function CalendarDayView({
           )}
           
           {/* Contenido del día */}
-          <span className={cn('font-medium', isCompact ? 'text-xs' : 'text-sm')}>
-            {isCompact ? format(date, "EEE", { locale: es }).toUpperCase() : format(date, "d")}
+          <span className={cn('font-medium text-center', isCompact ? 'text-[11px]' : 'text-sm')}>
+            {isCompact
+              ? compactLabel.charAt(0).toUpperCase() + compactLabel.slice(1)
+              : fullLabel.charAt(0).toUpperCase() + fullLabel.slice(1)}
           </span>
 
           {/* Flecha derecha */}

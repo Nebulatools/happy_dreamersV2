@@ -53,11 +53,6 @@ export function CalendarWeekView({
   const days = Array.from({ length: 7 }, (_, i) => addDays(centerDate, i - 3))
   
   // Generar nombres de días dinámicamente basados en los días reales
-  const weekDays = days.map(day => {
-    const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
-    return dayNames[day.getDay()]
-  })
-  
   // Obtener eventos que afectan un día específico (incluye eventos que cruzan días)
   const getEventsForDay = (day: Date) => {
     const dayStart = startOfDay(day)
@@ -106,7 +101,10 @@ export function CalendarWeekView({
       {/* Días de la semana */}
       <div className={cn('flex-1 flex', isCompact && 'gap-1 bg-transparent') }>
         {days.map((day, index) => {
-          const dayName = weekDays[index]
+          const dayName = format(day, "EEE", { locale: es })
+          const dayNumber = format(day, "d", { locale: es })
+          const monthShort = format(day, "MMM", { locale: es })
+          const compactLabel = `${dayName.charAt(0).toUpperCase()}${dayName.slice(1)} ${dayNumber} ${monthShort}`
           const dayEvents = getEventsForDay(day)
           const isDayToday = isToday(day)
           const isSelectedDay = isSameDay(day, date) // Día seleccionado por navegación
@@ -117,7 +115,7 @@ export function CalendarWeekView({
               <div 
                 className={cn(
                   "border-b border-gray-200 flex flex-col items-center justify-center text-xs font-medium relative",
-                  isCompact ? "h-7 bg-transparent text-gray-600" : "h-8 bg-white",
+                  isCompact ? "h-9 bg-white text-gray-700" : "h-10 bg-white",
                   isDayToday && "bg-blue-50 text-blue-600",
                   isSelectedDay && !isDayToday && !isCompact && "bg-gray-100 text-gray-800 font-bold"
                 )}
@@ -137,8 +135,18 @@ export function CalendarWeekView({
                 )}
                 
                 {/* Contenido del día */}
-                <div className="text-xs opacity-75">{dayName}</div>
-                {!isCompact && <div className="font-bold text-xs">{format(day, "d")}</div>}
+                {isCompact ? (
+                  <div className="text-[11px] font-semibold text-gray-700">
+                    {compactLabel}
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-xs opacity-75">
+                      {dayName.charAt(0).toUpperCase() + dayName.slice(1)}
+                    </div>
+                    <div className="font-bold text-xs">{`${dayNumber} ${monthShort}`}</div>
+                  </>
+                )}
                 
                 {/* Flecha derecha - solo en el último día (sábado) */}
                 {index === 6 && onDayNavigateForward && !isCompact && (
