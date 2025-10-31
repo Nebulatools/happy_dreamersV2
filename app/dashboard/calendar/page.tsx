@@ -129,30 +129,38 @@ export default function CalendarPage() {
   const [date, setDate] = useState<Date>(new Date('2025-10-25'))
   const [activePlan, setActivePlan] = useState<any>(null)
   
-  // Estado para vista del calendario con localStorage
-  const [view, setView] = useState<"month" | "week" | "day">(() => {
-    // Intentar cargar la preferencia desde localStorage
-    if (typeof window !== "undefined") {
-      const savedView = localStorage.getItem("calendar-view-preference")
-      if (savedView && ["month", "week", "day"].includes(savedView)) {
-        return savedView as "month" | "week" | "day"
+  const isAdmin = session?.user?.role === "admin"
+
+  // Estado para vista del calendario con preferencia solo para admin
+  const [view, setView] = useState<"month" | "week" | "day">("week")
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setView("week")
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("calendar-view-preference")
       }
+      return
     }
-    // Default a vista semanal
-    return "week"
-  })
+
+    if (typeof window === "undefined") return
+    const savedView = localStorage.getItem("calendar-view-preference")
+    if (savedView && ["month", "week", "day"].includes(savedView)) {
+      setView(savedView as "month" | "week" | "day")
+    }
+  }, [isAdmin])
   const [isLoading, setIsLoading] = useState(true)
 
   const calendarViewMode = useMemo<CalendarViewMode>(() => {
     return getViewModeForRole(session?.user?.role)
   }, [session?.user?.role])
-  const effectiveViewMode: CalendarViewMode = calendarViewMode
+  const effectiveViewMode: CalendarViewMode = isAdmin ? calendarViewMode : "compact"
   
   // Función para cambiar la vista y guardar en localStorage
   const handleViewChange = (newView: "month" | "week" | "day") => {
+    if (!isAdmin && newView !== "week") return
     setView(newView)
-    // Guardar preferencia en localStorage
-    if (typeof window !== "undefined") {
+    if (isAdmin && typeof window !== "undefined") {
       localStorage.setItem("calendar-view-preference", newView)
       logger.info(`Vista del calendario guardada: ${newView}`)
     }
@@ -297,6 +305,12 @@ export default function CalendarPage() {
     napChange: 0,
     wakingsChange: 0,
   })
+  const metricTitleClass = isAdmin ? "text-xs text-gray-500" : "text-sm text-gray-600"
+  const metricValueClass = isAdmin ? "text-sm font-bold text-gray-900" : "text-xl font-semibold text-gray-900"
+  const metricsContainerClass = isAdmin
+    ? "flex items-center gap-3 md:gap-6 flex-wrap"
+    : "grid grid-cols-1 sm:grid-cols-3 gap-4 w-full"
+
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [selectedDateForEvent, setSelectedDateForEvent] = useState<Date | null>(null)
   const [children, setChildren] = useState<Child[]>([])
@@ -987,136 +1001,117 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-4">
-      {/* Barra superior: Selector de vista + Leyenda de colores */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 px-6 pt-4">
-        {/* Selector de vista */}
-        <div className="flex items-center gap-3 bg-gray-100 p-1 rounded-lg w-fit">
-          <Button
-            variant={view === "month" ? "default" : "ghost"}
-            size="sm"
-            className={view === "month" ? "bg-white shadow-sm" : ""}
-            onClick={() => handleViewChange("month")}
-          >
-            Mensual
-          </Button>
-          <Button
-            variant={view === "week" ? "default" : "ghost"}
-            size="sm"
-            className={view === "week" ? "bg-white shadow-sm" : ""}
-            onClick={() => handleViewChange("week")}
-          >
-            Semanal
-          </Button>
-          <Button
-            variant={view === "day" ? "default" : "ghost"}
-            size="sm"
-            className={view === "day" ? "bg-white shadow-sm" : ""}
-            onClick={() => handleViewChange("day")}
-          >
-            Diario
-          </Button>
-        </div>
+      {isAdmin && (
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 px-6 pt-4">
+          <div className="flex items-center gap-3 bg-gray-100 p-1 rounded-lg w-fit">
+            <Button
+              variant={view === "month" ? "default" : "ghost"}
+              size="sm"
+              className={view === "month" ? "bg-white shadow-sm" : ""}
+              onClick={() => handleViewChange("month")}
+            >
+              Mensual
+            </Button>
+            <Button
+              variant={view === "week" ? "default" : "ghost"}
+              size="sm"
+              className={view === "week" ? "bg-white shadow-sm" : ""}
+              onClick={() => handleViewChange("week")}
+            >
+              Semanal
+            </Button>
+            <Button
+              variant={view === "day" ? "default" : "ghost"}
+              size="sm"
+              className={view === "day" ? "bg-white shadow-sm" : ""}
+              onClick={() => handleViewChange("day")}
+            >
+              Diario
+            </Button>
+          </div>
 
-        {/* Leyenda de colores */}
-        <div className="flex flex-wrap gap-3 lg:gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-sleep" />
-            <span className="text-sm text-gray-600">Dormir</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-nap" />
-            <span className="text-sm text-gray-600">Siesta</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-wake" />
-            <span className="text-sm text-gray-600">Despertar</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-night-wake" />
-            <span className="text-sm text-gray-600">Nocturno</span>
+          <div className="flex flex-wrap gap-3 lg:gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-sleep" />
+              <span className="text-sm text-gray-600">Dormir</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-nap" />
+              <span className="text-sm text-gray-600">Siesta</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-wake" />
+              <span className="text-sm text-gray-600">Despertar</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-night-wake" />
+              <span className="text-sm text-gray-600">Nocturno</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Resumen de estadísticas con navegación integrada */}
       <div className="px-6">
         <Card className="p-3 md:p-4 bg-gray-50 border-gray-200">
-          <div className="flex flex-col gap-3">
-            {/* Header: Navegación + Título + Métricas */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-              {/* Navegación y título a la izquierda */}
-              <div className="flex items-center gap-3">
-                {/* Navegación de fechas */}
+          <div className={`flex flex-col ${isAdmin ? "gap-3" : "gap-4"}`}>
+            <div className={isAdmin ? "flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3" : "flex flex-col gap-4"}>
+              <div className={isAdmin ? "flex items-center gap-3" : "flex items-center justify-between"}>
                 <div className="flex items-center gap-1">
                   <Button
                     variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
+                    size={isAdmin ? "icon" : "sm"}
+                    className={isAdmin ? "h-8 w-8" : "h-9 w-9 rounded-full"}
                     onClick={navigatePrevious}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
+                    size={isAdmin ? "icon" : "sm"}
+                    className={isAdmin ? "h-8 w-8" : "h-9 w-9 rounded-full"}
                     onClick={navigateNext}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-                
-                {/* Título del período */}
+
                 <div className="flex flex-col">
-                  <span className="text-xs text-gray-500">Período seleccionado</span>
-                  <h3 className="text-sm font-semibold text-gray-700">
+                  <span className={isAdmin ? "text-xs text-gray-500" : "text-sm text-gray-500"}>Período seleccionado</span>
+                  <h3 className={isAdmin ? "text-sm font-semibold text-gray-700" : "text-lg font-semibold text-gray-800"}>
                     {getPeriodTitle()}
                   </h3>
                 </div>
               </div>
-              
-              {/* Métricas a la derecha */}
-              <div className="flex items-center gap-3 md:gap-6 flex-wrap">
-                {/* Sueño nocturno */}
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-sleep/20 flex items-center justify-center">
-                    <Moon className="w-4 h-4 text-sleep" />
+
+              <div className={metricsContainerClass}>
+                <div className={isAdmin ? "flex items-center gap-2" : "flex flex-col gap-2 bg-white rounded-xl shadow-sm p-3"}>
+                  <div className={`${isAdmin ? "w-8 h-8" : "w-10 h-10"} rounded-full bg-sleep/20 flex items-center justify-center`}>
+                    <Moon className={isAdmin ? "w-4 h-4 text-sleep" : "w-5 h-5 text-sleep"} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-xs text-gray-500">
-                      Promedio sueño
-                    </span>
-                    <span className="text-sm font-bold text-gray-900">
-                      {monthlyStats.nightSleepHours.toFixed(1)}h
-                    </span>
+                    <span className={metricTitleClass}>Promedio sueño</span>
+                    <span className={metricValueClass}>{monthlyStats.nightSleepHours.toFixed(1)}h</span>
                   </div>
                 </div>
-                
-                {/* Siestas */}
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-nap/20 flex items-center justify-center">
-                    <Cloud className="w-4 h-4 text-nap" />
+
+                <div className={isAdmin ? "flex items-center gap-2" : "flex flex-col gap-2 bg-white rounded-xl shadow-sm p-3"}>
+                  <div className={`${isAdmin ? "w-8 h-8" : "w-10 h-10"} rounded-full bg-nap/20 flex items-center justify-center`}>
+                    <Cloud className={isAdmin ? "w-4 h-4 text-nap" : "w-5 h-5 text-nap"} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-xs text-gray-500">
-                      Promedio siesta
-                    </span>
-                    <span className="text-sm font-bold text-gray-900">
-                      {monthlyStats.napHours.toFixed(1)}h
-                    </span>
+                    <span className={metricTitleClass}>Promedio siesta</span>
+                    <span className={metricValueClass}>{monthlyStats.napHours.toFixed(1)}h</span>
                   </div>
                 </div>
-                
-                {/* Despertares */}
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-night-wake/20 flex items-center justify-center">
-                    <AlertCircle className="w-4 h-4 text-night-wake" />
+
+                <div className={isAdmin ? "flex items-center gap-2" : "flex flex-col gap-2 bg-white rounded-xl shadow-sm p-3"}>
+                  <div className={`${isAdmin ? "w-8 h-8" : "w-10 h-10"} rounded-full bg-night-wake/20 flex items-center justify-center`}>
+                    <AlertCircle className={isAdmin ? "w-4 h-4 text-night-wake" : "w-5 h-5 text-night-wake"} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-xs text-gray-500">Despertares</span>
-                    <span className="text-sm font-bold text-gray-900">
-                      {monthlyStats.nightWakings}
-                    </span>
+                    <span className={metricTitleClass}>Despertares</span>
+                    <span className={metricValueClass}>{monthlyStats.nightWakings}</span>
                   </div>
                 </div>
               </div>
@@ -1125,10 +1120,27 @@ export default function CalendarPage() {
         </Card>
       </div>
 
+      {!isAdmin && (
+        <div className="px-6 flex flex-wrap gap-3 text-xs text-gray-500">
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-sleep" /> Dormir
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-nap" /> Siesta
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-wake" /> Despertar
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-night-wake" /> Nocturno
+          </div>
+        </div>
+      )}
+
       {/* Calendario Principal - Nueva estructura limpia */}
       <div className="px-6 pb-6">
         <Card className={`p-4 ${view === 'month' ? 'h-[600px]' : view === 'day' ? 'h-[calc(100vh-320px)]' : ''}`} style={{ minHeight: '500px' }}>
-          {effectiveViewMode === "compact" && (
+          {effectiveViewMode === "compact" && isAdmin && (
             <div className="flex justify-end mb-2">
               <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100 uppercase tracking-wide text-[10px]">
                 Vista ligera
