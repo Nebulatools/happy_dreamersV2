@@ -8,7 +8,6 @@ import { createLogger } from "@/lib/logger"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -61,7 +60,6 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal"
 import { processSleepStatistics } from "@/lib/sleep-calculations"
 import { usePageHeaderConfig } from "@/context/page-header-context"
@@ -148,31 +146,7 @@ export default function CalendarPage() {
   const calendarViewMode = useMemo<CalendarViewMode>(() => {
     return getViewModeForRole(session?.user?.role)
   }, [session?.user?.role])
-  const [overrideFullView, setOverrideFullView] = useState(false)
-
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    if (calendarViewMode === "compact") {
-      const saved = localStorage.getItem("calendar-density-preference")
-      setOverrideFullView(saved === "full")
-    } else {
-      localStorage.removeItem("calendar-density-preference")
-      setOverrideFullView(false)
-    }
-  }, [calendarViewMode])
-
-  const handleDensityToggle = (checked: boolean) => {
-    setOverrideFullView(checked)
-    if (typeof window !== "undefined" && calendarViewMode === "compact") {
-      localStorage.setItem(
-        "calendar-density-preference",
-        checked ? "full" : "compact"
-      )
-    }
-  }
-
-  const effectiveViewMode: CalendarViewMode =
-    calendarViewMode === "compact" && overrideFullView ? "full" : calendarViewMode
+  const effectiveViewMode: CalendarViewMode = calendarViewMode
   
   // Función para cambiar la vista y guardar en localStorage
   const handleViewChange = (newView: "month" | "week" | "day") => {
@@ -1041,22 +1015,6 @@ export default function CalendarPage() {
           >
             Diario
           </Button>
-          {calendarViewMode === "compact" && (
-            <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-gray-200">
-              <Switch
-                id="calendar-density-toggle"
-                checked={overrideFullView}
-                onCheckedChange={handleDensityToggle}
-                aria-label="Cambiar a vista detallada"
-              />
-              <Label
-                htmlFor="calendar-density-toggle"
-                className="text-xs text-gray-600 cursor-pointer whitespace-nowrap"
-              >
-                Vista detallada
-              </Label>
-            </div>
-          )}
         </div>
 
         {/* Leyenda de colores */}
