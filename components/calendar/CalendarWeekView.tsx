@@ -99,11 +99,12 @@ export function CalendarWeekView({
 
   return (
     <div className={`flex ${className}`} style={{ height: `${24 * hourHeight + 32}px` }}>
-      {/* Eje de tiempo */}
-      <TimeAxis hourHeight={hourHeight} labelInterval={axisInterval} className={isCompact ? 'w-10 text-[10px]' : undefined} />
+      {!isCompact && (
+        <TimeAxis hourHeight={hourHeight} labelInterval={axisInterval} />
+      )}
       
       {/* Días de la semana */}
-      <div className="flex-1 flex">
+      <div className={cn('flex-1 flex', isCompact && 'gap-1 bg-transparent') }>
         {days.map((day, index) => {
           const dayName = weekDays[index]
           const dayEvents = getEventsForDay(day)
@@ -115,14 +116,14 @@ export function CalendarWeekView({
               {/* Header del día */}
               <div 
                 className={cn(
-                  "bg-white border-b border-gray-200 flex flex-col items-center justify-center text-xs font-medium relative",
-                  isCompact ? "h-7" : "h-8",
+                  "border-b border-gray-200 flex flex-col items-center justify-center text-xs font-medium relative",
+                  isCompact ? "h-7 bg-transparent text-gray-600" : "h-8 bg-white",
                   isDayToday && "bg-blue-50 text-blue-600",
-                  isSelectedDay && !isDayToday && "bg-gray-100 text-gray-800 font-bold"
+                  isSelectedDay && !isDayToday && !isCompact && "bg-gray-100 text-gray-800 font-bold"
                 )}
               >
                 {/* Flecha izquierda - solo en el primer día (domingo) */}
-                {index === 0 && onDayNavigateBack && (
+                {index === 0 && onDayNavigateBack && !isCompact && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
@@ -137,10 +138,10 @@ export function CalendarWeekView({
                 
                 {/* Contenido del día */}
                 <div className="text-xs opacity-75">{dayName}</div>
-                <div className="font-bold text-xs">{format(day, "d")}</div>
+                {!isCompact && <div className="font-bold text-xs">{format(day, "d")}</div>}
                 
                 {/* Flecha derecha - solo en el último día (sábado) */}
-                {index === 6 && onDayNavigateForward && (
+                {index === 6 && onDayNavigateForward && !isCompact && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
@@ -157,17 +158,19 @@ export function CalendarWeekView({
               {/* Container de eventos */}
               <div 
                 className={cn(
-                  "relative border-r border-gray-200 cursor-pointer",
-                  isSelectedDay && !isDayToday && "border-l-2 border-l-gray-400"
+                  "relative cursor-pointer",
+                  !isCompact && "border-r border-gray-200",
+                  isSelectedDay && !isDayToday && !isCompact && "border-l-2 border-l-gray-400"
                 )}
                 style={{ height: `${24 * hourHeight}px` }}
                 onClick={(e) => onCalendarClick?.(e, day)}
               >
-                {/* Fondo con colores */}
-                <BackgroundAreas />
-                
-                {/* Líneas de grid */}
-                <GridLines hourHeight={hourHeight} />
+                {!isCompact && (
+                  <>
+                    <BackgroundAreas />
+                    <GridLines hourHeight={hourHeight} />
+                  </>
+                )}
                 
                 {/* Eventos procesados - Sesiones de sueño y otros eventos */}
                 {(() => {
@@ -189,7 +192,8 @@ export function CalendarWeekView({
                           onNightWakingClick={(waking) => onEventClick?.(waking as Event)}
                           isContinuationFromPrevious={session.isContinuationFromPrevious}
                           continuesNextDay={session.continuesNextDay}
-                          className={isCompact ? 'text-[11px]' : undefined}
+                          className={isCompact ? 'rounded-md' : undefined}
+                          viewMode={viewMode}
                         />
                       ))}
                       
@@ -208,7 +212,7 @@ export function CalendarWeekView({
                 })()}
                 
                 {/* Estado vacío */}
-                {dayEvents.length === 0 && (
+                {dayEvents.length === 0 && !isCompact && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="text-xs text-gray-400 text-center">
                       <div>Sin eventos</div>

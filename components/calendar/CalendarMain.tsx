@@ -61,7 +61,7 @@ export function CalendarMain({
     // Solo para vistas timeline (no mensual)
     if (view === "month") return
     
-    const clickTime = handleCalendarClick(clickEvent, dayDate, HOUR_HEIGHT)
+    const clickTime = handleCalendarClick(clickEvent, dayDate, hourHeight)
     if (clickTime) {
       onCreateEvent?.(clickTime)
     }

@@ -107,9 +107,28 @@ export function EventGlobe({ event, hourHeight = 30, onClick, viewMode = 'full' 
   }
   
   const isCompact = viewMode === 'compact'
+  if (isCompact) {
+    return (
+      <div
+        className={cn(
+          'absolute left-1 right-1 rounded-md opacity-90',
+          getColor()
+        )}
+        style={{
+          top: `${position}px`,
+          height: `${Math.max(height, 12)}px`
+        }}
+        onClick={(e) => {
+          e.stopPropagation()
+          onClick?.(event)
+        }}
+      />
+    )
+  }
+
   const baseClass = cn(
     'absolute left-2 right-2 rounded-lg shadow-md flex items-center gap-1 cursor-pointer transition-shadow',
-    isCompact ? 'px-1.5 py-0.5 text-[11px] hover:shadow-md' : 'px-2 py-1 text-xs hover:shadow-lg',
+    'px-2 py-1 text-xs hover:shadow-lg',
     getColor()
   )
 
@@ -119,7 +138,7 @@ export function EventGlobe({ event, hourHeight = 30, onClick, viewMode = 'full' 
       style={{
         top: `${position}px`,
         height: `${height}px`,
-        minHeight: isCompact ? '16px' : '20px'
+        minHeight: '20px'
       }}
       onClick={(e) => {
         e.stopPropagation()
@@ -128,8 +147,8 @@ export function EventGlobe({ event, hourHeight = 30, onClick, viewMode = 'full' 
     >
       {getIcon()}
       <div className="flex-1 truncate leading-tight">
-        {!isCompact && <div>{getName()}</div>}
-        <div className={cn('opacity-90', isCompact ? 'text-[10px]' : 'text-xs')}>
+        <div>{getName()}</div>
+        <div className='opacity-90 text-xs'>
           {timeData.formatted}
           {endTimeData && `-${endTimeData.formatted}`}
         </div>

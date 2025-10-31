@@ -7,6 +7,7 @@ import React from 'react'
 import { Moon, Sun, AlertCircle } from "lucide-react"
 import { format, differenceInMinutes, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
+import type { CalendarViewMode } from '@/types/calendar'
 
 interface Event {
   _id: string
@@ -31,6 +32,7 @@ interface SleepSessionBlockProps {
   onNightWakingClick?: (waking: Event) => void  // Handler para clicks en despertares nocturnos
   isContinuationFromPrevious?: boolean  // Si es continuación del día anterior
   continuesNextDay?: boolean           // Si continúa al día siguiente
+  viewMode?: CalendarViewMode
 }
 
 export function SleepSessionBlock({ 
@@ -44,7 +46,8 @@ export function SleepSessionBlock({
   onClick,
   onNightWakingClick,
   isContinuationFromPrevious = false,
-  continuesNextDay = false
+  continuesNextDay = false,
+  viewMode = 'full'
 }: SleepSessionBlockProps) {
   
   // Calcular posición vertical según la hora de inicio
@@ -141,9 +144,11 @@ export function SleepSessionBlock({
   const position = calculateStartPosition()
   const height = calculateBlockHeight()
   const isInProgress = !endTime
+  const isCompact = viewMode === 'compact'
   
   // Renderizar despertares nocturnos dentro de la sesión
   const renderNightWakings = () => {
+    if (isCompact) return null
     return nightWakings.map(waking => {
       try {
         // Usar parseISO para convertir correctamente a hora local
@@ -186,6 +191,21 @@ export function SleepSessionBlock({
   }
   
   if (isInProgress) {
+    if (isCompact) {
+      return (
+        <div
+          className={cn(
+            "absolute left-1 right-1 rounded-md bg-blue-400/70",
+            className
+          )}
+          style={{
+            top: `${position}px`,
+            height: `${Math.max(height, 14)}px`
+          }}
+          onClick={onClick}
+        />
+      )
+    }
     // SUEÑO EN PROGRESO - Con fade hacia abajo
     return (
       <div
@@ -229,6 +249,22 @@ export function SleepSessionBlock({
     )
   }
   
+  if (isCompact) {
+    return (
+      <div
+        className={cn(
+          "absolute left-1 right-1 rounded-md bg-blue-500/80",
+          className
+        )}
+        style={{
+          top: `${position}px`,
+          height: `${Math.max(height, 14)}px`
+        }}
+        onClick={onClick}
+      />
+    )
+  }
+
   // SUEÑO COMPLETADO - Con gradiente completo
   return (
     <div

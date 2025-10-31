@@ -3,6 +3,7 @@
 
 import React from 'react'
 import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { Cloud, ChevronLeft, ChevronRight } from 'lucide-react'
 import { TimeAxis } from './TimeAxis'
 import { BackgroundAreas } from './BackgroundAreas'
@@ -50,8 +51,9 @@ export function CalendarDayView({
 
   return (
     <div className={`flex ${className}`} style={{ height: `${24 * hourHeight + 32}px` }}>
-      {/* Eje de tiempo */}
-      <TimeAxis hourHeight={hourHeight} labelInterval={isCompact ? 4 : 2} className={isCompact ? 'w-10 text-[10px]' : undefined} />
+      {!isCompact && (
+        <TimeAxis hourHeight={hourHeight} labelInterval={isCompact ? 4 : 2} />
+      )}
       
       {/* Área de eventos */}
       <div className="flex-1 relative">
@@ -61,7 +63,7 @@ export function CalendarDayView({
           isCompact ? 'h-7' : 'h-8'
         )}>
           {/* Flecha izquierda */}
-          {onDayNavigateBack && (
+          {onDayNavigateBack && !isCompact && (
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -75,10 +77,12 @@ export function CalendarDayView({
           )}
           
           {/* Contenido del día */}
-          <span className={cn('font-medium', isCompact ? 'text-xs' : 'text-sm')}>{format(date, "d")}</span>
-          
+          <span className={cn('font-medium', isCompact ? 'text-xs' : 'text-sm')}>
+            {isCompact ? format(date, "EEE", { locale: es }).toUpperCase() : format(date, "d")}
+          </span>
+
           {/* Flecha derecha */}
-          {onDayNavigateForward && (
+          {onDayNavigateForward && !isCompact && (
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -98,11 +102,12 @@ export function CalendarDayView({
           style={{ height: `${24 * hourHeight}px` }}
           onClick={(e) => onCalendarClick?.(e, date)}
         >
-          {/* Fondo con colores */}
-          <BackgroundAreas />
-          
-          {/* Líneas de grid */}
-          <GridLines hourHeight={hourHeight} />
+          {!isCompact && (
+            <>
+              <BackgroundAreas />
+              <GridLines hourHeight={hourHeight} />
+            </>
+          )}
           
           {/* Eventos procesados - Sesiones de sueño y otros eventos */}
           {(() => {
@@ -124,7 +129,7 @@ export function CalendarDayView({
                     onNightWakingClick={(waking) => onEventClick?.(waking as Event)}
                     isContinuationFromPrevious={session.isContinuationFromPrevious}
                     continuesNextDay={session.continuesNextDay}
-                    className={isCompact ? 'text-[11px]' : undefined}
+                    viewMode={viewMode}
                   />
                 ))}
                 
@@ -143,7 +148,7 @@ export function CalendarDayView({
           })()}
           
           {/* Estado vacío */}
-          {events.length === 0 && (
+          {events.length === 0 && !isCompact && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="text-center text-gray-500">
                 <Cloud className="w-12 h-12 mx-auto mb-2 opacity-50" />

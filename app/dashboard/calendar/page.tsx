@@ -305,11 +305,6 @@ export default function CalendarPage() {
     napChange: 0,
     wakingsChange: 0,
   })
-  const metricTitleClass = isAdmin ? "text-xs text-gray-500" : "text-sm text-gray-600"
-  const metricValueClass = isAdmin ? "text-sm font-bold text-gray-900" : "text-xl font-semibold text-gray-900"
-  const metricsContainerClass = isAdmin
-    ? "flex items-center gap-3 md:gap-6 flex-wrap"
-    : "grid grid-cols-1 sm:grid-cols-3 gap-4 w-full"
 
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [selectedDateForEvent, setSelectedDateForEvent] = useState<Date | null>(null)
@@ -1084,58 +1079,49 @@ export default function CalendarPage() {
                 </div>
               </div>
 
-              <div className={metricsContainerClass}>
-                <div className={isAdmin ? "flex items-center gap-2" : "flex flex-col gap-2 bg-white rounded-xl shadow-sm p-3"}>
-                  <div className={`${isAdmin ? "w-8 h-8" : "w-10 h-10"} rounded-full bg-sleep/20 flex items-center justify-center`}>
-                    <Moon className={isAdmin ? "w-4 h-4 text-sleep" : "w-5 h-5 text-sleep"} />
+              {isAdmin && (
+                <div className="flex items-center gap-3 md:gap-6 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-sleep/20 flex items-center justify-center">
+                      <Moon className="w-4 h-4 text-sleep" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs text-gray-500">Promedio sueño</span>
+                      <span className="text-sm font-bold text-gray-900">
+                        {monthlyStats.nightSleepHours.toFixed(1)}h
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className={metricTitleClass}>Promedio sueño</span>
-                    <span className={metricValueClass}>{monthlyStats.nightSleepHours.toFixed(1)}h</span>
-                  </div>
-                </div>
 
-                <div className={isAdmin ? "flex items-center gap-2" : "flex flex-col gap-2 bg-white rounded-xl shadow-sm p-3"}>
-                  <div className={`${isAdmin ? "w-8 h-8" : "w-10 h-10"} rounded-full bg-nap/20 flex items-center justify-center`}>
-                    <Cloud className={isAdmin ? "w-4 h-4 text-nap" : "w-5 h-5 text-nap"} />
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-nap/20 flex items-center justify-center">
+                      <Cloud className="w-4 h-4 text-nap" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs text-gray-500">Promedio siesta</span>
+                      <span className="text-sm font-bold text-gray-900">
+                        {monthlyStats.napHours.toFixed(1)}h
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className={metricTitleClass}>Promedio siesta</span>
-                    <span className={metricValueClass}>{monthlyStats.napHours.toFixed(1)}h</span>
-                  </div>
-                </div>
 
-                <div className={isAdmin ? "flex items-center gap-2" : "flex flex-col gap-2 bg-white rounded-xl shadow-sm p-3"}>
-                  <div className={`${isAdmin ? "w-8 h-8" : "w-10 h-10"} rounded-full bg-night-wake/20 flex items-center justify-center`}>
-                    <AlertCircle className={isAdmin ? "w-4 h-4 text-night-wake" : "w-5 h-5 text-night-wake"} />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className={metricTitleClass}>Despertares</span>
-                    <span className={metricValueClass}>{monthlyStats.nightWakings}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-night-wake/20 flex items-center justify-center">
+                      <AlertCircle className="w-4 h-4 text-night-wake" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs text-gray-500">Despertares</span>
+                      <span className="text-sm font-bold text-gray-900">
+                        {monthlyStats.nightWakings}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </Card>
       </div>
-
-      {!isAdmin && (
-        <div className="px-6 flex flex-wrap gap-3 text-xs text-gray-500">
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-3 h-3 rounded-full bg-sleep" /> Dormir
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-3 h-3 rounded-full bg-nap" /> Siesta
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-3 h-3 rounded-full bg-wake" /> Despertar
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-3 h-3 rounded-full bg-night-wake" /> Nocturno
-          </div>
-        </div>
-      )}
 
       {/* Calendario Principal - Nueva estructura limpia */}
       <div className="px-6 pb-6">
