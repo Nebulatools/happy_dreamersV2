@@ -186,8 +186,8 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
         dinamicaFamiliar: {},
         historial: {
           // Pre-llenar información del niño si está disponible
-          nombreNino: childData ? `${childData.firstName} ${childData.lastName}` : "",
-          fechaNacimiento: childData?.birthDate || "",
+          nombreHijo: childData ? [childData.firstName, childData.lastName].filter(Boolean).join(" ") : "",
+          fechaNacimiento: childData?.birthDate ? String(childData.birthDate).split('T')[0] : "",
           genero: childData?.gender || ""
         },
         desarrollo: {},
@@ -216,6 +216,12 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
               ...prefilledData.informacionFamiliar?.mama,
               ...savedData.formData.informacionFamiliar?.mama
             }
+          }
+        }
+        if (savedData.formData.actividadFisica?.situacionesHijo && !savedData.formData.desarrollo?.situacionesHijo) {
+          mergedData.desarrollo = {
+            ...mergedData.desarrollo,
+            situacionesHijo: savedData.formData.actividadFisica.situacionesHijo
           }
         }
         setFormData(mergedData)
@@ -382,6 +388,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
           data={getStepData(currentStep)}
           onChange={(data) => updateStepData(currentStep, data)}
           errors={touchedSteps.has(currentStep) ? errors[currentStep] || {} : {}}
+          context={{ childData, isExisting }}
         />
         
         <div className="flex justify-between items-center mt-8 pt-6 border-t">

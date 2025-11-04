@@ -1,14 +1,50 @@
 // Paso 3: Historial
 // Información sobre el niño, prenatal y desarrollo
 
+import { useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Textarea } from "@/components/ui/textarea"
 import { Baby } from "lucide-react"
 import type { SurveyStepProps } from '../types/survey.types'
 
-export function ChildHistoryStep({ data, onChange, errors = {} }: SurveyStepProps) {
+export function ChildHistoryStep({ data, onChange, errors = {}, context }: SurveyStepProps) {
+  const childProfile = context?.childData
+  const profileFirstName = childProfile?.firstName ?? ""
+  const profileLastName = childProfile?.lastName ?? ""
+  const profileBirthDateRaw = childProfile?.birthDate ?? ""
+
+  useEffect(() => {
+    if (!childProfile) return
+
+    const fullName = [profileFirstName, profileLastName].filter(Boolean).join(" ").trim()
+    const birthDate = profileBirthDateRaw ? String(profileBirthDateRaw).split("T")[0] : ""
+
+    const updates: Record<string, any> = {}
+    if (fullName && data.nombreHijo !== fullName) {
+      updates.nombreHijo = fullName
+    }
+    if (birthDate && data.fechaNacimiento !== birthDate) {
+      updates.fechaNacimiento = birthDate
+    }
+    if (Object.keys(updates).length > 0) {
+      onChange({ ...data, ...updates })
+    }
+  }, [
+    childProfile,
+    profileFirstName,
+    profileLastName,
+    profileBirthDateRaw,
+    data.nombreHijo,
+    data.fechaNacimiento,
+    onChange
+  ])
+
+  const displayName = data.nombreHijo || [profileFirstName, profileLastName].filter(Boolean).join(" ").trim()
+  const displayBirthDate = data.fechaNacimiento || (profileBirthDateRaw ? String(profileBirthDateRaw).split("T")[0] : "")
+
   const updateField = (field: string, value: any) => {
     onChange({
       ...data,
@@ -57,45 +93,63 @@ export function ChildHistoryStep({ data, onChange, errors = {} }: SurveyStepProp
 
       {/* Información básica del niño */}
       <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* 1. Nombre del hijo */}
-          <div>
-            <Label htmlFor="nombre-hijo">
-              1. Nombre de su hijo/a <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="nombre-hijo"
-              value={data.nombreHijo || ""}
-              onChange={(e) => updateField('nombreHijo', e.target.value)}
-              placeholder="Nombre del niño"
-              className={hasError('nombreHijo') ? 'border-red-500' : ''}
-            />
-            {hasError('nombreHijo') && (
-              <p className="text-red-500 text-sm mt-1">{getError('nombreHijo')}</p>
-            )}
+        {childProfile && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-700 space-y-1">
+            <p>
+              <span className="font-medium text-gray-900">Nombre registrado:</span>{" "}
+              {displayName || "—"}
+            </p>
+            <p>
+              <span className="font-medium text-gray-900">Fecha de nacimiento:</span>{" "}
+              {displayBirthDate || "—"}
+            </p>
+            <p className="text-xs text-gray-500">
+              Esta información proviene del perfil del niño y no es necesario volver a capturarla.
+            </p>
           </div>
+        )}
 
-          {/* 2. Fecha de nacimiento */}
-          <div>
-            <Label htmlFor="fecha-nacimiento">
-              2. Fecha de Nacimiento <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="fecha-nacimiento"
-              type="date"
-              value={data.fechaNacimiento || ""}
-              onChange={(e) => updateField('fechaNacimiento', e.target.value)}
-              className={hasError('fechaNacimiento') ? 'border-red-500' : ''}
-            />
-            {hasError('fechaNacimiento') && (
-              <p className="text-red-500 text-sm mt-1">{getError('fechaNacimiento')}</p>
-            )}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {!childProfile && (
+            <div>
+              <Label htmlFor="nombre-hijo">
+                1. Nombre de su hijo/a <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="nombre-hijo"
+                value={data.nombreHijo || ""}
+                onChange={(e) => updateField('nombreHijo', e.target.value)}
+                placeholder="Nombre del niño"
+                className={hasError('nombreHijo') ? 'border-red-500' : ''}
+              />
+              {hasError('nombreHijo') && (
+                <p className="text-red-500 text-sm mt-1">{getError('nombreHijo')}</p>
+              )}
+            </div>
+          )}
+
+          {!childProfile && (
+            <div>
+              <Label htmlFor="fecha-nacimiento">
+                2. Fecha de Nacimiento <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="fecha-nacimiento"
+                type="date"
+                value={data.fechaNacimiento || ""}
+                onChange={(e) => updateField('fechaNacimiento', e.target.value)}
+                className={hasError('fechaNacimiento') ? 'border-red-500' : ''}
+              />
+              {hasError('fechaNacimiento') && (
+                <p className="text-red-500 text-sm mt-1">{getError('fechaNacimiento')}</p>
+              )}
+            </div>
+          )}
 
           {/* 3. Peso */}
           <div>
             <Label htmlFor="peso-hijo">
-              3. Peso <span className="text-red-500">*</span>
+              3. Peso (kg) <span className="text-red-500">*</span>
             </Label>
             <Input
               id="peso-hijo"
@@ -130,7 +184,7 @@ export function ChildHistoryStep({ data, onChange, errors = {} }: SurveyStepProp
         
         {/* 1. Embarazo planeado */}
         <div>
-          <Label>1. ¿Fue su embarazo planeado?</Label>
+          <Label>1. ¿Su embarazo fue planeado?</Label>
           <RadioGroup
             value={data.embarazoPlaneado === true ? "si" : data.embarazoPlaneado === false ? "no" : ""}
             onValueChange={(value) => updateField('embarazoPlaneado', value === 'si')}
@@ -268,7 +322,14 @@ export function ChildHistoryStep({ data, onChange, errors = {} }: SurveyStepProp
           <Label>7. ¿Tuvo tu bebé algún problema al nacer?</Label>
           <RadioGroup
             value={data.problemasNacer === true ? "si" : data.problemasNacer === false ? "no" : ""}
-            onValueChange={(value) => updateField('problemasNacer', value === 'si')}
+            onValueChange={(value) => {
+              const hadIssue = value === 'si'
+              onChange({
+                ...data,
+                problemasNacer: hadIssue,
+                problemasNacerDetalle: hadIssue ? data.problemasNacerDetalle || "" : ""
+              })
+            }}
           >
             <div className="flex gap-4 mt-2">
               <div className="flex items-center space-x-2">
@@ -281,12 +342,30 @@ export function ChildHistoryStep({ data, onChange, errors = {} }: SurveyStepProp
               </div>
             </div>
           </RadioGroup>
+          {data.problemasNacer && (
+            <div className="mt-3">
+              <Label htmlFor="problemas-nacer-detalle" className="text-sm text-gray-600">
+                Describe el problema al nacer
+              </Label>
+              <Textarea
+                id="problemas-nacer-detalle"
+                value={data.problemasNacerDetalle || ""}
+                onChange={(e) => updateField('problemasNacerDetalle', e.target.value)}
+                placeholder="Ej: Bajo peso al nacer, dificultad respiratoria..."
+                rows={3}
+                className={hasError('problemasNacerDetalle') ? 'border-red-500 mt-1' : 'mt-1'}
+              />
+              {hasError('problemasNacerDetalle') && (
+                <p className="text-red-500 text-sm mt-1">{getError('problemasNacerDetalle')}</p>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* 8. Pediatra (OPTIONAL) */}
+        {/* 8. Pediatra */}
         <div>
           <Label htmlFor="pediatra">
-            8. ¿Quién es tu pediatra? (OPTIONAL)
+            8. ¿Quién es tu pediatra?
           </Label>
           <Input
             id="pediatra"

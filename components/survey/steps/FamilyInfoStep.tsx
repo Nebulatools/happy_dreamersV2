@@ -165,10 +165,10 @@ export function FamilyInfoStep({ data, onChange, errors = {} }: SurveyStepProps)
               )}
             </div>
             
-            {/* 5. Ciudad (OPTIONAL) */}
+            {/* 5. Ciudad */}
             <div>
               <Label htmlFor="papa-ciudad">
-                5. Ciudad: (OPTIONAL)
+                5. Ciudad
               </Label>
               <Input 
                 id="papa-ciudad"
@@ -178,10 +178,10 @@ export function FamilyInfoStep({ data, onChange, errors = {} }: SurveyStepProps)
               />
             </div>
             
-            {/* 6. Teléfono (OPTIONAL) */}
+            {/* 6. Teléfono */}
             <div>
               <Label htmlFor="papa-telefono">
-                6. Teléfono: (OPTIONAL)
+                6. Teléfono
               </Label>
               <Input 
                 id="papa-telefono"
@@ -235,7 +235,17 @@ export function FamilyInfoStep({ data, onChange, errors = {} }: SurveyStepProps)
             <Label>9. ¿Tiene o ha tenido alguna alergia?</Label>
             <RadioGroup
               value={data.papa?.tieneAlergias === true ? "si" : data.papa?.tieneAlergias === false ? "no" : ""}
-              onValueChange={(value) => updateField('papa', 'tieneAlergias', value === 'si')}
+              onValueChange={(value) => {
+                const hasAllergies = value === 'si'
+                onChange({
+                  ...data,
+                  papa: {
+                    ...data.papa,
+                    tieneAlergias: hasAllergies,
+                    alergias: hasAllergies ? data.papa?.alergias || "" : ""
+                  }
+                })
+              }}
             >
               <div className="flex gap-4 mt-2">
                 <div className="flex items-center space-x-2">
@@ -248,6 +258,23 @@ export function FamilyInfoStep({ data, onChange, errors = {} }: SurveyStepProps)
                 </div>
               </div>
             </RadioGroup>
+            {data.papa?.tieneAlergias && (
+              <div className="mt-3">
+                <Label htmlFor="papa-alergias-detalle" className="text-sm text-gray-600">
+                  Describe las alergias de papá
+                </Label>
+                <Input
+                  id="papa-alergias-detalle"
+                  value={data.papa?.alergias || ""}
+                  onChange={(e) => updateField('papa', 'alergias', e.target.value)}
+                  placeholder="Ej: Alergia al polvo, lácteos..."
+                  className={hasError('papa', 'alergias') ? 'border-red-500 mt-1' : 'mt-1'}
+                />
+                {hasError('papa', 'alergias') && (
+                  <p className="text-red-500 text-sm mt-1">{getError('papa', 'alergias')}</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       ) : (
@@ -270,17 +297,17 @@ export function FamilyInfoStep({ data, onChange, errors = {} }: SurveyStepProps)
               )}
             </div>
             
-            {/* 2. Edad (OPTIONAL) */}
+            {/* 2. Edad */}
             <div>
               <Label htmlFor="mama-edad">
-                2. Edad: (OPTIONAL)
+                2. Edad
               </Label>
               <Input 
                 id="mama-edad"
                 type="number"
                 value={data.mama?.edad || ""}
                 onChange={(e) => updateField('mama', 'edad', e.target.value)}
-                placeholder="Edad"
+                placeholder="Edad (opcional)"
               />
             </div>
             
@@ -394,9 +421,9 @@ export function FamilyInfoStep({ data, onChange, errors = {} }: SurveyStepProps)
             </div>
           </div>
           
-          {/* 8. ¿Mamá trabaja fuera de casa? (OPTIONAL) */}
+          {/* 8. ¿Mamá trabaja fuera de casa? */}
           <div>
-            <Label>8. ¿Mamá trabaja fuera de casa? (OPTIONAL)</Label>
+            <Label>8. ¿Mamá trabaja fuera de casa?</Label>
             <RadioGroup
               value={data.mama?.trabajaFueraCasa === true ? "si" : data.mama?.trabajaFueraCasa === false ? "no" : ""}
               onValueChange={(value) => updateField('mama', 'trabajaFueraCasa', value === 'si')}
@@ -473,7 +500,17 @@ export function FamilyInfoStep({ data, onChange, errors = {} }: SurveyStepProps)
             <Label>12. ¿Tienes o has tenido alguna alergia?</Label>
             <RadioGroup
               value={data.mama?.tieneAlergias === true ? "si" : data.mama?.tieneAlergias === false ? "no" : ""}
-              onValueChange={(value) => updateField('mama', 'tieneAlergias', value === 'si')}
+              onValueChange={(value) => {
+                const hasAllergies = value === 'si'
+                onChange({
+                  ...data,
+                  mama: {
+                    ...data.mama,
+                    tieneAlergias: hasAllergies,
+                    alergias: hasAllergies ? data.mama?.alergias || "" : ""
+                  }
+                })
+              }}
             >
               <div className="flex gap-4 mt-2">
                 <div className="flex items-center space-x-2">
@@ -486,6 +523,23 @@ export function FamilyInfoStep({ data, onChange, errors = {} }: SurveyStepProps)
                 </div>
               </div>
             </RadioGroup>
+            {data.mama?.tieneAlergias && (
+              <div className="mt-3">
+                <Label htmlFor="mama-alergias-detalle" className="text-sm text-gray-600">
+                  Describe las alergias de mamá
+                </Label>
+                <Input
+                  id="mama-alergias-detalle"
+                  value={data.mama?.alergias || ""}
+                  onChange={(e) => updateField('mama', 'alergias', e.target.value)}
+                  placeholder="Ej: Polen, mariscos..."
+                  className={hasError('mama', 'alergias') ? 'border-red-500 mt-1' : 'mt-1'}
+                />
+                {hasError('mama', 'alergias') && (
+                  <p className="text-red-500 text-sm mt-1">{getError('mama', 'alergias')}</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

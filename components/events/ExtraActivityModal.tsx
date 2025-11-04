@@ -12,17 +12,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Activity, Plus, Minus } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { useDevTime } from '@/context/dev-time-context'
-import { useSession } from 'next-auth/react'
 
 interface ExtraActivityModalData {
   activityDescription: string
   activityDuration: number // en minutos
-  activityImpact: 'positive' | 'neutral' | 'negative'
+  activityImpact?: 'positive' | 'neutral' | 'negative'
   activityNotes: string
 }
 
@@ -44,7 +41,7 @@ interface ExtraActivityModalProps {
 
 /**
  * Modal para capturar información de actividades extra
- * Registra descripción, duración, impacto en el sueño y notas
+ * Registra descripción, duración y notas adicionales
  */
 export function ExtraActivityModal({
   open,
@@ -55,11 +52,8 @@ export function ExtraActivityModal({
   initialData
 }: ExtraActivityModalProps) {
   const { getCurrentTime } = useDevTime()
-  const { data: session } = useSession()
-  const isAdmin = session?.user?.role === 'admin'
   const [activityDescription, setActivityDescription] = useState<string>(initialData?.activityDescription || '')
   const [activityDuration, setActivityDuration] = useState<number>(initialData?.activityDuration || 30) // Default 30 minutos
-  const [activityImpact, setActivityImpact] = useState<'positive' | 'neutral' | 'negative'>(initialData?.activityImpact || 'neutral')
   const [activityNotes, setActivityNotes] = useState<string>(initialData?.activityNotes || '')
   const [eventDate, setEventDate] = useState<string>(() => {
     if (mode === 'edit' && initialData?.startTime) {
@@ -80,7 +74,6 @@ export function ExtraActivityModal({
     if (open && mode === 'edit' && initialData) {
       setActivityDescription(initialData.activityDescription || '')
       setActivityDuration(initialData.activityDuration || 30)
-      setActivityImpact(initialData.activityImpact || 'neutral')
       setActivityNotes(initialData.activityNotes || '')
       if (initialData.startTime) {
         setEventDate(format(new Date(initialData.startTime), 'yyyy-MM-dd'))
@@ -95,7 +88,6 @@ export function ExtraActivityModal({
       // En modo edición, restaurar valores iniciales
       setActivityDescription(initialData.activityDescription || '')
       setActivityDuration(initialData.activityDuration || 30)
-      setActivityImpact(initialData.activityImpact || 'neutral')
       setActivityNotes(initialData.activityNotes || '')
       if (initialData.startTime) {
         setEventDate(format(new Date(initialData.startTime), 'yyyy-MM-dd'))
@@ -105,7 +97,6 @@ export function ExtraActivityModal({
       // En modo creación, limpiar todo
       setActivityDescription('')
       setActivityDuration(30)
-      setActivityImpact('neutral')
       setActivityNotes('')
       const now = getCurrentTime()
       setEventDate(format(now, 'yyyy-MM-dd'))
@@ -139,7 +130,7 @@ export function ExtraActivityModal({
     const data: ExtraActivityModalData = {
       activityDescription: activityDescription.trim(),
       activityDuration,
-      activityImpact: isAdmin ? activityImpact : (mode === 'edit' && initialData?.activityImpact ? initialData.activityImpact : 'neutral'),
+      activityImpact: initialData?.activityImpact ?? 'neutral',
       activityNotes: activityNotes.trim()
     }
 
@@ -241,39 +232,6 @@ export function ExtraActivityModal({
               </Button>
             </div>
           </div>
-
-          {/* Impacto en el sueño (solo visible para admin) */}
-          {isAdmin && (
-            <div className="space-y-2">
-              <Label>
-                Impacto esperado en el sueño
-              </Label>
-              <RadioGroup value={activityImpact} onValueChange={(value) => setActivityImpact(value as any)}>
-                <div className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-50">
-                  <RadioGroupItem value="positive" id="positive" />
-                  <Label htmlFor="positive" className="flex-1 cursor-pointer">
-                    <span className="font-medium text-green-600">Positivo</span>
-                    <span className="text-sm text-gray-500 block">Puede ayudar a dormir mejor</span>
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-50">
-                  <RadioGroupItem value="neutral" id="neutral" />
-                  <Label htmlFor="neutral" className="flex-1 cursor-pointer">
-                    <span className="font-medium text-gray-600">Neutral</span>
-                    <span className="text-sm text-gray-500 block">Sin impacto esperado</span>
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-50">
-                  <RadioGroupItem value="negative" id="negative" />
-                  <Label htmlFor="negative" className="flex-1 cursor-pointer">
-                    <span className="font-medium text-red-600">Negativo</span>
-                    <span className="text-sm text-gray-500 block">Puede dificultar el sueño</span>
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-          )}
-
           {/* Notas adicionales */}
           <div className="space-y-2">
             <Label htmlFor="activity-notes">

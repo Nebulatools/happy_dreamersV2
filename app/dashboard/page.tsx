@@ -463,7 +463,11 @@ export default function DashboardPage() {
               ))}
             </div>
           }>
-            <SleepMetricsCombinedChart childId={activeChildId} dateRange="7-days" />
+            <SleepMetricsCombinedChart 
+              childId={activeChildId} 
+              dateRange="7-days" 
+              showExtendedRange={isAdmin}
+            />
           </Suspense>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">

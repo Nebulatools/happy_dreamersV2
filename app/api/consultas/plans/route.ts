@@ -1317,78 +1317,146 @@ async function loadRAGFromSummary(ageInMonths: number | null): Promise<Array<{so
 
     const documents: Array<{source: string, content: string}> = []
 
-    // Determinar rango de edad relevante
-    let ageRange = '0-3'
-    if (ageInMonths !== null) {
-      if (ageInMonths >= 0 && ageInMonths < 3) ageRange = '0-3'
-      else if (ageInMonths >= 3 && ageInMonths < 6) ageRange = '3-6'
-      else if (ageInMonths >= 6 && ageInMonths < 9) ageRange = '6'
-      else if (ageInMonths >= 9 && ageInMonths < 13) ageRange = '9'
-      else if (ageInMonths >= 13 && ageInMonths < 15) ageRange = '13-15'
-      else if (ageInMonths >= 15 && ageInMonths < 30) ageRange = '15-18'
-      else if (ageInMonths >= 30 && ageInMonths < 36) ageRange = '30+'
-      else ageRange = '36-60'
+    const ragData = JSON.parse(fileContent)
+    const schedules = Array.isArray(ragData.schedules) ? ragData.schedules : []
 
-      logger.info(`👶 Edad del niño: ${ageInMonths} meses → Rango: ${ageRange}`)
-    }
-
-    // Extraer la sección relevante por edad (buscar con "MESES" o sin él)
-    const ageSectionPattern = new RegExp(`## EDAD: ${ageRange.replace(/\+/g, '\\+')}( MESES)?[\\s\\S]*?\`\`\`json([\\s\\S]*?)\`\`\``, 'i')
-    const match = fileContent.match(ageSectionPattern)
-
-    if (match && match[2]) {
-      try {
-        const scheduleData = JSON.parse(match[2].trim())
-
-        // Formatear el contenido para GPT-4
-        const formattedContent = `
-HORARIOS OBJETIVO PARA ${scheduleData.ageMonths} MESES:
-
-Hora de despertar: ${scheduleData.wakeTime}
-Hora de dormir: ${scheduleData.bedtime}
-Duración sueño nocturno: ${scheduleData.nightSleepDuration}
-
-${scheduleData.naps && scheduleData.naps.length > 0 ? `
-Siestas:
-${scheduleData.naps.map((nap: any) =>
-  `- Siesta ${nap.napNumber}: ${nap.time} (${nap.duration})${nap.optional ? ' - opcional' : ''}`
-).join('\n')}
-
-Tiempo total de siestas: ${scheduleData.totalNapTime}
-` : scheduleData.quietTime ? `
-Tiempo tranquilo (sin siesta): ${scheduleData.quietTime}
-` : ''}
-
-${scheduleData.awakeWindows ? `Ventanas despierto: ${Array.isArray(scheduleData.awakeWindows) ? scheduleData.awakeWindows.join(' → ') : scheduleData.awakeWindows}` : ''}
-
-${scheduleData.nightFeedings ? `Tomas nocturnas: ${scheduleData.nightFeedings}` : ''}
-
-${scheduleData.notes ? `NOTAS: ${scheduleData.notes}` : ''}
-        `.trim()
-
-        documents.push({
-          source: `HD Horarios de sueño - ${scheduleData.ageMonths} meses`,
-          content: formattedContent
-        })
-
-        logger.info(`✅ RAG cargado exitosamente: 1 documento para edad ${ageRange}`)
-
-      } catch (parseError) {
-        logger.error("Error parseando JSON del RAG:", parseError)
+    const matchesAgeSpec = (spec: any, months: number | null): boolean => {
+      if (months === null || spec === undefined || spec === null) return false
+      if (typeof spec === 'number') {
+        return months === spec
       }
-    } else {
-      logger.warn(`⚠️ No se encontró sección para edad ${ageRange}`)
+      const specStr = String(spec).trim()
+      if (specStr.includes('+')) {
+        const base = parseInt(specStr)
+        return !isNaN(base) && months >= base
+      }
+      if (specStr.includes('-')) {
+        const [startStr, endStr] = specStr.split('-')
+        const start = parseInt(startStr)
+        const end = parseInt(endStr)
+        if (!isNaN(start) && !isNaN(end)) {
+          return months >= start && months <= end
+        }
+        if (!isNaN(start) && isNaN(end)) {
+          return months >= start
+        }
+      }
+      const parsed = parseInt(specStr)
+      return !isNaN(parsed) && months === parsed
     }
 
-    // Agregar reglas de ajuste progresivo
-    const rulesPattern = /## REGLAS DE AJUSTE PROGRESIVO[\s\S]*?(?=## NOTAS IMPORTANTES|$)/
-    const rulesMatch = fileContent.match(rulesPattern)
+    const targetSchedule = (() => {
+      if (schedules.length === 0) return null
+      if (ageInMonths === null) return schedules[0]
+      const found = schedules.find((schedule: any) => matchesAgeSpec(schedule.ageMonths, ageInMonths))
+      return found || schedules[0]
+    })()
 
-    if (rulesMatch && documents.length > 0) {
+    if (targetSchedule) {
+      const scheduleLabel = targetSchedule.ageLabel || `${targetSchedule.ageMonths} meses`
+      const characteristics = targetSchedule.characteristics || {}
+      const target = targetSchedule.targetSchedule || {}
+      const tips: string[] = Array.isArray(targetSchedule.tips) ? targetSchedule.tips : []
+
+      const characteristicsText = Object.entries(characteristics)
+        .map(([key, value]) => `- ${key.replace(/([A-Z])/g, ' $1').replace(/^\w/, ch => ch.toUpperCase())}: ${value}`)
+        .join('\n')
+
+      const napsText = Array.isArray(target.naps) && target.naps.length > 0
+        ? target.naps.map((nap: any) =>
+            `- Siesta ${nap.napNumber}: ${nap.time} (${nap.duration}${nap.optional ? ', opcional' : ''})`
+          ).join('\n')
+        : target.quietTime
+          ? `- Tiempo tranquilo (sin siesta): ${target.quietTime}`
+          : ''
+
+      const tipsText = tips.length > 0
+        ? `\nRecomendaciones prácticas:\n${tips.map(tip => `- ${tip}`).join('\n')}`
+        : ''
+
+      const formattedContent = [
+        `HORARIOS OBJETIVO PARA ${scheduleLabel.toUpperCase()}`,
+        '',
+        characteristicsText ? `Características clave:\n${characteristicsText}` : '',
+        'Horarios objetivo:',
+        `- Hora de despertar: ${target.wakeTime || 'N/D'}`,
+        `- Hora de dormir: ${target.bedtime || 'N/D'}`,
+        target.nightSleepDuration ? `- Duración sueño nocturno: ${target.nightSleepDuration}` : '',
+        napsText ? `\nSiestas recomendadas:\n${napsText}` : '',
+        target.totalNapTime ? `\nTiempo total de siestas: ${target.totalNapTime}` : '',
+        target.awakeWindows
+          ? `Ventanas despierto: ${Array.isArray(target.awakeWindows) ? target.awakeWindows.join(' → ') : target.awakeWindows}`
+          : '',
+        target.nightFeedings ? `Tomas nocturnas esperadas: ${target.nightFeedings}` : '',
+        targetSchedule.notes ? `\nNotas específicas: ${targetSchedule.notes}` : '',
+        tipsText
+      ].filter(Boolean).join('\n\n')
+
       documents.push({
-        source: 'Reglas de Ajuste Progresivo',
-        content: rulesMatch[0].trim()
+        source: `Horarios ideales - ${scheduleLabel}`,
+        content: formattedContent.trim()
       })
+
+      logger.info(`✅ RAG cargado exitosamente para ${scheduleLabel}`)
+    } else {
+      logger.warn("⚠️ No se encontró un horario objetivo en el RAG")
+    }
+
+    if (ragData.generalRules) {
+      const rulesEntries = Object.entries(ragData.generalRules)
+        .map(([key, value]) => `- ${key.replace(/([A-Z])/g, ' $1').replace(/^\w/, ch => ch.toUpperCase())}: ${value}`)
+        .join('\n')
+
+      if (rulesEntries) {
+        documents.push({
+          source: 'Reglas generales de ajuste',
+          content: `Principios para ajustar horarios:\n${rulesEntries}`
+        })
+      }
+    }
+
+    if (ragData.sleepCues?.signs) {
+      const cuesContent = [
+        ragData.sleepCues.description ? `Descripción: ${ragData.sleepCues.description}` : '',
+        Array.isArray(ragData.sleepCues.signs) ? `Señales clave:\n${ragData.sleepCues.signs.map((cue: string) => `- ${cue}`).join('\n')}` : '',
+        ragData.sleepCues.importance ? `Importancia: ${ragData.sleepCues.importance}` : ''
+      ].filter(Boolean).join('\n\n')
+
+      if (cuesContent) {
+        documents.push({
+          source: 'Señales universales de sueño',
+          content: cuesContent
+        })
+      }
+    }
+
+    if (ragData.progressivePlanAdjustment) {
+      const planAdjustment = ragData.progressivePlanAdjustment
+      const plansDetail = planAdjustment.plans
+        ? Object.entries(planAdjustment.plans).map(([planKey, details]: [string, any]) => {
+            const items = Object.entries(details)
+              .map(([detailKey, detailValue]) => `  - ${detailKey.replace(/([A-Z])/g, ' $1').replace(/^\w/, ch => ch.toUpperCase())}: ${detailValue}`)
+              .join('\n')
+            return `• ${planKey.toUpperCase()}:\n${items}`
+          }).join('\n')
+        : ''
+
+      const adjustmentContent = [
+        planAdjustment.description || 'Reglas para ajuste progresivo de horarios',
+        '',
+        plansDetail ? `Planes:\n${plansDetail}` : '',
+        planAdjustment.steps ? `Pasos recomendados: ${planAdjustment.steps}` : '',
+        planAdjustment.example
+          ? `\nEjemplo:\n- Datos reales: ${planAdjustment.example.realData}\n- Plan 0: ${planAdjustment.example.plan0}\n- Plan 1: ${planAdjustment.example.plan1}\n- Plan 2: ${planAdjustment.example.plan2}`
+          : ''
+      ].filter(Boolean).join('\n')
+
+      if (adjustmentContent.trim().length > 0) {
+        documents.push({
+          source: 'Ajuste progresivo de planes',
+          content: adjustmentContent.trim()
+        })
+      }
     }
 
     logger.info(`📊 Total documentos RAG: ${documents.length}`)

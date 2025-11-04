@@ -5,6 +5,7 @@ export interface SurveyStepProps {
   data: any
   onChange: (data: any) => void
   errors?: ValidationErrors
+  context?: Record<string, any>
 }
 
 export interface ValidationErrors {

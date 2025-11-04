@@ -64,11 +64,13 @@ function decimalToTimeString(decimal: number | null | undefined): string {
 interface SleepMetricsCombinedChartProps {
   childId: string
   dateRange?: "7-days" | "30-days" | "90-days"
+  showExtendedRange?: boolean
 }
 
 export default function SleepMetricsCombinedChart({
   childId,
   dateRange = "7-days",
+  showExtendedRange = true,
 }: SleepMetricsCombinedChartProps) {
   const { refreshTrigger, subscribe } = useEventsCache(childId)
   // Control interno de rango (permite cambiar entre 7/30/90 días)
@@ -79,6 +81,12 @@ export default function SleepMetricsCombinedChart({
     const unsub = subscribe()
     return unsub
   }, [subscribe])
+
+  React.useEffect(() => {
+    if (!showExtendedRange && range === "90-days") {
+      setRange(dateRange === "90-days" ? "30-days" : dateRange)
+    }
+  }, [showExtendedRange, range, dateRange])
 
   const series: SeriesPoint[] = React.useMemo(() => {
     if (!sleepData?.events) return []
@@ -101,18 +109,29 @@ export default function SleepMetricsCombinedChart({
 
     // Precomputar pares bedtime/sleep → wake para obtener duración por noche y asignarla al día del wake
     const nightlyDurationsByDayKey = new Map<string, number>() // key = yyyy-mm-dd
+    const nightWakeupsByNightKey = new Map<string, number>() // key = yyyy-mm-dd (inicio del ciclo)
+    const processedNightWakingIds = new Set<string>()
 
     for (let i = 0; i < events.length - 1; i++) {
       const ev = events[i]
       if (!['sleep', 'bedtime', 'dormir'].includes(ev.eventType)) continue
       const bed = parseISO(ev.startTime)
+      const bedNightKey = format(startOfDay(bed), 'yyyy-MM-dd')
 
       // Buscar siguiente wake
       let wake: Date | null = null
+      let nightWakeCount = 0
       for (let j = i + 1; j < events.length; j++) {
         const next = events[j]
         if (!next.startTime) continue
         if (['sleep', 'bedtime', 'dormir'].includes(next.eventType)) break
+        if (next.eventType === 'night_waking') {
+          nightWakeCount += 1
+          if (next._id) {
+            processedNightWakingIds.add(next._id)
+          }
+          continue
+        }
         if (next.eventType === 'wake') {
           wake = parseISO(next.startTime)
           break
@@ -144,6 +163,11 @@ export default function SleepMetricsCombinedChart({
         const prev = nightlyDurationsByDayKey.get(key) || 0
         nightlyDurationsByDayKey.set(key, Math.max(prev, minutes))
       }
+
+      if (nightWakeCount > 0) {
+        const previousCount = nightWakeupsByNightKey.get(bedNightKey) || 0
+        nightWakeupsByNightKey.set(bedNightKey, previousCount + nightWakeCount)
+      }
     }
 
     // Preparar serie diaria
@@ -156,9 +180,17 @@ export default function SleepMetricsCombinedChart({
       wakeTime: null,
     }))
 
-    // Contar night_waking por día
+    // Aplicar conteo de despertares por noche (usando la fecha de inicio del ciclo)
+    result.forEach((p) => {
+      const key = format(p.date, 'yyyy-MM-dd')
+      if (nightWakeupsByNightKey.has(key)) {
+        p.wakeups = nightWakeupsByNightKey.get(key) || 0
+      }
+    })
+
+    // Contar despertares nocturnos no asociados a un ciclo (fallback)
     events.forEach((e: any) => {
-      if (e.eventType === 'night_waking' && e.startTime) {
+      if (e.eventType === 'night_waking' && e.startTime && (!e._id || !processedNightWakingIds.has(e._id))) {
         const date = parseISO(e.startTime)
         const idx = result.findIndex(p => isSameDay(p.date, date))
         if (idx >= 0) {
@@ -226,7 +258,7 @@ export default function SleepMetricsCombinedChart({
     <Card className="bg-white shadow-sm border-0">
       <CardHeader className="pb-3 md:pb-4">
         <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-[#2F2F2F]">Resumen visual de los últimos {series.length <= 7 ? '7' : range === '30-days' ? '30' : '90'} días</CardTitle>
+          <CardTitle className="text-[#2F2F2F]">Resumen visual de los últimos {series.length <= 7 ? '7' : range === '30-days' ? '30' : showExtendedRange ? '90' : '30'} días</CardTitle>
           <div className="flex gap-2">
             <Button 
               size="sm"
@@ -244,20 +276,24 @@ export default function SleepMetricsCombinedChart({
             >
               30d
             </Button>
-            <Button 
-              size="sm"
-              onClick={() => setRange("90-days")}
-              className={range === "90-days" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3" : "text-[#666666] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3"}
-              variant={range === "90-days" ? "default" : "ghost"}
-            >
-              3m
-            </Button>
+            {showExtendedRange && (
+              <Button 
+                size="sm"
+                onClick={() => setRange("90-days")}
+                className={range === "90-days" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3" : "text-[#666666] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3"}
+                variant={range === "90-days" ? "default" : "ghost"}
+              >
+                3m
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
       <CardContent className="h-[320px] md:h-[380px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={series} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
+        <div className="w-full h-full overflow-x-auto">
+          <div style={{ width: Math.max(series.length * 40, 600), height: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={series} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis dataKey="label" tick={{ fontSize: 12 }} />
             {/* Eje izquierdo: horas (duración) y conteo de despertares */}
@@ -312,8 +348,10 @@ export default function SleepMetricsCombinedChart({
               fill="#4CAF50"
               stroke="#2E7D32"
             />
-          </ComposedChart>
-        </ResponsiveContainer>
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </CardContent>
     </Card>
   )

@@ -167,9 +167,9 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         </RadioGroup>
       </div>
 
-      {/* 9. Oscuridad del cuarto (OPTIONAL) */}
+      {/* 9. Oscuridad del cuarto */}
       <div>
-        <Label>9. ¿Qué tan oscuro es el cuarto de su hijo/a? ¿Deja usted: (OPTIONAL)</Label>
+        <Label>9. ¿Qué tan oscuro es el cuarto de su hijo/a? ¿Deja usted:</Label>
         <RadioGroup
           value={data.oscuridadCuarto || ""}
           onValueChange={(value) => updateField('oscuridadCuarto', value)}
@@ -439,10 +439,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 24. ¿Desde cuándo se despierta? */}
+      {/* 24. ¿Desde qué edad se despierta? */}
       <div>
         <Label htmlFor="desde-cuando-despierta">
-          24. ¿Desde cuándo se despierta?
+          24. ¿Desde qué edad (en meses) se despierta?
         </Label>
         <Input
           id="desde-cuando-despierta"
@@ -525,10 +525,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 30. Principal preocupación (OPTIONAL) */}
+      {/* 30. Principal preocupación */}
       <div>
         <Label htmlFor="principal-preocupacion">
-          30. ¿Cuál es tu principal preocupación con respecto al sueño de tu hijo(a)? (OPTIONAL)
+          30. ¿Cuál es tu principal preocupación con respecto al sueño de tu hijo(a)?
         </Label>
         <Textarea
           id="principal-preocupacion"
@@ -539,10 +539,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 31. ¿Desde cuándo problema? (OPTIONAL) */}
+      {/* 31. ¿Desde cuándo problema? */}
       <div>
         <Label htmlFor="desde-cuando-problema">
-          31. ¿Desde cuándo existe este problema? (OPTIONAL)
+          31. ¿Desde cuándo existe este problema?
         </Label>
         <Input
           id="desde-cuando-problema"
@@ -570,10 +570,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         )}
       </div>
 
-      {/* 33. Información adicional (OPTIONAL) */}
+      {/* 33. Información adicional */}
       <div>
         <Label htmlFor="info-adicional">
-          33. ¿Existe alguna otra información que consideren relevante que sepa? (OPTIONAL)
+          33. ¿Existe alguna otra información que consideren relevante que deba saber?
         </Label>
         <Textarea
           id="info-adicional"

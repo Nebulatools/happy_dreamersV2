@@ -19,7 +19,7 @@ interface ExtraActivityButtonProps {
 interface ExtraActivityModalData {
   activityDescription: string
   activityDuration: number // en minutos
-  activityImpact: 'positive' | 'neutral' | 'negative'
+  activityImpact?: 'positive' | 'neutral' | 'negative'
   activityNotes: string
 }
 
@@ -66,21 +66,22 @@ export function ExtraActivityButton({
       const now = getCurrentTime()
       
       // Crear evento de actividad extra con todos los datos en campos separados
+      const impact = activityData.activityImpact ?? 'neutral'
       const eventData: Partial<EventData> = {
         childId,
         eventType: 'extra_activities',
         startTime: toLocalISOString(now),
         activityDescription: activityData.activityDescription,
         activityDuration: activityData.activityDuration,
-        activityImpact: activityData.activityImpact,
+        activityImpact: impact,
         activityNotes: activityData.activityNotes || '',
         // El campo notes puede combinar descripción y notas para compatibilidad
         notes: activityData.activityNotes ? 
           `${activityData.activityDescription} - ${activityData.activityNotes}` : 
           activityData.activityDescription,
         description: activityData.activityDescription, // Campo legacy para compatibilidad
-        emotionalState: activityData.activityImpact === 'positive' ? 'tranquilo' : 
-                        activityData.activityImpact === 'negative' ? 'inquieto' : 'neutral'
+        emotionalState: impact === 'positive' ? 'tranquilo' : 
+                        impact === 'negative' ? 'inquieto' : 'neutral'
       }
       
       const response = await fetch('/api/children/events', {

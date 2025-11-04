@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Activity } from "lucide-react"
 import type { SurveyStepProps } from '../types/survey.types'
 
@@ -23,18 +22,6 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
 
   const hasError = (field: string): boolean => {
     return !!getError(field)
-  }
-
-  const updateSituacion = (situacion: string, checked: boolean) => {
-    const situaciones = data.situacionesHijo || []
-    if (checked) {
-      onChange({ ...data, situacionesHijo: [...situaciones, situacion] })
-    } else {
-      onChange({ 
-        ...data, 
-        situacionesHijo: situaciones.filter((s: string) => s !== situacion) 
-      })
-    }
   }
 
   return (
@@ -84,10 +71,10 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
         </RadioGroup>
       </div>
 
-      {/* 3. Actividades cuando está despierto (OPTIONAL) */}
+      {/* 3. Actividades cuando está despierto */}
       <div>
         <Label htmlFor="actividades-despierto">
-          3. ¿Qué actividades realiza tu hijo(a) cuando está despierto? (OPTIONAL)
+          3. ¿Qué actividades realiza tu hijo(a) cuando está despierto?
         </Label>
         <Textarea
           id="actividades-despierto"
@@ -116,66 +103,6 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
             </div>
           </div>
         </RadioGroup>
-      </div>
-
-      {/* 5. Situaciones de salud (OPTIONAL) */}
-      <div>
-        <Label>5. ¿Tu hijo(a) ha sufrido de algunas de las siguientes situaciones? (OPTIONAL)</Label>
-        <div className="space-y-2 mt-2">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="sit-alergias"
-              checked={data.situacionesHijo?.includes('alergias') || false}
-              onCheckedChange={(checked) => updateSituacion('alergias', checked as boolean)}
-            />
-            <Label htmlFor="sit-alergias">Alergias</Label>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="sit-infecciones-oido"
-              checked={data.situacionesHijo?.includes('infecciones-oido') || false}
-              onCheckedChange={(checked) => updateSituacion('infecciones-oido', checked as boolean)}
-            />
-            <Label htmlFor="sit-infecciones-oido">Infecciones de oído frecuentes</Label>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="sit-asma"
-              checked={data.situacionesHijo?.includes('asma') || false}
-              onCheckedChange={(checked) => updateSituacion('asma', checked as boolean)}
-            />
-            <Label htmlFor="sit-asma">Asma</Label>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="sit-rinitis"
-              checked={data.situacionesHijo?.includes('rinitis') || false}
-              onCheckedChange={(checked) => updateSituacion('rinitis', checked as boolean)}
-            />
-            <Label htmlFor="sit-rinitis">Rinitis</Label>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="sit-nariz-tapada"
-              checked={data.situacionesHijo?.includes('nariz-tapada') || false}
-              onCheckedChange={(checked) => updateSituacion('nariz-tapada', checked as boolean)}
-            />
-            <Label htmlFor="sit-nariz-tapada">Frecuente nariz tapada</Label>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="sit-dermatitis"
-              checked={data.situacionesHijo?.includes('dermatitis') || false}
-              onCheckedChange={(checked) => updateSituacion('dermatitis', checked as boolean)}
-            />
-            <Label htmlFor="sit-dermatitis">Dermatitis atópica</Label>
-          </div>
-        </div>
       </div>
     </div>
   )

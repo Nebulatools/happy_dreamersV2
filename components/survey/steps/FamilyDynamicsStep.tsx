@@ -140,9 +140,9 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         />
       </div>
 
-      {/* 8. ¿Has contratado otro asesor? (OPTIONAL) */}
+      {/* 8. ¿Has contratado otro asesor? */}
       <div>
-        <Label>8. ¿Has contratado a algún otro asesor de sueño o intentado entrenar antes? (OPTIONAL)</Label>
+        <Label>8. ¿Has contratado a algún otro asesor de sueño o intentado entrenar antes?</Label>
         <RadioGroup
           value={data.otroAsesor === true ? "si" : data.otroAsesor === false ? "no" : ""}
           onValueChange={(value) => updateField('otroAsesor', value === 'si')}

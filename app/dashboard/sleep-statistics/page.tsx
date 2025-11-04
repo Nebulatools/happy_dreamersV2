@@ -48,16 +48,18 @@ export default function SleepStatisticsPage() {
       >
         30 días
       </Button>
-      <Button
-        variant={dateRange === "90-days" ? "default" : "ghost"}
-        size="sm"
-        onClick={() => setDateRange("90-days")}
-        className={`text-xs md:text-sm ${dateRange === "90-days" ? "hd-gradient-button text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
-      >
-        3 meses
-      </Button>
+      {isAdmin && (
+        <Button
+          variant={dateRange === "90-days" ? "default" : "ghost"}
+          size="sm"
+          onClick={() => setDateRange("90-days")}
+          className={`text-xs md:text-sm ${dateRange === "90-days" ? "hd-gradient-button text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
+        >
+          3 meses
+        </Button>
+      )}
     </div>
-  ), [dateRange])
+  ), [dateRange, isAdmin])
 
   usePageHeaderConfig({
     title: "Estadísticas de Sueño",

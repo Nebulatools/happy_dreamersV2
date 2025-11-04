@@ -76,7 +76,7 @@ export function SurveyProgress({
       </div>
 
       {/* Indicadores de pasos */}
-      <div className="flex flex-wrap gap-2 justify-center">
+      <div className="flex gap-2 justify-center overflow-x-auto pb-1 px-1">
         {steps.map((step) => {
           const isCompleted = completedSteps.has(step.id)
           const hasError = stepsWithErrors.has(step.id)
@@ -87,7 +87,7 @@ export function SurveyProgress({
               key={step.id}
               onClick={() => onStepClick?.(step.id)}
               className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm",
+                "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm whitespace-nowrap min-w-[150px] justify-center",
                 "transition-all duration-200",
                 {
                   "bg-gradient-to-r from-[#628BE6] to-[#67C5FF] text-white": isCurrent,

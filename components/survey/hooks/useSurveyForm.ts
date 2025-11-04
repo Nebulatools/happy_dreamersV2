@@ -7,45 +7,83 @@ import type { ValidationErrors } from '../types/survey.types'
 import { validateStep } from '../validation/validators'
 import { stepValidations } from '../validation/schemas'
 
-export function useSurveyForm(initialData?: Partial<SurveyData>) {
-  const [formData, setFormData] = useState<Partial<SurveyData>>(initialData || {
-    informacionFamiliar: {
-      papa: {
-        nombre: "",
-        ocupacion: "",
-        direccion: "",
-        email: "",
-        trabajaFueraCasa: false,
-        tieneAlergias: false
-      },
-      mama: {
-        nombre: "",
-        ocupacion: "",
-        mismaDireccionPapa: true,
-        direccion: "",
-        email: "",
-        trabajaFueraCasa: false,
-        tieneAlergias: false
-      }
+const defaultFormData: Partial<SurveyData> = {
+  informacionFamiliar: {
+    papa: {
+      nombre: "",
+      ocupacion: "",
+      direccion: "",
+      email: "",
+      trabajaFueraCasa: false,
+      tieneAlergias: false
     },
-    dinamicaFamiliar: {},
-    historial: {},
-    desarrollo: {},
-    actividadFisica: {},
-    rutinaHabitos: {}
-  })
+    mama: {
+      nombre: "",
+      ocupacion: "",
+      mismaDireccionPapa: true,
+      direccion: "",
+      email: "",
+      trabajaFueraCasa: false,
+      tieneAlergias: false
+    }
+  },
+  dinamicaFamiliar: {},
+  historial: {},
+  desarrollo: {},
+  actividadFisica: {},
+  rutinaHabitos: {}
+}
+
+function normalizeSurveyData(data?: Partial<SurveyData>): Partial<SurveyData> {
+  if (!data) return {}
+
+  const normalized: Partial<SurveyData> = {
+    ...data,
+    informacionFamiliar: { ...data.informacionFamiliar },
+    dinamicaFamiliar: { ...data.dinamicaFamiliar },
+    historial: { ...(data.historial || {}) },
+    desarrollo: { ...(data.desarrollo || {}) },
+    actividadFisica: { ...(data.actividadFisica || {}) },
+    rutinaHabitos: { ...(data.rutinaHabitos || {}) }
+  }
+
+  const historialAny = normalized.historial as any
+  if (historialAny) {
+    if (!historialAny.nombreHijo && historialAny.nombreNino) {
+      historialAny.nombreHijo = historialAny.nombreNino
+    }
+  }
+
+  if (normalized.actividadFisica?.situacionesHijo && !normalized.desarrollo?.situacionesHijo) {
+    normalized.desarrollo = {
+      ...normalized.desarrollo,
+      situacionesHijo: normalized.actividadFisica.situacionesHijo
+    }
+  }
+
+  return normalized
+}
+
+export function useSurveyForm(initialData?: Partial<SurveyData>) {
+  const normalizedInitial = initialData ? normalizeSurveyData(initialData) : undefined
+
+  const [formData, setRawFormData] = useState<Partial<SurveyData>>(
+    normalizedInitial && Object.keys(normalizedInitial).length > 0
+      ? normalizedInitial
+      : defaultFormData
+  )
 
   const [errors, setErrors] = useState<Record<number, ValidationErrors>>({})
   const [touchedSteps, setTouchedSteps] = useState<Set<number>>(new Set())
 
   // Actualizar datos de un paso específico
   const updateStepData = useCallback((step: number, data: any) => {
-    setFormData(prev => {
+    setRawFormData(prev => {
       const stepKey = getStepKey(step)
       const updatedData = {
         ...prev,
         [stepKey]: {
-          ...prev[stepKey as keyof SurveyData],
+          ...(prev[stepKey as keyof SurveyData] || {}),
           ...data
         }
       }
@@ -114,14 +152,29 @@ export function useSurveyForm(initialData?: Partial<SurveyData>) {
 
   // Función para establecer datos iniciales (útil para pre-llenar con datos del usuario)
   const setInitialData = useCallback((data: Partial<SurveyData>) => {
-    setFormData(prevData => ({
-      ...data,
+    const normalized = normalizeSurveyData(data)
+    setRawFormData(prevData => ({
+      ...normalized,
       ...prevData,
       informacionFamiliar: {
-        ...data.informacionFamiliar,
+        ...normalized.informacionFamiliar,
         ...prevData.informacionFamiliar
       }
     }))
+  }, [])
+
+  const setFormData = useCallback((
+    value: Partial<SurveyData> | ((prev: Partial<SurveyData>) => Partial<SurveyData>)
+  ) => {
+    if (typeof value === 'function') {
+      setRawFormData(prev => {
+        const normalized = normalizeSurveyData(value(prev))
+        return Object.keys(normalized).length > 0 ? normalized : prev
+      })
+    } else {
+      const normalized = normalizeSurveyData(value)
+      setRawFormData(Object.keys(normalized).length > 0 ? normalized : defaultFormData)
+    }
   }, [])
 
   return {

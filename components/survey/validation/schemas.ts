@@ -1,7 +1,7 @@
 // Esquemas de validación centralizados para la encuesta
 // Fácil mantenimiento y modificación de reglas
 
-import type { StepValidation } from '../types/survey.types'
+import type { StepValidation, ValidationErrors } from '../types/survey.types'
 
 export const familyInfoValidation: StepValidation = {
   fields: {
@@ -58,6 +58,25 @@ export const familyInfoValidation: StepValidation = {
       required: true,
       pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     }
+  },
+  customValidation: (data: any) => {
+    const errors: ValidationErrors = {}
+    
+    if (data?.papa?.tieneAlergias && !data.papa.alergias) {
+      errors.papa = {
+        ...(errors.papa as any),
+        alergias: 'Describe las alergias de papá'
+      }
+    }
+    
+    if (data?.mama?.tieneAlergias && !data.mama.alergias) {
+      errors.mama = {
+        ...(errors.mama as any),
+        alergias: 'Describe las alergias de mamá'
+      }
+    }
+    
+    return errors
   }
 }
 
@@ -96,6 +115,15 @@ export const childHistoryValidation: StepValidation = {
     'pesoHijo': {
       required: true
     }
+  },
+  customValidation: (data: any) => {
+    const errors: ValidationErrors = {}
+    
+    if (data?.problemasNacer && !data.problemasNacerDetalle) {
+      errors.problemasNacerDetalle = 'Describe el problema que presentó al nacer'
+    }
+    
+    return errors
   }
 }
 
