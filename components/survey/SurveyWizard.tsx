@@ -375,7 +375,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-3 sm:px-4 lg:px-0">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 lg:px-0">
       <SurveyProgress
         currentStep={currentStep}
         totalSteps={6}
@@ -400,36 +400,39 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
           context={{ childData, isExisting }}
         />
         
-        <div className="flex justify-between items-center mt-8 pt-6 border-t">
-          <Button
-            variant="outline"
-            onClick={() => handleStepChange(currentStep - 1)}
-            disabled={currentStep === 1}
-          >
-            <ChevronLeft className="w-4 h-4 mr-2" />
-            Anterior
-          </Button>
-          
-          <button
-            onClick={handleSaveAndContinueLater}
-            className="text-[#4A90E2] text-sm font-medium flex items-center gap-2 hover:underline"
-          >
-            <Save className="w-4 h-4" />
-            Guardar y continuar más tarde
-          </button>
+        <div className="mt-8 pt-6 border-t flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3">
+            <Button
+              variant="outline"
+              onClick={() => handleStepChange(currentStep - 1)}
+              disabled={currentStep === 1}
+              className="w-full sm:w-auto"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Anterior
+            </Button>
+            
+            <button
+              onClick={handleSaveAndContinueLater}
+              className="text-[#4A90E2] text-sm font-medium flex items-center gap-2 hover:underline justify-center mt-3 sm:mt-0"
+            >
+              <Save className="w-4 h-4" />
+              Guardar y continuar más tarde
+            </button>
+          </div>
           
           {currentStep === 6 ? (
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="hd-gradient-button text-white"
+              className="hd-gradient-button text-white w-full sm:w-auto justify-center"
             >
               {isSubmitting ? "Enviando..." : "Finalizar Encuesta"}
             </Button>
           ) : (
             <Button
               onClick={() => handleStepChange(currentStep + 1)}
-              className="hd-gradient-button text-white"
+              className="hd-gradient-button text-white w-full sm:w-auto justify-center"
             >
               Siguiente
               <ChevronRight className="w-4 h-4 ml-2" />

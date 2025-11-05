@@ -100,8 +100,8 @@ export default function SurveyPage() {
 
   if (!childId) {
     return (
-      <div className="p-4 md:p-6 max-w-7xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+      <div className="w-full px-4 sm:px-6 py-6 max-w-4xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 text-center space-y-3">
           <h2 className="text-xl font-semibold mb-2">Selecciona un niño</h2>
           <p className="text-gray-500">
             Por favor, selecciona un niño en la parte superior para completar la encuesta de sueño.
@@ -123,31 +123,31 @@ export default function SurveyPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto">
+    <div className="w-full px-4 sm:px-6 py-6 max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="mb-6">
+      <div className="space-y-4">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => router.push("/dashboard")}
-          className="mb-4"
+          className="w-full sm:w-auto"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Volver al Dashboard
         </Button>
         
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-[#2F2F2F]">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-2 text-center sm:text-left">
+            <h1 className="text-2xl md:text-3xl font-bold text-[#2F2F2F] leading-tight">
               Cuestionario Inicial
             </h1>
-            <p className="text-gray-600 mt-2">
+            <p className="text-gray-600">
               Completa esta encuesta para recibir recomendaciones personalizadas
             </p>
           </div>
           
           {existingSurvey && isViewMode && (
-            <div className="flex items-center gap-2 text-green-600">
+            <div className="flex items-center justify-center sm:justify-end gap-2 text-green-600">
               <CheckCircle className="w-5 h-5" />
               <span className="text-sm font-medium">Encuesta completada</span>
             </div>
@@ -157,7 +157,7 @@ export default function SurveyPage() {
 
       {/* Modo Vista - Encuesta Completada */}
       {existingSurvey && isViewMode ? (
-        <Card className="p-6 md:p-8">
+        <Card className="p-6 sm:p-8">
           <div className="text-center max-w-2xl mx-auto">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-2xl font-semibold mb-4">

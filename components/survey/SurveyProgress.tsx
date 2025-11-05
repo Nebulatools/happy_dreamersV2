@@ -31,10 +31,10 @@ export function SurveyProgress({
   const progress = (currentStep / totalSteps) * 100
 
   return (
-    <div className="mb-8">
+    <div className="mb-8 px-1 sm:px-0">
       {/* Barra de progreso */}
-      <div className="relative mb-6">
-        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+      <div className="relative mb-6 mx-auto max-w-3xl">
+        <div className="h-1.5 sm:h-2 bg-gray-200 rounded-full overflow-hidden">
           <div 
             className="h-full bg-gradient-to-r from-[#628BE6] to-[#67C5FF] transition-all duration-300"
             style={{ width: `${progress}%` }}
@@ -76,7 +76,7 @@ export function SurveyProgress({
       </div>
 
       {/* Indicadores de pasos */}
-      <div className="flex gap-2 justify-center overflow-x-auto pb-1 px-1">
+      <div className="flex flex-wrap gap-2 justify-center sm:flex-nowrap sm:overflow-x-auto pb-1">
         {steps.map((step) => {
           const isCompleted = completedSteps.has(step.id)
           const hasError = stepsWithErrors.has(step.id)
@@ -87,7 +87,7 @@ export function SurveyProgress({
               key={step.id}
               onClick={() => onStepClick?.(step.id)}
               className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm whitespace-nowrap min-w-[150px] justify-center",
+                "flex items-center gap-2 px-2.5 py-1.5 rounded-full text-xs sm:text-sm whitespace-nowrap min-w-[104px] sm:min-w-[150px] justify-center",
                 "transition-all duration-200",
                 {
                   "bg-gradient-to-r from-[#628BE6] to-[#67C5FF] text-white": isCurrent,
