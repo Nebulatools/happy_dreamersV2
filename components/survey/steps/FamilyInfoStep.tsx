@@ -191,10 +191,10 @@ export function FamilyInfoStep({ data, onChange, errors = {} }: SurveyStepProps)
               />
             </div>
             
-            {/* 7. Email */}
+            {/* 7. Correo electrónico */}
             <div className="md:col-span-2">
               <Label htmlFor="papa-email">
-                7. Email: <span className="text-red-500">*</span>
+                7. Correo electrónico: <span className="text-red-500">*</span>
               </Label>
               <Input 
                 id="papa-email"
@@ -402,10 +402,10 @@ export function FamilyInfoStep({ data, onChange, errors = {} }: SurveyStepProps)
               )}
             </div>
             
-            {/* 7. Email */}
+            {/* 7. Correo electrónico */}
             <div className="md:col-span-2">
               <Label htmlFor="mama-email">
-                7. Email: <span className="text-red-500">*</span>
+                7. Correo electrónico: <span className="text-red-500">*</span>
               </Label>
               <Input 
                 id="mama-email"

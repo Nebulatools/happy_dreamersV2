@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { usePageHeaderConfig } from "@/context/page-header-context"
 import { useToast } from "@/hooks/use-toast"
 import { ToggleSwitch } from "@/components/ui/toggle-switch"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -72,6 +73,13 @@ export default function ConfiguracionPage() {
     weeklyTips: true,
     appUpdates: false,
     marketingEmails: false,
+  })
+
+  usePageHeaderConfig({
+    title: "Configuración",
+    showChildSelector: false,
+    showSearch: false,
+    showNotifications: true
   })
 
   // Update profileData when userData changes

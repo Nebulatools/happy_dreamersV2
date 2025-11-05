@@ -31,28 +31,10 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         SOBRE LA DINÁMICA FAMILIAR
       </h3>
 
-      {/* 1. ¿Cuántos hijos tienen? */}
-      <div>
-        <Label htmlFor="hijos-info">
-          1. ¿Cuántos hijos tienen? Escribe el nombre, fecha de nacimiento y edad de cada uno de ellos. (Pon un asterisco en el nombre del hijo(a) que desean ayudar) <span className="text-red-500">*</span>
-        </Label>
-        <Textarea
-          id="hijos-info"
-          value={data.hijosInfo || ""}
-          onChange={(e) => updateField('hijosInfo', e.target.value)}
-          placeholder="Ejemplo: *Juan (15/03/2019, 5 años), María (20/08/2021, 3 años)"
-          rows={3}
-          className={hasError('hijosInfo') ? 'border-red-500' : ''}
-        />
-        {hasError('hijosInfo') && (
-          <p className="text-red-500 text-sm mt-1">{getError('hijosInfo')}</p>
-        )}
-      </div>
-
-      {/* 2. ¿Quiénes más viven en la casa? */}
+      {/* 1. ¿Quiénes más viven en la casa? */}
       <div>
         <Label htmlFor="otros-residentes">
-          2. ¿Quiénes más viven en la casa?
+          1. ¿Quiénes más viven en la casa?
         </Label>
         <Textarea
           id="otros-residentes"
@@ -63,10 +45,10 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         />
       </div>
 
-      {/* 3. Número telefónico para llamadas de seguimiento */}
+      {/* 2. Número telefónico para llamadas de seguimiento */}
       <div>
         <Label htmlFor="telefono-seguimiento">
-          3. ¿Cuál es el número telefónico en el cual se podrán hacer las llamadas de seguimiento? <span className="text-red-500">*</span>
+          2. ¿Cuál es el número telefónico en el cual se podrán hacer las llamadas de seguimiento? <span className="text-red-500">*</span>
         </Label>
         <Input
           id="telefono-seguimiento"
@@ -80,10 +62,10 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         )}
       </div>
 
-      {/* 4. Email para observaciones */}
+      {/* 3. Correo para observaciones */}
       <div>
         <Label htmlFor="email-observaciones">
-          4. ¿Cuál es el correo electrónico en el cual se enviarán las observaciones del registro de sueño? <span className="text-red-500">*</span>
+          3. ¿Cuál es el correo electrónico en el cual se enviarán las observaciones del registro de sueño? <span className="text-red-500">*</span>
         </Label>
         <Input
           id="email-observaciones"
@@ -98,10 +80,10 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         )}
       </div>
 
-      {/* 5. ¿Cómo supiste de mis servicios? */}
+      {/* 4. ¿Cómo supiste de mis servicios? */}
       <div>
         <Label htmlFor="como-supiste">
-          5. ¿Cómo supiste de mis servicios?
+          4. ¿Cómo supiste de mis servicios?
         </Label>
         <Textarea
           id="como-supiste"
@@ -112,10 +94,10 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         />
       </div>
 
-      {/* 6. Libros consultados */}
+      {/* 5. Libros consultados */}
       <div>
         <Label htmlFor="libros-consultados">
-          6. ¿Qué libros acerca de sueño infantil han consultado?
+          5. ¿Qué libros acerca de sueño infantil han consultado?
         </Label>
         <Textarea
           id="libros-consultados"
@@ -126,10 +108,10 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         />
       </div>
 
-      {/* 7. ¿Están en contra de algún método? */}
+      {/* 6. ¿Están en contra de algún método? */}
       <div>
         <Label htmlFor="metodos-contra">
-          7. ¿Están en contra de algún método de entrenamiento?
+          6. ¿Están en contra de algún método de entrenamiento?
         </Label>
         <Textarea
           id="metodos-contra"
@@ -140,17 +122,17 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         />
       </div>
 
-      {/* 8. ¿Has contratado otro asesor? */}
+      {/* 7. ¿Has contratado otro asesor? */}
       <div>
-        <Label>8. ¿Has contratado a algún otro asesor de sueño o intentado entrenar antes?</Label>
+        <Label>7. ¿Has contratado a algún otro asesor de sueño o intentado entrenar antes?</Label>
         <RadioGroup
           value={data.otroAsesor === true ? "si" : data.otroAsesor === false ? "no" : ""}
           onValueChange={(value) => updateField('otroAsesor', value === 'si')}
         >
           <div className="flex gap-4 mt-2">
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="si" id="otro-asesor-si" />
-              <Label htmlFor="otro-asesor-si">Sí</Label>
+                  <RadioGroupItem value="si" id="otro-asesor-si" />
+                  <Label htmlFor="otro-asesor-si">Sí</Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="no" id="otro-asesor-no" />
@@ -160,10 +142,10 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         </RadioGroup>
       </div>
 
-      {/* 9. ¿Quién atiende en la noche? */}
+      {/* 8. ¿Quién atiende en la noche? */}
       <div>
         <Label htmlFor="quien-atiende">
-          9. ¿Quién o quiénes se levantan a atender a tu hijo(a) cuando se despierta en la noche? <span className="text-red-500">*</span>
+          8. ¿Quién o quiénes se levantan a atender a tu hijo(a) cuando se despierta en la noche? <span className="text-red-500">*</span>
         </Label>
         <Textarea
           id="quien-atiende"

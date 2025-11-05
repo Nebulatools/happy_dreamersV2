@@ -20,14 +20,14 @@ const parentInfoSchema = z.object({
   mother_same_address: z.string().optional(),
   mother_city: z.string().optional(),
   mother_phone: z.string().optional(),
-  mother_email: z.string().email("Por favor ingresa un email válido").optional(),
+  mother_email: z.string().email("Por favor ingresa un correo electrónico válido").optional(),
   father_name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
   father_age: z.string().optional(),
   father_occupation: z.string().optional(),
   father_address: z.string().optional(),
   father_city: z.string().optional(),
   father_phone: z.string().optional(),
-  father_email: z.string().email("Por favor ingresa un email válido").optional(),
+  father_email: z.string().email("Por favor ingresa un correo electrónico válido").optional(),
   referral_source: z.string().optional(),
 })
 
@@ -210,9 +210,9 @@ export function ParentInfoForm({ onDataChange, initialData = {} }: ParentInfoFor
                 name="mother_email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Correo electrónico</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="Email" {...field} />
+                      <Input type="email" placeholder="Correo electrónico" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -307,9 +307,9 @@ export function ParentInfoForm({ onDataChange, initialData = {} }: ParentInfoFor
                 name="father_email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Correo electrónico</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="Email" {...field} />
+                      <Input type="email" placeholder="Correo electrónico" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

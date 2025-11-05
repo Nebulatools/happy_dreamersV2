@@ -261,18 +261,6 @@ export default function ChildProfilePage() {
           <div className="p-6">
             {activeTab === "resumen" && (
               <div className="space-y-6">
-                {/* Consejo del Sleep Coach */}
-                <div className="bg-[#F0F7FF] rounded-xl border border-blue-100 p-6">
-                  <h3 className="text-xl font-semibold text-[#2F2F2F] mb-3">
-                    Consejo del Sleep Coach
-                  </h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    Mantener una rutina constante antes de dormir ayuda a mejorar la calidad del 
-                    sueño. Considera incluir actividades relajantes como leer un cuento o hacer 
-                    ejercicios de respiración suaves.
-                  </p>
-                </div>
-
                 {/* Eventos Recientes */}
                 <RecentEvents childId={params.id as string} />
 

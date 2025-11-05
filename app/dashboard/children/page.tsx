@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { createLogger } from "@/lib/logger"
 import { extractChildrenFromResponse } from "@/lib/api-response-utils"
+import { usePageHeaderConfig } from "@/context/page-header-context"
 
 const logger = createLogger("page")
 
@@ -60,6 +61,13 @@ export default function MisSonadoresPage() {
   const [loading, setLoading] = useState(true)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [childToDelete, setChildToDelete] = useState<Child | null>(null)
+
+  usePageHeaderConfig({
+    title: "Mis Soñadores",
+    showChildSelector: false,
+    showSearch: false,
+    showNotifications: true
+  })
 
   useEffect(() => {
     fetchChildren()

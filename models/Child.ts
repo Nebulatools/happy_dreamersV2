@@ -229,12 +229,12 @@ const ChildSchema = new Schema<IChild>({
       }
     },
     dinamicaFamiliar: {
-      cantidadHijos: { type: Number, required: true },
+      cantidadHijos: { type: Number },
       hijosInfo: [{
-        nombre: { type: String, required: true },
-        fechaNacimiento: { type: String, required: true },
-        edad: { type: Number, required: true },
-        esElQueNecesitaAyuda: { type: Boolean, required: true }
+        nombre: { type: String },
+        fechaNacimiento: { type: String },
+        edad: { type: Number },
+        esElQueNecesitaAyuda: { type: Boolean }
       }],
       otrosEnCasa: { type: String, required: true },
       telefonoSeguimiento: { type: String, required: true },

@@ -48,6 +48,12 @@ export interface DailyAggregatedSleepStats {
   avgTotalHoursPerDay: number
   nightPercentage: number
   napPercentage: number
+  dailyTotals: {
+    dateKey: string
+    nightMinutes: number
+    napMinutes: number
+    totalMinutes: number
+  }[]
 }
 
 /**
@@ -74,6 +80,7 @@ export function aggregateDailySleep(
       avgTotalHoursPerDay: 0,
       nightPercentage: 0,
       napPercentage: 0,
+      dailyTotals: [],
     }
   }
 
@@ -91,7 +98,11 @@ export function aggregateDailySleep(
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 
   // Mapa por fecha (YYYY-MM-DD) → minutos
-  const fmt = (d: Date) => `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`
+  const fmt = (d: Date) => {
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return `${d.getFullYear()}-${month}-${day}`
+  }
   const dayTotals = new Map<string, { night: number; nap: number }>()
   const ensure = (key: string) => {
     if (!dayTotals.has(key)) dayTotals.set(key, { night: 0, nap: 0 })
@@ -174,6 +185,15 @@ export function aggregateDailySleep(
   const nightPercentage = avgTotalHoursPerDay > 0 ? (avgNightHoursPerDay / avgTotalHoursPerDay) * 100 : 0
   const napPercentage = avgTotalHoursPerDay > 0 ? (avgNapHoursPerDay / avgTotalHoursPerDay) * 100 : 0
 
+  const dailyTotals = Array.from(dayTotals.entries())
+    .map(([dateKey, value]) => ({
+      dateKey,
+      nightMinutes: value.night,
+      napMinutes: value.nap,
+      totalMinutes: value.night + value.nap
+    }))
+    .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
+
   return {
     daysInPeriod,
     daysWithData,
@@ -186,6 +206,7 @@ export function aggregateDailySleep(
     avgTotalHoursPerDay,
     nightPercentage,
     napPercentage,
+    dailyTotals,
   }
 }
 

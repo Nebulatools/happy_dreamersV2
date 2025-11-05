@@ -82,10 +82,6 @@ export const familyInfoValidation: StepValidation = {
 
 export const familyDynamicsValidation: StepValidation = {
   fields: {
-    'hijosInfo': {
-      required: true,
-      minLength: 5
-    },
     'telefonoSeguimiento': {
       required: true,
       pattern: /^[\d\s()+\-]+$/,

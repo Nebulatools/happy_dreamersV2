@@ -74,8 +74,8 @@ export interface SurveyData {
   
   // DINÁMICA FAMILIAR
   dinamicaFamiliar: {
-    cantidadHijos: number
-    hijosInfo: Array<{
+    cantidadHijos?: number
+    hijosInfo?: Array<{
       nombre: string
       fechaNacimiento: string
       edad: number

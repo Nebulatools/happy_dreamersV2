@@ -162,28 +162,37 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
   // Pre-llenar datos con información del usuario y del niño
   useEffect(() => {
     if ((userProfile || childData) && !initialData && !isExisting) {
+      const defaultName = userProfile?.name || session?.user?.name || ""
+      const defaultEmail = userProfile?.email || session?.user?.email || ""
+      const defaultPhone = userProfile?.phone || ""
+
       // Pre-llenar información familiar con datos del usuario
       const prefilledData: Partial<SurveyData> = {
         informacionFamiliar: {
           papa: {
-            nombre: userProfile?.name || "",
+            nombre: defaultName,
             ocupacion: "",
             direccion: "",
-            email: userProfile?.email || session?.user?.email || "",
+            telefono: defaultPhone,
+            email: defaultEmail,
             trabajaFueraCasa: false,
             tieneAlergias: false
           },
           mama: {
-            nombre: "",
+            nombre: defaultName,
             ocupacion: "",
             mismaDireccionPapa: true,
             direccion: "",
-            email: "",
+            telefono: defaultPhone,
+            email: defaultEmail,
             trabajaFueraCasa: false,
             tieneAlergias: false
           }
         },
-        dinamicaFamiliar: {},
+        dinamicaFamiliar: {
+          telefonoSeguimiento: defaultPhone,
+          emailObservaciones: defaultEmail
+        },
         historial: {
           // Pre-llenar información del niño si está disponible
           nombreHijo: childData ? [childData.firstName, childData.lastName].filter(Boolean).join(" ") : "",
@@ -366,7 +375,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto px-3 sm:px-4 lg:px-0">
       <SurveyProgress
         currentStep={currentStep}
         totalSteps={6}
@@ -375,7 +384,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
         onStepClick={handleStepChange}
       />
       
-      <Card className="p-6 md:p-8 relative">
+      <Card className="p-4 sm:p-6 md:p-8 relative">
         {/* Indicador de guardado automático */}
         {showSaveIndicator && (
           <div className="absolute top-4 right-4 flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-full animate-fade-in">

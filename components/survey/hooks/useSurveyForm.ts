@@ -153,14 +153,46 @@ export function useSurveyForm(initialData?: Partial<SurveyData>) {
   // Función para establecer datos iniciales (útil para pre-llenar con datos del usuario)
   const setInitialData = useCallback((data: Partial<SurveyData>) => {
     const normalized = normalizeSurveyData(data)
-    setRawFormData(prevData => ({
-      ...normalized,
-      ...prevData,
-      informacionFamiliar: {
-        ...normalized.informacionFamiliar,
-        ...prevData.informacionFamiliar
+    setRawFormData(prevData => {
+      const merged: Partial<SurveyData> = {
+        ...prevData,
+        ...normalized,
+        informacionFamiliar: {
+          ...prevData.informacionFamiliar,
+          ...normalized.informacionFamiliar,
+          papa: {
+            ...(prevData.informacionFamiliar?.papa || {}),
+            ...(normalized.informacionFamiliar?.papa || {})
+          },
+          mama: {
+            ...(prevData.informacionFamiliar?.mama || {}),
+            ...(normalized.informacionFamiliar?.mama || {})
+          }
+        },
+        dinamicaFamiliar: {
+          ...prevData.dinamicaFamiliar,
+          ...normalized.dinamicaFamiliar
+        },
+        historial: {
+          ...prevData.historial,
+          ...normalized.historial
+        },
+        desarrollo: {
+          ...prevData.desarrollo,
+          ...normalized.desarrollo
+        },
+        actividadFisica: {
+          ...prevData.actividadFisica,
+          ...normalized.actividadFisica
+        },
+        rutinaHabitos: {
+          ...prevData.rutinaHabitos,
+          ...normalized.rutinaHabitos
+        }
       }
-    }))
+
+      return merged
+    })
   }, [])
 
   const setFormData = useCallback((

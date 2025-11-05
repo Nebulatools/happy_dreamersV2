@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 import { SurveyWizard } from "@/components/survey/SurveyWizard"
 import type { SurveyData } from "@/types/models"
 import { createLogger } from "@/lib/logger"
+import { usePageHeaderConfig } from "@/context/page-header-context"
 
 const logger = createLogger("survey-page")
 
@@ -28,6 +29,13 @@ export default function SurveyPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [existingSurvey, setExistingSurvey] = useState<SurveyData | null>(null)
   const [isViewMode, setIsViewMode] = useState(false)
+
+  usePageHeaderConfig({
+    title: "Encuesta de Sueño",
+    showChildSelector: true,
+    showSearch: false,
+    showNotifications: true
+  })
 
   useEffect(() => {
     if (!childId) {

@@ -178,7 +178,7 @@ export default function PlanesPage() {
         <CardContent>
           <p className="text-sm text-slate-600 mb-2">Aún no hay un plan activo para este niño.</p>
           <p className="text-xs text-slate-500">
-            El plan aparecerá aquí una vez que sea aprobado y aplicado por el equipo médico.
+            El plan aparecerá aquí una vez que sea aprobado y aplicado por el equipo de Happy Dreamers.
           </p>
         </CardContent>
       </Card>
@@ -226,7 +226,7 @@ export default function PlanesPage() {
           <CardContent>
             <p className="text-sm text-slate-600 mb-2">Aún no hay un plan activo para este niño.</p>
             <p className="text-xs text-slate-500">
-              El plan aparecerá aquí una vez que sea aprobado y aplicado por el equipo médico.
+              El plan aparecerá aquí una vez que sea aprobado y aplicado por el equipo de Happy Dreamers.
             </p>
           </CardContent>
         </Card>
