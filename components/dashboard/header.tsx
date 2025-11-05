@@ -16,9 +16,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { ChildSelector } from "@/components/dashboard/child-selector"
@@ -35,6 +35,7 @@ const logger = createLogger("header")
 export function Header() {
   const { data: session } = useSession()
   const router = useRouter()
+  const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
   const { config } = usePageHeader()
   const [notificationCount, setNotificationCount] = useState(0)
@@ -139,8 +140,6 @@ export function Header() {
     }
   }, [notificationsOpen, session?.user?.role])
 
-  if (!mounted) return null
-
   const handleSignOut = async () => {
     // Limpiar localStorage para evitar problemas al cerrar sesión
     if (localStorage.getItem("admin_selected_user_id")) {
@@ -168,6 +167,66 @@ export function Header() {
       .toUpperCase()
     : "U"
 
+  const derivedTitle = useMemo(() => {
+    if (config.title && config.title !== "Dashboard") {
+      return config.title
+    }
+
+    if (!pathname) {
+      return config.title || "Dashboard"
+    }
+
+    const normalized = pathname.replace(/\/+$/, "")
+    const isAdmin = session?.user?.role === "admin"
+
+    const directMatch: Record<string, string> = {
+      "/dashboard": isAdmin ? "Dashboard Admin" : "Dashboard Usuario",
+      "/dashboard/sleep-statistics": "Estadísticas de Sueño",
+      "/dashboard/children": "Mis Soñadores",
+      "/dashboard/calendar": "Calendario",
+      "/dashboard/assistant": "Asistente IA",
+      "/dashboard/patients": "Pacientes",
+      "/dashboard/consultas": "Consultas",
+      "/dashboard/planes": "Planes",
+      "/dashboard/transcripts": "Transcripts",
+      "/dashboard/notificaciones": "Configuración",
+      "/dashboard/ayuda": "Ayuda",
+      "/dashboard/contacto": "Contacto",
+      "/dashboard/survey": "Encuesta de Sueño",
+      "/dashboard/profile": "Perfil",
+      "/dashboard/reports": "Reportes",
+      "/dashboard/reports/professional": "Reportes Profesionales"
+    }
+
+    if (directMatch[normalized]) {
+      return directMatch[normalized]
+    }
+
+    if (normalized.startsWith("/dashboard/children/") && normalized.includes("/events")) {
+      return "Mis Eventos"
+    }
+    if (normalized.startsWith("/dashboard/children/")) {
+      return "Mis Soñadores"
+    }
+    if (normalized.startsWith("/dashboard/planes/")) {
+      return "Planes"
+    }
+    if (normalized.startsWith("/dashboard/reports/")) {
+      return "Reportes"
+    }
+    if (normalized.startsWith("/dashboard/consultas/")) {
+      return "Consultas"
+    }
+    if (normalized.startsWith("/dashboard/patients/")) {
+      return "Pacientes"
+    }
+
+    const fallback = config.title || "Dashboard"
+    return fallback
+  }, [config.title, pathname, session?.user?.role])
+
+  if (!mounted) return null
+
   return (
     <header className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: '#A0D8D0' }}>
       <div className="flex flex-wrap items-center justify-between gap-2 px-3 md:px-6 pl-20 md:pl-6 min-h-[64px] md:min-h-[80px] py-2">
@@ -175,7 +234,7 @@ export function Header() {
         <div className="flex items-center gap-2 md:gap-4 min-w-0 order-2 md:order-1 basis-full md:basis-auto">
           <div className="min-w-0">
             <h1 className="truncate text-white" style={{ fontFamily: 'Gotham, sans-serif', fontSize: '16px', fontWeight: 'normal' }}>
-              {config.title}
+              {derivedTitle}
             </h1>
             {config.subtitle && (
               <p className="text-sm text-white/80 truncate">
