@@ -6,6 +6,7 @@ export { LayoutToggle, useLayoutPreference, LayoutRecommendation, type LayoutMod
 export { MonthLineChart } from './MonthLineChart'
 export { SleepSessionBlock } from './SleepSessionBlock'
 export { SimpleSleepBarChart } from './SimpleSleepBarChart'
+export { UserWeeklySleepChart } from './UserWeeklySleepChart'
 
 // Nuevos componentes del calendario limpio
 export { EventGlobe } from './EventGlobe'

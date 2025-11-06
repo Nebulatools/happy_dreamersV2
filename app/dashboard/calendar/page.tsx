@@ -31,17 +31,19 @@ import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache, useEventsInvalidation } from "@/hooks/use-events-cache"
 // TEMPORALMENTE COMENTADO - Sistema de eventos en reset
 // import { EventRegistrationModal, QuickEventSelector } from "@/components/events"
-import { 
-  TimelineColumn, 
-  CompactTimelineColumn, 
-  EventBlock, 
+import {
+  TimelineColumn,
+  CompactTimelineColumn,
+  EventBlock,
   CompactEventBlock,
   MonthLineChart,
   SleepSessionBlock,
   CalendarMain,
-  SimpleSleepBarChart
+  SimpleSleepBarChart,
+  UserWeeklySleepChart
 } from "@/components/calendar"
 import type { DailySleepPoint, NightWakingPoint } from "@/components/calendar/SimpleSleepBarChart"
+import type { DailyUserSleepData } from "@/components/calendar/UserWeeklySleepChart"
 import {
   Dialog,
   DialogContent,
@@ -274,6 +276,113 @@ const formatHoursLabel = (hours: number) => {
   return `${h}h ${m.toString().padStart(2, "0")}min`
 }
 
+// Función para calcular datos del gráfico de usuario
+// Muestra las horas de sueño desde la noche del día anterior hasta el despertar del día actual
+const computeUserWeeklySleepData = (events: Event[], endDate: Date) => {
+  // Calcular 7 días hacia atrás desde endDate
+  const days: Date[] = []
+  for (let i = 6; i >= 0; i--) {
+    days.push(subDays(endDate, i))
+  }
+
+  const userSleepData = days.map((day) => {
+    // Para cada día, consideramos:
+    // - Sueño nocturno: eventos "sleep" que terminan en este día (pueden empezar el día anterior)
+    // - Siestas: eventos "nap" que ocurren durante este día
+    // - Despertares: eventos "night_waking" que ocurren durante el sueño nocturno
+
+    const dayStart = startOfDay(day)
+    const dayEnd = endOfDay(day)
+
+    let nightMinutes = 0
+    let napMinutes = 0
+    const wakingTimes: Date[] = []
+    const sleepSegments: { start: Date; end: Date; minutes: number }[] = []
+
+    events.forEach((event) => {
+      if (!event.startTime) return
+      const eventStart = new Date(event.startTime)
+
+      // Procesar eventos de sueño nocturno
+      if (event.eventType === "sleep" && event.endTime) {
+        const eventEnd = new Date(event.endTime)
+
+        // Si el sueño termina en este día (puede haber empezado el día anterior)
+        if (eventEnd >= dayStart && eventEnd <= dayEnd) {
+          const duration = differenceInMinutes(eventEnd, eventStart)
+          nightMinutes += duration
+          sleepSegments.push({ start: eventStart, end: eventEnd, minutes: duration })
+        }
+      }
+
+      // Procesar siestas del día
+      if (event.eventType === "nap" && event.endTime) {
+        const eventEnd = new Date(event.endTime)
+
+        // Si la siesta ocurre durante este día
+        if (eventStart >= dayStart && eventStart <= dayEnd) {
+          const duration = differenceInMinutes(eventEnd, eventStart)
+          napMinutes += duration
+        }
+      }
+
+      // Procesar despertares nocturnos
+      if (event.eventType === "night_waking") {
+        // Despertares que ocurren durante el sueño nocturno de este día
+        if (eventStart >= dayStart && eventStart <= dayEnd) {
+          wakingTimes.push(eventStart)
+        }
+      }
+    })
+
+    const totalMinutes = nightMinutes + napMinutes
+    const totalHours = totalMinutes / 60
+    const nightHours = nightMinutes / 60
+    const napHours = napMinutes / 60
+
+    // Calcular posiciones de los despertares en el eje Y
+    const sortedSegments = sleepSegments.sort((a, b) => a.start.getTime() - b.start.getTime())
+    const wakingPositions = wakingTimes
+      .sort((a, b) => a.getTime() - b.getTime())
+      .map((wakeTime) => {
+        if (totalMinutes === 0) return 0
+
+        let accumulatedMinutes = 0
+        for (const segment of sortedSegments) {
+          if (wakeTime >= segment.end) {
+            accumulatedMinutes += segment.minutes
+          } else if (wakeTime <= segment.start) {
+            break
+          } else {
+            accumulatedMinutes += Math.max(0, differenceInMinutes(wakeTime, segment.start))
+            break
+          }
+        }
+
+        const ratio = totalMinutes > 0 ? accumulatedMinutes / totalMinutes : 0
+        return Number((totalHours * ratio).toFixed(2))
+      })
+
+    const label = format(day, "EEE", { locale: es }).charAt(0).toUpperCase() + format(day, "EEE", { locale: es }).slice(1)
+    const dateNumber = format(day, "d")
+    const displayDate = format(day, "EEEE d 'de' MMMM", { locale: es })
+
+    return {
+      label,
+      dateNumber,
+      isoDate: day.toISOString(),
+      displayDate,
+      nightHours: Number(nightHours.toFixed(2)),
+      napHours: Number(napHours.toFixed(2)),
+      totalHours: Number(totalHours.toFixed(2)),
+      wakingsCount: wakingTimes.length,
+      wakingPositions,
+    }
+  })
+
+  return userSleepData
+}
+
 export default function CalendarPage() {
   const { toast } = useToast()
   const { data: session } = useSession()
@@ -281,8 +390,8 @@ export default function CalendarPage() {
   const { activeChildId } = useActiveChild()
   const { refreshTrigger, subscribe } = useEventsCache(activeChildId)
   const invalidateEvents = useEventsInvalidation()
-  // Inicializar con octubre 2025 para ver los eventos de Bernardo
-  const [date, setDate] = useState<Date>(new Date('2025-10-25'))
+  // Inicializar con la fecha actual
+  const [date, setDate] = useState<Date>(new Date())
   const [activePlan, setActivePlan] = useState<any>(null)
   
   // Estado para vista del calendario con localStorage
@@ -328,6 +437,19 @@ export default function CalendarPage() {
   }
 
   const navigateNext = () => {
+    // Para usuarios no admin, verificar si pueden navegar hacia adelante
+    if (!isAdminView) {
+      const today = startOfDay(new Date())
+      const nextDate = view === "month" ? addMonths(date, 1) :
+                      view === "week" ? addWeeks(date, 1) :
+                      addDays(date, 1)
+
+      // No permitir navegar más allá de hoy
+      if (startOfDay(nextDate) > today) {
+        return
+      }
+    }
+
     if (view === "month") {
       setDate(addMonths(date, 1))
     } else if (view === "week") {
@@ -726,6 +848,13 @@ export default function CalendarPage() {
     return computeWeeklySleepSummary(sourceEvents, date)
   }, [allEventsCache, events, date])
 
+  // Datos para la vista de usuario (parent)
+  const userWeeklySleepData = useMemo(() => {
+    if (isAdminView) return []
+    const sourceEvents = allEventsCache.length > 0 ? allEventsCache : events
+    return computeUserWeeklySleepData(sourceEvents, date)
+  }, [isAdminView, allEventsCache, events, date])
+
   useEffect(() => {
     if (isAdminView) return
     if (!weeklySummary.points || weeklySummary.points.length === 0) {
@@ -837,6 +966,18 @@ export default function CalendarPage() {
   const monthLabel = useMemo(() => {
     return format(date, "LLLL yyyy", { locale: es }).toUpperCase()
   }, [date])
+
+  // Para usuarios (parents), calcular si pueden navegar hacia adelante
+  // No se permite navegar más allá del día actual
+  const canNavigateForward = useMemo(() => {
+    if (isAdminView) return true // Admins siempre pueden navegar
+
+    // Para users, verificar si el último día visible es hoy o posterior
+    const today = startOfDay(new Date())
+    const currentEndDate = startOfDay(date)
+
+    return currentEndDate < today
+  }, [isAdminView, date])
 
   const getEventTypeIcon = (type: string) => {
     switch(type) {
@@ -1374,106 +1515,51 @@ export default function CalendarPage() {
         </>
       ) : (
         <div className="space-y-6 px-4 pt-4 pb-10 md:px-6">
+          {/* Header con mes y año */}
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">{monthLabel}</p>
-            <h2 className="text-2xl font-semibold text-slate-900">
-              Promedio diario: <span className="text-blue-600">{userAverageTotal}</span>
-            </h2>
-            <div className="flex flex-wrap gap-4 text-sm text-slate-600">
-              <div className="flex items-center gap-2">
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-sleep" />
-                noche: {userAverageNight}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-nap" />
-                siestas: {userAverageNap}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-night-wake" />
-                despertares: {userAverageWakings}
-              </div>
-            </div>
           </div>
 
-          <Card className="p-4">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h3 className="text-base font-semibold text-slate-900">Horas de sueño (siestas + noche)</h3>
-                <p className="text-xs text-slate-500">Semana: {userWeekLabel}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={navigatePrevious}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={navigateNext}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="mt-4 h-[320px] w-full">
-              <SimpleSleepBarChart
-                data={weeklySummary.points}
-                nightWakingPoints={weeklySummary.wakingPoints}
-                onSelectDay={(isoDate) => setSelectedSimpleDayIso(isoDate)}
-                selectedIsoDate={selectedSimpleDayIso}
-              />
-            </div>
-          </Card>
-
-          <Card className="p-4 space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">{selectedSimpleDayTitle}</h3>
-                {selectedSimpleDayMetrics ? (
-                  <p className="text-sm text-slate-600">
-                    Total {selectedSimpleDayMetrics.total} · Noche {selectedSimpleDayMetrics.night} · Siestas {selectedSimpleDayMetrics.nap} · Despertares {selectedSimpleDayMetrics.wakings}
-                  </p>
-                ) : (
-                  <p className="text-sm text-slate-600">Selecciona un día en la gráfica para ver los detalles.</p>
-                )}
-              </div>
-              {selectedSimpleDayMetrics && (
-                <div className="inline-flex items-center rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-600">
-                  Total {selectedSimpleDayMetrics.total}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              {selectedSimpleDayEvents.length > 0 ? (
-                selectedSimpleDayEvents.map((event) => (
-                  <button
-                    key={event._id}
-                    type="button"
-                    onClick={() => handleEventClick(event)}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-blue-200 hover:bg-blue-50/60"
+          {/* Gráfico de barras apiladas */}
+          <Card className="p-4 md:p-6">
+            <div className="flex flex-col gap-4">
+              {/* Header con título y navegación (solo mobile) */}
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-semibold text-slate-900">
+                  Últimos 7 días
+                </h3>
+                {/* Navegación visible solo en mobile */}
+                <div className="flex md:hidden items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={navigatePrevious}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                        {getEventTypeIcon(event.eventType)}
-                        <span>{getEventTypeName(event.eventType)}</span>
-                      </div>
-                      <span className="text-xs text-slate-500">{formatEventTime(event)}</span>
-                    </div>
-                    {event.notes && (
-                      <p className="mt-2 line-clamp-2 text-sm text-slate-600">{event.notes}</p>
-                    )}
-                  </button>
-                ))
-              ) : (
-                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                  No hay eventos registrados para este día.
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={navigateNext}
+                    disabled={!canNavigateForward}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
+              </div>
+
+              {/* Gráfico principal */}
+              {isLoading ? (
+                <div className="flex justify-center items-center h-96">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4A90E2] mx-auto mb-4" />
+                    <p className="text-gray-600">Cargando datos...</p>
+                  </div>
+                </div>
+              ) : (
+                <UserWeeklySleepChart data={userWeeklySleepData} />
               )}
             </div>
           </Card>
