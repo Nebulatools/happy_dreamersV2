@@ -299,6 +299,7 @@ const computeUserWeeklySleepData = (events: Event[], endDate: Date) => {
     const wakingTimes: Date[] = []
     const sleepSegments: { start: Date; end: Date; minutes: number }[] = []
 
+    // Primer paso: encontrar el segmento de sueño nocturno del día
     events.forEach((event) => {
       if (!event.startTime) return
       const eventStart = new Date(event.startTime)
@@ -325,15 +326,24 @@ const computeUserWeeklySleepData = (events: Event[], endDate: Date) => {
           napMinutes += duration
         }
       }
-
-      // Procesar despertares nocturnos
-      if (event.eventType === "night_waking") {
-        // Despertares que ocurren durante el sueño nocturno de este día
-        if (eventStart >= dayStart && eventStart <= dayEnd) {
-          wakingTimes.push(eventStart)
-        }
-      }
     })
+
+    // Segundo paso: filtrar despertares que están dentro del segmento de sueño de ESTE día
+    if (sleepSegments.length > 0) {
+      const sleepSegment = sleepSegments[0] // Asumimos un solo período de sueño nocturno
+
+      events.forEach((event) => {
+        if (!event.startTime) return
+        const eventStart = new Date(event.startTime)
+
+        // Procesar despertares nocturnos que están dentro del segmento de sueño
+        if (event.eventType === "night_waking") {
+          if (eventStart >= sleepSegment.start && eventStart <= sleepSegment.end) {
+            wakingTimes.push(eventStart)
+          }
+        }
+      })
+    }
 
     const totalMinutes = nightMinutes + napMinutes
     const totalHours = totalMinutes / 60
@@ -341,27 +351,21 @@ const computeUserWeeklySleepData = (events: Event[], endDate: Date) => {
     const napHours = napMinutes / 60
 
     // Calcular posiciones de los despertares en el eje Y
-    const sortedSegments = sleepSegments.sort((a, b) => a.start.getTime() - b.start.getTime())
+    // Las posiciones deben ser relativas al sueño nocturno SOLAMENTE
     const wakingPositions = wakingTimes
       .sort((a, b) => a.getTime() - b.getTime())
       .map((wakeTime) => {
-        if (totalMinutes === 0) return 0
+        if (nightMinutes === 0 || sleepSegments.length === 0) return 0
 
-        let accumulatedMinutes = 0
-        for (const segment of sortedSegments) {
-          if (wakeTime >= segment.end) {
-            accumulatedMinutes += segment.minutes
-          } else if (wakeTime <= segment.start) {
-            break
-          } else {
-            accumulatedMinutes += Math.max(0, differenceInMinutes(wakeTime, segment.start))
-            break
-          }
-        }
+        const sleepSegment = sleepSegments[0] // Ya sabemos que hay un segmento
 
-        const ratio = totalMinutes > 0 ? accumulatedMinutes / totalMinutes : 0
-        return Number((totalHours * ratio).toFixed(2))
+        // Calcular los minutos transcurridos desde el inicio del sueño hasta el despertar
+        const minutesFromStart = differenceInMinutes(wakeTime, sleepSegment.start)
+
+        // Convertir a horas y retornar (posición dentro del sueño nocturno en horas)
+        return Number((minutesFromStart / 60).toFixed(2))
       })
+      .filter(pos => pos > 0) // Eliminar posiciones inválidas
 
     const label = format(day, "EEE", { locale: es }).charAt(0).toUpperCase() + format(day, "EEE", { locale: es }).slice(1)
     const dateNumber = format(day, "d")

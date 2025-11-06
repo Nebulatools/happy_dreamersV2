@@ -11,6 +11,7 @@ import {
   Legend,
   Bar,
   ReferenceLine,
+  Customized,
 } from "recharts"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
@@ -55,9 +56,9 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (!dayData) return null
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-lg text-sm min-w-[180px]">
-      <div className="font-semibold text-gray-900 mb-2">{dayData.displayDate}</div>
-      <div className="space-y-1.5">
+    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 sm:px-4 sm:py-3 shadow-lg text-xs sm:text-sm min-w-[160px] sm:min-w-[180px]">
+      <div className="font-semibold text-gray-900 mb-1.5 sm:mb-2 text-xs sm:text-sm">{dayData.displayDate}</div>
+      <div className="space-y-1 sm:space-y-1.5">
         <div className="flex items-center justify-between">
           <span className="text-gray-600">Total:</span>
           <span className="font-semibold text-blue-600">{formatHours(dayData.totalHours)}</span>
@@ -88,61 +89,136 @@ const CustomTooltip = ({ active, payload }: any) => {
 // Componente personalizado para renderizar las líneas de despertares
 // Las líneas se posicionan DENTRO de la barra azul del sueño nocturno
 const RenderWakingLines = ({ formattedGraphicalItems, data, yAxisMap, xAxisMap }: any) => {
-  if (!formattedGraphicalItems || formattedGraphicalItems.length === 0) return null
-  if (!data || !yAxisMap || !xAxisMap) return null
+  console.log('=== RenderWakingLines Props ===', {
+    hasFormattedGraphicalItems: !!formattedGraphicalItems,
+    itemsCount: formattedGraphicalItems?.length,
+    hasData: !!data,
+    dataLength: data?.length,
+    hasYAxisMap: !!yAxisMap,
+    hasXAxisMap: !!xAxisMap
+  })
+
+  if (!formattedGraphicalItems || formattedGraphicalItems.length === 0) {
+    console.log('No formattedGraphicalItems')
+    return null
+  }
+  if (!data || !yAxisMap || !xAxisMap) {
+    console.log('Missing data, yAxisMap, or xAxisMap')
+    return null
+  }
 
   const yAxis = yAxisMap[0]
   const xAxis = xAxisMap[0]
 
-  if (!yAxis || !xAxis) return null
+  if (!yAxis || !xAxis) {
+    console.log('No yAxis or xAxis')
+    return null
+  }
 
   const lines: JSX.Element[] = []
 
-  // Encontrar el item que corresponde a la barra de sueño nocturno (nightHours)
-  const nightBars = formattedGraphicalItems.find((item: any) => item.props?.dataKey === 'nightHours')
+  // Debug: ver estructura de items
+  formattedGraphicalItems.forEach((item: any, idx: number) => {
+    console.log(`Item ${idx}:`, {
+      hasItem: !!item.item,
+      itemKeys: item.item ? Object.keys(item.item) : [],
+      itemProps: item.item?.props,
+      childIndex: item.childIndex
+    })
+  })
 
-  if (!nightBars || !nightBars.props?.data) return null
+  // SOLUCIÓN: Usar el último item de formattedGraphicalItems que corresponde a nightHours
+  // Ya que las barras se procesan en orden: primero napHours (naranja), luego nightHours (azul)
+  const nightBars = formattedGraphicalItems[formattedGraphicalItems.length - 1]
 
-  nightBars.props.data.forEach((barData: any, index: number) => {
+  console.log('Using last item as nightBars:', {
+    found: !!nightBars,
+    hasData: !!nightBars?.props?.data,
+    dataLength: nightBars?.props?.data?.length
+  })
+
+  if (!nightBars || !nightBars.props?.data) {
+    console.log('No nightBars or nightBars.props.data')
+    return null
+  }
+
+  // Usar props.data directamente (no nightBars.props.data)
+  const barData = nightBars.props.data
+
+  barData.forEach((dayPoint: any, index: number) => {
     const dayData = data[index] as DailyUserSleepData
 
     if (!dayData || !dayData.wakingPositions || dayData.wakingPositions.length === 0) return
     if (dayData.nightHours === 0) return // No hay sueño nocturno, no mostrar líneas
 
-    // Obtener las coordenadas de la barra
-    const barItem = barData
-    if (!barItem || typeof barItem.x !== 'number' || typeof barItem.y !== 'number') return
+    // Obtener las coordenadas de la barra desde dayPoint
+    if (!dayPoint || typeof dayPoint.x !== 'number' || typeof dayPoint.y !== 'number') {
+      console.log(`Día ${dayData.label}: dayPoint inválido`, dayPoint)
+      return
+    }
 
-    const barX = barItem.x + (barItem.width / 2) // Centro de la barra
-    const barTop = barItem.y // Parte superior de la barra azul
-    const barHeight = barItem.height // Altura de la barra azul
+    const barX = dayPoint.x + (dayPoint.width / 2) // Centro de la barra
+    const barTop = dayPoint.y // Parte superior de la barra azul (apilada sobre naranja)
+    const barHeight = dayPoint.height // Altura de la barra azul
+
+    console.log(`Día ${dayData.label}:`, {
+      nightHours: dayData.nightHours,
+      wakingsCount: dayData.wakingsCount,
+      wakingPositions: dayData.wakingPositions,
+      barTop,
+      barHeight,
+      barX
+    })
 
     // Para cada despertar, dibujar una línea roja
-    dayData.wakingPositions.forEach((wakingPosition, wakingIndex) => {
-      // wakingPosition está en horas relativas al inicio del sueño nocturno (0 a nightHours)
-      // Convertir a posición Y dentro de la barra azul
-      const positionRatio = dayData.nightHours > 0 ? wakingPosition / dayData.nightHours : 0
-      const yPosition = barTop + barHeight * (1 - positionRatio) // Invertir porque Y crece hacia abajo
+    dayData.wakingPositions.forEach((wakingHoursFromStart, wakingIndex) => {
+      // wakingHoursFromStart: horas desde el inicio del sueño nocturno (ej: 2.5 horas)
+      // Necesitamos posicionar esto dentro de la barra azul
+
+      if (wakingHoursFromStart < 0 || wakingHoursFromStart > dayData.nightHours) {
+        console.warn(`Despertar fuera de rango: ${wakingHoursFromStart} (nightHours: ${dayData.nightHours})`)
+        return
+      }
+
+      // Calcular posición Y dentro de la barra azul
+      // La barra crece de abajo hacia arriba, pero Y crece hacia abajo
+      const positionRatio = wakingHoursFromStart / dayData.nightHours
+      const yPosition = barTop + barHeight * (1 - positionRatio)
+
+      console.log(`  Despertar ${wakingIndex + 1}: ${wakingHoursFromStart}h, ratio: ${positionRatio}, Y: ${yPosition}`)
 
       lines.push(
         <line
           key={`waking-${dayData.isoDate}-${wakingIndex}`}
-          x1={barX - 15}
-          x2={barX + 15}
+          x1={barX - 20}
+          x2={barX + 20}
           y1={yPosition}
           y2={yPosition}
           stroke={WAKING_COLOR}
-          strokeWidth={3}
+          strokeWidth={4}
           strokeLinecap="round"
+          opacity={1}
         />
       )
     })
   })
 
+  console.log(`Total líneas renderizadas: ${lines.length}`)
   return <g>{lines}</g>
 }
 
 export function UserWeeklySleepChart({ data, className }: UserWeeklySleepChartProps) {
+  // Debug: mostrar datos recibidos
+  console.log('=== UserWeeklySleepChart Data ===')
+  data.forEach((day, i) => {
+    console.log(`${i + 1}. ${day.label} ${day.dateNumber}:`, {
+      nightHours: day.nightHours,
+      napHours: day.napHours,
+      wakingsCount: day.wakingsCount,
+      wakingPositions: day.wakingPositions
+    })
+  })
+
   const maxHours = useMemo(() => {
     const maxValue = Math.max(...data.map((point) => point.totalHours), 0)
     return Math.max(8, Math.ceil(maxValue + 1))
@@ -155,45 +231,45 @@ export function UserWeeklySleepChart({ data, className }: UserWeeklySleepChartPr
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>
-      {/* Header con promedios - responsive */}
-      <div className="flex flex-col gap-2">
-        <div className="text-sm text-gray-600">
+      {/* Header con promedios - responsive para mobile y tablet */}
+      <div className="flex flex-col gap-1.5 sm:gap-2">
+        <div className="text-xs sm:text-sm text-gray-600">
           <span className="font-medium">Promedio diario: </span>
-          <span className="text-lg font-semibold text-blue-600">
+          <span className="text-base sm:text-lg font-semibold text-blue-600">
             {formatHours(averageTotal)}
           </span>
         </div>
-        <div className="flex flex-wrap gap-4 md:gap-6 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded" style={{ backgroundColor: NAP_COLOR }} />
+        <div className="flex flex-wrap gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded" style={{ backgroundColor: NAP_COLOR }} />
             <span className="text-gray-600">siestas: </span>
             <span className="font-medium">{formatHours(averageNaps)}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded" style={{ backgroundColor: NIGHT_COLOR }} />
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded" style={{ backgroundColor: NIGHT_COLOR }} />
             <span className="text-gray-600">noche: </span>
             <span className="font-medium">{formatHours(averageNight)}</span>
           </div>
         </div>
       </div>
 
-      {/* Título de la sección */}
-      <div className="text-sm font-medium text-gray-700">
+      {/* Título de la sección - responsive */}
+      <div className="text-xs sm:text-sm font-medium text-gray-700">
         Horas de sueño (siestas + noche)
       </div>
 
-      {/* Gráfico - responsive con altura ajustable */}
-      <div className="relative w-full h-[350px] md:h-[400px]">
+      {/* Gráfico - responsive con altura ajustable para mobile portrait y landscape */}
+      <div className="relative w-full h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px]">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={data}
             margin={{
-              top: 20,
-              right: window.innerWidth < 768 ? 10 : 30,
-              left: window.innerWidth < 768 ? 5 : 20,
-              bottom: 60
+              top: 15,
+              right: window.innerWidth < 640 ? 5 : window.innerWidth < 768 ? 10 : 30,
+              left: window.innerWidth < 640 ? 0 : window.innerWidth < 768 ? 5 : 20,
+              bottom: window.innerWidth < 640 ? 50 : 60
             }}
-            barCategoryGap={window.innerWidth < 768 ? "10%" : "20%"}
+            barCategoryGap={window.innerWidth < 640 ? "5%" : window.innerWidth < 768 ? "10%" : "20%"}
           >
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
 
@@ -202,41 +278,46 @@ export function UserWeeklySleepChart({ data, className }: UserWeeklySleepChartPr
               dataKey="label"
               tick={({ x, y, payload }) => {
                 const dayData = data.find((d) => d.label === payload.value)
+                const isMobile = window.innerWidth < 640
+                const isTablet = window.innerWidth < 768
                 return (
                   <g transform={`translate(${x},${y})`}>
                     <text
                       x={0}
                       y={0}
-                      dy={16}
+                      dy={isMobile ? 12 : 16}
                       textAnchor="middle"
                       fill="#4B5563"
-                      fontSize={window.innerWidth < 768 ? 10 : 12}
+                      fontSize={isMobile ? 9 : isTablet ? 10 : 12}
                       fontWeight={500}
                     >
                       {payload.value}
                     </text>
                     <text
                       x={0}
-                      y={18}
-                      dy={16}
+                      y={isMobile ? 14 : 18}
+                      dy={isMobile ? 12 : 16}
                       textAnchor="middle"
                       fill="#9CA3AF"
-                      fontSize={window.innerWidth < 768 ? 9 : 11}
+                      fontSize={isMobile ? 8 : isTablet ? 9 : 11}
                     >
                       {dayData?.dateNumber || ""}
                     </text>
                   </g>
                 )
               }}
-              height={60}
+              height={window.innerWidth < 640 ? 50 : 60}
             />
 
             {/* Eje Y con horas - responsive */}
             <YAxis
               domain={[0, maxHours]}
-              tick={{ fontSize: window.innerWidth < 768 ? 10 : 12, fill: "#6B7280" }}
+              tick={{
+                fontSize: window.innerWidth < 640 ? 9 : window.innerWidth < 768 ? 10 : 12,
+                fill: "#6B7280"
+              }}
               tickFormatter={(value) => `${value}h`}
-              width={window.innerWidth < 768 ? 35 : 50}
+              width={window.innerWidth < 640 ? 30 : window.innerWidth < 768 ? 35 : 50}
             />
 
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(37, 99, 235, 0.05)" }} />
@@ -245,7 +326,12 @@ export function UserWeeklySleepChart({ data, className }: UserWeeklySleepChartPr
             <Legend
               verticalAlign="bottom"
               align="center"
-              wrapperStyle={{ fontSize: window.innerWidth < 768 ? 10 : 12, paddingTop: 20 }}
+              wrapperStyle={{
+                fontSize: window.innerWidth < 640 ? 9 : window.innerWidth < 768 ? 10 : 12,
+                paddingTop: window.innerWidth < 640 ? 10 : 20,
+                paddingBottom: window.innerWidth < 640 ? 5 : 0
+              }}
+              iconSize={window.innerWidth < 640 ? 8 : 10}
               payload={[
                 { value: "Siestas", type: "square", color: NAP_COLOR },
                 { value: "Sueño nocturno", type: "square", color: NIGHT_COLOR },
@@ -267,10 +353,10 @@ export function UserWeeklySleepChart({ data, className }: UserWeeklySleepChartPr
               stackId="sleep"
               fill={NIGHT_COLOR}
               radius={[6, 6, 0, 0]}
-            >
-              {/* Renderizar líneas de despertares dentro de la barra azul */}
-              <RenderWakingLines />
-            </Bar>
+            />
+
+            {/* Renderizar líneas de despertares dentro de la barra azul */}
+            <Customized component={RenderWakingLines} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
