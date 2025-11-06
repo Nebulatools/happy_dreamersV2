@@ -8,6 +8,7 @@ export interface EventType {
   hasEndTime: boolean
   hasSleepDelay?: boolean
   requiresDescription?: boolean
+  defaultStartTime?: string
 }
 
 export const eventTypes: EventType[] = [
@@ -18,6 +19,7 @@ export const eventTypes: EventType[] = [
     description: "Momento de acostar y período de sueño",
     hasEndTime: true,
     hasSleepDelay: true,
+    defaultStartTime: "20:00",
   },
   {
     id: "nap", 
@@ -25,6 +27,7 @@ export const eventTypes: EventType[] = [
     icon: Sun,
     description: "Período de descanso diurno",
     hasEndTime: true,
+    defaultStartTime: "13:00",
   },
   {
     id: "wake",
@@ -32,6 +35,7 @@ export const eventTypes: EventType[] = [
     icon: Sun,
     description: "Momento de despertar por la mañana",
     hasEndTime: false,
+    defaultStartTime: "07:00",
   },
   {
     id: "night_waking",
@@ -40,6 +44,7 @@ export const eventTypes: EventType[] = [
     description: "Despertar durante la noche",
     hasEndTime: true,
     hasSleepDelay: true,
+    defaultStartTime: "02:00",
   },
   {
     id: "feeding",
@@ -47,6 +52,7 @@ export const eventTypes: EventType[] = [
     icon: Utensils,
     description: "Comida, biberón, lactancia",
     hasEndTime: false,
+    defaultStartTime: "12:00",
   },
   {
     id: "night_feeding",
@@ -55,6 +61,7 @@ export const eventTypes: EventType[] = [
     description: "Alimentación durante la noche",
     hasEndTime: true,
     requiresDescription: true,
+    defaultStartTime: "01:00",
   },
   {
     id: "medication",
@@ -63,6 +70,7 @@ export const eventTypes: EventType[] = [
     description: "Administración de medicamentos",
     hasEndTime: false,
     requiresDescription: true,
+    defaultStartTime: "08:00",
   },
   {
     id: "extra_activities",
@@ -71,6 +79,7 @@ export const eventTypes: EventType[] = [
     description: "Factores del día que pueden afectar el sueño",
     hasEndTime: false,
     requiresDescription: true,
+    defaultStartTime: "17:00",
   },
 ]
 

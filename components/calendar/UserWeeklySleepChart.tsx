@@ -89,21 +89,10 @@ const CustomTooltip = ({ active, payload }: any) => {
 // Componente personalizado para renderizar las líneas de despertares
 // Las líneas se posicionan DENTRO de la barra azul del sueño nocturno
 const RenderWakingLines = ({ formattedGraphicalItems, data, yAxisMap, xAxisMap }: any) => {
-  console.log('=== RenderWakingLines Props ===', {
-    hasFormattedGraphicalItems: !!formattedGraphicalItems,
-    itemsCount: formattedGraphicalItems?.length,
-    hasData: !!data,
-    dataLength: data?.length,
-    hasYAxisMap: !!yAxisMap,
-    hasXAxisMap: !!xAxisMap
-  })
-
   if (!formattedGraphicalItems || formattedGraphicalItems.length === 0) {
-    console.log('No formattedGraphicalItems')
     return null
   }
   if (!data || !yAxisMap || !xAxisMap) {
-    console.log('Missing data, yAxisMap, or xAxisMap')
     return null
   }
 
@@ -111,34 +100,16 @@ const RenderWakingLines = ({ formattedGraphicalItems, data, yAxisMap, xAxisMap }
   const xAxis = xAxisMap[0]
 
   if (!yAxis || !xAxis) {
-    console.log('No yAxis or xAxis')
     return null
   }
 
   const lines: JSX.Element[] = []
 
-  // Debug: ver estructura de items
-  formattedGraphicalItems.forEach((item: any, idx: number) => {
-    console.log(`Item ${idx}:`, {
-      hasItem: !!item.item,
-      itemKeys: item.item ? Object.keys(item.item) : [],
-      itemProps: item.item?.props,
-      childIndex: item.childIndex
-    })
-  })
-
   // SOLUCIÓN: Usar el último item de formattedGraphicalItems que corresponde a nightHours
   // Ya que las barras se procesan en orden: primero napHours (naranja), luego nightHours (azul)
   const nightBars = formattedGraphicalItems[formattedGraphicalItems.length - 1]
 
-  console.log('Using last item as nightBars:', {
-    found: !!nightBars,
-    hasData: !!nightBars?.props?.data,
-    dataLength: nightBars?.props?.data?.length
-  })
-
   if (!nightBars || !nightBars.props?.data) {
-    console.log('No nightBars or nightBars.props.data')
     return null
   }
 
@@ -153,7 +124,6 @@ const RenderWakingLines = ({ formattedGraphicalItems, data, yAxisMap, xAxisMap }
 
     // Obtener las coordenadas de la barra desde dayPoint
     if (!dayPoint || typeof dayPoint.x !== 'number' || typeof dayPoint.y !== 'number') {
-      console.log(`Día ${dayData.label}: dayPoint inválido`, dayPoint)
       return
     }
 
@@ -161,22 +131,12 @@ const RenderWakingLines = ({ formattedGraphicalItems, data, yAxisMap, xAxisMap }
     const barTop = dayPoint.y // Parte superior de la barra azul (apilada sobre naranja)
     const barHeight = dayPoint.height // Altura de la barra azul
 
-    console.log(`Día ${dayData.label}:`, {
-      nightHours: dayData.nightHours,
-      wakingsCount: dayData.wakingsCount,
-      wakingPositions: dayData.wakingPositions,
-      barTop,
-      barHeight,
-      barX
-    })
-
     // Para cada despertar, dibujar una línea roja
     dayData.wakingPositions.forEach((wakingHoursFromStart, wakingIndex) => {
       // wakingHoursFromStart: horas desde el inicio del sueño nocturno (ej: 2.5 horas)
       // Necesitamos posicionar esto dentro de la barra azul
 
       if (wakingHoursFromStart < 0 || wakingHoursFromStart > dayData.nightHours) {
-        console.warn(`Despertar fuera de rango: ${wakingHoursFromStart} (nightHours: ${dayData.nightHours})`)
         return
       }
 
@@ -184,8 +144,6 @@ const RenderWakingLines = ({ formattedGraphicalItems, data, yAxisMap, xAxisMap }
       // La barra crece de abajo hacia arriba, pero Y crece hacia abajo
       const positionRatio = wakingHoursFromStart / dayData.nightHours
       const yPosition = barTop + barHeight * (1 - positionRatio)
-
-      console.log(`  Despertar ${wakingIndex + 1}: ${wakingHoursFromStart}h, ratio: ${positionRatio}, Y: ${yPosition}`)
 
       lines.push(
         <line
@@ -203,22 +161,10 @@ const RenderWakingLines = ({ formattedGraphicalItems, data, yAxisMap, xAxisMap }
     })
   })
 
-  console.log(`Total líneas renderizadas: ${lines.length}`)
   return <g>{lines}</g>
 }
 
 export function UserWeeklySleepChart({ data, className }: UserWeeklySleepChartProps) {
-  // Debug: mostrar datos recibidos
-  console.log('=== UserWeeklySleepChart Data ===')
-  data.forEach((day, i) => {
-    console.log(`${i + 1}. ${day.label} ${day.dateNumber}:`, {
-      nightHours: day.nightHours,
-      napHours: day.napHours,
-      wakingsCount: day.wakingsCount,
-      wakingPositions: day.wakingPositions
-    })
-  })
-
   const maxHours = useMemo(() => {
     const maxValue = Math.max(...data.map((point) => point.totalHours), 0)
     return Math.max(8, Math.ceil(maxValue + 1))

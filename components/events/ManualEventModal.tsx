@@ -53,18 +53,25 @@ export function ManualEventModal({
   }
 
   // Estado del formulario - completo y mejorado
-  const [eventType, setEventType] = useState<string>(defaultEventType || 'sleep')
+  const getDefaultStartTimeForType = (typeId: string) => {
+    const eventTypeConfig = getEventType(typeId)
+    return eventTypeConfig?.defaultStartTime || getCurrentHourRounded()
+  }
+
+  const initialEventType = defaultEventType || 'sleep'
+  const [eventType, setEventType] = useState<string>(initialEventType)
   // Sincronizar tipo por defecto cuando se abre el modal
   useEffect(() => {
     if (open && defaultEventType) {
       setEventType(defaultEventType)
+      setStartTime(getDefaultStartTimeForType(defaultEventType))
     }
   }, [open, defaultEventType])
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'))
-  const [startTime, setStartTime] = useState(getCurrentHourRounded())
+  const [startTime, setStartTime] = useState(getDefaultStartTimeForType(initialEventType))
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [endTime, setEndTime] = useState(getCurrentHourRounded())
-  const [includeEndTime, setIncludeEndTime] = useState<boolean>(false) // Hora fin opcional
+  const [includeEndTime, setIncludeEndTime] = useState<boolean>(initialEventType === 'sleep') // Hora fin opcional
   const [notes, setNotes] = useState('')
   
   // Campos específicos de sueño (sleep, nap, night_waking)
@@ -167,15 +174,6 @@ export function ManualEventModal({
         eventData.endTime = calculatedEndTime.toISOString()
       }
       
-      // Debug temporal - verificar qué se está enviando
-      console.log('📊 Enviando evento:', {
-        eventType,
-        hasEndTime,
-        startTime: eventData.startTime,
-        endTime: eventData.endTime,
-        fullData: eventData
-      })
-      
       // Campos específicos según tipo de evento
       if (eventType === 'sleep' || eventType === 'nap') {
         eventData.sleepDelay = sleepDelay
@@ -246,9 +244,10 @@ export function ManualEventModal({
   const resetForm = () => {
     setEventType('sleep')
     setStartDate(format(new Date(), 'yyyy-MM-dd'))
-    setStartTime(getCurrentHourRounded())
+    setStartTime(getDefaultStartTimeForType('sleep'))
     setEndDate(format(new Date(), 'yyyy-MM-dd'))
     setEndTime(getCurrentHourRounded())
+    setIncludeEndTime(true)
     setNotes('')
     
     // Reset campos de sueño
@@ -275,11 +274,19 @@ export function ManualEventModal({
     setActivityNotes('')
   }
   
-  // Forzar hora de fin obligatoria para "Dormir"
+  useEffect(() => {
+    if (!open) return
+    setStartTime(getDefaultStartTimeForType(eventType))
+  }, [eventType, open])
+
+  // Ajustar disponibilidad de hora de fin por tipo de evento
   useEffect(() => {
     if (eventType === 'sleep') {
       setIncludeEndTime(true)
+      return
     }
+
+    setIncludeEndTime(false)
   }, [eventType])
 
   // Effect para ajustar endTime cuando cambia el tipo de evento

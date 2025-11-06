@@ -64,12 +64,6 @@ export function MonthLineChart({
   idealWakeTime = "07:00"  // Valor por defecto si no hay plan
 }: MonthLineChartProps) {
   
-  // Debug: verificar eventos recibidos
-  console.log(`MonthLineChart: Recibidos ${events?.length || 0} eventos para`, format(currentDate, "MMMM yyyy"))
-  if (events && events.length > 0) {
-    console.log("Eventos:", events.map(e => ({ type: e.eventType, time: e.startTime })))
-  }
-
   // Si no hay eventos, mostrar mensaje informativo
   if (!events || events.length === 0) {
     return (

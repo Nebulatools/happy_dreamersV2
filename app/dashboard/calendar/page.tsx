@@ -743,7 +743,10 @@ export default function CalendarPage() {
 
   const fetchEvents = async (forceRefresh = false) => {
     if (!activeChildId || !session) {
-      console.log('🚫 No se puede cargar eventos: activeChildId =', activeChildId, ', session =', !!session)
+      logger.warn('No se puede cargar eventos: faltan identificadores requeridos', {
+        activeChildId,
+        hasSession: !!session,
+      })
       setEvents([])
       setAllEventsCache([])
       setIsLoading(false)
@@ -758,27 +761,33 @@ export default function CalendarPage() {
 
     setIsLoading(true)
     try {
-      console.log('📅 CALENDARIO: Cargando eventos para:', activeChildId)
+      logger.debug('Cargando eventos para niño activo', { activeChildId })
       const response = await fetch(`/api/children/events?childId=${activeChildId}`)
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => null)
-        console.error('❌ CALENDARIO: Error cargando eventos:', response.status, response.statusText, errorData)
+        logger.error('Error HTTP al cargar eventos', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+        })
         throw new Error("Error al cargar eventos")
       }
       
       const data = await response.json()
       const eventsData = data.events || []
       
-      console.log('✅ CALENDARIO: Eventos cargados exitosamente:', eventsData.length, 'eventos')
+      logger.info('Eventos cargados exitosamente', { count: eventsData.length })
       
       // Log para debugging: verificar orden de eventos recibidos
       if (process.env.NODE_ENV === 'development') {
-        console.log('📋 CALENDARIO: Detalles de eventos:', eventsData.map((e: Event) => ({
-          id: e._id,
-          time: e.startTime,
-          type: e.eventType
-        })))
+        logger.debug('Detalles de eventos cargados (solo desarrollo)', {
+          events: eventsData.map((e: Event) => ({
+            id: e._id,
+            time: e.startTime,
+            type: e.eventType,
+          })),
+        })
       }
       
       // Actualizar cache
@@ -889,7 +898,7 @@ export default function CalendarPage() {
     const dayEvents = events.filter(event => {
       // Validar que el evento tenga startTime y no sea vacío
       if (!event.startTime || event.startTime === '') {
-        console.warn('Evento sin startTime válido, omitiendo:', event)
+        logger.warn('Evento sin startTime válido, omitiendo', { eventId: event._id })
         return false
       }
       
