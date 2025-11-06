@@ -7,6 +7,8 @@ import { ObjectId } from "mongodb"
 
 const logger = createLogger("UserProfileAPI")
 
+const ALLOWED_ACCOUNT_TYPES = ["father", "mother", "caregiver", ""]
+
 export async function PUT(request: NextRequest) {
   try {
     // Get session to verify authentication
@@ -22,7 +24,7 @@ export async function PUT(request: NextRequest) {
 
     // Parse request body
     const body = await request.json()
-    const { name, phone } = body
+    const { name, phone, accountType } = body
 
     // Validate input data
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -45,16 +47,28 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    if (accountType !== undefined && !ALLOWED_ACCOUNT_TYPES.includes(accountType)) {
+      logger.warn("Invalid accountType provided in profile update", { accountType })
+      return NextResponse.json(
+        { error: "Tipo de cuenta inválido" },
+        { status: 400 }
+      )
+    }
+
     // Update user in database
     const { db } = await connectToDatabase()
-    
+
     const updateData: any = {
       name: name.trim(),
       updatedAt: new Date()
     }
-    
+
     // Always update phone field - either set to value or empty string
     updateData.phone = phone && phone.trim().length > 0 ? phone.trim() : ""
+
+    if (accountType !== undefined) {
+      updateData.accountType = accountType
+    }
     
     logger.info("Updating user profile with data:", { 
       email: session.user.email, 
@@ -84,7 +98,8 @@ export async function PUT(request: NextRequest) {
       name: updatedUser?.name || "",
       phone: updatedUser?.phone || "",
       email: session.user.email,
-      role: updatedUser?.role || "user"
+      role: updatedUser?.role || "user",
+      accountType: updatedUser?.accountType || ""
     }
 
     logger.info("Profile updated successfully", { 
@@ -141,7 +156,8 @@ export async function GET(request: NextRequest) {
       name: user.name || "",
       email: user.email,
       phone: user.phone || "",
-      role: user.role || "user"
+      role: user.role || "user",
+      accountType: user.accountType || ""
     }
 
     logger.info("Profile data retrieved", { 

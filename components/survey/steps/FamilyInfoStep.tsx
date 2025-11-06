@@ -9,18 +9,73 @@ import { Textarea } from "@/components/ui/textarea"
 import { Users } from "lucide-react"
 import type { SurveyStepProps } from '../types/survey.types'
 
-export function FamilyInfoStep({ data, onChange, errors = {} }: SurveyStepProps) {
-  const [activeTab, setActiveTab] = useState<'papa' | 'mama'>('papa')
+export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: SurveyStepProps) {
+  const accountType: string = context?.accountType || data?.primaryCaregiver || ""
+  const userPrefill = context?.userPrefill || {}
+
+  const [activeTab, setActiveTab] = useState<'papa' | 'mama'>(() =>
+    accountType === 'mother' ? 'mama' : 'papa'
+  )
   
   const updateField = (parent: 'papa' | 'mama', field: string, value: any) => {
+    const currentPrimary = data?.primaryCaregiver || accountType || ""
+    const resolvedPrimary = currentPrimary || (parent === 'mama' ? 'mother' : 'father')
+
     onChange({
       ...data,
       [parent]: {
         ...data[parent],
         [field]: value
-      }
+      },
+      primaryCaregiver: resolvedPrimary
     })
   }
+
+  const [hasInjectedPrefill, setHasInjectedPrefill] = useState(false)
+
+  useEffect(() => {
+    setHasInjectedPrefill(false)
+  }, [accountType])
+
+  useEffect(() => {
+    if (hasInjectedPrefill) return
+
+    const targetParent: 'papa' | 'mama' | null = accountType === 'mother'
+      ? 'mama'
+      : accountType === 'father'
+        ? 'papa'
+        : null
+
+    if (!targetParent) return
+
+    const parentData = (data as any)?.[targetParent] || {}
+
+    const namePrefill = typeof userPrefill?.name === 'string' ? userPrefill.name.trim() : ""
+    const phonePrefill = typeof userPrefill?.phone === 'string' ? userPrefill.phone.trim() : ""
+    const emailPrefill = typeof userPrefill?.email === 'string' ? userPrefill.email.trim() : ""
+
+    const updates: Record<string, string> = {}
+    if (!parentData?.nombre && namePrefill) updates.nombre = namePrefill
+    if (!parentData?.telefono && phonePrefill) updates.telefono = phonePrefill
+    if (!parentData?.email && emailPrefill) updates.email = emailPrefill
+
+    if (Object.keys(updates).length === 0) {
+      setHasInjectedPrefill(true)
+      return
+    }
+
+    onChange({
+      ...data,
+      [targetParent]: {
+        ...parentData,
+        ...updates
+      },
+      primaryCaregiver: accountType || data?.primaryCaregiver || ""
+    })
+
+    setHasInjectedPrefill(true)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountType, userPrefill?.name, userPrefill?.phone, userPrefill?.email, data, hasInjectedPrefill])
 
   const getError = (parent: string, field: string): string | undefined => {
     const parentErrors = errors[parent] as any

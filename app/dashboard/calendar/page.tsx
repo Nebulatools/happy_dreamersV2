@@ -38,8 +38,10 @@ import {
   CompactEventBlock,
   MonthLineChart,
   SleepSessionBlock,
-  CalendarMain
+  CalendarMain,
+  SimpleSleepBarChart
 } from "@/components/calendar"
+import type { DailySleepPoint, NightWakingPoint } from "@/components/calendar/SimpleSleepBarChart"
 import {
   Dialog,
   DialogContent,
@@ -83,6 +85,7 @@ import {
   differenceInHours,
   differenceInMinutes,
   eachHourOfInterval,
+  isSameDay,
 } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -117,9 +120,164 @@ interface MonthlyStats {
   wakingsChange: number;
 }
 
+const WEEKDAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
+
+const capitalizeSentence = (value: string) => {
+  if (!value) return value
+  return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
+interface WeeklySummaryResult {
+  points: DailySleepPoint[]
+  wakingPoints: NightWakingPoint[]
+  averages: {
+    totalHours: number
+    nightHours: number
+    napHours: number
+    nightWakings: number
+  }
+}
+
+const computeWeeklySleepSummary = (events: Event[], referenceDate: Date): WeeklySummaryResult => {
+  const weekStart = startOfWeek(referenceDate, { weekStartsOn: 0 })
+  const weekEnd = addDays(weekStart, 6)
+  const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
+
+  const points: DailySleepPoint[] = []
+  const wakingPoints: NightWakingPoint[] = []
+
+  days.forEach((day) => {
+    const dayStart = startOfDay(day)
+    const dayEnd = endOfDay(day)
+    let nightMinutes = 0
+    let napMinutes = 0
+    const segments: { start: Date; end: Date; minutes: number }[] = []
+    const wakingEvents: Event[] = []
+
+    events.forEach((event) => {
+      if (!event.startTime) return
+      const eventStart = new Date(event.startTime)
+
+      if (event.eventType === "night_waking") {
+        if (eventStart >= dayStart && eventStart <= dayEnd) {
+          wakingEvents.push(event)
+        }
+        return
+      }
+
+      if (!event.endTime) {
+        return
+      }
+
+      const eventEnd = new Date(event.endTime)
+
+      if (eventEnd <= dayStart || eventStart >= dayEnd) {
+        return
+      }
+
+      const overlapStart = eventStart < dayStart ? dayStart : eventStart
+      const overlapEnd = eventEnd > dayEnd ? dayEnd : eventEnd
+      const minutes = differenceInMinutes(overlapEnd, overlapStart)
+
+      if (minutes <= 0) {
+        return
+      }
+
+      if (event.eventType === "sleep" || event.eventType === "nap") {
+        segments.push({ start: overlapStart, end: overlapEnd, minutes })
+        if (event.eventType === "sleep") {
+          nightMinutes += minutes
+        } else {
+          napMinutes += minutes
+        }
+      }
+    })
+
+    const totalMinutes = nightMinutes + napMinutes
+    const totalHours = totalMinutes / 60
+    const nightHours = nightMinutes / 60
+    const napHours = napMinutes / 60
+
+    const sortedSegments = segments.sort((a, b) => a.start.getTime() - b.start.getTime())
+    const wakingPositions = wakingEvents
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+      .map((wakeEvent) => {
+        if (totalMinutes === 0) return 0
+        const wakeTime = new Date(wakeEvent.startTime)
+        let accumulatedMinutes = 0
+
+        for (const segment of sortedSegments) {
+          if (wakeTime >= segment.end) {
+            accumulatedMinutes += segment.minutes
+          } else if (wakeTime <= segment.start) {
+            break
+          } else {
+            accumulatedMinutes += Math.max(0, differenceInMinutes(wakeTime, segment.start))
+            break
+          }
+        }
+
+        const ratio = totalMinutes > 0 ? accumulatedMinutes / totalMinutes : 0
+        return Number((totalHours * ratio).toFixed(2))
+      })
+
+    const isoDate = dayStart.toISOString()
+    const label = WEEKDAY_LABELS[day.getDay()]
+    const displayDate = capitalizeSentence(
+      format(day, "EEEE d 'de' MMMM", { locale: es })
+    )
+
+    const dayPoint: DailySleepPoint = {
+      label,
+      isoDate,
+      displayDate,
+      nightHours: Number(nightHours.toFixed(2)),
+      napHours: Number(napHours.toFixed(2)),
+      totalHours: Number(totalHours.toFixed(2)),
+      wakingsCount: wakingEvents.length,
+      wakingPositions,
+    }
+
+    points.push(dayPoint)
+
+    wakingPositions.forEach((value) => {
+      wakingPoints.push({
+        label,
+        value,
+        isoDate,
+      })
+    })
+  })
+
+  const dayCount = points.length || 1
+  const totalNightHours = points.reduce((sum, day) => sum + day.nightHours, 0)
+  const totalNapHours = points.reduce((sum, day) => sum + day.napHours, 0)
+  const totalDailyHours = points.reduce((sum, day) => sum + day.totalHours, 0)
+  const totalNightWakings = points.reduce((sum, day) => sum + day.wakingsCount, 0)
+
+  const averages = {
+    totalHours: dayCount ? totalDailyHours / dayCount : 0,
+    nightHours: dayCount ? totalNightHours / dayCount : 0,
+    napHours: dayCount ? totalNapHours / dayCount : 0,
+    nightWakings: dayCount ? totalNightWakings / dayCount : 0,
+  }
+
+  return { points, wakingPoints, averages }
+}
+
+const formatHoursLabel = (hours: number) => {
+  const totalMinutes = Math.round(hours * 60)
+  const h = Math.floor(totalMinutes / 60)
+  const m = totalMinutes % 60
+  if (totalMinutes === 0) return "0h"
+  if (m === 0) return `${h}h`
+  return `${h}h ${m.toString().padStart(2, "0")}min`
+}
+
 export default function CalendarPage() {
   const { toast } = useToast()
   const { data: session } = useSession()
+  const isAdminView = session?.user?.role === "admin" || session?.user?.role === "professional"
   const { activeChildId } = useActiveChild()
   const { refreshTrigger, subscribe } = useEventsCache(activeChildId)
   const invalidateEvents = useEventsInvalidation()
@@ -140,6 +298,13 @@ export default function CalendarPage() {
     return "week"
   })
   const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    if (isAdminView) return
+    if (view !== "week") {
+      handleViewChange("week")
+    }
+  }, [isAdminView, view])
   
   // Función para cambiar la vista y guardar en localStorage
   const handleViewChange = (newView: "month" | "week" | "day") => {
@@ -294,6 +459,7 @@ export default function CalendarPage() {
   const [quickSelectorOpen, setQuickSelectorOpen] = useState(false)
   const [selectedDateForEvent, setSelectedDateForEvent] = useState<Date | null>(null)
   const [children, setChildren] = useState<Child[]>([])
+  const [selectedSimpleDayIso, setSelectedSimpleDayIso] = useState<string | null>(null)
   
   // Estados para el diálogo de edición
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
@@ -555,6 +721,33 @@ export default function CalendarPage() {
     })
   }
 
+  const weeklySummary = useMemo(() => {
+    const sourceEvents = allEventsCache.length > 0 ? allEventsCache : events
+    return computeWeeklySleepSummary(sourceEvents, date)
+  }, [allEventsCache, events, date])
+
+  useEffect(() => {
+    if (isAdminView) return
+    if (!weeklySummary.points || weeklySummary.points.length === 0) {
+      setSelectedSimpleDayIso(null)
+      return
+    }
+
+    const todayIso = weeklySummary.points.find((point) =>
+      isSameDay(new Date(point.isoDate), new Date())
+    )?.isoDate
+
+    const fallbackIso = weeklySummary.points[0]?.isoDate ?? null
+    const nextIso = todayIso ?? fallbackIso
+
+    setSelectedSimpleDayIso((prev) => {
+      if (prev && weeklySummary.points.some((point) => point.isoDate === prev)) {
+        return prev
+      }
+      return nextIso
+    })
+  }, [isAdminView, weeklySummary])
+
   const getEventsForDay = (day: Date) => {
     const dayStr = format(day, "yyyy-MM-dd")
     const dayStart = startOfDay(day)
@@ -604,6 +797,46 @@ export default function CalendarPage() {
       return timeA - timeB // Orden cronológico ascendente
     })
   }
+
+  const selectedSimpleDayPoint = useMemo(() => {
+    if (!selectedSimpleDayIso) return null
+    return weeklySummary.points.find((point) => point.isoDate === selectedSimpleDayIso) || null
+  }, [selectedSimpleDayIso, weeklySummary])
+
+  const selectedSimpleDayEvents = useMemo(() => {
+    if (!selectedSimpleDayIso) return []
+    return getEventsForDay(new Date(selectedSimpleDayIso))
+  }, [selectedSimpleDayIso, events])
+
+  const selectedSimpleDayTitle = selectedSimpleDayPoint
+    ? capitalizeSentence(format(new Date(selectedSimpleDayPoint.isoDate), "EEEE d 'de' MMMM", { locale: es }))
+    : "Selecciona un día"
+
+  const userAverageTotal = formatHoursLabel(weeklySummary.averages.totalHours)
+  const userAverageNight = formatHoursLabel(weeklySummary.averages.nightHours)
+  const userAverageNap = formatHoursLabel(weeklySummary.averages.napHours)
+  const userAverageWakings = Math.round(weeklySummary.averages.nightWakings)
+
+  const selectedSimpleDayMetrics = selectedSimpleDayPoint
+    ? {
+        total: formatHoursLabel(selectedSimpleDayPoint.totalHours),
+        night: formatHoursLabel(selectedSimpleDayPoint.nightHours),
+        nap: formatHoursLabel(selectedSimpleDayPoint.napHours),
+        wakings: selectedSimpleDayPoint.wakingsCount,
+      }
+    : null
+
+  const userWeekLabel = useMemo(() => {
+    const start = startOfWeek(date, { weekStartsOn: 0 })
+    const end = endOfWeek(date, { weekStartsOn: 0 })
+    const startText = format(start, "d MMM", { locale: es })
+    const endText = format(end, "d MMM", { locale: es })
+    return `${startText} - ${endText}`
+  }, [date])
+
+  const monthLabel = useMemo(() => {
+    return format(date, "LLLL yyyy", { locale: es }).toUpperCase()
+  }, [date])
 
   const getEventTypeIcon = (type: string) => {
     switch(type) {
@@ -968,174 +1201,284 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-4">
-      {/* Barra superior: Selector de vista + Leyenda de colores */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 px-6 pt-4">
-        {/* Selector de vista */}
-        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
-          <Button
-            variant={view === "month" ? "default" : "ghost"}
-            size="sm"
-            className={view === "month" ? "bg-white shadow-sm" : ""}
-            onClick={() => handleViewChange("month")}
-          >
-            Mensual
-          </Button>
-          <Button
-            variant={view === "week" ? "default" : "ghost"}
-            size="sm"
-            className={view === "week" ? "bg-white shadow-sm" : ""}
-            onClick={() => handleViewChange("week")}
-          >
-            Semanal
-          </Button>
-          <Button
-            variant={view === "day" ? "default" : "ghost"}
-            size="sm"
-            className={view === "day" ? "bg-white shadow-sm" : ""}
-            onClick={() => handleViewChange("day")}
-          >
-            Diario
-          </Button>
-        </div>
+      {isAdminView ? (
+        <>
+          {/* Barra superior: Selector de vista + Leyenda de colores */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 px-6 pt-4">
+            {/* Selector de vista */}
+            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+              <Button
+                variant={view === "month" ? "default" : "ghost"}
+                size="sm"
+                className={view === "month" ? "bg-white shadow-sm" : ""}
+                onClick={() => handleViewChange("month")}
+              >
+                Mensual
+              </Button>
+              <Button
+                variant={view === "week" ? "default" : "ghost"}
+                size="sm"
+                className={view === "week" ? "bg-white shadow-sm" : ""}
+                onClick={() => handleViewChange("week")}
+              >
+                Semanal
+              </Button>
+              <Button
+                variant={view === "day" ? "default" : "ghost"}
+                size="sm"
+                className={view === "day" ? "bg-white shadow-sm" : ""}
+                onClick={() => handleViewChange("day")}
+              >
+                Diario
+              </Button>
+            </div>
 
-        {/* Leyenda de colores */}
-        <div className="flex flex-wrap gap-3 lg:gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-sleep" />
-            <span className="text-sm text-gray-600">Dormir</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-nap" />
-            <span className="text-sm text-gray-600">Siesta</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-wake" />
-            <span className="text-sm text-gray-600">Despertar</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-night-wake" />
-            <span className="text-sm text-gray-600">Nocturno</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Resumen de estadísticas con navegación integrada */}
-      <div className="px-6">
-        <Card className="p-3 md:p-4 bg-gray-50 border-gray-200">
-          <div className="flex flex-col gap-3">
-            {/* Header: Navegación + Título + Métricas */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-              {/* Navegación y título a la izquierda */}
-              <div className="flex items-center gap-3">
-                {/* Navegación de fechas */}
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={navigatePrevious}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={navigateNext}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                {/* Título del período */}
-                <div className="flex flex-col">
-                  <span className="text-xs text-gray-500">Período seleccionado</span>
-                  <h3 className="text-sm font-semibold text-gray-700">
-                    {getPeriodTitle()}
-                  </h3>
-                </div>
+            {/* Leyenda de colores */}
+            <div className="flex flex-wrap gap-3 lg:gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-sleep" />
+                <span className="text-sm text-gray-600">Dormir</span>
               </div>
-              
-              {/* Métricas a la derecha */}
-              <div className="flex items-center gap-3 md:gap-6 flex-wrap">
-                {/* Sueño nocturno */}
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-sleep/20 flex items-center justify-center">
-                    <Moon className="w-4 h-4 text-sleep" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs text-gray-500">
-                      Promedio sueño
-                    </span>
-                    <span className="text-sm font-bold text-gray-900">
-                      {monthlyStats.nightSleepHours.toFixed(1)}h
-                    </span>
-                  </div>
-                </div>
-                
-                {/* Siestas */}
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-nap/20 flex items-center justify-center">
-                    <Cloud className="w-4 h-4 text-nap" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs text-gray-500">
-                      Promedio siesta
-                    </span>
-                    <span className="text-sm font-bold text-gray-900">
-                      {monthlyStats.napHours.toFixed(1)}h
-                    </span>
-                  </div>
-                </div>
-                
-                {/* Despertares */}
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-night-wake/20 flex items-center justify-center">
-                    <AlertCircle className="w-4 h-4 text-night-wake" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs text-gray-500">Despertares</span>
-                    <span className="text-sm font-bold text-gray-900">
-                      {monthlyStats.nightWakings}
-                    </span>
-                  </div>
-                </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-nap" />
+                <span className="text-sm text-gray-600">Siesta</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-wake" />
+                <span className="text-sm text-gray-600">Despertar</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-night-wake" />
+                <span className="text-sm text-gray-600">Nocturno</span>
               </div>
             </div>
           </div>
-        </Card>
-      </div>
 
-      {/* Calendario Principal - Nueva estructura limpia */}
-      <div className="px-6 pb-6">
-        <Card className={`p-4 ${view === 'month' ? 'h-[600px]' : view === 'day' ? 'h-[calc(100vh-320px)]' : ''}`} style={{ minHeight: '500px' }}>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-96">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4A90E2] mx-auto mb-4" />
-                <p className="text-gray-600">Cargando calendario...</p>
+          {/* Resumen de estadísticas con navegación integrada */}
+          <div className="px-6">
+            <Card className="p-3 md:p-4 bg-gray-50 border-gray-200">
+              <div className="flex flex-col gap-3">
+                {/* Header: Navegación + Título + Métricas */}
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                  {/* Navegación y título a la izquierda */}
+                  <div className="flex items-center gap-3">
+                    {/* Navegación de fechas */}
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={navigatePrevious}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={navigateNext}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    {/* Título del período */}
+                    <div className="flex flex-col">
+                      <span className="text-xs text-gray-500">Período seleccionado</span>
+                      <h3 className="text-sm font-semibold text-gray-700">
+                        {getPeriodTitle()}
+                      </h3>
+                    </div>
+                  </div>
+                  
+                  {/* Métricas a la derecha */}
+                  <div className="flex items-center gap-3 md:gap-6 flex-wrap">
+                    {/* Sueño nocturno */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-sleep/20 flex items-center justify-center">
+                        <Moon className="w-4 h-4 text-sleep" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs text-gray-500">
+                          Promedio sueño
+                        </span>
+                        <span className="text-sm font-bold text-gray-900">
+                          {monthlyStats.nightSleepHours.toFixed(1)}h
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Siestas */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-nap/20 flex items-center justify-center">
+                        <Cloud className="w-4 h-4 text-nap" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs text-gray-500">
+                          Promedio siesta
+                        </span>
+                        <span className="text-sm font-bold text-gray-900">
+                          {monthlyStats.napHours.toFixed(1)}h
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Despertares */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-night-wake/20 flex items-center justify-center">
+                        <AlertCircle className="w-4 h-4 text-night-wake" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs text-gray-500">Despertares</span>
+                        <span className="text-sm font-bold text-gray-900">
+                          {monthlyStats.nightWakings}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Calendario Principal - Nueva estructura limpia */}
+          <div className="px-6 pb-6">
+            <Card className={`p-4 ${view === 'month' ? 'h-[600px]' : view === 'day' ? 'h-[calc(100vh-320px)]' : ''}`} style={{ minHeight: '500px' }}>
+              {isLoading ? (
+                <div className="flex justify-center items-center h-96">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4A90E2] mx-auto mb-4" />
+                    <p className="text-gray-600">Cargando calendario...</p>
+                  </div>
+                </div>
+              ) : (
+                view === "month" ? renderMonthLineView() :
+                <CalendarMain
+                  events={events}
+                  onEventClick={handleEventClick}
+                  onCreateEvent={(clickTime) => {
+                    // Manejar creación de eventos desde clicks en el calendario
+                    setSelectedDateForEvent(clickTime.date)
+                    // TODO: Abrir modal de creación de eventos cuando esté disponible
+                    // setQuickSelectorOpen(true)
+                  }}
+                  monthView={renderMonthView()}
+                  initialDate={date}
+                  initialView={view}
+                  onDayNavigateBack={navigateOneDayBack}
+                  onDayNavigateForward={navigateOneDayForward}
+                />
+              )}
+            </Card>
+          </div>
+        </>
+      ) : (
+        <div className="space-y-6 px-4 pt-4 pb-10 md:px-6">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">{monthLabel}</p>
+            <h2 className="text-2xl font-semibold text-slate-900">
+              Promedio diario: <span className="text-blue-600">{userAverageTotal}</span>
+            </h2>
+            <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+              <div className="flex items-center gap-2">
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-sleep" />
+                noche: {userAverageNight}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-nap" />
+                siestas: {userAverageNap}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-night-wake" />
+                despertares: {userAverageWakings}
               </div>
             </div>
-          ) : (
-            view === "month" ? renderMonthLineView() :
-            <CalendarMain
-              events={events}
-              onEventClick={handleEventClick}
-              onCreateEvent={(clickTime) => {
-                // Manejar creación de eventos desde clicks en el calendario
-                setSelectedDateForEvent(clickTime.date)
-                // TODO: Abrir modal de creación de eventos cuando esté disponible
-                // setQuickSelectorOpen(true)
-              }}
-              monthView={renderMonthView()}
-              initialDate={date}
-              initialView={view}
-              onDayNavigateBack={navigateOneDayBack}
-              onDayNavigateForward={navigateOneDayForward}
-            />
-          )}
-        </Card>
-      </div>
+          </div>
+
+          <Card className="p-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-slate-900">Horas de sueño (siestas + noche)</h3>
+                <p className="text-xs text-slate-500">Semana: {userWeekLabel}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={navigatePrevious}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={navigateNext}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="mt-4 h-[320px] w-full">
+              <SimpleSleepBarChart
+                data={weeklySummary.points}
+                nightWakingPoints={weeklySummary.wakingPoints}
+                onSelectDay={(isoDate) => setSelectedSimpleDayIso(isoDate)}
+                selectedIsoDate={selectedSimpleDayIso}
+              />
+            </div>
+          </Card>
+
+          <Card className="p-4 space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">{selectedSimpleDayTitle}</h3>
+                {selectedSimpleDayMetrics ? (
+                  <p className="text-sm text-slate-600">
+                    Total {selectedSimpleDayMetrics.total} · Noche {selectedSimpleDayMetrics.night} · Siestas {selectedSimpleDayMetrics.nap} · Despertares {selectedSimpleDayMetrics.wakings}
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-600">Selecciona un día en la gráfica para ver los detalles.</p>
+                )}
+              </div>
+              {selectedSimpleDayMetrics && (
+                <div className="inline-flex items-center rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-600">
+                  Total {selectedSimpleDayMetrics.total}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              {selectedSimpleDayEvents.length > 0 ? (
+                selectedSimpleDayEvents.map((event) => (
+                  <button
+                    key={event._id}
+                    type="button"
+                    onClick={() => handleEventClick(event)}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-blue-200 hover:bg-blue-50/60"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                        {getEventTypeIcon(event.eventType)}
+                        <span>{getEventTypeName(event.eventType)}</span>
+                      </div>
+                      <span className="text-xs text-slate-500">{formatEventTime(event)}</span>
+                    </div>
+                    {event.notes && (
+                      <p className="mt-2 line-clamp-2 text-sm text-slate-600">{event.notes}</p>
+                    )}
+                  </button>
+                ))
+              ) : (
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                  No hay eventos registrados para este día.
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* TEMPORALMENTE COMENTADO - Sistema de eventos en reset */}
       {/* Selector rápido de eventos */}

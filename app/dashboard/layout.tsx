@@ -13,6 +13,7 @@ import { MobileBottomNav } from "@/components/dashboard/mobile-nav"
 import ErrorBoundary from "@/components/ErrorBoundary"
 import { DevTools } from "@/components/dev/DevTools"
 import { UserProvider } from "@/context/UserContext"
+import { ProfileCompletionGuard } from "@/components/profile/ProfileCompletionGuard"
 
 export default async function DashboardLayout({
   children,
@@ -38,6 +39,7 @@ export default async function DashboardLayout({
               <div className="flex flex-col lg:ml-[256px]" style={{ backgroundColor: '#DEF1F1' }}>
                 <Header />
                 <main className="flex flex-1 flex-col gap-4 px-3 pt-2 pb-20 md:px-4 md:pt-3 lg:gap-8 lg:px-6 lg:pt-4 lg:pb-6" style={{ backgroundColor: '#DEF1F1' }}>
+                  <ProfileCompletionGuard />
                   <ErrorBoundary 
                     context="página" 
                     showDetails={process.env.NODE_ENV === 'development'}

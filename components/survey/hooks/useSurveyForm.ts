@@ -25,7 +25,8 @@ const defaultFormData: Partial<SurveyData> = {
       email: "",
       trabajaFueraCasa: false,
       tieneAlergias: false
-    }
+    },
+    primaryCaregiver: "father"
   },
   dinamicaFamiliar: {},
   historial: {},
@@ -167,7 +168,8 @@ export function useSurveyForm(initialData?: Partial<SurveyData>) {
           mama: {
             ...(prevData.informacionFamiliar?.mama || {}),
             ...(normalized.informacionFamiliar?.mama || {})
-          }
+          },
+          primaryCaregiver: normalized.informacionFamiliar?.primaryCaregiver ?? prevData.informacionFamiliar?.primaryCaregiver
         },
         dinamicaFamiliar: {
           ...prevData.dinamicaFamiliar,

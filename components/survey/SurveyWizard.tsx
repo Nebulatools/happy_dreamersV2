@@ -47,6 +47,16 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
   const [showSaveIndicator, setShowSaveIndicator] = useState(false)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [childData, setChildData] = useState<any>(null)
+
+  const resolvedAccountType = useMemo(() => {
+    return userProfile?.accountType || session?.user?.accountType || ""
+  }, [userProfile, session])
+
+  const userPrefillContact = useMemo(() => ({
+    name: userProfile?.name || session?.user?.name || "",
+    email: userProfile?.email || session?.user?.email || "",
+    phone: userProfile?.phone || session?.user?.phone || ""
+  }), [userProfile, session])
   
   const {
     formData,
@@ -162,32 +172,41 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
   // Pre-llenar datos con información del usuario y del niño
   useEffect(() => {
     if ((userProfile || childData) && !initialData && !isExisting) {
-      const defaultName = userProfile?.name || session?.user?.name || ""
-      const defaultEmail = userProfile?.email || session?.user?.email || ""
-      const defaultPhone = userProfile?.phone || ""
+      const defaultName = userPrefillContact.name
+      const defaultEmail = userPrefillContact.email
+      const defaultPhone = userPrefillContact.phone
+      const accountType = resolvedAccountType
+
+      const shouldPrefillFather = accountType === "father" || accountType === "caregiver"
+      const shouldPrefillMother = accountType === "mother" || accountType === "caregiver"
+
+      const fatherDefaults = {
+        nombre: shouldPrefillFather ? defaultName : "",
+        ocupacion: "",
+        direccion: "",
+        telefono: shouldPrefillFather ? defaultPhone : "",
+        email: shouldPrefillFather ? defaultEmail : "",
+        trabajaFueraCasa: false,
+        tieneAlergias: false
+      }
+
+      const motherDefaults = {
+        nombre: shouldPrefillMother ? defaultName : "",
+        ocupacion: "",
+        mismaDireccionPapa: true,
+        direccion: "",
+        telefono: shouldPrefillMother ? defaultPhone : "",
+        email: shouldPrefillMother ? defaultEmail : "",
+        trabajaFueraCasa: false,
+        tieneAlergias: false
+      }
 
       // Pre-llenar información familiar con datos del usuario
       const prefilledData: Partial<SurveyData> = {
         informacionFamiliar: {
-          papa: {
-            nombre: defaultName,
-            ocupacion: "",
-            direccion: "",
-            telefono: defaultPhone,
-            email: defaultEmail,
-            trabajaFueraCasa: false,
-            tieneAlergias: false
-          },
-          mama: {
-            nombre: defaultName,
-            ocupacion: "",
-            mismaDireccionPapa: true,
-            direccion: "",
-            telefono: defaultPhone,
-            email: defaultEmail,
-            trabajaFueraCasa: false,
-            tieneAlergias: false
-          }
+          papa: fatherDefaults,
+          mama: motherDefaults,
+          primaryCaregiver: accountType || ""
         },
         dinamicaFamiliar: {
           telefonoSeguimiento: defaultPhone,
@@ -224,7 +243,8 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
             mama: {
               ...prefilledData.informacionFamiliar?.mama,
               ...savedData.formData.informacionFamiliar?.mama
-            }
+            },
+            primaryCaregiver: savedData.formData.informacionFamiliar?.primaryCaregiver ?? prefilledData.informacionFamiliar?.primaryCaregiver
           }
         }
         if (savedData.formData.actividadFisica?.situacionesHijo && !savedData.formData.desarrollo?.situacionesHijo) {
@@ -254,7 +274,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
         })
       }
     }
-  }, [userProfile, childData, initialData, isExisting, session])
+  }, [userProfile, childData, initialData, isExisting, session, userPrefillContact, resolvedAccountType])
 
   // Mostrar indicador de guardado
   useEffect(() => {
@@ -397,7 +417,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
           data={getStepData(currentStep)}
           onChange={(data) => updateStepData(currentStep, data)}
           errors={touchedSteps.has(currentStep) ? errors[currentStep] || {} : {}}
-          context={{ childData, isExisting }}
+          context={{ childData, isExisting, accountType: resolvedAccountType, userPrefill: userPrefillContact }}
         />
         
         <div className="mt-8 pt-6 border-t flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

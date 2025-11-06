@@ -12,6 +12,7 @@ interface UserData {
   email: string
   phone: string
   role: string
+  accountType: "father" | "mother" | "caregiver" | "" | undefined
 }
 
 interface UserContextType {
@@ -32,6 +33,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     email: "",
     phone: "",
     role: "user",
+    accountType: "",
   })
   const [isLoading, setIsLoading] = useState(false)
 
@@ -42,6 +44,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         email: session.user.email || "",
         phone: (session.user as any).phone || "",
         role: session.user.role || "user",
+        accountType: (session.user as any).accountType || "",
       }
       
       logger.info("Loading user data from session", sessionData)
@@ -66,10 +69,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const result = await response.json()
         logger.info("API response received", result)
         
-        if (result.success && result.data) {
-          logger.info("Updating user data from API", result.data)
-          setUserData(result.data)
-        }
+      if (result.success && result.data) {
+        logger.info("Updating user data from API", result.data)
+        setUserData(result.data)
+      }
       }
     } catch (error) {
       logger.error("Error refreshing user data", error)

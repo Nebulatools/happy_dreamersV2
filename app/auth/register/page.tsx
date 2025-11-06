@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { Eye, EyeOff, User, Mail, Lock, ArrowLeft } from 'lucide-react'
+import { signIn } from "next-auth/react"
 
 const registerSchema = z
   .object({
@@ -86,8 +87,18 @@ export default function RegisterPage() {
         description: "Tu cuenta ha sido creada correctamente.",
       })
 
-      // Redirigir a la página de inicio de sesión
-      router.push("/auth/login")
+      const signInResult = await signIn("credentials", {
+        email: values.email,
+        password: values.password,
+        redirect: false,
+      })
+
+      if (signInResult?.error) {
+        router.push("/auth/login")
+        return
+      }
+
+      router.replace("/dashboard/profile?welcome=1")
     } catch (error) {
       toast({
         title: "Error",

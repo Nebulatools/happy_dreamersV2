@@ -7,6 +7,8 @@ export interface IUser extends mongoose.Document {
   name: string
   password: string
   role: "parent" | "admin" | "professional"
+  phone?: string
+  accountType?: "father" | "mother" | "caregiver" | ""
   image?: string
   emailVerified?: Date
   resetPasswordToken?: string
@@ -38,6 +40,15 @@ const UserSchema = new mongoose.Schema({
     type: String,
     enum: ["parent", "admin", "professional"],
     default: "parent"
+  },
+  phone: {
+    type: String,
+    default: ""
+  },
+  accountType: {
+    type: String,
+    enum: ["father", "mother", "caregiver", ""],
+    default: ""
   },
   image: {
     type: String

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { User, Mail, Calendar, Settings, Save, Phone } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { User, Mail, Calendar, Settings, Save, Phone, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,9 +12,13 @@ import { UserAvatar } from "@/components/ui/user-avatar"
 import { ChangePasswordForm } from "@/components/profile/ChangePasswordForm"
 import { useUser } from "@/context/UserContext"
 import { useChildren } from "@/hooks/use-children"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function ProfilePage() {
   const { data: session } = useSession()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { userData, isLoading, updateProfile } = useUser()
   const { children } = useChildren()
   const [formData, setFormData] = useState({
@@ -21,6 +26,7 @@ export default function ProfilePage() {
     email: userData.email,
     phone: userData.phone,
     role: userData.role,
+    accountType: userData.accountType || "",
   })
 
   // Update formData when userData changes
@@ -30,6 +36,7 @@ export default function ProfilePage() {
       email: userData.email,
       phone: userData.phone,
       role: userData.role,
+      accountType: userData.accountType || "",
     })
   }, [userData])
 
@@ -44,14 +51,29 @@ export default function ProfilePage() {
     const success = await updateProfile({
       name: formData.name,
       phone: formData.phone,
+      accountType: formData.accountType,
     })
-    
-    // If successful, the UserContext handles the rest (session updates, data refresh, etc.)
+
+    if (success) {
+      const hasPhone = formData.phone && formData.phone.trim().length > 0
+      const hasAccountType = !!formData.accountType
+      if (hasPhone && hasAccountType) {
+        router.replace("/dashboard")
+      }
+    }
   }
 
   const userInitials = formData.name
     ? formData.name.split(" ").map(n => n[0]).join("").toUpperCase()
     : "U"
+
+  const profileIncomplete = !((formData.phone && formData.phone.trim().length > 0) && formData.accountType)
+  const showCompletionReminder = profileIncomplete || searchParams?.has("completeProfile")
+  const accountTypeOptions = [
+    { value: "father", label: "Padre" },
+    { value: "mother", label: "Madre" },
+    { value: "caregiver", label: "Cuidador" },
+  ]
 
   return (
     <div className="min-h-screen bg-blue-50/30 p-6">
@@ -63,6 +85,16 @@ export default function ProfilePage() {
             Gestiona tu información personal y configuraciones de cuenta
           </p>
         </div>
+
+        {showCompletionReminder && (
+          <Alert className="bg-orange-50 border-orange-200 text-orange-900 mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Completa tu perfil</AlertTitle>
+            <AlertDescription>
+              Necesitamos tu teléfono y el tipo de cuenta para personalizar la experiencia.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Profile Card */}
@@ -155,15 +187,22 @@ export default function ProfilePage() {
                     </p>
                   </div>
                   <div>
-                    <Label htmlFor="role">Tipo de cuenta</Label>
-                    <Input
-                      id="role"
-                      type="text"
-                      value={formData.role === "admin" ? "Administrador" : 
-                        formData.role === "parent" ? "Padre/Madre" : "Usuario"}
-                      disabled
-                      className="mt-1 bg-gray-50 capitalize"
-                    />
+                    <Label htmlFor="accountType">Tipo de cuenta</Label>
+                    <Select
+                      value={formData.accountType || ""}
+                      onValueChange={(value) => handleInputChange("accountType", value)}
+                    >
+                      <SelectTrigger id="accountType" className="mt-1">
+                        <SelectValue placeholder="Selecciona una opción" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accountTypeOptions.map(option => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 

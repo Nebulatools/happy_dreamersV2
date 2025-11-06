@@ -15,6 +15,8 @@ declare module "next-auth" {
   interface User {
     id: string
     role: string
+    phone?: string
+    accountType?: "father" | "mother" | "caregiver" | ""
   }
   
   interface Session {
@@ -24,7 +26,18 @@ declare module "next-auth" {
       email?: string | null
       image?: string | null
       role: string
+      phone?: string
+      accountType?: "father" | "mother" | "caregiver" | ""
     }
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id?: string
+    role?: string
+    phone?: string
+    accountType?: "father" | "mother" | "caregiver" | ""
   }
 }
 
@@ -80,6 +93,8 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
             name: user.name,
             role: user.role,
+            phone: user.phone || "",
+            accountType: user.accountType || "",
           }
         } catch (error) {
           console.error("Error al verificar credenciales:", error)
@@ -93,6 +108,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id
         token.role = user.role
+        ;(token as any).phone = user.phone || ""
+        ;(token as any).accountType = user.accountType || ""
       }
       return token
     },
@@ -100,6 +117,8 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id = token.id as string
         session.user.role = token.role as string
+        session.user.phone = (token as any).phone || ""
+        session.user.accountType = (token as any).accountType || ""
       }
       return session
     },

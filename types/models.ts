@@ -52,7 +52,7 @@ export interface SurveyData {
       tieneAlergias: boolean
       alergias?: string
     }
-    
+
     // Sobre Mamá
     mama: {
       nombre: string
@@ -70,6 +70,8 @@ export interface SurveyData {
       tieneAlergias: boolean
       alergias?: string
     }
+
+    primaryCaregiver?: "father" | "mother" | "caregiver" | ""
   }
   
   // DINÁMICA FAMILIAR
