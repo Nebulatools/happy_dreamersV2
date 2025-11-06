@@ -105,16 +105,16 @@ const RenderWakingLines = ({ formattedGraphicalItems, data, yAxisMap, xAxisMap }
 
   const lines: JSX.Element[] = []
 
-  // SOLUCIÓN: Usar el último item de formattedGraphicalItems que corresponde a nightHours
-  // Ya que las barras se procesan en orden: primero napHours (naranja), luego nightHours (azul)
-  const nightBars = formattedGraphicalItems[formattedGraphicalItems.length - 1]
+  // Buscar el item que corresponde a la serie de sueño nocturno
+  const nightBars =
+    formattedGraphicalItems.find((item: any) => (item?.item?.props?.dataKey ?? item?.props?.dataKey) === 'nightHours')
+    ?? formattedGraphicalItems[0]
 
-  if (!nightBars || !nightBars.props?.data) {
+  const barData = nightBars?.props?.data || nightBars?.item?.props?.data
+
+  if (!nightBars || !barData) {
     return null
   }
-
-  // Usar props.data directamente (no nightBars.props.data)
-  const barData = nightBars.props.data
 
   barData.forEach((dayPoint: any, index: number) => {
     const dayData = data[index] as DailyUserSleepData
@@ -170,10 +170,22 @@ export function UserWeeklySleepChart({ data, className }: UserWeeklySleepChartPr
     return Math.max(8, Math.ceil(maxValue + 1))
   }, [data])
 
-  // Calcular promedios para mostrar arriba del gráfico
-  const averageTotal = data.reduce((sum, d) => sum + d.totalHours, 0) / (data.length || 1)
-  const averageNight = data.reduce((sum, d) => sum + d.nightHours, 0) / (data.length || 1)
-  const averageNaps = data.reduce((sum, d) => sum + d.napHours, 0) / (data.length || 1)
+  // Calcular promedios para mostrar arriba del gráfico utilizando solo días con datos
+  const sleepDays = data.filter((day) => day.totalHours > 0)
+  const nightDays = data.filter((day) => day.nightHours > 0)
+  const napDays = data.filter((day) => day.napHours > 0)
+
+  const averageTotal = sleepDays.length
+    ? sleepDays.reduce((sum, d) => sum + d.totalHours, 0) / sleepDays.length
+    : 0
+
+  const averageNight = nightDays.length
+    ? nightDays.reduce((sum, d) => sum + d.nightHours, 0) / nightDays.length
+    : 0
+
+  const averageNaps = napDays.length
+    ? napDays.reduce((sum, d) => sum + d.napHours, 0) / napDays.length
+    : 0
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>
@@ -285,19 +297,19 @@ export function UserWeeklySleepChart({ data, className }: UserWeeklySleepChartPr
               ]}
             />
 
-            {/* Barra de siestas (naranja, abajo) */}
-            <Bar
-              dataKey="napHours"
-              stackId="sleep"
-              fill={NAP_COLOR}
-              radius={[0, 0, 6, 6]}
-            />
-
-            {/* Barra de sueño nocturno (azul, arriba) */}
+            {/* Barra de sueño nocturno (azul, base) */}
             <Bar
               dataKey="nightHours"
               stackId="sleep"
               fill={NIGHT_COLOR}
+              radius={[0, 0, 6, 6]}
+            />
+
+            {/* Barra de siestas (naranja, parte superior) */}
+            <Bar
+              dataKey="napHours"
+              stackId="sleep"
+              fill={NAP_COLOR}
               radius={[6, 6, 0, 0]}
             />
 

@@ -251,11 +251,15 @@ const computeWeeklySleepSummary = (events: Event[], referenceDate: Date): Weekly
     })
   })
 
-  const dayCount = points.length || 1
-  const totalNightHours = points.reduce((sum, day) => sum + day.nightHours, 0)
-  const totalNapHours = points.reduce((sum, day) => sum + day.napHours, 0)
-  const totalDailyHours = points.reduce((sum, day) => sum + day.totalHours, 0)
-  const totalNightWakings = points.reduce((sum, day) => sum + day.wakingsCount, 0)
+  const activePoints = points.filter((day) =>
+    day.nightHours > 0 || day.napHours > 0 || day.totalHours > 0 || day.wakingsCount > 0
+  )
+
+  const dayCount = activePoints.length || points.length || 1
+  const totalNightHours = activePoints.reduce((sum, day) => sum + day.nightHours, 0)
+  const totalNapHours = activePoints.reduce((sum, day) => sum + day.napHours, 0)
+  const totalDailyHours = activePoints.reduce((sum, day) => sum + day.totalHours, 0)
+  const totalNightWakings = activePoints.reduce((sum, day) => sum + day.wakingsCount, 0)
 
   const averages = {
     totalHours: dayCount ? totalDailyHours / dayCount : 0,

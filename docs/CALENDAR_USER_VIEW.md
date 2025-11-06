@@ -11,7 +11,7 @@ La vista de calendario disponible para padres o tutores resume los últimos siet
 
 ## Elementos de la pantalla
 - **Etiqueta mensual**: Encabezado compacto con el mes y año actuales en mayúsculas.
-- **Gráfico apilado (UserWeeklySleepChart)**: resume horas de siesta (naranja), sueño nocturno (azul) y marca despertares nocturnos dentro de la barra. El tooltip muestra totales, desglose por segmento y número de despertares.
+- **Gráfico apilado (UserWeeklySleepChart)**: coloca el sueño nocturno como base (barra azul) y las siestas encima (naranja); las líneas rojas señalan despertares nocturnos. El tooltip muestra totales, desglose por segmento y número de despertares. Los promedios superiores solo consideran los días con datos reales para evitar distorsiones cuando la semana tiene registros incompletos.
 - **Controles de navegación móvil**: botones para avanzar/retroceder una semana; deshabilitados al intentar ir más allá del día actual.
 - **Modales compartidos**: al seleccionar un evento desde otras secciones, se abre un detalle con hora, duración, estado emocional y acciones de edición/eliminación.
 
