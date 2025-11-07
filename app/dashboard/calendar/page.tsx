@@ -435,6 +435,19 @@ export default function CalendarPage() {
 
   // Funciones de navegación de fechas
   const navigatePrevious = () => {
+    if (!isAdminView) {
+      const todayStart = startOfDay(new Date())
+      const minAllowed = subDays(todayStart, 6)
+      const nextDate = subDays(date, 1)
+
+      if (startOfDay(nextDate) < minAllowed) {
+        return
+      }
+
+      setDate(nextDate)
+      return
+    }
+
     if (view === "month") {
       setDate(subMonths(date, 1))
     } else if (view === "week") {
@@ -448,14 +461,14 @@ export default function CalendarPage() {
     // Para usuarios no admin, verificar si pueden navegar hacia adelante
     if (!isAdminView) {
       const today = startOfDay(new Date())
-      const nextDate = view === "month" ? addMonths(date, 1) :
-                      view === "week" ? addWeeks(date, 1) :
-                      addDays(date, 1)
+      const nextDate = addDays(date, 1)
 
-      // No permitir navegar más allá de hoy
       if (startOfDay(nextDate) > today) {
         return
       }
+
+      setDate(nextDate)
+      return
     }
 
     if (view === "month") {
@@ -465,6 +478,18 @@ export default function CalendarPage() {
     } else {
       setDate(addDays(date, 1))
     }
+  }
+
+  const getClampedUserDate = () => {
+    if (isAdminView) return date
+
+    const today = startOfDay(new Date())
+    const minAllowed = subDays(today, 6)
+    const normalized = startOfDay(date)
+
+    if (normalized > today) return today
+    if (normalized < minAllowed) return minAllowed
+    return normalized
   }
 
   // Función para obtener el título del período según la vista
@@ -546,6 +571,16 @@ export default function CalendarPage() {
     }
   }
 
+  const filterToLastSevenDays = (eventsData: Event[]) => {
+    const todayStart = startOfDay(new Date())
+    const cutoff = subDays(todayStart, 6)
+    return eventsData.filter((event: Event) => {
+      if (!event.startTime) return false
+      const eventDate = new Date(event.startTime)
+      return eventDate >= cutoff
+    })
+  }
+
   // Función auxiliar para filtrar eventos por vista
   const filterEventsByView = (eventsData: Event[], currentView: string, currentDate: Date) => {
     let filteredEvents = eventsData
@@ -571,6 +606,10 @@ export default function CalendarPage() {
         const eventDate = new Date(event.startTime)
         return eventDate >= dayStart && eventDate <= dayEnd
       })
+    }
+
+    if (!isAdminView) {
+      filteredEvents = filterToLastSevenDays(filteredEvents)
     }
 
     return filteredEvents
@@ -862,14 +901,17 @@ export default function CalendarPage() {
 
   const weeklySummary = useMemo(() => {
     const sourceEvents = allEventsCache.length > 0 ? allEventsCache : events
-    return computeWeeklySleepSummary(sourceEvents, date)
-  }, [allEventsCache, events, date])
+    const scopedEvents = isAdminView ? sourceEvents : filterToLastSevenDays(sourceEvents)
+    const referenceDate = isAdminView ? date : getClampedUserDate()
+    return computeWeeklySleepSummary(scopedEvents, referenceDate)
+  }, [isAdminView, allEventsCache, events, date])
 
   // Datos para la vista de usuario (parent)
   const userWeeklySleepData = useMemo(() => {
     if (isAdminView) return []
     const sourceEvents = allEventsCache.length > 0 ? allEventsCache : events
-    return computeUserWeeklySleepData(sourceEvents, date)
+    const scopedEvents = filterToLastSevenDays(sourceEvents)
+    return computeUserWeeklySleepData(scopedEvents, getClampedUserDate())
   }, [isAdminView, allEventsCache, events, date])
 
   useEffect(() => {
@@ -989,11 +1031,20 @@ export default function CalendarPage() {
   const canNavigateForward = useMemo(() => {
     if (isAdminView) return true // Admins siempre pueden navegar
 
-    // Para users, verificar si el último día visible es hoy o posterior
     const today = startOfDay(new Date())
     const currentEndDate = startOfDay(date)
 
     return currentEndDate < today
+  }, [isAdminView, date])
+
+  const canNavigateBackward = useMemo(() => {
+    if (isAdminView) return true
+
+    const today = startOfDay(new Date())
+    const minAllowed = subDays(today, 6)
+    const currentEndDate = startOfDay(date)
+
+    return currentEndDate > minAllowed
   }, [isAdminView, date])
 
   const getEventTypeIcon = (type: string) => {
@@ -1557,6 +1608,7 @@ export default function CalendarPage() {
                     size="icon"
                     className="h-8 w-8"
                     onClick={navigatePrevious}
+                    disabled={!canNavigateBackward}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>

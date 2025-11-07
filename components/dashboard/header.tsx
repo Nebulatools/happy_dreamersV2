@@ -227,204 +227,211 @@ export function Header() {
 
   if (!mounted) return null
 
-  return (
-    <header className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: '#A0D8D0' }}>
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3 md:px-6 pl-20 md:pl-6 min-h-[64px] md:min-h-[80px] py-2">
-        {/* Título y acciones dinámicas a la izquierda */}
-        <div className="flex items-center gap-2 md:gap-4 min-w-0 order-2 md:order-1 basis-full md:basis-auto">
-          <div className="min-w-0">
-            <h1 className="truncate text-white" style={{ fontFamily: 'Gotham, sans-serif', fontSize: '16px', fontWeight: 'normal' }}>
-              {derivedTitle}
-            </h1>
-            {config.subtitle && (
-              <p className="text-sm text-white/80 truncate">
-                {config.subtitle}
-              </p>
-            )}
-          </div>
-          
-          {/* Área para acciones/filtros dinámicos */}
-          {config.actions && (
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {config.actions}
+  const safeAreaPaddingTop = "calc(env(safe-area-inset-top, 0px) + 8px)"
+
+  const notificationButton = config.showNotifications !== false ? (
+    <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+      <PopoverTrigger asChild>
+        <Button 
+          variant="ghost" 
+          className="relative p-2 min-h-[44px] min-w-[44px] h-auto w-auto flex items-center justify-center rounded-full bg-white/70 backdrop-blur hover:bg-white"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-[18px] w-[15.75px] text-[#2553A1]"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+          </svg>
+          {notificationCount > 0 && (
+            <div className="absolute top-1 right-1 h-4 w-4 bg-[#DF3F40] rounded-full flex items-center justify-center">
+              <span className="text-xs text-white font-medium leading-none">{notificationCount}</span>
+            </div>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-0">
+        <div className="p-4 border-b">
+          <h3 className="text-sm font-medium text-[#1F2937]">Notificaciones</h3>
+          <p className="text-xs text-muted-foreground mt-1">Últimas solicitudes y avisos</p>
+        </div>
+        <div className="max-h-80 overflow-y-auto">
+          {notificationsLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <Icons.spinner className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              No hay notificaciones nuevas
+            </div>
+          ) : (
+            <div className="divide-y">
+              {notifications.map((notification) => {
+                const createdAt = notification?.createdAt ? new Date(notification.createdAt) : null
+                const isZoomTranscript = notification.type === 'zoom_transcript'
+
+                return (
+                  <div
+                    key={notification._id || notification.title}
+                    className="p-4 hover:bg-gray-50 cursor-pointer"
+                    onClick={() => {
+                      if (isZoomTranscript && notification.childId) {
+                        if (notification.childId) {
+                          localStorage.setItem("admin_selected_child_id", notification.childId.toString())
+                          if (notification.metadata?.childName) {
+                            localStorage.setItem("admin_selected_child_name", notification.metadata.childName)
+                          }
+                        }
+                        setNotificationsOpen(false)
+                        router.push('/dashboard/consultas')
+                      }
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1">
+                        {isZoomTranscript ? (
+                          <Video className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <Icons.bell className="h-4 w-4 text-[#68A1C8]" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-[#1F2937]">
+                          {notification.title || 'Nueva notificación'}
+                        </p>
+                        {notification.message && (
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                            {notification.message}
+                          </p>
+                        )}
+                        {createdAt && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {formatDistanceToNow(createdAt, { addSuffix: true, locale: es })}
+                          </p>
+                        )}
+                      </div>
+                      {notification.status !== 'read' && (
+                        <span className="inline-flex h-2 w-2 rounded-full bg-[#68A1C8] mt-2" />
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
-        
-        {/* Controles a la derecha - configurables */}
-        <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-4 flex-shrink-0 order-1 md:order-2 basis-full md:basis-auto justify-between md:justify-end gap-y-2 w-full">
-          {/* Search Button - funcional y mejorado */}
-          {config.showSearch !== false && (
-            <div className="hidden lg:flex items-center bg-[#DEF1F1] rounded-[30px] px-4 py-2 h-12 w-[200px] xl:w-[289px] cursor-pointer hover:bg-[#c8e3e3] transition-colors">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-[#68A1C8] flex-shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Buscar..."
-                className="ml-2.5 bg-transparent text-[#68A1C8] text-base font-medium placeholder:text-[#68A1C8] placeholder:opacity-70 border-none outline-none flex-1"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
-          )}
-          
-          {/* Child Selector con diseño de Figma */}
-          {config.showChildSelector !== false && (
-            <div className="flex items-center gap-2 w-full md:w-auto ml-2 md:ml-0">
-              <div className="flex-1 min-w-0 md:min-w-[240px]">
-                <ChildSelector />
-              </div>
-              {/* Edad del niño: ocultar en móvil para ahorrar espacio */}
-              <div className="hidden md:block">
-                <ChildAgeFromContext />
-              </div>
-            </div>
-          )}
-          
-          {/* Notification Button con badge - exactamente como en Figma */}
-          {config.showNotifications !== false && (
-            <div className="flex-none">
-              <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-                <PopoverTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    className="relative p-2 min-h-[44px] min-w-[44px] h-auto w-auto flex items-center justify-center"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-[18px] w-[15.75px] text-[#666666]"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
-                    </svg>
-                    {notificationCount > 0 && (
-                      <div className="absolute top-1 right-1 h-4 w-4 bg-[#DF3F40] rounded-full flex items-center justify-center">
-                        <span className="text-xs text-white font-normal leading-none">{notificationCount}</span>
-                      </div>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-80 p-0">
-                  <div className="p-4 border-b">
-                    <h3 className="text-sm font-medium text-[#1F2937]">Notificaciones</h3>
-                    <p className="text-xs text-muted-foreground mt-1">Últimas solicitudes y avisos</p>
-                  </div>
-                  <div className="max-h-80 overflow-y-auto">
-                    {notificationsLoading ? (
-                      <div className="flex items-center justify-center py-6">
-                        <Icons.spinner className="h-5 w-5 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : notifications.length === 0 ? (
-                      <div className="py-6 text-center text-sm text-muted-foreground">
-                        No hay notificaciones nuevas
-                      </div>
-                    ) : (
-                      <div className="divide-y">
-                        {notifications.map((notification) => {
-                          const createdAt = notification?.createdAt ? new Date(notification.createdAt) : null
-                          const isZoomTranscript = notification.type === 'zoom_transcript'
+      </PopoverContent>
+    </Popover>
+  ) : null
 
-                          return (
-                            <div
-                              key={notification._id || notification.title}
-                              className="p-4 hover:bg-gray-50 cursor-pointer"
-                              onClick={() => {
-                                if (isZoomTranscript && notification.childId) {
-                                  if (notification.childId) {
-                                    localStorage.setItem("admin_selected_child_id", notification.childId.toString())
-                                    if (notification.metadata?.childName) {
-                                      localStorage.setItem("admin_selected_child_name", notification.metadata.childName)
-                                    }
-                                  }
-                                  setNotificationsOpen(false)
-                                  router.push('/dashboard/consultas')
-                                }
-                              }}
-                            >
-                              <div className="flex items-start gap-3">
-                                <div className="mt-1">
-                                  {isZoomTranscript ? (
-                                    <Video className="h-4 w-4 text-blue-600" />
-                                  ) : (
-                                    <Icons.bell className="h-4 w-4 text-[#68A1C8]" />
-                                  )}
-                                </div>
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium text-[#1F2937]">
-                                    {notification.title || 'Nueva notificación'}
-                                  </p>
-                                  {notification.message && (
-                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                      {notification.message}
-                                    </p>
-                                  )}
-                                  {createdAt && (
-                                    <p className="text-xs text-muted-foreground mt-2">
-                                      {formatDistanceToNow(createdAt, { addSuffix: true, locale: es })}
-                                    </p>
-                                  )}
-                                </div>
-                                {notification.status !== 'read' && (
-                                  <span className="inline-flex h-2 w-2 rounded-full bg-[#68A1C8] mt-2" />
-                                )}
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </PopoverContent>
-              </Popover>
+  const profileMenu = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="relative p-0 min-h-[44px] min-w-[44px] flex items-center rounded-full bg-white/70 backdrop-blur hover:bg-white">
+          <UserAvatar 
+            name={session?.user?.name} 
+            image={session?.user?.image}
+            className="h-9 w-9" 
+          />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-3 w-3 text-[#2553A1] ml-1 hidden sm:block"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/profile">Perfil</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/configuracion">Configuración</Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleSignOut}>Cerrar sesión</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+
+  return (
+    <header className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: '#A0D8D0' }}>
+      <div
+        className="px-3 md:px-6 pb-3 md:pb-4"
+        style={{ paddingTop: safeAreaPaddingTop }}
+      >
+        <div className="flex flex-col gap-3 md:gap-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between min-w-0">
+            <div className="flex flex-col gap-2 min-w-0 text-white">
+              <div className="flex items-start justify-between gap-2 md:items-center md:justify-start">
+                <div className="min-w-0">
+                  <h1 className="truncate" style={{ fontFamily: 'Gotham, sans-serif', fontSize: '16px', fontWeight: 'normal' }}>
+                    {derivedTitle}
+                  </h1>
+                  {config.subtitle && (
+                    <p className="text-sm text-white/80 truncate">
+                      {config.subtitle}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {config.actions && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {config.actions}
+                </div>
+              )}
             </div>
-          )}
-          
-          {/* Profile Avatar con dropdown - como en Figma */}
-          <div className="flex items-center flex-none">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative p-0 min-h-[44px] min-w-[44px] flex items-center">
-                  <UserAvatar 
-                    name={session?.user?.name} 
-                    image={session?.user?.image}
-                    className="h-8 w-8 md:h-9 md:w-9" 
-                  />
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-3 w-3 text-[#666666] ml-1 hidden sm:block"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/profile">Perfil</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/configuracion">Configuración</Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>Cerrar sesión</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center justify-end gap-2 md:gap-3">
+              {notificationButton}
+              {profileMenu}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+            {config.showSearch !== false && (
+              <div className="hidden lg:flex items-center bg-[#DEF1F1] rounded-[30px] px-4 py-2 h-12 w-full lg:w-[289px] cursor-pointer hover:bg-[#c8e3e3] transition-colors">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-[#68A1C8] flex-shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Buscar..."
+                  className="ml-2.5 bg-transparent text-[#68A1C8] text-base font-medium placeholder:text-[#68A1C8] placeholder:opacity-70 border-none outline-none flex-1"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            )}
+
+            {config.showChildSelector !== false && (
+              <div className="w-full">
+                <div className="rounded-2xl bg-white/70 p-2 shadow-sm md:bg-transparent md:p-0 md:shadow-none flex items-center gap-3">
+                  <div className="flex-1 min-w-0 md:min-w-[240px]">
+                    <ChildSelector />
+                  </div>
+                  <div className="hidden md:block">
+                    <ChildAgeFromContext />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </header>
   )
 }
+
