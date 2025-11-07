@@ -1,4 +1,15 @@
 /** @type {import('next').NextConfig} */
+const nativeMongoDeps = [
+  "snappy",
+  "@mongodb-js/zstd",
+  "mongodb-client-encryption",
+  "kerberos",
+  "gcp-metadata",
+  "@aws-sdk/credential-providers",
+  "aws4",
+  "socks"
+]
+
 const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
@@ -66,12 +77,23 @@ const nextConfig = {
   },
   // Configuración de Webpack para optimizaciones adicionales
   webpack: (config, { isServer, webpack }) => {
-    // Optimizaciones solo para cliente
-    if (!isServer) {
+    config.resolve = config.resolve || {}
+    config.resolve.alias = config.resolve.alias || {}
+
+    if (isServer) {
+      // Mantener dependencias nativas de Mongo fuera del bundle de webpack
+      config.externals = config.externals || []
+      config.externals.push(...nativeMongoDeps.map(dep => ({ [dep]: `commonjs ${dep}` })))
+    } else {
       // Reemplazar moment.js con date-fns si se usa
       config.resolve.alias = {
         ...config.resolve.alias,
         'moment': 'date-fns',
+      }
+
+      // Evitar que webpack busque dependencias opcionales en el cliente
+      for (const dep of nativeMongoDeps) {
+        config.resolve.alias[dep] = false
       }
       
       // Ignorar locales innecesarios de moment/date-fns

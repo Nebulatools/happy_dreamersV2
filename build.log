@@ -1,0 +1,340 @@
+
+> my-v0-project@0.1.0 build
+> next build
+
+   ▲ Next.js 15.2.4
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ⚠ Compiled with warnings
+
+./app/api/notifications/scheduler/route.ts
+Attempted import error: 'NotificationType' is not exported from '@/models/notification-log' (imported as 'NotificationType').
+
+Import trace for requested module:
+./app/api/notifications/scheduler/route.ts
+
+./app/api/notifications/scheduler/route.ts
+Attempted import error: 'NotificationType' is not exported from '@/models/notification-log' (imported as 'NotificationType').
+
+Import trace for requested module:
+./app/api/notifications/scheduler/route.ts
+
+./app/api/notifications/scheduler/route.ts
+Attempted import error: 'NotificationType' is not exported from '@/models/notification-log' (imported as 'NotificationType').
+
+Import trace for requested module:
+./app/api/notifications/scheduler/route.ts
+
+./app/api/notifications/scheduler/route.ts
+Attempted import error: 'NotificationType' is not exported from '@/models/notification-log' (imported as 'NotificationType').
+
+Import trace for requested module:
+./app/api/notifications/scheduler/route.ts
+
+./app/api/notifications/scheduler/route.ts
+Attempted import error: 'NotificationType' is not exported from '@/models/notification-log' (imported as 'NotificationType').
+
+Import trace for requested module:
+./app/api/notifications/scheduler/route.ts
+
+./app/api/notifications/scheduler/route.ts
+Attempted import error: 'NotificationType' is not exported from '@/models/notification-log' (imported as 'NotificationType').
+
+Import trace for requested module:
+./app/api/notifications/scheduler/route.ts
+
+./app/api/notifications/scheduler/route.ts
+Attempted import error: 'NotificationType' is not exported from '@/models/notification-log' (imported as 'NotificationType').
+
+Import trace for requested module:
+./app/api/notifications/scheduler/route.ts
+
+./app/api/notifications/scheduler/route.ts
+Attempted import error: 'NotificationType' is not exported from '@/models/notification-log' (imported as 'NotificationType').
+
+Import trace for requested module:
+./app/api/notifications/scheduler/route.ts
+
+./app/api/notifications/scheduler/route.ts
+Attempted import error: 'NotificationType' is not exported from '@/models/notification-log' (imported as 'NotificationType').
+
+Import trace for requested module:
+./app/api/notifications/scheduler/route.ts
+
+./app/api/notifications/scheduler/route.ts
+Attempted import error: 'NotificationType' is not exported from '@/models/notification-log' (imported as 'NotificationType').
+
+Import trace for requested module:
+./app/api/notifications/scheduler/route.ts
+
+./app/api/notifications/scheduler/route.ts
+Attempted import error: 'NotificationType' is not exported from '@/models/notification-log' (imported as 'NotificationType').
+
+Import trace for requested module:
+./app/api/notifications/scheduler/route.ts
+
+./app/api/reports/professional/route.ts
+Attempted import error: 'authOptions' is not exported from '@/app/api/auth/[...nextauth]/route' (imported as 'authOptions').
+
+Import trace for requested module:
+./app/api/reports/professional/route.ts
+
+./app/api/reports/professional/route.ts
+Attempted import error: '@/models/User' does not contain a default export (imported as 'User').
+
+Import trace for requested module:
+./app/api/reports/professional/route.ts
+
+./app/api/reports/professional/route.ts
+Attempted import error: 'authOptions' is not exported from '@/app/api/auth/[...nextauth]/route' (imported as 'authOptions').
+
+Import trace for requested module:
+./app/api/reports/professional/route.ts
+
+./app/api/reports/professional/route.ts
+Attempted import error: '@/models/User' does not contain a default export (imported as 'User').
+
+Import trace for requested module:
+./app/api/reports/professional/route.ts
+
+./app/api/reports/professional/route.ts
+Attempted import error: 'authOptions' is not exported from '@/app/api/auth/[...nextauth]/route' (imported as 'authOptions').
+
+Import trace for requested module:
+./app/api/reports/professional/route.ts
+
+./app/api/reports/professional/route.ts
+Attempted import error: '@/models/User' does not contain a default export (imported as 'User').
+
+Import trace for requested module:
+./app/api/reports/professional/route.ts
+
+./app/api/reports/professional/route.ts
+Attempted import error: 'authOptions' is not exported from '@/app/api/auth/[...nextauth]/route' (imported as 'authOptions').
+
+Import trace for requested module:
+./app/api/reports/professional/route.ts
+
+./app/api/reports/professional/route.ts
+Attempted import error: '@/models/User' does not contain a default export (imported as 'User').
+
+Import trace for requested module:
+./app/api/reports/professional/route.ts
+
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+(node:93886) [MONGOOSE] Warning: Duplicate schema index on {"originalReportId":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+   Generating static pages (0/79) ...
+   Generating static pages (19/79) 
+   Generating static pages (39/79) 
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/contacto. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/contacto. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/configuracion. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/configuracion. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/children. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/children. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/calendar. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/calendar. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/children/new. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/children/new. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/planes. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/planes. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/patients. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/patients. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /auth/register. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /auth/register. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/transcripts. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/transcripts. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/profile. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/profile. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/reports/professional. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/reports/professional. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/sleep-statistics. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/sleep-statistics. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/survey. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/survey. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/consultas. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/consultas. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/event. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/event. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+(node:93948) [MONGOOSE] Warning: Duplicate schema index on {"originalReportId":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+   Generating static pages (59/79) 
+ ✓ Generating static pages (79/79)
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /_not-found. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /_not-found. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /auth/forgot-password. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /auth/forgot-password. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /auth/login. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /auth/login. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /auth/reset-password. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /auth/reset-password. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/ayuda. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/ayuda. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /invitation. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /invitation. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/notificaciones. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/notificaciones. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/assistant. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/assistant. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+   Finalizing page optimization ...
+   Collecting build traces ...
+[2025-11-07T16:42:50.430Z] [GoogleDriveScheduler] WARN: ⚠️  Scheduler no está ejecutándose 
+
+Route (app)                                         Size  First Load JS
+┌ ƒ /                                            2.59 kB         142 kB
+├ ○ /_not-found                                    992 B         102 kB
+├ ƒ /api/admin/cleanup-phantom-events              301 B         101 kB
+├ ƒ /api/admin/delete-phantom-event                301 B         101 kB
+├ ƒ /api/admin/reports                             301 B         101 kB
+├ ƒ /api/admin/users                               301 B         101 kB
+├ ƒ /api/auth/[...nextauth]                        301 B         101 kB
+├ ƒ /api/auth/forgot-password                      301 B         101 kB
+├ ƒ /api/auth/register                             301 B         101 kB
+├ ƒ /api/auth/reset-password                       301 B         101 kB
+├ ƒ /api/chat                                      301 B         101 kB
+├ ƒ /api/children                                  301 B         101 kB
+├ ƒ /api/children/[id]                             301 B         101 kB
+├ ƒ /api/children/[id]/access                      301 B         101 kB
+├ ƒ /api/children/[id]/access/link                 301 B         101 kB
+├ ƒ /api/children/[id]/active-plan                 301 B         101 kB
+├ ƒ /api/children/[id]/current-sleep-state         301 B         101 kB
+├ ƒ /api/children/[id]/invitations                 301 B         101 kB
+├ ƒ /api/children/events                           301 B         101 kB
+├ ƒ /api/children/events/[id]                      301 B         101 kB
+├ ƒ /api/children/v2                               301 B         101 kB
+├ ƒ /api/consultas/analyze                         301 B         101 kB
+├ ƒ /api/consultas/history                         301 B         101 kB
+├ ƒ /api/consultas/plans                           301 B         101 kB
+├ ƒ /api/consultas/plans/[id]                      301 B         101 kB
+├ ƒ /api/debug/check-child-events                  301 B         101 kB
+├ ƒ /api/debug/clean-events                        301 B         101 kB
+├ ƒ /api/debug/delete-event                        301 B         101 kB
+├ ƒ /api/debug/test-connection                     301 B         101 kB
+├ ƒ /api/events                                    301 B         101 kB
+├ ƒ /api/integrations/google/drive/poller          301 B         101 kB
+├ ƒ /api/integrations/google/drive/webhook         301 B         101 kB
+├ ƒ /api/integrations/zoom/debug                   301 B         101 kB
+├ ƒ /api/integrations/zoom/ingest                  301 B         101 kB
+├ ƒ /api/integrations/zoom/poller                  301 B         101 kB
+├ ƒ /api/integrations/zoom/reports                 301 B         101 kB
+├ ƒ /api/integrations/zoom/sessions                301 B         101 kB
+├ ƒ /api/integrations/zoom/sessions/link           301 B         101 kB
+├ ƒ /api/integrations/zoom/transcripts/download    301 B         101 kB
+├ ƒ /api/integrations/zoom/transcripts/list        301 B         101 kB
+├ ƒ /api/integrations/zoom/webhook                 301 B         101 kB
+├ ƒ /api/invitation                                301 B         101 kB
+├ ƒ /api/invitation/accept                         301 B         101 kB
+├ ƒ /api/invitation/decline                        301 B         101 kB
+├ ƒ /api/invitations/me                            301 B         101 kB
+├ ƒ /api/notifications/count                       301 B         101 kB
+├ ƒ /api/notifications/history                     301 B         101 kB
+├ ƒ /api/notifications/scheduler                   301 B         101 kB
+├ ƒ /api/notifications/settings                    301 B         101 kB
+├ ƒ /api/rag/chat                                  301 B         101 kB
+├ ƒ /api/rag/clear                                 301 B         101 kB
+├ ƒ /api/rag/documents                             301 B         101 kB
+├ ƒ /api/rag/sync-drive                            301 B         101 kB
+├ ƒ /api/rag/upload                                301 B         101 kB
+├ ƒ /api/reports/professional                      301 B         101 kB
+├ ƒ /api/sleep-analysis/insights                   301 B         101 kB
+├ ƒ /api/survey                                    301 B         101 kB
+├ ƒ /api/transcript                                301 B         101 kB
+├ ƒ /api/transcripts/process                       301 B         101 kB
+├ ƒ /api/user/change-password                      301 B         101 kB
+├ ƒ /api/user/password                             301 B         101 kB
+├ ƒ /api/user/profile                              301 B         101 kB
+├ ƒ /api/users/search                              301 B         101 kB
+├ ○ /auth/forgot-password                        4.78 kB         139 kB
+├ ○ /auth/login                                  5.27 kB         149 kB
+├ ○ /auth/register                               5.76 kB         149 kB
+├ ○ /auth/reset-password                         5.22 kB         117 kB
+├ ƒ /dashboard                                   13.2 kB         190 kB
+├ ƒ /dashboard/assistant                         13.6 kB         163 kB
+├ ƒ /dashboard/ayuda                              3.5 kB         122 kB
+├ ƒ /dashboard/calendar                          23.9 kB         309 kB
+├ ƒ /dashboard/children                          8.39 kB         145 kB
+├ ƒ /dashboard/children/[id]                     19.6 kB         193 kB
+├ ƒ /dashboard/children/[id]/edit                5.89 kB         115 kB
+├ ƒ /dashboard/children/[id]/events              12.5 kB         166 kB
+├ ƒ /dashboard/children/new                      9.52 kB         146 kB
+├ ƒ /dashboard/configuracion                       13 kB         157 kB
+├ ƒ /dashboard/consultas                         11.3 kB         188 kB
+├ ƒ /dashboard/contacto                          2.58 kB         111 kB
+├ ƒ /dashboard/event                             7.34 kB         165 kB
+├ ƒ /dashboard/notificaciones                    12.1 kB         176 kB
+├ ƒ /dashboard/patients                          9.45 kB         118 kB
+├ ƒ /dashboard/patients/[id]                     8.55 kB         128 kB
+├ ƒ /dashboard/planes                            5.47 kB         170 kB
+├ ƒ /dashboard/profile                           10.1 kB         154 kB
+├ ƒ /dashboard/reports/professional              13.2 kB         193 kB
+├ ƒ /dashboard/sleep-statistics                  59.9 kB         310 kB
+├ ƒ /dashboard/survey                            25.9 kB         147 kB
+├ ƒ /dashboard/transcripts                       7.35 kB         152 kB
+└ ○ /invitation                                  4.76 kB         136 kB
++ First Load JS shared by all                     101 kB
+  ├ chunks/1684-95642d1ff572a382.js              45.6 kB
+  ├ chunks/4bd1b696-3cafc2babea73709.js          53.3 kB
+  └ other shared chunks (total)                  2.22 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
