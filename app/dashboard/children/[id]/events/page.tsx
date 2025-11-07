@@ -287,7 +287,12 @@ export default function ChildEventsPage() {
     setIsSaving(true)
     try {
       // Usar la URL con el ID en la ruta
-      const response = await fetch(`/api/children/events/${selectedEvent._id}`, {
+      const childQuery = selectedEvent.childId
+        ? `?childId=${selectedEvent.childId}`
+        : activeChildId
+          ? `?childId=${activeChildId}`
+          : ""
+      const response = await fetch(`/api/children/events/${selectedEvent._id}${childQuery}`, {
         method: "DELETE",
       })
       

@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
+import { resolveChildAccess, ChildAccessError } from "@/lib/api/child-access"
 
 export async function GET(
   req: NextRequest,
@@ -18,19 +19,15 @@ export async function GET(
     }
 
     const { db } = await connectToDatabase()
-    
-    // Verificar permisos
     const childId = (await params).id
-    const child = await db.collection("children").findOne({
-      _id: new ObjectId(childId),
-      $or: [
-        { parentId: session.user.id },
-        { parentId: new ObjectId(session.user.id) }
-      ]
-    })
 
-    if (!child && session.user.role !== "admin") {
-      return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+    try {
+      await resolveChildAccess(db, session.user, childId, "canViewPlan")
+    } catch (error) {
+      if (error instanceof ChildAccessError) {
+        return NextResponse.json({ error: error.message }, { status: error.status })
+      }
+      throw error
     }
 
     // Obtener plan activo

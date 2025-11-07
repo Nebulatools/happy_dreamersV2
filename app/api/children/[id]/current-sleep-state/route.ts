@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth"
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { differenceInMinutes } from "date-fns"
+import { resolveChildAccess, ChildAccessError } from "@/lib/api/child-access"
 
 export type SleepStatus = 'awake' | 'sleeping' | 'napping' | 'night_waking'
 
@@ -31,17 +32,13 @@ export async function GET(
     const { db } = await connectToDatabase()
     const { id: childId } = await params
 
-    // Verificar permisos
-    const child = await db.collection("children").findOne({
-      _id: new ObjectId(childId),
-      $or: [
-        { parentId: session.user.id },
-        { parentId: new ObjectId(session.user.id) }
-      ]
-    })
-
-    if (!child && session.user.role !== "admin") {
-      return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+    try {
+      await resolveChildAccess(db, session.user, childId, "canViewEvents")
+    } catch (error) {
+      if (error instanceof ChildAccessError) {
+        return NextResponse.json({ error: error.message }, { status: error.status })
+      }
+      throw error
     }
 
     // Obtener el plan activo para contexto temporal

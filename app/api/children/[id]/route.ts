@@ -6,7 +6,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
-import { checkUserAccess } from "@/lib/db/user-child-access"
+import { resolveChildAccess, ChildAccessError, OWNER_FULL_PERMISSIONS } from "@/lib/api/child-access"
 
 import { createLogger } from "@/lib/logger"
 
@@ -27,44 +27,23 @@ export async function GET(
     const { id } = await params
     logger.info(`Buscando niño con ID: ${id} para el usuario ${session.user.id}`)
     
-    // TEMPORAL: Permitir acceso mientras solucionamos el sistema de permisos
-    // TODO: Reactivar checkUserAccess cuando esté funcionando
-    logger.warn("TEMPORAL: Sistema de permisos desactivado para debugging")
-    
-    /*
-    // Verificar si el usuario tiene acceso (como dueño o con acceso compartido)
-    try {
-      const accessCheck = await checkUserAccess(session.user.id, id)
-      logger.info(`Access check result:`, { hasAccess: accessCheck.hasAccess, isOwner: accessCheck.isOwner })
-      
-      if (!accessCheck.hasAccess) {
-        logger.error(`Usuario ${session.user.id} no tiene acceso al niño ${id}`)
-        return NextResponse.json({ error: "No tienes permiso para ver este perfil" }, { status: 403 })
-      }
-    } catch (checkError) {
-      logger.error(`Error checking access:`, checkError)
-      return NextResponse.json({ error: "Error verificando permisos" }, { status: 500 })
-    }
-    */
-    
     const { db } = await connectToDatabase()
 
-    const child = await db.collection("children").findOne({
-      _id: new ObjectId(id)
-    })
+    let accessContext
+    try {
+      accessContext = await resolveChildAccess(db, session.user, id)
+    } catch (error) {
+      if (error instanceof ChildAccessError) {
+        return NextResponse.json({ error: error.message }, { status: error.status })
+      }
+      throw error
+    }
 
+    const child = accessContext.child
     if (!child) {
       logger.error(`Niño con ID ${id} no encontrado`)
       return NextResponse.json({ error: "Niño no encontrado" }, { status: 404 })
     }
-
-    // TEMPORAL: Determinar si es dueño comparando parentId
-    // Convertir ambos a string para comparación segura
-    const childParentId = child.parentId?.toString ? child.parentId.toString() : child.parentId
-    const currentUserId = session.user.id.toString()
-    const isOwner = childParentId === currentUserId
-    
-    logger.info(`Comparando parentId: ${childParentId} con userId: ${currentUserId}`)
     
     // Enriquecer surveyData con flags estándar
     const surveyData = child?.surveyData
@@ -81,12 +60,14 @@ export async function GET(
     const childWithAccess = {
       ...child,
       ...(surveyData && { surveyData }),
-      isOwner: isOwner,
-      userPermissions: null // TEMPORAL: sin permisos específicos
+      isOwner: accessContext.isOwner,
+      userPermissions: accessContext.isOwner
+        ? OWNER_FULL_PERMISSIONS
+        : accessContext.permissions
     }
 
     logger.info(`Niño encontrado: ${child.firstName} ${child.lastName}`)
-    logger.info(`Es dueño: ${isOwner}, parentId: ${child.parentId}, userId: ${session.user.id}`)
+    logger.info(`Es dueño: ${accessContext.isOwner}, parentId: ${child.parentId}, userId: ${session.user.id}`)
     return NextResponse.json(childWithAccess)
   } catch (error) {
     logger.error("Error al obtener niño:", error)

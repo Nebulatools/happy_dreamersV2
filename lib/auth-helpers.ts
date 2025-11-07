@@ -4,8 +4,6 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { checkUserAccess, getAccessibleChildren } from "@/lib/db/user-child-access"
-import { connectToDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
 import { Child, UserChildAccess } from "@/types/models"
 import { createLogger } from "@/lib/logger"
 
@@ -18,6 +16,15 @@ export interface PermissionCheck {
   permissions?: UserChildAccess["permissions"]
   child?: Child
   error?: string
+}
+
+const OWNER_PERMISSIONS: UserChildAccess["permissions"] = {
+  canViewEvents: true,
+  canCreateEvents: true,
+  canEditEvents: true,
+  canViewReports: true,
+  canEditProfile: true,
+  canViewPlan: true
 }
 
 // Verificar si el usuario actual tiene acceso a un niño específico
@@ -49,24 +56,11 @@ export async function verifyChildAccess(
 
     // Si es el dueño, tiene todos los permisos
     if (accessResult.isOwner) {
-      // Obtener información del niño
-      const { db } = await connectToDatabase()
-      const child = await db.collection<Child>("children").findOne({
-        _id: new ObjectId(childId)
-      })
-
       return {
         authorized: true,
         isOwner: true,
-        permissions: {
-          canViewEvents: true,
-          canCreateEvents: true,
-          canEditEvents: true,
-          canViewReports: true,
-          canEditProfile: true,
-          canViewPlan: true
-        },
-        child: child || undefined
+        permissions: OWNER_PERMISSIONS,
+        child: accessResult.child || undefined
       }
     }
 
@@ -83,17 +77,11 @@ export async function verifyChildAccess(
       }
     }
 
-    // Obtener información del niño
-    const { db } = await connectToDatabase()
-    const child = await db.collection<Child>("children").findOne({
-      _id: new ObjectId(childId)
-    })
-
     return {
       authorized: true,
       isOwner: false,
       permissions: accessResult.access?.permissions,
-      child: child || undefined
+      child: accessResult.child || undefined
     }
 
   } catch (error) {

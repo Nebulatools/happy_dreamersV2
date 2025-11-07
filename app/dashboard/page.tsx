@@ -259,7 +259,8 @@ export default function DashboardPage() {
   // Función para eliminar una nota
   const handleDeleteNote = async (eventId: string) => {
     try {
-      const response = await fetch(`/api/children/events/${eventId}`, {
+      const childQuery = activeChildId ? `?childId=${activeChildId}` : ""
+      const response = await fetch(`/api/children/events/${eventId}${childQuery}`, {
         method: 'DELETE',
       })
       

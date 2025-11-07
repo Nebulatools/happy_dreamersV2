@@ -8,6 +8,7 @@ import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
 import { createLogger } from "@/lib/logger"
+import { resolveChildAccess, ChildAccessError } from "@/lib/api/child-access"
 
 const logger = createLogger("API:survey:route")
 
@@ -30,15 +31,17 @@ export async function GET(req: Request) {
     // Conectar a la base de datos
     const { db } = await connectToDatabase()
 
-    // Verificar que el niño pertenece al usuario o es admin
-    const child = await db.collection("children").findOne({
-      _id: new ObjectId(childId),
-      parentId: new ObjectId(session.user.id),
-    })
-
-    if (!child) {
-      return NextResponse.json({ message: "Niño no encontrado o no autorizado" }, { status: 404 })
+    let accessContext
+    try {
+      accessContext = await resolveChildAccess(db, session.user, childId, "canViewEvents")
+    } catch (error) {
+      if (error instanceof ChildAccessError) {
+        return NextResponse.json({ message: error.message }, { status: error.status })
+      }
+      throw error
     }
+
+    const child = accessContext.child
 
     // Verificamos si el niño tiene datos de encuesta
     if (!child.surveyData) {
@@ -78,14 +81,14 @@ export async function POST(req: Request) {
     // Conectar a la base de datos
     const { db } = await connectToDatabase()
 
-    // Verificar que el niño pertenezca al usuario autenticado
-    const child = await db.collection("children").findOne({
-      _id: new ObjectId(childId),
-      parentId: new ObjectId(session.user.id),
-    })
-
-    if (!child) {
-      return NextResponse.json({ message: "Niño no encontrado o no autorizado" }, { status: 404 })
+    let accessContext
+    try {
+      accessContext = await resolveChildAccess(db, session.user, childId, "canEditProfile")
+    } catch (error) {
+      if (error instanceof ChildAccessError) {
+        return NextResponse.json({ message: error.message }, { status: error.status })
+      }
+      throw error
     }
 
     // Preparar datos según el tipo de guardado
@@ -125,7 +128,7 @@ export async function POST(req: Request) {
     }
     
     const result = await db.collection("children").updateOne(
-      { _id: new ObjectId(childId), parentId: new ObjectId(session.user.id) },
+      { _id: new ObjectId(childId), parentId: new ObjectId(accessContext.ownerId) },
       { $set: updateFields }
     )
 

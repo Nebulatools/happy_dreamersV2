@@ -10,6 +10,7 @@ import { differenceInMinutes, parseISO } from "date-fns"
 
 import { createLogger } from "@/lib/logger"
 import { syncEventToAnalyticsCollection, removeEventFromAnalyticsCollection } from "@/lib/event-sync"
+import { resolveChildAccess, ChildAccessError } from "@/lib/api/child-access"
 
 const logger = createLogger("API:children:events:route")
 
@@ -129,22 +130,14 @@ export async function POST(req: NextRequest) {
     const { db } = await connectToDatabase()
     logger.info("Conectado a MongoDB")
 
-    // Verificar si el usuario es administrador
-    const isAdmin = session.user.role === "admin"
-    
-    // Verificar que el niño exista y pertenezca al usuario (o sea admin)
-    const query = isAdmin 
-      ? { _id: new ObjectId(data.childId) }
-      : { _id: new ObjectId(data.childId), parentId: new ObjectId(session.user.id) }
-    
-    const child = await db.collection("children").findOne(query)
-
-    if (!child) {
-      logger.error("Niño no encontrado o no tienes permiso")
-      return NextResponse.json(
-        { error: "Niño no encontrado o no tienes permiso para registrar eventos" },
-        { status: 404 }
-      )
+    let accessContext
+    try {
+      accessContext = await resolveChildAccess(db, session.user, data.childId, "canCreateEvents")
+    } catch (error) {
+      if (error instanceof ChildAccessError) {
+        return NextResponse.json({ error: error.message }, { status: error.status })
+      }
+      throw error
     }
 
     // NOTA: Validación de traslape eliminada - ahora se permiten eventos traslapados
@@ -372,12 +365,15 @@ export async function POST(req: NextRequest) {
 
     logger.info("Evento a registrar:", event)
 
+    const ownerObjectId = new ObjectId(accessContext.ownerId)
+
     // GUARDAR EN COLECCIÓN CANÓNICA 'events' (fuente principal de verdad)
     try {
       await db.collection('events').insertOne({
         _id: new ObjectId(event._id),
         childId: new ObjectId(event.childId),
-        parentId: new ObjectId(session.user.id),
+        parentId: ownerObjectId,
+        createdBy: new ObjectId(session.user.id),
         eventType: event.eventType,
         emotionalState: event.emotionalState,
         startTime: event.startTime,
@@ -416,7 +412,8 @@ export async function POST(req: NextRequest) {
       await syncEventToAnalyticsCollection({
         _id: event._id,
         childId: event.childId,
-        parentId: new ObjectId(session.user.id),
+        parentId: ownerObjectId,
+        createdBy: new ObjectId(session.user.id),
         eventType: event.eventType,
         emotionalState: event.emotionalState,
         startTime: event.startTime,
@@ -482,36 +479,28 @@ export async function GET(req: NextRequest) {
 
     // Conectar a la base de datos
     const { db } = await connectToDatabase()
-    
-    // Verificar si el usuario es administrador
+
+    let accessContext
+    try {
+      accessContext = await resolveChildAccess(db, session.user, childId, "canViewEvents")
+    } catch (error) {
+      if (error instanceof ChildAccessError) {
+        return NextResponse.json({ error: error.message }, { status: error.status })
+      }
+      throw error
+    }
+
     const isAdmin = session.user.role === "admin"
     logger.info(`Usuario: ${session.user.id}, Es admin: ${isAdmin}, Solicitando niño: ${childId}`)
 
-    // Buscar el niño
-    // Para admins, permitir acceso a cualquier niño sin verificar el parentId
-    const query = isAdmin 
-      ? { _id: new ObjectId(childId) }
-      : { _id: new ObjectId(childId), parentId: new ObjectId(session.user.id) }
-      
-    logger.info("Query para buscar niño:", JSON.stringify(query))
-    
-    const child = await db.collection("children").findOne(query)
-
-    if (!child) {
-      logger.info(`Niño con ID ${childId} no encontrado o no accesible para usuario ${session.user.id}`)
-      return NextResponse.json(
-        { error: "Niño no encontrado o no tienes permiso para ver sus eventos" },
-        { status: 404 }
-      )
-    }
-
+    const child = accessContext.child
     logger.info(`Niño encontrado: ${child.firstName} ${child.lastName}, buscando eventos`)
 
     // Buscar eventos SOLO en la colección 'events' (fuente única de verdad)
     // Para admins, no filtrar por parentId
     const eventsQuery = isAdmin
       ? { childId: new ObjectId(childId) }
-      : { childId: new ObjectId(childId), parentId: new ObjectId(session.user.id) }
+      : { childId: new ObjectId(childId), parentId: new ObjectId(accessContext.ownerId) }
 
     const events = await db.collection("events").find(eventsQuery).toArray()
     logger.info(`✅ Eventos encontrados en colección 'events': ${events.length}`)
@@ -569,22 +558,14 @@ export async function PUT(req: NextRequest) {
     const { db } = await connectToDatabase()
     logger.info("Conectado a MongoDB")
 
-    // Verificar si el usuario es administrador
-    const isAdmin = session.user.role === "admin"
-    
-    // Verificar que el niño exista y pertenezca al usuario (o sea admin)
-    const query = isAdmin 
-      ? { _id: new ObjectId(data.childId) }
-      : { _id: new ObjectId(data.childId), parentId: new ObjectId(session.user.id) }
-    
-    const child = await db.collection("children").findOne(query)
-
-    if (!child) {
-      logger.error("Niño no encontrado o no tienes permiso")
-      return NextResponse.json(
-        { error: "Niño no encontrado o no tienes permiso para actualizar eventos" },
-        { status: 404 }
-      )
+    let accessContext
+    try {
+      accessContext = await resolveChildAccess(db, session.user, data.childId, "canEditEvents")
+    } catch (error) {
+      if (error instanceof ChildAccessError) {
+        return NextResponse.json({ error: error.message }, { status: error.status })
+      }
+      throw error
     }
 
     // NOTA: Validación de traslape eliminada - ahora se permiten eventos traslapados
@@ -616,6 +597,7 @@ export async function PUT(req: NextRequest) {
     const result = await db.collection("children").updateOne(
       { 
         _id: new ObjectId(data.childId),
+        parentId: new ObjectId(accessContext.ownerId),
         "events._id": data.id,
       },
       { $set: { "events.$": updatedEvent } }
@@ -677,23 +659,24 @@ export async function PATCH(req: NextRequest) {
 
     // Conectar a la base de datos
     const { db } = await connectToDatabase()
-    
-    // Verificar si el usuario es administrador
-    const isAdmin = session.user.role === "admin"
-    
-    // Verificar que el niño exista y pertenezca al usuario (o sea admin)
-    const query = isAdmin 
-      ? { _id: new ObjectId(data.childId) }
-      : { _id: new ObjectId(data.childId), parentId: new ObjectId(session.user.id) }
-    
-    const child = await db.collection("children").findOne(query)
 
-    if (!child) {
-      logger.error("Niño no encontrado o no tienes permiso")
-      return NextResponse.json(
-        { error: "Niño no encontrado o no tienes permiso" },
-        { status: 404 }
+    let accessContext
+    try {
+      accessContext = await resolveChildAccess(db, session.user, data.childId, "canEditEvents")
+    } catch (error) {
+      if (error instanceof ChildAccessError) {
+        return NextResponse.json({ error: error.message }, { status: error.status })
+      }
+      throw error
+    }
+
+    let child = accessContext.child
+    if (!child?.events) {
+      const childWithEvents = await db.collection("children").findOne(
+        { _id: new ObjectId(data.childId) },
+        { projection: { events: 1, parentId: 1 } }
       )
+      child = childWithEvents || child
     }
 
     // Validaciones para sleepDelay y awakeDelay en PATCH
@@ -735,7 +718,7 @@ export async function PATCH(req: NextRequest) {
     // CALCULAR DURACIÓN AUTOMÁTICAMENTE si se está agregando endTime y no hay duration explícita
     if (data.endTime && data.duration === undefined) {
       // Primero necesitamos obtener el evento para acceder a startTime y delays
-      const existingEvent = child.events?.find((e: any) => e._id === data.eventId)
+      const existingEvent = child?.events?.find((e: any) => e._id === data.eventId)
       
       if (existingEvent && existingEvent.startTime) {
         // Para eventos de sueño/siesta, usar calculateSleepDuration
@@ -766,6 +749,7 @@ export async function PATCH(req: NextRequest) {
     const result = await db.collection("children").updateOne(
       { 
         _id: new ObjectId(data.childId),
+        parentId: new ObjectId(accessContext.ownerId),
         "events._id": data.eventId,
       },
       { $set: updateFields }
@@ -847,23 +831,15 @@ export async function DELETE(req: NextRequest) {
     // Conectar a la base de datos
     const { db } = await connectToDatabase()
     logger.info("Conectado a MongoDB")
-    
-    // Verificar si el usuario es administrador
-    const isAdmin = session.user.role === "admin"
-    
-    // Verificar que el niño exista y pertenezca al usuario (o sea admin)
-    const query = isAdmin 
-      ? { _id: new ObjectId(childId) }
-      : { _id: new ObjectId(childId), parentId: new ObjectId(session.user.id) }
-    
-    const child = await db.collection("children").findOne(query)
-    
-    if (!child) {
-      logger.error("Niño no encontrado o no tienes permiso")
-      return NextResponse.json(
-        { error: "Niño no encontrado o no tienes permiso para eliminar eventos" },
-        { status: 404 }
-      )
+
+    let accessContext
+    try {
+      accessContext = await resolveChildAccess(db, session.user, childId, "canEditEvents")
+    } catch (error) {
+      if (error instanceof ChildAccessError) {
+        return NextResponse.json({ error: error.message }, { status: error.status })
+      }
+      throw error
     }
 
     // PASO 1: Eliminar de la colección canónica 'events'
@@ -887,7 +863,10 @@ export async function DELETE(req: NextRequest) {
 
     // PASO 2: Eliminar del array embebido children.events (compatibilidad)
     const result = await db.collection("children").updateOne(
-      { _id: new ObjectId(childId) },
+      { 
+        _id: new ObjectId(childId),
+        parentId: new ObjectId(accessContext.ownerId)
+      },
       { $pull: { events: { _id: eventId } } as any }
     )
 

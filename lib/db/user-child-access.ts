@@ -88,7 +88,12 @@ export async function createIndexes(): Promise<void> {
 export async function checkUserAccess(
   userId: string,
   childId: string
-): Promise<{ hasAccess: boolean; access?: UserChildAccess; isOwner?: boolean }> {
+): Promise<{
+  hasAccess: boolean
+  access?: UserChildAccess
+  isOwner?: boolean
+  child?: Child | null
+}> {
   try {
     logger.info(`Checking access for user ${userId} to child ${childId}`)
     
@@ -100,7 +105,7 @@ export async function checkUserAccess(
     
     if (!child) {
       logger.warn(`Child ${childId} not found in database`)
-      return { hasAccess: false }
+      return { hasAccess: false, child: null }
     }
     
     // Si es el padre/dueño principal, tiene acceso completo
@@ -113,7 +118,7 @@ export async function checkUserAccess(
     
     if (parentIdStr === userId || parentIdStr === userId.toString()) {
       logger.info(`User ${userId} is owner of child ${childId}`)
-      return { hasAccess: true, isOwner: true }
+      return { hasAccess: true, isOwner: true, child }
     }
     
     // Verificar si tiene acceso compartido
@@ -125,10 +130,10 @@ export async function checkUserAccess(
     })
     
     if (access && (!access.expiresAt || access.expiresAt > new Date())) {
-      return { hasAccess: true, access, isOwner: false }
+      return { hasAccess: true, access, isOwner: false, child }
     }
-    
-    return { hasAccess: false }
+
+    return { hasAccess: false, child }
   } catch (error) {
     logger.error("Error verificando acceso del usuario:", error)
     throw error

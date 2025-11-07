@@ -11,6 +11,7 @@ import { subDays, parseISO, differenceInMinutes, format } from "date-fns"
 import { processSleepStatistics } from "@/lib/sleep-calculations"
 import { createLogger } from "@/lib/logger"
 import { ChildPlan } from "@/types/models"
+import { resolveChildAccess, ChildAccessError } from "@/lib/api/child-access"
 
 const logger = createLogger("API:sleep-analysis:insights")
 
@@ -80,24 +81,14 @@ export async function GET(req: NextRequest) {
 
     // 2. Obtener datos del niño con verificación de permisos
     let child
-    
-    if (session.user.role === "admin") {
-      // Los admins pueden ver cualquier niño
-      child = await db.collection("children").findOne({
-        _id: new ObjectId(childId)
-      })
-    } else {
-      // Los usuarios normales solo pueden ver sus propios niños
-      child = await db.collection("children").findOne({
-        _id: new ObjectId(childId),
-        parentId: new ObjectId(session.user.id)
-      })
-    }
-
-    if (!child) {
-      return NextResponse.json({ 
-        error: "Niño no encontrado" 
-      }, { status: 404 })
+    try {
+      const accessContext = await resolveChildAccess(db, session.user, childId, "canViewEvents")
+      child = accessContext.child
+    } catch (error) {
+      if (error instanceof ChildAccessError) {
+        return NextResponse.json({ error: error.message }, { status: error.status })
+      }
+      throw error
     }
 
     // 3. Calcular días a filtrar basado en dateRange

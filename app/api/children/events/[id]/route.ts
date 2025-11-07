@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
 import { createLogger } from "@/lib/logger"
+import { resolveChildAccess, ChildAccessError } from "@/lib/api/child-access"
 
 const logger = createLogger("API:children:events:[id]:route")
 
@@ -43,18 +44,14 @@ export async function PUT(
     const { db } = await connectToDatabase()
     logger.info("Conectado a MongoDB")
 
-    // Verificar que el niño exista y pertenezca al usuario
-    const child = await db.collection("children").findOne({
-      _id: new ObjectId(data.childId),
-      parentId: new ObjectId(session.user.id),
-    })
-
-    if (!child) {
-      logger.error("Niño no encontrado o no pertenece al usuario")
-      return NextResponse.json(
-        { error: "Niño no encontrado o no pertenece al usuario" },
-        { status: 404 }
-      )
+    let accessContext
+    try {
+      accessContext = await resolveChildAccess(db, session.user, data.childId, "canEditEvents")
+    } catch (error) {
+      if (error instanceof ChildAccessError) {
+        return NextResponse.json({ error: error.message }, { status: error.status })
+      }
+      throw error
     }
 
     // Crear el objeto de evento actualizado
@@ -74,6 +71,7 @@ export async function PUT(
     const result = await db.collection("children").updateOne(
       { 
         _id: new ObjectId(data.childId),
+        parentId: new ObjectId(accessContext.ownerId),
         "events._id": eventId,
       },
       { $set: { "events.$": updatedEvent } }
@@ -131,24 +129,69 @@ export async function DELETE(
     const { db } = await connectToDatabase()
     logger.info("Conectado a MongoDB")
 
-    // Eliminar SOLO de la colección canónica 'events' (fuente única de verdad)
+    const childIdParam = req.nextUrl.searchParams.get("childId")
+
     const eventsCol = db.collection('events')
-
-    // Primero intentar con parentId para seguridad (usuarios normales)
-    let filter: any = { _id: new ObjectId(eventId), parentId: new ObjectId(session.user.id) }
-    let res = await eventsCol.deleteOne(filter)
-    logger.info('✅ Resultado deleteOne en events (con parentId):', res)
-
-    // Si no se eliminó y el usuario es admin, intentar sin parentId
-    if (res.deletedCount === 0 && session.user.role === 'admin') {
-      filter = { _id: new ObjectId(eventId) }
-      res = await eventsCol.deleteOne(filter)
-      logger.info('✅ Resultado deleteOne en events (admin sin parentId):', res)
+    let eventDoc: any = null
+    try {
+      eventDoc = await eventsCol.findOne({ _id: new ObjectId(eventId) })
+    } catch (error) {
+      // Ignorar si no es ObjectId válido
     }
 
-    if (res.deletedCount === 0) {
-      logger.error('❌ Evento no encontrado o no pertenece al usuario')
-      return NextResponse.json({ error: 'Evento no encontrado o no pertenece al usuario' }, { status: 404 })
+    if (!eventDoc) {
+      eventDoc = await eventsCol.findOne({ _id: eventId })
+    }
+
+    const targetChildId = childIdParam || eventDoc?.childId?.toString?.()
+
+    if (!targetChildId) {
+      logger.error('No se pudo determinar childId para el evento')
+      return NextResponse.json({ error: 'No se pudo determinar el niño asociado al evento' }, { status: 400 })
+    }
+
+    let accessContext
+    try {
+      accessContext = await resolveChildAccess(db, session.user, targetChildId, "canEditEvents")
+    } catch (error) {
+      if (error instanceof ChildAccessError) {
+        return NextResponse.json({ error: error.message }, { status: error.status })
+      }
+      throw error
+    }
+
+    // Intentar eliminar de la colección canónica 'events'
+    let deletedFromEvents = 0
+    try {
+      const deleteResult = await eventsCol.deleteOne({ _id: new ObjectId(eventId) })
+      deletedFromEvents = deleteResult.deletedCount || 0
+    } catch (error) {
+      // Si no es ObjectId válido, intentar como string
+      const deleteResult = await eventsCol.deleteOne({ _id: eventId })
+      deletedFromEvents = deleteResult.deletedCount || 0
+    }
+
+    // Si no se eliminó con ObjectId, intentar string (para eventos antiguos)
+    if (deletedFromEvents === 0) {
+      const deleteResult = await eventsCol.deleteOne({ _id: eventId })
+      deletedFromEvents = deleteResult.deletedCount || 0
+    }
+
+    if (deletedFromEvents === 0) {
+      logger.warn('Evento no encontrado en colección events, intentando en children.events')
+    }
+
+    // También eliminar de la colección embebida para compatibilidad
+    const childrenResult = await db.collection('children').updateOne(
+      { 
+        _id: new ObjectId(targetChildId),
+        parentId: new ObjectId(accessContext.ownerId)
+      },
+      { $pull: { events: { _id: eventId } } as any }
+    )
+
+    if (deletedFromEvents === 0 && childrenResult.modifiedCount === 0) {
+      return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
     }
 
     return NextResponse.json({ message: 'Evento eliminado exitosamente' }, { status: 200 })

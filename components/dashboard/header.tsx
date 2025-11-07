@@ -252,7 +252,7 @@ export function Header() {
         </div>
         
         {/* Controles a la derecha - configurables */}
-        <div className="flex items-center gap-2 md:gap-4 flex-shrink-0 order-1 md:order-2 basis-full md:basis-auto justify-between md:justify-end">
+        <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-4 flex-shrink-0 order-1 md:order-2 basis-full md:basis-auto justify-between md:justify-end gap-y-2 w-full">
           {/* Search Button - funcional y mejorado */}
           {config.showSearch !== false && (
             <div className="hidden lg:flex items-center bg-[#DEF1F1] rounded-[30px] px-4 py-2 h-12 w-[200px] xl:w-[289px] cursor-pointer hover:bg-[#c8e3e3] transition-colors">
@@ -278,7 +278,7 @@ export function Header() {
           {/* Child Selector con diseño de Figma */}
           {config.showChildSelector !== false && (
             <div className="flex items-center gap-2 w-full md:w-auto ml-2 md:ml-0">
-              <div className="max-w-[55%] md:max-w-none flex-1">
+              <div className="flex-1 min-w-0 md:min-w-[240px]">
                 <ChildSelector />
               </div>
               {/* Edad del niño: ocultar en móvil para ahorrar espacio */}
@@ -290,105 +290,105 @@ export function Header() {
           
           {/* Notification Button con badge - exactamente como en Figma */}
           {config.showNotifications !== false && (
-            <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  className="relative p-2 min-h-[44px] min-w-[44px] h-auto w-auto flex items-center justify-center"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-[18px] w-[15.75px] text-[#666666]"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
+            <div className="flex-none">
+              <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    className="relative p-2 min-h-[44px] min-w-[44px] h-auto w-auto flex items-center justify-center"
                   >
-                    <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
-                  </svg>
-                  {notificationCount > 0 && (
-                    <div className="absolute top-1 right-1 h-4 w-4 bg-[#DF3F40] rounded-full flex items-center justify-center">
-                      <span className="text-xs text-white font-normal leading-none">{notificationCount}</span>
-                    </div>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-80 p-0">
-                <div className="p-4 border-b">
-                  <h3 className="text-sm font-medium text-[#1F2937]">Notificaciones</h3>
-                  <p className="text-xs text-muted-foreground mt-1">Últimas solicitudes y avisos</p>
-                </div>
-                <div className="max-h-80 overflow-y-auto">
-                  {notificationsLoading ? (
-                    <div className="flex items-center justify-center py-6">
-                      <Icons.spinner className="h-5 w-5 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : notifications.length === 0 ? (
-                    <div className="py-6 text-center text-sm text-muted-foreground">
-                      No hay notificaciones nuevas
-                    </div>
-                  ) : (
-                    <div className="divide-y">
-                      {notifications.map((notification) => {
-                        const createdAt = notification?.createdAt ? new Date(notification.createdAt) : null
-                        const isZoomTranscript = notification.type === 'zoom_transcript'
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-[18px] w-[15.75px] text-[#666666]"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+                    </svg>
+                    {notificationCount > 0 && (
+                      <div className="absolute top-1 right-1 h-4 w-4 bg-[#DF3F40] rounded-full flex items-center justify-center">
+                        <span className="text-xs text-white font-normal leading-none">{notificationCount}</span>
+                      </div>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-80 p-0">
+                  <div className="p-4 border-b">
+                    <h3 className="text-sm font-medium text-[#1F2937]">Notificaciones</h3>
+                    <p className="text-xs text-muted-foreground mt-1">Últimas solicitudes y avisos</p>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notificationsLoading ? (
+                      <div className="flex items-center justify-center py-6">
+                        <Icons.spinner className="h-5 w-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : notifications.length === 0 ? (
+                      <div className="py-6 text-center text-sm text-muted-foreground">
+                        No hay notificaciones nuevas
+                      </div>
+                    ) : (
+                      <div className="divide-y">
+                        {notifications.map((notification) => {
+                          const createdAt = notification?.createdAt ? new Date(notification.createdAt) : null
+                          const isZoomTranscript = notification.type === 'zoom_transcript'
 
-                        return (
-                          <div
-                            key={notification._id || notification.title}
-                            className="p-4 hover:bg-gray-50 cursor-pointer"
-                            onClick={() => {
-                              // Navegar a consultas si es transcript de Zoom
-                              if (isZoomTranscript && notification.childId) {
-                                // Guardar el childId en localStorage para que se seleccione automáticamente
-                                if (notification.childId) {
-                                  localStorage.setItem("admin_selected_child_id", notification.childId.toString())
-                                  if (notification.metadata?.childName) {
-                                    localStorage.setItem("admin_selected_child_name", notification.metadata.childName)
+                          return (
+                            <div
+                              key={notification._id || notification.title}
+                              className="p-4 hover:bg-gray-50 cursor-pointer"
+                              onClick={() => {
+                                if (isZoomTranscript && notification.childId) {
+                                  if (notification.childId) {
+                                    localStorage.setItem("admin_selected_child_id", notification.childId.toString())
+                                    if (notification.metadata?.childName) {
+                                      localStorage.setItem("admin_selected_child_name", notification.metadata.childName)
+                                    }
                                   }
+                                  setNotificationsOpen(false)
+                                  router.push('/dashboard/consultas')
                                 }
-                                setNotificationsOpen(false)
-                                router.push('/dashboard/consultas')
-                              }
-                            }}
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="mt-1">
-                                {isZoomTranscript ? (
-                                  <Video className="h-4 w-4 text-blue-600" />
-                                ) : (
-                                  <Icons.bell className="h-4 w-4 text-[#68A1C8]" />
+                              }}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="mt-1">
+                                  {isZoomTranscript ? (
+                                    <Video className="h-4 w-4 text-blue-600" />
+                                  ) : (
+                                    <Icons.bell className="h-4 w-4 text-[#68A1C8]" />
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-[#1F2937]">
+                                    {notification.title || 'Nueva notificación'}
+                                  </p>
+                                  {notification.message && (
+                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                      {notification.message}
+                                    </p>
+                                  )}
+                                  {createdAt && (
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                      {formatDistanceToNow(createdAt, { addSuffix: true, locale: es })}
+                                    </p>
+                                  )}
+                                </div>
+                                {notification.status !== 'read' && (
+                                  <span className="inline-flex h-2 w-2 rounded-full bg-[#68A1C8] mt-2" />
                                 )}
                               </div>
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-[#1F2937]">
-                                  {notification.title || 'Nueva notificación'}
-                                </p>
-                                {notification.message && (
-                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                    {notification.message}
-                                  </p>
-                                )}
-                                {createdAt && (
-                                  <p className="text-xs text-muted-foreground mt-2">
-                                    {formatDistanceToNow(createdAt, { addSuffix: true, locale: es })}
-                                  </p>
-                                )}
-                              </div>
-                              {notification.status !== 'read' && (
-                                <span className="inline-flex h-2 w-2 rounded-full bg-[#68A1C8] mt-2" />
-                              )}
                             </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              </PopoverContent>
-            </Popover>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           )}
           
           {/* Profile Avatar con dropdown - como en Figma */}
-          <div className="flex items-center">
+          <div className="flex items-center flex-none">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative p-0 min-h-[44px] min-w-[44px] flex items-center">
