@@ -1,13 +1,15 @@
 import React from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { cn } from "@/lib/utils"
 
 interface UserAvatarProps {
   name?: string | null
   image?: string | null
   className?: string
+  fallbackClassName?: string
 }
 
-export function UserAvatar({ name, image, className }: UserAvatarProps) {
+export function UserAvatar({ name, image, className, fallbackClassName }: UserAvatarProps) {
   // Generar iniciales del nombre
   const getInitials = (name: string | null | undefined) => {
     if (!name) return "U"
@@ -23,16 +25,16 @@ export function UserAvatar({ name, image, className }: UserAvatarProps) {
     if (!name) return "bg-gray-500"
     
     const colors = [
-      "bg-blue-500",
-      "bg-green-500",
-      "bg-yellow-500",
-      "bg-purple-500",
-      "bg-pink-500",
-      "bg-indigo-500",
-      "bg-red-500",
-      "bg-orange-500",
-      "bg-teal-500",
-      "bg-cyan-500"
+      "bg-[#2553A1]",
+      "bg-[#628BE6]",
+      "bg-[#3FA796]",
+      "bg-[#4A90E2]",
+      "bg-[#2F80ED]",
+      "bg-[#1D4ED8]",
+      "bg-[#0F6CBD]",
+      "bg-[#2C6FCF]",
+      "bg-[#1C4E80]",
+      "bg-[#3F74DA]"
     ]
     
     // Usar la suma de los códigos de caracteres para seleccionar un color
@@ -46,7 +48,7 @@ export function UserAvatar({ name, image, className }: UserAvatarProps) {
   return (
     <Avatar className={className}>
       {image && <AvatarImage src={image} alt={name || "Usuario"} />}
-      <AvatarFallback className={`text-white font-medium ${bgColor}`}>
+      <AvatarFallback className={cn(`text-white font-medium ${bgColor}`, fallbackClassName)}>
         {initials}
       </AvatarFallback>
     </Avatar>

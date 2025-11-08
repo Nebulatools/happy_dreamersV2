@@ -42,6 +42,21 @@ export function Header() {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [notificationsLoading, setNotificationsLoading] = useState(false)
   const [notifications, setNotifications] = useState<any[]>([])
+  const sessionUser = session?.user
+  const accountType = (sessionUser as any)?.accountType || ""
+  const userFirstName = useMemo(() => {
+    if (!sessionUser?.name) return "Perfil"
+    const [firstChunk] = sessionUser.name.split(" ")
+    return firstChunk || "Perfil"
+  }, [sessionUser?.name])
+  const roleLabel = useMemo(() => {
+    if (sessionUser?.role === "admin") return "Admin"
+    if (sessionUser?.role === "professional") return "Coach"
+    if (accountType === "mother") return "Mamá"
+    if (accountType === "father") return "Papá"
+    if (accountType === "caregiver") return "Cuidador"
+    return "Perfil"
+  }, [sessionUser?.role, accountType])
 
   useEffect(() => {
     setMounted(true)
@@ -328,23 +343,23 @@ export function Header() {
   const profileMenu = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative p-0 min-h-[44px] min-w-[44px] flex items-center rounded-full bg-white/70 backdrop-blur hover:bg-white">
+        <button
+          type="button"
+          className="group flex items-center gap-3 rounded-full border border-white/50 bg-white/80 px-2.5 py-1 pr-3 text-left shadow-sm ring-1 ring-white/40 transition hover:bg-white hover:shadow-md"
+          aria-label="Abrir menú de perfil"
+        >
           <UserAvatar 
-            name={session?.user?.name} 
-            image={session?.user?.image}
-            className="h-9 w-9" 
+            name={sessionUser?.name} 
+            image={sessionUser?.image}
+            className="h-9 w-9 ring-2 ring-white/80 shadow-sm" 
+            fallbackClassName="bg-[#2553A1]"
           />
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-3 w-3 text-[#2553A1] ml-1 hidden sm:block"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </Button>
+          <div className="hidden sm:flex flex-col leading-tight text-[#1F2937]">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#628BE6]">{roleLabel}</span>
+            <span className="text-sm font-semibold">{userFirstName}</span>
+          </div>
+          <Icons.chevronDown className="h-4 w-4 text-[#2553A1] transition group-hover:translate-y-0.5" />
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
@@ -368,70 +383,56 @@ export function Header() {
         style={{ paddingTop: safeAreaPaddingTop }}
       >
         <div className="flex flex-col gap-3 md:gap-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between min-w-0">
-            <div className="flex flex-col gap-2 min-w-0 text-white">
-              <div className="flex items-start justify-between gap-2 md:items-center md:justify-start">
-                <div className="min-w-0">
-                  <h1 className="truncate" style={{ fontFamily: 'Gotham, sans-serif', fontSize: '16px', fontWeight: 'normal' }}>
-                    {derivedTitle}
-                  </h1>
-                  {config.subtitle && (
-                    <p className="text-sm text-white/80 truncate">
-                      {config.subtitle}
-                    </p>
-                  )}
-                </div>
-              </div>
+          <div className="flex flex-wrap items-center gap-3 sm:justify-between">
+            <div className="flex flex-1 flex-wrap items-center gap-3 pl-14 md:pl-0">
               {config.actions && (
-                <div className="flex flex-wrap items-center gap-2">
-                  {config.actions}
+                <div className="flex-shrink-0 order-1">
+                  <div className="flex items-center gap-2 text-white">
+                    {config.actions}
+                  </div>
+                </div>
+              )}
+
+              {config.showChildSelector !== false && (
+                <div className="order-2 flex min-w-[220px] max-w-[420px] flex-1 items-center gap-2">
+                  <div className="flex-1 min-w-[180px]">
+                    <ChildSelector />
+                  </div>
+                  <div className="hidden lg:block">
+                    <ChildAgeFromContext />
+                  </div>
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-end gap-2 md:gap-3">
+
+            <div className="flex items-center justify-end gap-2 md:gap-3 w-full sm:w-auto sm:ml-auto">
               {notificationButton}
               {profileMenu}
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-            {config.showSearch !== false && (
-              <div className="hidden lg:flex items-center bg-[#DEF1F1] rounded-[30px] px-4 py-2 h-12 w-full lg:w-[289px] cursor-pointer hover:bg-[#c8e3e3] transition-colors">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-[#68A1C8] flex-shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Buscar..."
-                  className="ml-2.5 bg-transparent text-[#68A1C8] text-base font-medium placeholder:text-[#68A1C8] placeholder:opacity-70 border-none outline-none flex-1"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
-            )}
-
-            {config.showChildSelector !== false && (
-              <div className="w-full">
-                <div className="rounded-2xl bg-white/70 p-2 shadow-sm md:bg-transparent md:p-0 md:shadow-none flex items-center gap-3">
-                  <div className="flex-1 min-w-0 md:min-w-[240px]">
-                    <ChildSelector />
-                  </div>
-                  <div className="hidden md:block">
-                    <ChildAgeFromContext />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          {config.showSearch !== false && (
+            <div className="hidden lg:flex items-center bg-[#DEF1F1] rounded-[30px] px-4 py-2 h-12 min-w-[220px] max-w-[360px] cursor-text hover:bg-[#c8e3e3] transition-colors">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 text-[#68A1C8] flex-shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Buscar..."
+                className="ml-2.5 bg-transparent text-[#1F2937] text-base font-medium placeholder:text-[#68A1C8] placeholder:opacity-70 border-none outline-none flex-1"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
         </div>
       </div>
     </header>
   )
 }
-

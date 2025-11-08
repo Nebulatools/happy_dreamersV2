@@ -71,6 +71,8 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
     setFormData,
     setInitialData
   } = useSurveyForm(initialData)
+
+  const primaryCaregiver = formData?.informacionFamiliar?.primaryCaregiver
   
   const {
     showValidationErrors,
@@ -275,6 +277,92 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
       }
     }
   }, [userProfile, childData, initialData, isExisting, session, userPrefillContact, resolvedAccountType])
+
+  useEffect(() => {
+    const trimmedName = (userPrefillContact.name || "").trim()
+    const trimmedEmail = (userPrefillContact.email || "").trim()
+    const trimmedPhone = (userPrefillContact.phone || "").trim()
+
+    if (!trimmedName && !trimmedEmail && !trimmedPhone) return
+
+    const parentsToPrefill: Array<'papa' | 'mama'> = []
+
+    if (resolvedAccountType === "father") {
+      parentsToPrefill.push("papa")
+    } else if (resolvedAccountType === "mother") {
+      parentsToPrefill.push("mama")
+    } else if (resolvedAccountType === "caregiver") {
+      if (primaryCaregiver === "mother") {
+        parentsToPrefill.push("mama")
+      } else if (primaryCaregiver === "father") {
+        parentsToPrefill.push("papa")
+      }
+    }
+
+    if (!parentsToPrefill.length) {
+      if (primaryCaregiver === "mother") {
+        parentsToPrefill.push("mama")
+      } else if (primaryCaregiver === "father") {
+        parentsToPrefill.push("papa")
+      }
+    }
+
+    if (!parentsToPrefill.length) return
+
+    setFormData(prev => {
+      const info = prev.informacionFamiliar || {}
+      const nextPapa = { ...(info.papa || {}) }
+      const nextMama = { ...(info.mama || {}) }
+      let changed = false
+
+      parentsToPrefill.forEach(parent => {
+        const parentData = parent === "papa" ? nextPapa : nextMama
+        let parentChanged = false
+
+        if (trimmedName && !(parentData.nombre && parentData.nombre.trim().length > 0)) {
+          parentData.nombre = trimmedName
+          parentChanged = true
+        }
+
+        if (trimmedEmail && !(parentData.email && parentData.email.trim().length > 0)) {
+          parentData.email = trimmedEmail
+          parentChanged = true
+        }
+
+        if (trimmedPhone && !(parentData.telefono && parentData.telefono.trim().length > 0)) {
+          parentData.telefono = trimmedPhone
+          parentChanged = true
+        }
+
+        if (parentChanged) {
+          if (parent === "papa") {
+            Object.assign(nextPapa, parentData)
+          } else {
+            Object.assign(nextMama, parentData)
+          }
+          changed = true
+        }
+      })
+
+      if (!changed) return prev
+
+      return {
+        ...prev,
+        informacionFamiliar: {
+          ...info,
+          papa: nextPapa,
+          mama: nextMama
+        }
+      }
+    })
+  }, [
+    userPrefillContact.name,
+    userPrefillContact.email,
+    userPrefillContact.phone,
+    resolvedAccountType,
+    primaryCaregiver,
+    setFormData
+  ])
 
   // Mostrar indicador de guardado
   useEffect(() => {
