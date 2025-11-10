@@ -8,7 +8,7 @@ import { useSleepData } from "@/hooks/use-sleep-data"
 import { calculateMorningWakeTime } from "@/lib/sleep-calculations"
 import { aggregateDailySleep } from "@/lib/sleep-calculations"
 import { useEventsCache } from "@/hooks/use-events-cache"
-import { differenceInMinutes, parseISO } from "date-fns"
+import { differenceInMinutes, parseISO, startOfWeek, format } from "date-fns"
 
 interface EnhancedSleepMetricsCardProps {
   childId: string
@@ -35,6 +35,64 @@ type BreakdownState = {
   nightsWithSleep: number
   daysWithNaps: number
   dailyTotals: DailyTotalsEntry[]
+}
+
+type WeeklyMetricSummary = {
+  avg: number
+  min: { value: number; weekStart: string }
+  max: { value: number; weekStart: string }
+  weeksCount: number
+}
+
+const NO_PLAN_TEXT = "Sin plan configurado"
+
+const timeStringToMinutes = (time?: string | null) => {
+  if (!time || time === "--:--") return null
+  const [hours, minutes] = time.split(":").map(Number)
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null
+  return hours * 60 + minutes
+}
+
+const calculateNightHoursFromPlan = (bedtime?: string | null, wakeTime?: string | null) => {
+  const start = timeStringToMinutes(bedtime)
+  const end = timeStringToMinutes(wakeTime)
+  if (start == null || end == null) return null
+  let diff = end - start
+  if (diff <= 0) {
+    diff += 24 * 60
+  }
+  return diff / 60
+}
+
+const formatHoursDiffVsPlan = (actual?: number | null, target?: number | null) => {
+  if (actual == null || target == null || Number.isNaN(actual) || Number.isNaN(target)) {
+    return NO_PLAN_TEXT
+  }
+  const diff = Math.abs(actual - target)
+  if (diff < 0.05) return "±0h vs plan"
+  return `±${diff.toFixed(1)}h vs plan`
+}
+
+const formatTimeDiffVsPlan = (actual?: string | null, target?: string | null) => {
+  const actualMinutes = timeStringToMinutes(actual)
+  const targetMinutes = timeStringToMinutes(target)
+  if (actualMinutes == null || targetMinutes == null) {
+    return NO_PLAN_TEXT
+  }
+  let diff = Math.abs(actualMinutes - targetMinutes)
+  diff = Math.min(diff, 24 * 60 - diff)
+  const diffHours = diff / 60
+  if (diffHours < 0.05) return "±0h vs plan"
+  return `±${diffHours.toFixed(1)}h vs plan`
+}
+
+const formatWeekLabel = (weekStart?: string) => {
+  if (!weekStart) return ""
+  try {
+    return `Semana del ${format(parseISO(weekStart), "dd/MM")}`
+  } catch {
+    return ""
+  }
 }
 
 // Función para clasificar sueño como nocturno o siesta
@@ -67,12 +125,35 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
     daysWithNaps: 0,
     dailyTotals: []
   })
+  const [planSchedule, setPlanSchedule] = useState<{ bedtime?: string; wakeTime?: string } | null>(null)
 
   // Suscribirse a invalidaciones de cache
   React.useEffect(() => {
     const unsubscribe = subscribe()
     return unsubscribe
   }, [subscribe])
+
+  React.useEffect(() => {
+    let isMounted = true
+    async function fetchPlanSchedule() {
+      if (!childId) return
+      try {
+        const response = await fetch(`/api/children/${childId}/active-plan`)
+        if (!response.ok) throw new Error('Error al cargar plan')
+        const payload = await response.json()
+        if (!isMounted) return
+        setPlanSchedule(payload?.schedule ?? null)
+      } catch (err) {
+        if (isMounted) {
+          setPlanSchedule(null)
+        }
+      }
+    }
+    fetchPlanSchedule()
+    return () => {
+      isMounted = false
+    }
+  }, [childId])
 
   // Procesar eventos cuando sleepData cambie (promedios por día consistentes)
   React.useEffect(() => {
@@ -99,6 +180,16 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
       })
     }
   }, [sleepData, dateRange])
+
+  const planTargets = React.useMemo(() => {
+    const bedtime = planSchedule?.bedtime ?? null
+    const wakeTime = planSchedule?.wakeTime ?? null
+    return {
+      bedtime,
+      wakeTime,
+      nightHours: calculateNightHoursFromPlan(bedtime, wakeTime)
+    }
+  }, [planSchedule])
 
   // Hora promedio matutina (usa lógica centralizada, con fallback)
   const morningWakeAvg = React.useMemo(() => {
@@ -134,6 +225,14 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
       return sleepData?.avgWakeTime || "--:--"
     }
   }, [sleepData])
+
+  const planComparisons = React.useMemo(() => {
+    return {
+      wake: formatTimeDiffVsPlan(morningWakeAvg, planTargets.wakeTime),
+      night: formatHoursDiffVsPlan(breakdown.nightSleepHours, planTargets.nightHours),
+      bedtime: formatTimeDiffVsPlan(sleepData?.avgBedtime, planTargets.bedtime)
+    }
+  }, [morningWakeAvg, planTargets, breakdown.nightSleepHours, sleepData?.avgBedtime])
 
   // Funciones de formato
   const formatDuration = (hours: number): string => {
@@ -182,56 +281,80 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
     return { label: "Muy frecuente", variant: "poor" as const }
   }
 
-  const formatDateLabel = (dateKey?: string) => {
-    if (!dateKey) return ""
-    try {
-      return parseISO(dateKey).toLocaleDateString("es-ES", {
-        day: "2-digit",
-        month: "2-digit"
-      })
-    } catch {
-      return dateKey
+  const ranges = React.useMemo<{
+    night: WeeklyMetricSummary | null
+    nap: WeeklyMetricSummary | null
+    total: WeeklyMetricSummary | null
+  }>(() => {
+    if (!breakdown.dailyTotals.length) {
+      return { night: null as WeeklyMetricSummary | null, nap: null as WeeklyMetricSummary | null, total: null as WeeklyMetricSummary | null }
     }
-  }
 
-  const ranges = React.useMemo(() => {
-    const buildRange = (key: 'nightHours' | 'napHours' | 'totalHours') => {
-      const entries = breakdown.dailyTotals
-        .map(day => ({
-          value: day[key],
-          dateKey: day.dateKey
-        }))
-        .filter(entry => typeof entry.value === "number" && entry.value > 0)
+    const weeklyBuckets = new Map<string, { night: number; nap: number; total: number; days: number }>()
 
-      if (entries.length === 0) {
-        return null
+    breakdown.dailyTotals.forEach(day => {
+      if (!day.dateKey) return
+      try {
+        const parsed = parseISO(day.dateKey)
+        const weekStart = startOfWeek(parsed, { weekStartsOn: 1 }).toISOString()
+        const current = weeklyBuckets.get(weekStart) || { night: 0, nap: 0, total: 0, days: 0 }
+        current.night += day.nightHours
+        current.nap += day.napHours
+        current.total += day.totalHours
+        current.days += 1
+        weeklyBuckets.set(weekStart, current)
+      } catch {
+        // Ignorar fechas inválidas
       }
+    })
 
-      const maxEntry = entries.reduce((prev, curr) => (curr.value > prev.value ? curr : prev))
-      const minEntry = entries.reduce((prev, curr) => (curr.value < prev.value ? curr : prev))
+    const weeklyEntries = Array.from(weeklyBuckets.entries())
+      .map(([weekStart, totals]) => ({
+        weekStart,
+        nightAvg: totals.night / Math.max(totals.days, 1),
+        napAvg: totals.nap / Math.max(totals.days, 1),
+        totalAvg: totals.total / Math.max(totals.days, 1)
+      }))
+      .sort((a, b) => new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime())
+
+    if (!weeklyEntries.length) {
+      return { night: null as WeeklyMetricSummary | null, nap: null as WeeklyMetricSummary | null, total: null as WeeklyMetricSummary | null }
+    }
+
+    const buildSummary = (key: 'nightAvg' | 'napAvg' | 'totalAvg'): WeeklyMetricSummary | null => {
+      if (!weeklyEntries.length) return null
+      const values = weeklyEntries.map(entry => entry[key])
+      if (!values.length) return null
+
+      let minIndex = 0
+      let maxIndex = 0
+      values.forEach((value, index) => {
+        if (value < values[minIndex]) minIndex = index
+        if (value > values[maxIndex]) maxIndex = index
+      })
+
+      const avg = values.reduce((sum, value) => sum + value, 0) / values.length
 
       return {
-        max: maxEntry,
-        min: minEntry,
-        spread: maxEntry.value - minEntry.value
+        avg,
+        min: { value: values[minIndex], weekStart: weeklyEntries[minIndex].weekStart },
+        max: { value: values[maxIndex], weekStart: weeklyEntries[maxIndex].weekStart },
+        weeksCount: weeklyEntries.length
       }
     }
 
     return {
-      night: buildRange('nightHours'),
-      nap: buildRange('napHours'),
-      total: buildRange('totalHours')
+      night: buildSummary('nightAvg'),
+      nap: buildSummary('napAvg'),
+      total: buildSummary('totalAvg')
     }
   }, [breakdown.dailyTotals])
 
-  const nightRange = ranges.night
-  const napRange = ranges.nap
-  const totalRange = ranges.total
-  const hasRangeData = Boolean(nightRange || napRange || totalRange)
+  const hasWeeklyData = Boolean(ranges.night || ranges.nap || ranges.total)
 
   const variabilityStatus = React.useMemo(() => {
-    if (!totalRange) return null
-    const spread = totalRange.spread
+    if (!ranges.total) return null
+    const spread = ranges.total.max.value - ranges.total.min.value
     if (spread <= 0.5) {
       return { label: "Rutina muy consistente", icon: TrendingUp, color: "text-green-600" }
     }
@@ -242,7 +365,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
       return { label: "Variación elevada", icon: TrendingDown, color: "text-orange-600" }
     }
     return { label: "Necesita ajustar horarios", icon: TrendingDown, color: "text-red-600" }
-  }, [totalRange])
+  }, [ranges.total])
 
   const StatusIcon = variabilityStatus?.icon
 
@@ -252,23 +375,25 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
       title: "Sueño nocturno",
       icon: Moon,
       iconColor: "text-indigo-600",
-      range: nightRange
+      summary: ranges.night
     },
     {
       key: "nap" as const,
       title: "Siestas",
       icon: Sun,
       iconColor: "text-orange-500",
-      range: napRange
+      summary: ranges.nap
     },
     {
       key: "total" as const,
       title: "Sueño total",
       icon: Activity,
       iconColor: "text-blue-600",
-      range: totalRange
+      summary: ranges.total
     }
-  ]), [nightRange, napRange, totalRange])
+  ]), [ranges])
+
+  const weeksWithData = ranges.total?.weeksCount ?? ranges.night?.weeksCount ?? ranges.nap?.weeksCount ?? 0
 
   if (loading) {
     return (
@@ -317,6 +442,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
             <Badge variant={getWakeTimeStatus(morningWakeAvg).variant} className="text-xs">
               {getWakeTimeStatus(morningWakeAvg).label}
             </Badge>
+            <p className="text-xs text-gray-600 mt-2">{planComparisons.wake}</p>
           </div>
 
           {/* Sueño nocturno (promedio diario) */}
@@ -330,6 +456,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
                 <p className="text-2xl font-bold text-gray-900">{breakdown.nightSleepHours.toFixed(1)}h</p>
               </div>
             </div>
+            <p className="text-xs text-gray-600">{planComparisons.night}</p>
           </div>
 
           {/* Hora de Acostarse */}
@@ -349,6 +476,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
               </Badge>
               <span className="text-xs text-gray-500">±{Math.round(sleepData.bedtimeVariation)} min</span>
             </div>
+            <p className="text-xs text-gray-600 mt-2">{planComparisons.bedtime}</p>
           </div>
 
           {/* Despertares Nocturnos */}
@@ -377,15 +505,15 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
         >
           <div className="flex items-center gap-2 mb-4">
             <Activity className="w-5 h-5 text-indigo-600" />
-            <h3 className="font-semibold text-gray-800">Máximos y mínimos diarios</h3>
+            <h3 className="font-semibold text-gray-800">Máximos y mínimos semanales</h3>
           </div>
 
-          {hasRangeData ? (
+          {hasWeeklyData ? (
             <>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {rangeDetails.map((detail) => {
                   const Icon = detail.icon
-                  const range = detail.range
+                  const summary = detail.summary
                   return (
                     <div
                       key={detail.key}
@@ -397,33 +525,33 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
                         </div>
                         <h4 className="font-semibold text-gray-700">{detail.title}</h4>
                       </div>
-                      {range ? (
+                      {summary ? (
                         <>
-                          <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="grid grid-cols-3 gap-3 text-sm">
                             <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wide">Máximo</p>
+                              <p className="text-xs text-gray-500 uppercase tracking-wide">Promedio</p>
                               <p className="text-base font-semibold text-gray-900">
-                                {formatDuration(range.max.value)}
-                              </p>
-                              <p className="text-xs text-gray-400">
-                                {formatDateLabel(range.max.dateKey)}
+                                {formatDuration(summary.avg)}
                               </p>
                             </div>
                             <div>
                               <p className="text-xs text-gray-500 uppercase tracking-wide">Mínimo</p>
                               <p className="text-base font-semibold text-gray-900">
-                                {formatDuration(range.min.value)}
+                                {formatDuration(summary.min.value)}
                               </p>
-                              <p className="text-xs text-gray-400">
-                                {formatDateLabel(range.min.dateKey)}
+                              <p className="text-[11px] text-gray-400">
+                                {formatWeekLabel(summary.min.weekStart)}
                               </p>
                             </div>
-                          </div>
-                          <div className="flex items-center justify-between mt-4 text-xs text-gray-500">
-                            <span>Variación diaria</span>
-                            <span className="font-semibold text-gray-700">
-                              {formatDuration(Math.max(range.spread, 0))}
-                            </span>
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wide">Máximo</p>
+                              <p className="text-base font-semibold text-gray-900">
+                                {formatDuration(summary.max.value)}
+                              </p>
+                              <p className="text-[11px] text-gray-400">
+                                {formatWeekLabel(summary.max.weekStart)}
+                              </p>
+                            </div>
                           </div>
                         </>
                       ) : (
@@ -444,15 +572,13 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
                   </div>
                 )}
                 <p className="text-xs text-gray-500">
-                  Basado en {breakdown.actualDaysWithData}{" "}
-                  {breakdown.actualDaysWithData === 1 ? "día con datos" : "días con datos"} dentro de
-                  los últimos {breakdown.daysInPeriod} días.
+                  Basado en {weeksWithData} {weeksWithData === 1 ? "semana con datos" : "semanas con datos"} dentro de los últimos {breakdown.daysInPeriod} días.
                 </p>
               </div>
             </>
           ) : (
             <p className="text-sm text-gray-500">
-              Sin datos suficientes para calcular máximos y mínimos en el periodo seleccionado.
+              Sin datos suficientes para calcular promedios semanales en el periodo seleccionado.
             </p>
           )}
         </motion.div>

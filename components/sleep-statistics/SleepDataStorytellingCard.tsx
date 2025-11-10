@@ -1,10 +1,10 @@
 "use client"
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { createLogger } from '@/lib/logger'
 
 const logger = createLogger('SleepDataStorytellingCard')
-import { AlertTriangle, Eye, EyeOff, Moon, Clock, TrendingUp, TrendingDown, Info } from 'lucide-react'
+import { AlertTriangle, Eye, EyeOff, Moon, Clock, TrendingUp, TrendingDown, Info, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useSleepData } from '@/hooks/use-sleep-data'
 import { format, parseISO, subDays, startOfDay, isAfter, isBefore, differenceInMinutes } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -57,6 +57,8 @@ export default function SleepDataStorytellingCard({
   const [showAnomaliesOnly, setShowAnomaliesOnly] = useState(false)
   const [hoveredDay, setHoveredDay] = useState<string | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
+  const chartScrollRef = useRef<HTMLDivElement | null>(null)
+  const [scrollState, setScrollState] = useState({ canScrollLeft: false, canScrollRight: false })
 
   // 📊 Procesar datos reales usando la función unificada de cálculos
   const processedData = useMemo(() => {
@@ -187,6 +189,54 @@ export default function SleepDataStorytellingCard({
   const vizConfig = getVisualizationConfig()
   const maxHours = 14
 
+  const updateScrollState = useCallback(() => {
+    const element = chartScrollRef.current
+    if (!element) return
+    const canScrollLeft = element.scrollLeft > 4
+    const canScrollRight = element.scrollLeft + element.clientWidth < element.scrollWidth - 4
+    setScrollState({ canScrollLeft, canScrollRight })
+  }, [])
+
+  useEffect(() => {
+    const element = chartScrollRef.current
+    if (!element) return
+
+    const handleScroll = () => updateScrollState()
+    updateScrollState()
+    element.addEventListener('scroll', handleScroll)
+
+    return () => {
+      element.removeEventListener('scroll', handleScroll)
+    }
+  }, [updateScrollState, filteredData, dateRange, showAnomaliesOnly])
+
+  useEffect(() => {
+    const element = chartScrollRef.current
+    if (!element) return
+    element.scrollLeft = 0
+    updateScrollState()
+  }, [filteredData, dateRange, showAnomaliesOnly, updateScrollState])
+
+  const handleChartScroll = (direction: 'left' | 'right') => {
+    const element = chartScrollRef.current
+    if (!element) return
+    const scrollAmount = element.clientWidth * 0.6 || 240
+    element.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth'
+    })
+  }
+
+  const napCount = useMemo(() => {
+    if (!sleepData?.events) return 0
+    return sleepData.events.filter(event => event.eventType === 'nap').length
+  }, [sleepData])
+
+  const totalSleepHours = sleepData?.totalSleepHours ?? 0
+  const avgNightHours = sleepData?.avgSleepDuration ?? 0
+  const avgNapHours = sleepData?.avgNapDuration ?? 0
+  const avgWakeups = sleepData?.avgWakeupsPerNight ?? 0
+
   if (loading) {
     return (
       <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 p-6 ${className}`}>
@@ -222,7 +272,7 @@ export default function SleepDataStorytellingCard({
       {/* 📋 Header mejorado */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0">
-          <h3 className="text-lg md:text-xl font-bold text-[#2F2F2F]">Análisis Detallado del Sueño</h3>
+          <h3 className="text-lg md:text-xl font-bold text-[#2F2F2F]">Tendencia de Sueño</h3>
           <p className="text-sm text-gray-600 truncate">
             Últimos {processedData.length} días • {stats.anomalies} anomalías detectadas
           </p>
@@ -258,7 +308,29 @@ export default function SleepDataStorytellingCard({
 
       {/* 📊 Gráfico principal mejorado */}
       <div className="relative bg-gray-50 rounded-lg p-4 pl-12 pr-4">
-        <div className={`flex items-end ${vizConfig.gap} ${vizConfig.justify} relative overflow-x-auto pb-6`} style={{ height: `${vizConfig.maxHeight}px` }}>
+        <button
+          type="button"
+          aria-label="Ver días anteriores"
+          onClick={() => handleChartScroll('left')}
+          disabled={!scrollState.canScrollLeft}
+          className={`hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full border border-gray-200 bg-white shadow-sm items-center justify-center transition ${scrollState.canScrollLeft ? 'text-gray-700 hover:bg-gray-100' : 'text-gray-300 cursor-not-allowed'}`}
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          aria-label="Ver días siguientes"
+          onClick={() => handleChartScroll('right')}
+          disabled={!scrollState.canScrollRight}
+          className={`hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full border border-gray-200 bg-white shadow-sm items-center justify-center transition ${scrollState.canScrollRight ? 'text-gray-700 hover:bg-gray-100' : 'text-gray-300 cursor-not-allowed'}`}
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+        <div
+          ref={chartScrollRef}
+          className={`flex items-end ${vizConfig.gap} ${vizConfig.justify} relative overflow-x-auto pb-6 no-scrollbar`}
+          style={{ height: `${vizConfig.maxHeight}px` }}
+        >
           {/* 📏 Líneas de referencia horizontales */}
           {Array.from({ length: 8 }, (_, i) => {
             const value = (maxHours * (7 - i)) / 7
@@ -383,20 +455,20 @@ export default function SleepDataStorytellingCard({
       {/* 📈 Estadísticas mejoradas y responsive */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 pt-4 border-t border-gray-100">
         <div className="text-center p-3 bg-gray-50 rounded-lg">
-          <div className="text-xl md:text-2xl font-bold text-[#2F2F2F]">{sleepData?.totalSleepHours.toFixed(1) || '0.0'}h</div>
-          <div className="text-xs md:text-sm text-gray-600">Promedio Diario</div>
+          <div className="text-xl md:text-2xl font-bold text-[#2F2F2F]">{totalSleepHours.toFixed(1)}h</div>
+          <div className="text-xs md:text-sm text-gray-600">Horas de Sueño Total</div>
         </div>
         <div className="text-center p-3 bg-green-50 rounded-lg">
-          <div className="text-xl md:text-2xl font-bold text-green-600">{stats.qualityDistribution.optimal + stats.qualityDistribution.excellent}</div>
-          <div className="text-xs md:text-sm text-gray-600">Días Óptimos+</div>
+          <div className="text-xl md:text-2xl font-bold text-green-600">{avgNightHours.toFixed(1)}h</div>
+          <div className="text-xs md:text-sm text-gray-600">Sueño nocturno</div>
         </div>
         <div className="text-center p-3 bg-orange-50 rounded-lg">
-          <div className="text-xl md:text-2xl font-bold text-orange-600">{stats.qualityDistribution.low}</div>
-          <div className="text-xs md:text-sm text-gray-600">Días Bajos</div>
+          <div className="text-xl md:text-2xl font-bold text-orange-600">{avgNapHours.toFixed(1)}h</div>
+          <div className="text-xs md:text-sm text-gray-600">Siestas{napCount ? ` (${napCount})` : ''}</div>
         </div>
         <div className="text-center p-3 bg-red-50 rounded-lg">
-          <div className="text-xl md:text-2xl font-bold text-red-600">{stats.qualityDistribution.insufficient}</div>
-          <div className="text-xs md:text-sm text-gray-600">Insuficientes</div>
+          <div className="text-xl md:text-2xl font-bold text-red-600">{Math.round(avgWakeups)}</div>
+          <div className="text-xs md:text-sm text-gray-600">Despertares</div>
         </div>
       </div>
 

@@ -9,7 +9,6 @@ import EnhancedSleepMetricsCard from "@/components/sleep-statistics/EnhancedSlee
 import SleepDurationChart from "@/components/sleep-statistics/SleepDurationChart"
 import SleepConsistencyChart from "@/components/sleep-statistics/SleepConsistencyChart"
 import NightWakeupsEvolutionChart from "@/components/sleep-statistics/NightWakeupsEvolutionChart"
-import SleepDistributionChart from "@/components/sleep-statistics/SleepDistributionChart"
 import SleepDataStorytellingCard from "@/components/sleep-statistics/SleepDataStorytellingCard"
 import PositiveFeedbackCard from "@/components/sleep-statistics/PositiveFeedbackCard"
 import TodayInstructionsCard from "@/components/parent/TodayInstructionsCard"
@@ -95,11 +94,6 @@ export default function SleepStatisticsPage() {
 
           {/* Evolución de despertares nocturnos - Después del análisis del sueño */}
           <NightWakeupsEvolutionChart childId={activeChildId} dateRange={dateRange} />
-
-          {/* Distribución del sueño (oculto para padres en esta vista) */}
-          {isAdmin && (
-            <SleepDistributionChart childId={activeChildId} dateRange={dateRange} />
-          )}
 
           {/* Tabla Comparativa temporalmente deshabilitada 
           <SleepComparison childId={activeChildId} dateRange={dateRange} />
