@@ -186,10 +186,16 @@ export function PatientQuickSelector({
   }
 
   // Filtrar usuarios basado en búsqueda
+  useEffect(() => {
+    if (!open) {
+      setSearchValue("")
+    }
+  }, [open])
+
   const filteredUsers = useMemo(() => {
-    if (!searchValue) return users
+    const search = searchValue.trim().toLowerCase()
+    if (!search) return users
     
-    const search = searchValue.toLowerCase()
     const matches = (value?: string) => value?.toLowerCase().includes(search)
     
     return users.filter(user => {
@@ -201,6 +207,25 @@ export function PatientQuickSelector({
       return matchesUser || matchesChild
     })
   }, [users, searchValue, userChildren, globalChildrenMap])
+
+  const childSearchResults = useMemo(() => {
+    const search = searchValue.trim().toLowerCase()
+    if (!search) return []
+    const mergedEntries = Object.entries({ ...globalChildrenMap, ...userChildren })
+    const results: Array<{ child: Child; parentId: string }> = []
+    const seen = new Set<string>()
+    mergedEntries.forEach(([parentId, kids]) => {
+      kids?.forEach(child => {
+        if (!child?._id || seen.has(child._id)) return
+        const fullName = `${child.firstName || ''} ${child.lastName || ''}`.trim().toLowerCase()
+        if (fullName.includes(search)) {
+          results.push({ child, parentId })
+        }
+        seen.add(child._id)
+      })
+    })
+    return results.slice(0, 10)
+  }, [searchValue, globalChildrenMap, userChildren])
 
   // Obtener información del niño activo
   const getActiveChild = () => {
@@ -218,6 +243,7 @@ export function PatientQuickSelector({
     setActiveUserId(user._id)
     setActiveUserName(user.name)
     setActiveChildId(null) // Limpiar selección de niño
+    setSearchValue("")
     
     logger.info('ActiveChildId limpiado a null')
     
@@ -232,22 +258,46 @@ export function PatientQuickSelector({
     // Si hay un solo niño, seleccionarlo automáticamente
     if (children.length === 1) {
       logger.info(`Auto-seleccionando único niño: ${children[0].firstName}`)
-      handleChildSelect(children[0])
+      handleChildSelect(children[0], user._id, user.name)
     }
   }
 
   // Manejar selección de niño
-  const handleChildSelect = (child: Child) => {
+  const handleChildSelect = (child: Child, userIdOverride?: string, userNameOverride?: string) => {
+    const resolvedUserId = userIdOverride ?? activeUserId ?? child.parentId ?? null
+    if (resolvedUserId && resolvedUserId !== activeUserId) {
+      setActiveUserId(resolvedUserId)
+    }
+    if (userNameOverride && userNameOverride !== activeUserName) {
+      setActiveUserName(userNameOverride)
+    }
     setActiveChildId(child._id)
     setOpen(false)
     
     // Notificar cambio
-    onSelectionChange?.(activeUserId, child._id)
+    onSelectionChange?.(resolvedUserId ?? null, child._id)
     
     toast({
       title: "Selección actualizada",
       description: `${child.firstName} ${child.lastName} seleccionado`,
     })
+    setSearchValue("")
+  }
+
+  const handleQuickChildSelect = async (child: Child, parentId: string) => {
+    const parentUser = users.find(user => user._id === parentId)
+    if (parentUser) {
+      setActiveUserId(parentUser._id)
+      setActiveUserName(parentUser.name)
+    } else {
+      setActiveUserId(parentId)
+    }
+    
+    if (!userChildren[parentId]) {
+      await loadUserChildren(parentId)
+    }
+    
+    handleChildSelect(child, parentId, parentUser?.name)
   }
 
   // Formatear edad del niño (formato compacto)
@@ -327,7 +377,7 @@ export function PatientQuickSelector({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[400px] p-0" align="start">
-        <Command>
+        <Command shouldFilter={false}>
           <CommandInput 
             placeholder="Buscar paciente o niño por nombre o email..." 
             value={searchValue}
@@ -349,6 +399,37 @@ export function PatientQuickSelector({
                   >
                     Limpiar selección
                   </CommandItem>
+                </CommandGroup>
+                <CommandSeparator />
+              </>
+            )}
+            
+            {childSearchResults.length > 0 && (
+              <>
+                <CommandGroup heading="Niños">
+                  {childSearchResults.map(({ child, parentId }) => {
+                    const parentUser = users.find(user => user._id === parentId)
+                    return (
+                      <CommandItem
+                        key={child._id}
+                        onSelect={() => handleQuickChildSelect(child, parentId)}
+                        className="flex items-center gap-2 py-2"
+                      >
+                        <Baby className="h-4 w-4 text-slate-500" />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium">
+                            {child.firstName} {child.lastName}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {parentUser ? parentUser.name : "Tutor"}
+                          </div>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {child.birthDate ? getChildAge(child.birthDate) : ""}
+                        </span>
+                      </CommandItem>
+                    )
+                  })}
                 </CommandGroup>
                 <CommandSeparator />
               </>

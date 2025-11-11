@@ -65,13 +65,18 @@ const calculateNightHoursFromPlan = (bedtime?: string | null, wakeTime?: string 
   return diff / 60
 }
 
+const formatSignedHourDiff = (diff: number) => {
+  if (Math.abs(diff) < 0.05) return "0h vs plan"
+  const sign = diff > 0 ? "+" : "-"
+  return `${sign}${Math.abs(diff).toFixed(1)}h vs plan`
+}
+
 const formatHoursDiffVsPlan = (actual?: number | null, target?: number | null) => {
   if (actual == null || target == null || Number.isNaN(actual) || Number.isNaN(target)) {
     return NO_PLAN_TEXT
   }
-  const diff = Math.abs(actual - target)
-  if (diff < 0.05) return "±0h vs plan"
-  return `±${diff.toFixed(1)}h vs plan`
+  const diff = actual - target
+  return formatSignedHourDiff(diff)
 }
 
 const formatTimeDiffVsPlan = (actual?: string | null, target?: string | null) => {
@@ -80,11 +85,11 @@ const formatTimeDiffVsPlan = (actual?: string | null, target?: string | null) =>
   if (actualMinutes == null || targetMinutes == null) {
     return NO_PLAN_TEXT
   }
-  let diff = Math.abs(actualMinutes - targetMinutes)
-  diff = Math.min(diff, 24 * 60 - diff)
+  let diff = actualMinutes - targetMinutes
+  if (diff > 720) diff -= 1440
+  if (diff < -720) diff += 1440
   const diffHours = diff / 60
-  if (diffHours < 0.05) return "±0h vs plan"
-  return `±${diffHours.toFixed(1)}h vs plan`
+  return formatSignedHourDiff(diffHours)
 }
 
 const formatWeekLabel = (weekStart?: string) => {
