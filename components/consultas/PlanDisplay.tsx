@@ -67,21 +67,39 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
     return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`
   }
 
+  type TimelineEvent = {
+    id: string
+    time: string
+    type: 'bedtime' | 'wake' | 'meal' | 'activity' | 'nap'
+    title: string
+    description: string
+    duration?: number
+    icon: React.ReactNode
+  }
+
+  const getStableMealId = (meal: any, index: number, time: string) => {
+    if (!meal) return `meal-${index}-${time}`
+    if (meal.id) return meal.id
+    if (meal._id) return `meal-${meal._id}`
+    return `meal-${index}-${time}`
+  }
+
+  const getStableNapId = (nap: any, index: number, time: string) => {
+    if (!nap) return `nap-${index}-${time}`
+    if (nap.id) return nap.id
+    if (nap._id) return `nap-${nap._id}`
+    return `nap-${index}-${time}`
+  }
+
   // Crear timeline combinado de todos los eventos del día
   const createTimeline = () => {
-    const events: Array<{
-      time: string
-      type: 'bedtime' | 'wake' | 'meal' | 'activity' | 'nap'
-      title: string
-      description: string
-      duration?: number
-      icon: React.ReactNode
-    }> = []
+    const events: TimelineEvent[] = []
 
     // Agregar hora de despertar
     const wakeT = normalizeTime(plan.schedule?.wakeTime)
     if (wakeT) {
       events.push({
+        id: 'wakeTime',
         time: wakeT,
         type: 'wake',
         title: 'Despertar',
@@ -91,11 +109,12 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
     }
 
     // Agregar comidas
-    (plan.schedule?.meals || []).forEach((meal: any) => {
+    (plan.schedule?.meals || []).forEach((meal: any, index: number) => {
       const mt = normalizeTime(meal?.time)
       if (!mt) return
       const type = typeof meal?.type === 'string' ? meal.type : 'comida'
       events.push({
+        id: getStableMealId(meal, index, mt),
         time: mt,
         type: 'meal',
         title: type && type.length ? type.charAt(0).toUpperCase() + type.slice(1) : 'Comida',
@@ -107,10 +126,11 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
 
     // Agregar siestas
     if (plan.schedule?.naps) {
-      plan.schedule.naps.forEach((nap: any) => {
+      plan.schedule.naps.forEach((nap: any, index: number) => {
         const nt = normalizeTime(nap?.time || nap?.start)
         if (!nt) return
         events.push({
+          id: getStableNapId(nap, index, nt),
           time: nt,
           type: 'nap',
           title: 'Siesta',
@@ -125,6 +145,7 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
     const bedT = normalizeTime(plan.schedule?.bedtime)
     if (bedT) {
       events.push({
+        id: 'bedtime',
         time: bedT,
         type: 'bedtime',
         title: 'Hora de dormir',
@@ -143,7 +164,24 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
       })
   }
 
-  const timeline = createTimeline()
+  const applyManualOrder = (events: TimelineEvent[]) => {
+    const order = plan.schedule?.timelineOrder
+    if (!order?.length) return events
+    const map = new Map(events.map(event => [event.id, event]))
+    const ordered: TimelineEvent[] = []
+    order.forEach(id => {
+      const event = map.get(id)
+      if (event) ordered.push(event)
+    })
+    events.forEach(event => {
+      if (!order.includes(event.id)) {
+        ordered.push(event)
+      }
+    })
+    return ordered
+  }
+
+  const timeline = applyManualOrder(createTimeline())
 
   return (
     <div className="space-y-6">
@@ -210,7 +248,7 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
             <CardContent>
               <div className="space-y-4">
                 {timeline.map((event, index) => (
-                  <div key={`${event.time}-${event.type}-${index}`} className="flex items-start gap-4">
+                  <div key={event.id} className="flex items-start gap-4">
                     {/* Timeline visual */}
                     <div className="flex flex-col items-center">
                       <div className={`

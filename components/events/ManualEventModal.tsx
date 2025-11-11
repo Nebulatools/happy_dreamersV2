@@ -697,7 +697,7 @@ export function ManualEventModal({
                   type="text"
                   value={activityDescription}
                   onChange={(e) => setActivityDescription(e.target.value)}
-                  placeholder="Ej: Fiesta de cumpleaños, visita al doctor, paseo..."
+                  placeholder="Ej: Fiesta de cumpleaños, visita con tu coach del sueño, paseo..."
                   maxLength={100}
                 />
               </div>

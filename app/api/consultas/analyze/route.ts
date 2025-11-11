@@ -1,5 +1,5 @@
 // API para análisis integral de consultas
-// Analiza conversación completa (padres + médico) para extraer acuerdos realistas
+// Analiza la conversación completa (padres + coach del sueño) para extraer acuerdos realistas
 
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
@@ -325,14 +325,14 @@ async function generateTranscriptOnlyAnalysis({
   transcript: string
   childData: any
 }) {
-  const systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y desarrollo infantil.
+  const systemPrompt = `Eres Mariana, coach del sueño infantil y desarrollo infantil.
 
 INFORMACIÓN BÁSICA DEL NIÑO:
 - Nombre: ${childData.firstName} ${childData.lastName}
 - Edad: ${childData.ageInMonths} meses
 
 INSTRUCCIONES PARA ANÁLISIS INTEGRAL:
-Analiza TODO EL TRANSCRIPT de la consulta considerando la conversación COMPLETA entre padres y médico para extraer acuerdos realistas y viables que serán usados para actualizar el plan del niño.
+Analiza TODO EL TRANSCRIPT de la consulta considerando la conversación COMPLETA entre los padres y la coach del sueño para extraer acuerdos realistas y viables que serán usados para actualizar el plan del niño.
 
 ANALIZA LA CONVERSACIÓN COMPLETA:
 
@@ -342,14 +342,14 @@ ANALIZA LA CONVERSACIÓN COMPLETA:
    - Progreso logrado desde la última consulta
    - Dificultades persistentes
 
-✅ RECOMENDACIONES DEL MÉDICO:
-   - Cambios propuestos por el doctor
+✅ RECOMENDACIONES DE LA COACH DEL SUEÑO:
+   - Cambios propuestos por la coach del sueño
    - Nuevas estrategias sugeridas
    - Ajustes en rutinas recomendados
 
 ✅ ACUERDOS Y COMPROMISOS REALISTAS:
    - Horarios FINALES acordados en la conversación
-   - Compromisos prácticos entre doctor y padres
+   - Compromisos prácticos entre la coach y los padres
    - Soluciones viables para la familia
    - Consideración de limitaciones familiares
 
@@ -362,7 +362,7 @@ ANALIZA LA CONVERSACIÓN COMPLETA:
    - Cualquier otro horario acordado en la conversación
 
 ⚠️ REGLAS CRÍTICAS:
-- Analiza TODA la conversación, no solo las recomendaciones del doctor
+- Analiza TODA la conversación, no solo las recomendaciones de la coach del sueño
 - Prioriza los ACUERDOS FINALES sobre recomendaciones iniciales
 - Considera limitaciones prácticas mencionadas por los padres
 - Si hay negociación, extrae el RESULTADO FINAL acordado
@@ -370,14 +370,14 @@ ANALIZA LA CONVERSACIÓN COMPLETA:
 - Si no hay acuerdo claro, menciona que necesita clarificación
 
 EJEMPLO DE ANÁLISIS INTEGRAL:
-- Si doctor dice "8:15 AM" y padres no objetan → usar 8:15 AM
-- Si doctor dice "8:15 AM" pero padre dice "imposible por trabajo" → buscar el compromiso acordado
+- Si la coach del sueño dice "8:15 AM" y los padres no objetan → usar 8:15 AM
+- Si la coach del sueño dice "8:15 AM" pero el padre dice "imposible por trabajo" → buscar el compromiso acordado
 - Siempre basarse en lo que REALMENTE es factible según la conversación
 
 Responde en el siguiente formato JSON:
 {
-  "analysis": "Análisis integral de toda la conversación: situación actual reportada por los padres, progreso logrado, dificultades persistentes, recomendaciones del médico, y los acuerdos finales alcanzados. Incluye horarios específicos acordados y la viabilidad práctica de los cambios. Escribe en párrafos normales.",
-  "recommendations": "Recomendaciones finales basadas en los ACUERDOS COMPLETOS de la conversación, incluyendo todos los horarios VIABLES acordados entre doctor y padres (despertar, dormir, comidas, etc.) con horarios exactos. Considera limitaciones prácticas y soluciones realistas. Escribe en párrafos normales."
+  "analysis": "Análisis integral de toda la conversación: situación actual reportada por los padres, progreso logrado, dificultades persistentes, recomendaciones de la coach del sueño, y los acuerdos finales alcanzados. Incluye horarios específicos acordados y la viabilidad práctica de los cambios. Escribe en párrafos normales.",
+  "recommendations": "Recomendaciones finales basadas en los ACUERDOS COMPLETOS de la conversación, incluyendo todos los horarios VIABLES acordados entre la coach del sueño y los padres (despertar, dormir, comidas, etc.) con horarios exactos. Considera limitaciones prácticas y soluciones realistas. Escribe en párrafos normales."
 }`
 
   try {
@@ -390,16 +390,16 @@ Responde en el siguiente formato JSON:
         },
         {
           role: "user",
-          content: `TRANSCRIPT COMPLETO DE LA CONSULTA MÉDICA:
+          content: `TRANSCRIPT COMPLETO DE LA CONSULTA CON LA COACH DEL SUEÑO:
 
 ${transcript}
 
-Analiza TODA esta conversación entre padres y médico para extraer:
+Analiza TODA esta conversación entre los padres y la coach del sueño para extraer:
 1. Situación actual reportada por los padres
 2. Progreso y dificultades mencionadas
-3. Recomendaciones del médico
+3. Recomendaciones de la coach del sueño
 4. Acuerdos finales y horarios VIABLES acordados en la conversación
-5. Compromisos realistas alcanzados entre doctor y familia
+5. Compromisos realistas alcanzados entre la coach del sueño y la familia
 
 Enfócate en los RESULTADOS FINALES de la conversación, no solo en recomendaciones iniciales.`,
         },

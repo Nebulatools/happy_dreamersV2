@@ -8,7 +8,8 @@ import { useSleepData } from "@/hooks/use-sleep-data"
 import { calculateMorningWakeTime } from "@/lib/sleep-calculations"
 import { aggregateDailySleep } from "@/lib/sleep-calculations"
 import { useEventsCache } from "@/hooks/use-events-cache"
-import { differenceInMinutes, parseISO, startOfWeek, format } from "date-fns"
+import { differenceInMinutes, parseISO, startOfWeek, format, addDays } from "date-fns"
+import { es } from "date-fns/locale"
 
 interface EnhancedSleepMetricsCardProps {
   childId: string
@@ -89,7 +90,11 @@ const formatTimeDiffVsPlan = (actual?: string | null, target?: string | null) =>
 const formatWeekLabel = (weekStart?: string) => {
   if (!weekStart) return ""
   try {
-    return `Semana del ${format(parseISO(weekStart), "dd/MM")}`
+    const start = parseISO(weekStart)
+    const end = addDays(start, 6)
+    const formatChunk = (date: Date) =>
+      format(date, "EEEE d 'de' MMM", { locale: es })
+    return `${formatChunk(start)} a ${formatChunk(end)}`
   } catch {
     return ""
   }
@@ -572,7 +577,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
                   </div>
                 )}
                 <p className="text-xs text-gray-500">
-                  Basado en {weeksWithData} {weeksWithData === 1 ? "semana con datos" : "semanas con datos"} dentro de los últimos {breakdown.daysInPeriod} días.
+                  Datos tomados de {weeksWithData === 1 ? "1 semana disponible" : `${weeksWithData} semanas disponibles`} registradas durante los últimos {breakdown.daysInPeriod} días.
                 </p>
               </div>
             </>

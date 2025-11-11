@@ -194,7 +194,7 @@ export function ExtraActivityModal({
               id="activity-description"
               value={activityDescription}
               onChange={(e) => setActivityDescription(e.target.value)}
-              placeholder="Ej: Fiesta de cumpleaños, visita al doctor, paseo..."
+              placeholder="Ej: Fiesta de cumpleaños, visita con tu coach del sueño, paseo..."
               className="w-full"
               autoFocus
             />

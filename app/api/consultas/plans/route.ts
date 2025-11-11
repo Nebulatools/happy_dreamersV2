@@ -1190,8 +1190,8 @@ BUSCA Y EXTRAE HORARIOS ACORDADOS PARA:
 6. Cualquier otro horario acordado
 
 EJEMPLO DE ANÁLISIS CORRECTO:
-- Doctor dice "desayuno a las 8:15 AM" y padres no objetan → extraer "08:15"
-- Doctor dice "8:15 AM" pero padre dice "imposible" → buscar el compromiso acordado
+- La coach del sueño dice "desayuno a las 8:15 AM" y padres no objetan → extraer "08:15"
+- La coach del sueño dice "8:15 AM" pero el padre dice "imposible" → buscar el compromiso acordado
 - Si no hay horario específico acordado → devolver null
 
 Si NO se acuerda un horario específico en la conversación, devuelve null para ese campo.

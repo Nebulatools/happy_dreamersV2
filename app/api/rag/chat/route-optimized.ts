@@ -6,7 +6,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
-import { getDoctorSystemPrompt } from "@/lib/rag/doctor-personality"
+import { getSleepCoachSystemPrompt } from "@/lib/rag/sleep-coach-personality"
 import { differenceInDays, differenceInMinutes, parseISO, subDays } from "date-fns"
 import { z } from "zod"
 import { createLogger } from "@/lib/logger"
@@ -199,7 +199,7 @@ export async function POST(req: NextRequest) {
       })
       
       const messages = [
-        new SystemMessage(getDoctorSystemPrompt()),
+        new SystemMessage(getSleepCoachSystemPrompt()),
         ...conversationHistory.map((msg: any) => 
           msg.role === 'user' 
             ? new HumanMessage(msg.content)
@@ -231,7 +231,7 @@ export async function POST(req: NextRequest) {
       })
       
       const messages = [
-        new SystemMessage(getDoctorSystemPrompt()),
+        new SystemMessage(getSleepCoachSystemPrompt()),
         ...conversationHistory.map((msg: any) => 
           msg.role === 'user' 
             ? new HumanMessage(msg.content)
@@ -263,7 +263,7 @@ export async function POST(req: NextRequest) {
       })
       
       const messages = [
-        new SystemMessage(getDoctorSystemPrompt()),
+        new SystemMessage(getSleepCoachSystemPrompt()),
         ...conversationHistory.map((msg: any) => 
           msg.role === 'user' 
             ? new HumanMessage(msg.content)

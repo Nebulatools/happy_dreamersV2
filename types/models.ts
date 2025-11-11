@@ -361,6 +361,7 @@ export interface ChildPlan {
     bedtime: string      // "20:00"
     wakeTime: string     // "07:00" 
     meals: Array<{
+      id?: string
       time: string       // "12:00"
       type: string       // "almuerzo", "cena", "desayuno", "merienda"
       description: string
@@ -372,10 +373,12 @@ export interface ChildPlan {
       description: string
     }>
     naps?: Array<{
+      id?: string
       time: string       // "14:00"
       duration: number   // minutos
       description?: string
     }>
+    timelineOrder?: string[] // orden manual para la vista del timeline
   }
   
   // Detalles del plan

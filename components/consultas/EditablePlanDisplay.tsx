@@ -3,7 +3,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, type DragEvent } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -34,7 +34,8 @@ import {
   Save,
   X,
   Plus,
-  Trash2
+  Trash2,
+  GripVertical
 } from "lucide-react"
 import { ChildPlan } from "@/types/models"
 
@@ -54,10 +55,18 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     duration: 60,
     description: "Siesta de la tarde"
   })
+  const [timelineOrder, setTimelineOrder] = useState<string[]>([])
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
 
   // Reiniciar cuando cambia el plan
   useEffect(() => {
-    setEditedPlan(plan)
+    if (!plan) return
+    const clonedPlan = clonePlan(plan)
+    const events = createTimeline(clonedPlan)
+    const initialOrder = deriveOrder(plan.schedule?.timelineOrder, events.map(event => event.id))
+    setEditedPlan(clonedPlan)
+    setTimelineOrder(initialOrder)
     setIsEditing(false)
     setHasChanges(false)
   }, [plan])
@@ -105,24 +114,176 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`
   }
 
-  // Crear timeline combinado de todos los eventos del día
-  const createTimeline = () => {
-    const events: Array<{
-      time: string
-      type: 'bedtime' | 'wake' | 'meal' | 'activity' | 'nap'
-      title: string
-      description: string
-      duration?: number
-      icon: React.ReactNode
-      index?: number
-      mealIndex?: number
-      napIndex?: number
-    }> = []
+  const generateEventId = (prefix: string) => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return `${prefix}-${crypto.randomUUID()}`
+    }
+    return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  }
 
-    // Agregar hora de despertar
-    const wakeT = normalizeTime(editedPlan.schedule?.wakeTime)
+  const ensureMealId = (meal: any, fallback: string, persist = true) => {
+    if (!meal) return fallback || generateEventId('meal')
+    if (meal.id) return meal.id
+    if (meal._id) {
+      if (persist) {
+        meal.id = `meal-${meal._id}`
+        return meal.id
+      }
+      return `meal-${meal._id}`
+    }
+    if (!persist) {
+      return fallback || generateEventId('meal')
+    }
+    meal.id = generateEventId('meal')
+    return meal.id
+  }
+
+  const ensureNapId = (nap: any, fallback: string, persist = true) => {
+    if (!nap) return fallback || generateEventId('nap')
+    if (nap.id) return nap.id
+    if (nap._id) {
+      if (persist) {
+        nap.id = `nap-${nap._id}`
+        return nap.id
+      }
+      return `nap-${nap._id}`
+    }
+    if (!persist) {
+      return fallback || generateEventId('nap')
+    }
+    nap.id = generateEventId('nap')
+    return nap.id
+  }
+
+  const deriveOrder = (savedOrder: string[] | undefined | null, events: string[]) => {
+    if (savedOrder && savedOrder.length) {
+      const sanitized = savedOrder.filter(id => events.includes(id))
+      const missing = events.filter(id => !sanitized.includes(id))
+      return [...sanitized, ...missing]
+    }
+    return events
+  }
+
+  const arraysEqual = (a: string[] = [], b: string[] = []) => {
+    if (a.length !== b.length) return false
+    return a.every((value, index) => value === b[index])
+  }
+
+  const clonePlan = (planData: ChildPlan): ChildPlan => {
+    try {
+      if (typeof structuredClone === 'function') {
+        return structuredClone(planData)
+      }
+    } catch {
+      // structuredClone not available, fallback below
+    }
+    return JSON.parse(JSON.stringify(planData))
+  }
+
+  const persistTimelineOrder = (newOrder: string[]) => {
+    setTimelineOrder(newOrder)
+    setEditedPlan(prev => ({
+      ...prev,
+      schedule: {
+        ...prev.schedule,
+        timelineOrder: newOrder
+      }
+    }))
+    setHasChanges(true)
+  }
+
+  const END_DROP_ID = "__timeline_end__"
+
+  const getSanitizedOrder = () => {
+    const ids = timelineEvents.map(event => event.id)
+    const baseOrder = (timelineOrder.length ? timelineOrder : ids).filter(id => ids.includes(id))
+    ids.forEach(id => {
+      if (!baseOrder.includes(id)) {
+        baseOrder.push(id)
+      }
+    })
+    return baseOrder
+  }
+
+  const reorderTimeline = (sourceId: string, targetId: string | null) => {
+    if (!sourceId) return
+    const currentOrder = getSanitizedOrder()
+    const fromIndex = currentOrder.indexOf(sourceId)
+    if (fromIndex === -1) return
+    currentOrder.splice(fromIndex, 1)
+    if (!targetId || targetId === END_DROP_ID) {
+      currentOrder.push(sourceId)
+    } else {
+      let toIndex = currentOrder.indexOf(targetId)
+      if (toIndex === -1) {
+        currentOrder.push(sourceId)
+      } else {
+        currentOrder.splice(toIndex, 0, sourceId)
+      }
+    }
+    persistTimelineOrder(currentOrder)
+  }
+
+  const handleDragStart = (e: DragEvent<HTMLDivElement>, id: string) => {
+    if (!isEditing) return
+    const target = e.target as HTMLElement
+    if (target?.closest("input, textarea, select, button, [data-prevent-drag]")) {
+      e.preventDefault()
+      return
+    }
+    setDraggingId(id)
+    setDragOverId(id)
+    e.dataTransfer.effectAllowed = "move"
+    try {
+      e.dataTransfer.setData("text/plain", id)
+    } catch {
+      // Algunos navegadores lanzan al usar inputs; ignoramos
+    }
+  }
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>, id?: string) => {
+    if (!isEditing) return
+    e.preventDefault()
+    if (id) {
+      setDragOverId(id)
+    }
+    e.dataTransfer.dropEffect = "move"
+  }
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>, targetId: string | null) => {
+    if (!isEditing) return
+    e.preventDefault()
+    const dataId = draggingId || e.dataTransfer.getData("text/plain")
+    reorderTimeline(dataId, targetId)
+    setDraggingId(null)
+    setDragOverId(null)
+  }
+
+  const handleDragEnd = () => {
+    setDraggingId(null)
+    setDragOverId(null)
+  }
+
+  type TimelineEvent = {
+    id: string
+    time: string
+    type: 'bedtime' | 'wake' | 'meal' | 'activity' | 'nap'
+    title: string
+    description: string
+    duration?: number
+    icon: React.ReactNode
+    mealIndex?: number
+    napIndex?: number
+  }
+
+  const createTimeline = (planData: ChildPlan, persistIds = true) => {
+    const events: TimelineEvent[] = []
+    const schedule = planData?.schedule || {}
+
+    const wakeT = normalizeTime(schedule?.wakeTime)
     if (wakeT) {
       events.push({
+        id: 'wakeTime',
         time: wakeT,
         type: 'wake',
         title: 'Despertar',
@@ -131,12 +292,14 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
       })
     }
 
-    // Agregar comidas
-    (editedPlan.schedule?.meals || []).forEach((meal, index) => {
+    ;(schedule?.meals || []).forEach((meal: any, index: number) => {
       const mt = normalizeTime(meal?.time as any)
       if (!mt) return
       const type = typeof meal?.type === 'string' ? meal.type : 'comida'
+      const fallbackId = `meal-${meal?._id || `${index}-${mt}`}`
+      const id = ensureMealId(meal, fallbackId, persistIds)
       events.push({
+        id,
         time: mt,
         type: 'meal',
         title: type && type.length ? type.charAt(0).toUpperCase() + type.slice(1) : 'Comida',
@@ -146,13 +309,15 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
       })
     })
 
-    // Agregar siestas
-    if (editedPlan.schedule?.naps) {
-      editedPlan.schedule.naps.forEach((nap: any, index: number) => {
+    if (schedule?.naps) {
+      schedule.naps.forEach((nap: any, index: number) => {
         const napTime = normalizeTime(nap?.time || nap?.start)
         if (!napTime) return
         const dur = typeof nap?.duration === 'number' ? nap.duration : undefined
+        const fallbackId = `nap-${nap?._id || `${index}-${napTime}`}`
+        const id = ensureNapId(nap, fallbackId, persistIds)
         events.push({
+          id,
           time: napTime,
           type: 'nap',
           title: 'Siesta',
@@ -164,10 +329,10 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
       })
     }
 
-    // Agregar hora de dormir
-    const bedT = normalizeTime(editedPlan.schedule?.bedtime)
+    const bedT = normalizeTime(schedule?.bedtime)
     if (bedT) {
       events.push({
+        id: 'bedtime',
         time: bedT,
         type: 'bedtime',
         title: 'Hora de dormir',
@@ -176,7 +341,6 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
       })
     }
 
-    // Ordenar por hora
     return events
       .filter(e => typeof e.time === 'string')
       .sort((a, b) => {
@@ -185,6 +349,51 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
         return ah * 60 + am - (bh * 60 + bm)
       })
   }
+
+  const timelineEvents = useMemo(() => createTimeline(editedPlan), [editedPlan])
+
+  const orderedTimeline = useMemo(() => {
+    if (!timelineOrder.length) {
+      return timelineEvents
+    }
+    const byId = new Map(timelineEvents.map(event => [event.id, event]))
+    const ordered: TimelineEvent[] = []
+    timelineOrder.forEach(id => {
+      const event = byId.get(id)
+      if (event) ordered.push(event)
+    })
+    timelineEvents.forEach(event => {
+      if (!timelineOrder.includes(event.id)) {
+        ordered.push(event)
+      }
+    })
+    return ordered
+  }, [timelineEvents, timelineOrder])
+
+  useEffect(() => {
+    if (!timelineEvents.length) return
+    const ids = timelineEvents.map(event => event.id)
+    setTimelineOrder(prevOrder => {
+      const sanitized = prevOrder.filter(id => ids.includes(id))
+      const missing = ids.filter(id => !sanitized.includes(id))
+      if (!missing.length && sanitized.length === prevOrder.length) {
+        return prevOrder
+      }
+      const newOrder = [...sanitized, ...missing]
+      setEditedPlan(prev => {
+        if (!prev) return prev
+        if (arraysEqual(prev.schedule?.timelineOrder || [], newOrder)) return prev
+        return {
+          ...prev,
+          schedule: {
+            ...prev.schedule,
+            timelineOrder: newOrder
+          }
+        }
+      })
+      return newOrder
+    })
+  }, [timelineEvents])
 
   // Manejar cambios en la rutina diaria
   const handleScheduleChange = (field: string, value: string) => {
@@ -198,12 +407,42 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     setHasChanges(true)
   }
 
+  const clearScheduleField = (field: 'wakeTime' | 'bedtime') => {
+    const updatedPlan = { ...editedPlan }
+    if (updatedPlan.schedule[field]) {
+      updatedPlan.schedule[field] = ""
+      const targetId = field === 'wakeTime' ? 'wakeTime' : 'bedtime'
+      const newOrder = getSanitizedOrder().filter(id => id !== targetId)
+      updatedPlan.schedule.timelineOrder = newOrder
+      setTimelineOrder(newOrder)
+      setEditedPlan(updatedPlan)
+      setHasChanges(true)
+    }
+  }
+
   // Manejar cambios en las comidas
   const handleMealChange = (index: number, field: 'time' | 'description', value: string) => {
     const updatedPlan = { ...editedPlan }
     updatedPlan.schedule.meals[index][field] = value
     setEditedPlan(updatedPlan)
     setHasChanges(true)
+  }
+
+  // Eliminar comida
+  const removeMeal = (index: number) => {
+    const updatedPlan = { ...editedPlan }
+    if (updatedPlan.schedule.meals?.length) {
+      const removedMeal = updatedPlan.schedule.meals[index]
+      const removedId = removedMeal?.id
+      updatedPlan.schedule.meals.splice(index, 1)
+      if (removedId) {
+        const newOrder = getSanitizedOrder().filter(id => id !== removedId)
+        updatedPlan.schedule.timelineOrder = newOrder
+        setTimelineOrder(newOrder)
+      }
+      setEditedPlan(updatedPlan)
+      setHasChanges(true)
+    }
   }
 
   // Manejar cambios en las siestas
@@ -239,8 +478,13 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     if (!updatedPlan.schedule.naps) {
       updatedPlan.schedule.naps = []
     }
-    updatedPlan.schedule.naps.push({ ...newNap })
+    const napToAdd = { ...newNap }
+    const napId = ensureNapId(napToAdd, `nap-${updatedPlan.schedule.naps.length}-${newNap.time}`)
+    updatedPlan.schedule.naps.push(napToAdd)
+    const nextOrder = [...getSanitizedOrder(), napId]
+    updatedPlan.schedule.timelineOrder = nextOrder
     setEditedPlan(updatedPlan)
+    setTimelineOrder(nextOrder)
     setHasChanges(true)
     setShowNapModal(false)
     
@@ -257,7 +501,14 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
   const removeNap = (index: number) => {
     const updatedPlan = { ...editedPlan }
     if (updatedPlan.schedule.naps) {
+      const removedNap = updatedPlan.schedule.naps[index]
+      const removedId = removedNap?.id
       updatedPlan.schedule.naps.splice(index, 1)
+      if (removedId) {
+        const newOrder = getSanitizedOrder().filter(id => id !== removedId)
+        updatedPlan.schedule.timelineOrder = newOrder
+        setTimelineOrder(newOrder)
+      }
       setEditedPlan(updatedPlan)
       setHasChanges(true)
     }
@@ -369,12 +620,14 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
 
   // Cancelar edición
   const handleCancel = () => {
-    setEditedPlan(plan)
+    const resetPlan = clonePlan(plan)
+    const events = createTimeline(resetPlan)
+    const order = deriveOrder(plan.schedule?.timelineOrder, events.map(event => event.id))
+    setEditedPlan(resetPlan)
+    setTimelineOrder(order)
     setIsEditing(false)
     setHasChanges(false)
   }
-
-  const timeline = createTimeline()
 
   return (
     <div className="space-y-6">
@@ -462,124 +715,200 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {timeline.map((event, index) => (
-                  <div key={`${event.time}-${event.type}-${index}`} className="flex items-start gap-4">
-                    {/* Timeline visual */}
-                    <div className="flex flex-col items-center">
-                      <div className={`
-                        p-2 rounded-full border-2 
-                        ${event.type === 'bedtime' ? 'bg-purple-100 border-purple-500 text-purple-600' :
-                          event.type === 'wake' ? 'bg-yellow-100 border-yellow-500 text-yellow-600' :
-                          event.type === 'meal' ? 'bg-orange-100 border-orange-500 text-orange-600' :
-                          event.type === 'activity' ? 'bg-blue-100 border-blue-500 text-blue-600' :
-                          'bg-indigo-100 border-indigo-500 text-indigo-600'
-                        }
-                      `}>
-                        {event.icon}
-                      </div>
-                      {index < timeline.length - 1 && (
-                        <div className="w-px h-8 bg-border mt-2" />
+                {orderedTimeline.map((event, index) => {
+                  const isDraggingEvent = draggingId === event.id
+                  const showDropIndicator = Boolean(
+                    isEditing && draggingId && dragOverId === event.id && draggingId !== event.id
+                  )
+                  return (
+                    <div key={event.id} className="space-y-2">
+                      {showDropIndicator && (
+                        <div className="h-3 rounded-md border-2 border-dashed border-indigo-300 bg-indigo-50/80 transition-all" />
                       )}
-                    </div>
-
-                    {/* Contenido del evento */}
-                    <div className="flex-1 pb-4">
-                      {isEditing ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="time"
-                              value={
-                                event.type === 'wake' ? editedPlan.schedule.wakeTime :
-                                event.type === 'bedtime' ? editedPlan.schedule.bedtime :
-                                event.type === 'meal' && event.mealIndex !== undefined ? 
-                                  editedPlan.schedule.meals[event.mealIndex].time :
-                                event.type === 'nap' && event.napIndex !== undefined && editedPlan.schedule.naps ? 
-                                  editedPlan.schedule.naps[event.napIndex].time : event.time
-                              }
-                              onChange={(e) => {
-                                if (event.type === 'wake') {
-                                  handleScheduleChange('wakeTime', e.target.value)
-                                } else if (event.type === 'bedtime') {
-                                  handleScheduleChange('bedtime', e.target.value)
-                                } else if (event.type === 'meal' && event.mealIndex !== undefined) {
-                                  handleMealChange(event.mealIndex, 'time', e.target.value)
-                                } else if (event.type === 'nap' && event.napIndex !== undefined) {
-                                  handleNapChange(event.napIndex, 'time', e.target.value)
-                                }
-                              }}
-                              className="w-32"
-                            />
-                            <Badge variant="outline">
-                              {event.title}
-                            </Badge>
-                            {event.type === 'nap' && event.napIndex !== undefined && (
-                              <>
-                                <Input
-                                  type="number"
-                                  value={editedPlan.schedule.naps?.[event.napIndex]?.duration || 60}
-                                  onChange={(e) => handleNapChange(event.napIndex!, 'duration', e.target.value)}
-                                  className="w-20"
-                                  min="1"
-                                  max="180"
-                                />
-                                <span className="text-sm text-muted-foreground">min</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeNap(event.napIndex!)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </>
+                      <div
+                        className={`
+                          flex items-start gap-4 rounded-md transition-colors border border-transparent
+                          ${isEditing ? 'cursor-grab active:cursor-grabbing' : ''}
+                          ${isDraggingEvent ? 'ring-2 ring-indigo-300 bg-indigo-50/60 shadow-sm' : ''}
+                          ${!isDraggingEvent && dragOverId === event.id ? 'bg-muted/40 border-indigo-100' : ''}
+                        `}
+                        draggable={isEditing}
+                        onDragStart={(e) => handleDragStart(e, event.id)}
+                        onDragOver={(e) => handleDragOver(e, event.id)}
+                        onDragEnter={() => isEditing && setDragOverId(event.id)}
+                        onDragEnd={handleDragEnd}
+                        onDrop={(e) => handleDrop(e, event.id)}
+                      >
+                        {/* Timeline visual */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex flex-col items-center">
+                            <div className={`
+                            p-2 rounded-full border-2 
+                            ${event.type === 'bedtime' ? 'bg-purple-100 border-purple-500 text-purple-600' :
+                              event.type === 'wake' ? 'bg-yellow-100 border-yellow-500 text-yellow-600' :
+                              event.type === 'meal' ? 'bg-orange-100 border-orange-500 text-orange-600' :
+                              event.type === 'activity' ? 'bg-blue-100 border-blue-500 text-blue-600' :
+                              'bg-indigo-100 border-indigo-500 text-indigo-600'
+                            }
+                          `}>
+                              {event.icon}
+                            </div>
+                            {index < orderedTimeline.length - 1 && (
+                              <div className="w-px h-8 bg-border mt-2" />
                             )}
                           </div>
-                          {(event.type === 'meal' && event.mealIndex !== undefined) || 
-                           (event.type === 'nap' && event.napIndex !== undefined) ? (
-                            <Input
-                              value={
-                                event.type === 'meal' && event.mealIndex !== undefined ? 
-                                  editedPlan.schedule.meals[event.mealIndex].description :
-                                event.type === 'nap' && event.napIndex !== undefined && editedPlan.schedule.naps ? 
-                                  editedPlan.schedule.naps[event.napIndex].description || '' : ''
-                              }
-                              onChange={(e) => {
-                                if (event.type === 'meal' && event.mealIndex !== undefined) {
-                                  handleMealChange(event.mealIndex, 'description', e.target.value)
-                                } else if (event.type === 'nap' && event.napIndex !== undefined) {
-                                  handleNapChange(event.napIndex, 'description', e.target.value)
-                                }
-                              }}
-                              placeholder="Descripción"
-                              className="text-sm"
-                            />
-                          ) : (
-                            <p className="text-sm text-muted-foreground">{event.description}</p>
+                          {isEditing && (
+                            <div
+                              className="rounded-md border border-dashed border-transparent/0 p-1 text-muted-foreground pointer-events-none select-none"
+                            >
+                              <GripVertical className="h-4 w-4" />
+                            </div>
                           )}
                         </div>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold text-lg">
-                              {formatTime(event.time)}
-                            </span>
-                            <Badge variant="outline">
-                              {event.title}
-                            </Badge>
-                            {event.duration && (
-                              <Badge variant="secondary">
-                                {event.duration} min
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-muted-foreground">
-                            {event.description}
-                          </p>
-                        </>
-                      )}
+
+                        {/* Contenido del evento */}
+                        <div className="flex-1 pb-4">
+                          {isEditing ? (
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Input
+                                  type="time"
+                                  value={
+                                    event.type === 'wake' ? editedPlan.schedule.wakeTime :
+                                    event.type === 'bedtime' ? editedPlan.schedule.bedtime :
+                                    event.type === 'meal' && event.mealIndex !== undefined ? 
+                                      editedPlan.schedule.meals[event.mealIndex].time :
+                                    event.type === 'nap' && event.napIndex !== undefined && editedPlan.schedule.naps ? 
+                                      editedPlan.schedule.naps[event.napIndex].time : event.time
+                                  }
+                                  onChange={(e) => {
+                                    if (event.type === 'wake') {
+                                      handleScheduleChange('wakeTime', e.target.value)
+                                    } else if (event.type === 'bedtime') {
+                                      handleScheduleChange('bedtime', e.target.value)
+                                    } else if (event.type === 'meal' && event.mealIndex !== undefined) {
+                                      handleMealChange(event.mealIndex, 'time', e.target.value)
+                                    } else if (event.type === 'nap' && event.napIndex !== undefined) {
+                                      handleNapChange(event.napIndex, 'time', e.target.value)
+                                    }
+                                  }}
+                                  className="w-32"
+                                />
+                                <Badge variant="outline">
+                                  {event.title}
+                                </Badge>
+                                {event.type === 'wake' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => clearScheduleField('wakeTime')}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                )}
+                                {event.type === 'bedtime' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => clearScheduleField('bedtime')}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                )}
+                                {event.type === 'meal' && event.mealIndex !== undefined && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeMeal(event.mealIndex!)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                )}
+                                {event.type === 'nap' && event.napIndex !== undefined && (
+                                  <>
+                                    <Input
+                                      type="number"
+                                      value={editedPlan.schedule.naps?.[event.napIndex]?.duration || 60}
+                                      onChange={(e) => handleNapChange(event.napIndex!, 'duration', e.target.value)}
+                                      className="w-20"
+                                      min="1"
+                                      max="180"
+                                    />
+                                    <span className="text-sm text-muted-foreground">min</span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => removeNap(event.napIndex!)}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                              {(event.type === 'meal' && event.mealIndex !== undefined) || 
+                               (event.type === 'nap' && event.napIndex !== undefined) ? (
+                                <Input
+                                  value={
+                                    event.type === 'meal' && event.mealIndex !== undefined ? 
+                                      editedPlan.schedule.meals[event.mealIndex].description :
+                                    event.type === 'nap' && event.napIndex !== undefined && editedPlan.schedule.naps ? 
+                                      editedPlan.schedule.naps[event.napIndex].description || '' : ''
+                                  }
+                                  onChange={(e) => {
+                                    if (event.type === 'meal' && event.mealIndex !== undefined) {
+                                      handleMealChange(event.mealIndex, 'description', e.target.value)
+                                    } else if (event.type === 'nap' && event.napIndex !== undefined) {
+                                      handleNapChange(event.napIndex, 'description', e.target.value)
+                                    }
+                                  }}
+                                  placeholder="Descripción"
+                                  className="text-sm"
+                                />
+                              ) : (
+                                <p className="text-sm text-muted-foreground">{event.description}</p>
+                              )}
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-semibold text-lg">
+                                  {formatTime(event.time)}
+                                </span>
+                                <Badge variant="outline">
+                                  {event.title}
+                                </Badge>
+                                {event.duration && (
+                                  <Badge variant="secondary">
+                                    {event.duration} min
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-muted-foreground">
+                                {event.description}
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
+                  )
+                })}
+
+                {isEditing && orderedTimeline.length > 0 && (
+                  <div
+                    className={`mt-4 h-12 rounded-lg border-2 border-dashed flex items-center justify-center text-xs font-medium transition-colors ${
+                      dragOverId === END_DROP_ID
+                        ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
+                        : 'border-muted-foreground/40 text-muted-foreground hover:border-indigo-200 hover:bg-muted/40'
+                    }`}
+                    onDragOver={(e) => handleDragOver(e, END_DROP_ID)}
+                    onDrop={(e) => handleDrop(e, END_DROP_ID)}
+                    onDragEnter={() => setDragOverId(END_DROP_ID)}
+                    onDragLeave={() => dragOverId === END_DROP_ID && setDragOverId(null)}
+                  >
+                    Suelta aquí para mover este evento al final
                   </div>
-                ))}
+                )}
                 {isEditing && (
                   <Button
                     variant="outline"

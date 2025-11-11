@@ -1,6 +1,6 @@
 import { OpenAI } from "openai"
 import { Document } from "@langchain/core/documents"
-import { getDoctorSystemPrompt } from "./doctor-personality"
+import { getSleepCoachSystemPrompt } from "./sleep-coach-personality"
 
 import { createLogger } from "@/lib/logger"
 
@@ -25,8 +25,8 @@ export class ChatAgent {
       }).join("\n\n---\n\n")
       : ""
 
-    // Usar el prompt de la doctora personalizado
-    const systemPrompt = getDoctorSystemPrompt(context)
+    // Usar el prompt de la coach del sueño personalizado
+    const systemPrompt = getSleepCoachSystemPrompt(context)
 
     const messages = [
       {

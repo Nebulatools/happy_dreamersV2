@@ -34,15 +34,26 @@ interface Child {
   parentId: string
 }
 
+const extractChildrenFromPayload = (payload: any): Child[] => {
+  if (!payload) return []
+  if (Array.isArray(payload)) return payload as Child[]
+  if (Array.isArray(payload.children)) return payload.children as Child[]
+  if (Array.isArray(payload.data?.children)) return payload.data.children as Child[]
+  if (Array.isArray(payload.data)) return payload.data as Child[]
+  return []
+}
+
 export default function PatientsPage() {
   const { toast } = useToast()
   const router = useRouter()
   const [users, setUsers] = useState<User[]>([])
   const [userChildren, setUserChildren] = useState<Record<string, Child[]>>({})
+  const [allChildrenMap, setAllChildrenMap] = useState<Record<string, Child[]>>({})
   const [loading, setLoading] = useState(true)
   const [expandedUser, setExpandedUser] = useState<string | null>(null)
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [childrenPrefetched, setChildrenPrefetched] = useState(false)
 
   // Cargar la lista de usuarios al iniciar
   useEffect(() => {
@@ -80,6 +91,37 @@ export default function PatientsPage() {
     fetchUsers()
   }, [toast])
 
+  useEffect(() => {
+    if (!users.length || childrenPrefetched) return
+    const fetchAllChildren = async () => {
+      try {
+        const response = await fetch('/api/children')
+        if (!response.ok) {
+          throw new Error('Error al precargar niños')
+        }
+        const data = await response.json()
+        const children = extractChildrenFromPayload(data)
+        const grouped = children.reduce<Record<string, Child[]>>((acc, child) => {
+          if (!child?.parentId) return acc
+          if (!acc[child.parentId]) {
+            acc[child.parentId] = []
+          }
+          acc[child.parentId].push(child)
+          return acc
+        }, {})
+        if (Object.keys(grouped).length) {
+          setAllChildrenMap(grouped)
+          setUserChildren(prev => ({ ...grouped, ...prev }))
+        }
+      } catch (error) {
+        logger.warn('No se pudieron precargar los niños', error)
+      } finally {
+        setChildrenPrefetched(true)
+      }
+    }
+    fetchAllChildren()
+  }, [users.length, childrenPrefetched])
+
   // Cargar los niños de un usuario cuando se expande su acordeón
   const loadUserChildren = async (userId: string) => {
     try {
@@ -95,9 +137,14 @@ export default function PatientsPage() {
       }
       
       const data = await response.json()
+      const children = extractChildrenFromPayload(data)
       setUserChildren(prev => ({
         ...prev,
-        [userId]: data
+        [userId]: children
+      }))
+      setAllChildrenMap(prev => ({
+        ...prev,
+        [userId]: children
       }))
     } catch (error) {
       logger.error('Error:', error);
@@ -145,10 +192,17 @@ export default function PatientsPage() {
   }
 
   // Filtrar usuarios basándose en el término de búsqueda
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredUsers = users.filter(user => {
+    if (!searchTerm) return true
+    const search = searchTerm.toLowerCase()
+    const matchesUser = user.name.toLowerCase().includes(search) ||
+      user.email.toLowerCase().includes(search)
+    const children = userChildren[user._id] || allChildrenMap[user._id] || []
+    const matchesChild = children.some(child => 
+      `${child.firstName || ''} ${child.lastName || ''}`.toLowerCase().includes(search)
+    )
+    return matchesUser || matchesChild
+  })
 
   if (loading) {
     return (
@@ -186,7 +240,7 @@ export default function PatientsPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Buscar paciente por nombre o email..."
+                placeholder="Buscar paciente o niño por nombre o email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"

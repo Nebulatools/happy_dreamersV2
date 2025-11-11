@@ -49,6 +49,15 @@ interface PatientQuickSelectorProps {
   onSelectionChange?: (userId: string | null, childId: string | null) => void
 }
 
+const extractChildrenFromPayload = (payload: any): Child[] => {
+  if (!payload) return []
+  if (Array.isArray(payload)) return payload as Child[]
+  if (Array.isArray(payload.children)) return payload.children as Child[]
+  if (Array.isArray(payload.data?.children)) return payload.data.children as Child[]
+  if (Array.isArray(payload.data)) return payload.data as Child[]
+  return []
+}
+
 export function PatientQuickSelector({ 
   className,
   onSelectionChange 
@@ -56,9 +65,11 @@ export function PatientQuickSelector({
   const [open, setOpen] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [userChildren, setUserChildren] = useState<Record<string, Child[]>>({})
+  const [globalChildrenMap, setGlobalChildrenMap] = useState<Record<string, Child[]>>({})
   const [loading, setLoading] = useState(true)
   const [loadingChildren, setLoadingChildren] = useState<string | null>(null)
   const [searchValue, setSearchValue] = useState("")
+  const [childrenPrefetched, setChildrenPrefetched] = useState(false)
   
   const { toast } = useToast()
   const { 
@@ -100,6 +111,38 @@ export function PatientQuickSelector({
     fetchUsers()
   }, [toast])
 
+  // Precargar niños para habilitar búsqueda por nombre del niño
+  useEffect(() => {
+    if (!users.length || childrenPrefetched) return
+    const fetchAllChildren = async () => {
+      try {
+        const response = await fetch("/api/children")
+        if (!response.ok) {
+          throw new Error("Error al precargar niños")
+        }
+        const data = await response.json()
+        const children = extractChildrenFromPayload(data)
+        const grouped = children.reduce<Record<string, Child[]>>((acc, child) => {
+          if (!child?.parentId) return acc
+          if (!acc[child.parentId]) {
+            acc[child.parentId] = []
+          }
+          acc[child.parentId].push(child)
+          return acc
+        }, {})
+        if (Object.keys(grouped).length) {
+          setGlobalChildrenMap(grouped)
+          setUserChildren(prev => ({ ...grouped, ...prev }))
+        }
+      } catch (error) {
+        logger.warn("No se pudieron precargar los niños", error)
+      } finally {
+        setChildrenPrefetched(true)
+      }
+    }
+    fetchAllChildren()
+  }, [users.length, childrenPrefetched])
+
   // ✅ NUEVO: Cargar niños del usuario activo al inicializar (para refresh)
   useEffect(() => {
     if (activeUserId && users.length > 0) {
@@ -121,7 +164,7 @@ export function PatientQuickSelector({
       }
       
       const data = await response.json()
-      const children = Array.isArray(data) ? data : (data?.children || data?.data?.children || [])
+      const children = extractChildrenFromPayload(data)
       
       setUserChildren(prev => ({
         ...prev,
@@ -147,11 +190,17 @@ export function PatientQuickSelector({
     if (!searchValue) return users
     
     const search = searchValue.toLowerCase()
-    return users.filter(user => 
-      user.name.toLowerCase().includes(search) ||
-      user.email.toLowerCase().includes(search)
-    )
-  }, [users, searchValue])
+    const matches = (value?: string) => value?.toLowerCase().includes(search)
+    
+    return users.filter(user => {
+      const matchesUser = matches(user.name) || matches(user.email)
+      const children = userChildren[user._id] || globalChildrenMap[user._id] || []
+      const matchesChild = children.some(child => 
+        `${child.firstName || ''} ${child.lastName || ''}`.toLowerCase().includes(search)
+      )
+      return matchesUser || matchesChild
+    })
+  }, [users, searchValue, userChildren, globalChildrenMap])
 
   // Obtener información del niño activo
   const getActiveChild = () => {
@@ -280,7 +329,7 @@ export function PatientQuickSelector({
       <PopoverContent className="w-[400px] p-0" align="start">
         <Command>
           <CommandInput 
-            placeholder="Buscar paciente por nombre o email..." 
+            placeholder="Buscar paciente o niño por nombre o email..." 
             value={searchValue}
             onValueChange={setSearchValue}
           />
