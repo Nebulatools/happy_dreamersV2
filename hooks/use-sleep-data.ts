@@ -37,6 +37,7 @@ export interface SleepData {
   napHours: number // horas de siestas
   awakePeriods: AwakePeriod[] // períodos despierto
   events: SleepEvent[]
+  recentEvents: any[] // todos los eventos (no solo sleep) dentro del rango
 }
 
 export function useSleepData(childId: string | null, dateRange: string = "7-days") {
@@ -88,10 +89,16 @@ export function useSleepData(childId: string | null, dateRange: string = "7-days
           return ['sleep', 'nap', 'bedtime', 'wake', 'night_waking'].includes(e.eventType) && date >= filterDate
         })
         
+        const recentEvents = allEvents.filter((e: any) => {
+          if (!e.startTime) return false
+          const date = parseISO(e.startTime)
+          return date >= filterDate
+        })
+        
         logger.debug('Eventos procesados', { total: allEvents.length, filtrados: sleepEvents.length })
         
         // Calcular métricas
-        const processedData = processSleepData(sleepEvents, allEvents, dateRange)
+        const processedData = processSleepData(sleepEvents, allEvents, recentEvents, dateRange)
         setData(processedData)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido')
@@ -106,7 +113,7 @@ export function useSleepData(childId: string | null, dateRange: string = "7-days
   return { data, loading, error }
 }
 
-function processSleepData(events: any[], allEvents: any[], dateRange: string = "7-days"): SleepData {
+function processSleepData(events: any[], allEvents: any[], recentEvents: any[], dateRange: string = "7-days"): SleepData {
   if (events.length === 0) {
     return {
       avgSleepDuration: 0,
@@ -122,7 +129,8 @@ function processSleepData(events: any[], allEvents: any[], dateRange: string = "
       nightSleepHours: 0,
       napHours: 0,
       awakePeriods: [],
-      events: []
+      events: [],
+      recentEvents: recentEvents
     }
   }
 
@@ -157,7 +165,8 @@ function processSleepData(events: any[], allEvents: any[], dateRange: string = "
     nightSleepHours: avgSleepDuration,
     napHours: avgNapDuration,
     awakePeriods,
-    events
+    events,
+    recentEvents
   }
 }
 

@@ -182,7 +182,7 @@ export function SleepButton({
       // Está despierto, determinar si es hora de dormir o siesta
       const night = isNightTime()
       return {
-        text: night ? 'SE DURMIÓ' : 'SIESTA',
+        text: night ? 'Dormir' : 'Siesta',
         icon: Moon,
         color: 'from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600',
         action: night ? 'sleep' : 'nap'
@@ -190,8 +190,32 @@ export function SleepButton({
     }
   }
   
-  const config = getButtonConfig()
-  const Icon = config.icon
+  const [optimisticStatus, setOptimisticStatus] = useState<SleepStatus | null>(null)
+
+  const effectiveStatus = optimisticStatus ?? sleepState.status
+
+  useEffect(() => {
+    if (optimisticStatus && sleepState.status === optimisticStatus) {
+      setOptimisticStatus(null)
+    }
+  }, [sleepState.status, optimisticStatus])
+
+  const config = (() => {
+    const base = getButtonConfig()
+    const wouldSleep = base.action === 'start_sleep' || base.action === 'start_nap'
+    if (wouldSleep) {
+      return {
+        ...base,
+        text: base.action === 'start_sleep' ? 'Dormir' : 'Siesta'
+      }
+    }
+    return base
+  })()
+
+  const isSleepingState = effectiveStatus === 'sleeping' || effectiveStatus === 'napping' || effectiveStatus === 'night_waking'
+  const displayText = config.text // Siempre mostrar la acción, no el estado
+  const buttonColor = config.color // Usar el color de la acción
+  const DisplayIcon = config.icon // Usar el icono de la acción
   
   // Debug logging exhaustivo
   useEffect(() => {
@@ -284,18 +308,37 @@ export function SleepButton({
   const handleClick = async () => {
     setIsProcessing(true)
     
+    const applyOptimistic = () => {
+      switch (config.action) {
+        case 'sleep':
+          setOptimisticStatus('sleeping')
+          break
+        case 'nap':
+          setOptimisticStatus('napping')
+          break
+        case 'wake':
+          setOptimisticStatus('awake')
+          break
+        case 'night_wake':
+          setOptimisticStatus('night_waking')
+          break
+      }
+    }
+    
     try {
       const now = getCurrentTime()
       const currentHour = now.getHours()
       
       // Para Siesta, abrir el modal manual con hora inicio/fin
       if (config.action === 'nap' && sleepState.status !== 'napping') {
+        applyOptimistic()
         setShowManualNap(true)
         setIsProcessing(false)
         return
       }
 
       if (config.action === 'wake') {
+        applyOptimistic()
         // DESPERTAR NORMAL (de siesta o despertar definitivo de la mañana)
         console.log('[DEBUG] Despertar normal detectado', {
           estado: sleepState.status,
@@ -353,6 +396,7 @@ export function SleepButton({
         // Si es siesta, NO crear evento wake, solo actualizar endTime (ya hecho arriba)
         
       } else if (config.action === 'night_wake') {
+        applyOptimistic()
         // DESPERTAR NOCTURNO - Mostrar modal inmediatamente para capturar toda la información
         console.log('[DEBUG] Iniciando registro de despertar nocturno con modal inmediato', {
           hora: now.toLocaleTimeString(),
@@ -368,6 +412,7 @@ export function SleepButton({
         return // Salir aquí, el modal se encargará del resto
         
       } else {
+        applyOptimistic()
         // DORMIR - Crear evento DIRECTO sin modal (Punto 33)
 
         const eventData: Partial<EventData> = {
@@ -423,6 +468,7 @@ export function SleepButton({
       
     } catch (error) {
       console.error('Error:', error)
+      setOptimisticStatus(null)
       toast({
         title: "Error",
         description: "No se pudo registrar el evento",
@@ -465,18 +511,18 @@ export function SleepButton({
         onClick={handleClick}
         disabled={isProcessing || stateLoading}
         className={cn(
-          "w-full h-20 md:h-24 text-lg md:text-xl font-bold text-white shadow-lg min-h-[44px]",
+          "w-full h-20 md:h-24 text-lg md:text-xl font-bold shadow-lg min-h-[44px]",
           "transform transition-all duration-200 hover:scale-[1.02]",
-          "bg-gradient-to-r",
-          config.color
+          "bg-gradient-to-r text-white",
+          buttonColor
         )}
       >
         {isProcessing || stateLoading ? (
           <Loader2 className="w-6 h-6 mr-2 animate-spin" />
         ) : (
-          <Icon className="w-6 h-6 mr-2" />
+          <DisplayIcon className="w-6 h-6 mr-2" />
         )}
-        {config.text}
+        {displayText}
       </Button>
       
       {/* Mostrar duración si está durmiendo o despierto */}

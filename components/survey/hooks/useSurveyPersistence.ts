@@ -157,14 +157,16 @@ export function useSurveyPersistence({
 
       return result
     } catch (error) {
-      logger.error('Error al guardar en servidor', error)
-      
-      // Asegurar que se guarde en localStorage si falla el servidor
-      saveToLocalStorage()
-      
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Error desconocido' 
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+      logger.error('Error al guardar en servidor', {
+        error: errorMessage,
+        childId,
+        currentStep
+      })
+
+      return {
+        success: false,
+        error: errorMessage
       }
     }
   }, [childId, formData, currentStep, saveToLocalStorage, clearLocalStorage])
@@ -206,8 +208,7 @@ export function useSurveyPersistence({
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       saveToLocalStorage()
-      saveToServer(true, { force: true, keepAlive: true })
-      
+
       if (lastSavedRef.current) {
         e.preventDefault()
         e.returnValue = '¿Estás seguro de que quieres salir? Tu progreso se guardará automáticamente.'
@@ -215,32 +216,14 @@ export function useSurveyPersistence({
     }
 
     window.addEventListener('beforeunload', handleBeforeUnload)
-    
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
     }
-  }, [saveToLocalStorage, saveToServer, enabled])
+  }, [saveToLocalStorage, enabled])
 
-  // Guardado parcial automático en servidor (debounce suave)
-  useEffect(() => {
-    if (!enabled || !childId) return
-
-    if (serverSaveTimeoutRef.current) {
-      clearTimeout(serverSaveTimeoutRef.current)
-    }
-
-    serverSaveTimeoutRef.current = setTimeout(() => {
-      saveToServer(true).catch((error) => {
-        logger.warn('Guardado parcial automático falló, se reintentará en el próximo cambio', error)
-      })
-    }, 1500)
-
-    return () => {
-      if (serverSaveTimeoutRef.current) {
-        clearTimeout(serverSaveTimeoutRef.current)
-      }
-    }
-  }, [childId, formData, currentStep, saveToServer, enabled])
+  // Guardado parcial automático en servidor desactivado
+  // Solo se guardará en servidor cuando el usuario complete la encuesta manualmente
 
   return {
     saveToLocalStorage,

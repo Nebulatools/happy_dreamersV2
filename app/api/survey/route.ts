@@ -86,7 +86,15 @@ export async function POST(req: Request) {
       accessContext = await resolveChildAccess(db, session.user, childId, "canEditProfile")
     } catch (error) {
       if (error instanceof ChildAccessError) {
-        return NextResponse.json({ message: error.message }, { status: error.status })
+        logger.error('Error de acceso al guardar encuesta', {
+          userId: session.user.id,
+          childId,
+          error: error.message
+        })
+        return NextResponse.json({
+          message: error.message,
+          success: false
+        }, { status: error.status })
       }
       throw error
     }

@@ -533,6 +533,7 @@ export default function DashboardPage() {
               childId={activeChildId} 
               dateRange="7-days" 
               showExtendedRange={isAdmin}
+              cardMode7Days={!isAdmin}
             />
           </Suspense>
         ) : (
@@ -796,13 +797,12 @@ export default function DashboardPage() {
           </Card>
           )}
 
-          {/* Bitácora (antes: Notas Recientes) */}
+          {/* Bitácora */}
           <Card className="bg-white shadow-sm border-0 col-span-1 md:col-span-2 lg:col-span-3">
             <CardHeader className="pb-4">
               <CardTitle className="text-[#2F2F2F]">Bitácora</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Mostrar notas reales de eventos recientes */}
               <div className="space-y-3">
                 {(() => {
                   const notesEvents = events.filter(e => e.notes).slice(0, 3)

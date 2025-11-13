@@ -151,10 +151,12 @@ export default function SleepMetricsCombinedChart({
   childId,
   dateRange = "7-days",
   showExtendedRange = true,
+  cardMode7Days = false,
 }: {
   childId: string
   dateRange?: RangeOption
   showExtendedRange?: boolean
+  cardMode7Days?: boolean
 }) {
   const allowedRanges: RangeOption[] = showExtendedRange
     ? ["7-days", "30-days", "90-days"]
@@ -194,6 +196,19 @@ export default function SleepMetricsCombinedChart({
       return end >= windowStart && start <= windowEnd
     })
   }, [data?.events, windowStart, windowEnd])
+
+  const timelineEvents = React.useMemo(() => {
+    if (cardMode7Days) {
+      return eventsInRange
+    }
+    const recent = data?.recentEvents || []
+    return recent.filter((event) => {
+      if (!event.startTime) return false
+      const start = new Date(event.startTime)
+      const end = event.endTime ? new Date(event.endTime) : start
+      return end >= windowStart && start <= windowEnd
+    })
+  }, [cardMode7Days, data?.recentEvents, eventsInRange, windowStart, windowEnd])
 
   const dailySummary = React.useMemo(
     () => buildDailySummary(eventsInRange, windowStart, windowEnd),
@@ -259,11 +274,19 @@ export default function SleepMetricsCombinedChart({
             No hay eventos registrados en los últimos {getRangeLabel(range)}. Registra siestas o
             periodos de sueño para ver el calendario lleno.
           </div>
+        ) : range === "7-days" && cardMode7Days ? (
+          <RollingCalendarGrid
+            startDate={windowStart}
+            endDate={windowEnd}
+            dailySummary={dailySummary}
+            rangeLabel={getRangeLabel(range)}
+            daysToShow={daysToShow}
+          />
         ) : range === "7-days" ? (
           <div className="overflow-x-auto pb-4">
             <CalendarWeekView
               date={midpointForWeek}
-              events={eventsInRange as any}
+              events={timelineEvents as any}
               hourHeight={24}
               className="min-w-[720px]"
             />
@@ -274,6 +297,7 @@ export default function SleepMetricsCombinedChart({
             endDate={windowEnd}
             dailySummary={dailySummary}
             rangeLabel={getRangeLabel(range)}
+            daysToShow={daysToShow}
           />
         )}
       </CardContent>
@@ -286,6 +310,7 @@ interface RollingCalendarGridProps {
   endDate: Date
   dailySummary: Map<string, DailySummary>
   rangeLabel: string
+  daysToShow: number
 }
 
 function RollingCalendarGrid({
@@ -293,22 +318,33 @@ function RollingCalendarGrid({
   endDate,
   dailySummary,
   rangeLabel,
+  daysToShow,
 }: RollingCalendarGridProps) {
-  const gridStart = startOfWeek(startDate, { weekStartsOn: 0 })
-  const gridEnd = endOfWeek(endDate, { weekStartsOn: 0 })
+  const isSevenDayMode = daysToShow <= 7
+  const gridStart = isSevenDayMode
+    ? startOfDay(startDate)
+    : startOfWeek(startDate, { weekStartsOn: 0 })
+  const gridEnd = isSevenDayMode
+    ? endOfDay(addDays(gridStart, 6))
+    : endOfWeek(endDate, { weekStartsOn: 0 })
   const days = eachDayOfInterval({ start: gridStart, end: gridEnd })
   const weeks = chunkBy(days, 7)
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between text-xs text-gray-500">
-        <span>Vista semanal agrupada</span>
+        <span>{isSevenDayMode ? "Vista tipo calendario (7 días)" : "Vista semanal agrupada"}</span>
         <span>{rangeLabel}</span>
       </div>
 
       <div className="grid grid-cols-7 gap-2 text-center text-[11px] font-medium text-gray-500">
-        {WEEKDAY_LABELS.map((label) => (
-          <span key={label}>{label}</span>
+        {(isSevenDayMode
+          ? Array.from({ length: 7 }, (_, idx) =>
+              format(addDays(gridStart, idx), "EEE", { locale: es })
+            )
+          : WEEKDAY_LABELS
+        ).map((label, idx) => (
+          <span key={`${label}-${idx}`}>{label}</span>
         ))}
       </div>
 
