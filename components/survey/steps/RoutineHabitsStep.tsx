@@ -1,10 +1,12 @@
 // Paso 6: Rutina y Hábitos de Sueño
 // Información sobre rutinas diarias y hábitos de sueño del niño
 
+import { useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Moon } from "lucide-react"
 import type { SurveyStepProps } from '../types/survey.types'
 
@@ -23,6 +25,45 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
   const hasError = (field: string): boolean => {
     return !!getError(field)
   }
+
+  // Función helper para obtener el valor con su predeterminado
+  const getValueOrDefault = (field: keyof typeof data, defaultValue: string) => {
+    const value = data[field]
+    console.log(`getValueOrDefault - field: ${String(field)}, value: "${value}", defaultValue: "${defaultValue}"`)
+    return (value === undefined || value === null || value === "") ? defaultValue : value
+  }
+
+  useEffect(() => {
+    console.log('RoutineHabitsStep mounted, data:', data)
+    // Establecer valores predeterminados solo si están vacíos o undefined
+    let hasChanges = false
+    const updates: any = {}
+
+    if (!data.horaAcostarBebe || data.horaAcostarBebe === "") {
+      console.log('Setting horaAcostarBebe to 20:00')
+      updates.horaAcostarBebe = "20:00"
+      hasChanges = true
+    }
+    if (!data.tiempoDormir || data.tiempoDormir === "") {
+      console.log('Setting tiempoDormir to 20')
+      updates.tiempoDormir = "20"
+      hasChanges = true
+    }
+    if (!data.horaDespertar || data.horaDespertar === "") {
+      console.log('Setting horaDespertar to 06:00')
+      updates.horaDespertar = "06:00"
+      hasChanges = true
+    }
+
+    if (hasChanges) {
+      console.log('Applying updates:', updates)
+      onChange({
+        ...data,
+        ...updates
+      })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="space-y-8">
@@ -330,8 +371,9 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
               id="donde-cama-cuarto"
               checked={data.dondeDuerme?.includes('cama-cuarto') || false}
               onCheckedChange={(checked) => {
+                const isChecked = checked === true
                 const lugares = data.dondeDuerme || []
-                if (checked) {
+                if (isChecked) {
                   updateField('dondeDuerme', [...lugares, 'cama-cuarto'])
                 } else {
                   updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cama-cuarto'))
@@ -345,8 +387,9 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
               id="donde-cama-padres"
               checked={data.dondeDuerme?.includes('cama-cuarto-padres') || false}
               onCheckedChange={(checked) => {
+                const isChecked = checked === true
                 const lugares = data.dondeDuerme || []
-                if (checked) {
+                if (isChecked) {
                   updateField('dondeDuerme', [...lugares, 'cama-cuarto-padres'])
                 } else {
                   updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cama-cuarto-padres'))
@@ -360,8 +403,9 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
               id="donde-cuna-cuarto"
               checked={data.dondeDuerme?.includes('cuna-cuarto') || false}
               onCheckedChange={(checked) => {
+                const isChecked = checked === true
                 const lugares = data.dondeDuerme || []
-                if (checked) {
+                if (isChecked) {
                   updateField('dondeDuerme', [...lugares, 'cuna-cuarto'])
                 } else {
                   updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cuna-cuarto'))
@@ -375,8 +419,9 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
               id="donde-cuna-padres"
               checked={data.dondeDuerme?.includes('cuna-padres') || false}
               onCheckedChange={(checked) => {
+                const isChecked = checked === true
                 const lugares = data.dondeDuerme || []
-                if (checked) {
+                if (isChecked) {
                   updateField('dondeDuerme', [...lugares, 'cuna-padres'])
                 } else {
                   updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cuna-padres'))
@@ -390,8 +435,9 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
               id="donde-solo-padres"
               checked={data.dondeDuerme?.includes('cama-padres') || false}
               onCheckedChange={(checked) => {
+                const isChecked = checked === true
                 const lugares = data.dondeDuerme || []
-                if (checked) {
+                if (isChecked) {
                   updateField('dondeDuerme', [...lugares, 'cama-padres'])
                 } else {
                   updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cama-padres'))
@@ -405,8 +451,9 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
               id="donde-cuna-luego"
               checked={data.dondeDuerme?.includes('cuna-luego-padres') || false}
               onCheckedChange={(checked) => {
+                const isChecked = checked === true
                 const lugares = data.dondeDuerme || []
-                if (checked) {
+                if (isChecked) {
                   updateField('dondeDuerme', [...lugares, 'cuna-luego-padres'])
                 } else {
                   updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cuna-luego-padres'))
@@ -420,8 +467,9 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
               id="donde-cama-luego"
               checked={data.dondeDuerme?.includes('cama-luego-padres') || false}
               onCheckedChange={(checked) => {
+                const isChecked = checked === true
                 const lugares = data.dondeDuerme || []
-                if (checked) {
+                if (isChecked) {
                   updateField('dondeDuerme', [...lugares, 'cama-luego-padres'])
                 } else {
                   updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cama-luego-padres'))
@@ -486,7 +534,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
           id="hora-acostarse-bebe"
           type="time"
           step="300"
-          value={data.horaAcostarBebe || ""}
+          value={getValueOrDefault('horaAcostarBebe', "20:00")}
           onChange={(e) => updateField('horaAcostarBebe', e.target.value)}
           className="max-w-xs"
         />
@@ -503,7 +551,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
             type="number"
             min="0"
             step="5"
-            value={data.tiempoDormir || ""}
+            value={getValueOrDefault('tiempoDormir', "20")}
             onChange={(e) => updateField('tiempoDormir', e.target.value)}
             placeholder="Minutos"
             className="max-w-xs"
@@ -521,7 +569,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
           id="hora-despertar"
           type="time"
           step="300"
-          value={data.horaDespertar || ""}
+          value={getValueOrDefault('horaDespertar', "06:00")}
           onChange={(e) => updateField('horaDespertar', e.target.value)}
           className="max-w-xs"
         />

@@ -1,358 +1,387 @@
 "use client"
 
 import React from "react"
-import {
-  ComposedChart,
-  Line,
-  Scatter,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import Link from "next/link"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { useSleepData } from "@/hooks/use-sleep-data"
+import { CalendarWeekView } from "@/components/calendar/CalendarWeekView"
+import { useSleepData, type SleepEvent } from "@/hooks/use-sleep-data"
 import { useEventsCache } from "@/hooks/use-events-cache"
 import {
   addDays,
   differenceInMinutes,
+  eachDayOfInterval,
+  endOfDay,
+  endOfWeek,
   format,
-  isAfter,
-  isBefore,
-  isSameDay,
-  parseISO,
-  setHours,
-  setMinutes,
+  isSameMonth,
   startOfDay,
+  startOfWeek,
   subDays,
 } from "date-fns"
 import { es } from "date-fns/locale"
+import { cn } from "@/lib/utils"
+import { CalendarDays, Loader2 } from "lucide-react"
 
-type SeriesPoint = {
-  date: Date
-  label: string
-  sleepHours: number | null
-  wakeups: number
-  bedTime?: number | null
-  wakeTime?: number | null
+type RangeOption = "7-days" | "30-days" | "90-days"
+
+interface EventSegment {
+  id: string
+  type: string
+  start: Date
+  end: Date
+  notes?: string
 }
 
-// Convierte Date a hora decimal (HH + mm/60) y ajusta madrugada a 24-32
-function timeToDecimal(date: Date): number {
-  const h = date.getHours()
-  const m = date.getMinutes()
-  const dec = h + m / 60
-  // Para poder mostrar noche y madrugada en un solo eje continuo
-  // si es antes de las 9am, lo pasamos a 24-32
-  if (dec < 9) return dec + 24
-  return dec
+interface DailySummary {
+  totalMinutes: number
+  segments: EventSegment[]
 }
 
-function decimalToTimeString(decimal: number | null | undefined): string {
-  if (decimal === null || decimal === undefined) return "--:--"
-  let d = decimal
-  if (d >= 24) d -= 24
-  const hh = Math.floor(d)
-  const mm = Math.round((d - hh) * 60)
-  return `${hh.toString().padStart(2, "0")}:${mm.toString().padStart(2, "0")}`
+const WEEKDAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
+const SLEEP_EVENT_TYPES = new Set([
+  "sleep",
+  "nap",
+  "siesta",
+  "dormir",
+  "bedtime",
+  "wake",
+  "night_waking",
+])
+
+function formatMinutesAsHours(minutes: number): string {
+  if (!minutes || minutes <= 0) return "0h"
+  const hrs = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  if (hrs === 0) return `${mins}m`
+  if (mins === 0) return `${hrs}h`
+  return `${hrs}h ${mins}m`
 }
 
-interface SleepMetricsCombinedChartProps {
-  childId: string
-  dateRange?: "7-days" | "30-days" | "90-days"
-  showExtendedRange?: boolean
+function buildDailySummary(
+  events: SleepEvent[],
+  rangeStart: Date,
+  rangeEnd: Date
+): Map<string, DailySummary> {
+  const summary = new Map<string, DailySummary>()
+
+  events.forEach((event) => {
+    if (!event.startTime) return
+
+    const rawStart = new Date(event.startTime)
+    const rawEnd = event.endTime ? new Date(event.endTime) : rawStart
+
+    if (rawEnd < rangeStart || rawStart > rangeEnd) {
+      return
+    }
+
+    const clampedStart = rawStart < rangeStart ? rangeStart : rawStart
+    const clampedEnd = rawEnd > rangeEnd ? rangeEnd : rawEnd
+
+    let cursor = clampedStart
+    while (cursor < clampedEnd) {
+      const dayStart = startOfDay(cursor)
+      const nextDay = addDays(dayStart, 1)
+      const segmentEnd = clampedEnd < nextDay ? clampedEnd : nextDay
+      const key = format(dayStart, "yyyy-MM-dd")
+      const entry = summary.get(key) ?? { totalMinutes: 0, segments: [] }
+      const minutes = Math.max(0, differenceInMinutes(segmentEnd, cursor))
+
+      if (minutes > 0 && isSleepBlock(event.eventType)) {
+        entry.totalMinutes += minutes
+      }
+
+      entry.segments.push({
+        id: `${event._id || event.eventType}-${cursor.getTime()}`,
+        type: event.eventType,
+        start: cursor,
+        end: segmentEnd,
+        notes: event.notes,
+      })
+
+      summary.set(key, entry)
+
+      if (segmentEnd >= clampedEnd) {
+        break
+      }
+
+      cursor = segmentEnd
+    }
+  })
+
+  return summary
+}
+
+function isSleepBlock(eventType?: string | null): boolean {
+  if (!eventType) return false
+  return SLEEP_EVENT_TYPES.has(eventType)
+}
+
+function getRangeLabel(range: RangeOption) {
+  if (range === "30-days") return "30 días"
+  if (range === "90-days") return "90 días"
+  return "7 días"
+}
+
+function getIntensityClasses(minutes: number) {
+  if (minutes >= 11 * 60) {
+    return "bg-emerald-50 border-emerald-200 text-emerald-800"
+  }
+  if (minutes >= 9 * 60) {
+    return "bg-blue-50 border-blue-200 text-blue-800"
+  }
+  if (minutes >= 7 * 60) {
+    return "bg-sky-50 border-sky-200 text-sky-800"
+  }
+  if (minutes === 0) {
+    return "bg-gray-50 border-dashed border-gray-200 text-gray-400"
+  }
+  return "bg-amber-50 border-amber-200 text-amber-800"
+}
+
+function chunkBy<T>(items: T[], chunkSize: number): T[][] {
+  const chunks: T[][] = []
+  for (let i = 0; i < items.length; i += chunkSize) {
+    chunks.push(items.slice(i, i + chunkSize))
+  }
+  return chunks
 }
 
 export default function SleepMetricsCombinedChart({
   childId,
   dateRange = "7-days",
   showExtendedRange = true,
-}: SleepMetricsCombinedChartProps) {
-  const { refreshTrigger, subscribe } = useEventsCache(childId)
-  // Control interno de rango (permite cambiar entre 7/30/90 días)
-  const [range, setRange] = React.useState<"7-days" | "30-days" | "90-days">(dateRange)
-  const { data: sleepData, loading, error } = useSleepData(childId, range)
+}: {
+  childId: string
+  dateRange?: RangeOption
+  showExtendedRange?: boolean
+}) {
+  const allowedRanges: RangeOption[] = showExtendedRange
+    ? ["7-days", "30-days", "90-days"]
+    : ["7-days", "30-days"]
 
+  const initialRange = allowedRanges.includes(dateRange) ? dateRange : allowedRanges[0]
+  const [range, setRange] = React.useState<RangeOption>(initialRange)
+
+  const { refresh, subscribe } = useEventsCache(childId)
+  const { data, loading, error } = useSleepData(childId, range)
+
+  // Revalidar cuando se invaliden eventos en cualquier parte de la app
   React.useEffect(() => {
     const unsub = subscribe()
     return unsub
   }, [subscribe])
 
-  React.useEffect(() => {
-    if (!showExtendedRange && range === "90-days") {
-      setRange(dateRange === "90-days" ? "30-days" : dateRange)
-    }
-  }, [showExtendedRange, range, dateRange])
+  const daysToShow = React.useMemo(() => {
+    if (range === "30-days") return 30
+    if (range === "90-days") return 90
+    return 7
+  }, [range])
 
-  const series: SeriesPoint[] = React.useMemo(() => {
-    if (!sleepData?.events) return []
+  const windowEnd = React.useMemo(() => endOfDay(new Date()), [])
+  const windowStart = React.useMemo(
+    () => startOfDay(subDays(windowEnd, daysToShow - 1)),
+    [windowEnd, daysToShow]
+  )
 
-    // Determinar ventana temporal
-    const now = new Date()
-    const days = range === "30-days" ? 30 : range === "90-days" ? 90 : 7
-    const start = subDays(startOfDay(now), days - 1)
+  const eventsInRange = React.useMemo(() => {
+    if (!data?.events?.length) return []
 
-    // Fechas del período (de más antiguo a más reciente)
-    const daysArray: Date[] = []
-    for (let i = 0; i < days; i++) {
-      daysArray.push(addDays(start, i))
-    }
-
-    // Eventos relevantes ordenados por fecha
-    const events = [...sleepData.events]
-      .filter((e: any) => e.startTime)
-      .sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-
-    // Precomputar pares bedtime/sleep → wake para obtener duración por noche y asignarla al día del wake
-    const nightlyDurationsByDayKey = new Map<string, number>() // key = yyyy-mm-dd
-    const nightWakeupsByNightKey = new Map<string, number>() // key = yyyy-mm-dd (inicio del ciclo)
-    const processedNightWakingIds = new Set<string>()
-
-    for (let i = 0; i < events.length - 1; i++) {
-      const ev = events[i]
-      if (!['sleep', 'bedtime', 'dormir'].includes(ev.eventType)) continue
-      const bed = parseISO(ev.startTime)
-      const bedNightKey = format(startOfDay(bed), 'yyyy-MM-dd')
-
-      // Buscar siguiente wake
-      let wake: Date | null = null
-      let nightWakeCount = 0
-      for (let j = i + 1; j < events.length; j++) {
-        const next = events[j]
-        if (!next.startTime) continue
-        if (['sleep', 'bedtime', 'dormir'].includes(next.eventType)) break
-        if (next.eventType === 'night_waking') {
-          nightWakeCount += 1
-          if (next._id) {
-            processedNightWakingIds.add(next._id)
-          }
-          continue
-        }
-        if (next.eventType === 'wake') {
-          wake = parseISO(next.startTime)
-          break
-        }
-      }
-
-      // Ajustar por sleepDelay (máx 180m)
-      const rawDelay = typeof ev.sleepDelay === 'number' ? ev.sleepDelay : 0
-      const delay = Math.min(Math.max(rawDelay, 0), 180)
-      const actualSleepStart = new Date(bed.getTime() + delay * 60 * 1000)
-
-      let minutes = 0
-      if (wake) {
-        minutes = Math.max(0, differenceInMinutes(wake, actualSleepStart))
-      } else if (['sleep', 'bedtime', 'dormir'].includes(ev.eventType)) {
-        // Si no hay wake visible (p. ej. corte de rango), asumir 8h - delay si es noche
-        const bedHour = bed.getHours()
-        if (bedHour >= 18 || bedHour <= 6) {
-          minutes = Math.max(0, 8 * 60 - delay)
-          // asignar al día siguiente (asumiendo wake por la mañana)
-          const assumedWake = addDays(startOfDay(bed), bedHour <= 6 ? 0 : 1)
-          wake = new Date(assumedWake.getTime() + 7 * 60 * 60 * 1000) // ~07:00
-        }
-      }
-
-      if (wake && minutes > 0) {
-        const key = format(wake, 'yyyy-MM-dd')
-        // Si ya hay una duración para ese día, usar la mayor (una noche por día)
-        const prev = nightlyDurationsByDayKey.get(key) || 0
-        nightlyDurationsByDayKey.set(key, Math.max(prev, minutes))
-      }
-
-      if (nightWakeCount > 0) {
-        const previousCount = nightWakeupsByNightKey.get(bedNightKey) || 0
-        nightWakeupsByNightKey.set(bedNightKey, previousCount + nightWakeCount)
-      }
-    }
-
-    // Preparar serie diaria
-    const result: SeriesPoint[] = daysArray.map((d) => ({
-      date: d,
-      label: format(d, days <= 7 ? 'EEE d' : 'd MMM', { locale: es }),
-      sleepHours: null,
-      wakeups: 0,
-      bedTime: null,
-      wakeTime: null,
-    }))
-
-    // Aplicar conteo de despertares por noche (usando la fecha de inicio del ciclo)
-    result.forEach((p) => {
-      const key = format(p.date, 'yyyy-MM-dd')
-      if (nightWakeupsByNightKey.has(key)) {
-        p.wakeups = nightWakeupsByNightKey.get(key) || 0
-      }
+    return data.events.filter((event) => {
+      if (!event.startTime) return false
+      const start = new Date(event.startTime)
+      const end = event.endTime ? new Date(event.endTime) : start
+      return end >= windowStart && start <= windowEnd
     })
+  }, [data?.events, windowStart, windowEnd])
 
-    // Contar despertares nocturnos no asociados a un ciclo (fallback)
-    events.forEach((e: any) => {
-      if (e.eventType === 'night_waking' && e.startTime && (!e._id || !processedNightWakingIds.has(e._id))) {
-        const date = parseISO(e.startTime)
-        const idx = result.findIndex(p => isSameDay(p.date, date))
-        if (idx >= 0) {
-          result[idx].wakeups += 1
-        }
-      }
-    })
+  const dailySummary = React.useMemo(
+    () => buildDailySummary(eventsInRange, windowStart, windowEnd),
+    [eventsInRange, windowStart, windowEnd]
+  )
 
-    // Asignar sleepHours por día (minutos → horas)
-    result.forEach((p) => {
-      const key = format(p.date, 'yyyy-MM-dd')
-      const mins = nightlyDurationsByDayKey.get(key)
-      p.sleepHours = mins ? Number((mins / 60).toFixed(2)) : null
-    })
+  const midpointForWeek = React.useMemo(
+    () => subDays(windowEnd, Math.floor(daysToShow / 2)),
+    [windowEnd, daysToShow]
+  )
 
-    // Extraer bedtime por día (ventana 18:00 → 06:00 siguiente)
-    result.forEach((p) => {
-      const dayStart = startOfDay(p.date)
-      const winStart = setMinutes(setHours(dayStart, 18), 0) // 18:00 del día
-      const winEnd = setMinutes(setHours(addDays(dayStart, 1), 6), 0) // 06:00 del siguiente
-      const bedEvent = events.find((e: any) => {
-        if (!['sleep', 'bedtime', 'dormir'].includes(e.eventType) || !e.startTime) return false
-        const dt = parseISO(e.startTime)
-        return (isAfter(dt, winStart) || +dt === +winStart) && isBefore(dt, winEnd)
-      })
-      if (bedEvent) p.bedTime = timeToDecimal(parseISO(bedEvent.startTime))
-    })
-
-    // Extraer wakeTime por día (ventana 05:00 → 10:00 del mismo día)
-    result.forEach((p) => {
-      const dayStart = startOfDay(p.date)
-      const winStart = setMinutes(setHours(dayStart, 5), 0)
-      const winEnd = setMinutes(setHours(dayStart, 10), 0)
-      const wakeEvent = events.find((e: any) => {
-        if (e.eventType !== 'wake' || !e.startTime) return false
-        const dt = parseISO(e.startTime)
-        return (isAfter(dt, winStart) || +dt === +winStart) && isBefore(dt, winEnd)
-      })
-      if (wakeEvent) p.wakeTime = timeToDecimal(parseISO(wakeEvent.startTime))
-    })
-
-    return result
-  }, [sleepData, range])
-
-  if (loading) {
-    return (
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center text-gray-500">
-        Cargando métricas...
-      </div>
-    )
+  const handleRangeChange = (nextRange: RangeOption) => {
+    setRange(nextRange)
+    refresh()
   }
-
-  if (error || series.length === 0) {
-    return (
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center text-gray-500">
-        No hay suficientes datos para mostrar la gráfica
-      </div>
-    )
-  }
-
-  // Ticks para el eje de tiempo (noche+madrugada)
-  const timeTicks = [21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
 
   return (
-    <Card className="bg-white shadow-sm border-0">
-      <CardHeader className="pb-3 md:pb-4">
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-[#2F2F2F]">Resumen visual de los últimos {series.length <= 7 ? '7' : range === '30-days' ? '30' : showExtendedRange ? '90' : '30'} días</CardTitle>
-          <div className="flex gap-2">
-            <Button 
-              size="sm"
-              onClick={() => setRange("7-days")}
-              className={range === "7-days" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3" : "h-7 md:h-8 text-xs md:text-sm px-2 md:px-3"}
-              variant={range === "7-days" ? "default" : "ghost"}
-            >
-              7d
-            </Button>
-            <Button 
-              size="sm"
-              onClick={() => setRange("30-days")}
-              className={range === "30-days" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3" : "text-[#666666] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3"}
-              variant={range === "30-days" ? "default" : "ghost"}
-            >
-              30d
-            </Button>
-            {showExtendedRange && (
-              <Button 
+    <Card className="shadow-sm border-0">
+      <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <CardTitle className="text-[#2F2F2F] flex items-center gap-2">
+            <CalendarDays className="h-5 w-5 text-[#628BE6]" />
+            Resumen visual de los últimos {getRangeLabel(range)}
+          </CardTitle>
+          <CardDescription className="text-sm text-gray-500">
+            Vista estilo calendario con los eventos registrados del periodo seleccionado
+          </CardDescription>
+        </div>
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          <div className="flex items-center gap-2">
+            {allowedRanges.map((option) => (
+              <Button
+                key={option}
                 size="sm"
-                onClick={() => setRange("90-days")}
-                className={range === "90-days" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3" : "text-[#666666] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3"}
-                variant={range === "90-days" ? "default" : "ghost"}
+                variant={option === range ? "default" : "outline"}
+                className={cn(
+                  "text-xs md:text-sm",
+                  option === range ? "bg-[#F0F7FF] text-[#4A90E2]" : "text-[#666666]"
+                )}
+                onClick={() => handleRangeChange(option)}
               >
-                3m
+                {getRangeLabel(option)}
               </Button>
-            )}
+            ))}
           </div>
+          <Button asChild variant="ghost" size="sm" className="text-xs text-[#2553A1]">
+            <Link href="/dashboard/calendar">Ver bitácora completa</Link>
+          </Button>
         </div>
       </CardHeader>
-      <CardContent className="h-[320px] md:h-[380px]">
-        <div className="w-full h-full overflow-x-auto">
-          <div style={{ width: Math.max(series.length * 40, 600), height: '100%' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={series} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-            {/* Eje izquierdo: horas (duración) y conteo de despertares */}
-            <YAxis yAxisId="hours" domain={[0, 12]} tick={{ fontSize: 12 }} label={{ value: 'Horas', angle: -90, position: 'insideLeft' }} />
-            {/* Eje derecho: hora del día (noche+madrugada) */}
-            <YAxis yAxisId="time" orientation="right" domain={[21, 30]} ticks={timeTicks} tickFormatter={decimalToTimeString} tick={{ fontSize: 12 }} />
-            <Tooltip 
-              content={({ active, payload, label }) => {
-                if (!active || !payload || payload.length === 0) return null
-                const p = payload[0].payload as SeriesPoint
-                return (
-                  <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
-                    <div className="text-sm font-semibold mb-1">{label}</div>
-                    <div className="text-xs text-gray-700 space-y-1">
-                      <div>Hora de despertar: <span className="font-medium">{decimalToTimeString(p.wakeTime ?? null)}</span></div>
-                      <div>Hora de acostarse: <span className="font-medium">{decimalToTimeString(p.bedTime ?? null)}</span></div>
-                      <div>Sueño nocturno: <span className="font-medium">{p.sleepHours ? `${p.sleepHours} h` : '--'}</span></div>
-                      <div>Despertares nocturnos: <span className="font-medium">{p.wakeups}</span></div>
-                    </div>
-                  </div>
-                )
-              }}
-            />
-            <Legend wrapperStyle={{ fontSize: 12 }} />
-
-            {/* Línea: duración de sueño nocturno (horas) */}
-            <Line yAxisId="hours" type="monotone" dataKey="sleepHours" name="Sueño nocturno (h)" stroke="#4A90E2" strokeWidth={2} dot={{ r: 3, fill: "#4A90E2" }} connectNulls />
-
-            {/* Barras: número de despertares nocturnos (color más oscuro) */}
-            <Bar
-              yAxisId="hours"
-              dataKey="wakeups"
-              name="Despertares"
-              fill="#F5C518"
-              stroke="#C89C00"
-              radius={[4, 4, 0, 0]}
-              barSize={14}
-            />
-
-            {/* Puntos: hora de acostarse y hora de despertar (eje tiempo) - colores más oscuros */}
-            <Scatter
-              yAxisId="time"
-              dataKey="bedTime"
-              name="Acostarse"
-              fill="#8E6CF0"
-              stroke="#6B4CC2"
-            />
-            <Scatter
-              yAxisId="time"
-              dataKey="wakeTime"
-              name="Despertar"
-              fill="#4CAF50"
-              stroke="#2E7D32"
-            />
-              </ComposedChart>
-            </ResponsiveContainer>
+      <CardContent>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+            <Loader2 className="h-6 w-6 animate-spin mb-3" />
+            Cargando registros recientes...
           </div>
-        </div>
+        ) : error ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+            No pudimos cargar los eventos recientes. Intenta nuevamente en unos minutos.
+          </div>
+        ) : eventsInRange.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-8 text-center text-sm text-gray-600">
+            No hay eventos registrados en los últimos {getRangeLabel(range)}. Registra siestas o
+            periodos de sueño para ver el calendario lleno.
+          </div>
+        ) : range === "7-days" ? (
+          <div className="overflow-x-auto pb-4">
+            <CalendarWeekView
+              date={midpointForWeek}
+              events={eventsInRange as any}
+              hourHeight={24}
+              className="min-w-[720px]"
+            />
+          </div>
+        ) : (
+          <RollingCalendarGrid
+            startDate={windowStart}
+            endDate={windowEnd}
+            dailySummary={dailySummary}
+            rangeLabel={getRangeLabel(range)}
+          />
+        )}
       </CardContent>
     </Card>
   )
+}
+
+interface RollingCalendarGridProps {
+  startDate: Date
+  endDate: Date
+  dailySummary: Map<string, DailySummary>
+  rangeLabel: string
+}
+
+function RollingCalendarGrid({
+  startDate,
+  endDate,
+  dailySummary,
+  rangeLabel,
+}: RollingCalendarGridProps) {
+  const gridStart = startOfWeek(startDate, { weekStartsOn: 0 })
+  const gridEnd = endOfWeek(endDate, { weekStartsOn: 0 })
+  const days = eachDayOfInterval({ start: gridStart, end: gridEnd })
+  const weeks = chunkBy(days, 7)
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between text-xs text-gray-500">
+        <span>Vista semanal agrupada</span>
+        <span>{rangeLabel}</span>
+      </div>
+
+      <div className="grid grid-cols-7 gap-2 text-center text-[11px] font-medium text-gray-500">
+        {WEEKDAY_LABELS.map((label) => (
+          <span key={label}>{label}</span>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        {weeks.map((week, idx) => (
+          <div key={idx} className="grid grid-cols-7 gap-2">
+            {week.map((day) => {
+              const key = format(day, "yyyy-MM-dd")
+              const summary = dailySummary.get(key)
+              const isOutsideRange = day < startDate || day > endDate
+              const monthBreak = day.getDate() === 1
+              const classes = summary
+                ? getIntensityClasses(summary.totalMinutes)
+                : "bg-white border border-gray-200"
+
+              return (
+                <div
+                  key={key}
+                  className={cn(
+                    "min-h-[130px] rounded-xl border p-2 text-left transition-colors",
+                    classes,
+                    isOutsideRange && "opacity-40"
+                  )}
+                >
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span>{day.getDate()}</span>
+                    {monthBreak || day.getDate() === 1 ? (
+                      <span className="text-[10px] uppercase tracking-wide">
+                        {format(day, "MMM", { locale: es })}
+                      </span>
+                    ) : (
+                      <span />
+                    )}
+                  </div>
+
+                  <div className="mt-2 space-y-1">
+                    {summary?.segments.slice(0, 3).map((segment) => (
+                      <div
+                        key={segment.id}
+                        className="rounded-md bg-white/70 px-2 py-1 text-[11px] text-gray-700 shadow-sm"
+                      >
+                        <span className="font-medium mr-1">{getSegmentEmoji(segment.type)}</span>
+                        {format(segment.start, "HH:mm")} - {format(segment.end, "HH:mm")}
+                      </div>
+                    ))}
+                    {summary && summary.segments.length > 3 && (
+                      <div className="text-[10px] text-gray-600">+{summary.segments.length - 3} eventos</div>
+                    )}
+                  </div>
+
+                  <div className="mt-3 text-[11px] font-semibold">
+                    Sueño total: {summary ? formatMinutesAsHours(summary.totalMinutes) : "0h"}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function getSegmentEmoji(eventType?: string) {
+  if (!eventType) return "🌙"
+  if (eventType.includes("nap") || eventType.includes("siesta")) {
+    return "☀️"
+  }
+  if (eventType.includes("wake") || eventType.includes("despert")) {
+    return "⚠️"
+  }
+  if (eventType.includes("meal") || eventType.includes("feeding")) {
+    return "🥣"
+  }
+  return "🌙"
 }

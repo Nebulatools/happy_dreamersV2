@@ -16,8 +16,8 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
   const [activeTab, setActiveTab] = useState<'papa' | 'mama'>(() =>
     accountType === 'mother' ? 'mama' : 'papa'
   )
-  
-  const updateField = (parent: 'papa' | 'mama', field: string, value: any) => {
+
+  const updateParentFields = (parent: 'papa' | 'mama', fields: Record<string, any>) => {
     const currentPrimary = data?.primaryCaregiver || accountType || ""
     const resolvedPrimary = currentPrimary || (parent === 'mama' ? 'mother' : 'father')
 
@@ -25,10 +25,14 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
       ...data,
       [parent]: {
         ...data[parent],
-        [field]: value
+        ...fields
       },
       primaryCaregiver: resolvedPrimary
     })
+  }
+
+  const updateField = (parent: 'papa' | 'mama', field: string, value: any) => {
+    updateParentFields(parent, { [field]: value })
   }
 
   const [hasInjectedPrefill, setHasInjectedPrefill] = useState(false)
@@ -389,7 +393,14 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
             <Label>4. ¿Tiene la misma dirección que papá?</Label>
             <RadioGroup
               value={data.mama?.mismaDireccionPapa === true ? "si" : data.mama?.mismaDireccionPapa === false ? "no" : ""}
-              onValueChange={(value) => updateField('mama', 'mismaDireccionPapa', value === 'si')}
+              onValueChange={(value) => {
+                const sameAddress = value === 'si'
+                updateParentFields('mama', {
+                  mismaDireccionPapa: sameAddress,
+                  direccion: sameAddress ? "" : data.mama?.direccion || "",
+                  ciudad: sameAddress ? "" : data.mama?.ciudad || "",
+                })
+              }}
             >
               <div className="flex gap-4 mt-2">
                 <div className="flex items-center space-x-2">
@@ -424,22 +435,24 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* 5. Ciudad */}
-            <div>
-              <Label htmlFor="mama-ciudad">
-                5. Ciudad: <span className="text-red-500">*</span>
-              </Label>
-              <Input 
-                id="mama-ciudad"
-                value={data.mama?.ciudad || ""}
-                onChange={(e) => updateField('mama', 'ciudad', e.target.value)}
-                placeholder="Ciudad"
-                className={hasError('mama', 'ciudad') ? 'border-red-500' : ''}
-              />
-              {hasError('mama', 'ciudad') && (
-                <p className="text-red-500 text-sm mt-1">{getError('mama', 'ciudad')}</p>
-              )}
-            </div>
-            
+            {!data.mama?.mismaDireccionPapa && (
+              <div>
+                <Label htmlFor="mama-ciudad">
+                  5. Ciudad: <span className="text-red-500">*</span>
+                </Label>
+                <Input 
+                  id="mama-ciudad"
+                  value={data.mama?.ciudad || ""}
+                  onChange={(e) => updateField('mama', 'ciudad', e.target.value)}
+                  placeholder="Ciudad"
+                  className={hasError('mama', 'ciudad') ? 'border-red-500' : ''}
+                />
+                {hasError('mama', 'ciudad') && (
+                  <p className="text-red-500 text-sm mt-1">{getError('mama', 'ciudad')}</p>
+                )}
+              </div>
+            )}
+
             {/* 6. Teléfono */}
             <div>
               <Label htmlFor="mama-telefono">

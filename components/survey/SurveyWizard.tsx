@@ -3,7 +3,7 @@
 
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { Card } from "@/components/ui/card"
@@ -21,6 +21,9 @@ import { useSurveyForm } from "./hooks/useSurveyForm"
 import { useSurveyValidation } from "./hooks/useSurveyValidation"
 import { useSurveyPersistence } from "./hooks/useSurveyPersistence"
 import type { SurveyData } from "@/types/models"
+import type { StepValidation } from "./types/survey.types"
+import { validateStep } from "./validation/validators"
+import { stepValidations } from "./validation/schemas"
 
 // Componentes de pasos
 const stepComponents = {
@@ -30,6 +33,15 @@ const stepComponents = {
   4: HealthDevStep,
   5: PhysicalActivityStep,
   6: RoutineHabitsStep
+}
+
+const stepKeyMap: Record<number, keyof SurveyData> = {
+  1: "informacionFamiliar",
+  2: "dinamicaFamiliar",
+  3: "historial",
+  4: "desarrollo",
+  5: "actividadFisica",
+  6: "rutinaHabitos",
 }
 
 interface SurveyWizardProps {
@@ -47,6 +59,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
   const [showSaveIndicator, setShowSaveIndicator] = useState(false)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [childData, setChildData] = useState<any>(null)
+  const restoredLocalRef = useRef(false)
 
   const resolvedAccountType = useMemo(() => {
     return userProfile?.accountType || session?.user?.accountType || ""
@@ -93,16 +106,50 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
     enabled: true
   })
 
+  // Función para verificar si TODAS las preguntas del paso están respondidas
+  const isStepFullyAnswered = (stepData: any, validation: StepValidation): boolean => {
+    if (!hasFilledValue(stepData)) {
+      return false
+    }
+
+    const requiredEntries = Object.entries(validation?.fields || {}).filter(
+      ([, rules]) => rules?.required
+    )
+
+    const getValueAtPath = (obj: any, path: string) => {
+      return path.split('.').reduce((acc, key) => (acc ? acc[key] : undefined), obj)
+    }
+
+    return requiredEntries.every(([fieldPath]) => {
+      const value = getValueAtPath(stepData, fieldPath)
+      return hasFilledValue(value)
+    })
+  }
+
   // Calcular qué pasos están completos y cuáles tienen errores
   const completedSteps = useMemo(() => {
     const completed = new Set<number>()
     for (let step = 1; step <= 6; step++) {
-      if (touchedSteps.has(step) && isStepValid(step)) {
+      const stepKey = stepKeyMap[step]
+      const validation = stepValidations[step]
+      if (!stepKey || !validation) continue
+
+      const stepData = formData[stepKey] || {}
+
+      // Validar errores en campos obligatorios
+      const stepErrors = validateStep(stepData, validation)
+      const hasErrors = Object.keys(stepErrors).length > 0
+
+      // Verificar si TODAS las preguntas están respondidas
+      const fullyAnswered = isStepFullyAnswered(stepData, validation)
+
+      // Solo marcar como completado si NO hay errores Y todas las preguntas están respondidas
+      if (!hasErrors && fullyAnswered) {
         completed.add(step)
       }
     }
     return completed
-  }, [touchedSteps, isStepValid])
+  }, [formData])
 
   const stepsWithErrors = useMemo(() => {
     const withErrors = new Set<number>()
@@ -170,6 +217,29 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
       fetchChildData()
     }
   }, [session, childId])
+
+  useEffect(() => {
+    restoredLocalRef.current = false
+  }, [childId])
+
+  useEffect(() => {
+    if (restoredLocalRef.current || !childId) return
+    const savedData = loadFromLocalStorage()
+    if (savedData?.formData) {
+      setFormData(prev => ({
+        ...prev,
+        ...savedData.formData
+      }))
+      if (savedData.currentStep) {
+        setCurrentStep(savedData.currentStep)
+      }
+      toast({
+        title: "Progreso local restaurado",
+        description: "Recuperamos tus últimas respuestas guardadas en este dispositivo."
+      })
+    }
+    restoredLocalRef.current = true
+  }, [childId, loadFromLocalStorage, setFormData, toast])
 
   // Pre-llenar datos con información del usuario y del niño
   useEffect(() => {
@@ -439,7 +509,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
     saveToLocalStorage()
     
     // Intentar guardar parcialmente en el servidor
-    const result = await saveToServer(true) // true = guardado parcial
+    const result = await saveToServer(true, { force: true }) // true = guardado parcial, forzado por el usuario
     
     if (result.success) {
       toast({
@@ -550,4 +620,16 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
       </Card>
     </div>
   )
+}
+
+function hasFilledValue(value: any): boolean {
+  if (value === null || value === undefined) return false
+  if (typeof value === "boolean") return true
+  if (typeof value === "number") return !Number.isNaN(value)
+  if (typeof value === "string") return value.trim().length > 0
+  if (Array.isArray(value)) return value.length > 0
+  if (typeof value === "object") {
+    return Object.values(value).some(hasFilledValue)
+  }
+  return false
 }

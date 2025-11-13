@@ -366,7 +366,8 @@ export interface ChildPlan {
       type: string       // "almuerzo", "cena", "desayuno", "merienda"
       description: string
     }>
-    activities: Array<{
+    activities?: Array<{
+      id?: string
       time: string       // "17:00"
       activity: string   // "jugar", "leer", "ejercicio"
       duration: number   // minutos
@@ -384,6 +385,17 @@ export interface ChildPlan {
   // Detalles del plan
   title: string          // "Plan Inicial para [Nombre]"
   objectives: string[]   // Objetivos principales del plan
+
+  // Rutina de Sueño (Punto 45)
+  sleepRoutine?: ({
+    suggestedBedtime?: string     // "20:00"
+    suggestedWakeTime?: string    // "07:00"
+    numberOfNaps?: number         // 2
+    napDuration?: string          // "60-90 minutos"
+    wakeWindows?: string          // "2-3 horas entre siestas"
+    notes?: string                // Texto libre mostrado al usuario
+  }) | null
+
   recommendations: string[] // Recomendaciones específicas
   basedOn: "survey_stats_rag" | "events_stats_rag" | "transcript_refinement"
   

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense, lazy } from "react"
+import { useState, useEffect, Suspense, lazy, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -18,6 +18,7 @@ const PlanHintsCard = lazy(() => import("@/components/parent/PlanHintsCard"))
 const MedicalSurveyPrompt = lazy(() => import("@/components/alerts/MedicalSurveyPrompt"))
 // Sistema de eventos - Nueva implementación v1.0
 import { EventRegistration } from "@/components/events"
+import { PlanSummaryCard } from "@/components/parent/PlanSummaryCard"
 import { 
   Moon, Sun, Activity, TrendingUp, Calendar, MessageSquare, 
   Lightbulb, ChevronLeft, ChevronRight, Send, X,
@@ -36,6 +37,7 @@ import {
 import { es } from "date-fns/locale"
 
 import { createLogger } from "@/lib/logger"
+import type { ChildPlan } from "@/types/models"
 
 const logger = createLogger("page")
 
@@ -63,11 +65,9 @@ interface Event {
 export default function DashboardPage() {
   const { toast } = useToast()
   const { data: session } = useSession()
-  const { activeChildId, setActiveChildId } = useActiveChild()
-  const { refreshTrigger, subscribe } = useEventsCache(activeChildId)
-  
-  // Detectar si el usuario es admin
   const isAdmin = session?.user?.role === "admin"
+  const { activeChildId, setActiveChildId } = useActiveChild()
+  const { refreshTrigger, subscribe } = useEventsCache(isAdmin ? null : activeChildId)
   
   const [child, setChild] = useState<Child | null>(null)
   const [events, setEvents] = useState<Event[]>([])
@@ -77,6 +77,9 @@ export default function DashboardPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<"7d" | "30d" | "3m">("7d")
   const [isAddingNote, setIsAddingNote] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+  const [activePlan, setActivePlan] = useState<ChildPlan | null>(null)
+  const [planLoading, setPlanLoading] = useState(false)
+  const [planError, setPlanError] = useState<string | null>(null)
   
   // Ya no redirigimos, manejamos todo en esta página
   
@@ -94,25 +97,35 @@ export default function DashboardPage() {
 
   // Suscribirse a invalidaciones de cache
   useEffect(() => {
+    if (isAdmin) return
     const unsubscribe = subscribe()
     return unsubscribe
-  }, [subscribe])
+  }, [subscribe, isAdmin])
 
   // Cargar datos del niño activo o limpiar si no hay niño
   useEffect(() => {
-    if (session) {
-      if (activeChildId) {
-        loadChildData()
-      } else {
-        // Si no hay niño activo, limpiar datos
-        setChild(null)
-        setEvents([])
-      }
+    if (!session || isAdmin) {
+      return
     }
-  }, [activeChildId, refreshTrigger, session])
+
+    if (activeChildId) {
+      loadChildData()
+    } else {
+      setChild(null)
+      setEvents([])
+      setActivePlan(null)
+    }
+  }, [activeChildId, refreshTrigger, session, isAdmin])
+
+  useEffect(() => {
+    if (!isAdmin) return
+    setChild(null)
+    setEvents([])
+    setActivePlan(null)
+  }, [isAdmin])
 
   const loadChildData = async () => {
-    if (!activeChildId || !session) {
+    if (!activeChildId || !session || isAdmin) {
       console.log('No se puede cargar datos: activeChildId =', activeChildId, ', session =', !!session)
       return
     }
@@ -174,6 +187,44 @@ export default function DashboardPage() {
       setIsLoading(false)
     }
   }
+
+  const fetchActivePlan = useCallback(async () => {
+    if (!session?.user?.id || !activeChildId || isAdmin) {
+      setActivePlan(null)
+      return
+    }
+
+    try {
+      setPlanLoading(true)
+      setPlanError(null)
+      const response = await fetch(`/api/consultas/plans?childId=${activeChildId}&userId=${session.user.id}`, {
+        cache: "no-store"
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.error || "No se pudo cargar el plan")
+      }
+
+      const data = await response.json()
+      const plans: ChildPlan[] = data.plans || []
+      const active = plans.find(p => p.status === "active") || plans[plans.length - 1] || null
+      setActivePlan(active || null)
+    } catch (error) {
+      if (error instanceof Error) {
+        setPlanError(error.message)
+      } else {
+        setPlanError("Error desconocido al cargar el plan")
+      }
+      setActivePlan(null)
+    } finally {
+      setPlanLoading(false)
+    }
+  }, [activeChildId, session?.user?.id, isAdmin])
+
+  useEffect(() => {
+    fetchActivePlan()
+  }, [fetchActivePlan])
 
 
   const getGreeting = () => {
@@ -418,28 +469,7 @@ export default function DashboardPage() {
           </h1>
         </div>
 
-        {/* Instrucciones para hoy (solo padres) */}
-        {activeChildId && (
-          <Suspense fallback={<div className="h-16" />}>
-            <TodayInstructionsCard childId={activeChildId} />
-          </Suspense>
-        )}
-
-        {/* Encuesta médica sugerida ante empeoramiento */}
-        {activeChildId && (
-          <Suspense fallback={<div className="h-8" />}>
-            <MedicalSurveyPrompt childId={activeChildId} />
-          </Suspense>
-        )}
-
-        {/* Sugerencias basadas en políticas (solo padres) */}
-        {activeChildId && child && (
-          <Suspense fallback={<div className="h-8" />}>
-            <PlanHintsCard childId={activeChildId} childBirthDate={child.birthDate} />
-          </Suspense>
-        )}
-
-        {/* Registro de eventos (debajo de los botones rápidos) */}
+        {/* Botones rápidos de registro de eventos al inicio */}
         {activeChildId && child && (
           <div className="mb-6">
             <EventRegistration
@@ -448,6 +478,44 @@ export default function DashboardPage() {
               onEventRegistered={loadChildData}
             />
           </div>
+        )}
+
+        {/* Instrucciones para hoy (solo padres) */}
+        {activeChildId && (
+          <Suspense fallback={<div className="h-16" />}>
+            <TodayInstructionsCard childId={activeChildId} />
+          </Suspense>
+        )}
+
+        {/* Sección de plan resumido o avisos */}
+        {!isAdmin && activeChildId ? (
+          activePlan ? (
+            <PlanSummaryCard plan={activePlan} isLoading={planLoading} error={planError} />
+          ) : (
+            <>
+              <Suspense fallback={<div className="h-8" />}>
+                <MedicalSurveyPrompt childId={activeChildId} />
+              </Suspense>
+              {child && (
+                <Suspense fallback={<div className="h-8" />}>
+                  <PlanHintsCard childId={activeChildId} childBirthDate={child.birthDate} />
+                </Suspense>
+              )}
+            </>
+          )
+        ) : (
+          activeChildId && (
+            <>
+              <Suspense fallback={<div className="h-8" />}>
+                <MedicalSurveyPrompt childId={activeChildId} />
+              </Suspense>
+              {child && (
+                <Suspense fallback={<div className="h-8" />}>
+                  <PlanHintsCard childId={activeChildId} childBirthDate={child.birthDate} />
+                </Suspense>
+              )}
+            </>
+          )
         )}
 
         {/* Resumen visual de métricas clave (gráfica compuesta) */}
@@ -729,7 +797,7 @@ export default function DashboardPage() {
           )}
 
           {/* Bitácora (antes: Notas Recientes) */}
-          <Card className="bg-white shadow-sm border-0 col-span-1 md:col-span-1">
+          <Card className="bg-white shadow-sm border-0 col-span-1 md:col-span-2 lg:col-span-3">
             <CardHeader className="pb-4">
               <CardTitle className="text-[#2F2F2F]">Bitácora</CardTitle>
             </CardHeader>

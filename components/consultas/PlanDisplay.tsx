@@ -67,6 +67,24 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
     return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`
   }
 
+  type SleepRoutineData = NonNullable<ChildPlan["sleepRoutine"]>
+
+  const hasLegacySleepRoutineDetails = (routine?: ChildPlan["sleepRoutine"] | null): routine is SleepRoutineData => {
+    if (!routine || typeof routine !== "object") return false
+    return Boolean(
+      routine.suggestedBedtime ||
+      routine.suggestedWakeTime ||
+      routine.napDuration ||
+      routine.wakeWindows ||
+      (typeof routine.numberOfNaps === "number" && routine.numberOfNaps > 0)
+    )
+  }
+
+  const getSleepRoutineNotes = (routine?: ChildPlan["sleepRoutine"] | null) => {
+    if (!routine || typeof routine !== "object") return ""
+    return routine.notes?.trim() || ""
+  }
+
   type TimelineEvent = {
     id: string
     time: string
@@ -90,6 +108,11 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
     if (nap._id) return `nap-${nap._id}`
     return `nap-${index}-${time}`
   }
+
+  const sleepRoutineNotes = getSleepRoutineNotes(plan.sleepRoutine)
+  const hasSleepRoutineNotes = sleepRoutineNotes.length > 0
+  const showLegacySleepRoutine = hasLegacySleepRoutineDetails(plan.sleepRoutine)
+  const legacySleepRoutine = showLegacySleepRoutine ? plan.sleepRoutine as SleepRoutineData : undefined
 
   // Crear timeline combinado de todos los eventos del día
   const createTimeline = () => {
@@ -321,6 +344,67 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
               </div>
             </CardContent>
           </Card>
+
+          {/* Rutina de Sueño (Punto 45) */}
+          {(hasSleepRoutineNotes || legacySleepRoutine) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Moon className="h-5 w-5" />
+                  Rutina de Sueño
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {hasSleepRoutineNotes ? (
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {sleepRoutineNotes}
+                  </p>
+                ) : legacySleepRoutine ? (
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2">
+                      <Sun className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Hora de dormir sugerida</p>
+                        <p className="text-sm text-muted-foreground">{formatTime(legacySleepRoutine.suggestedBedtime || "")}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Sun className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Hora de despertar sugerida</p>
+                        <p className="text-sm text-muted-foreground">{formatTime(legacySleepRoutine.suggestedWakeTime || "")}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Nap className="h-4 w-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Número de siestas</p>
+                        <p className="text-sm text-muted-foreground">
+                          {typeof legacySleepRoutine.numberOfNaps === "number"
+                            ? `${legacySleepRoutine.numberOfNaps} ${legacySleepRoutine.numberOfNaps === 1 ? 'siesta' : 'siestas'}`
+                            : 'No especificado'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Clock className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Duración aproximada de siestas</p>
+                        <p className="text-sm text-muted-foreground">{legacySleepRoutine.napDuration || 'No especificado'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Clock className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Ventanas de vigilia</p>
+                        <p className="text-sm text-muted-foreground">{legacySleepRoutine.wakeWindows || 'No especificado'}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Recomendaciones */}
           <Card>

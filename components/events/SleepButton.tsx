@@ -9,7 +9,6 @@ import { EventData } from './types'
 import { toLocalISOString } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { useDevTime } from '@/context/dev-time-context'
-import { SleepDelayModal } from './SleepDelayModal'
 import { NightWakingModal } from './NightWakingModal'
 import { useChildPlan } from '@/hooks/use-child-plan'
 import { ManualEventModal } from './ManualEventModal'
@@ -22,17 +21,17 @@ interface SleepButtonProps {
 
 /**
  * Botón inteligente que alterna entre Dormir/Despertar
- * VERSION 3.1 - Flujo modal corregido
- * 
+ * VERSION 4.0 - Registro directo sin modal (Punto 33)
+ *
  * LÓGICA DE EVENTOS:
- * - SIESTA/SUEÑO: Modal PRIMERO → Confirmar delay → ENTONCES crear evento
- * - DESPERTAR: Directo (actualiza endTime + crea wake si es mañana)
- * - CANCELAR MODAL: NO crea evento (operación cancelada)
- * 
- * FLUJO CORREGIDO:
- * 1. Click "SIESTA"/"SE DURMIÓ" → Modal sleepDelay
- * 2. Confirmar/Omitir → Crear evento con sleepDelay
- * 3. Cerrar modal → NO crear evento
+ * - SIESTA/SUEÑO: Crear evento DIRECTO sin modal
+ * - DESPERTAR: Actualiza endTime + crea wake si es mañana
+ * - DESPERTAR NOCTURNO: Muestra modal para capturar información
+ *
+ * FLUJO SIMPLIFICADO:
+ * 1. Click "SIESTA"/"SE DURMIÓ" → Crear evento inmediatamente
+ * 2. Click "DESPERTAR" → Finalizar evento actual
+ * 3. Despertar nocturno → Modal para capturar detalles
  */
 export function SleepButton({ 
   childId, 
@@ -44,12 +43,7 @@ export function SleepButton({
   const [isProcessing, setIsProcessing] = useState(false)
   const { getCurrentTime } = useDevTime()
   const [localDuration, setLocalDuration] = useState<number | null>(null)
-  const [showDelayModal, setShowDelayModal] = useState(false)
   const [showNightWakingModal, setShowNightWakingModal] = useState(false)
-  const [pendingEventData, setPendingEventData] = useState<{
-    eventType: 'sleep' | 'nap',
-    startTime: string
-  } | null>(null)
   const [showManualNap, setShowManualNap] = useState(false)
   
   // Obtener el plan del niño para determinar horarios
@@ -249,73 +243,7 @@ export function SleepButton({
       }
     })
   }, [sleepState.status, config.action, safeSchedule.wakeTime])
-  
-  // Manejar confirmación del delay de sueño con estado emocional y notas
-  const handleDelayConfirm = async (delay: number, emotionalState: string, notes: string) => {
-    if (!pendingEventData) return
-    
-    try {
-      // AHORA SÍ crear el evento con todos los datos del modal
-      const eventData: Partial<EventData> = {
-        childId,
-        eventType: pendingEventData.eventType,
-        startTime: pendingEventData.startTime,
-        emotionalState: emotionalState || 'tranquilo',
-        notes: notes || '', // No poner texto por defecto, dejar vacío si usuario no escribe
-        sleepDelay: delay // Incluir el delay desde el principio
-      }
-      
-      const response = await fetch('/api/children/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData)
-      })
-      
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('Error del servidor:', errorData)
-        throw new Error(errorData.error || errorData.details || 'Error al registrar evento')
-      }
-      
-      // Mostrar confirmación
-      const delayText = delay === 0 ? "inmediatamente" :
-                       delay === 60 ? "más de 1 hora" :
-                       `${delay} minutos`
-      
-      toast({
-        title: pendingEventData.eventType === 'nap' ? "Siesta registrada" : "A dormir",
-        description: `${childName} tardó ${delayText} en dormirse`
-      })
-      
-      // Limpiar y cerrar modal
-      setShowDelayModal(false)
-      setPendingEventData(null)
-      
-      // Actualizar datos
-      await refetch()
-      onEventRegistered?.()
-      
-    } catch (error) {
-      console.error('Error registrando evento:', error)
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo registrar el evento",
-        variant: "destructive"
-      })
-    }
-  }
-  
-  // Manejar cuando se cierra el modal sin confirmar
-  const handleModalClose = () => {
-    // NO mostrar toast ni crear evento - simplemente cancelar la operación
-    
-    // Limpiar estado
-    setShowDelayModal(false)
-    setPendingEventData(null)
-    
-    // Sin toast - el usuario simplemente cambió de opinión
-  }
-  
+
   // Manejar confirmación del tiempo despierto durante despertar nocturno
   const handleNightWakingConfirm = async (awakeDelay: number, emotionalState: string, notes: string) => {
     try {
@@ -440,22 +368,33 @@ export function SleepButton({
         return // Salir aquí, el modal se encargará del resto
         
       } else {
-        // DORMIR - NO crear evento aún, solo preparar datos y mostrar modal
-        
-        // Guardar datos temporales para cuando se confirme el modal
-        setPendingEventData({
+        // DORMIR - Crear evento DIRECTO sin modal (Punto 33)
+
+        const eventData: Partial<EventData> = {
+          childId,
           eventType: config.action as 'sleep' | 'nap',
-          startTime: toLocalISOString(now)
+          startTime: toLocalISOString(now),
+          emotionalState: 'tranquilo',
+          notes: '',
+          sleepDelay: 0 // Sin delay, se durmió inmediatamente
+        }
+
+        const response = await fetch('/api/children/events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(eventData)
         })
-        
-        // Mostrar modal de delay PRIMERO
-        setShowDelayModal(true)
-        
-        // NO crear evento aquí - esperamos a que el usuario confirme en el modal
-        // NO actualizar estado ni mostrar toast
-        
-        setIsProcessing(false) // Importante: liberar el botón
-        return
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Error al registrar evento')
+        }
+
+        // Mostrar toast de confirmación
+        toast({
+          title: config.action === 'nap' ? "Siesta registrada" : "A dormir",
+          description: `${childName} se durmió`
+        })
       }
       
       // Actualizar estado para todos los casos
@@ -546,16 +485,7 @@ export function SleepButton({
           {formatDuration(localDuration, isAsleep)}
         </p>
       )}
-      
-      {/* Modal para capturar delay de sueño */}
-      <SleepDelayModal
-        open={showDelayModal}
-        onClose={handleModalClose}
-        onConfirm={handleDelayConfirm}
-        childName={childName}
-        eventType={pendingEventData?.eventType || 'sleep'}
-      />
-      
+
       {/* Modal para capturar tiempo despierto durante despertar nocturno */}
       <NightWakingModal
         open={showNightWakingModal}

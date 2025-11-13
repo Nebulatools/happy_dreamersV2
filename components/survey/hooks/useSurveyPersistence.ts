@@ -24,11 +24,15 @@ export function useSurveyPersistence({
   const { toast } = useToast()
   const lastSavedRef = useRef<string>('')
   const saveTimeoutRef = useRef<NodeJS.Timeout>()
+  const serverSaveTimeoutRef = useRef<NodeJS.Timeout>()
   const lastSaveTimeRef = useRef<Date>(new Date())
+  const lastServerPayloadRef = useRef<string>('')
 
   // Guardar en localStorage
   const saveToLocalStorage = useCallback(() => {
-    if (!enabled || !childId) return
+    if (!enabled || !childId) {
+      return
+    }
 
     try {
       const dataToSave = {
@@ -36,20 +40,23 @@ export function useSurveyPersistence({
         currentStep,
         lastSaved: new Date().toISOString()
       }
-      
+
       const serialized = JSON.stringify(dataToSave)
-      
+
       // Solo guardar si los datos han cambiado
       if (serialized !== lastSavedRef.current) {
         localStorage.setItem(`survey_${childId}`, serialized)
         localStorage.setItem(`survey_step_${childId}`, currentStep.toString())
-        lastSavedRef.current = serialized
-        lastSaveTimeRef.current = new Date()
         
+        const previousSave = lastSaveTimeRef.current
+        const now = new Date()
+        lastSavedRef.current = serialized
+        lastSaveTimeRef.current = now
+
+        console.log('[SAVE] ✅ Guardado automático exitoso')
         logger.info('Encuesta guardada automáticamente', { childId, currentStep })
         
-        // Mostrar notificación discreta solo si han pasado más de 30 segundos desde el último guardado
-        const timeSinceLastSave = new Date().getTime() - lastSaveTimeRef.current.getTime()
+        const timeSinceLastSave = now.getTime() - previousSave.getTime()
         if (timeSinceLastSave > 30000) {
           toast({
             title: "Guardado automático",
@@ -95,13 +102,26 @@ export function useSurveyPersistence({
   }, [childId])
 
   // Guardar al servidor (con reintentos)
-  const saveToServer = useCallback(async (isPartialSave: boolean = true) => {
+  const saveToServer = useCallback(async (
+    isPartialSave: boolean = true,
+    options: { force?: boolean; keepAlive?: boolean } = {}
+  ) => {
     if (!childId) return { success: false, error: 'No childId' }
+
+    const payloadSnapshot = JSON.stringify({
+      formData,
+      currentStep
+    })
+
+    if (isPartialSave && !options.force && payloadSnapshot === lastServerPayloadRef.current) {
+      return { success: true, skipped: true }
+    }
 
     try {
       const response = await fetch('/api/survey', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        keepalive: options.keepAlive ?? false,
         body: JSON.stringify({
           childId,
           surveyData: formData,
@@ -122,6 +142,12 @@ export function useSurveyPersistence({
           isPartialSave, 
           currentStep 
         })
+
+        if (isPartialSave) {
+          lastServerPayloadRef.current = payloadSnapshot
+        } else {
+          lastServerPayloadRef.current = ''
+        }
         
         // Si es guardado final exitoso, limpiar localStorage
         if (!isPartialSave) {
@@ -145,17 +171,19 @@ export function useSurveyPersistence({
 
   // Efecto para guardado automático con debounce
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled) {
+      return
+    }
 
     // Limpiar timeout anterior
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current)
     }
 
-    // Guardar después de 3 segundos de inactividad
+    // Guardar después de 800ms de inactividad
     saveTimeoutRef.current = setTimeout(() => {
       saveToLocalStorage()
-    }, 3000)
+    }, 800)
 
     // Cleanup
     return () => {
@@ -178,8 +206,8 @@ export function useSurveyPersistence({
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       saveToLocalStorage()
+      saveToServer(true, { force: true, keepAlive: true })
       
-      // Si hay cambios no guardados, mostrar advertencia
       if (lastSavedRef.current) {
         e.preventDefault()
         e.returnValue = '¿Estás seguro de que quieres salir? Tu progreso se guardará automáticamente.'
@@ -191,7 +219,28 @@ export function useSurveyPersistence({
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
     }
-  }, [saveToLocalStorage, enabled])
+  }, [saveToLocalStorage, saveToServer, enabled])
+
+  // Guardado parcial automático en servidor (debounce suave)
+  useEffect(() => {
+    if (!enabled || !childId) return
+
+    if (serverSaveTimeoutRef.current) {
+      clearTimeout(serverSaveTimeoutRef.current)
+    }
+
+    serverSaveTimeoutRef.current = setTimeout(() => {
+      saveToServer(true).catch((error) => {
+        logger.warn('Guardado parcial automático falló, se reintentará en el próximo cambio', error)
+      })
+    }, 1500)
+
+    return () => {
+      if (serverSaveTimeoutRef.current) {
+        clearTimeout(serverSaveTimeoutRef.current)
+      }
+    }
+  }, [childId, formData, currentStep, saveToServer, enabled])
 
   return {
     saveToLocalStorage,

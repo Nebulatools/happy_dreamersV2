@@ -20,6 +20,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { 
   Clock, 
   Moon, 
@@ -35,7 +42,8 @@ import {
   X,
   Plus,
   Trash2,
-  GripVertical
+  GripVertical,
+  Activity as ActivityIcon,
 } from "lucide-react"
 import { ChildPlan } from "@/types/models"
 
@@ -44,16 +52,29 @@ interface EditablePlanDisplayProps {
   onPlanUpdate?: (updatedPlan: ChildPlan) => void
 }
 
+type SleepRoutine = NonNullable<ChildPlan["sleepRoutine"]>
+
+const EMPTY_SLEEP_ROUTINE: SleepRoutine = {
+  suggestedBedtime: "",
+  suggestedWakeTime: "",
+  numberOfNaps: 0,
+  napDuration: "",
+  wakeWindows: "",
+  notes: ""
+}
+
 export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editedPlan, setEditedPlan] = useState<ChildPlan>(plan)
   const [hasChanges, setHasChanges] = useState(false)
-  const [showNapModal, setShowNapModal] = useState(false)
-  const [newNap, setNewNap] = useState({
+  const [showEventModal, setShowEventModal] = useState(false)
+  const [newEvent, setNewEvent] = useState({
+    type: "nap" as "nap" | "meal" | "activity",
+    label: "Siesta",
     time: "14:00",
     duration: 60,
-    description: "Siesta de la tarde"
+    description: ""
   })
   const [timelineOrder, setTimelineOrder] = useState<string[]>([])
   const [draggingId, setDraggingId] = useState<string | null>(null)
@@ -114,6 +135,87 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`
   }
 
+  const hasLegacySleepRoutineData = (routine?: ChildPlan["sleepRoutine"] | null) => {
+    if (!routine || typeof routine !== "object") return false
+    return Boolean(
+      routine.suggestedBedtime ||
+      routine.suggestedWakeTime ||
+      routine.napDuration ||
+      routine.wakeWindows ||
+      (typeof routine.numberOfNaps === "number" && routine.numberOfNaps > 0)
+    )
+  }
+
+  const normalizeLegacySleepRoutine = (routine?: ChildPlan["sleepRoutine"] | null) => {
+    if (!hasLegacySleepRoutineData(routine)) return undefined
+    const source = routine as SleepRoutine
+    return {
+      ...EMPTY_SLEEP_ROUTINE,
+      ...source,
+      numberOfNaps: typeof source.numberOfNaps === "number" ? source.numberOfNaps : 0
+    }
+  }
+
+  const hasCustomSleepRoutineNotes = (routine?: ChildPlan["sleepRoutine"] | null) => {
+    if (!routine || typeof routine !== "object") return false
+    return Boolean(routine.notes && routine.notes.trim().length > 0)
+  }
+
+  const buildLegacySleepRoutineText = (routine?: SleepRoutine) => {
+    if (!routine) return ""
+    const description: string[] = []
+    if (routine.suggestedBedtime) {
+      description.push(`Hora de dormir sugerida: ${formatTime(routine.suggestedBedtime)}`)
+    }
+    if (routine.suggestedWakeTime) {
+      description.push(`Hora de despertar sugerida: ${formatTime(routine.suggestedWakeTime)}`)
+    }
+    if (typeof routine.numberOfNaps === "number" && routine.numberOfNaps > 0) {
+      description.push(`Número de siestas: ${routine.numberOfNaps}`)
+    }
+    if (routine.napDuration) {
+      description.push(`Duración aproximada de siestas: ${routine.napDuration}`)
+    }
+    if (routine.wakeWindows) {
+      description.push(`Ventanas de vigilia: ${routine.wakeWindows}`)
+    }
+    return description.join("\n")
+  }
+
+  const getSleepRoutineNotes = (routine?: ChildPlan["sleepRoutine"] | null) => {
+    if (!routine || typeof routine !== "object") return ""
+    if (routine.notes && routine.notes.trim().length > 0) {
+      return routine.notes
+    }
+    return buildLegacySleepRoutineText(normalizeLegacySleepRoutine(routine))
+  }
+
+  const serializeSleepRoutine = (routine?: ChildPlan["sleepRoutine"] | null) => {
+    if (!routine || typeof routine !== "object") return undefined
+    const payload: Partial<SleepRoutine> = {}
+
+    if (routine.suggestedBedtime) {
+      payload.suggestedBedtime = normalizeTime(routine.suggestedBedtime) || routine.suggestedBedtime
+    }
+    if (routine.suggestedWakeTime) {
+      payload.suggestedWakeTime = normalizeTime(routine.suggestedWakeTime) || routine.suggestedWakeTime
+    }
+    if (typeof routine.numberOfNaps === "number") {
+      payload.numberOfNaps = routine.numberOfNaps
+    }
+    if (routine.napDuration) {
+      payload.napDuration = routine.napDuration
+    }
+    if (routine.wakeWindows) {
+      payload.wakeWindows = routine.wakeWindows
+    }
+    if (routine.notes && routine.notes.trim().length > 0) {
+      payload.notes = routine.notes
+    }
+
+    return Object.keys(payload).length > 0 ? payload : undefined
+  }
+
   const generateEventId = (prefix: string) => {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
       return `${prefix}-${crypto.randomUUID()}`
@@ -153,6 +255,23 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     }
     nap.id = generateEventId('nap')
     return nap.id
+  }
+
+  const ensureActivityId = (activity: any, fallback: string, persist = true) => {
+    if (!activity) return fallback || generateEventId('activity')
+    if (activity.id) return activity.id
+    if (activity._id) {
+      if (persist) {
+        activity.id = `activity-${activity._id}`
+        return activity.id
+      }
+      return `activity-${activity._id}`
+    }
+    if (!persist) {
+      return fallback || generateEventId('activity')
+    }
+    activity.id = generateEventId('activity')
+    return activity.id
   }
 
   const deriveOrder = (savedOrder: string[] | undefined | null, events: string[]) => {
@@ -274,6 +393,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     icon: React.ReactNode
     mealIndex?: number
     napIndex?: number
+    activityIndex?: number
   }
 
   const createTimeline = (planData: ChildPlan, persistIds = true) => {
@@ -325,6 +445,26 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
           duration: dur,
           icon: <Nap className="h-4 w-4" />,
           napIndex: index
+        })
+      })
+    }
+
+    if (schedule?.activities) {
+      schedule.activities.forEach((activity: any, index: number) => {
+        const activityTime = normalizeTime(activity?.time)
+        if (!activityTime) return
+        const fallbackId = `activity-${activity?._id || `${index}-${activityTime}`}`
+        const id = ensureActivityId(activity, fallbackId, persistIds)
+        const dur = typeof activity?.duration === 'number' ? activity.duration : undefined
+        events.push({
+          id,
+          time: activityTime,
+          type: 'activity',
+          title: activity?.activity || 'Actividad',
+          description: activity?.description || '',
+          duration: dur,
+          icon: <ActivityIcon className="h-4 w-4" />,
+          activityIndex: index
         })
       })
     }
@@ -462,39 +602,108 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     setHasChanges(true)
   }
 
-  // Abrir modal para agregar siesta
-  const handleAddNapClick = () => {
-    setNewNap({
-      time: "14:00",
-      duration: 60,
-      description: "Siesta de la tarde"
-    })
-    setShowNapModal(true)
+  const handleActivityChange = (
+    index: number,
+    field: 'time' | 'duration' | 'description' | 'activity',
+    value: string | number
+  ) => {
+    const updatedPlan = { ...editedPlan }
+    if (!updatedPlan.schedule.activities) {
+      updatedPlan.schedule.activities = []
+    }
+    const target = updatedPlan.schedule.activities[index]
+    if (!target) return
+    
+    if (field === 'duration') {
+      target.duration = Number(value)
+    } else if (field === 'time') {
+      target.time = String(value)
+    } else if (field === 'description') {
+      target.description = String(value)
+    } else if (field === 'activity') {
+      target.activity = String(value)
+    }
+    
+    setEditedPlan(updatedPlan)
+    setHasChanges(true)
   }
 
-  // Confirmar y agregar nueva siesta
-  const confirmAddNap = async () => {
+  const handleOpenEventModal = (type: 'nap' | 'meal' | 'activity' = 'nap') => {
+    const defaults = {
+      nap: { label: 'Siesta', duration: 60 },
+      meal: { label: 'Comida', duration: 20 },
+      activity: { label: 'Actividad', duration: 30 }
+    }[type]
+
+    setNewEvent({
+      type,
+      label: defaults.label,
+      time: "14:00",
+      duration: defaults.duration,
+      description: ""
+    })
+    setShowEventModal(true)
+  }
+
+  const confirmAddEvent = () => {
+    if (!newEvent.time) {
+      toast.error('Selecciona una hora válida para el evento')
+      return
+    }
+
     const updatedPlan = { ...editedPlan }
-    if (!updatedPlan.schedule.naps) {
-      updatedPlan.schedule.naps = []
+
+    switch (newEvent.type) {
+      case 'nap': {
+        if (!updatedPlan.schedule.naps) {
+          updatedPlan.schedule.naps = []
+        }
+        const napToAdd = {
+          time: newEvent.time,
+          duration: newEvent.duration || 60,
+          description: newEvent.description || ''
+        }
+        ensureNapId(napToAdd, `nap-${updatedPlan.schedule.naps.length}-${napToAdd.time}`)
+        updatedPlan.schedule.naps.push(napToAdd)
+        break
+      }
+      case 'meal': {
+        if (!updatedPlan.schedule.meals) {
+          updatedPlan.schedule.meals = []
+        }
+        const mealToAdd = {
+          time: newEvent.time,
+          type: newEvent.label || 'Comida',
+          description: newEvent.description || ''
+        }
+        ensureMealId(mealToAdd, `meal-${updatedPlan.schedule.meals.length}-${mealToAdd.time}`)
+        updatedPlan.schedule.meals.push(mealToAdd)
+        break
+      }
+      case 'activity': {
+        if (!updatedPlan.schedule.activities) {
+          updatedPlan.schedule.activities = []
+        }
+        const activityToAdd = {
+          time: newEvent.time,
+          activity: newEvent.label || 'Actividad',
+          duration: newEvent.duration || 30,
+          description: newEvent.description || ''
+        }
+        ensureActivityId(activityToAdd, `activity-${updatedPlan.schedule.activities.length}-${activityToAdd.time}`)
+        updatedPlan.schedule.activities.push(activityToAdd)
+        break
+      }
+      default:
+        break
     }
-    const napToAdd = { ...newNap }
-    const napId = ensureNapId(napToAdd, `nap-${updatedPlan.schedule.naps.length}-${newNap.time}`)
-    updatedPlan.schedule.naps.push(napToAdd)
-    const nextOrder = [...getSanitizedOrder(), napId]
-    updatedPlan.schedule.timelineOrder = nextOrder
+
+    const recalculatedOrder = createTimeline(updatedPlan).map(event => event.id)
+    updatedPlan.schedule.timelineOrder = recalculatedOrder
     setEditedPlan(updatedPlan)
-    setTimelineOrder(nextOrder)
+    setTimelineOrder(recalculatedOrder)
     setHasChanges(true)
-    setShowNapModal(false)
-    
-    // Guardar automáticamente si estamos en modo edición
-    if (isEditing) {
-      // Esperar un momento para que se actualice el estado
-      setTimeout(() => {
-        handleSave()
-      }, 100)
-    }
+    setShowEventModal(false)
   }
 
   // Eliminar siesta
@@ -512,6 +721,59 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
       setEditedPlan(updatedPlan)
       setHasChanges(true)
     }
+  }
+
+  const removeActivity = (index: number) => {
+    const updatedPlan = { ...editedPlan }
+    if (updatedPlan.schedule.activities) {
+      const removedActivity = updatedPlan.schedule.activities[index]
+      const removedId = removedActivity?.id
+      updatedPlan.schedule.activities.splice(index, 1)
+      if (removedId) {
+        const newOrder = getSanitizedOrder().filter(id => id !== removedId)
+        updatedPlan.schedule.timelineOrder = newOrder
+        setTimelineOrder(newOrder)
+      }
+      setEditedPlan(updatedPlan)
+      setHasChanges(true)
+    }
+  }
+
+  const handleSleepRoutineNotesChange = (value: string) => {
+    setEditedPlan(prev => {
+      const currentRoutine = prev.sleepRoutine && typeof prev.sleepRoutine === "object"
+        ? prev.sleepRoutine
+        : undefined
+
+      if (!value.trim()) {
+        if (!currentRoutine) {
+          return { ...prev, sleepRoutine: undefined }
+        }
+        const { notes: _removedNotes, ...rest } = currentRoutine
+        return {
+          ...prev,
+          sleepRoutine: hasLegacySleepRoutineData(rest) ? rest : undefined
+        }
+      }
+
+      return {
+        ...prev,
+        sleepRoutine: {
+          ...EMPTY_SLEEP_ROUTINE,
+          ...(currentRoutine || {}),
+          notes: value
+        }
+      }
+    })
+    setHasChanges(true)
+  }
+
+  const handleClearSleepRoutine = () => {
+    setEditedPlan(prev => ({
+      ...prev,
+      sleepRoutine: undefined
+    }))
+    setHasChanges(true)
   }
 
   // Manejar cambios en objetivos
@@ -584,6 +846,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
           schedule: editedPlan.schedule,
           objectives: editedPlan.objectives,
           recommendations: editedPlan.recommendations,
+          sleepRoutine: serializeSleepRoutine(editedPlan.sleepRoutine),
           // Enviar información adicional para crear el plan si no existe
           childId: plan.childId,
           userId: plan.userId,
@@ -619,6 +882,15 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
   }
 
   // Cancelar edición
+  const sleepRoutineNotes = useMemo(
+    () => getSleepRoutineNotes(editedPlan.sleepRoutine),
+    [editedPlan.sleepRoutine]
+  )
+
+  const hasSleepRoutineNotes = hasCustomSleepRoutineNotes(editedPlan.sleepRoutine)
+
+  const displaySleepRoutine = normalizeLegacySleepRoutine(editedPlan.sleepRoutine)
+
   const handleCancel = () => {
     const resetPlan = clonePlan(plan)
     const events = createTimeline(resetPlan)
@@ -779,7 +1051,9 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                                     event.type === 'meal' && event.mealIndex !== undefined ? 
                                       editedPlan.schedule.meals[event.mealIndex].time :
                                     event.type === 'nap' && event.napIndex !== undefined && editedPlan.schedule.naps ? 
-                                      editedPlan.schedule.naps[event.napIndex].time : event.time
+                                      editedPlan.schedule.naps[event.napIndex].time :
+                                    event.type === 'activity' && event.activityIndex !== undefined && editedPlan.schedule.activities ?
+                                      editedPlan.schedule.activities[event.activityIndex].time : event.time
                                   }
                                   onChange={(e) => {
                                     if (event.type === 'wake') {
@@ -790,6 +1064,8 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                                       handleMealChange(event.mealIndex, 'time', e.target.value)
                                     } else if (event.type === 'nap' && event.napIndex !== undefined) {
                                       handleNapChange(event.napIndex, 'time', e.target.value)
+                                    } else if (event.type === 'activity' && event.activityIndex !== undefined) {
+                                      handleActivityChange(event.activityIndex, 'time', e.target.value)
                                     }
                                   }}
                                   className="w-32"
@@ -844,21 +1120,52 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                                     </Button>
                                   </>
                                 )}
+                                {event.type === 'activity' && event.activityIndex !== undefined && (
+                                  <>
+                                    <Input
+                                      value={editedPlan.schedule.activities?.[event.activityIndex]?.activity || ''}
+                                      onChange={(e) => handleActivityChange(event.activityIndex!, 'activity', e.target.value)}
+                                      placeholder="Nombre de la actividad"
+                                      className="w-40"
+                                    />
+                                    <Input
+                                      type="number"
+                                      value={editedPlan.schedule.activities?.[event.activityIndex]?.duration || 30}
+                                      onChange={(e) => handleActivityChange(event.activityIndex!, 'duration', e.target.value)}
+                                      className="w-20"
+                                      min="5"
+                                      max="240"
+                                    />
+                                    <span className="text-sm text-muted-foreground">min</span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => removeActivity(event.activityIndex!)}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </>
+                                )}
                               </div>
                               {(event.type === 'meal' && event.mealIndex !== undefined) || 
-                               (event.type === 'nap' && event.napIndex !== undefined) ? (
+                               (event.type === 'nap' && event.napIndex !== undefined) ||
+                               (event.type === 'activity' && event.activityIndex !== undefined) ? (
                                 <Input
                                   value={
                                     event.type === 'meal' && event.mealIndex !== undefined ? 
                                       editedPlan.schedule.meals[event.mealIndex].description :
                                     event.type === 'nap' && event.napIndex !== undefined && editedPlan.schedule.naps ? 
-                                      editedPlan.schedule.naps[event.napIndex].description || '' : ''
+                                      editedPlan.schedule.naps[event.napIndex].description || '' :
+                                    event.type === 'activity' && event.activityIndex !== undefined && editedPlan.schedule.activities ?
+                                      editedPlan.schedule.activities[event.activityIndex].description || '' : ''
                                   }
                                   onChange={(e) => {
                                     if (event.type === 'meal' && event.mealIndex !== undefined) {
                                       handleMealChange(event.mealIndex, 'description', e.target.value)
                                     } else if (event.type === 'nap' && event.napIndex !== undefined) {
                                       handleNapChange(event.napIndex, 'description', e.target.value)
+                                    } else if (event.type === 'activity' && event.activityIndex !== undefined) {
+                                      handleActivityChange(event.activityIndex, 'description', e.target.value)
                                     }
                                   }}
                                   placeholder="Descripción"
@@ -912,11 +1219,11 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                 {isEditing && (
                   <Button
                     variant="outline"
-                    onClick={handleAddNapClick}
+                    onClick={() => handleOpenEventModal()}
                     className="w-full"
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Agregar Siesta
+                    Agregar evento
                   </Button>
                 )}
               </div>
@@ -924,8 +1231,90 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
           </Card>
         </div>
 
-        {/* Panel lateral con objetivos y recomendaciones */}
+        {/* Panel lateral con objetivos, rutina y recomendaciones */}
         <div className="space-y-6">
+          {/* Rutina de Sueño */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Moon className="h-5 w-5" />
+                Rutina de Sueño
+              </CardTitle>
+              <CardDescription>
+                Escribe la recomendación exacta que verán los padres en su dashboard
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isEditing ? (
+                <div className="space-y-3">
+                  <Label htmlFor="sleep-routine-notes">Descripción recomendada</Label>
+                  <Textarea
+                    id="sleep-routine-notes"
+                    value={sleepRoutineNotes}
+                    onChange={(e) => handleSleepRoutineNotesChange(e.target.value)}
+                    placeholder="Ej: • Dormir entre 7:30 y 8:00 pm\n• 2 siestas de 60-90 minutos\n• Ventanas de vigilia de 2-3 horas"
+                    rows={6}
+                    className="min-h-[140px]"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Este texto se mostrará tal cual al usuario en su dashboard. Puedes usar saltos de línea o bullets.
+                  </p>
+                  <div className="flex justify-end">
+                    <Button variant="ghost" size="sm" onClick={handleClearSleepRoutine}>
+                      Limpiar sección
+                    </Button>
+                  </div>
+                </div>
+              ) : hasSleepRoutineNotes ? (
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {sleepRoutineNotes}
+                </p>
+              ) : displaySleepRoutine ? (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2">
+                    <Moon className="h-4 w-4 text-indigo-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Hora de dormir</p>
+                      <p className="text-sm text-muted-foreground">{formatTime(displaySleepRoutine.suggestedBedtime)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Sun className="h-4 w-4 text-amber-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Hora de despertar</p>
+                      <p className="text-sm text-muted-foreground">{formatTime(displaySleepRoutine.suggestedWakeTime)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Nap className="h-4 w-4 text-indigo-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Número de siestas</p>
+                      <p className="text-sm text-muted-foreground">{displaySleepRoutine.numberOfNaps || "No especificado"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Clock className="h-4 w-4 text-blue-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Duración de siestas</p>
+                      <p className="text-sm text-muted-foreground">{displaySleepRoutine.napDuration || "No especificado"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <ActivityIcon className="h-4 w-4 text-purple-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Ventanas de vigilia</p>
+                      <p className="text-sm text-muted-foreground">{displaySleepRoutine.wakeWindows || "No especificado"}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No has definido una rutina específica. Completa esta sección para que el usuario la vea en su dashboard.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Objetivos */}
           <Card>
             <CardHeader>
@@ -1138,65 +1527,120 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
         </div>
       </div>
 
-      {/* Modal para agregar siesta */}
-      <Dialog open={showNapModal} onOpenChange={setShowNapModal}>
+      {/* Modal para agregar evento */}
+      <Dialog open={showEventModal} onOpenChange={setShowEventModal}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Agregar Siesta</DialogTitle>
+            <DialogTitle>Agregar evento a la rutina</DialogTitle>
             <DialogDescription>
-              Configure los detalles de la nueva siesta en la rutina diaria.
+              Define el tipo de evento, la hora y detalles para integrarlo automáticamente.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="nap-time" className="text-right">
+              <Label className="text-right">
+                Tipo
+              </Label>
+              <Select
+                value={newEvent.type}
+                onValueChange={(value) => {
+                  const nextType = value as 'nap' | 'meal' | 'activity'
+                  const defaults = {
+                    nap: { label: 'Siesta', duration: 60 },
+                    meal: { label: 'Comida', duration: 20 },
+                    activity: { label: 'Actividad', duration: 30 },
+                  }[nextType]
+                  setNewEvent((prev) => ({
+                    ...prev,
+                    type: nextType,
+                    label: defaults.label,
+                    duration: defaults.duration,
+                  }))
+                }}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Selecciona un tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nap">Siesta</SelectItem>
+                  <SelectItem value="meal">Comida o snack</SelectItem>
+                  <SelectItem value="activity">Actividad</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="event-label" className="text-right">
+                {newEvent.type === 'meal'
+                  ? 'Tipo'
+                  : newEvent.type === 'activity'
+                    ? 'Actividad'
+                    : 'Nombre'}
+              </Label>
+              <Input
+                id="event-label"
+                value={newEvent.label}
+                onChange={(e) => setNewEvent({ ...newEvent, label: e.target.value })}
+                className="col-span-3"
+                placeholder={newEvent.type === 'meal' ? 'Comida principal' : 'Siesta corta'}
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="event-time" className="text-right">
                 Hora
               </Label>
               <Input
-                id="nap-time"
+                id="event-time"
                 type="time"
-                value={newNap.time}
-                onChange={(e) => setNewNap({ ...newNap, time: e.target.value })}
+                value={newEvent.time}
+                onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
                 className="col-span-3"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="nap-duration" className="text-right">
-                Duración
-              </Label>
-              <div className="col-span-3 flex items-center gap-2">
-                <Input
-                  id="nap-duration"
-                  type="number"
-                  min="15"
-                  max="180"
-                  step="15"
-                  value={newNap.duration}
-                  onChange={(e) => setNewNap({ ...newNap, duration: parseInt(e.target.value) || 60 })}
-                  className="flex-1"
-                />
-                <span className="text-sm text-muted-foreground">minutos</span>
+            {newEvent.type !== 'meal' && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="event-duration" className="text-right">
+                  Duración
+                </Label>
+                <div className="col-span-3 flex items-center gap-2">
+                  <Input
+                    id="event-duration"
+                    type="number"
+                    min="5"
+                    max="240"
+                    step="5"
+                    value={newEvent.duration}
+                    onChange={(e) => setNewEvent({ ...newEvent, duration: parseInt(e.target.value) || 30 })}
+                    className="flex-1"
+                  />
+                  <span className="text-sm text-muted-foreground">minutos</span>
+                </div>
               </div>
-            </div>
+            )}
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="nap-description" className="text-right">
+              <Label htmlFor="event-description" className="text-right">
                 Descripción
               </Label>
-              <Input
-                id="nap-description"
-                value={newNap.description}
-                onChange={(e) => setNewNap({ ...newNap, description: e.target.value })}
-                placeholder="Ej: Siesta de la tarde"
+              <Textarea
+                id="event-description"
+                value={newEvent.description}
+                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                placeholder={
+                  newEvent.type === 'meal'
+                    ? 'Ej: 6 oz de leche y fruta'
+                    : 'Ej: Actividad tranquila antes de dormir'
+                }
                 className="col-span-3"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNapModal(false)}>
+            <Button variant="outline" onClick={() => setShowEventModal(false)}>
               Cancelar
             </Button>
-            <Button onClick={confirmAddNap}>
-              Agregar Siesta
+            <Button onClick={confirmAddEvent}>
+              Agregar evento
             </Button>
           </DialogFooter>
         </DialogContent>

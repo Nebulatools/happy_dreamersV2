@@ -1,7 +1,7 @@
 // Paso 3: Historial
 // Información sobre el niño, prenatal y desarrollo
 
-import { useEffect } from "react"
+import { useEffect, useCallback } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -9,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { Baby } from "lucide-react"
 import type { SurveyStepProps } from '../types/survey.types'
+import { calculateAgeInMonths } from "@/lib/date-utils"
+import { calculateWeightPercentile } from "@/lib/growth/weight-percentile"
 
 export function ChildHistoryStep({ data, onChange, errors = {}, context }: SurveyStepProps) {
   const childProfile = context?.childData
@@ -43,13 +45,25 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
   ])
 
   const displayName = data.nombreHijo || [profileFirstName, profileLastName].filter(Boolean).join(" ").trim()
-  const displayBirthDate = data.fechaNacimiento || (profileBirthDateRaw ? String(profileBirthDateRaw).split("T")[0] : "")
+  const birthDateValue = data.fechaNacimiento || profileBirthDateRaw || ""
+  const birthDateObject = (() => {
+    if (!birthDateValue) return null
+    const parsed = new Date(birthDateValue as any)
+    return Number.isNaN(parsed.getTime()) ? null : parsed
+  })()
+  const displayBirthDate = birthDateObject
+    ? birthDateObject.toISOString().split("T")[0]
+    : (typeof birthDateValue === "string" ? birthDateValue : "")
 
-  const updateField = (field: string, value: any) => {
+  const updateFields = (updates: Record<string, any>) => {
     onChange({
       ...data,
-      [field]: value
+      ...updates
     })
+  }
+
+  const updateField = (field: string, value: any) => {
+    updateFields({ [field]: value })
   }
 
   const getError = (field: string): string | undefined => {
@@ -60,16 +74,22 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
     return !!getError(field)
   }
 
-  const updateCondicion = (condicion: string, checked: boolean) => {
+  const updateCondicion = (
+    condicion: string,
+    checked: boolean,
+    extraUpdates: Record<string, any> = {}
+  ) => {
     const condiciones = data.condicionesEmbarazo || []
-    if (checked) {
-      onChange({ ...data, condicionesEmbarazo: [...condiciones, condicion] })
-    } else {
-      onChange({ 
-        ...data, 
-        condicionesEmbarazo: condiciones.filter((c: string) => c !== condicion) 
-      })
-    }
+    const alreadySelected = condiciones.includes(condicion)
+    const nextCondiciones = checked
+      ? (alreadySelected ? condiciones : [...condiciones, condicion])
+      : condiciones.filter((c: string) => c !== condicion)
+
+    onChange({
+      ...data,
+      condicionesEmbarazo: nextCondiciones,
+      ...extraUpdates
+    })
   }
 
   const updateProblemaHijo = (problema: string, checked: boolean) => {
@@ -83,6 +103,56 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
       })
     }
   }
+
+  const computePercentilFromWeight = useCallback((rawValue?: string): string => {
+    if (!rawValue) return ''
+    const normalizedValue = rawValue.replace(',', '.')
+    const pesoNum = parseFloat(normalizedValue)
+    if (!pesoNum || !Number.isFinite(pesoNum) || pesoNum <= 0) {
+      return ''
+    }
+
+    const fallbackBirthDate =
+      birthDateObject ||
+      (childProfile?.birthDate
+        ? (() => {
+            const parsed = new Date(childProfile.birthDate as any)
+            return Number.isNaN(parsed.getTime()) ? null : parsed
+          })()
+        : null)
+
+    const derivedAgeInMonths = (() => {
+      if (fallbackBirthDate) {
+        return calculateAgeInMonths(fallbackBirthDate)
+      }
+
+      if (
+        typeof childProfile?.ageInMonths === "number" &&
+        !Number.isNaN(childProfile.ageInMonths) &&
+        childProfile.ageInMonths >= 0
+      ) {
+        return childProfile.ageInMonths
+      }
+
+      return null
+    })()
+
+    if (derivedAgeInMonths === null || derivedAgeInMonths < 0) {
+      return ''
+    }
+
+    const resolvedGender = (data.genero || childProfile?.gender || "") as string
+    const percentile = calculateWeightPercentile(pesoNum, derivedAgeInMonths, resolvedGender)
+    return percentile !== null ? percentile.toString() : ''
+  }, [birthDateObject, childProfile?.birthDate, childProfile?.gender, childProfile?.ageInMonths, data.genero])
+
+  useEffect(() => {
+    if (!data.pesoHijo) return
+    const latest = computePercentilFromWeight(data.pesoHijo)
+    if ((data.percentilPeso || '') !== latest) {
+      updateField('percentilPeso', latest)
+    }
+  }, [data.pesoHijo, data.percentilPeso, computePercentilFromWeight])
 
   return (
     <div className="space-y-8">
@@ -153,61 +223,19 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
             </Label>
             <Input
               id="peso-hijo"
-              type="number"
-              step="0.1"
-              min="0"
+              type="text"
+              inputMode="decimal"
               value={data.pesoHijo || ""}
               onChange={(e) => {
-                const peso = e.target.value
-                updateField('pesoHijo', peso)
-
-                // Calcular percentil automáticamente si tenemos peso y edad
-                if (peso && displayBirthDate) {
-                  const birthDate = new Date(displayBirthDate)
-                  const today = new Date()
-                  const ageInMonths = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44))
-                  const pesoNum = parseFloat(peso)
-
-                  if (ageInMonths > 0 && pesoNum > 0) {
-                    // Cálculo simplificado de percentil basado en rangos aproximados de la OMS
-                    let percentil = 50 // Valor por defecto
-
-                    // Rangos aproximados por edad (en meses) y peso
-                    if (ageInMonths <= 12) {
-                      if (pesoNum < 7) percentil = 10
-                      else if (pesoNum < 8.5) percentil = 25
-                      else if (pesoNum < 10) percentil = 50
-                      else if (pesoNum < 11.5) percentil = 75
-                      else percentil = 90
-                    } else if (ageInMonths <= 24) {
-                      if (pesoNum < 9) percentil = 10
-                      else if (pesoNum < 10.5) percentil = 25
-                      else if (pesoNum < 12) percentil = 50
-                      else if (pesoNum < 13.5) percentil = 75
-                      else percentil = 90
-                    } else if (ageInMonths <= 36) {
-                      if (pesoNum < 11) percentil = 10
-                      else if (pesoNum < 12.5) percentil = 25
-                      else if (pesoNum < 14) percentil = 50
-                      else if (pesoNum < 15.5) percentil = 75
-                      else percentil = 90
-                    } else if (ageInMonths <= 60) {
-                      if (pesoNum < 13) percentil = 10
-                      else if (pesoNum < 15) percentil = 25
-                      else if (pesoNum < 17) percentil = 50
-                      else if (pesoNum < 19) percentil = 75
-                      else percentil = 90
-                    } else {
-                      if (pesoNum < 16) percentil = 10
-                      else if (pesoNum < 18) percentil = 25
-                      else if (pesoNum < 21) percentil = 50
-                      else if (pesoNum < 24) percentil = 75
-                      else percentil = 90
-                    }
-
-                    updateField('percentilPeso', percentil.toString())
-                  }
+                const rawValue = e.target.value
+                // Permitir solo números, punto y coma
+                if (rawValue && !/^[0-9]*[.,]?[0-9]*$/.test(rawValue)) {
+                  return // No actualizar si no es un número válido
                 }
+                const updates: Record<string, any> = { pesoHijo: rawValue }
+
+                updates.percentilPeso = computePercentilFromWeight(rawValue)
+                updateFields(updates)
               }}
               placeholder="Ej: 15.5"
               className={hasError('pesoHijo') ? 'border-red-500' : ''}
@@ -311,7 +339,7 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
               <Checkbox
                 id="cond-anemia"
                 checked={data.condicionesEmbarazo?.includes('anemia') || false}
-                onCheckedChange={(checked) => updateCondicion('anemia', checked as boolean)}
+                onCheckedChange={(checked) => updateCondicion('anemia', checked === true)}
               />
               <Label htmlFor="cond-anemia">Anemia</Label>
             </div>
@@ -319,7 +347,7 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
               <Checkbox
                 id="cond-infecciones"
                 checked={data.condicionesEmbarazo?.includes('infecciones') || false}
-                onCheckedChange={(checked) => updateCondicion('infecciones', checked as boolean)}
+                onCheckedChange={(checked) => updateCondicion('infecciones', checked === true)}
               />
               <Label htmlFor="cond-infecciones">Infecciones</Label>
             </div>
@@ -328,10 +356,8 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
                 id="cond-otro"
                 checked={data.condicionesEmbarazo?.includes('otro') || false}
                 onCheckedChange={(checked) => {
-                  updateCondicion('otro', checked as boolean)
-                  if (!checked) {
-                    updateField('condicionesEmbarazoOtro', '')
-                  }
+                  const isChecked = checked === true
+                  updateCondicion('otro', isChecked, isChecked ? {} : { condicionesEmbarazoOtro: '' })
                 }}
               />
               <Label htmlFor="cond-otro">Otro</Label>
@@ -351,7 +377,7 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
               <Checkbox
                 id="cond-ninguna"
                 checked={data.condicionesEmbarazo?.includes('ninguna') || false}
-                onCheckedChange={(checked) => updateCondicion('ninguna', checked as boolean)}
+                onCheckedChange={(checked) => updateCondicion('ninguna', checked === true)}
               />
               <Label htmlFor="cond-ninguna">Ninguna</Label>
             </div>
@@ -429,14 +455,14 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
           </RadioGroup>
           {data.nacioTermino === false && (
             <div className="mt-3">
-              <Label htmlFor="semanas-nacimiento" className="text-sm text-gray-600">
+              <Label htmlFor="semanas-nacimiento" className="block text-sm text-gray-600 mb-2">
                 ¿En qué semana nació?
               </Label>
               <select
                 id="semanas-nacimiento"
                 value={data.semanasNacimiento || ""}
                 onChange={(e) => updateField('semanasNacimiento', e.target.value)}
-                className="mt-1 w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#8B4789] focus:outline-none focus:ring-1 focus:ring-[#8B4789]"
+                className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#8B4789] focus:outline-none focus:ring-1 focus:ring-[#8B4789]"
               >
                 <option value="">Seleccionar semana</option>
                 <option value="24">24 semanas</option>

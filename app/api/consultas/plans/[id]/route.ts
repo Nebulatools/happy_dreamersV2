@@ -196,7 +196,7 @@ export async function PUT(
 
     // Obtener datos del body
     const body = await req.json()
-    const { schedule, objectives, recommendations, childId, userId, planNumber, planVersion, planType } = body
+    const { schedule, objectives, recommendations, sleepRoutine, childId, userId, planNumber, planVersion, planType } = body
 
     // Validación básica
     if (!schedule || !objectives || !recommendations) {
@@ -241,6 +241,7 @@ export async function PUT(
         schedule,
         objectives,
         recommendations,
+        sleepRoutine: sleepRoutine || null,
         createdAt: new Date(),
         createdBy: new ObjectId(session.user.id),
         updatedAt: new Date(),
@@ -284,6 +285,7 @@ export async function PUT(
           schedule,
           objectives,
           recommendations,
+          sleepRoutine: sleepRoutine || null,
           updatedAt: new Date(),
           updatedBy: new ObjectId(session.user.id)
         }

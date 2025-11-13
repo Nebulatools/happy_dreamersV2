@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
+import type { CheckedState } from "@radix-ui/react-checkbox"
 import { Heart } from "lucide-react"
 import type { SurveyStepProps } from '../types/survey.types'
 
@@ -24,28 +25,42 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
     return !!getError(field)
   }
 
-  const updateProblemaHijo = (problema: string, checked: boolean) => {
+  const updateProblemaHijo = (
+    problema: string,
+    checked: CheckedState,
+    extraUpdates: Record<string, any> = {}
+  ) => {
+    const isChecked = checked === true
     const problemas = data.problemasHijo || []
-    if (checked) {
-      onChange({ ...data, problemasHijo: [...problemas, problema] })
-    } else {
-      onChange({ 
-        ...data, 
-        problemasHijo: problemas.filter((p: string) => p !== problema) 
-      })
-    }
+    const alreadySelected = problemas.includes(problema)
+    const nextProblemas = isChecked
+      ? (alreadySelected ? problemas : [...problemas, problema])
+      : problemas.filter((p: string) => p !== problema)
+
+    onChange({
+      ...data,
+      problemasHijo: nextProblemas,
+      ...extraUpdates
+    })
   }
 
-  const updateSituacionSalud = (situacion: string, checked: boolean) => {
+  const updateSituacionSalud = (
+    situacion: string,
+    checked: CheckedState,
+    extraUpdates: Record<string, any> = {}
+  ) => {
+    const isChecked = checked === true
     const situaciones = data.situacionesHijo || []
-    if (checked) {
-      onChange({ ...data, situacionesHijo: [...situaciones, situacion] })
-    } else {
-      onChange({
-        ...data,
-        situacionesHijo: situaciones.filter((s: string) => s !== situacion)
-      })
-    }
+    const alreadySelected = situaciones.includes(situacion)
+    const nextSituaciones = isChecked
+      ? (alreadySelected ? situaciones : [...situaciones, situacion])
+      : situaciones.filter((s: string) => s !== situacion)
+
+    onChange({
+      ...data,
+      situacionesHijo: nextSituaciones,
+      ...extraUpdates
+    })
   }
 
   return (
@@ -233,10 +248,8 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
                 id="prob-chupa-dedo"
                 checked={data.problemasHijo?.includes('chupa-dedo') || false}
                 onCheckedChange={(checked) => {
-                  updateProblemaHijo('chupa-dedo', checked as boolean)
-                  if (!checked) {
-                    updateField('planDejarDedo', '')
-                  }
+                  const isChecked = checked === true
+                  updateProblemaHijo('chupa-dedo', checked, isChecked ? {} : { planDejarDedo: '' })
                 }}
               />
               <Label htmlFor="prob-chupa-dedo">Se chupa el dedo</Label>
@@ -270,7 +283,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="prob-usa-chupon"
               checked={data.problemasHijo?.includes('usa-chupon') || false}
-              onCheckedChange={(checked) => updateProblemaHijo('usa-chupon', checked as boolean)}
+              onCheckedChange={(checked) => updateProblemaHijo('usa-chupon', checked === true)}
             />
             <Label htmlFor="prob-usa-chupon">Usa chupón</Label>
           </div>
@@ -281,10 +294,8 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
                 id="prob-objeto-seguridad"
                 checked={data.problemasHijo?.includes('objeto-seguridad') || false}
                 onCheckedChange={(checked) => {
-                  updateProblemaHijo('objeto-seguridad', checked as boolean)
-                  if (!checked) {
-                    updateField('nombreObjetoSeguridad', '')
-                  }
+                  const isChecked = checked === true
+                  updateProblemaHijo('objeto-seguridad', checked, isChecked ? {} : { nombreObjetoSeguridad: '' })
                 }}
               />
               <Label htmlFor="prob-objeto-seguridad">Tiene un objeto de seguridad como un trapito o peluche</Label>
@@ -309,7 +320,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="prob-problemas-medicos"
               checked={data.problemasHijo?.includes('problemas-medicos') || false}
-              onCheckedChange={(checked) => updateProblemaHijo('problemas-medicos', checked as boolean)}
+              onCheckedChange={(checked) => updateProblemaHijo('problemas-medicos', checked === true)}
             />
             <Label htmlFor="prob-problemas-medicos">Tiene o ha tenido problemas médicos o del desarrollo</Label>
           </div>
@@ -318,7 +329,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="prob-moja-cama"
               checked={data.problemasHijo?.includes('moja-cama') || false}
-              onCheckedChange={(checked) => updateProblemaHijo('moja-cama', checked as boolean)}
+              onCheckedChange={(checked) => updateProblemaHijo('moja-cama', checked === true)}
             />
             <Label htmlFor="prob-moja-cama">Moja la cama durante la noche</Label>
           </div>
@@ -327,7 +338,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="prob-sonambulo"
               checked={data.problemasHijo?.includes('sonambulo') || false}
-              onCheckedChange={(checked) => updateProblemaHijo('sonambulo', checked as boolean)}
+              onCheckedChange={(checked) => updateProblemaHijo('sonambulo', checked === true)}
             />
             <Label htmlFor="prob-sonambulo">Es sonámbulo</Label>
           </div>
@@ -336,7 +347,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="prob-ronca"
               checked={data.problemasHijo?.includes('ronca') || false}
-              onCheckedChange={(checked) => updateProblemaHijo('ronca', checked as boolean)}
+              onCheckedChange={(checked) => updateProblemaHijo('ronca', checked === true)}
             />
             <Label htmlFor="prob-ronca">Ronca</Label>
           </div>
@@ -345,7 +356,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="prob-respira-boca"
               checked={data.problemasHijo?.includes('respira-boca') || false}
-              onCheckedChange={(checked) => updateProblemaHijo('respira-boca', checked as boolean)}
+              onCheckedChange={(checked) => updateProblemaHijo('respira-boca', checked === true)}
             />
             <Label htmlFor="prob-respira-boca">Respira por la boca</Label>
           </div>
@@ -354,7 +365,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="prob-cae-cama"
               checked={data.problemasHijo?.includes('cae-cama') || false}
-              onCheckedChange={(checked) => updateProblemaHijo('cae-cama', checked as boolean)}
+              onCheckedChange={(checked) => updateProblemaHijo('cae-cama', checked === true)}
             />
             <Label htmlFor="prob-cae-cama">Se cae de la cama con frecuencia</Label>
           </div>
@@ -363,7 +374,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="prob-inquieto"
               checked={data.problemasHijo?.includes('inquieto') || false}
-              onCheckedChange={(checked) => updateProblemaHijo('inquieto', checked as boolean)}
+              onCheckedChange={(checked) => updateProblemaHijo('inquieto', checked === true)}
             />
             <Label htmlFor="prob-inquieto">Es muy inquieto para dormir</Label>
           </div>
@@ -372,7 +383,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="prob-transpira"
               checked={data.problemasHijo?.includes('transpira') || false}
-              onCheckedChange={(checked) => updateProblemaHijo('transpira', checked as boolean)}
+              onCheckedChange={(checked) => updateProblemaHijo('transpira', checked === true)}
             />
             <Label htmlFor="prob-transpira">Transpira mucho cuando duerme</Label>
           </div>
@@ -381,7 +392,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="prob-reflujo"
               checked={data.problemasHijo?.includes('reflujo') || false}
-              onCheckedChange={(checked) => updateProblemaHijo('reflujo', checked as boolean)}
+              onCheckedChange={(checked) => updateProblemaHijo('reflujo', checked === true)}
             />
             <Label htmlFor="prob-reflujo">Tiene o ha tenido reflujo y/o cólicos</Label>
           </div>
@@ -390,7 +401,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="prob-pesadillas"
               checked={data.problemasHijo?.includes('pesadillas') || false}
-              onCheckedChange={(checked) => updateProblemaHijo('pesadillas', checked as boolean)}
+              onCheckedChange={(checked) => updateProblemaHijo('pesadillas', checked === true)}
             />
             <Label htmlFor="prob-pesadillas">Tiene o ha tenido pesadillas</Label>
           </div>
@@ -407,10 +418,8 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
                 id="salud-alergia-ambiental"
                 checked={data.situacionesHijo?.includes('alergia-ambiental') || false}
                 onCheckedChange={(checked) => {
-                  updateSituacionSalud('alergia-ambiental', checked as boolean)
-                  if (!checked) {
-                    updateField('alergiaAmbientalDetalle', '')
-                  }
+                  const isChecked = checked === true
+                  updateSituacionSalud('alergia-ambiental', checked, isChecked ? {} : { alergiaAmbientalDetalle: '' })
                 }}
               />
               <Label htmlFor="salud-alergia-ambiental">Alergia ambiental</Label>
@@ -437,10 +446,8 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
                 id="salud-alergia-alimenticia"
                 checked={data.situacionesHijo?.includes('alergia-alimenticia') || false}
                 onCheckedChange={(checked) => {
-                  updateSituacionSalud('alergia-alimenticia', checked as boolean)
-                  if (!checked) {
-                    updateField('alergiaAlimenticiaDetalle', '')
-                  }
+                  const isChecked = checked === true
+                  updateSituacionSalud('alergia-alimenticia', checked, isChecked ? {} : { alergiaAlimenticiaDetalle: '' })
                 }}
               />
               <Label htmlFor="salud-alergia-alimenticia">Alergia alimenticia</Label>
@@ -467,10 +474,8 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
                 id="salud-infecciones-oido"
                 checked={data.situacionesHijo?.includes('infecciones-oido') || false}
                 onCheckedChange={(checked) => {
-                  updateSituacionSalud('infecciones-oido', checked as boolean)
-                  if (!checked) {
-                    updateField('infeccionesOidoDetalle', '')
-                  }
+                  const isChecked = checked === true
+                  updateSituacionSalud('infecciones-oido', checked, isChecked ? {} : { infeccionesOidoDetalle: '' })
                 }}
               />
               <Label htmlFor="salud-infecciones-oido">Infecciones de oído frecuentes</Label>
@@ -496,7 +501,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="salud-asma"
               checked={data.situacionesHijo?.includes('asma') || false}
-              onCheckedChange={(checked) => updateSituacionSalud('asma', checked as boolean)}
+              onCheckedChange={(checked) => updateSituacionSalud('asma', checked === true)}
             />
             <Label htmlFor="salud-asma">Asma</Label>
           </div>
@@ -504,7 +509,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="salud-rinitis"
               checked={data.situacionesHijo?.includes('rinitis') || false}
-              onCheckedChange={(checked) => updateSituacionSalud('rinitis', checked as boolean)}
+              onCheckedChange={(checked) => updateSituacionSalud('rinitis', checked === true)}
             />
             <Label htmlFor="salud-rinitis">Rinitis</Label>
           </div>
@@ -512,7 +517,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="salud-nariz-tapada"
               checked={data.situacionesHijo?.includes('nariz-tapada') || false}
-              onCheckedChange={(checked) => updateSituacionSalud('nariz-tapada', checked as boolean)}
+              onCheckedChange={(checked) => updateSituacionSalud('nariz-tapada', checked === true)}
             />
             <Label htmlFor="salud-nariz-tapada">Nariz frecuentemente tapada</Label>
           </div>
@@ -520,7 +525,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="salud-dermatitis"
               checked={data.situacionesHijo?.includes('dermatitis') || false}
-              onCheckedChange={(checked) => updateSituacionSalud('dermatitis', checked as boolean)}
+              onCheckedChange={(checked) => updateSituacionSalud('dermatitis', checked === true)}
             />
             <Label htmlFor="salud-dermatitis">Dermatitis atópica</Label>
           </div>
@@ -531,10 +536,8 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
                 id="salud-dificultad-respirar"
                 checked={data.situacionesHijo?.includes('dificultad-respirar') || false}
                 onCheckedChange={(checked) => {
-                  updateSituacionSalud('dificultad-respirar', checked as boolean)
-                  if (!checked) {
-                    updateField('dificultadRespirarDetalle', '')
-                  }
+                  const isChecked = checked === true
+                  updateSituacionSalud('dificultad-respirar', checked, isChecked ? {} : { dificultadRespirarDetalle: '' })
                 }}
               />
               <Label htmlFor="salud-dificultad-respirar">Dificultad para respirar</Label>

@@ -37,6 +37,13 @@ export default function SurveyPage() {
     showNotifications: true
   })
 
+  // Sincronizar el cambio de niño en el selector con la URL
+  useEffect(() => {
+    if (activeChildId && activeChildId !== urlChildId) {
+      router.push(`/dashboard/survey?childId=${activeChildId}`)
+    }
+  }, [activeChildId, urlChildId, router])
+
   useEffect(() => {
     if (!childId) {
       setIsLoading(false)
@@ -47,42 +54,75 @@ export default function SurveyPage() {
   }, [childId])
 
   const loadSurveyData = async () => {
+    console.log('🔵🔵🔵 [LOAD] ===== INICIANDO CARGA DE DATOS =====', childId)
     try {
       setIsLoading(true)
-      
-      // Intentar cargar encuesta existente desde la API
+
+      const getLocalDraft = () => {
+        if (!childId) return null
+        const savedData = localStorage.getItem(`survey_${childId}`)
+        if (!savedData) return null
+        try {
+          return JSON.parse(savedData)
+        } catch (error) {
+          logger.error("Error parseando borrador local", error)
+          return null
+        }
+      }
+
+      let serverSurvey: SurveyData | null = null
+      let serverUpdatedAt = 0
+
+      console.log('[LOAD] 1. Intentando cargar desde API...')
       const response = await fetch(`/api/survey?childId=${childId}`)
       
       if (response.ok) {
         const data = await response.json()
         if (data.survey) {
-          setExistingSurvey(data.survey.surveyData)
-          setIsViewMode(true)
-          logger.info("Encuesta existente cargada", { childId })
-          return
+          serverSurvey = data.survey.surveyData
+          const remoteTimestamp =
+            data.survey.surveyData?.lastUpdated ||
+            data.survey.surveyData?.completedAt ||
+            data.survey.updatedAt
+          serverUpdatedAt = remoteTimestamp ? new Date(remoteTimestamp).getTime() : 0
         }
       }
-      
-      // Si no hay encuesta en la API, verificar localStorage
-      const savedData = localStorage.getItem(`survey_${childId}`)
-      if (savedData) {
-        try {
-          const parsedData = JSON.parse(savedData)
-          // Si los datos guardados tienen la estructura nueva con formData
-          if (parsedData.formData) {
-            setExistingSurvey(parsedData.formData)
-          } else {
-            // Si es la estructura antigua, usar directamente
-            setExistingSurvey(parsedData)
-          }
-          toast({
-            title: "Progreso recuperado",
-            description: "Hemos recuperado tu progreso anterior en la encuesta"
-          })
-        } catch (error) {
-          logger.error("Error parseando datos guardados", error)
-        }
+
+      const localDraft = getLocalDraft()
+      const localFormData = localDraft?.formData || localDraft?.data || null
+      const localTimestamp = localDraft?.lastSaved
+        ? new Date(localDraft.lastSaved).getTime()
+        : 0
+
+      if (localFormData && (!serverSurvey || localTimestamp > serverUpdatedAt)) {
+        setExistingSurvey(localFormData)
+        setIsViewMode(false)
+        logger.info("Encuesta restaurada desde borrador local", { childId })
+        toast({
+          title: "Progreso recuperado",
+          description: "Hemos cargado tus últimas respuestas guardadas en este dispositivo."
+        })
+        return
       }
+
+      if (serverSurvey) {
+        setExistingSurvey(serverSurvey)
+        setIsViewMode(true)
+        logger.info("Encuesta existente cargada", { childId })
+        return
+      }
+
+      if (localFormData) {
+        setExistingSurvey(localFormData)
+        setIsViewMode(false)
+        toast({
+          title: "Progreso recuperado",
+          description: "Hemos recuperado tu progreso anterior en la encuesta"
+        })
+        return
+      }
+
+      console.log('[LOAD] No hay datos guardados en localStorage para este niño')
     } catch (error) {
       logger.error("Error cargando encuesta", error)
     } finally {

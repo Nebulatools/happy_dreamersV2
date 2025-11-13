@@ -44,11 +44,6 @@ export const familyInfoValidation: StepValidation = {
       minLength: 2,
       maxLength: 100
     },
-    'mama.ciudad': {
-      required: true,
-      minLength: 2,
-      maxLength: 100
-    },
     'mama.telefono': {
       required: true,
       pattern: /^[\d\s()+\-]+$/,
@@ -75,6 +70,22 @@ export const familyInfoValidation: StepValidation = {
         alergias: 'Describe las alergias de mamá'
       }
     }
+
+    const mismaDireccion = data?.mama?.mismaDireccionPapa
+    if (!mismaDireccion) {
+      if (!data?.mama?.direccion || data.mama.direccion.trim().length < 5) {
+        errors.mama = {
+          ...(errors.mama as any),
+          direccion: 'La dirección de mamá es obligatoria'
+        }
+      }
+      if (!data?.mama?.ciudad || data.mama.ciudad.trim().length < 2) {
+        errors.mama = {
+          ...(errors.mama as any),
+          ciudad: 'La ciudad de mamá es obligatoria'
+        }
+      }
+    }
     
     return errors
   }
@@ -82,15 +93,8 @@ export const familyInfoValidation: StepValidation = {
 
 export const familyDynamicsValidation: StepValidation = {
   fields: {
-    'telefonoSeguimiento': {
-      required: true,
-      pattern: /^[\d\s()+\-]+$/,
-      minLength: 8
-    },
-    'emailObservaciones': {
-      required: true,
-      pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    },
+    // telefonoSeguimiento y emailObservaciones se toman de información familiar
+    // No se requieren aquí porque ya se validaron en el paso 1
     'quienAtiende': {
       required: true,
       minLength: 2
