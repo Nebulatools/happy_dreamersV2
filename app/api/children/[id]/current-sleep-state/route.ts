@@ -59,22 +59,19 @@ export async function GET(
       wakeTime: "07:00"
     }
 
-    // Obtener los eventos del niño desde el documento del niño
-    const childDoc = await db.collection("children").findOne(
-      { _id: new ObjectId(childId) },
-      { projection: { events: 1 } }
-    )
-    
-    // Obtener los últimos eventos del día
+    // Obtener los eventos del niño desde la colección 'events' (fuente de verdad)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const todayISO = today.toISOString()
-    
-    // Filtrar y ordenar eventos del día
-    const recentEvents = (childDoc?.events || [])
-      .filter((e: any) => e.createdAt >= todayISO)
-      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 10)
+
+    // Obtener los últimos eventos del día desde la colección 'events'
+    const recentEvents = await db.collection("events")
+      .find({
+        childId: new ObjectId(childId),
+        createdAt: { $gte: today.toISOString() }
+      })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .toArray()
 
     // Buscar el último evento sin endTime (evento abierto)
     const openSleepEvent = recentEvents.find(e => 
@@ -105,7 +102,7 @@ export async function GET(
       currentStatus = 'night_waking'
       lastEventTime = openNightWaking.startTime || openNightWaking.createdAt
       lastEventType = openNightWaking.eventType
-      lastEventId = openNightWaking._id
+      lastEventId = openNightWaking._id.toString()
       
     } else if (openSleepEvent) {
       // Hay un evento de sueño abierto
@@ -132,10 +129,10 @@ export async function GET(
       
       // CORRECCIÓN: Usar directamente el eventType
       currentStatus = openSleepEvent.eventType === 'nap' ? 'napping' : 'sleeping'
-      
+
       lastEventTime = openSleepEvent.startTime || openSleepEvent.createdAt
       lastEventType = openSleepEvent.eventType
-      lastEventId = openSleepEvent._id
+      lastEventId = openSleepEvent._id.toString()
       
     } else if (lastEvent) {
       // No hay evento abierto, usar el último evento
@@ -148,10 +145,10 @@ export async function GET(
       } else if (lastEvent.eventType === 'wake' || lastEvent.endTime) {
         currentStatus = 'awake'
       }
-      
+
       lastEventTime = lastEvent.endTime || lastEvent.createdAt
       lastEventType = lastEvent.eventType
-      lastEventId = lastEvent._id
+      lastEventId = lastEvent._id.toString()
     }
 
     const response: SleepStateResponse = {
