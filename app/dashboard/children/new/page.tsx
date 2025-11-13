@@ -410,7 +410,7 @@ export default function AddChildPage() {
               }}
               className="bg-gradient-to-r from-blue-500 to-blue-400 hover:from-blue-600 hover:to-blue-500 text-white"
             >
-              Iniciar Encuesta
+              Iniciar Cuestionario
             </Button>
           </DialogFooter>
         </DialogContent>

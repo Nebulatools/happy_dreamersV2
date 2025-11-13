@@ -404,7 +404,7 @@ export default function DashboardPage() {
       <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
         {/* Saludo personalizado */}
         <div className="space-y-2">
-          <h1 
+          <h1
             className="greeting-title"
             style={{
               fontFamily: "Ludicrous, sans-serif",
@@ -416,41 +416,38 @@ export default function DashboardPage() {
           >
             {getGreeting()}, {session?.user?.name?.split(" ")[0] || "Usuario"}!
           </h1>
-          <p className="text-[#666666]">
-            Aquí tienes un resumen del sueño de {child?.firstName || "tu niño"} de los últimos 7 días.
-          </p>
         </div>
-
-        {/* Registro de eventos (prioritario para padres) */}
-        {activeChildId && child && (
-          <div className="mb-6">
-            <EventRegistration 
-              childId={activeChildId}
-              childName={child.firstName}
-              onEventRegistered={loadChildData}
-            />
-          </div>
-        )}
 
         {/* Instrucciones para hoy (solo padres) */}
         {activeChildId && (
-          <Suspense fallback={<div className="h-16" />}> 
+          <Suspense fallback={<div className="h-16" />}>
             <TodayInstructionsCard childId={activeChildId} />
           </Suspense>
         )}
 
         {/* Encuesta médica sugerida ante empeoramiento */}
         {activeChildId && (
-          <Suspense fallback={<div className="h-8" />}> 
+          <Suspense fallback={<div className="h-8" />}>
             <MedicalSurveyPrompt childId={activeChildId} />
           </Suspense>
         )}
 
         {/* Sugerencias basadas en políticas (solo padres) */}
         {activeChildId && child && (
-          <Suspense fallback={<div className="h-8" />}> 
+          <Suspense fallback={<div className="h-8" />}>
             <PlanHintsCard childId={activeChildId} childBirthDate={child.birthDate} />
           </Suspense>
+        )}
+
+        {/* Registro de eventos (debajo de los botones rápidos) */}
+        {activeChildId && child && (
+          <div className="mb-6">
+            <EventRegistration
+              childId={activeChildId}
+              childName={child.firstName}
+              onEventRegistered={loadChildData}
+            />
+          </div>
         )}
 
         {/* Resumen visual de métricas clave (gráfica compuesta) */}
@@ -789,55 +786,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Consejos Personalizados */}
-          <Card className="bg-white shadow-sm border-0 col-span-1 md:col-span-2 lg:col-span-1">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-[#2F2F2F]">Consejos Personalizados</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-[#F0F7FF] rounded-xl p-4 space-y-3">
-                <div className="flex gap-3">
-                  <div className="h-8 w-8 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-                    <Lightbulb className="h-4 w-4 text-[#4A90E2]" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-[#2553A1] mb-1">Mantén un horario regular</h4>
-                    <p className="text-xs text-[#666666] leading-relaxed">
-                      Acostar a {child?.firstName} todos los días a la misma hora ayuda a regular su reloj biológico.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-[#F0F7FF] rounded-xl p-4 space-y-3">
-                <div className="flex gap-3">
-                  <div className="h-8 w-8 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-                    <Moon className="h-4 w-4 text-[#4A90E2]" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-[#2553A1] mb-1">Ambiente de sueño</h4>
-                    <p className="text-xs text-[#666666] leading-relaxed">
-                      Una habitación oscura, tranquila y ligeramente fresca promueve un mejor descanso.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <Button 
-                variant="ghost" 
-                className="w-full text-[#4A90E2] hover:bg-[#F0F7FF] justify-center"
-                onClick={() => {
-                  toast({
-                    title: "Próximamente",
-                    description: "La sección de consejos completos estará disponible pronto."
-                  })
-                }}
-              >
-                Ver todos los consejos
-                <ChevronRight className="h-4 w-4 ml-2" />
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

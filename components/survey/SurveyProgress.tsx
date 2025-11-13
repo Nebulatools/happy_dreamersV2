@@ -75,22 +75,22 @@ export function SurveyProgress({
         </div>
       </div>
 
-      {/* Indicadores de pasos */}
-      <div className="flex flex-wrap gap-2 justify-center sm:flex-nowrap sm:overflow-x-auto pb-1">
+      {/* Indicadores de pasos - Grid sin scroll horizontal */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 max-w-5xl mx-auto">
         {steps.map((step) => {
           const isCompleted = completedSteps.has(step.id)
           const hasError = stepsWithErrors.has(step.id)
           const isCurrent = step.id === currentStep
-          
+
           return (
             <button
               key={step.id}
               onClick={() => onStepClick?.(step.id)}
               className={cn(
-                "flex items-center gap-2 px-2.5 py-1.5 rounded-full text-xs sm:text-sm whitespace-nowrap min-w-[104px] sm:min-w-[150px] justify-center",
+                "flex flex-col items-center gap-1 px-2 py-2 rounded-xl text-xs font-medium",
                 "transition-all duration-200",
                 {
-                  "bg-gradient-to-r from-[#628BE6] to-[#67C5FF] text-white": isCurrent,
+                  "bg-gradient-to-r from-[#628BE6] to-[#67C5FF] text-white shadow-md": isCurrent,
                   "bg-green-100 text-green-700": isCompleted && !hasError && !isCurrent,
                   "bg-red-100 text-red-700": hasError && !isCurrent,
                   "bg-gray-100 text-gray-600": !isCompleted && !hasError && !isCurrent,
@@ -98,14 +98,13 @@ export function SurveyProgress({
                 }
               )}
             >
-              <span className="text-lg">{step.icon}</span>
-              <span className="hidden md:inline">{step.name}</span>
-              <span className="md:hidden">{step.id}</span>
+              <span className="text-2xl">{step.icon}</span>
+              <span className="text-center leading-tight line-clamp-2">{step.name}</span>
               {isCompleted && !hasError && (
-                <Check className="w-4 h-4" />
+                <Check className="w-4 h-4 mt-1" />
               )}
               {hasError && (
-                <AlertCircle className="w-4 h-4" />
+                <AlertCircle className="w-4 h-4 mt-1" />
               )}
             </button>
           )

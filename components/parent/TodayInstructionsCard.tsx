@@ -130,7 +130,7 @@ export default function TodayInstructionsCard({ childId }: TodayInstructionsCard
     <Card className="bg-white border border-gray-100 shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm text-gray-700">
-          Para Hoy {version ? <span className="text-gray-400 font-normal">(Plan {version})</span> : null}
+          Para Hoy
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">

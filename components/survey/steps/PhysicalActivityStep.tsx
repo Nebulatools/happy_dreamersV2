@@ -36,7 +36,14 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
         <Label>1. ¿Tu hijo(a) ve pantallas? (TV, celular, iPad, etc.)</Label>
         <RadioGroup
           value={data.vePantallas === true ? "si" : data.vePantallas === false ? "no" : ""}
-          onValueChange={(value) => updateField('vePantallas', value === 'si')}
+          onValueChange={(value) => {
+            const watchesScreens = value === 'si'
+            onChange({
+              ...data,
+              vePantallas: watchesScreens,
+              pantallasDetalle: watchesScreens ? data.pantallasDetalle || "" : ""
+            })
+          }}
         >
           <div className="flex gap-4 mt-2">
             <div className="flex items-center space-x-2">
@@ -49,6 +56,21 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
             </div>
           </div>
         </RadioGroup>
+        {data.vePantallas && (
+          <div className="mt-3">
+            <Label htmlFor="pantallas-detalle" className="text-sm text-gray-600">
+              ¿Qué horas y cuánto tiempo las usa?
+            </Label>
+            <Textarea
+              id="pantallas-detalle"
+              value={data.pantallasDetalle || ""}
+              onChange={(e) => updateField('pantallasDetalle', e.target.value)}
+              placeholder="Ej: De 3pm a 5pm, 2 horas al día..."
+              rows={2}
+              className="mt-1"
+            />
+          </div>
+        )}
       </div>
 
       {/* 2. ¿Practica actividad física? */}
@@ -56,7 +78,14 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
         <Label>2. ¿Tu hijo(a) practica alguna actividad física, estimulación temprana o deporte?</Label>
         <RadioGroup
           value={data.practicaActividad === true ? "si" : data.practicaActividad === false ? "no" : ""}
-          onValueChange={(value) => updateField('practicaActividad', value === 'si')}
+          onValueChange={(value) => {
+            const practices = value === 'si'
+            onChange({
+              ...data,
+              practicaActividad: practices,
+              actividadesLista: practices ? data.actividadesLista || [] : []
+            })
+          }}
         >
           <div className="flex gap-4 mt-2">
             <div className="flex items-center space-x-2">
@@ -69,6 +98,59 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
             </div>
           </div>
         </RadioGroup>
+        {data.practicaActividad && (
+          <div className="mt-3">
+            <Label htmlFor="actividades-input" className="text-sm text-gray-600">
+              ¿Qué actividades practica? (Presiona Enter después de cada actividad)
+            </Label>
+            <div className="mt-1">
+              <Input
+                id="actividades-input"
+                placeholder="Ej: Natación, fútbol, yoga..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    const input = e.currentTarget
+                    const value = input.value.trim()
+                    if (value) {
+                      const currentList = data.actividadesLista || []
+                      onChange({
+                        ...data,
+                        actividadesLista: [...currentList, value]
+                      })
+                      input.value = ''
+                    }
+                  }
+                }}
+              />
+              {data.actividadesLista && data.actividadesLista.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {data.actividadesLista.map((actividad: string, index: number) => (
+                    <div
+                      key={index}
+                      className="inline-flex items-center gap-1 bg-[#8B4789] text-white px-3 py-1 rounded-full text-sm"
+                    >
+                      <span>{actividad}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newList = data.actividadesLista.filter((_: string, i: number) => i !== index)
+                          onChange({
+                            ...data,
+                            actividadesLista: newList
+                          })
+                        }}
+                        className="ml-1 hover:bg-white/20 rounded-full p-0.5"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 3. Actividades cuando está despierto */}
@@ -90,7 +172,14 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
         <Label>4. ¿Has notado signos de irritabilidad o mal humor en tu hijo(a)?</Label>
         <RadioGroup
           value={data.signosIrritabilidad === true ? "si" : data.signosIrritabilidad === false ? "no" : ""}
-          onValueChange={(value) => updateField('signosIrritabilidad', value === 'si')}
+          onValueChange={(value) => {
+            const hasIrritability = value === 'si'
+            onChange({
+              ...data,
+              signosIrritabilidad: hasIrritability,
+              irritabilidadDetalle: hasIrritability ? data.irritabilidadDetalle || "" : ""
+            })
+          }}
         >
           <div className="flex gap-4 mt-2">
             <div className="flex items-center space-x-2">
@@ -103,6 +192,21 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
             </div>
           </div>
         </RadioGroup>
+        {data.signosIrritabilidad && (
+          <div className="mt-3">
+            <Label htmlFor="irritabilidad-detalle" className="text-sm text-gray-600">
+              Describe el humor y a qué hora se presenta
+            </Label>
+            <Textarea
+              id="irritabilidad-detalle"
+              value={data.irritabilidadDetalle || ""}
+              onChange={(e) => updateField('irritabilidadDetalle', e.target.value)}
+              placeholder="Ej: Se pone irritable alrededor de las 6pm, llora con facilidad..."
+              rows={3}
+              className="mt-1"
+            />
+          </div>
+        )}
       </div>
     </div>
   )

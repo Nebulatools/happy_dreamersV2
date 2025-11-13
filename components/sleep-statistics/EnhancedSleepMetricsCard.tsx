@@ -66,9 +66,12 @@ const calculateNightHoursFromPlan = (bedtime?: string | null, wakeTime?: string 
 }
 
 const formatSignedHourDiff = (diff: number) => {
-  if (Math.abs(diff) < 0.05) return "0h vs plan"
+  if (Math.abs(diff) < 0.05) return "0h 0m vs plan"
   const sign = diff > 0 ? "+" : "-"
-  return `${sign}${Math.abs(diff).toFixed(1)}h vs plan`
+  const absDiff = Math.abs(diff)
+  const h = Math.floor(absDiff)
+  const m = Math.round((absDiff - h) * 60)
+  return m > 0 ? `${sign}${h}h ${m}m vs plan` : `${sign}${h}h vs plan`
 }
 
 const formatHoursDiffVsPlan = (actual?: number | null, target?: number | null) => {
@@ -463,7 +466,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
               </div>
               <div className="flex-1">
                 <p className="text-xs text-gray-600 font-medium">Sueño nocturno</p>
-                <p className="text-2xl font-bold text-gray-900">{breakdown.nightSleepHours.toFixed(1)}h</p>
+                <p className="text-2xl font-bold text-gray-900">{formatDuration(breakdown.nightSleepHours)}</p>
               </div>
             </div>
             <p className="text-xs text-gray-600">{planComparisons.night}</p>

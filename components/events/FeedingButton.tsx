@@ -64,30 +64,22 @@ export function FeedingButton({
       const isBabySleeping = sleepState.status === 'sleeping' || sleepState.status === 'napping'
       const isLiquid = feedingData.feedingType === 'breast' || feedingData.feedingType === 'bottle'
       
-      // Utilidad: convertir onzas a mililitros
-      const ozToMl = (oz: number) => Math.round(oz * 29.5735)
-
       // Crear evento de alimentación con todos los datos del modal
       const eventData: Partial<EventData> = {
         childId,
         eventType: 'feeding',
         startTime: toLocalISOString(now),
         feedingType: feedingData.feedingType,
-        // Duración: en pecho son minutos del control principal; en otros, del campo de duración
-        feedingDuration: feedingData.feedingType === 'breast' ? (feedingData.feedingAmount || 0) : feedingData.feedingDuration,
+        // Duración: en pecho son minutos del control principal
+        feedingDuration: feedingData.feedingType === 'breast' ? (feedingData.feedingAmount || 0) : undefined,
         babyState: feedingData.feedingType === 'solids' ? 'awake' : feedingData.babyState,
         feedingNotes: feedingData.feedingNotes,
         emotionalState: 'neutral' // Por defecto neutral para alimentación
       }
-      // Cantidad: biberón en ml, sólidos en gr; pecho no requiere cantidad
-      const feedingAmountValue =
-        feedingData.feedingType === 'bottle'
-          ? ozToMl(feedingData.feedingAmount || 0)
-          : feedingData.feedingType === 'solids'
-            ? feedingData.feedingAmount
-            : undefined
-      if (typeof feedingAmountValue === 'number') {
-        eventData.feedingAmount = feedingAmountValue
+
+      // Cantidad: biberón en oz o ml (ya viene en la unidad correcta); pecho no requiere cantidad
+      if (feedingData.feedingType === 'bottle' && typeof feedingData.feedingAmount === 'number') {
+        eventData.feedingAmount = feedingData.feedingAmount
       }
       
       const response = await fetch('/api/children/events', {
@@ -107,23 +99,23 @@ export function FeedingButton({
           eventType: 'night_feeding',
           startTime: toLocalISOString(now),
           feedingType: feedingData.feedingType,
-          feedingDuration: feedingData.feedingType === 'breast' ? (feedingData.feedingAmount || 0) : feedingData.feedingDuration,
-          feedingAmount: feedingData.feedingType === 'bottle' ? ozToMl(feedingData.feedingAmount || 0) : undefined,
+          feedingDuration: feedingData.feedingType === 'breast' ? (feedingData.feedingAmount || 0) : undefined,
+          feedingAmount: feedingData.feedingType === 'bottle' ? feedingData.feedingAmount : undefined,
           notes: `Alimentación nocturna - ${feedingData.feedingType === 'breast' ? 'Pecho' : feedingData.feedingType === 'bottle' ? 'Biberón' : 'Sólidos'}`,
           emotionalState: 'neutral'
         }
-        
+
         const nightFeedingResponse = await fetch('/api/children/events', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(nightFeedingData)
         })
-        
+
         if (!nightFeedingResponse.ok) {
           console.error('Error al registrar evento de alimentación nocturna')
         }
       }
-      
+
       // Preparar mensaje personalizado según tipo
       const getTypeText = (type: string) => {
         switch (type) {
@@ -133,20 +125,21 @@ export function FeedingButton({
           default: return 'alimentación'
         }
       }
-      
-      const getAmountText = (type: string, amount: number, duration: number) => {
+
+      const getAmountText = (type: string, amount: number) => {
         if (type === 'breast') {
           return `${amount} minutos`
+        } else if (type === 'bottle') {
+          return `${amount} oz/ml`
         } else {
-          const unit = type === 'bottle' ? 'oz' : 'gr'
-          return `${amount} ${unit} en ${duration} min`
+          return 'descripción agregada'
         }
       }
-      
+
       // Mostrar confirmación personalizada
       toast({
         title: isBabySleeping ? "Alimentación nocturna registrada" : "Alimentación registrada",
-        description: `${childName}: ${getTypeText(feedingData.feedingType)} - ${getAmountText(feedingData.feedingType, feedingData.feedingAmount, feedingData.feedingDuration)}${isBabySleeping ? ' (durante el sueño)' : ''}`
+        description: `${childName}: ${getTypeText(feedingData.feedingType)} - ${getAmountText(feedingData.feedingType, feedingData.feedingAmount)}${isBabySleeping ? ' (durante el sueño)' : ''}`
       })
       
       // Cerrar modal y limpiar

@@ -155,7 +155,13 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
         <Label>7. Su hijo/a se alimenta de:</Label>
         <RadioGroup
           value={data.alimentacion || ""}
-          onValueChange={(value) => updateField('alimentacion', value)}
+          onValueChange={(value) => {
+            onChange({
+              ...data,
+              alimentacion: value,
+              alimentacionOtro: value === 'otro' ? data.alimentacionOtro || "" : ""
+            })
+          }}
         >
           <div className="space-y-2 mt-2">
             <div className="flex items-center space-x-2">
@@ -170,6 +176,25 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
               <RadioGroupItem value="materna-formula" id="alimenta-mixta" />
               <Label htmlFor="alimenta-mixta">Leche materna y fórmula</Label>
             </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="solidos" id="alimenta-solidos" />
+              <Label htmlFor="alimenta-solidos">Sólidos</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="otro" id="alimenta-otro" />
+              <Label htmlFor="alimenta-otro">Otro</Label>
+            </div>
+            {data.alimentacion === 'otro' && (
+              <div className="ml-6 mt-2">
+                <Input
+                  id="alimentacion-otro-detalle"
+                  value={data.alimentacionOtro || ""}
+                  onChange={(e) => updateField('alimentacionOtro', e.target.value)}
+                  placeholder="Especifica el tipo de alimentación..."
+                  className="max-w-md"
+                />
+              </div>
+            )}
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="ninguna" id="alimenta-ninguna" />
               <Label htmlFor="alimenta-ninguna">Ninguna</Label>
@@ -201,16 +226,46 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
       {/* 9. Tu hijo(a) - Lista de checkboxes */}
       <div>
         <Label>9. Su hijo/a:</Label>
-        <div className="space-y-2 mt-2">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="prob-chupa-dedo"
-              checked={data.problemasHijo?.includes('chupa-dedo') || false}
-              onCheckedChange={(checked) => updateProblemaHijo('chupa-dedo', checked as boolean)}
-            />
-            <Label htmlFor="prob-chupa-dedo">Se chupa el dedo</Label>
+        <div className="space-y-3 mt-2">
+          <div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="prob-chupa-dedo"
+                checked={data.problemasHijo?.includes('chupa-dedo') || false}
+                onCheckedChange={(checked) => {
+                  updateProblemaHijo('chupa-dedo', checked as boolean)
+                  if (!checked) {
+                    updateField('planDejarDedo', '')
+                  }
+                }}
+              />
+              <Label htmlFor="prob-chupa-dedo">Se chupa el dedo</Label>
+            </div>
+            {data.problemasHijo?.includes('chupa-dedo') && (
+              <div className="ml-6 mt-2">
+                <Label htmlFor="plan-dejar-dedo" className="text-sm text-gray-600">
+                  ¿Planea dejarlo?
+                </Label>
+                <RadioGroup
+                  value={data.planDejarDedo || ""}
+                  onValueChange={(value) => updateField('planDejarDedo', value)}
+                  className="mt-1"
+                >
+                  <div className="flex gap-4">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="si" id="plan-dejar-dedo-si" />
+                      <Label htmlFor="plan-dejar-dedo-si">Sí</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="no" id="plan-dejar-dedo-no" />
+                      <Label htmlFor="plan-dejar-dedo-no">No</Label>
+                    </div>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <Checkbox
               id="prob-usa-chupon"
@@ -219,14 +274,35 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             />
             <Label htmlFor="prob-usa-chupon">Usa chupón</Label>
           </div>
-          
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="prob-objeto-seguridad"
-              checked={data.problemasHijo?.includes('objeto-seguridad') || false}
-              onCheckedChange={(checked) => updateProblemaHijo('objeto-seguridad', checked as boolean)}
-            />
-            <Label htmlFor="prob-objeto-seguridad">Tiene un objeto de seguridad como un trapito o peluche</Label>
+
+          <div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="prob-objeto-seguridad"
+                checked={data.problemasHijo?.includes('objeto-seguridad') || false}
+                onCheckedChange={(checked) => {
+                  updateProblemaHijo('objeto-seguridad', checked as boolean)
+                  if (!checked) {
+                    updateField('nombreObjetoSeguridad', '')
+                  }
+                }}
+              />
+              <Label htmlFor="prob-objeto-seguridad">Tiene un objeto de seguridad como un trapito o peluche</Label>
+            </div>
+            {data.problemasHijo?.includes('objeto-seguridad') && (
+              <div className="ml-6 mt-2">
+                <Label htmlFor="nombre-objeto-seguridad" className="text-sm text-gray-600">
+                  Nombre del objeto
+                </Label>
+                <Input
+                  id="nombre-objeto-seguridad"
+                  value={data.nombreObjetoSeguridad || ""}
+                  onChange={(e) => updateField('nombreObjetoSeguridad', e.target.value)}
+                  placeholder="Ej: Mi mantita, Osito..."
+                  className="max-w-md mt-1"
+                />
+              </div>
+            )}
           </div>
           
           <div className="flex items-center space-x-2">
@@ -324,23 +400,98 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
       {/* 10. ¿Ha tenido algunas de las siguientes situaciones? */}
       <div>
         <Label>10. ¿Su hijo/a ha sufrido de algunas de las siguientes situaciones?</Label>
-        <div className="space-y-2 mt-2">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="salud-alergias"
-              checked={data.situacionesHijo?.includes('alergias') || false}
-              onCheckedChange={(checked) => updateSituacionSalud('alergias', checked as boolean)}
-            />
-            <Label htmlFor="salud-alergias">Alergias</Label>
+        <div className="space-y-3 mt-2">
+          <div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="salud-alergia-ambiental"
+                checked={data.situacionesHijo?.includes('alergia-ambiental') || false}
+                onCheckedChange={(checked) => {
+                  updateSituacionSalud('alergia-ambiental', checked as boolean)
+                  if (!checked) {
+                    updateField('alergiaAmbientalDetalle', '')
+                  }
+                }}
+              />
+              <Label htmlFor="salud-alergia-ambiental">Alergia ambiental</Label>
+            </div>
+            {data.situacionesHijo?.includes('alergia-ambiental') && (
+              <div className="ml-6 mt-2">
+                <Label htmlFor="alergia-ambiental-detalle" className="text-sm text-gray-600">
+                  ¿A qué es alérgico(a)?
+                </Label>
+                <Input
+                  id="alergia-ambiental-detalle"
+                  value={data.alergiaAmbientalDetalle || ""}
+                  onChange={(e) => updateField('alergiaAmbientalDetalle', e.target.value)}
+                  placeholder="Ej: Polen, polvo, ácaros, mascotas..."
+                  className="max-w-md mt-1"
+                />
+              </div>
+            )}
           </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="salud-infecciones-oido"
-              checked={data.situacionesHijo?.includes('infecciones-oido') || false}
-              onCheckedChange={(checked) => updateSituacionSalud('infecciones-oido', checked as boolean)}
-            />
-            <Label htmlFor="salud-infecciones-oido">Infecciones de oído frecuentes</Label>
+
+          <div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="salud-alergia-alimenticia"
+                checked={data.situacionesHijo?.includes('alergia-alimenticia') || false}
+                onCheckedChange={(checked) => {
+                  updateSituacionSalud('alergia-alimenticia', checked as boolean)
+                  if (!checked) {
+                    updateField('alergiaAlimenticiaDetalle', '')
+                  }
+                }}
+              />
+              <Label htmlFor="salud-alergia-alimenticia">Alergia alimenticia</Label>
+            </div>
+            {data.situacionesHijo?.includes('alergia-alimenticia') && (
+              <div className="ml-6 mt-2">
+                <Label htmlFor="alergia-alimenticia-detalle" className="text-sm text-gray-600">
+                  ¿A qué alimentos es alérgico(a)?
+                </Label>
+                <Input
+                  id="alergia-alimenticia-detalle"
+                  value={data.alergiaAlimenticiaDetalle || ""}
+                  onChange={(e) => updateField('alergiaAlimenticiaDetalle', e.target.value)}
+                  placeholder="Ej: Leche, huevo, nueces, mariscos..."
+                  className="max-w-md mt-1"
+                />
+              </div>
+            )}
           </div>
+
+          <div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="salud-infecciones-oido"
+                checked={data.situacionesHijo?.includes('infecciones-oido') || false}
+                onCheckedChange={(checked) => {
+                  updateSituacionSalud('infecciones-oido', checked as boolean)
+                  if (!checked) {
+                    updateField('infeccionesOidoDetalle', '')
+                  }
+                }}
+              />
+              <Label htmlFor="salud-infecciones-oido">Infecciones de oído frecuentes</Label>
+            </div>
+            {data.situacionesHijo?.includes('infecciones-oido') && (
+              <div className="ml-6 mt-2">
+                <Label htmlFor="infecciones-oido-detalle" className="text-sm text-gray-600">
+                  ¿Cuántas veces ha tenido infecciones de oído?
+                </Label>
+                <Input
+                  id="infecciones-oido-detalle"
+                  type="number"
+                  value={data.infeccionesOidoDetalle || ""}
+                  onChange={(e) => updateField('infeccionesOidoDetalle', e.target.value)}
+                  placeholder="Número de veces"
+                  className="max-w-md mt-1"
+                />
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center space-x-2">
             <Checkbox
               id="salud-asma"
@@ -372,6 +523,36 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
               onCheckedChange={(checked) => updateSituacionSalud('dermatitis', checked as boolean)}
             />
             <Label htmlFor="salud-dermatitis">Dermatitis atópica</Label>
+          </div>
+
+          <div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="salud-dificultad-respirar"
+                checked={data.situacionesHijo?.includes('dificultad-respirar') || false}
+                onCheckedChange={(checked) => {
+                  updateSituacionSalud('dificultad-respirar', checked as boolean)
+                  if (!checked) {
+                    updateField('dificultadRespirarDetalle', '')
+                  }
+                }}
+              />
+              <Label htmlFor="salud-dificultad-respirar">Dificultad para respirar</Label>
+            </div>
+            {data.situacionesHijo?.includes('dificultad-respirar') && (
+              <div className="ml-6 mt-2">
+                <Label htmlFor="dificultad-respirar-detalle" className="text-sm text-gray-600">
+                  ¿Cuándo y cómo se manifiesta?
+                </Label>
+                <Input
+                  id="dificultad-respirar-detalle"
+                  value={data.dificultadRespirarDetalle || ""}
+                  onChange={(e) => updateField('dificultadRespirarDetalle', e.target.value)}
+                  placeholder="Ej: Durante la noche, al hacer ejercicio, con tos..."
+                  className="max-w-md mt-1"
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

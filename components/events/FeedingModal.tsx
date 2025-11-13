@@ -56,6 +56,7 @@ export function FeedingModal({
   const [feedingDuration, setFeedingDuration] = useState<number>(initialData?.feedingDuration || 15) // Default 15 min
   const [babyState, setBabyState] = useState<'awake' | 'asleep'>(initialData?.babyState || 'awake')
   const [feedingNotes, setFeedingNotes] = useState<string>(initialData?.feedingNotes || '')
+  const [bottleUnit, setBottleUnit] = useState<'oz' | 'ml'>('oz') // Unidad para biberón
   const [eventDate, setEventDate] = useState<string>(() => {
     if (mode === 'edit' && initialData?.startTime) {
       return format(new Date(initialData.startTime), 'yyyy-MM-dd')
@@ -129,10 +130,14 @@ export function FeedingModal({
         return { min: 1, max: 120, step, unit: 'min', label: 'Duración (min)' }
       }
       case 'bottle':
-        // Captura en onzas (oz). Conversión a ml se hace al confirmar en el consumidor.
-        return { min: 1, max: 16, step: 1, unit: 'oz', label: 'Cantidad (oz)' }
+        // Selector de unidad: oz o ml
+        const unit = bottleUnit
+        const max = unit === 'oz' ? 16 : 500
+        const step = unit === 'oz' ? 1 : 10
+        return { min: 1, max, step, unit, label: `Cantidad (${unit})` }
       case 'solids':
-        return { min: 5, max: 200, step: 5, unit: 'gr', label: 'Cantidad (gr)' }
+        // Para sólidos: solo input de texto para describir el alimento
+        return { min: 0, max: 0, step: 0, unit: '', label: 'Descripción del alimento' }
     }
   }
 
@@ -310,160 +315,218 @@ export function FeedingModal({
           </div>
         </div>
 
-        {/* Sección 2: Cantidad/Duración */}
+        {/* Sección 2: Campos según tipo de alimentación */}
         <div className="space-y-4 border-t pt-4">
-          <div className="text-sm font-medium text-gray-700">
-            {amountConfig.label}
-          </div>
-          
-          <div className="flex items-center justify-center gap-4 py-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => adjustAmount(-amountConfig.step)}
-              disabled={isProcessing || feedingAmount <= amountConfig.min}
-              className="h-10 w-10 rounded-full"
-            >
-              <Minus className="h-4 w-4" />
-            </Button>
-            
-            <div className="bg-green-50 border-2 border-green-200 rounded-xl px-3 py-3 min-w-[200px] text-center flex items-center gap-2 justify-center">
-              <div className="text-2xl font-bold text-green-600">
-                {formatAmountText(feedingAmount)}
+          {/* PECHO: Solo Duración (min) */}
+          {feedingType === 'breast' && (
+            <>
+              <div className="text-sm font-medium text-gray-700">
+                Duración (min)
               </div>
-              {/* Entrada manual opcional */}
-              <input
-                type="number"
-                className="w-16 h-9 text-center text-sm border rounded-md bg-white"
-                value={feedingAmount}
-                min={amountConfig.min}
-                max={amountConfig.max}
-                onChange={(e) => {
-                  const val = Number(e.target.value)
-                  if (Number.isFinite(val)) {
-                    setFeedingAmount(Math.max(amountConfig.min, Math.min(amountConfig.max, val)))
-                  }
-                }}
+              <div className="flex items-center justify-center gap-4 py-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => adjustAmount(-amountConfig.step)}
+                  disabled={isProcessing || feedingAmount <= amountConfig.min}
+                  className="h-10 w-10 rounded-full"
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+
+                <div className="bg-green-50 border-2 border-green-200 rounded-xl px-3 py-3 min-w-[200px] text-center flex items-center gap-2 justify-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {feedingAmount} min
+                  </div>
+                  <input
+                    type="number"
+                    className="w-16 h-9 text-center text-sm border rounded-md bg-white"
+                    value={feedingAmount}
+                    min={amountConfig.min}
+                    max={amountConfig.max}
+                    onChange={(e) => {
+                      const val = Number(e.target.value)
+                      if (Number.isFinite(val)) {
+                        setFeedingAmount(Math.max(amountConfig.min, Math.min(amountConfig.max, val)))
+                      }
+                    }}
+                  />
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => adjustAmount(amountConfig.step)}
+                  disabled={isProcessing || feedingAmount >= amountConfig.max}
+                  className="h-10 w-10 rounded-full"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* BIBERÓN: Cantidad con selector oz/ml */}
+          {feedingType === 'bottle' && (
+            <>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-gray-700">
+                  Cantidad
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBottleUnit('oz')
+                      setFeedingAmount(4) // Reset al cambiar unidad
+                    }}
+                    className={cn(
+                      "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                      bottleUnit === 'oz'
+                        ? "bg-green-500 text-white"
+                        : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                    )}
+                  >
+                    oz
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBottleUnit('ml')
+                      setFeedingAmount(120) // Reset al cambiar unidad
+                    }}
+                    className={cn(
+                      "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                      bottleUnit === 'ml'
+                        ? "bg-green-500 text-white"
+                        : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                    )}
+                  >
+                    ml
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center justify-center gap-4 py-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => adjustAmount(-amountConfig.step)}
+                  disabled={isProcessing || feedingAmount <= amountConfig.min}
+                  className="h-10 w-10 rounded-full"
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+
+                <div className="bg-green-50 border-2 border-green-200 rounded-xl px-3 py-3 min-w-[200px] text-center flex items-center gap-2 justify-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {feedingAmount} {bottleUnit}
+                  </div>
+                  <input
+                    type="number"
+                    className="w-16 h-9 text-center text-sm border rounded-md bg-white"
+                    value={feedingAmount}
+                    min={amountConfig.min}
+                    max={amountConfig.max}
+                    onChange={(e) => {
+                      const val = Number(e.target.value)
+                      if (Number.isFinite(val)) {
+                        setFeedingAmount(Math.max(amountConfig.min, Math.min(amountConfig.max, val)))
+                      }
+                    }}
+                  />
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => adjustAmount(amountConfig.step)}
+                  disabled={isProcessing || feedingAmount >= amountConfig.max}
+                  className="h-10 w-10 rounded-full"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* SÓLIDOS: Solo input de texto para descripción */}
+          {feedingType === 'solids' && (
+            <>
+              <div className="text-sm font-medium text-gray-700">
+                Descripción del alimento (opcional)
+              </div>
+              <textarea
+                value={feedingNotes}
+                onChange={(e) => setFeedingNotes(e.target.value)}
+                disabled={isProcessing}
+                placeholder="Describe qué alimento sólido consumió el bebé..."
+                className="w-full p-3 border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                rows={3}
+                maxLength={500}
               />
-            </div>
-            
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => adjustAmount(amountConfig.step)}
-              disabled={isProcessing || feedingAmount >= amountConfig.max}
-              className="h-10 w-10 rounded-full"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
+            </>
+          )}
         </div>
 
-        {/* Sección 3: Duración de la Alimentación */}
-        {feedingType !== 'breast' && (
-          <div className="space-y-4 border-t pt-4">
+        {/* Sección 3: Estado del Bebé (solo para pecho y biberón) */}
+        {feedingType !== 'solids' && (
+          <div className="space-y-3 border-t pt-4">
             <div className="text-sm font-medium text-gray-700">
-              Duración de la alimentación
+              Estado de {childName}
             </div>
-            
-            <div className="flex items-center justify-center gap-4 py-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => adjustDuration(-5)}
-                disabled={isProcessing || feedingDuration <= 1}
-                className="h-10 w-10 rounded-full"
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-              
-              <div className="bg-green-50 border-2 border-green-200 rounded-xl px-3 py-3 min-w-[200px] text-center flex items-center gap-2 justify-center">
-                <div className="text-xl font-bold text-green-600">
-                  {formatDurationText(feedingDuration)}
-                </div>
-                <input
-                  type="number"
-                  className="w-16 h-9 text-center text-sm border rounded-md bg-white"
-                  value={feedingDuration}
-                  min={1}
-                  max={60}
-                  onChange={(e) => {
-                    const val = Number(e.target.value)
-                    if (Number.isFinite(val)) {
-                      setFeedingDuration(Math.max(1, Math.min(60, val)))
-                    }
-                  }}
-                />
-              </div>
-              
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => adjustDuration(5)}
-                disabled={isProcessing || feedingDuration >= 60}
-                className="h-10 w-10 rounded-full"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+            <div className="grid grid-cols-2 gap-2">
+              {babyStates.map(state => (
+                <button
+                  key={state.value}
+                  type="button"
+                  onClick={() => setBabyState(state.value)}
+                  disabled={isProcessing}
+                  className={cn(
+                    "p-3 rounded-lg border-2 transition-all text-center",
+                    babyState === state.value
+                      ? "border-green-500 bg-green-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  )}
+                >
+                  <div className={cn(
+                    "font-medium text-sm",
+                    babyState === state.value ? "text-green-700" : "text-gray-700"
+                  )}>
+                    {state.label}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {state.description}
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Sección 4: Estado del Bebé */}
-        <div className="space-y-3 border-t pt-4">
-          <div className="text-sm font-medium text-gray-700">
-            Estado de {childName}
+        {/* Sección 4: Notas adicionales (solo para pecho y biberón) */}
+        {feedingType !== 'solids' && (
+          <div className="space-y-2 border-t pt-4">
+            <div className="text-sm font-medium text-gray-700">
+              Notas adicionales (opcional)
+            </div>
+            <textarea
+              value={feedingNotes}
+              onChange={(e) => setFeedingNotes(e.target.value)}
+              disabled={isProcessing}
+              placeholder="¿Cómo fue la alimentación? ¿Se terminó todo? ¿Hubo alguna dificultad? ¿Cambio de posición?"
+              className="w-full p-3 border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              rows={3}
+              maxLength={500}
+            />
+            <p className="text-xs text-gray-500">
+              Esta información ayuda a entender los patrones de alimentación
+            </p>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            {babyStates.map(state => (
-              <button
-                key={state.value}
-                type="button"
-                onClick={() => setBabyState(state.value)}
-                disabled={isProcessing || (feedingType === 'solids' && state.value === 'asleep')}
-                className={cn(
-                  "p-3 rounded-lg border-2 transition-all text-center",
-                  babyState === state.value
-                    ? "border-green-500 bg-green-50"
-                    : "border-gray-200 hover:border-gray-300"
-                )}
-              >
-                <div className={cn(
-                  "font-medium text-sm",
-                  babyState === state.value ? "text-green-700" : "text-gray-700"
-                )}>
-                  {state.label}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {feedingType === 'solids' && state.value === 'asleep' ? 'No disponible para sólidos' : state.description}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Sección 5: Notas */}
-        <div className="space-y-2 border-t pt-4">
-          <div className="text-sm font-medium text-gray-700">
-            Notas adicionales (opcional)
-          </div>
-          <textarea
-            value={feedingNotes}
-            onChange={(e) => setFeedingNotes(e.target.value)}
-            disabled={isProcessing}
-            placeholder="¿Cómo fue la alimentación? ¿Se terminó todo? ¿Hubo alguna dificultad? ¿Cambio de posición?"
-            className="w-full p-3 border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            rows={3}
-            maxLength={500}
-          />
-          <p className="text-xs text-gray-500">
-            Esta información ayuda a entender los patrones de alimentación
-          </p>
-        </div>
+        )}
 
         {/* Botones de acción */}
         <div className="flex gap-2 mt-6">

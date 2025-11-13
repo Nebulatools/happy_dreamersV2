@@ -108,101 +108,57 @@ export default function AdminStatistics() {
   const loadAdminData = async () => {
     try {
       setIsLoading(true)
-      
-      // Obtener total de pacientes reales
-      const response = await fetch('/api/children')
-      let totalPatients = 0
-      let allChildren: Child[] = []
-      
-      if (response.ok) {
-        const responseData = await response.json()
-        allChildren = responseData.data?.children || responseData.children || []
-        totalPatients = allChildren.length
+
+      // Usar el nuevo endpoint optimizado para métricas del dashboard admin
+      const metricsResponse = await fetch('/api/admin/dashboard-metrics')
+
+      if (!metricsResponse.ok) {
+        throw new Error('Error al cargar métricas del dashboard')
       }
-      
+
+      const metricsData = await metricsResponse.json()
+      const { totalChildren, activeToday, childMetrics } = metricsData
+
       // TODO: Integrar con el backend real para alertas de Zuli
       // Los datos de triage deben venir del endpoint que proporcionará las alertas categorizadas por Zuli
-      
+
       // Por ahora, inicializar arrays vacíos para alertas críticas y warnings
       const mockCriticalAlerts: ChildAlert[] = []
       const mockWarningAlerts: ChildAlert[] = []
-      
-      // Calcular pacientes con planes de seguimiento activos
-      // Según feedback Dra. Mariana: mostrar pacientes en planes activos, no solo con actividad reciente
-      let activeToday = 0
-      const today = new Date()
-      const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-      const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-      
-      // Para cada niño, verificar si tiene un plan de seguimiento activo
-      for (const child of allChildren) {
-        try {
-          // 1. Verificar si tiene un plan activo (consultas recientes)
-          const consultasResponse = await fetch(`/api/consultas/plans?childId=${child._id}&userId=${child.parentId}`)
-          let hasPlan = false
-          
-          if (consultasResponse.ok) {
-            const consultasData = await consultasResponse.json()
-            const plans = consultasData.plans || []
-            
-            // Considerar activo si tiene un plan creado en los últimos 30 días
-            hasPlan = plans.some((plan: any) => {
-              const planDate = new Date(plan.createdAt || plan.date)
-              return planDate >= thirtyDaysAgo
-            })
-          }
-          
-          // 2. También verificar eventos recientes como indicador de seguimiento activo
-          const eventsResponse = await fetch(`/api/children/events?childId=${child._id}`)
-          let hasRecentActivity = false
-          
-          if (eventsResponse.ok) {
-            const eventsData = await eventsResponse.json()
-            const events = eventsData.events || []
-            
-            // Actividad en los últimos 7 días indica seguimiento activo
-            hasRecentActivity = events.some((event: any) => {
-              if (!event.startTime && !event.createdAt) return false
-              const eventDate = new Date(event.startTime || event.createdAt)
-              return eventDate >= sevenDaysAgo
-            })
-          }
-          
-          // Contar como activo si tiene plan O actividad reciente
-          if (hasPlan || hasRecentActivity) {
-            activeToday++
-          }
-        } catch (error) {
-          // Si hay error al cargar datos de un niño, continuar con el siguiente
-          logger.warn(`Error loading data for child ${child._id}:`, error)
-        }
-      }
 
-      // Convertir todos los niños a pacientes "ok" para mostrar en la lista
-      const okPatients: ChildAlert[] = allChildren.map(child => ({
-        childId: child._id,
-        childName: `${child.firstName} ${child.lastName}`,
-        severity: "ok" as const,
-        diagnosis: "Sin alertas detectadas",
-        lastUpdate: "Actualizado hoy",
-        parentName: "N/A" // TODO: obtener nombre del padre cuando esté disponible
-      }))
-      
+      // Convertir childMetrics a formato de pacientes "ok"
+      // Ya vienen ordenados por apellido del contacto principal desde el endpoint
+      const okPatients: ChildAlert[] = childMetrics.map((metric: any) => {
+        // Formato: "Apellido, Nombre"
+        const [firstName, ...lastNameParts] = metric.childName.split(' ')
+        const lastName = lastNameParts.join(' ')
+        const displayName = lastName ? `${lastName}, ${firstName}` : firstName
+
+        return {
+          childId: metric.childId,
+          childName: displayName,
+          severity: "ok" as const,
+          diagnosis: metric.isActive ? "Con seguimiento activo" : "Sin alertas detectadas",
+          lastUpdate: "Actualizado hoy",
+          parentName: metric.apellidoContacto || "N/A"
+        }
+      })
+
       const todayActivePatients: Child[] = []
-      
+
       setCriticalAlerts(mockCriticalAlerts)
       setWarningAlerts(mockWarningAlerts)
       setOkPatients(okPatients)
       setTodayPatients(todayActivePatients)
-      
-      // Actualizar métricas con datos reales
+
+      // Actualizar métricas con datos reales del nuevo endpoint
       setMetrics({
-        totalPatients: totalPatients,
+        totalPatients: totalChildren,
         activeToday: activeToday, // Pacientes con planes de seguimiento activos o actividad reciente
         alerts: {
           critical: 0,
           warning: 0,
-          ok: totalPatients, // Por ahora todos son "ok" ya que no tenemos sistema de triage
+          ok: totalChildren, // Por ahora todos son "ok" ya que no tenemos sistema de triage
         },
       })
       
@@ -269,7 +225,7 @@ export default function AdminStatistics() {
               fontSize: "48px"
             }}
           >
-            {getGreeting()}, Dr. {session?.user?.name?.split(" ")[0] || "Admin"}!
+            {getGreeting()}, Coach {session?.user?.name?.split(" ")[0] || "Admin"}!
           </h1>
           <p className="text-[#666666]" style={{ fontFamily: 'Century Gothic, sans-serif' }}>
             Aquí está el resumen de tus pacientes y casos que requieren atención.
@@ -597,27 +553,37 @@ export default function AdminStatistics() {
                 </Badge>
               </div>
               
-              {/* Lista de pacientes */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {okPatients
-                  .filter(patient => 
-                    patient.childName.toLowerCase().includes(searchTerm.toLowerCase())
-                  )
-                  .map((patient) => (
-                    <Card key={patient.childId} className="bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => handlePatientClick(patient.childId)}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-sm font-medium text-[#2F2F2F]">{patient.childName}</h3>
-                            <p className="text-xs text-[#666666]">{patient.diagnosis}</p>
+              {/* Lista alfabética de pacientes */}
+              <Card className="bg-white shadow-sm border-0">
+                <CardContent className="p-0">
+                  <div className="divide-y divide-gray-100">
+                    {okPatients
+                      .filter(patient =>
+                        patient.childName.toLowerCase().includes(searchTerm.toLowerCase())
+                      )
+                      .map((patient, index) => (
+                        <div
+                          key={patient.childId}
+                          className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
+                          onClick={() => handlePatientClick(patient.childId)}
+                        >
+                          <div className="flex items-center gap-4 flex-1">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#8B4789]/10 text-[#8B4789] font-semibold text-sm">
+                              {index + 1}
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="text-sm font-medium text-[#2F2F2F] group-hover:text-[#8B4789] transition-colors">
+                                {patient.childName}
+                              </h3>
+                              <p className="text-xs text-[#666666]">{patient.diagnosis}</p>
+                            </div>
                           </div>
-                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-              </div>
+                      ))}
+                  </div>
+                </CardContent>
+              </Card>
               
               {/* Mensaje si no hay resultados */}
               {okPatients.filter(p => 

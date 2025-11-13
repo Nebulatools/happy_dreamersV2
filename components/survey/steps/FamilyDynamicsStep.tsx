@@ -45,39 +45,30 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         />
       </div>
 
-      {/* 2. Número telefónico para llamadas de seguimiento */}
+      {/* 2. Selector de contacto principal */}
       <div>
-        <Label htmlFor="telefono-seguimiento">
-          2. ¿Cuál es el número telefónico en el cual se podrán hacer las llamadas de seguimiento? <span className="text-red-500">*</span>
-        </Label>
-        <Input
-          id="telefono-seguimiento"
-          value={data.telefonoSeguimiento || ""}
-          onChange={(e) => updateField('telefonoSeguimiento', e.target.value)}
-          placeholder="Número de teléfono"
-          className={hasError('telefonoSeguimiento') ? 'border-red-500' : ''}
-        />
-        {hasError('telefonoSeguimiento') && (
-          <p className="text-red-500 text-sm mt-1">{getError('telefonoSeguimiento')}</p>
+        <Label>2. ¿De quién será el contacto principal para seguimiento? <span className="text-red-500">*</span></Label>
+        <RadioGroup
+          value={data.contactoPrincipal || ""}
+          onValueChange={(value) => updateField('contactoPrincipal', value)}
+        >
+          <div className="flex gap-4 mt-2">
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="mama" id="contacto-mama" />
+              <Label htmlFor="contacto-mama">Mamá</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="papa" id="contacto-papa" />
+              <Label htmlFor="contacto-papa">Papá</Label>
+            </div>
+          </div>
+        </RadioGroup>
+        {hasError('contactoPrincipal') && (
+          <p className="text-red-500 text-sm mt-1">{getError('contactoPrincipal')}</p>
         )}
-      </div>
-
-      {/* 3. Correo para observaciones */}
-      <div>
-        <Label htmlFor="email-observaciones">
-          3. ¿Cuál es el correo electrónico en el cual se enviarán las observaciones del registro de sueño? <span className="text-red-500">*</span>
-        </Label>
-        <Input
-          id="email-observaciones"
-          type="email"
-          value={data.emailObservaciones || ""}
-          onChange={(e) => updateField('emailObservaciones', e.target.value)}
-          placeholder="Correo electrónico"
-          className={hasError('emailObservaciones') ? 'border-red-500' : ''}
-        />
-        {hasError('emailObservaciones') && (
-          <p className="text-red-500 text-sm mt-1">{getError('emailObservaciones')}</p>
-        )}
+        <p className="text-sm text-gray-500 mt-2">
+          Se utilizará el teléfono y correo electrónico proporcionados en la sección de información familiar
+        </p>
       </div>
 
       {/* 4. ¿Cómo supiste de mis servicios? */}
@@ -127,7 +118,14 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         <Label>7. ¿Has contratado a algún otro asesor de sueño o intentado entrenar antes?</Label>
         <RadioGroup
           value={data.otroAsesor === true ? "si" : data.otroAsesor === false ? "no" : ""}
-          onValueChange={(value) => updateField('otroAsesor', value === 'si')}
+          onValueChange={(value) => {
+            const hadOtherAdvisor = value === 'si'
+            onChange({
+              ...data,
+              otroAsesor: hadOtherAdvisor,
+              otroAsesorDetalle: hadOtherAdvisor ? data.otroAsesorDetalle || "" : ""
+            })
+          }}
         >
           <div className="flex gap-4 mt-2">
             <div className="flex items-center space-x-2">
@@ -140,6 +138,24 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
             </div>
           </div>
         </RadioGroup>
+        {data.otroAsesor && (
+          <div className="mt-3">
+            <Label htmlFor="otro-asesor-detalle" className="text-sm text-gray-600">
+              Por favor, describe tu experiencia previa
+            </Label>
+            <Textarea
+              id="otro-asesor-detalle"
+              value={data.otroAsesorDetalle || ""}
+              onChange={(e) => updateField('otroAsesorDetalle', e.target.value)}
+              placeholder="Describe qué métodos probaste y qué resultados obtuviste..."
+              rows={3}
+              className={hasError('otroAsesorDetalle') ? 'border-red-500 mt-1' : 'mt-1'}
+            />
+            {hasError('otroAsesorDetalle') && (
+              <p className="text-red-500 text-sm mt-1">{getError('otroAsesorDetalle')}</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 8. ¿Quién atiende en la noche? */}

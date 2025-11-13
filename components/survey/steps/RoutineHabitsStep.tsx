@@ -54,7 +54,14 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Label>2. ¿Va su hijo/a al kinder o guardería?</Label>
         <RadioGroup
           value={data.vaKinder === true ? "si" : data.vaKinder === false ? "no" : ""}
-          onValueChange={(value) => updateField('vaKinder', value === 'si')}
+          onValueChange={(value) => {
+            const attendsKinder = value === 'si'
+            onChange({
+              ...data,
+              vaKinder: attendsKinder,
+              kinderDetalle: attendsKinder ? data.kinderDetalle || "" : ""
+            })
+          }}
         >
           <div className="flex gap-4 mt-2">
             <div className="flex items-center space-x-2">
@@ -67,6 +74,21 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
             </div>
           </div>
         </RadioGroup>
+        {data.vaKinder && (
+          <div className="mt-3">
+            <Label htmlFor="kinder-detalle" className="text-sm text-gray-600">
+              ¿Desde cuándo y qué horario?
+            </Label>
+            <Textarea
+              id="kinder-detalle"
+              value={data.kinderDetalle || ""}
+              onChange={(e) => updateField('kinderDetalle', e.target.value)}
+              placeholder="Ej: Desde enero 2024, de 8am a 2pm..."
+              rows={2}
+              className="mt-1"
+            />
+          </div>
+        )}
       </div>
 
       {/* 3. ¿Quién pasa la mayoría del tiempo con el niño? */}
@@ -147,9 +169,9 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         )}
       </div>
 
-      {/* 8. ¿Se queda dormido solo? */}
+      {/* 8. ¿Se queda dormido de forma independiente? */}
       <div>
-        <Label>8. ¿Su hijo/a se queda dormido solo/a?</Label>
+        <Label>8. ¿Su hijo/a se queda dormido de forma independiente?</Label>
         <RadioGroup
           value={data.duermeSolo === true ? "si" : data.duermeSolo === false ? "no" : ""}
           onValueChange={(value) => updateField('duermeSolo', value === 'si')}
@@ -172,13 +194,33 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Label>9. ¿Qué tan oscuro es el cuarto de su hijo/a? ¿Deja usted:</Label>
         <RadioGroup
           value={data.oscuridadCuarto || ""}
-          onValueChange={(value) => updateField('oscuridadCuarto', value)}
+          onValueChange={(value) => {
+            onChange({
+              ...data,
+              oscuridadCuarto: value,
+              colorLamparita: value === 'lamparita' ? data.colorLamparita || "" : ""
+            })
+          }}
         >
           <div className="space-y-2 mt-2">
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="lamparita" id="osc-lamparita" />
               <Label htmlFor="osc-lamparita">Lamparita prendida</Label>
             </div>
+            {data.oscuridadCuarto === 'lamparita' && (
+              <div className="ml-6 mt-2">
+                <Label htmlFor="color-lamparita" className="text-sm text-gray-600">
+                  ¿De qué color es la lamparita?
+                </Label>
+                <Input
+                  id="color-lamparita"
+                  value={data.colorLamparita || ""}
+                  onChange={(e) => updateField('colorLamparita', e.target.value)}
+                  placeholder="Ej: Blanca cálida, azul, amarilla..."
+                  className="max-w-md mt-1"
+                />
+              </div>
+            )}
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="puerta-abierta" id="osc-puerta" />
               <Label htmlFor="osc-puerta">Puerta abierta</Label>
@@ -227,7 +269,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
       {/* 12. Tipo de piyama */}
       <div>
         <Label htmlFor="tipo-piyama">
-          12. Describa detalladamente qué tipo de piyama usa su hijo/a.
+          12. Describe qué tipo de piyama usa su hijo/a.
         </Label>
         <Textarea
           id="tipo-piyama"
@@ -278,44 +320,117 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         </RadioGroup>
       </div>
 
-      {/* 15. ¿Dónde duerme tu hijo? */}
+      {/* 15. ¿Dónde duerme tu hijo? - Opción múltiple */}
       <div>
         <Label>15. ¿Dónde duerme su hijo/a por las noches? <span className="text-red-500">*</span></Label>
-        <RadioGroup
-          value={data.dondeDuerme || ""}
-          onValueChange={(value) => updateField('dondeDuerme', value)}
-        >
-          <div className="space-y-2 mt-2">
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="cama-cuarto" id="donde-cama-cuarto" />
-              <Label htmlFor="donde-cama-cuarto">Cama en su cuarto</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="cama-cuarto-padres" id="donde-cama-padres" />
-              <Label htmlFor="donde-cama-padres">Cama en su cuarto con alguno de los padres</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="cuna-cuarto" id="donde-cuna-cuarto" />
-              <Label htmlFor="donde-cuna-cuarto">Cuna/corral en su cuarto</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="cuna-padres" id="donde-cuna-padres" />
-              <Label htmlFor="donde-cuna-padres">Cuna/corral en cuarto de papás</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="cama-padres" id="donde-solo-padres" />
-              <Label htmlFor="donde-solo-padres">Cama de papás</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="cuna-luego-padres" id="donde-cuna-luego" />
-              <Label htmlFor="donde-cuna-luego">Primero en su cuna/corral y luego a cama de papás</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="cama-luego-padres" id="donde-cama-luego" />
-              <Label htmlFor="donde-cama-luego">Primero en su cama y luego a cama de papás</Label>
-            </div>
+        <p className="text-sm text-gray-500 mt-1">Puede seleccionar múltiples opciones</p>
+        <div className="space-y-2 mt-2">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="donde-cama-cuarto"
+              checked={data.dondeDuerme?.includes('cama-cuarto') || false}
+              onCheckedChange={(checked) => {
+                const lugares = data.dondeDuerme || []
+                if (checked) {
+                  updateField('dondeDuerme', [...lugares, 'cama-cuarto'])
+                } else {
+                  updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cama-cuarto'))
+                }
+              }}
+            />
+            <Label htmlFor="donde-cama-cuarto">Cama en su cuarto</Label>
           </div>
-        </RadioGroup>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="donde-cama-padres"
+              checked={data.dondeDuerme?.includes('cama-cuarto-padres') || false}
+              onCheckedChange={(checked) => {
+                const lugares = data.dondeDuerme || []
+                if (checked) {
+                  updateField('dondeDuerme', [...lugares, 'cama-cuarto-padres'])
+                } else {
+                  updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cama-cuarto-padres'))
+                }
+              }}
+            />
+            <Label htmlFor="donde-cama-padres">Cama en su cuarto con alguno de los padres</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="donde-cuna-cuarto"
+              checked={data.dondeDuerme?.includes('cuna-cuarto') || false}
+              onCheckedChange={(checked) => {
+                const lugares = data.dondeDuerme || []
+                if (checked) {
+                  updateField('dondeDuerme', [...lugares, 'cuna-cuarto'])
+                } else {
+                  updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cuna-cuarto'))
+                }
+              }}
+            />
+            <Label htmlFor="donde-cuna-cuarto">Cuna/corral en su cuarto</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="donde-cuna-padres"
+              checked={data.dondeDuerme?.includes('cuna-padres') || false}
+              onCheckedChange={(checked) => {
+                const lugares = data.dondeDuerme || []
+                if (checked) {
+                  updateField('dondeDuerme', [...lugares, 'cuna-padres'])
+                } else {
+                  updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cuna-padres'))
+                }
+              }}
+            />
+            <Label htmlFor="donde-cuna-padres">Cuna/corral en cuarto de papás</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="donde-solo-padres"
+              checked={data.dondeDuerme?.includes('cama-padres') || false}
+              onCheckedChange={(checked) => {
+                const lugares = data.dondeDuerme || []
+                if (checked) {
+                  updateField('dondeDuerme', [...lugares, 'cama-padres'])
+                } else {
+                  updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cama-padres'))
+                }
+              }}
+            />
+            <Label htmlFor="donde-solo-padres">Cama de papás</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="donde-cuna-luego"
+              checked={data.dondeDuerme?.includes('cuna-luego-padres') || false}
+              onCheckedChange={(checked) => {
+                const lugares = data.dondeDuerme || []
+                if (checked) {
+                  updateField('dondeDuerme', [...lugares, 'cuna-luego-padres'])
+                } else {
+                  updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cuna-luego-padres'))
+                }
+              }}
+            />
+            <Label htmlFor="donde-cuna-luego">Primero en su cuna/corral y luego a cama de papás</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="donde-cama-luego"
+              checked={data.dondeDuerme?.includes('cama-luego-padres') || false}
+              onCheckedChange={(checked) => {
+                const lugares = data.dondeDuerme || []
+                if (checked) {
+                  updateField('dondeDuerme', [...lugares, 'cama-luego-padres'])
+                } else {
+                  updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cama-luego-padres'))
+                }
+              }}
+            />
+            <Label htmlFor="donde-cama-luego">Primero en su cama y luego a cama de papás</Label>
+          </div>
+        </div>
         {hasError('dondeDuerme') && (
           <p className="text-red-500 text-sm mt-1">{getError('dondeDuerme')}</p>
         )}
@@ -326,7 +441,14 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Label>16. ¿Tu hijo(a) comparte la habitación con algún miembro de la familia?</Label>
         <RadioGroup
           value={data.comparteHabitacion === true ? "si" : data.comparteHabitacion === false ? "no" : ""}
-          onValueChange={(value) => updateField('comparteHabitacion', value === 'si')}
+          onValueChange={(value) => {
+            const shares = value === 'si'
+            onChange({
+              ...data,
+              comparteHabitacion: shares,
+              comparteHabitacionCon: shares ? data.comparteHabitacionCon || "" : ""
+            })
+          }}
         >
           <div className="flex gap-4 mt-2">
             <div className="flex items-center space-x-2">
@@ -339,57 +461,69 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
             </div>
           </div>
         </RadioGroup>
+        {data.comparteHabitacion && (
+          <div className="mt-3">
+            <Label htmlFor="comparte-con" className="text-sm text-gray-600">
+              ¿Con quién comparte la habitación?
+            </Label>
+            <Input
+              id="comparte-con"
+              value={data.comparteHabitacionCon || ""}
+              onChange={(e) => updateField('comparteHabitacionCon', e.target.value)}
+              placeholder="Ej: Hermano mayor, hermana..."
+              className="max-w-md mt-1"
+            />
+          </div>
+        )}
       </div>
 
-      {/* 17. Hora de acostarse bebé */}
+      {/* 17. Hora de acostarse bebé - Time Picker */}
       <div>
         <Label htmlFor="hora-acostarse-bebe">
           17. ¿A qué hora acuestas a tu bebé a dormir?
         </Label>
         <Input
           id="hora-acostarse-bebe"
+          type="time"
+          step="300"
           value={data.horaAcostarBebe || ""}
           onChange={(e) => updateField('horaAcostarBebe', e.target.value)}
-          placeholder="Ej: 20:00"
+          className="max-w-xs"
         />
       </div>
 
-      {/* 18. Tiempo para dormir */}
+      {/* 18. Tiempo para dormir - Time Picker con incrementos de 5 minutos */}
       <div>
         <Label htmlFor="tiempo-dormir">
           18. ¿Cuánto tiempo le toma a tu hijo(a) conciliar el sueño?
         </Label>
-        <Input
-          id="tiempo-dormir"
-          value={data.tiempoDormir || ""}
-          onChange={(e) => updateField('tiempoDormir', e.target.value)}
-          placeholder="Ej: 30 minutos"
-        />
+        <div className="flex items-center gap-2">
+          <Input
+            id="tiempo-dormir"
+            type="number"
+            min="0"
+            step="5"
+            value={data.tiempoDormir || ""}
+            onChange={(e) => updateField('tiempoDormir', e.target.value)}
+            placeholder="Minutos"
+            className="max-w-xs"
+          />
+          <span className="text-sm text-gray-600">minutos</span>
+        </div>
       </div>
 
-      {/* 19. Hora de despertarse */}
+      {/* 19. Hora de despertarse - Time Picker */}
       <div>
         <Label htmlFor="hora-despertar">
           19. ¿A qué hora se despierta tu hijo(a) por la mañana?
         </Label>
         <Input
           id="hora-despertar"
+          type="time"
+          step="300"
           value={data.horaDespertar || ""}
           onChange={(e) => updateField('horaDespertar', e.target.value)}
-          placeholder="Ej: 06:30"
-        />
-      </div>
-
-      {/* 20. Total de sueño nocturno */}
-      <div>
-        <Label htmlFor="total-sueno-nocturno">
-          20. Total de sueño nocturno
-        </Label>
-        <Input
-          id="total-sueno-nocturno"
-          value={data.totalSuenoNocturno || ""}
-          onChange={(e) => updateField('totalSuenoNocturno', e.target.value)}
-          placeholder="Ej: 10 horas"
+          className="max-w-xs"
         />
       </div>
 

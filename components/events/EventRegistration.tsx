@@ -36,23 +36,12 @@ export function EventRegistration({
   
   return (
     <div className="p-3 md:p-4 border rounded-lg bg-white">
-      <div className="flex items-center justify-between mb-3 md:mb-4">
+      <div className="mb-3 md:mb-4">
         <h3 className="text-base md:text-lg font-semibold">
           Registro de Eventos - {childName}
         </h3>
-        
-        {/* Botón para registro manual */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowManualModal(true)}
-          className="text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300"
-        >
-          <Clock className="w-3 h-3 mr-1" />
-          Registrar Evento
-        </Button>
       </div>
-      
+
       <div className="space-y-3">
         {/* Botón principal de sueño - mantiene su tamaño grande */}
         <SleepButton
@@ -60,7 +49,7 @@ export function EventRegistration({
           childName={childName}
           onEventRegistered={onEventRegistered}
         />
-        
+
         {/* Fila de botones secundarios - más compactos */}
         <div className="grid grid-cols-3 gap-2 h-14 md:h-16">
           {/* Botón de alimentación */}
@@ -69,14 +58,14 @@ export function EventRegistration({
             childName={childName}
             onEventRegistered={onEventRegistered}
           />
-          
+
           {/* Botón de medicamentos */}
           <MedicationButton
             childId={childId}
             childName={childName}
             onEventRegistered={onEventRegistered}
           />
-          
+
           {/* Botón de actividad extra */}
           <ExtraActivityButton
             childId={childId}
@@ -84,10 +73,19 @@ export function EventRegistration({
             onEventRegistered={onEventRegistered}
           />
         </div>
-        
-        <p className="text-xs md:text-sm text-gray-500 text-center">
-          Sistema de eventos v4.0 - Registro completo
-        </p>
+
+        {/* Botón para registro manual - movido después de botones rápidos */}
+        <div className="pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowManualModal(true)}
+            className="w-full text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300"
+          >
+            <Clock className="w-3 h-3 mr-1" />
+            Registrar Evento
+          </Button>
+        </div>
       </div>
       
       {/* Modal de registro manual */}

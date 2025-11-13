@@ -74,7 +74,7 @@ export function Sidebar({ className }: { className?: string }) {
       role: ["parent", "user"], // Para parents y users
     },
     {
-      title: "Calendario",
+      title: "Bitácora",
       href: "/dashboard/calendar",
       icon: <Calendar className="h-5 w-5" />,
     },
@@ -98,7 +98,7 @@ export function Sidebar({ className }: { className?: string }) {
       role: ["admin"],
     },
     {
-      title: "Encuesta de Sueño",
+      title: "Cuestionario de Sueño",
       href: activeChildId ? `/dashboard/survey?childId=${activeChildId}` : "/dashboard/survey",
       icon: <ClipboardList className="h-5 w-5" />,
       role: ["parent", "user"], // Para parents y users
