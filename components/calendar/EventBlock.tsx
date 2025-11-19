@@ -151,38 +151,47 @@ export function EventBlock({
     return 12
   }
 
-  // Calcular ancho del bloque - Ahora retorna estilos en línea para ancho fijo
+  // Calcular ancho del bloque - Más espacio para mejor visibilidad
   const calculateBlockStyles = () => {
     const duration = calculateEventDuration()
     if (duration > 0) {
-      // Eventos con duración: 90% del ancho con margen pequeño
+      // Eventos con duración: 95% del ancho con margen mínimo
       return {
-        left: '2px',
-        width: 'calc(100% - 4px)'
+        left: '3px',
+        width: 'calc(100% - 6px)'
       }
     }
-    // Eventos puntuales: 85% del ancho con más margen
+    // Eventos puntuales: 90% del ancho con más espacio
     return {
-      left: '4px', 
-      width: 'calc(100% - 8px)'
+      left: '5px',
+      width: 'calc(100% - 10px)'
     }
   }
 
-  // Obtener icono según tipo de evento
-  const getEventIcon = () => {
-    const iconSize = blockHeight >= 20 ? "w-3 h-3" : "w-2.5 h-2.5"
+  // Obtener emoji según tipo de evento - Tamaño ajustado
+  const getEventEmoji = () => {
+    // Ajustar tamaño del emoji según altura del bloque
+    const emojiSize = blockHeight >= 40 ? "12px" : blockHeight >= 28 ? "11px" : "10px"
+
     switch (event.eventType) {
       case 'sleep':
       case 'bedtime':
-        return <Moon className={iconSize} />
+        return <span style={{ fontSize: emojiSize }}>😴</span>
       case 'nap':
-        return <Sun className={iconSize} />
+        return <span style={{ fontSize: emojiSize }}>💤</span>
       case 'wake':
-        return <Sun className={iconSize} />
+        return <span style={{ fontSize: emojiSize }}>☀️</span>
       case 'night_waking':
-        return <AlertCircle className={iconSize} />
+        return <span style={{ fontSize: emojiSize }}>👶</span>
+      case 'feeding':
+        return <span style={{ fontSize: emojiSize }}>🍼</span>
+      case 'medication':
+        return <span style={{ fontSize: emojiSize }}>💊</span>
+      case 'activity':
+      case 'extra_activities':
+        return <span style={{ fontSize: emojiSize }}>🎈</span>
       default:
-        return <Clock className={iconSize} />
+        return <span style={{ fontSize: emojiSize }}>⏰</span>
     }
   }
 
@@ -307,8 +316,8 @@ export function EventBlock({
   return (
     <div
       className={cn(
-        "absolute rounded-md border flex items-center justify-start px-1.5 py-0.5",
-        "shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer",
+        "absolute rounded-lg border-2 flex items-center justify-start",
+        "shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer",
         "group relative",
         eventColor,
         className
@@ -317,8 +326,8 @@ export function EventBlock({
         top: `${topPosition}px`,
         height: `${blockHeight}px`,
         minHeight: '14px',
+        padding: blockHeight < 22 ? '0px 2px' : blockHeight < 35 ? '1px 4px' : '2px 6px',
         fontSize: '11px',
-        borderWidth: '1.5px',
         ...blockStyles // Aplicar los estilos de ancho y posición horizontal
       }}
       title={showTooltip ? undefined : `${getEventTypeName()} - ${formatEventTime()}`}
@@ -327,30 +336,41 @@ export function EventBlock({
         onClick?.(event)
       }}
     >
-      {/* Contenido del bloque */}
-      <div className="flex items-center gap-0.5 w-full overflow-hidden px-0.5">
-        {blockHeight >= 18 && getEventIcon()}
-        <span className="font-medium flex-1 min-w-0" style={{ fontSize: blockHeight >= 24 ? '11px' : '10px' }}>
-          {event.endTime && blockHeight >= 30 ? (
-            // Si tiene duración y espacio suficiente, mostrar rango completo
-            <div className="leading-tight">
-              <div className="line-clamp-1" style={{ fontSize: '10px' }}>{getEventTypeName()}</div>
-              <div className="opacity-80 line-clamp-1" style={{ fontSize: '9px' }}>{formatEventTime()}</div>
-            </div>
-          ) : event.endTime && blockHeight >= 18 ? (
-            // Si tiene duración pero menos espacio, solo horas
-            formatEventTime()
-          ) : blockHeight >= 16 ? (
-            // Eventos puntuales o poco espacio
-            <span className="flex items-center gap-0.5">
-              <span>{getEventTypeName().substring(0, 3)}</span>
-              <span className="opacity-75">{format(parseLocalISODate(event.startTime), "H:mm")}</span>
+      {/* Contenido del bloque - Ajustado dinámicamente según altura */}
+      <div className="flex items-center w-full overflow-hidden justify-center">
+        {/* Estrategia de renderizado MUY estricta según altura del bloque */}
+        {blockHeight < 22 ? (
+          // MUY PEQUEÑO: Solo emoji centrado (< 22px)
+          <div className="flex items-center justify-center">
+            {getEventEmoji()}
+          </div>
+        ) : blockHeight < 35 ? (
+          // PEQUEÑO: Solo hora centrada (22-35px) - SIN emoji, SIN nombre
+          <span className="font-bold truncate text-center" style={{ fontSize: '8px', lineHeight: '1', letterSpacing: '-0.3px' }}>
+            {format(parseLocalISODate(event.startTime), "HH:mm")}
+          </span>
+        ) : blockHeight < 50 ? (
+          // MEDIANO: Emoji + hora (35-50px) - SIN nombre
+          <div className="flex items-center gap-1">
+            {getEventEmoji()}
+            <span className="font-bold truncate" style={{ fontSize: '8.5px', lineHeight: '1', letterSpacing: '-0.2px' }}>
+              {formatEventTime()}
             </span>
-          ) : (
-            // Muy poco espacio
-            formatCompactTime()
-          )}
-        </span>
+          </div>
+        ) : (
+          // GRANDE: Emoji + Nombre + hora (> 50px)
+          <div className="flex items-center gap-1 w-full">
+            {getEventEmoji()}
+            <div className="flex-1 min-w-0" style={{ lineHeight: '1.3' }}>
+              <div className="truncate font-bold" style={{ fontSize: '9px', letterSpacing: '-0.2px' }}>
+                {getEventTypeName()}
+              </div>
+              <div className="truncate opacity-90 font-semibold" style={{ fontSize: '7.5px', letterSpacing: '-0.1px' }}>
+                {formatEventTime()}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tooltip */}
@@ -395,26 +415,26 @@ export function CompactEventBlock({
     }
   }
 
-  const getEventIcon = () => {
-    const iconSize = "w-2.5 h-2.5" // Iconos más pequeños para CompactEventBlock
+  const getEventEmoji = () => {
     switch (event.eventType) {
       case 'sleep':
       case 'bedtime':
-        return <Moon className={iconSize} />
+        return <span className="text-xs">😴</span>
       case 'nap':
-        return <Sun className={iconSize} />
+        return <span className="text-xs">💤</span>
       case 'wake':
-        return <Sun className={iconSize} />
+        return <span className="text-xs">☀️</span>
       case 'night_waking':
-        return <AlertCircle className={iconSize} />
+        return <span className="text-xs">👶</span>
       case 'feeding':
-        return <Clock className={iconSize} /> // Icono para alimentación
+        return <span className="text-xs">🍼</span>
       case 'medication':
-        return <Clock className={iconSize} /> // Icono para medicamento
+        return <span className="text-xs">💊</span>
+      case 'activity':
       case 'extra_activities':
-        return <Clock className={iconSize} /> // Icono para actividad extra
+        return <span className="text-xs">🎈</span>
       default:
-        return <Clock className={iconSize} />
+        return <span className="text-xs">⏰</span>
     }
   }
 
@@ -442,7 +462,7 @@ export function CompactEventBlock({
       getEventColor(),
       className
     )} style={{ fontSize: '10px' }}>
-      {getEventIcon()}
+      {getEventEmoji()}
       <span className="line-clamp-1 font-medium">
         {formatTime()}
       </span>

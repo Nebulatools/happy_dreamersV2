@@ -78,14 +78,17 @@ export function EventGlobe({ event, hourHeight = 30, onClick }: EventGlobeProps)
     }
   }
   
-  // 🎭 ICONO POR TIPO
-  const getIcon = () => {
+  // 🎭 EMOJI POR TIPO
+  const getEmoji = () => {
     switch (event.eventType) {
-      case 'nap': return <Sun className="w-3 h-3" />
-      case 'sleep': return <Moon className="w-3 h-3" />
-      case 'wake': return <Sun className="w-3 h-3" />
-      case 'night_waking': return <AlertCircle className="w-3 h-3" />
-      default: return <Clock className="w-3 h-3" />
+      case 'nap': return <span className="text-sm">💤</span>
+      case 'sleep': return <span className="text-sm">😴</span>
+      case 'wake': return <span className="text-sm">☀️</span>
+      case 'night_waking': return <span className="text-sm">👶</span>
+      case 'feeding': return <span className="text-sm">🍼</span>
+      case 'medication': return <span className="text-sm">💊</span>
+      case 'extra_activities': return <span className="text-sm">🎈</span>
+      default: return <span className="text-sm">⏰</span>
     }
   }
   
@@ -116,7 +119,7 @@ export function EventGlobe({ event, hourHeight = 30, onClick }: EventGlobeProps)
         onClick?.(event)
       }}
     >
-      {getIcon()}
+      {getEmoji()}
       <div className="flex-1 truncate">
         <div>{getName()}</div>
         <div className="text-xs opacity-90">

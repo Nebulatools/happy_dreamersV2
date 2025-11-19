@@ -1786,17 +1786,6 @@ export default function CalendarPage() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  setIsDetailsModalOpen(false)
-                  setIsEditModalOpen(true)
-                }}
-                className="w-full sm:w-auto"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Editar
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
                   setShowDeleteModal(true)
                 }}
                 className="w-full sm:w-auto text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -1808,11 +1797,12 @@ export default function CalendarPage() {
                 variant="default"
                 onClick={() => {
                   setIsDetailsModalOpen(false)
-                  setSelectedEvent(null)
+                  setIsEditModalOpen(true)
                 }}
                 className="w-full sm:w-auto"
               >
-                Cerrar
+                <Edit className="w-4 h-4 mr-2" />
+                Editar
               </Button>
             </DialogFooter>
           </DialogContent>

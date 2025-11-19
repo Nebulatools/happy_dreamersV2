@@ -172,9 +172,9 @@ export function SleepSessionBlock({
           }}
           title="Click para editar despertar nocturno"
         >
-          <div className="flex items-center gap-1 text-xs pointer-events-none">
-            <AlertCircle className="w-3 h-3" />
-            <span>{formatTime(waking.startTime)}</span>
+          <div className="flex items-center gap-1 pointer-events-none">
+            <span className="text-xs">👶</span>
+            <span style={{ fontSize: '9px' }}>{formatTime(waking.startTime)}</span>
           </div>
         </div>
         )
@@ -198,9 +198,9 @@ export function SleepSessionBlock({
           className="bg-blue-500/50 rounded-t-lg border border-blue-400/40 flex items-center justify-center shadow-sm"
           style={{ height: '24px' }}
         >
-          <div className="flex items-center gap-1 text-white text-xs font-medium">
-            <Moon className="w-3 h-3" />
-            <span>{formatTime(startTime)}</span>
+          <div className="flex items-center gap-1 text-white font-medium">
+            <span className="text-sm">🌙</span>
+            <span style={{ fontSize: '9px' }}>{formatTime(startTime)}</span>
           </div>
         </div>
         
@@ -249,9 +249,9 @@ export function SleepSessionBlock({
       {/* Indicador de continuación desde día anterior */}
       {isContinuationFromPrevious && (
         <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-blue-500/40 to-transparent flex items-center justify-center">
-          <div className="text-xs text-blue-700 font-medium flex items-center gap-1">
+          <div className="text-blue-700 font-medium flex items-center gap-0.5" style={{ fontSize: '9px' }}>
             <span>↑</span>
-            <span>Continúa desde ayer</span>
+            <span>Desde ayer</span>
           </div>
         </div>
       )}
@@ -259,8 +259,8 @@ export function SleepSessionBlock({
       {/* Indicador de inicio (solo si no es continuación) */}
       {!isContinuationFromPrevious && (
         <div className="absolute top-2 left-2 flex items-center gap-1">
-          <Moon className="w-3 h-3 text-blue-600" />
-          <span className="text-xs font-medium text-blue-700">
+          <span className="text-sm">🌙</span>
+          <span style={{ fontSize: '9px' }} className="font-medium text-blue-700">
             {formatTime(originalStartTime || startTime)}
           </span>
         </div>
@@ -270,14 +270,14 @@ export function SleepSessionBlock({
       {!continuesNextDay && endTime && (
         <div className="absolute bottom-2 right-2 flex flex-col items-end gap-0.5">
           <div className="flex items-center gap-1">
-            <Sun className="w-3 h-3 text-yellow-600" />
-            <span className="text-xs font-medium text-yellow-700">
+            <span className="text-sm">☀️</span>
+            <span style={{ fontSize: '9px' }} className="font-medium text-yellow-700">
               {formatTime(originalEndTime || endTime)}
             </span>
           </div>
           {/* Duración total - solo mostrar aquí, no en el centro */}
-          <div className="bg-white/70 backdrop-blur-sm rounded px-1.5 py-0.5">
-            <span className="text-[10px] font-medium text-gray-600">
+          <div className="bg-white/70 backdrop-blur-sm rounded px-1 py-0.5">
+            <span style={{ fontSize: '8px' }} className="font-medium text-gray-600">
               Total: {(() => {
                 try {
                   // Usar tiempos originales si es continuación, si no usar los normales
@@ -299,8 +299,8 @@ export function SleepSessionBlock({
       {/* Indicador de continuación al día siguiente */}
       {continuesNextDay && (
         <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-yellow-500/40 to-transparent flex items-center justify-center">
-          <div className="text-xs text-yellow-700 font-medium flex items-center gap-1">
-            <span>Continúa mañana</span>
+          <div className="text-yellow-700 font-medium flex items-center gap-0.5" style={{ fontSize: '9px' }}>
+            <span>Continúa</span>
             <span>↓</span>
           </div>
         </div>

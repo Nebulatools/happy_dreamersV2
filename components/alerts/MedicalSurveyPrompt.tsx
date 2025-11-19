@@ -27,27 +27,31 @@ export default function MedicalSurveyPrompt({ childId, dateRange = "7-days" }: M
   const router = useRouter()
   const { data, loading } = useSleepComparison(childId, dateRange)
 
-  // No mostrar a admin ni sin childId
-  if (session?.user?.role === "admin" || !childId) return null
-
-  // Gate semanal para no mostrar todos los días
-  const storageKey = `medicalPrompt:lastShown:${childId}`
+  // Gate semanal para no mostrar todos los días (registro de último aviso por niño)
+  const storageKey = React.useMemo(
+    () => (childId ? `medicalPrompt:lastShown:${childId}` : null),
+    [childId]
+  )
   const [shouldShow, setShouldShow] = React.useState(false)
 
   React.useEffect(() => {
-    if (loading) return
+    if (loading || !childId || !storageKey) return
     const last = localStorage.getItem(storageKey)
     const lastTs = last ? parseInt(last, 10) : 0
     const oneWeek = 7 * 24 * 60 * 60 * 1000
     const eligibleByTime = Date.now() - lastTs > oneWeek
     const worsen = isWorsening(data)
     setShouldShow(eligibleByTime && worsen)
-  }, [loading, data, childId])
+  }, [loading, data, childId, storageKey])
 
   const handleDismiss = () => {
+    if (!storageKey) return
     localStorage.setItem(storageKey, String(Date.now()))
     setShouldShow(false)
   }
+
+  // No mostrar a admin ni si aún no hay childId disponible
+  if (session?.user?.role === "admin" || !childId) return null
 
   if (!shouldShow) return null
 
@@ -71,4 +75,3 @@ export default function MedicalSurveyPrompt({ childId, dateRange = "7-days" }: M
     </Card>
   )
 }
-
