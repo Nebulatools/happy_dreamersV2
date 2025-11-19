@@ -67,6 +67,7 @@ export interface SurveyData {
       puedeDormirConHijo: boolean
       apetito: string
       pensamientosNegativos: boolean
+      pensamientosNegativosDetalle?: string
       tieneAlergias: boolean
       alergias?: string
     }

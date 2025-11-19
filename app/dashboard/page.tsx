@@ -13,9 +13,6 @@ import { useEventsCache } from "@/hooks/use-events-cache"
 const AdminStatistics = lazy(() => import("@/components/dashboard/AdminStatistics"))
 const SleepMetricsGrid = lazy(() => import("@/components/child-profile/SleepMetricsGrid"))
 const SleepMetricsCombinedChart = lazy(() => import("@/components/child-profile/SleepMetricsCombinedChart"))
-const TodayInstructionsCard = lazy(() => import("@/components/parent/TodayInstructionsCard"))
-const PlanHintsCard = lazy(() => import("@/components/parent/PlanHintsCard"))
-const MedicalSurveyPrompt = lazy(() => import("@/components/alerts/MedicalSurveyPrompt"))
 // Sistema de eventos - Nueva implementación v1.0
 import { EventRegistration } from "@/components/events"
 import { PlanSummaryCard } from "@/components/parent/PlanSummaryCard"
@@ -480,42 +477,9 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Instrucciones para hoy (solo padres) */}
-        {activeChildId && (
-          <Suspense fallback={<div className="h-16" />}>
-            <TodayInstructionsCard childId={activeChildId} />
-          </Suspense>
-        )}
-
-        {/* Sección de plan resumido o avisos */}
-        {!isAdmin && activeChildId ? (
-          activePlan ? (
-            <PlanSummaryCard plan={activePlan} isLoading={planLoading} error={planError} />
-          ) : (
-            <>
-              <Suspense fallback={<div className="h-8" />}>
-                <MedicalSurveyPrompt childId={activeChildId} />
-              </Suspense>
-              {child && (
-                <Suspense fallback={<div className="h-8" />}>
-                  <PlanHintsCard childId={activeChildId} childBirthDate={child.birthDate} />
-                </Suspense>
-              )}
-            </>
-          )
-        ) : (
-          activeChildId && (
-            <>
-              <Suspense fallback={<div className="h-8" />}>
-                <MedicalSurveyPrompt childId={activeChildId} />
-              </Suspense>
-              {child && (
-                <Suspense fallback={<div className="h-8" />}>
-                  <PlanHintsCard childId={activeChildId} childBirthDate={child.birthDate} />
-                </Suspense>
-              )}
-            </>
-          )
+        {/* Sección de plan resumido (sin avisos) */}
+        {!isAdmin && activeChildId && activePlan && (
+          <PlanSummaryCard plan={activePlan} isLoading={planLoading} error={planError} />
         )}
 
         {/* Resumen visual de métricas clave (gráfica compuesta) */}

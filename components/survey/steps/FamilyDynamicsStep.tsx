@@ -71,10 +71,10 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         </p>
       </div>
 
-      {/* 4. ¿Cómo supiste de mis servicios? */}
+      {/* 3. ¿Cómo supiste de mis servicios? */}
       <div>
         <Label htmlFor="como-supiste">
-          4. ¿Cómo supiste de mis servicios?
+          3. ¿Cómo supiste de mis servicios?
         </Label>
         <Textarea
           id="como-supiste"
@@ -85,10 +85,10 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         />
       </div>
 
-      {/* 5. Libros consultados */}
+      {/* 4. Libros consultados */}
       <div>
         <Label htmlFor="libros-consultados">
-          5. ¿Qué libros acerca de sueño infantil han consultado?
+          4. ¿Qué libros acerca de sueño infantil han consultado?
         </Label>
         <Textarea
           id="libros-consultados"
@@ -99,10 +99,10 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         />
       </div>
 
-      {/* 6. ¿Están en contra de algún método? */}
+      {/* 5. ¿Están en contra de algún método? */}
       <div>
         <Label htmlFor="metodos-contra">
-          6. ¿Están en contra de algún método de entrenamiento?
+          5. ¿Están en contra de algún método de entrenamiento?
         </Label>
         <Textarea
           id="metodos-contra"
@@ -113,9 +113,9 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         />
       </div>
 
-      {/* 7. ¿Has contratado otro asesor? */}
+      {/* 6. ¿Has contratado otro asesor? */}
       <div>
-        <Label>7. ¿Has contratado a algún otro asesor de sueño o intentado entrenar antes?</Label>
+        <Label>6. ¿Has contratado a algún otro asesor de sueño o intentado entrenar antes?</Label>
         <RadioGroup
           value={data.otroAsesor === true ? "si" : data.otroAsesor === false ? "no" : ""}
           onValueChange={(value) => {
@@ -158,10 +158,10 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         )}
       </div>
 
-      {/* 8. ¿Quién atiende en la noche? */}
+      {/* 7. ¿Quién atiende en la noche? */}
       <div>
         <Label htmlFor="quien-atiende">
-          8. ¿Quién o quiénes se levantan a atender a tu hijo(a) cuando se despierta en la noche? <span className="text-red-500">*</span>
+          7. ¿Quién o quiénes se levantan a atender a tu hijo(a) cuando se despierta en la noche? <span className="text-red-500">*</span>
         </Label>
         <Textarea
           id="quien-atiende"

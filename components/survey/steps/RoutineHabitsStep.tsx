@@ -307,16 +307,16 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 12. Tipo de piyama */}
+      {/* 12. Tipo de pijama */}
       <div>
-        <Label htmlFor="tipo-piyama">
-          12. Describe qué tipo de piyama usa su hijo/a.
+        <Label htmlFor="tipo-pijama">
+          12. Describe qué tipo de pijama usa su hijo/a.
         </Label>
         <Textarea
-          id="tipo-piyama"
+          id="tipo-pijama"
           value={data.tipoPiyama || ""}
           onChange={(e) => updateField('tipoPiyama', e.target.value)}
-          placeholder="Describe el tipo de piyama: manga larga/corta, material, grosor..."
+          placeholder="Describe el tipo de pijama: manga larga/corta, material, grosor..."
           rows={2}
         />
       </div>
@@ -551,9 +551,9 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
             type="number"
             min="0"
             step="5"
-            value={getValueOrDefault('tiempoDormir', "20")}
+            value={data.tiempoDormir || ""}
             onChange={(e) => updateField('tiempoDormir', e.target.value)}
-            placeholder="Minutos"
+            placeholder="Ej: 20"
             className="max-w-xs"
           />
           <span className="text-sm text-gray-600">minutos</span>

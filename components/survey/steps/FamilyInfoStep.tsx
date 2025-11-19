@@ -548,7 +548,17 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
             <Label>11. ¿Tienes pensamientos negativos que te generen miedo?</Label>
             <RadioGroup
               value={data.mama?.pensamientosNegativos === true ? "si" : data.mama?.pensamientosNegativos === false ? "no" : ""}
-              onValueChange={(value) => updateField('mama', 'pensamientosNegativos', value === 'si')}
+              onValueChange={(value) => {
+                const hasNegativeThoughts = value === 'si'
+                onChange({
+                  ...data,
+                  mama: {
+                    ...data.mama,
+                    pensamientosNegativos: hasNegativeThoughts,
+                    pensamientosNegativosDetalle: hasNegativeThoughts ? data.mama?.pensamientosNegativosDetalle || "" : ""
+                  }
+                })
+              }}
             >
               <div className="flex gap-4 mt-2">
                 <div className="flex items-center space-x-2">
@@ -561,6 +571,21 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
                 </div>
               </div>
             </RadioGroup>
+            {data.mama?.pensamientosNegativos && (
+              <div className="mt-3">
+                <Label htmlFor="mama-pensamientos-detalle" className="text-sm text-gray-600">
+                  Por favor, describe qué tipo de pensamientos negativos tienes
+                </Label>
+                <Textarea
+                  id="mama-pensamientos-detalle"
+                  value={data.mama?.pensamientosNegativosDetalle || ""}
+                  onChange={(e) => updateField('mama', 'pensamientosNegativosDetalle', e.target.value)}
+                  placeholder="Describe los pensamientos negativos que te generan miedo..."
+                  rows={3}
+                  className="mt-1"
+                />
+              </div>
+            )}
           </div>
           
           {/* 12. ¿Tienes o has tenido alguna alergia? */}

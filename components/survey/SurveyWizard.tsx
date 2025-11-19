@@ -605,7 +605,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
               disabled={isSubmitting}
               className="hd-gradient-button text-white w-full sm:w-auto justify-center"
             >
-              {isSubmitting ? "Enviando..." : "Finalizar Encuesta"}
+              {isSubmitting ? "Enviando..." : "Finalizar Cuestionario"}
             </Button>
           ) : (
             <Button

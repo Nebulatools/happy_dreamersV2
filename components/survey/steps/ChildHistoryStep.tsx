@@ -173,9 +173,6 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
               <span className="font-medium text-gray-900">Fecha de nacimiento:</span>{" "}
               {displayBirthDate || "—"}
             </p>
-            <p className="text-xs text-gray-500">
-              Esta información proviene del perfil del niño y no es necesario volver a capturarla.
-            </p>
           </div>
         )}
 
