@@ -283,11 +283,11 @@ export function MonthLineChart({
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={chartData}
-          margin={{ top: 20, right: 30, left: 80, bottom: 40 }}
+          margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-          
-          <XAxis 
+
+          <XAxis
             dataKey="dayLabel"
             tick={{ fontSize: 12 }}
             interval={0}
@@ -295,23 +295,21 @@ export function MonthLineChart({
             textAnchor="middle"
             height={40}
           />
-          
-          <YAxis 
+
+          <YAxis
             domain={[0, 24]}
             ticks={[0, 3, 6, 9, 12, 15, 18, 21, 24]}
             tickFormatter={formatYAxisTick}
             tick={{ fontSize: 12 }}
-            width={60}
+            width={80}
             reversed
-          >
-            <Label
-              value="Hora del día"
-              position="left"
-              angle={-90}
-              style={{ textAnchor: "middle", fontSize: 12, fill: "#4b5563", fontWeight: 600 }}
-              offset={-55}
-            />
-          </YAxis>
+            label={{
+              value: "Hora del día",
+              angle: -90,
+              position: 'insideLeft',
+              style: { textAnchor: "middle", fontSize: 12, fill: "#4b5563", fontWeight: 600 }
+            }}
+          />
           
           <Tooltip content={<CustomTooltip />} />
           

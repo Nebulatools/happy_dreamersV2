@@ -6,7 +6,8 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { createLogger } from "@/lib/logger"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -396,7 +397,7 @@ export default function CalendarPage() {
   const { toast } = useToast()
   const { data: session } = useSession()
   const isAdminView = session?.user?.role === "admin" || session?.user?.role === "professional"
-  const { activeChildId } = useActiveChild()
+  const { activeChildId, activeUserId } = useActiveChild()
   const { refreshTrigger, subscribe } = useEventsCache(activeChildId)
   const invalidateEvents = useEventsInvalidation()
   // Inicializar con la fecha actual
@@ -683,7 +684,7 @@ export default function CalendarPage() {
       fetchEvents(true) // Forzar refresh desde servidor
       fetchActivePlan()
     }
-  }, [activeChildId, refreshTrigger, session])
+  }, [activeChildId, activeUserId, refreshTrigger, session])
 
   // Filtrar desde cache cuando solo cambia fecha o vista (sin niño activo o refresh)
   useEffect(() => {
@@ -695,17 +696,20 @@ export default function CalendarPage() {
   // Función para obtener el plan activo del niño
   const fetchActivePlan = async () => {
     try {
-      // Primero obtener el userId del padre
-      const sessionRes = await fetch('/api/auth/session')
-      const sessionData = await sessionRes.json()
-      
-      if (!sessionData?.user?.id) {
-        logger.error('No se pudo obtener el usuario de la sesión')
+      if (!activeChildId) return
+
+      // Para vistas de admin usamos el padre seleccionado, para padres usamos su propio id
+      const userIdForQuery = activeUserId || session?.user?.id
+
+      if (!userIdForQuery) {
+        logger.error('No se pudo determinar el usuario para consultar planes', {
+          activeUserId,
+          sessionUserId: session?.user?.id
+        })
         return
       }
-      
-      // Obtener los planes del niño
-      const response = await fetch(`/api/consultas/plans?childId=${activeChildId}&userId=${sessionData.user.id}`)
+
+      const response = await fetch(`/api/consultas/plans?childId=${activeChildId}&userId=${userIdForQuery}`)
       
       if (!response.ok) {
         logger.error('Error al obtener planes:', response.status)
