@@ -84,109 +84,221 @@ export interface SurveyData {
       edad: number
       esElQueNecesitaAyuda: boolean
     }>
-    otrosEnCasa: string
-    telefonoSeguimiento: string
-    emailObservaciones: string
-    comoConocioServicios: string
-    librosConsultados?: string
+    otrosResidentes?: string // Quiénes más viven en la casa
+    contactoPrincipal?: "mama" | "papa" // Contacto principal para seguimiento
+    comoSupiste?: string // Cómo supiste de los servicios
+    librosConsultados?: string // Libros sobre sueño infantil consultados
+    metodosContra?: string // Métodos de entrenamiento en contra
+    otroAsesor?: boolean // ¿Ha contratado otro asesor?
+    otroAsesorDetalle?: string // Detalles del otro asesor (condicional)
+    quienAtiende?: string // Quién atiende al niño en la noche
+
+    // Campos legacy (mantener por compatibilidad):
+    otrosEnCasa?: string
+    telefonoSeguimiento?: string
+    emailObservaciones?: string
+    comoConocioServicios?: string
     metodosEnContra?: string
     asesorAnterior?: string
-    quienSeLevaantaNoche: string
+    quienSeLevaantaNoche?: string
+    quienSeLevantaNoche?: string
   }
   
   // HISTORIAL DEL NIÑO
   historial: {
     // Información básica
-    nombre: string
-    fechaNacimiento: string
-    peso: number
+    nombreHijo?: string // Nombre del hijo (puede ser diferente al registrado)
+    nombre?: string // Legacy
+    fechaNacimiento?: string
+    genero?: string // Género del hijo
+    pesoHijo?: number // Peso del hijo
+    peso?: number // Legacy
     percentilPeso?: number
-    
+
     // Información prenatal
-    embarazoPlaneado: boolean
-    problemasEmbarazo: boolean
-    problemasEmbarazoDescripcion?: string
-    padecimientosEmbarazo: string[] // "Anemia", "Infecciones", "Ninguna"
-    tipoParto: "Vaginal" | "Cesárea" | "Vaginal después de Cesárea"
-    complicacionesParto: boolean
+    embarazoPlaneado?: boolean
+    problemasEmbarazo?: boolean
+    problemasEmbarazoDetalle?: string // Detalles de problemas en el embarazo
+    problemasEmbarazoDescripcion?: string // Legacy
+    condicionesEmbarazo?: string[] // Condiciones durante el embarazo
+    condicionesEmbarazoOtro?: string // Otras condiciones (campo condicional)
+    padecimientosEmbarazo?: string[] // Legacy
+
+    // Información del parto
+    tipoParto?: "Vaginal" | "Cesárea" | "Vaginal después de Cesárea" | string
+    semanasNacimiento?: number // Semanas de gestación al nacer
+    nacioTermino?: boolean // ¿Nació a término?
+    nacioPlazo?: boolean // Legacy
+    complicacionesParto?: boolean
     complicacionesPartoDescripcion?: string
-    nacioPlazo: boolean
-    problemasAlNacer: boolean
-    problemasAlNacerDescripcion?: string
-    pediatra?: string
-    pediatraDescartaProblemas: boolean
-    pediatraConfirmaCapacidadDormir: boolean
-    tratamientoMedico: boolean
-    tratamientoMedicoDescripcion?: string
+
+    // Problemas al nacer
+    problemasHijo?: boolean // ¿Tuvo problemas el hijo?
+    problemasNacer?: boolean // ¿Problemas al nacer?
+    problemasAlNacer?: boolean // Legacy
+    problemasNacerDetalle?: string // Detalles de problemas al nacer
+    problemasAlNacerDescripcion?: string // Legacy
+
+    // Información del pediatra
+    pediatra?: string // Nombre del pediatra
+    pediatraTelefono?: string // Teléfono del pediatra
+    pediatraEmail?: string // Email del pediatra
+    pediatraDescarto?: boolean // ¿Pediatra descartó problemas?
+    pediatraDescartaProblemas?: boolean // Legacy
+    pediatraConfirma?: boolean // ¿Pediatra confirma capacidad de dormir?
+    pediatraConfirmaDetalle?: string // Detalles de confirmación (condicional)
+    pediatraConfirmaCapacidadDormir?: boolean // Legacy
+
+    // Tratamiento médico
+    tratamientoMedico?: boolean
+    tratamientoMedicoDetalle?: string
+    tratamientoMedicoDescripcion?: string // Legacy
   }
   
   // DESARROLLO Y SALUD
   desarrolloSalud: {
-    edadRodar?: number
-    edadSentarse?: number
-    edadGatear?: number
-    edadPararse?: number
-    edadCaminar?: number
+    // Hitos del desarrollo
+    rodarMeses?: number // Edad en meses cuando empezó a rodar
+    edadRodar?: number // Legacy
+    sentarseMeses?: number // Edad en meses cuando empezó a sentarse
+    edadSentarse?: number // Legacy
+    gatearMeses?: number // Edad en meses cuando empezó a gatear
+    edadGatear?: number // Legacy
+    pararseMeses?: number // Edad en meses cuando empezó a pararse
+    edadPararse?: number // Legacy
+    caminarMeses?: number // Edad en meses cuando empezó a caminar
+    edadCaminar?: number // Legacy
+
+    // Alimentación
     usoVaso?: "Vaso" | "Biberón"
-    alimentacion?: "Fórmula" | "Leche materna exclusiva" | "Leche materna y fórmula" | "Ninguna"
+    alimentacion?: "Fórmula" | "Leche materna exclusiva" | "Leche materna y fórmula" | "Ninguna" | string
+    alimentacionOtro?: string // Otro tipo de alimentación (condicional)
     comeSolidos?: boolean
-    caracteristicas: string[] // Array de características como "Se chupa el dedo", "Usa chupón", etc.
+
+    // Características y hábitos
+    hijoUtiliza?: string[] // Características del hijo (chupón, dedo, etc.)
+    caracteristicas?: string[] // Legacy
+    nombreObjetoSeguridad?: string // Nombre del objeto de seguridad
+    planDejarDedo?: string // Plan para dejar de chuparse el dedo
+
+    // Problemas de salud
+    problemasHijo?: string[] // Problemas o situaciones del hijo
+    situacionesHijo?: string[] // Situaciones específicas
+    alergiaAlimenticiaDetalle?: string // Detalles de alergia alimenticia (condicional)
+    alergiaAmbientalDetalle?: string // Detalles de alergia ambiental (condicional)
+    infeccionesOidoDetalle?: string // Detalles de infecciones de oído (condicional)
+    dificultadRespirarDetalle?: string // Detalles de dificultad para respirar (condicional)
   }
   
   // ACTIVIDAD FÍSICA
   actividadFisica: {
-    vePantallas: boolean
-    pantallasTiempo?: string
-    practicaActividad: boolean
-    actividades?: string
-    actividadesDespierto?: string
-    signosIrritabilidad: boolean
+    // Uso de pantallas
+    vePantallas?: boolean
+    pantallasDetalle?: string // Detalles sobre el uso de pantallas (condicional)
+    pantallasTiempo?: string // Legacy
+
+    // Actividades físicas
+    practicaActividad?: boolean
+    actividadesLista?: string // Lista de actividades que practica
+    actividades?: string // Legacy
+    actividadesDespierto?: string // Actividades cuando está despierto
+
+    // Irritabilidad y comportamiento
+    signosIrritabilidad?: boolean
+    irritabilidadDetalle?: string // Detalles de irritabilidad (condicional)
     situacionesSufridas?: string[] // "Alergias", "Infecciones de oído frecuentes", etc.
   }
   
   // RUTINA Y HÁBITOS DE SUEÑO
   rutinaHabitos: {
-    diaTypico: string // Descripción detallada del día típico
-    vaGuarderia: boolean
-    quienPasaTiempo: string
-    quienCuidaNoche?: string
-    dondeVurmePadresSalen?: string
-    rutinaAntesAcostarse: string
-    horaEspecificaDormir: boolean
-    horaDormir?: string
-    seQuedaDormirSolo: boolean
-    oscuridadCuarto: string[] // "Lamparita prendida", "Puerta abierta", etc.
-    usaRuidoBlanco: boolean
-    temperaturaCuarto?: string
-    tipoPiyama: string
-    usaSacoDormir: boolean
-    seQuedaHastaConciliar: boolean
-    
-    dondeDuermeNoche: "Cama en su cuarto" | "Cama en su cuarto con alguno de los padres" | 
-                     "Cuna/corral en su cuarto" | "Cuna/corral en cuarto de papás" | 
-                     "Cama de papás" | "Primero en su cuna/corral y luego a cama de papás" | 
-                     "Primero en su cama y luego a cama de papás"
-    
-    comparteHabitacion: boolean
-    conQuienComparte?: string
-    intentaSalirCama: boolean
-    sacaDesCamaNohe: boolean
-    lloraAlDejarSolo: boolean
-    golpeaCabeza: boolean
-    despiertaEnNoche: boolean
-    miendoOscuridad: boolean
-    padresMiedoOscuridad: boolean
-    temperamento: string
-    reaccionDejarSolo: string
-    metodosRelajarse: string
-    haceSiestas: boolean
-    
+    // Día típico y cuidado
+    diaTipico?: string // Descripción detallada del día típico
+    diaTypico?: string // Legacy (typo)
+    vaKinder?: boolean // ¿Va a kínder/guardería?
+    vaGuarderia?: boolean // Legacy
+    kinderDetalle?: string // Detalles del kínder (condicional)
+    quienCuida?: string // Quién pasa tiempo con el niño
+    quienPasaTiempo?: string // Legacy
+    quienCuidaNoche?: string // Quién cuida al niño en la noche
+
+    // Rutina de dormir
+    rutinaDormir?: string // Rutina antes de acostarse
+    rutinaAntesAcostarse?: string // Legacy
+    horaEspecificaDormir?: boolean
+    horaDormir?: string // Hora específica de dormir
+    horaAcostarBebe?: string // Hora de acostar al bebé
+    tiempoDormir?: string // Tiempo que le toma conciliar el sueño
+    duermeSolo?: boolean // ¿Se queda dormido solo?
+    seQuedaDormirSolo?: boolean // Legacy
+    teQuedasHastaDuerma?: boolean // ¿Te quedas hasta que duerma?
+    seQuedaHastaConciliar?: boolean // Legacy
+
+    // Entorno del cuarto
+    oscuridadCuarto?: string // Nivel de oscuridad del cuarto ("lamparita", "puerta-abierta", etc.)
+    colorLamparita?: string // ⭐ Color de la lamparita (condicional cuando oscuridadCuarto="lamparita")
+    ruidoBlanco?: boolean // ¿Usan ruido blanco?
+    usaRuidoBlanco?: boolean // Legacy
+    temperaturaCuarto?: string // Temperatura del cuarto
+    tipoPiyama?: string // Tipo de pijama que usa
+    tipoPijama?: string // Variante de escritura
+    usaSaco?: boolean // ¿Usa saco para dormir?
+    usaSacoDormir?: boolean // Legacy
+
+    // Lugar donde duerme
+    dondeDuerme?: string | "Cama en su cuarto" | "Cama en su cuarto con alguno de los padres" |
+                   "Cuna/corral en su cuarto" | "Cuna/corral en cuarto de papás" |
+                   "Cama de papás" | "Primero en su cuna/corral y luego a cama de papás" |
+                   "Primero en su cama y luego a cama de papás"
+    dondeDuermeNoche?: string // Legacy
+    dondeDuermeSalida?: string // Dónde duerme cuando los padres salen
+    dondeVurmePadresSalen?: string // Legacy (typo)
+    comparteHabitacion?: boolean // ¿Comparte habitación?
+    comparteHabitacionCon?: string // Con quién comparte (condicional)
+    conQuienComparte?: string // Legacy
+
+    // Siestas
+    tomaSiestas?: boolean // ¿Toma siestas?
+    haceSiestas?: boolean // Legacy
+    numeroSiestas?: number // Número de siestas al día
+    duracionTotalSiestas?: string // Duración total de siestas
+    dondeSiestas?: string // Dónde toma las siestas
+    horaDespertar?: string // Hora de despertar
+
+    // Despertares nocturnos
+    despiertaNoche?: boolean // ¿Se despierta en la noche?
+    despiertaEnNoche?: boolean // Legacy
+    vecesDespierta?: number // Veces que se despierta en la noche
+    desdeCuandoDespierta?: string // Desde cuándo se despierta
+    queHacesDespierta?: string // Qué haces cuando se despierta
+    tiempoDespierto?: string // Tiempo que está despierto
+
+    // Comportamiento
+    intentaSalirCama?: boolean
+    sacaDesCamaNohe?: boolean
+    lloraAlDejarSolo?: boolean
+    golpeaCabeza?: boolean
+    miendoOscuridad?: boolean
+    padresMiedoOscuridad?: boolean
+    temperamento?: string
+    reaccionDejarSolo?: string
+    metodosRelajarse?: string
+
+    // Preocupaciones y problemas
+    desdeCuandoProblema?: string // Desde cuándo tiene el problema
+    principalPreocupacion?: string // Principal preocupación de los padres
+
+    // Otros hijos y viajes
     otrosHijosProblemas?: boolean
-    dondeViermesViaja?: string
-    duermeMejorViaja?: "Mejor" | "Peor" | "No aplica"
-    padresDispuestos: boolean
-    objetivosPadres: string
-    informacionAdicional?: string
+    dondeViermesViaja?: string // Dónde duerme cuando viaja (typo - debería ser "dondeDuermeViaja")
+    dondeDuermeViaja?: string
+    duermeMejorViaja?: "Mejor" | "Peor" | "No aplica" | string
+
+    // Objetivos y disposición
+    padresDispuestos?: boolean
+    objetivoPadres?: string // Objetivos de los padres
+    objetivosPadres?: string // Legacy
+    infoAdicional?: string // Información adicional
+    informacionAdicional?: string // Legacy
   }
 }
 

@@ -107,8 +107,15 @@ export default function SurveyPage() {
 
       if (serverSurvey) {
         setExistingSurvey(serverSurvey)
-        setIsViewMode(true)
-        logger.info("Encuesta existente cargada", { childId })
+        // Solo mostrar como completada si tiene el flag completed === true
+        // Si es guardado parcial (isPartial: true) o no tiene completed, permitir edición
+        const isCompleted = serverSurvey.completed === true && !serverSurvey.isPartial
+        setIsViewMode(isCompleted)
+        logger.info("Encuesta existente cargada", {
+          childId,
+          isCompleted,
+          isPartial: serverSurvey.isPartial
+        })
         return
       }
 
