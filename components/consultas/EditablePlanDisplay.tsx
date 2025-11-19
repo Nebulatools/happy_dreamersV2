@@ -63,22 +63,76 @@ const EMPTY_SLEEP_ROUTINE: SleepRoutine = {
   notes: ""
 }
 
+type TemplateEventType = "nap" | "meal" | "activity" | "bedtime" | "wake"
+
+type EventTemplate = {
+  id: string
+  type: TemplateEventType
+  label: string
+  duration?: number
+  description?: string
+  suggestedTime?: string
+}
+
+const EVENT_TEMPLATES: EventTemplate[] = [
+  { id: "nap-morning", type: "nap", label: "Siesta matutina", duration: 60, suggestedTime: "09:30", description: "Descanso ligero después del desayuno" },
+  { id: "nap-midday", type: "nap", label: "Siesta de mediodía", duration: 75, suggestedTime: "12:30", description: "Recarga de energía antes de la tarde" },
+  { id: "nap-afternoon", type: "nap", label: "Siesta vespertina", duration: 45, suggestedTime: "16:00", description: "Descanso corto antes de la rutina vespertina" },
+  { id: "meal-breakfast", type: "meal", label: "Desayuno", suggestedTime: "07:30", description: "Comida completa para iniciar el día" },
+  { id: "meal-lunch", type: "meal", label: "Comida", suggestedTime: "12:00", description: "Plato fuerte del día" },
+  { id: "meal-dinner", type: "meal", label: "Cena ligera", suggestedTime: "18:30", description: "Alternativa suave antes de dormir" },
+  { id: "meal-snack", type: "meal", label: "Snack saludable", suggestedTime: "15:30", description: "Fruta o yogurt" },
+  { id: "activity-play", type: "activity", label: "Juego activo", duration: 30, suggestedTime: "10:30", description: "Actividad motriz o al aire libre" },
+  { id: "activity-quiet", type: "activity", label: "Actividad tranquila", duration: 20, suggestedTime: "18:00", description: "Lectura o rompecabezas" },
+  { id: "activity-winddown", type: "activity", label: "Rutina de relajación", duration: 15, suggestedTime: "19:30", description: "Baño y masajes suaves" },
+  { id: "core-wake", type: "wake", label: "Hora de despertar", suggestedTime: "07:00", description: "Despertar recomendado" },
+  { id: "core-bedtime", type: "bedtime", label: "Hora de dormir", suggestedTime: "20:00", description: "Inicio de rutina de sueño" },
+]
+
+const getTemplateByType = (type: TemplateEventType) => {
+  const matches = EVENT_TEMPLATES.filter(template => template.type === type)
+  return matches.length ? matches : EVENT_TEMPLATES
+}
+
+const buildEventFromTemplate = (template: EventTemplate, prev?: Partial<NewEventState>): NewEventState => {
+  const baseDuration = template.type === "nap" || template.type === "activity"
+    ? template.duration ?? prev?.duration ?? 30
+    : undefined
+
+  return {
+    type: template.type,
+    templateId: template.id,
+    label: template.label,
+    time: template.suggestedTime ?? prev?.time ?? "14:00",
+    duration: baseDuration,
+    description: template.description ?? prev?.description ?? "",
+  }
+}
+
+type NewEventState = {
+  type: TemplateEventType
+  templateId: string
+  label: string
+  time: string
+  duration?: number
+  description: string
+}
+
 export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editedPlan, setEditedPlan] = useState<ChildPlan>(plan)
   const [hasChanges, setHasChanges] = useState(false)
   const [showEventModal, setShowEventModal] = useState(false)
-  const [newEvent, setNewEvent] = useState({
-    type: "nap" as "nap" | "meal" | "activity",
-    label: "Siesta",
-    time: "14:00",
-    duration: 60,
-    description: ""
-  })
+  const defaultTemplate = EVENT_TEMPLATES[0]
+  const [newEvent, setNewEvent] = useState<NewEventState>(() => buildEventFromTemplate(defaultTemplate))
   const [timelineOrder, setTimelineOrder] = useState<string[]>([])
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const templatesForCurrentType = useMemo(
+    () => EVENT_TEMPLATES.filter(template => template.type === newEvent.type),
+    [newEvent.type]
+  )
 
   // Reiniciar cuando cambia el plan
   useEffect(() => {
@@ -628,20 +682,9 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     setHasChanges(true)
   }
 
-  const handleOpenEventModal = (type: 'nap' | 'meal' | 'activity' = 'nap') => {
-    const defaults = {
-      nap: { label: 'Siesta', duration: 60 },
-      meal: { label: 'Comida', duration: 20 },
-      activity: { label: 'Actividad', duration: 30 }
-    }[type]
-
-    setNewEvent({
-      type,
-      label: defaults.label,
-      time: "14:00",
-      duration: defaults.duration,
-      description: ""
-    })
+  const handleOpenEventModal = (type: TemplateEventType = 'nap') => {
+    const template = getTemplateByType(type)[0]
+    setNewEvent(prev => buildEventFromTemplate(template, prev))
     setShowEventModal(true)
   }
 
@@ -692,6 +735,14 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
         }
         ensureActivityId(activityToAdd, `activity-${updatedPlan.schedule.activities.length}-${activityToAdd.time}`)
         updatedPlan.schedule.activities.push(activityToAdd)
+        break
+      }
+      case 'bedtime': {
+        updatedPlan.schedule.bedtime = newEvent.time
+        break
+      }
+      case 'wake': {
+        updatedPlan.schedule.wakeTime = newEvent.time
         break
       }
       default:
@@ -1544,18 +1595,9 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
               <Select
                 value={newEvent.type}
                 onValueChange={(value) => {
-                  const nextType = value as 'nap' | 'meal' | 'activity'
-                  const defaults = {
-                    nap: { label: 'Siesta', duration: 60 },
-                    meal: { label: 'Comida', duration: 20 },
-                    activity: { label: 'Actividad', duration: 30 },
-                  }[nextType]
-                  setNewEvent((prev) => ({
-                    ...prev,
-                    type: nextType,
-                    label: defaults.label,
-                    duration: defaults.duration,
-                  }))
+                  const nextType = value as TemplateEventType
+                  const defaults = getTemplateByType(nextType)[0]
+                  setNewEvent((prev) => buildEventFromTemplate(defaults, { ...prev, type: nextType }))
                 }}
               >
                 <SelectTrigger className="col-span-3">
@@ -1565,25 +1607,39 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                   <SelectItem value="nap">Siesta</SelectItem>
                   <SelectItem value="meal">Comida o snack</SelectItem>
                   <SelectItem value="activity">Actividad</SelectItem>
+                  <SelectItem value="wake">Hora de despertar</SelectItem>
+                  <SelectItem value="bedtime">Hora de dormir</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="event-label" className="text-right">
-                {newEvent.type === 'meal'
-                  ? 'Tipo'
-                  : newEvent.type === 'activity'
-                    ? 'Actividad'
-                    : 'Nombre'}
-              </Label>
-              <Input
-                id="event-label"
-                value={newEvent.label}
-                onChange={(e) => setNewEvent({ ...newEvent, label: e.target.value })}
-                className="col-span-3"
-                placeholder={newEvent.type === 'meal' ? 'Comida principal' : 'Siesta corta'}
-              />
+              <Label className="text-right">Evento</Label>
+              <Select
+                value={newEvent.templateId}
+                onValueChange={(value) => {
+                  const template = EVENT_TEMPLATES.find(t => t.id === value)
+                  if (!template) return
+                  setNewEvent((prev) => buildEventFromTemplate(template, prev))
+                }}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Selecciona un evento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {templatesForCurrentType.length === 0 ? (
+                    <SelectItem value="no-options" disabled>
+                      No hay plantillas disponibles
+                    </SelectItem>
+                  ) : (
+                    templatesForCurrentType.map(template => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.label}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
@@ -1598,7 +1654,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                 className="col-span-3"
               />
             </div>
-            {newEvent.type !== 'meal' && (
+            {['nap', 'activity'].includes(newEvent.type) && (
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="event-duration" className="text-right">
                   Duración
@@ -1629,7 +1685,13 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                 placeholder={
                   newEvent.type === 'meal'
                     ? 'Ej: 6 oz de leche y fruta'
-                    : 'Ej: Actividad tranquila antes de dormir'
+                    : newEvent.type === 'activity'
+                      ? 'Ej: Juego sensorial o actividad guiada'
+                      : newEvent.type === 'wake'
+                        ? 'Ej: Despertar natural entre 6:30-7:00 am'
+                        : newEvent.type === 'bedtime'
+                          ? 'Ej: Dormir a las 8:00 pm después de lectura'
+                          : 'Ej: Siesta tranquila en habitación oscura'
                 }
                 className="col-span-3"
               />

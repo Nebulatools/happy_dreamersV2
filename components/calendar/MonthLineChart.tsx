@@ -14,7 +14,8 @@ import {
   Legend, 
   ResponsiveContainer,
   Dot,
-  ReferenceLine
+  ReferenceLine,
+  Label,
 } from 'recharts'
 import { format, getDaysInMonth, startOfMonth, addDays } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -282,7 +283,7 @@ export function MonthLineChart({
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={chartData}
-          margin={{ top: 20, right: 30, left: 60, bottom: 40 }}
+          margin={{ top: 20, right: 30, left: 80, bottom: 40 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
           
@@ -300,15 +301,17 @@ export function MonthLineChart({
             ticks={[0, 3, 6, 9, 12, 15, 18, 21, 24]}
             tickFormatter={formatYAxisTick}
             tick={{ fontSize: 12 }}
-            width={50}
+            width={60}
             reversed
-            label={{ 
-              value: 'Hora del día', 
-              angle: -90, 
-              position: 'insideLeft',
-              style: { fontSize: 12 }
-            }}
-          />
+          >
+            <Label
+              value="Hora del día"
+              position="left"
+              angle={-90}
+              style={{ textAnchor: "middle", fontSize: 12, fill: "#4b5563", fontWeight: 600 }}
+              offset={-55}
+            />
+          </YAxis>
           
           <Tooltip content={<CustomTooltip />} />
           

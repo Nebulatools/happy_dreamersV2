@@ -193,6 +193,24 @@ export default function NightWakeupsEvolutionChart({
     }
   }, [dailySummary])
 
+  const wakeDays = dailySummary.filter(day => day.count > 0)
+  const daysWithoutWakeups = dailySummary.length - wakeDays.length
+  const minWakeDay = wakeDays.length
+    ? wakeDays.reduce((prev, current) => (current.count < prev.count ? current : prev))
+    : null
+  const maxWakeDay = wakeDays.length
+    ? wakeDays.reduce((prev, current) => (current.count > prev.count ? current : prev))
+    : null
+
+  const formatWakeDateLabel = (date?: Date) => {
+    if (!date) return "N/A"
+    try {
+      return format(date, "EEEE d 'de' MMM", { locale: es })
+    } catch {
+      return "N/A"
+    }
+  }
+
   if (loading) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -280,14 +298,14 @@ export default function NightWakeupsEvolutionChart({
       </div>
       
       {/* Nueva visualización con ScatterChart - Mejorada */}
-      <div className="mb-4 ml-12 relative">
+      <div className="mb-4 ml-12 relative overflow-visible" style={{ paddingRight: "160px" }}>
         {/* Título del eje Y posicionado absolutamente */}
-        <div 
+        <div
           className="absolute"
           style={{
             left: '-65px',
-            top: '50%',
-            transform: 'rotate(-90deg) translateX(-50%)',
+            top: '45%',
+            transform: 'rotate(-90deg) translateY(-50%)',
             transformOrigin: 'center',
             fontSize: '14px',
             fontWeight: 600,
@@ -299,12 +317,12 @@ export default function NightWakeupsEvolutionChart({
           Hora del despertar
         </div>
         {/* Contador de despertares por día ARRIBA del gráfico - PERFECTAMENTE ALINEADO */}
-        <div 
-          className="relative" 
-          style={{ 
-            marginLeft: '85px', 
-            marginRight: '102px', 
-            height: '28px', 
+        <div
+          className="relative"
+          style={{
+            marginLeft: '85px',
+            marginRight: '160px',
+            height: '28px',
             marginBottom: '2px',
             display: 'grid',
             gridTemplateColumns: `repeat(${dailySummary.length}, 1fr)`,
@@ -329,7 +347,7 @@ export default function NightWakeupsEvolutionChart({
         
         <ResponsiveContainer width="100%" height={380}>
           <ScatterChart
-            margin={{ top: 5, right: 100, bottom: 50, left: 40 }}
+            margin={{ top: 5, right: 140, bottom: 50, left: 40 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             
@@ -420,14 +438,32 @@ export default function NightWakeupsEvolutionChart({
         <div className="flex items-center justify-between">
           <span>Días sin despertares:</span>
           <span className="font-medium text-green-600">
-            {dailySummary.filter(d => d.count === 0).length} días
+            {daysWithoutWakeups} días
           </span>
         </div>
-        
+
         <div className="flex items-center justify-between">
-          <span>Promedio de despertares:</span>
+          <span>Días con despertares:</span>
           <span className="font-medium text-[#FF6B6B]">
-            {(dailySummary.reduce((sum, d) => sum + d.count, 0) / dailySummary.length).toFixed(1)} por noche
+            {wakeDays.length} días
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span>Despertar mínimo:</span>
+          <span className="font-medium text-[#2F2F2F] text-right">
+            {minWakeDay
+              ? `${minWakeDay.count} ${minWakeDay.count === 1 ? "despertar" : "despertares"} · ${formatWakeDateLabel(minWakeDay.date)}`
+              : "Sin datos"}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span>Despertar máximo:</span>
+          <span className="font-medium text-[#2F2F2F] text-right">
+            {maxWakeDay
+              ? `${maxWakeDay.count} ${maxWakeDay.count === 1 ? "despertar" : "despertares"} · ${formatWakeDateLabel(maxWakeDay.date)}`
+              : "Sin datos"}
           </span>
         </div>
         

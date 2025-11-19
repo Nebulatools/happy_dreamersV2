@@ -120,6 +120,7 @@ interface MonthlyStats {
   nightSleepChange: number;
   napChange: number;
   wakingsChange: number;
+  avgWakeTime: string;
 }
 
 const WEEKDAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
@@ -414,6 +415,7 @@ export default function CalendarPage() {
     // Default a vista semanal
     return "week"
   })
+  const [calendarTab, setCalendarTab] = useState<"calendar" | "stats">("calendar")
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -422,6 +424,12 @@ export default function CalendarPage() {
       handleViewChange("week")
     }
   }, [isAdminView, view])
+
+  useEffect(() => {
+    if (!isAdminView && calendarTab !== "calendar") {
+      setCalendarTab("calendar")
+    }
+  }, [isAdminView, calendarTab])
   
   // Función para cambiar la vista y guardar en localStorage
   const handleViewChange = (newView: "month" | "week" | "day") => {
@@ -525,7 +533,6 @@ export default function CalendarPage() {
     if (allEventsCache.length > 0 && lastFetchChildId === activeChildId) {
       const filteredEvents = filterEventsByView(allEventsCache, view, newDate)
       setEvents(filteredEvents)
-      calculateMonthlyStats(filteredEvents)
       
       // Log para debugging
       if (view === "week") {
@@ -553,7 +560,6 @@ export default function CalendarPage() {
     if (allEventsCache.length > 0 && lastFetchChildId === activeChildId) {
       const filteredEvents = filterEventsByView(allEventsCache, view, newDate)
       setEvents(filteredEvents)
-      calculateMonthlyStats(filteredEvents)
       
       // Log para debugging
       if (view === "week") {
@@ -623,6 +629,7 @@ export default function CalendarPage() {
     nightSleepChange: 0,
     napChange: 0,
     wakingsChange: 0,
+    avgWakeTime: "--:--",
   })
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [quickSelectorOpen, setQuickSelectorOpen] = useState(false)
@@ -840,7 +847,6 @@ export default function CalendarPage() {
       // Filtrar y mostrar
       const filteredEvents = filterEventsByView(eventsData, view, date)
       setEvents(filteredEvents)
-      calculateMonthlyStats(filteredEvents)
     } catch (error) {
       logger.error("Error:", error)
       toast({
@@ -857,7 +863,6 @@ export default function CalendarPage() {
   const filterEventsFromCache = () => {
     const filteredEvents = filterEventsByView(allEventsCache, view, date)
     setEvents(filteredEvents)
-    calculateMonthlyStats(filteredEvents)
   }
 
   const calculateMonthlyStats = (periodEvents: Event[]) => {
@@ -873,6 +878,19 @@ export default function CalendarPage() {
       emotionalState: event.emotionalState,
       sleepDelay: event.sleepDelay
     }))
+
+    if (sleepEvents.length === 0) {
+      setMonthlyStats({
+        nightSleepHours: 0,
+        napHours: 0,
+        nightWakings: 0,
+        nightSleepChange: 0,
+        napChange: 0,
+        wakingsChange: 0,
+        avgWakeTime: "--:--",
+      })
+      return
+    }
 
     // Usar la función unificada de cálculo de estadísticas
     const stats = processSleepStatistics(sleepEvents)
@@ -896,8 +914,32 @@ export default function CalendarPage() {
       nightSleepChange: 0, // TODO: Implementar comparación con período anterior
       napChange: 0,
       wakingsChange: 0,
+      avgWakeTime: stats.avgWakeTime || "--:--",
     })
   }
+
+  useEffect(() => {
+    if (!activeChildId) {
+      setMonthlyStats({
+        nightSleepHours: 0,
+        napHours: 0,
+        nightWakings: 0,
+        nightSleepChange: 0,
+        napChange: 0,
+        wakingsChange: 0,
+        avgWakeTime: "--:--",
+      })
+      return
+    }
+
+    const sourceEvents = allEventsCache.length > 0 ? allEventsCache : events
+    if (!sourceEvents.length) {
+      calculateMonthlyStats([])
+      return
+    }
+    const monthScoped = filterEventsByView(sourceEvents, "month", date)
+    calculateMonthlyStats(monthScoped)
+  }, [activeChildId, allEventsCache, events, date])
 
   const weeklySummary = useMemo(() => {
     const sourceEvents = allEventsCache.length > 0 ? allEventsCache : events
@@ -913,6 +955,12 @@ export default function CalendarPage() {
     const scopedEvents = filterToLastSevenDays(sourceEvents)
     return computeUserWeeklySleepData(scopedEvents, getClampedUserDate())
   }, [isAdminView, allEventsCache, events, date])
+
+  const monthEventsForStats = useMemo(() => {
+    const sourceEvents = allEventsCache.length > 0 ? allEventsCache : events
+    if (!sourceEvents.length) return []
+    return filterEventsByView(sourceEvents, "month", date)
+  }, [allEventsCache, events, date])
 
   useEffect(() => {
     if (isAdminView) return
@@ -1289,7 +1337,7 @@ export default function CalendarPage() {
     return (
       <div className="h-full flex flex-col">
         <MonthLineChart 
-          events={events}
+          events={monthEventsForStats}
           currentDate={date}
           onEventClick={handleEventClick}
           className="h-full"
@@ -1417,53 +1465,76 @@ export default function CalendarPage() {
     <div className="space-y-4">
       {isAdminView ? (
         <>
-          {/* Barra superior: Selector de vista + Leyenda de colores */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 px-6 pt-4">
-            {/* Selector de vista */}
-            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
-              <Button
-                variant={view === "month" ? "default" : "ghost"}
-                size="sm"
-                className={view === "month" ? "bg-white shadow-sm" : ""}
-                onClick={() => handleViewChange("month")}
-              >
-                Mensual
-              </Button>
-              <Button
-                variant={view === "week" ? "default" : "ghost"}
-                size="sm"
-                className={view === "week" ? "bg-white shadow-sm" : ""}
-                onClick={() => handleViewChange("week")}
-              >
-                Semanal
-              </Button>
-              <Button
-                variant={view === "day" ? "default" : "ghost"}
-                size="sm"
-                className={view === "day" ? "bg-white shadow-sm" : ""}
-                onClick={() => handleViewChange("day")}
-              >
-                Diario
-              </Button>
-            </div>
+          {/* Barra superior: tabs + leyenda */}
+          <div className="flex flex-col gap-4 px-6 pt-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1 bg-white rounded-lg shadow-sm p-1">
+                  <Button
+                    variant={calendarTab === "calendar" ? "default" : "ghost"}
+                    size="sm"
+                    className={calendarTab === "calendar" ? "bg-gradient-to-r from-[#4A90E2] to-[#68A1C8] text-white" : "text-gray-600"}
+                    onClick={() => setCalendarTab("calendar")}
+                  >
+                    Calendario
+                  </Button>
+                  <Button
+                    variant={calendarTab === "stats" ? "default" : "ghost"}
+                    size="sm"
+                    className={calendarTab === "stats" ? "bg-gradient-to-r from-[#FBCFE8] to-[#FDE68A] text-[#3A3A3A]" : "text-gray-600"}
+                    onClick={() => setCalendarTab("stats")}
+                  >
+                    Estadísticas
+                  </Button>
+                </div>
 
-            {/* Leyenda de colores */}
-            <div className="flex flex-wrap gap-3 lg:gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-sleep" />
-                <span className="text-sm text-gray-600">Dormir</span>
+                {calendarTab === "calendar" && (
+                  <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+                    <Button
+                      variant={view === "month" ? "default" : "ghost"}
+                      size="sm"
+                      className={view === "month" ? "bg-white shadow-sm" : ""}
+                      onClick={() => handleViewChange("month")}
+                    >
+                      Mensual
+                    </Button>
+                    <Button
+                      variant={view === "week" ? "default" : "ghost"}
+                      size="sm"
+                      className={view === "week" ? "bg-white shadow-sm" : ""}
+                      onClick={() => handleViewChange("week")}
+                    >
+                      Semanal
+                    </Button>
+                    <Button
+                      variant={view === "day" ? "default" : "ghost"}
+                      size="sm"
+                      className={view === "day" ? "bg-white shadow-sm" : ""}
+                      onClick={() => handleViewChange("day")}
+                    >
+                      Diario
+                    </Button>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-nap" />
-                <span className="text-sm text-gray-600">Siesta</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-wake" />
-                <span className="text-sm text-gray-600">Despertar</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-night-wake" />
-                <span className="text-sm text-gray-600">Nocturno</span>
+
+              <div className="flex flex-wrap gap-3 lg:gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-sleep" />
+                  <span className="text-sm text-gray-600">Dormir</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-nap" />
+                  <span className="text-sm text-gray-600">Siesta</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-wake" />
+                  <span className="text-sm text-gray-600">Despertar</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-night-wake" />
+                  <span className="text-sm text-gray-600">Nocturno</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1555,36 +1626,98 @@ export default function CalendarPage() {
             </Card>
           </div>
 
-          {/* Calendario Principal - Nueva estructura limpia */}
-          <div className="px-6 pb-6">
-            <Card className={`p-4 ${view === 'month' ? 'h-[600px]' : view === 'day' ? 'h-[calc(100vh-320px)]' : ''}`} style={{ minHeight: '500px' }}>
-              {isLoading ? (
-                <div className="flex justify-center items-center h-96">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4A90E2] mx-auto mb-4" />
-                    <p className="text-gray-600">Cargando calendario...</p>
+          {calendarTab === "calendar" ? (
+            <div className="px-6 pb-6">
+              <Card className={`p-4 ${view === 'month' ? 'h-[600px]' : view === 'day' ? 'h-[calc(100vh-320px)]' : ''}`} style={{ minHeight: '500px' }}>
+                {isLoading ? (
+                  <div className="flex justify-center items-center h-96">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4A90E2] mx-auto mb-4" />
+                      <p className="text-gray-600">Cargando calendario...</p>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                view === "month" ? renderMonthLineView() :
-                <CalendarMain
-                  events={events}
-                  onEventClick={handleEventClick}
-                  onCreateEvent={(clickTime) => {
-                    // Manejar creación de eventos desde clicks en el calendario
-                    setSelectedDateForEvent(clickTime.date)
-                    // TODO: Abrir modal de creación de eventos cuando esté disponible
-                    // setQuickSelectorOpen(true)
-                  }}
-                  monthView={renderMonthView()}
-                  initialDate={date}
-                  initialView={view}
-                  onDayNavigateBack={navigateOneDayBack}
-                  onDayNavigateForward={navigateOneDayForward}
-                />
-              )}
-            </Card>
-          </div>
+                ) : (
+                  <CalendarMain
+                    events={events}
+                    onEventClick={handleEventClick}
+                    onCreateEvent={(clickTime) => {
+                      setSelectedDateForEvent(clickTime.date)
+                    }}
+                    monthView={renderMonthView()}
+                    initialDate={date}
+                    initialView={view}
+                    onDayNavigateBack={navigateOneDayBack}
+                    onDayNavigateForward={navigateOneDayForward}
+                  />
+                )}
+              </Card>
+            </div>
+          ) : (
+            <div className="px-6 pb-10 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Resumen del período</CardTitle>
+                  <CardDescription>Promedios calculados para el mes seleccionado</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                    {[{
+                      label: "Sueño nocturno",
+                      value: `${monthlyStats.nightSleepHours.toFixed(1)}h`,
+                      tone: "text-[#4A90E2]"
+                    }, {
+                      label: "Siestas",
+                      value: `${monthlyStats.napHours.toFixed(1)}h`,
+                      tone: "text-[#F5A524]"
+                    }, {
+                      label: "Despertares",
+                      value: `${monthlyStats.nightWakings}`,
+                      tone: "text-[#D97706]"
+                    }, {
+                      label: "Hora de despertar",
+                      value: monthlyStats.avgWakeTime || "--:--",
+                      tone: "text-[#16A34A]"
+                    }].map((item) => (
+                      <div key={item.label} className="rounded-xl border border-gray-100 bg-gradient-to-br from-white to-gray-50 p-4">
+                        <p className="text-xs uppercase tracking-wider text-gray-500">{item.label}</p>
+                        <p className={`text-2xl font-semibold mt-2 ${item.tone}`}>{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <CardTitle>Tendencias del mes</CardTitle>
+                    <CardDescription>Promedios diarios de dormir, siestas y despertares</CardDescription>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {format(date, "MMMM yyyy", { locale: es })}
+                  </Badge>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <div className="flex justify-center items-center h-80 text-gray-500">
+                      <div className="text-center">
+                        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3" />
+                        <p>Cargando tendencias...</p>
+                      </div>
+                    </div>
+                  ) : monthEventsForStats.length === 0 ? (
+                    <div className="h-80 flex items-center justify-center text-gray-500">
+                      No hay eventos registrados este mes.
+                    </div>
+                  ) : (
+                    <div className="h-[420px]">
+                      {renderMonthLineView()}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </>
       ) : (
         <div className="space-y-6 px-4 pt-4 pb-10 md:px-6">
