@@ -8,6 +8,7 @@ import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { differenceInMinutes } from "date-fns"
 import { resolveChildAccess, ChildAccessError } from "@/lib/api/child-access"
+import { getTimePartsInTimeZone, startOfDayUTCForTZ } from "@/lib/timezone"
 
 export type SleepStatus = 'awake' | 'sleeping' | 'napping' | 'night_waking'
 
@@ -21,7 +22,7 @@ interface SleepStateResponse {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -30,7 +31,7 @@ export async function GET(
     }
 
     const { db } = await connectToDatabase()
-    const { id: childId } = await params
+    const { id: childId } = params
 
     try {
       await resolveChildAccess(db, session.user, childId, "canViewEvents")
@@ -40,6 +41,13 @@ export async function GET(
       }
       throw error
     }
+
+    // Obtener timezone del usuario
+    const userDoc = await db.collection("users").findOne(
+      { _id: new ObjectId(session.user.id) },
+      { projection: { timezone: 1 } }
+    )
+    const userTimeZone = userDoc?.timezone || "America/Monterrey"
 
     // Obtener el plan activo para contexto temporal
     const activePlan = await db.collection("child_plans").findOne(
@@ -60,14 +68,13 @@ export async function GET(
     }
 
     // Obtener los eventos del niño desde la colección 'events' (fuente de verdad)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const startOfToday = startOfDayUTCForTZ(new Date(), userTimeZone)
 
     // Obtener los últimos eventos del día desde la colección 'events'
     const recentEvents = await db.collection("events")
       .find({
         childId: new ObjectId(childId),
-        createdAt: { $gte: today.toISOString() }
+        createdAt: { $gte: startOfToday.toISOString() }
       })
       .sort({ createdAt: -1 })
       .limit(10)
@@ -112,7 +119,8 @@ export async function GET(
       
       // SOLUCIÓN: Si el evento es 'sleep', SIEMPRE es 'sleeping'
       // Si el evento es 'nap', SIEMPRE es 'napping'
-      const currentHour = now.getHours()
+      const parts = getTimePartsInTimeZone(now, userTimeZone)
+      const currentHour = parts.hours
       const bedtimeHour = parseInt(schedule.bedtime.split(':')[0])
       const wakeTimeHour = parseInt(schedule.wakeTime.split(':')[0])
       

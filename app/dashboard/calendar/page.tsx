@@ -92,6 +92,7 @@ import {
 } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import { startOfDayUTCForTZ } from "@/lib/timezone"
 
 const logger = createLogger("CalendarPage")
 
@@ -142,7 +143,7 @@ interface WeeklySummaryResult {
   }
 }
 
-const computeWeeklySleepSummary = (events: Event[], referenceDate: Date): WeeklySummaryResult => {
+const computeWeeklySleepSummary = (events: Event[], referenceDate: Date, timeZone: string): WeeklySummaryResult => {
   const weekStart = startOfWeek(referenceDate, { weekStartsOn: 0 })
   const weekEnd = addDays(weekStart, 6)
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
@@ -151,8 +152,8 @@ const computeWeeklySleepSummary = (events: Event[], referenceDate: Date): Weekly
   const wakingPoints: NightWakingPoint[] = []
 
   days.forEach((day) => {
-    const dayStart = startOfDay(day)
-    const dayEnd = endOfDay(day)
+    const dayStart = startOfDayUTCForTZ(day, timeZone)
+    const dayEnd = addDays(dayStart, 1)
     let nightMinutes = 0
     let napMinutes = 0
     const segments: { start: Date; end: Date; minutes: number }[] = []
@@ -284,7 +285,7 @@ const formatHoursLabel = (hours: number) => {
 
 // Función para calcular datos del gráfico de usuario
 // Muestra las horas de sueño desde la noche del día anterior hasta el despertar del día actual
-const computeUserWeeklySleepData = (events: Event[], endDate: Date) => {
+const computeUserWeeklySleepData = (events: Event[], endDate: Date, timeZone: string) => {
   // Calcular 7 días hacia atrás desde endDate
   const days: Date[] = []
   for (let i = 6; i >= 0; i--) {
@@ -297,8 +298,8 @@ const computeUserWeeklySleepData = (events: Event[], endDate: Date) => {
     // - Siestas: eventos "nap" que ocurren durante este día
     // - Despertares: eventos "night_waking" que ocurren durante el sueño nocturno
 
-    const dayStart = startOfDay(day)
-    const dayEnd = endOfDay(day)
+    const dayStart = startOfDayUTCForTZ(day, timeZone)
+    const dayEnd = addDays(dayStart, 1)
 
     let nightMinutes = 0
     let napMinutes = 0
@@ -396,6 +397,7 @@ const computeUserWeeklySleepData = (events: Event[], endDate: Date) => {
 export default function CalendarPage() {
   const { toast } = useToast()
   const { data: session } = useSession()
+  const userTimeZone = session?.user?.timezone || "America/Monterrey"
   const isAdminView = session?.user?.role === "admin" || session?.user?.role === "professional"
   const { activeChildId, activeUserId } = useActiveChild()
   const { refreshTrigger, subscribe } = useEventsCache(activeChildId)
@@ -469,7 +471,7 @@ export default function CalendarPage() {
   const navigateNext = () => {
     // Para usuarios no admin, verificar si pueden navegar hacia adelante
     if (!isAdminView) {
-      const today = startOfDay(new Date())
+      const today = startOfDayUTCForTZ(new Date(), userTimeZone)
       const nextDate = addDays(date, 1)
 
       if (startOfDay(nextDate) > today) {
@@ -492,9 +494,9 @@ export default function CalendarPage() {
   const getClampedUserDate = () => {
     if (isAdminView) return date
 
-    const today = startOfDay(new Date())
+    const today = startOfDayUTCForTZ(new Date(), userTimeZone)
     const minAllowed = subDays(today, 6)
-    const normalized = startOfDay(date)
+    const normalized = startOfDayUTCForTZ(date, userTimeZone)
 
     if (normalized > today) return today
     if (normalized < minAllowed) return minAllowed
@@ -579,7 +581,7 @@ export default function CalendarPage() {
   }
 
   const filterToLastSevenDays = (eventsData: Event[]) => {
-    const todayStart = startOfDay(new Date())
+    const todayStart = startOfDayUTCForTZ(new Date(), userTimeZone)
     const cutoff = subDays(todayStart, 6)
     return eventsData.filter((event: Event) => {
       if (!event.startTime) return false
@@ -917,16 +919,16 @@ export default function CalendarPage() {
     const sourceEvents = allEventsCache.length > 0 ? allEventsCache : events
     const scopedEvents = isAdminView ? sourceEvents : filterToLastSevenDays(sourceEvents)
     const referenceDate = isAdminView ? date : getClampedUserDate()
-    return computeWeeklySleepSummary(scopedEvents, referenceDate)
-  }, [isAdminView, allEventsCache, events, date])
+    return computeWeeklySleepSummary(scopedEvents, referenceDate, userTimeZone)
+  }, [isAdminView, allEventsCache, events, date, userTimeZone])
 
   // Datos para la vista de usuario (parent)
   const userWeeklySleepData = useMemo(() => {
     if (isAdminView) return []
     const sourceEvents = allEventsCache.length > 0 ? allEventsCache : events
     const scopedEvents = filterToLastSevenDays(sourceEvents)
-    return computeUserWeeklySleepData(scopedEvents, getClampedUserDate())
-  }, [isAdminView, allEventsCache, events, date])
+    return computeUserWeeklySleepData(scopedEvents, getClampedUserDate(), userTimeZone)
+  }, [isAdminView, allEventsCache, events, date, userTimeZone])
 
   const monthEventsForStats = useMemo(() => {
     const sourceEvents = allEventsCache.length > 0 ? allEventsCache : events

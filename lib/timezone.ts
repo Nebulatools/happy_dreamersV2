@@ -47,3 +47,12 @@ export function getTimePartsInTimeZone(date: Date, timeZone?: string): TimeParts
 export function nowInTimeZone(timeZone?: string): TimeParts {
   return getTimePartsInTimeZone(new Date(), timeZone)
 }
+
+// Devuelve la fecha de inicio de día (00:00) en la zona horaria dada, convertida a Date UTC
+export function startOfDayUTCForTZ(baseDate: Date = new Date(), timeZone?: string): Date {
+  const parts = getTimePartsInTimeZone(baseDate, timeZone)
+  const year = parts.date.getUTCFullYear()
+  const month = parts.date.getUTCMonth()
+  const day = parts.date.getUTCDate()
+  return new Date(Date.UTC(year, month, day, 0, 0, 0, 0))
+}
