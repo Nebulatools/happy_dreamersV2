@@ -10,6 +10,7 @@ export interface IUser extends mongoose.Document {
   phone?: string
   accountType?: "father" | "mother" | "caregiver" | ""
   image?: string
+  timezone?: string
   emailVerified?: Date
   resetPasswordToken?: string
   resetPasswordExpiry?: Date
@@ -52,6 +53,10 @@ const UserSchema = new mongoose.Schema({
   },
   image: {
     type: String
+  },
+  timezone: {
+    type: String,
+    default: "America/Monterrey"
   },
   emailVerified: {
     type: Date

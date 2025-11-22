@@ -24,7 +24,7 @@ export async function PUT(request: NextRequest) {
 
     // Parse request body
     const body = await request.json()
-    const { name, phone, accountType } = body
+    const { name, phone, accountType, timezone } = body
 
     // Validate input data
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -55,6 +55,23 @@ export async function PUT(request: NextRequest) {
       )
     }
 
+    // Validate timezone (simple whitelist for ahora)
+    const ALLOWED_TIMEZONES = [
+      "America/Monterrey",
+      "America/Mexico_City",
+      "America/Chicago",
+      "America/New_York",
+      "UTC"
+    ]
+
+    if (timezone && !ALLOWED_TIMEZONES.includes(timezone)) {
+      logger.warn("Invalid timezone provided", { timezone })
+      return NextResponse.json(
+        { error: "Zona horaria inválida" },
+        { status: 400 }
+      )
+    }
+
     // Update user in database
     const { db } = await connectToDatabase()
 
@@ -68,6 +85,9 @@ export async function PUT(request: NextRequest) {
 
     if (accountType !== undefined) {
       updateData.accountType = accountType
+    }
+    if (timezone) {
+      updateData.timezone = timezone
     }
     
     logger.info("Updating user profile with data:", { 
@@ -99,7 +119,8 @@ export async function PUT(request: NextRequest) {
       phone: updatedUser?.phone || "",
       email: session.user.email,
       role: updatedUser?.role || "user",
-      accountType: updatedUser?.accountType || ""
+      accountType: updatedUser?.accountType || "",
+      timezone: updatedUser?.timezone || "America/Monterrey"
     }
 
     logger.info("Profile updated successfully", { 
@@ -157,7 +178,8 @@ export async function GET(request: NextRequest) {
       email: user.email,
       phone: user.phone || "",
       role: user.role || "user",
-      accountType: user.accountType || ""
+      accountType: user.accountType || "",
+      timezone: user.timezone || "America/Monterrey"
     }
 
     logger.info("Profile data retrieved", { 

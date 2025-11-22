@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import useSWR from 'swr'
+import { getTimePartsInTimeZone } from '@/lib/timezone'
 
 interface Schedule {
   bedtime: string
@@ -24,7 +25,7 @@ interface ChildPlan {
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
-export function useChildPlan(childId: string | null) {
+export function useChildPlan(childId: string | null, timeZone?: string) {
   const { data, error, isLoading, mutate } = useSWR<ChildPlan>(
     childId ? `/api/children/${childId}/active-plan` : null,
     fetcher,
@@ -49,10 +50,8 @@ export function useChildPlan(childId: string | null) {
   // Función helper para determinar si es horario nocturno
   const isNightTime = (date: Date = new Date()): boolean => {
     if (!data?.schedule) return false
-    
-    const currentHour = date.getHours()
-    const currentMinutes = date.getMinutes()
-    const currentTime = currentHour * 60 + currentMinutes
+    const parts = getTimePartsInTimeZone(date, timeZone)
+    const currentTime = parts.hours * 60 + parts.minutes
     
     const bedtime = toMinutes(data.schedule.bedtime) ?? toMinutes('20:00')!
     const wakeTime = toMinutes(data.schedule.wakeTime) ?? toMinutes('07:00')!
@@ -70,10 +69,8 @@ export function useChildPlan(childId: string | null) {
   const isNapTime = (date: Date = new Date()): boolean => {
     const naps = data?.schedule?.naps
     if (!naps || naps.length === 0) return false
-    
-    const currentHour = date.getHours()
-    const currentMinutes = date.getMinutes()
-    const currentTime = currentHour * 60 + currentMinutes
+    const parts = getTimePartsInTimeZone(date, timeZone)
+    const currentTime = parts.hours * 60 + parts.minutes
     
     return naps.some(nap => {
       const napStart = toMinutes(nap?.time)

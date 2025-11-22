@@ -61,8 +61,8 @@ export function MonthLineChart({
   currentDate, 
   onEventClick,
   className,
-  idealBedtime = "20:00",  // Valor por defecto si no hay plan
-  idealWakeTime = "07:00"  // Valor por defecto si no hay plan
+  idealBedtime,
+  idealWakeTime
 }: MonthLineChartProps) {
   
   // Si no hay eventos, mostrar mensaje informativo
@@ -234,11 +234,13 @@ export function MonthLineChart({
   }, [events])
   
   // Convertir hora del plan a número para el eje Y
-  const convertTimeToHours = (timeString: string) => {
+  const convertTimeToHours = (timeString?: string) => {
+    if (!timeString || !timeString.includes(':')) return null
     const [hours, minutes] = timeString.split(':').map(Number)
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null
     return hours + (minutes / 60)
   }
-  
+
   const idealBedtimeHours = convertTimeToHours(idealBedtime)
   const idealWakeTimeHours = convertTimeToHours(idealWakeTime)
   
@@ -325,34 +327,38 @@ export function MonthLineChart({
           />
           
           {/* Líneas de referencia para horas ideales del plan con colores distintivos */}
-          <ReferenceLine 
-            y={idealBedtimeHours} 
-            stroke="#B794F4"  // Morado claro para hora de dormir
-            strokeWidth={2}
-            strokeDasharray="5 5" 
-            opacity={0.6}
-            label={{ 
-              value: `Dormir ideal: ${idealBedtime}`, 
-              fontSize: 11, 
-              fill: '#805AD5',  // Morado más oscuro para el texto
-              fontWeight: 'bold',
-              position: 'insideTopRight'
-            }}
-          />
-          <ReferenceLine 
-            y={idealWakeTimeHours} 
-            stroke="#68D391"  // Verde claro para hora de despertar
-            strokeWidth={2}
-            strokeDasharray="5 5" 
-            opacity={0.6}
-            label={{ 
-              value: `Despertar ideal: ${idealWakeTime}`, 
-              fontSize: 11, 
-              fill: '#38A169',  // Verde más oscuro para el texto
-              fontWeight: 'bold',
-              position: 'insideTopRight'
-            }}
-          />
+          {idealBedtimeHours !== null && (
+            <ReferenceLine 
+              y={idealBedtimeHours} 
+              stroke="#B794F4"  // Morado claro para hora de dormir
+              strokeWidth={2}
+              strokeDasharray="5 5" 
+              opacity={0.6}
+              label={{ 
+                value: `Dormir ideal: ${idealBedtime}`, 
+                fontSize: 11, 
+                fill: '#805AD5',  // Morado más oscuro para el texto
+                fontWeight: 'bold',
+                position: 'insideTopRight'
+              }}
+            />
+          )}
+          {idealWakeTimeHours !== null && (
+            <ReferenceLine 
+              y={idealWakeTimeHours} 
+              stroke="#68D391"  // Verde claro para hora de despertar
+              strokeWidth={2}
+              strokeDasharray="5 5" 
+              opacity={0.6}
+              label={{ 
+                value: `Despertar ideal: ${idealWakeTime}`, 
+                fontSize: 11, 
+                fill: '#38A169',  // Verde más oscuro para el texto
+                fontWeight: 'bold',
+                position: 'insideTopRight'
+              }}
+            />
+          )}
           
           {/* Líneas para cada tipo de evento */}
           {eventTypes.includes('sleep') && (

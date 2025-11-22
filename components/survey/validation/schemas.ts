@@ -122,6 +122,10 @@ export const childHistoryValidation: StepValidation = {
     if (data?.problemasNacer && !data.problemasNacerDetalle) {
       errors.problemasNacerDetalle = 'Describe el problema que presentó al nacer'
     }
+
+    if (data?.complicacionesParto && !data.complicacionesPartoDescripcion) {
+      errors.complicacionesPartoDescripcion = 'Describe la complicación durante el parto'
+    }
     
     return errors
   }

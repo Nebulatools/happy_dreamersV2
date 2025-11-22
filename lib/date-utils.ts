@@ -2,6 +2,7 @@
 // Funciones compartidas para cálculo de edad y formateo de fechas
 
 import { differenceInYears, differenceInMonths } from "date-fns"
+import { getTimePartsInTimeZone } from "./timezone"
 
 /**
  * Calcula la edad en años a partir de una fecha de nacimiento
@@ -59,47 +60,26 @@ export function calculateAgeFormatted(birthDate: string | Date): string {
  * @param date - Fecha a convertir
  * @returns String ISO en zona horaria local
  */
-export function toLocalISOString(date: Date): string {
-  // Obtener los componentes de la fecha en hora local
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const hours = String(date.getHours()).padStart(2, '0')
-  const minutes = String(date.getMinutes()).padStart(2, '0')
-  const seconds = String(date.getSeconds()).padStart(2, '0')
-  const milliseconds = String(date.getMilliseconds()).padStart(3, '0')
-  
-  // IMPORTANTE: Usar el offset de timezone del MOMENTO ACTUAL del sistema
-  // No del objeto Date, para evitar inconsistencias con tiempo simulado
-  const currentDate = new Date()
-  const offset = -currentDate.getTimezoneOffset()
-  const offsetHours = Math.floor(Math.abs(offset) / 60)
-  const offsetMinutes = Math.abs(offset) % 60
-  const offsetSign = offset >= 0 ? '+' : '-'
+export function toLocalISOString(date: Date, timeZone?: string): string {
+  // Obtener los componentes en la zona horaria indicada (o local por defecto)
+  const parts = getTimePartsInTimeZone(date, timeZone)
+
+  const year = parts.date.getUTCFullYear()
+  const month = String(parts.date.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(parts.date.getUTCDate()).padStart(2, '0')
+  const hours = String(parts.hours).padStart(2, '0')
+  const minutes = String(parts.minutes).padStart(2, '0')
+  const seconds = String(parts.seconds).padStart(2, '0')
+  const milliseconds = String(parts.date.getUTCMilliseconds()).padStart(3, '0')
+
+  // Calcular offset real de la zona horaria respecto a UTC usando la fecha zonificada
+  const offsetMinutesTotal = -parts.date.getTimezoneOffset()
+  const offsetSign = offsetMinutesTotal >= 0 ? '+' : '-'
+  const offsetHours = Math.floor(Math.abs(offsetMinutesTotal) / 60)
+  const offsetMinutes = Math.abs(offsetMinutesTotal) % 60
   const offsetString = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`
-  
-  // Construir el string ISO con zona horaria local consistente
+
   const isoString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${offsetString}`
-  
-  // Log para debugging en desarrollo - MEJORADO para detectar problema de 18:00
-  if (process.env.NODE_ENV === 'development') {
-    const inputHours = date.getHours()
-    console.log(`toLocalISOString:`)
-    console.log(`  - Input Date: ${date.toString()}`)
-    console.log(`  - Input Hours: ${inputHours}`)
-    console.log(`  - Output ISO: ${isoString}`)
-    
-    // Advertencia especial para horas >= 18
-    if (inputHours >= 18) {
-      console.warn(`  ⚠️ HORA TARDE (>= 18:00) - Input: ${inputHours}:00, Output en ISO: ${hours}:${minutes}`)
-      
-      // Verificar si hay discrepancia
-      if (parseInt(hours) !== inputHours) {
-        console.error(`  ❌ DISCREPANCIA DETECTADA: Input ${inputHours} !== Output ${hours}`)
-      }
-    }
-  }
-  
   return isoString
 }
 

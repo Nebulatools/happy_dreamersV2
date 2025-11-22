@@ -180,10 +180,12 @@ export interface SurveyData {
     caracteristicas?: string[] // Legacy
     nombreObjetoSeguridad?: string // Nombre del objeto de seguridad
     planDejarDedo?: string // Plan para dejar de chuparse el dedo
+    planDejarChupon?: string // Plan para dejar el chupón
 
     // Problemas de salud
     problemasHijo?: string[] // Problemas o situaciones del hijo
     situacionesHijo?: string[] // Situaciones específicas
+    problemasMedicosDetalle?: string // Detalle de problemas médicos o del desarrollo
     alergiaAlimenticiaDetalle?: string // Detalles de alergia alimenticia (condicional)
     alergiaAmbientalDetalle?: string // Detalles de alergia ambiental (condicional)
     infeccionesOidoDetalle?: string // Detalles de infecciones de oído (condicional)
@@ -199,7 +201,7 @@ export interface SurveyData {
 
     // Actividades físicas
     practicaActividad?: boolean
-    actividadesLista?: string // Lista de actividades que practica
+    actividadesLista?: string | { nombre: string; duracionMinutos?: number }[] | string[] // Lista de actividades con duración
     actividades?: string // Legacy
     actividadesDespierto?: string // Actividades cuando está despierto
 

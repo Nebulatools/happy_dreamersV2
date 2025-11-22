@@ -410,7 +410,14 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
           <Label>5. ¿Tuviste alguna complicación durante el parto?</Label>
           <RadioGroup
             value={data.complicacionesParto === true ? "si" : data.complicacionesParto === false ? "no" : ""}
-            onValueChange={(value) => updateField('complicacionesParto', value === 'si')}
+            onValueChange={(value) => {
+              const hadComplications = value === 'si'
+              onChange({
+                ...data,
+                complicacionesParto: hadComplications,
+                complicacionesPartoDescripcion: hadComplications ? data.complicacionesPartoDescripcion || "" : ""
+              })
+            }}
           >
             <div className="flex gap-4 mt-2">
               <div className="flex items-center space-x-2">
@@ -423,6 +430,21 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
               </div>
             </div>
           </RadioGroup>
+          {data.complicacionesParto && (
+            <div className="mt-3">
+              <Label htmlFor="complicaciones-parto-descripcion" className="text-sm text-gray-600">
+                Describe la complicación
+              </Label>
+              <Textarea
+                id="complicaciones-parto-descripcion"
+                value={data.complicacionesPartoDescripcion || ""}
+                onChange={(e) => updateField('complicacionesPartoDescripcion', e.target.value)}
+                placeholder="Ej: Parto instrumentado, sufrimiento fetal, cesárea de emergencia..."
+                rows={3}
+                className={hasError('complicacionesPartoDescripcion') ? 'border-red-500 mt-1' : 'mt-1'}
+              />
+            </div>
+          )}
         </div>
 
         {/* 6. Bebé nacido a término */}

@@ -283,10 +283,36 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="prob-usa-chupon"
               checked={data.problemasHijo?.includes('usa-chupon') || false}
-              onCheckedChange={(checked) => updateProblemaHijo('usa-chupon', checked === true)}
+              onCheckedChange={(checked) => {
+                const isChecked = checked === true
+                updateProblemaHijo('usa-chupon', checked, isChecked ? {} : { planDejarChupon: '' })
+              }}
             />
             <Label htmlFor="prob-usa-chupon">Usa chupón</Label>
           </div>
+          {data.problemasHijo?.includes('usa-chupon') && (
+            <div className="ml-6 mt-2">
+              <Label htmlFor="plan-dejar-chupon" className="text-sm text-gray-600">
+                ¿Planea dejarlo?
+              </Label>
+              <RadioGroup
+                value={data.planDejarChupon || ""}
+                onValueChange={(value) => updateField('planDejarChupon', value)}
+                className="mt-1"
+              >
+                <div className="flex gap-4">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="si" id="plan-dejar-chupon-si" />
+                    <Label htmlFor="plan-dejar-chupon-si">Sí</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="no" id="plan-dejar-chupon-no" />
+                    <Label htmlFor="plan-dejar-chupon-no">No</Label>
+                  </div>
+                </div>
+              </RadioGroup>
+            </div>
+          )}
 
           <div>
             <div className="flex items-center space-x-2">
@@ -320,10 +346,27 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="prob-problemas-medicos"
               checked={data.problemasHijo?.includes('problemas-medicos') || false}
-              onCheckedChange={(checked) => updateProblemaHijo('problemas-medicos', checked === true)}
+              onCheckedChange={(checked) => {
+                const isChecked = checked === true
+                updateProblemaHijo('problemas-medicos', checked, isChecked ? {} : { problemasMedicosDetalle: '' })
+              }}
             />
             <Label htmlFor="prob-problemas-medicos">Tiene o ha tenido problemas médicos o del desarrollo</Label>
           </div>
+          {data.problemasHijo?.includes('problemas-medicos') && (
+            <div className="ml-6 mt-2">
+              <Label htmlFor="problemas-medicos-detalle" className="text-sm text-gray-600">
+                ¿Cuál?
+              </Label>
+              <Input
+                id="problemas-medicos-detalle"
+                value={data.problemasMedicosDetalle || ""}
+                onChange={(e) => updateField('problemasMedicosDetalle', e.target.value)}
+                placeholder="Ej: Asma, hipotonía, diagnóstico neurológico..."
+                className="max-w-md mt-1"
+              />
+            </div>
+          )}
           
           <div className="flex items-center space-x-2">
             <Checkbox

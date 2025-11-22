@@ -575,9 +575,9 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 21. ¿Despierta por la noche? */}
+      {/* 20. ¿Despierta por la noche? */}
       <div>
-        <Label>21. ¿Tu hijo(a) despierta por la noche?</Label>
+        <Label>20. ¿Tu hijo(a) despierta por la noche?</Label>
         <RadioGroup
           value={data.despiertaNoche === true ? "si" : data.despiertaNoche === false ? "no" : ""}
           onValueChange={(value) => updateField('despiertaNoche', value === 'si')}
@@ -595,10 +595,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         </RadioGroup>
       </div>
 
-      {/* 22. Veces que despierta */}
+      {/* 21. Veces que despierta */}
       <div>
         <Label htmlFor="veces-despierta">
-          22. ¿Cuántas veces despierta?
+          21. ¿Cuántas veces despierta?
         </Label>
         <Input
           id="veces-despierta"
@@ -608,10 +608,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 23. ¿Cuánto tiempo despierto? */}
+      {/* 22. ¿Cuánto tiempo despierto? */}
       <div>
         <Label htmlFor="tiempo-despierto">
-          23. ¿Cuánto tiempo permanece despierto cuando se despierta?
+          22. ¿Cuánto tiempo permanece despierto cuando se despierta?
         </Label>
         <Input
           id="tiempo-despierto"
@@ -621,10 +621,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 24. ¿Desde qué edad se despierta? */}
+      {/* 23. ¿Desde qué edad se despierta? */}
       <div>
         <Label htmlFor="desde-cuando-despierta">
-          24. ¿Desde qué edad (en meses) se despierta?
+          23. ¿Desde qué edad (en meses) se despierta?
         </Label>
         <Input
           id="desde-cuando-despierta"
@@ -634,10 +634,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 25. ¿Qué haces cuando despierta? */}
+      {/* 24. ¿Qué haces cuando despierta? */}
       <div>
         <Label htmlFor="que-haces-despierta">
-          25. ¿Qué haces cuando tu bebé se despierta en la noche?
+          24. ¿Qué haces cuando tu bebé se despierta en la noche?
         </Label>
         <Textarea
           id="que-haces-despierta"
@@ -648,9 +648,9 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 26. ¿Toma siestas? */}
+      {/* 25. ¿Toma siestas? */}
       <div>
-        <Label>26. ¿Tu hijo(a) toma siestas durante el día?</Label>
+        <Label>25. ¿Tu hijo(a) toma siestas durante el día?</Label>
         <RadioGroup
           value={data.tomaSiestas === true ? "si" : data.tomaSiestas === false ? "no" : ""}
           onValueChange={(value) => updateField('tomaSiestas', value === 'si')}
@@ -668,10 +668,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         </RadioGroup>
       </div>
 
-      {/* 27. Número de siestas */}
+      {/* 26. Número de siestas */}
       <div>
         <Label htmlFor="numero-siestas">
-          27. ¿Cuántas? ¿A qué hora(s)?
+          26. ¿Cuántas? ¿A qué hora(s)?
         </Label>
         <Input
           id="numero-siestas"
@@ -681,10 +681,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 28. Duración total siestas */}
+      {/* 27. Duración total siestas */}
       <div>
         <Label htmlFor="duracion-total-siestas">
-          28. ¿Cuál es la duración total de las siestas?
+          27. ¿Cuál es la duración total de las siestas?
         </Label>
         <Input
           id="duracion-total-siestas"
@@ -694,10 +694,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 29. ¿Dónde toma siestas? */}
+      {/* 28. ¿Dónde toma siestas? */}
       <div>
         <Label htmlFor="donde-siestas">
-          29. ¿Dónde toma las siestas?
+          28. ¿Dónde toma las siestas?
         </Label>
         <Input
           id="donde-siestas"
@@ -707,10 +707,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 30. Principal preocupación */}
+      {/* 29. Principal preocupación */}
       <div>
         <Label htmlFor="principal-preocupacion">
-          30. ¿Cuál es tu principal preocupación con respecto al sueño de tu hijo(a)?
+          29. ¿Cuál es tu principal preocupación con respecto al sueño de tu hijo(a)?
         </Label>
         <Textarea
           id="principal-preocupacion"
@@ -721,10 +721,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 31. ¿Desde cuándo problema? */}
+      {/* 30. ¿Desde cuándo problema? */}
       <div>
         <Label htmlFor="desde-cuando-problema">
-          31. ¿Desde cuándo existe este problema?
+          30. ¿Desde cuándo existe este problema?
         </Label>
         <Input
           id="desde-cuando-problema"
@@ -734,10 +734,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 32. Objetivo de los padres */}
+      {/* 31. Objetivo de los padres */}
       <div>
         <Label htmlFor="objetivo-padres">
-          32. ¿Cuál es el objetivo que como papás les gustaría ver en los hábitos de sueño de su hijo(a)? Por favor, sean específicos. Por ejemplo, ¿Qué objetivos tienen en cuanto a horarios y lugar dónde les gustaría que duerma durante la noche? <span className="text-red-500">*</span>
+          31. ¿Cuál es el objetivo que como papás les gustaría ver en los hábitos de sueño de su hijo(a)? Por favor, sean específicos. Por ejemplo, ¿Qué objetivos tienen en cuanto a horarios y lugar dónde les gustaría que duerma durante la noche? <span className="text-red-500">*</span>
         </Label>
         <Textarea
           id="objetivo-padres"
@@ -752,10 +752,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         )}
       </div>
 
-      {/* 33. Información adicional */}
+      {/* 32. Información adicional */}
       <div>
         <Label htmlFor="info-adicional">
-          33. ¿Existe alguna otra información que consideren relevante que deba saber?
+          32. ¿Existe alguna otra información que consideren relevante que deba saber?
         </Label>
         <Textarea
           id="info-adicional"

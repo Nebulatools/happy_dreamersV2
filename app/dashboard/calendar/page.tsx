@@ -647,22 +647,24 @@ export default function CalendarPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   // Configurar el header dinámico - simplificado con solo botón de agregar
-  const headerActions = useMemo(() => (
-    <div className="flex items-center gap-2">
-      {/* Botón de registrar evento */}
-      <Button 
-        size="sm"
-        className="hd-gradient-button text-white"
-        onClick={() => {
-          setSelectedDateForEvent(null)
-          setQuickSelectorOpen(true)
-        }}
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        Registrar evento
-      </Button>
-    </div>
-  ), [])
+  const headerActions = useMemo(() => {
+    if (!isAdminView) return null
+    return (
+      <div className="flex items-center gap-2">
+        <Button 
+          size="sm"
+          className="hd-gradient-button text-white"
+          onClick={() => {
+            setSelectedDateForEvent(null)
+            setQuickSelectorOpen(true)
+          }}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Registrar evento
+        </Button>
+      </div>
+    )
+  }, [isAdminView])
 
   usePageHeaderConfig({
     title: "Calendario",
@@ -713,13 +715,7 @@ export default function CalendarPage() {
       
       if (!response.ok) {
         logger.error('Error al obtener planes:', response.status)
-        // Si no hay planes, usar valores por defecto basados en edad promedio
-        setActivePlan({
-          schedule: {
-            bedtime: "20:00",
-            wakeTime: "07:00"
-          }
-        })
+        setActivePlan(null)
         return
       }
       
@@ -727,57 +723,29 @@ export default function CalendarPage() {
       
       if (data.success && data.plans && data.plans.length > 0) {
         // Buscar el plan activo (el de mayor planNumber con status 'active')
-        const activePlan = data.plans
+        const activePlanFound = data.plans
           .filter((plan: any) => plan.status === 'active')
           .sort((a: any, b: any) => b.planNumber - a.planNumber)[0]
         
-        if (activePlan) {
-          setActivePlan(activePlan)
+        if (activePlanFound) {
+          setActivePlan(activePlanFound)
           logger.info('Plan activo obtenido:', {
-            planNumber: activePlan.planNumber,
-            bedtime: activePlan.schedule?.bedtime,
-            wakeTime: activePlan.schedule?.wakeTime
+            planNumber: activePlanFound.planNumber,
+            bedtime: activePlanFound.schedule?.bedtime,
+            wakeTime: activePlanFound.schedule?.wakeTime
           })
         } else {
-          // Si no hay planes activos, buscar el más reciente
-          const latestPlan = data.plans
-            .sort((a: any, b: any) => b.planNumber - a.planNumber)[0]
-          
-          if (latestPlan) {
-            setActivePlan(latestPlan)
-            logger.info('Usando plan más reciente (no activo):', {
-              planNumber: latestPlan.planNumber,
-              bedtime: latestPlan.schedule?.bedtime,
-              wakeTime: latestPlan.schedule?.wakeTime
-            })
-          } else {
-            // Valores por defecto si no hay ningún plan
-            setActivePlan({
-              schedule: {
-                bedtime: "20:00",
-                wakeTime: "07:00"
-              }
-            })
-          }
+          // Sin plan activo: no mostrar líneas ideales
+          setActivePlan(null)
+          logger.info('No hay plan activo, omitiendo líneas ideales')
         }
       } else {
-        // Valores por defecto si no hay planes
-        setActivePlan({
-          schedule: {
-            bedtime: "20:00",
-            wakeTime: "07:00"
-          }
-        })
+        // No hay planes para este niño
+        setActivePlan(null)
       }
     } catch (error) {
       logger.error('Error al obtener plan activo:', error)
-      // En caso de error, usar valores por defecto
-      setActivePlan({
-        schedule: {
-          bedtime: "20:00",
-          wakeTime: "07:00"
-        }
-      })
+      setActivePlan(null)
     }
   }
 

@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { format } from 'date-fns'
+import { useUser } from '@/context/UserContext'
 
 interface NightWakingModalProps {
   open: boolean
@@ -49,6 +50,7 @@ export function NightWakingModal({
   initialData
 }: NightWakingModalProps) {
   const { getCurrentTime } = useDevTime()
+  const { userData } = useUser()
   const [selectedDelay, setSelectedDelay] = useState<number>(initialData?.awakeDelay || 15) // Default 15 min
   const [emotionalState, setEmotionalState] = useState<string>(initialData?.emotionalState || 'tranquilo')
   const [notes, setNotes] = useState<string>(initialData?.notes || '')
@@ -119,8 +121,8 @@ export function NightWakingModal({
       const eventData: Partial<EventData> = {
         childId,
         eventType: 'night_waking',
-        startTime: toLocalISOString(startTime),
-        endTime: toLocalISOString(endTime),
+        startTime: toLocalISOString(startTime, userData.timezone),
+        endTime: toLocalISOString(endTime, userData.timezone),
         awakeDelay: selectedDelay,
         emotionalState,
         notes,
@@ -167,8 +169,8 @@ export function NightWakingModal({
       const eventData: Partial<EventData> = {
         childId,
         eventType: 'night_waking',
-        startTime: toLocalISOString(startTime),
-        endTime: toLocalISOString(endTime),
+        startTime: toLocalISOString(startTime, userData.timezone),
+        endTime: toLocalISOString(endTime, userData.timezone),
         awakeDelay: defaultDelay,
         emotionalState: 'tranquilo',
         notes: '',

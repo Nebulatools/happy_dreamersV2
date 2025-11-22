@@ -9,6 +9,7 @@ import { toLocalISOString } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { useDevTime } from '@/context/dev-time-context'
 import { ExtraActivityModal } from './ExtraActivityModal'
+import { useUser } from '@/context/UserContext'
 
 interface ExtraActivityButtonProps {
   childId: string
@@ -44,6 +45,7 @@ export function ExtraActivityButton({
   const { toast } = useToast()
   const [isProcessing, setIsProcessing] = useState(false)
   const { getCurrentTime } = useDevTime()
+  const { userData } = useUser()
   const [showActivityModal, setShowActivityModal] = useState(false)
   
   // Configuración del botón
@@ -70,7 +72,7 @@ export function ExtraActivityButton({
       const eventData: Partial<EventData> = {
         childId,
         eventType: 'extra_activities',
-        startTime: toLocalISOString(now),
+        startTime: toLocalISOString(now, userData.timezone),
         activityDescription: activityData.activityDescription,
         activityDuration: activityData.activityDuration,
         activityImpact: impact,

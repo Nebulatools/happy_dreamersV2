@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react"
 import { createLogger } from "@/lib/logger"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, PlusCircle, Edit, Trash, Save, ChevronLeft, Clock } from "lucide-react"
+import { Loader2, PlusCircle, Edit, Trash, Save, ChevronLeft, Clock, ChevronRight, ChevronLeft as ChevronLeftIcon } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import Link from "next/link"
@@ -78,6 +78,14 @@ export default function ChildEventsPage() {
   const [editedEvent, setEditedEvent] = useState<Partial<Event>>({})
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [children, setChildren] = useState<Child[]>([])
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [page, setPage] = useState(1)
+  const pageSize = 20
+
+  useEffect(() => {
+    setPage(1)
+    setSelectedIds(new Set())
+  }, [activeChildId, events.length])
 
   // Suscribirse a invalidaciones de cache
   useEffect(() => {
@@ -306,6 +314,11 @@ export default function ChildEventsPage() {
       setEvents(currentEvents => 
         currentEvents.filter(event => event._id !== selectedEvent._id)
       )
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        next.delete(selectedEvent._id)
+        return next
+      })
       
       // Invalidar cache global
       invalidateEvents()
@@ -329,6 +342,80 @@ export default function ChildEventsPage() {
       setIsSaving(false)
     }
   }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const isAllPageSelected = (currentPageEvents: Event[]) =>
+    currentPageEvents.length > 0 && currentPageEvents.every(ev => selectedIds.has(ev._id))
+
+  const toggleSelectAll = (currentPageEvents: Event[]) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      const allSelected = isAllPageSelected(currentPageEvents)
+      currentPageEvents.forEach(ev => {
+        if (allSelected) {
+          next.delete(ev._id)
+        } else {
+          next.add(ev._id)
+        }
+      })
+      return next
+    })
+  }
+
+  const bulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    setIsSaving(true)
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map(async (id) => {
+          const response = await fetch(`/api/children/events/${id}${activeChildId ? `?childId=${activeChildId}` : ""}`, { method: "DELETE" })
+          if (!response.ok) {
+            const data = await response.json().catch(() => ({}))
+            throw new Error(data.message || data.error || "Error al eliminar")
+          }
+        })
+      )
+      setEvents((prev) => prev.filter(ev => !selectedIds.has(ev._id)))
+      setSelectedIds(new Set())
+      invalidateEvents()
+      toast({ title: "Eventos eliminados", description: "Los eventos seleccionados se eliminaron correctamente." })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.message || "No se pudieron eliminar los eventos seleccionados.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const totalPages = Math.max(1, Math.ceil(events.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const sortedEvents = [...events].sort((a, b) => {
+    const getSafeDate = (event: any) => {
+      const startDate = event.startTime ? new Date(event.startTime) : null
+      const createdDate = event.createdAt ? new Date(event.createdAt) : null
+      if (startDate && !isNaN(startDate.getTime())) return startDate
+      if (createdDate && !isNaN(createdDate.getTime())) return createdDate
+      return new Date()
+    }
+    const dateA = getSafeDate(a)
+    const dateB = getSafeDate(b)
+    return dateB.getTime() - dateA.getTime()
+  })
+  const paginatedEvents = sortedEvents.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   if (isLoading) {
     return (
@@ -399,12 +486,55 @@ export default function ChildEventsPage() {
             <CardDescription>
               Un registro de todos los eventos, ordenados por fecha
             </CardDescription>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={selectedIds.size === 0 || isSaving}
+                  onClick={bulkDelete}
+                  className="flex items-center gap-2"
+                >
+                  <Trash className="h-4 w-4" />
+                  Eliminar seleccionados ({selectedIds.size})
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="icon"
+                  variant="outline"
+                  disabled={currentPage === 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeftIcon className="h-4 w-4" />
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b border-gray-200">
+                    <th className="py-3 px-4">
+                      <input
+                        type="checkbox"
+                        checked={isAllPageSelected(paginatedEvents)}
+                        onChange={() => toggleSelectAll(paginatedEvents)}
+                        aria-label="Seleccionar todos"
+                      />
+                    </th>
                     <th className="text-left py-3 px-4 font-medium text-sm text-gray-700">Fecha</th>
                     <th className="text-left py-3 px-4 font-medium text-sm text-gray-700">Hora</th>
                     <th className="text-left py-3 px-4 font-medium text-sm text-gray-700 hidden sm:table-cell">Duración</th>
@@ -415,24 +545,7 @@ export default function ChildEventsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {events
-                    .sort((a, b) => {
-                      // Función helper para crear fechas seguras
-                      const getSafeDate = (event: any) => {
-                        const startDate = event.startTime ? new Date(event.startTime) : null
-                        const createdDate = event.createdAt ? new Date(event.createdAt) : null
-                        
-                        // Verificar que las fechas sean válidas
-                        if (startDate && !isNaN(startDate.getTime())) return startDate
-                        if (createdDate && !isNaN(createdDate.getTime())) return createdDate
-                        return new Date() // Fallback a fecha actual
-                      }
-                      
-                      const dateA = getSafeDate(a)
-                      const dateB = getSafeDate(b)
-                      return dateB.getTime() - dateA.getTime()
-                    })
-                    .map((event) => {
+                  {paginatedEvents.map((event) => {
                       // Validar y crear fechas seguras
                       const createSafeDate = (dateString?: string) => {
                         if (!dateString) return null
@@ -462,6 +575,14 @@ export default function ChildEventsPage() {
                           className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
                           onClick={() => handleEventClick(event)}
                         >
+                          <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(event._id)}
+                              onChange={() => toggleSelect(event._id)}
+                              aria-label={`Seleccionar evento ${event._id}`}
+                            />
+                          </td>
                           <td className="py-3 px-4 text-sm">
                             {format(startDate, "dd/MM/yyyy", { locale: es })}
                           </td>

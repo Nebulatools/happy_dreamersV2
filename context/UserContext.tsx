@@ -13,6 +13,7 @@ interface UserData {
   phone: string
   role: string
   accountType: "father" | "mother" | "caregiver" | "" | undefined
+  timezone: string
 }
 
 interface UserContextType {
@@ -34,6 +35,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     phone: "",
     role: "user",
     accountType: "",
+    timezone: "America/Monterrey",
   })
   const [isLoading, setIsLoading] = useState(false)
 
@@ -45,6 +47,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         phone: (session.user as any).phone || "",
         role: session.user.role || "user",
         accountType: (session.user as any).accountType || "",
+        timezone: (session.user as any).timezone || "America/Monterrey",
       }
       
       logger.info("Loading user data from session", sessionData)

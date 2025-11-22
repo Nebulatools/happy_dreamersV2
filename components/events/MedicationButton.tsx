@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { useDevTime } from '@/context/dev-time-context'
 import { MedicationModal } from './MedicationModal'
 import { format } from 'date-fns'
+import { useUser } from '@/context/UserContext'
 
 interface MedicationButtonProps {
   childId: string
@@ -45,6 +46,7 @@ export function MedicationButton({
   const { toast } = useToast()
   const [isProcessing, setIsProcessing] = useState(false)
   const { getCurrentTime } = useDevTime()
+  const { userData } = useUser()
   const [showMedicationModal, setShowMedicationModal] = useState(false)
   
   // Configuración del botón
@@ -70,7 +72,7 @@ export function MedicationButton({
       const eventData: Partial<EventData> = {
         childId,
         eventType: 'medication',
-        startTime: toLocalISOString(now),
+        startTime: toLocalISOString(now, userData.timezone),
         medicationName: medicationData.medicationName,
         medicationDose: medicationData.medicationDose,
         medicationTime: medicationData.medicationTime || format(now, 'HH:mm'), // Usar hora actual si no se especifica

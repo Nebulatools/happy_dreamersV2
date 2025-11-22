@@ -337,72 +337,76 @@ function RollingCalendarGrid({
         <span>{rangeLabel}</span>
       </div>
 
-      <div className="grid grid-cols-7 gap-2 text-center text-[11px] font-medium text-gray-500">
-        {(isSevenDayMode
-          ? Array.from({ length: 7 }, (_, idx) =>
-              format(addDays(gridStart, idx), "EEE", { locale: es })
-            )
-          : WEEKDAY_LABELS
-        ).map((label, idx) => (
-          <span key={`${label}-${idx}`}>{label}</span>
-        ))}
-      </div>
-
-      <div className="space-y-2">
-        {weeks.map((week, idx) => (
-          <div key={idx} className="grid grid-cols-7 gap-2">
-            {week.map((day) => {
-              const key = format(day, "yyyy-MM-dd")
-              const summary = dailySummary.get(key)
-              const isOutsideRange = day < startDate || day > endDate
-              const monthBreak = day.getDate() === 1
-              const classes = summary
-                ? getIntensityClasses(summary.totalMinutes)
-                : "bg-white border border-gray-200"
-
-              return (
-                <div
-                  key={key}
-                  className={cn(
-                    "min-h-[130px] rounded-xl border p-2 text-left transition-colors",
-                    classes,
-                    isOutsideRange && "opacity-40"
-                  )}
-                >
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <span>{day.getDate()}</span>
-                    {monthBreak || day.getDate() === 1 ? (
-                      <span className="text-[10px] uppercase tracking-wide">
-                        {format(day, "MMM", { locale: es })}
-                      </span>
-                    ) : (
-                      <span />
-                    )}
-                  </div>
-
-                  <div className="mt-2 space-y-1">
-                    {summary?.segments.slice(0, 3).map((segment) => (
-                      <div
-                        key={segment.id}
-                        className="rounded-md bg-white/70 px-2 py-1 text-[11px] text-gray-700 shadow-sm"
-                      >
-                        <span className="font-medium mr-1">{getSegmentEmoji(segment.type)}</span>
-                        {format(segment.start, "HH:mm")} - {format(segment.end, "HH:mm")}
-                      </div>
-                    ))}
-                    {summary && summary.segments.length > 3 && (
-                      <div className="text-[10px] text-gray-600">+{summary.segments.length - 3} eventos</div>
-                    )}
-                  </div>
-
-                  <div className="mt-3 text-[11px] font-semibold">
-                    Sueño total: {summary ? formatMinutesAsHours(summary.totalMinutes) : "0h"}
-                  </div>
-                </div>
-              )
-            })}
+      <div className="overflow-x-auto -mx-2 md:mx-0 pb-2">
+        <div className="min-w-[720px] space-y-3">
+          <div className="grid grid-cols-7 gap-2 text-center text-[11px] font-medium text-gray-500">
+            {(isSevenDayMode
+              ? Array.from({ length: 7 }, (_, idx) =>
+                  format(addDays(gridStart, idx), "EEE", { locale: es })
+                )
+              : WEEKDAY_LABELS
+            ).map((label, idx) => (
+              <span key={`${label}-${idx}`}>{label}</span>
+            ))}
           </div>
-        ))}
+
+          <div className="space-y-2">
+            {weeks.map((week, idx) => (
+              <div key={idx} className="grid grid-cols-7 gap-2">
+                {week.map((day) => {
+                  const key = format(day, "yyyy-MM-dd")
+                  const summary = dailySummary.get(key)
+                  const isOutsideRange = day < startDate || day > endDate
+                  const monthBreak = day.getDate() === 1
+                  const classes = summary
+                    ? getIntensityClasses(summary.totalMinutes)
+                    : "bg-white border border-gray-200"
+
+                  return (
+                    <div
+                      key={key}
+                      className={cn(
+                        "min-h-[130px] rounded-xl border p-2 text-left transition-colors",
+                        classes,
+                        isOutsideRange && "opacity-40"
+                      )}
+                    >
+                      <div className="flex items-center justify-between text-xs font-semibold">
+                        <span>{day.getDate()}</span>
+                        {monthBreak || day.getDate() === 1 ? (
+                          <span className="text-[10px] uppercase tracking-wide">
+                            {format(day, "MMM", { locale: es })}
+                          </span>
+                        ) : (
+                          <span />
+                        )}
+                      </div>
+
+                      <div className="mt-2 space-y-1">
+                        {summary?.segments.slice(0, 3).map((segment) => (
+                          <div
+                            key={segment.id}
+                            className="rounded-md bg-white/70 px-2 py-1 text-[11px] text-gray-700 shadow-sm"
+                          >
+                            <span className="font-medium mr-1">{getSegmentEmoji(segment.type)}</span>
+                            {format(segment.start, "HH:mm")} - {format(segment.end, "HH:mm")}
+                          </div>
+                        ))}
+                        {summary && summary.segments.length > 3 && (
+                          <div className="text-[10px] text-gray-600">+{summary.segments.length - 3} eventos</div>
+                        )}
+                      </div>
+
+                      <div className="mt-3 text-[11px] font-semibold">
+                        Sueño total: {summary ? formatMinutesAsHours(summary.totalMinutes) : "0h"}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )

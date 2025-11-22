@@ -1,14 +1,19 @@
 // Paso 5: Actividad Física
 // Información sobre actividad física, pantallas y salud del niño
 
+import { useMemo, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
-import { Activity } from "lucide-react"
+import { Activity, Plus, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import type { SurveyStepProps } from '../types/survey.types'
 
 export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStepProps) {
+  const [activityName, setActivityName] = useState("")
+  const [activityDuration, setActivityDuration] = useState("")
+
   const updateField = (field: string, value: any) => {
     onChange({
       ...data,
@@ -22,6 +27,33 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
 
   const hasError = (field: string): boolean => {
     return !!getError(field)
+  }
+
+  const normalizedActivities = useMemo(() => {
+    const raw = data.actividadesLista
+    if (!raw) return []
+    if (Array.isArray(raw)) {
+      return raw.map((item) =>
+        typeof item === "string"
+          ? { nombre: item, duracionMinutos: undefined }
+          : item
+      )
+    }
+    if (typeof raw === "string") {
+      return [{ nombre: raw, duracionMinutos: undefined }]
+    }
+    return []
+  }, [data.actividadesLista])
+
+  const addActivity = () => {
+    const nombre = activityName.trim()
+    const durationNumber = parseInt(activityDuration, 10)
+    if (!nombre || Number.isNaN(durationNumber) || durationNumber <= 0) return
+
+    const next = [...normalizedActivities, { nombre, duracionMinutos: durationNumber }]
+    updateField("actividadesLista", next)
+    setActivityName("")
+    setActivityDuration("")
   }
 
   return (
@@ -100,55 +132,67 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
         </RadioGroup>
         {data.practicaActividad && (
           <div className="mt-3">
-            <Label htmlFor="actividades-input" className="text-sm text-gray-600">
-              ¿Qué actividades practica? (Presiona Enter después de cada actividad)
+            <Label className="text-sm text-gray-600">
+              ¿Qué actividades practica y cuánto duran? <span className="text-gray-500">(minutos)</span>
             </Label>
-            <div className="mt-1">
+            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_140px_auto] sm:items-end">
               <Input
                 id="actividades-input"
                 placeholder="Ej: Natación, fútbol, yoga..."
+                value={activityName}
+                onChange={(e) => setActivityName(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
-                    const input = e.currentTarget
-                    const value = input.value.trim()
-                    if (value) {
-                      const currentList = data.actividadesLista || []
-                      onChange({
-                        ...data,
-                        actividadesLista: [...currentList, value]
-                      })
-                      input.value = ''
-                    }
+                    addActivity()
                   }
                 }}
               />
-              {data.actividadesLista && data.actividadesLista.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {data.actividadesLista.map((actividad: string, index: number) => (
-                    <div
-                      key={index}
-                      className="inline-flex items-center gap-1 bg-[#8B4789] text-white px-3 py-1 rounded-full text-sm"
-                    >
-                      <span>{actividad}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newList = data.actividadesLista.filter((_: string, i: number) => i !== index)
-                          onChange({
-                            ...data,
-                            actividadesLista: newList
-                          })
-                        }}
-                        className="ml-1 hover:bg-white/20 rounded-full p-0.5"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <Input
+                id="actividades-duracion"
+                placeholder="Minutos"
+                type="number"
+                min={1}
+                value={activityDuration}
+                onChange={(e) => setActivityDuration(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addActivity()
+                  }
+                }}
+              />
+              <Button type="button" variant="secondary" onClick={addActivity} className="sm:w-full">
+                <Plus className="w-4 h-4 mr-2" />
+                Agregar
+              </Button>
             </div>
+            {normalizedActivities && normalizedActivities.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {normalizedActivities.map((actividad: any, index: number) => (
+                  <div
+                    key={`${actividad.nombre}-${index}`}
+                    className="inline-flex items-center gap-2 bg-[#8B4789] text-white px-3 py-1 rounded-full text-sm"
+                  >
+                    <span className="font-semibold">{actividad.nombre}</span>
+                    {actividad.duracionMinutos !== undefined && (
+                      <span className="text-white/80">{actividad.duracionMinutos} min</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newList = normalizedActivities.filter((_: any, i: number) => i !== index)
+                        updateField('actividadesLista', newList)
+                      }}
+                      className="ml-1 hover:bg-white/20 rounded-full p-0.5"
+                      aria-label="Eliminar actividad"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

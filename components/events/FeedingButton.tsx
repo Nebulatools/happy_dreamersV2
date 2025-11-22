@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { useDevTime } from '@/context/dev-time-context'
 import { FeedingModal } from './FeedingModal'
 import { useSleepState } from '@/hooks/use-sleep-state'
+import { useUser } from '@/context/UserContext'
 
 interface FeedingButtonProps {
   childId: string
@@ -39,7 +40,8 @@ export function FeedingButton({
   const [isProcessing, setIsProcessing] = useState(false)
   const { getCurrentTime } = useDevTime()
   const [showFeedingModal, setShowFeedingModal] = useState(false)
-  const { sleepState } = useSleepState(childId)
+  const { userData } = useUser()
+  const { sleepState } = useSleepState(childId, userData.timezone)
   
   // Configuración del botón
   const getButtonConfig = () => {

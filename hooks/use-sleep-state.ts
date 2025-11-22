@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import useSWR from 'swr'
 import { useChildPlan } from './use-child-plan'
+import { nowInTimeZone } from '@/lib/timezone'
 
 export type SleepStatus = 'awake' | 'sleeping' | 'napping' | 'night_waking'
 
@@ -25,8 +26,8 @@ interface SleepStateResponse {
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
-export function useSleepState(childId: string | null) {
-  const { getTimeContext } = useChildPlan(childId)
+export function useSleepState(childId: string | null, timeZone?: string) {
+  const { getTimeContext } = useChildPlan(childId, timeZone)
   
   const { data, error, isLoading, mutate } = useSWR<SleepStateResponse>(
     childId ? `/api/children/${childId}/current-sleep-state` : null,
@@ -49,7 +50,8 @@ export function useSleepState(childId: string | null) {
 
   // Función para determinar el siguiente estado basado en el contexto temporal
   const getNextState = useCallback((currentStatus: SleepStatus): SleepStatus => {
-    const timeContext = getTimeContext()
+    const { date } = nowInTimeZone(timeZone)
+    const timeContext = getTimeContext(date)
     
     switch (currentStatus) {
       case 'awake':
@@ -75,7 +77,7 @@ export function useSleepState(childId: string | null) {
       default:
         return 'awake'
     }
-  }, [getTimeContext])
+  }, [getTimeContext, timeZone])
 
   // Función para obtener la configuración del botón
   const getButtonConfig = useCallback(() => {

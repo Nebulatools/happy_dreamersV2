@@ -43,6 +43,7 @@ interface UserProfile {
   email: string
   phone: string
   language: string
+  timezone: string
   currentPassword: string
   newPassword: string
   confirmPassword: string
@@ -65,6 +66,7 @@ export default function ConfiguracionPage() {
     email: "",
     phone: "",
     language: "es",
+    timezone: "America/Monterrey",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
@@ -90,6 +92,7 @@ export default function ConfiguracionPage() {
         name: userData.name || "",
         email: userData.email || "",
         phone: userData.phone || "",
+        timezone: userData.timezone || "America/Monterrey",
       }))
     }
   }, [userData])
@@ -275,6 +278,26 @@ export default function ConfiguracionPage() {
               placeholder="+34 612 345 678"
               className="mt-1"
             />
+          </div>
+
+          <div>
+            <Label htmlFor="timezone">Zona Horaria</Label>
+            <Select
+              value={profileData.timezone}
+              onValueChange={(value) => setProfileData({ ...profileData, timezone: value })}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Selecciona tu zona horaria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="America/Monterrey">America/Monterrey (GMT-6)</SelectItem>
+                <SelectItem value="America/Mexico_City">America/Mexico_City (GMT-6)</SelectItem>
+                <SelectItem value="America/Chicago">America/Chicago (GMT-6)</SelectItem>
+                <SelectItem value="America/New_York">America/New_York (GMT-5)</SelectItem>
+                <SelectItem value="UTC">UTC</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500 mt-1">Predeterminado: America/Monterrey.</p>
           </div>
           
           <div>

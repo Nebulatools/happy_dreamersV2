@@ -84,6 +84,8 @@ interface DesarrolloSalud {
   alimentacion?: "Fórmula" | "Leche materna exclusiva" | "Leche materna y fórmula" | "Ninguna"
   comeSolidos?: boolean
   caracteristicas: string[]
+  planDejarChupon?: string
+  problemasMedicosDetalle?: string
 }
 
 interface ActividadFisica {
@@ -91,6 +93,7 @@ interface ActividadFisica {
   pantallasTiempo?: string
   practicaActividad: boolean
   actividades?: string
+  actividadesLista?: { nombre: string; duracionMinutos?: number }[]
   actividadesDespierto?: string
   signosIrritabilidad: boolean
   situacionesSufridas?: string[]
