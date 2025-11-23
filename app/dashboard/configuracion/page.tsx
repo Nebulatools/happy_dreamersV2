@@ -105,6 +105,7 @@ export default function ConfiguracionPage() {
     const success = await updateProfile({
       name: profileData.name,
       phone: profileData.phone,
+      timezone: profileData.timezone,
     })
     
     // The UserContext handles the toast notifications and data synchronization
@@ -295,6 +296,7 @@ export default function ConfiguracionPage() {
                 <SelectItem value="America/Chicago">America/Chicago (GMT-6)</SelectItem>
                 <SelectItem value="America/New_York">America/New_York (GMT-5)</SelectItem>
                 <SelectItem value="UTC">UTC</SelectItem>
+                <SelectItem value="Asia/Tokyo">Asia/Tokyo (GMT+9)</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-gray-500 mt-1">Predeterminado: America/Monterrey.</p>

@@ -61,7 +61,8 @@ export async function PUT(request: NextRequest) {
       "America/Mexico_City",
       "America/Chicago",
       "America/New_York",
-      "UTC"
+      "UTC",
+      "Asia/Tokyo",
     ]
 
     if (timezone && !ALLOWED_TIMEZONES.includes(timezone)) {
