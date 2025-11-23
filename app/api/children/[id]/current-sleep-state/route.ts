@@ -22,7 +22,7 @@ interface SleepStateResponse {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -31,7 +31,7 @@ export async function GET(
     }
 
     const { db } = await connectToDatabase()
-    const { id: childId } = params
+    const { id: childId } = await params
 
     try {
       await resolveChildAccess(db, session.user, childId, "canViewEvents")

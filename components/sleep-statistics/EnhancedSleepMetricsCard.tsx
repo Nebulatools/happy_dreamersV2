@@ -121,6 +121,7 @@ function classifySleep(startTime: Date, endTime: Date) {
 export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days" }: EnhancedSleepMetricsCardProps) {
   const { refreshTrigger, subscribe } = useEventsCache(childId)
   const { data: sleepData, loading, error } = useSleepData(childId, dateRange)
+  const [hasActivePlan, setHasActivePlan] = useState(false)
   const [breakdown, setBreakdown] = useState<BreakdownState>({
     nightSleepHours: 0,
     napHours: 0,
@@ -152,10 +153,19 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
         if (!response.ok) throw new Error('Error al cargar plan')
         const payload = await response.json()
         if (!isMounted) return
-        setPlanSchedule(payload?.schedule ?? null)
+        const schedule = payload?.schedule ?? null
+        const isDefault = payload?.isDefault ?? false
+        if (!schedule || isDefault) {
+          setPlanSchedule(null)
+          setHasActivePlan(false)
+        } else {
+          setPlanSchedule(schedule)
+          setHasActivePlan(true)
+        }
       } catch (err) {
         if (isMounted) {
           setPlanSchedule(null)
+          setHasActivePlan(false)
         }
       }
     }
@@ -192,6 +202,13 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
   }, [sleepData, dateRange])
 
   const planTargets = React.useMemo(() => {
+    if (!hasActivePlan || !planSchedule) {
+      return {
+        bedtime: null,
+        wakeTime: null,
+        nightHours: null
+      }
+    }
     const bedtime = planSchedule?.bedtime ?? null
     const wakeTime = planSchedule?.wakeTime ?? null
     return {
@@ -199,7 +216,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
       wakeTime,
       nightHours: calculateNightHoursFromPlan(bedtime, wakeTime)
     }
-  }, [planSchedule])
+  }, [planSchedule, hasActivePlan])
 
   // Hora promedio matutina (usa lógica centralizada, con fallback)
   const morningWakeAvg = React.useMemo(() => {
@@ -237,12 +254,15 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
   }, [sleepData])
 
   const planComparisons = React.useMemo(() => {
+    if (!hasActivePlan) {
+      return { wake: "", night: "", bedtime: "" }
+    }
     return {
       wake: formatTimeDiffVsPlan(morningWakeAvg, planTargets.wakeTime),
       night: formatHoursDiffVsPlan(breakdown.nightSleepHours, planTargets.nightHours),
       bedtime: formatTimeDiffVsPlan(sleepData?.avgBedtime, planTargets.bedtime)
     }
-  }, [morningWakeAvg, planTargets, breakdown.nightSleepHours, sleepData?.avgBedtime])
+  }, [morningWakeAvg, planTargets, breakdown.nightSleepHours, sleepData?.avgBedtime, hasActivePlan])
 
   // Funciones de formato
   const formatDuration = (hours: number): string => {
@@ -423,7 +443,9 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
             <Badge variant={getWakeTimeStatus(morningWakeAvg).variant} className="text-xs">
               {getWakeTimeStatus(morningWakeAvg).label}
             </Badge>
-            <p className="text-xs text-gray-600 mt-2">{planComparisons.wake}</p>
+            {hasActivePlan && (
+              <p className="text-xs text-gray-600 mt-2">{planComparisons.wake}</p>
+            )}
           </div>
 
           {/* Sueño nocturno (promedio diario) */}
@@ -437,7 +459,9 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
                 <p className="text-2xl font-bold text-gray-900">{formatDuration(breakdown.nightSleepHours)}</p>
               </div>
             </div>
-            <p className="text-xs text-gray-600">{planComparisons.night}</p>
+            {hasActivePlan && (
+              <p className="text-xs text-gray-600">{planComparisons.night}</p>
+            )}
           </div>
 
           {/* Hora de Acostarse */}
@@ -457,7 +481,9 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
               </Badge>
               <span className="text-xs text-gray-500">±{Math.round(sleepData.bedtimeVariation)} min</span>
             </div>
-            <p className="text-xs text-gray-600 mt-2">{planComparisons.bedtime}</p>
+            {hasActivePlan && (
+              <p className="text-xs text-gray-600 mt-2">{planComparisons.bedtime}</p>
+            )}
           </div>
 
           {/* Despertares Nocturnos */}

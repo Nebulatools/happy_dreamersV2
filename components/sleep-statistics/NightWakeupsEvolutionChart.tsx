@@ -298,131 +298,128 @@ export default function NightWakeupsEvolutionChart({
       </div>
       
       {/* Nueva visualización con ScatterChart - Mejorada */}
-      <div className="mb-4 ml-12 relative overflow-visible" style={{ paddingRight: "160px" }}>
-        {/* Título del eje Y posicionado absolutamente */}
-        <div
-          className="absolute"
-          style={{
-            left: '-65px',
-            top: '45%',
-            transform: 'rotate(-90deg) translateY(-50%)',
-            transformOrigin: 'center',
-            fontSize: '14px',
-            fontWeight: 600,
-            color: '#4b5563',
-            whiteSpace: 'nowrap',
-            zIndex: 10
-          }}
-        >
-          Hora del despertar
-        </div>
-        {/* Contador de despertares por día ARRIBA del gráfico - PERFECTAMENTE ALINEADO */}
-        <div
-          className="relative"
-          style={{
-            marginLeft: '85px',
-            marginRight: '160px',
-            height: '28px',
-            marginBottom: '2px',
-            display: 'grid',
-            gridTemplateColumns: `repeat(${dailySummary.length}, 1fr)`,
-            alignItems: 'center'
-          }}
-        >
-          {dailySummary.map((day) => (
-            <div 
-              key={day.date.toISOString()} 
-              className="flex items-center justify-center"
-            >
-              {day.count > 0 ? (
-                <span className="text-xs font-bold text-[#FF6B6B] bg-red-50 px-1.5 py-0.5 rounded-full">
-                  {day.count}
-                </span>
-              ) : (
-                <span className="text-xs text-gray-400 font-medium">0</span>
-              )}
-            </div>
-          ))}
-        </div>
-        
-        <ResponsiveContainer width="100%" height={380}>
-          <ScatterChart
-            margin={{ top: 5, right: 140, bottom: 50, left: 40 }}
+      <div className="mb-4 -mx-4 sm:mx-0 overflow-x-auto pb-2">
+        <div className="relative min-w-[680px] sm:min-w-0 ml-8 sm:ml-12 pr-16 sm:pr-[160px] overflow-visible">
+          {/* Título del eje Y posicionado absolutamente (oculto en mobile para ganar espacio) */}
+          <div
+            className="absolute hidden sm:block"
+            style={{
+              left: '-60px',
+              top: '45%',
+              transform: 'rotate(-90deg) translateY(-50%)',
+              transformOrigin: 'center',
+              fontSize: '13px',
+              fontWeight: 600,
+              color: '#4b5563',
+              whiteSpace: 'nowrap',
+              zIndex: 10
+            }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            
-            {/* Eje X - Días */}
-            <XAxis 
-              type="number"
-              dataKey="x"
-              domain={[0, dates.length - 1]}
-              ticks={xAxisTicks.map(t => t.value)}
-              tickFormatter={(value) => xAxisTicks[value]?.label || ''}
-              stroke="#6b7280"
-              fontSize={12}
-              tick={{ fontSize: 12 }}
-              label={{ value: '', position: 'insideBottom', offset: -5 }}
-              padding={{ left: 0, right: 0 }}
-            />
-            
-            {/* Eje Y - Horas (invertido para que 21:00 esté arriba) */}
-            <YAxis 
-              type="number"
-              dataKey="y"
-              domain={[21, 30]}
-              reversed={false}
-              ticks={yAxisTicks.map(t => t.value)}
-              tickFormatter={(value) => {
-                const tick = yAxisTicks.find(t => t.value === value)
-                return tick ? tick.label : ''
-              }}
-              stroke="#6b7280"
-              fontSize={12}
-              tick={{ fontSize: 12 }}
-            />
-            
-            {/* Líneas de referencia para zonas importantes - Más visibles */}
-            <ReferenceLine 
-              y={24} 
-              stroke="#8b5cf6" 
-              strokeWidth={2}
-              strokeDasharray="8 4"
-              label={{ 
-                value: "MEDIANOCHE", 
-                position: "right", 
-                fontSize: 11, 
-                fill: "#7c3aed",
-                fontWeight: 600,
-                offset: 10
-              }}
-            />
-            <ReferenceLine 
-              y={27} 
-              stroke="#f97316" 
-              strokeWidth={2}
-              strokeDasharray="8 4"
-              strokeOpacity={0.8}
-              label={{ 
-                value: "3 AM - Sueño profundo", 
-                position: "right", 
-                fontSize: 11, 
-                fill: "#ea580c",
-                fontWeight: 600,
-                offset: 10
-              }}
-            />
-            
-            <Tooltip content={<CustomTooltip />} />
-            
-            {/* Puntos de despertares */}
-            <Scatter
-              name="Despertares"
-              data={scatterData}
-              fill="#FF6B6B"
-              shape={<CustomDot />}
-            />
-          </ScatterChart>
-        </ResponsiveContainer>
+            Hora del despertar
+          </div>
+          {/* Contador de despertares por día ARRIBA del gráfico - PERFECTAMENTE ALINEADO */}
+          <div
+            className="relative ml-[68px] sm:ml-[85px] mr-[120px] sm:mr-[160px] h-7 mb-1 grid"
+            style={{
+              gridTemplateColumns: `repeat(${dailySummary.length}, 1fr)`,
+              alignItems: 'center'
+            }}
+          >
+            {dailySummary.map((day) => (
+              <div 
+                key={day.date.toISOString()} 
+                className="flex items-center justify-center"
+              >
+                {day.count > 0 ? (
+                  <span className="text-xs font-bold text-[#FF6B6B] bg-red-50 px-1.5 py-0.5 rounded-full">
+                    {day.count}
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-400 font-medium">0</span>
+                )}
+              </div>
+            ))}
+          </div>
+          
+          <ResponsiveContainer width="100%" height={380}>
+            <ScatterChart
+              margin={{ top: 5, right: 140, bottom: 50, left: 40 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              
+              {/* Eje X - Días */}
+              <XAxis 
+                type="number"
+                dataKey="x"
+                domain={[0, dates.length - 1]}
+                ticks={xAxisTicks.map(t => t.value)}
+                tickFormatter={(value) => xAxisTicks[value]?.label || ''}
+                stroke="#6b7280"
+                fontSize={12}
+                tick={{ fontSize: 12 }}
+                label={{ value: '', position: 'insideBottom', offset: -5 }}
+                padding={{ left: 0, right: 0 }}
+              />
+              
+              {/* Eje Y - Horas (invertido para que 21:00 esté arriba) */}
+              <YAxis 
+                type="number"
+                dataKey="y"
+                domain={[21, 30]}
+                reversed={false}
+                ticks={yAxisTicks.map(t => t.value)}
+                tickFormatter={(value) => {
+                  const tick = yAxisTicks.find(t => t.value === value)
+                  return tick ? tick.label : ''
+                }}
+                stroke="#6b7280"
+                fontSize={12}
+                tick={{ fontSize: 12 }}
+              />
+              
+              {/* Líneas de referencia para zonas importantes - Más visibles */}
+              <ReferenceLine 
+                y={24} 
+                stroke="#8b5cf6" 
+                strokeWidth={2}
+                strokeDasharray="8 4"
+                label={{ 
+                  value: "MEDIANOCHE", 
+                  position: "right", 
+                  fontSize: 11, 
+                  fill: "#7c3aed",
+                  fontWeight: 600,
+                  offset: 10
+                }}
+              />
+              <ReferenceLine 
+                y={27} 
+                stroke="#f97316" 
+                strokeWidth={2}
+                strokeDasharray="8 4"
+                strokeOpacity={0.8}
+                label={{ 
+                  value: "3 AM - Sueño profundo", 
+                  position: "right", 
+                  fontSize: 11, 
+                  fill: "#ea580c",
+                  fontWeight: 600,
+                  offset: 10
+                }}
+              />
+              
+              <Tooltip content={<CustomTooltip />} />
+              
+              {/* Puntos de despertares */}
+              <Scatter
+                name="Despertares"
+                data={scatterData}
+                fill="#FF6B6B"
+                shape={<CustomDot />}
+              />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </div>
       </div>
       
       {/* Estadísticas de evolución */}
