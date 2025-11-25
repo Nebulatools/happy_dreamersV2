@@ -311,6 +311,7 @@ export async function POST(req: NextRequest) {
     // Agregar campos específicos de alimentación si aplica
     if (data.eventType === "feeding") {
       event.feedingType = data.feedingType
+      event.feedingSubtype = data.feedingSubtype || data.feedingType
       event.feedingAmount = data.feedingAmount
       event.feedingDuration = data.feedingDuration
       event.babyState = data.babyState
@@ -384,6 +385,7 @@ export async function POST(req: NextRequest) {
         sleepDelay: event.sleepDelay,
         awakeDelay: event.awakeDelay,
         feedingType: event.feedingType,
+        feedingSubtype: event.feedingSubtype,
         feedingAmount: event.feedingAmount,
         feedingDuration: event.feedingDuration,
         babyState: event.babyState,
@@ -423,6 +425,7 @@ export async function POST(req: NextRequest) {
         sleepDelay: event.sleepDelay,
         awakeDelay: event.awakeDelay,
         feedingType: event.feedingType,
+        feedingSubtype: event.feedingSubtype,
         feedingAmount: event.feedingAmount,
         feedingDuration: event.feedingDuration,
         babyState: event.babyState,

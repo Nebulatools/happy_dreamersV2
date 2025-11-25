@@ -43,9 +43,20 @@ interface Event {
   emotionalState: string;
   startTime: string;
   endTime?: string;
+  duration?: number;
   notes?: string;
   description?: string;
   createdAt: string;
+  // Alimentación
+  feedingType?: string;
+  feedingSubtype?: string;
+  feedingDuration?: number;
+  feedingAmount?: number;
+  babyState?: 'awake' | 'asleep';
+  feedingNotes?: string;
+  // Actividades extra
+  activityDuration?: number;
+  activityDescription?: string;
 }
 
 interface Child {
@@ -188,6 +199,22 @@ export default function ChildEventsPage() {
       anxious: "Ansioso",
     }
     return states[state] || state
+  }
+
+  const getBabyStateLabel = (state?: 'awake' | 'asleep') => {
+    if (state === 'awake') return 'Despierto'
+    if (state === 'asleep') return 'Dormido'
+    return ''
+  }
+
+  const formatMinutesReadable = (minutes?: number | null) => {
+    if (minutes === null || minutes === undefined) return "-"
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    if (hours > 0) {
+      return `${hours}h ${mins}m`
+    }
+    return `${mins}m`
   }
 
   // Función para obtener un color según el tipo de evento
@@ -558,16 +585,13 @@ export default function ChildEventsPage() {
                       const duration = startDate && endDate 
                         ? Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60)) 
                         : null
-                      
-                      const formatDuration = (minutes: number | null) => {
-                        if (!minutes) return "-"
-                        const hours = Math.floor(minutes / 60)
-                        const mins = minutes % 60
-                        if (hours > 0) {
-                          return `${hours}h ${mins}m`
-                        }
-                        return `${mins}m`
-                      }
+                      const derivedDuration = (() => {
+                        if (typeof duration === 'number') return duration
+                        if (typeof event.duration === 'number') return event.duration
+                        if (event.eventType === 'extra_activities' && typeof event.activityDuration === 'number') return event.activityDuration
+                        if (event.eventType === 'feeding' && typeof event.feedingDuration === 'number') return event.feedingDuration
+                        return null
+                      })()
                       
                       return (
                         <tr
@@ -597,7 +621,7 @@ export default function ChildEventsPage() {
                             )}
                           </td>
                           <td className="py-3 px-4 text-sm hidden sm:table-cell">
-                            {formatDuration(duration)}
+                            {formatMinutesReadable(derivedDuration)}
                           </td>
                           <td className="py-3 px-4">
                             <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getEventColor(event.eventType)}`}>
@@ -605,7 +629,11 @@ export default function ChildEventsPage() {
                             </span>
                           </td>
                           <td className="py-3 px-4 text-sm hidden md:table-cell">
-                            {event.eventType !== "extra_activities" && getEmotionalStateName(event.emotionalState)}
+                            {event.eventType === "feeding"
+                              ? (getBabyStateLabel(event.babyState) || "-")
+                              : event.eventType === "extra_activities"
+                                ? "-"
+                                : getEmotionalStateName(event.emotionalState)}
                           </td>
                           <td className="py-3 px-4 text-sm hidden lg:table-cell">
                             <span className="truncate block max-w-xs" title={event.notes || event.description || ""}>
@@ -696,9 +724,27 @@ export default function ChildEventsPage() {
                       </span>
                     </div>
                     <div className="flex items-center">
-                      <span className="font-medium mr-2">Estado emocional:</span>
-                      <span>{getEmotionalStateName(selectedEvent.emotionalState)}</span>
+                      <span className="font-medium mr-2">Estado:</span>
+                      <span>
+                        {selectedEvent.eventType === 'feeding'
+                          ? (getBabyStateLabel(selectedEvent.babyState) || 'Sin estado')
+                          : selectedEvent.eventType === 'extra_activities'
+                            ? 'No aplica'
+                            : getEmotionalStateName(selectedEvent.emotionalState)}
+                      </span>
                     </div>
+                    {selectedEvent.eventType === 'extra_activities' && selectedEvent.activityDuration && (
+                      <div className="flex items-center">
+                        <span className="font-medium mr-2">Duración:</span>
+                        <span>{formatMinutesReadable(selectedEvent.activityDuration)}</span>
+                      </div>
+                    )}
+                    {selectedEvent.eventType === 'feeding' && selectedEvent.feedingDuration && (
+                      <div className="flex items-center">
+                        <span className="font-medium mr-2">Duración:</span>
+                        <span>{formatMinutesReadable(selectedEvent.feedingDuration)}</span>
+                      </div>
+                    )}
                     {selectedEvent.notes && (
                       <div className="mt-2">
                         <span className="font-medium">Notas:</span>

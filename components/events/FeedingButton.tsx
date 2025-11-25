@@ -65,25 +65,26 @@ export function FeedingButton({
       // Detectar si el bebé está dormido actualmente
       const isBabySleeping = sleepState.status === 'sleeping' || sleepState.status === 'napping'
       const isLiquid = feedingData.feedingType === 'breast' || feedingData.feedingType === 'bottle'
+      const normalizedBabyState = feedingData.feedingType === 'solids' ? 'awake' : feedingData.babyState
+      const durationToSend = feedingData.feedingDuration || (feedingData.feedingType === 'breast' ? feedingData.feedingAmount : 15)
+      const amountToSend = feedingData.feedingType === 'breast' ? undefined : (feedingData.feedingAmount || (feedingData.feedingType === 'solids' ? 50 : undefined))
       
       // Crear evento de alimentación con todos los datos del modal
       const eventData: Partial<EventData> = {
         childId,
         eventType: 'feeding',
-        startTime: toLocalISOString(now),
+        startTime: toLocalISOString(now, userData.timezone),
         feedingType: feedingData.feedingType,
-        // Duración: en pecho son minutos del control principal
-        feedingDuration: feedingData.feedingType === 'breast' ? (feedingData.feedingAmount || 0) : undefined,
-        babyState: feedingData.feedingType === 'solids' ? 'awake' : feedingData.babyState,
+        feedingSubtype: feedingData.feedingType,
+        // Duración: en pecho son minutos del control principal, en otros casos usamos la duración capturada
+        feedingDuration: durationToSend,
+        feedingAmount: amountToSend,
+        babyState: normalizedBabyState,
         feedingNotes: feedingData.feedingNotes,
+        notes: feedingData.feedingNotes,
         emotionalState: 'neutral' // Por defecto neutral para alimentación
       }
 
-      // Cantidad: biberón en oz o ml (ya viene en la unidad correcta); pecho no requiere cantidad
-      if (feedingData.feedingType === 'bottle' && typeof feedingData.feedingAmount === 'number') {
-        eventData.feedingAmount = feedingData.feedingAmount
-      }
-      
       const response = await fetch('/api/children/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,10 +100,12 @@ export function FeedingButton({
         const nightFeedingData: Partial<EventData> = {
           childId,
           eventType: 'night_feeding',
-          startTime: toLocalISOString(now),
+          startTime: toLocalISOString(now, userData.timezone),
           feedingType: feedingData.feedingType,
-          feedingDuration: feedingData.feedingType === 'breast' ? (feedingData.feedingAmount || 0) : undefined,
-          feedingAmount: feedingData.feedingType === 'bottle' ? feedingData.feedingAmount : undefined,
+          feedingSubtype: feedingData.feedingType,
+          feedingDuration: durationToSend,
+          feedingAmount: amountToSend,
+          babyState: normalizedBabyState,
           notes: `Alimentación nocturna - ${feedingData.feedingType === 'breast' ? 'Pecho' : feedingData.feedingType === 'bottle' ? 'Biberón' : 'Sólidos'}`,
           emotionalState: 'neutral'
         }

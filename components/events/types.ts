@@ -18,6 +18,7 @@ export interface EventData {
   awakeDelay?: number  // minutos que estuvo despierto (para night_waking)
   // Campos específicos para alimentación
   feedingType?: FeedingType
+  feedingSubtype?: FeedingType  // Subtipo explícito para analítica (pecho, biberón, sólidos)
   feedingAmount?: number  // cantidad en ml (líquidos) o gr (sólidos)
   feedingDuration?: number  // duración en minutos
   babyState?: 'awake' | 'asleep'  // para tomas nocturnas

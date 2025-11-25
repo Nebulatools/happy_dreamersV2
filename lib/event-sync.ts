@@ -21,6 +21,7 @@ export interface EventSyncData {
   awakeDelay?: number
   // Campos específicos para alimentación
   feedingType?: string
+  feedingSubtype?: string
   feedingAmount?: number
   feedingDuration?: number
   babyState?: string
@@ -125,6 +126,7 @@ export async function syncChildEventsToAnalytics(childId: string): Promise<void>
         sleepDelay: event.sleepDelay,
         awakeDelay: event.awakeDelay,
         feedingType: event.feedingType,
+        feedingSubtype: event.feedingSubtype,
         feedingAmount: event.feedingAmount,
         feedingDuration: event.feedingDuration,
         babyState: event.babyState,
