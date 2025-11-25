@@ -704,7 +704,8 @@ export async function PATCH(req: NextRequest) {
     const updateFields: any = {}
     if (data.endTime) updateFields["events.$.endTime"] = data.endTime
     if (data.duration !== undefined) updateFields["events.$.duration"] = data.duration
-    if (data.notes) updateFields["events.$.notes"] = data.notes
+    if (data.notes !== undefined) updateFields["events.$.notes"] = data.notes
+    if (data.emotionalState) updateFields["events.$.emotionalState"] = data.emotionalState
     if (data.sleepDelay !== undefined) updateFields["events.$.sleepDelay"] = data.sleepDelay
     if (data.awakeDelay !== undefined) updateFields["events.$.awakeDelay"] = data.awakeDelay
     
@@ -768,7 +769,8 @@ export async function PATCH(req: NextRequest) {
           $set: {
             endTime: data.endTime,
             duration: data.duration,
-            ...(data.notes && { notes: data.notes })
+            ...(data.notes !== undefined && { notes: data.notes }),
+            ...(data.emotionalState && { emotionalState: data.emotionalState })
           }
         }
       )

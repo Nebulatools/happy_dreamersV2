@@ -208,7 +208,7 @@ export default function SurveyPage() {
           <div className="text-center max-w-2xl mx-auto">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-2xl font-semibold mb-4">
-              ¡Encuesta Completada!
+              Cuestionario completado
             </h2>
             <p className="text-gray-600 mb-6">
               Ya has completado la encuesta de sueño para este niño. 

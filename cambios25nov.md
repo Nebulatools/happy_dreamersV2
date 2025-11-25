@@ -1,0 +1,6 @@
+ayudame a realzir los siguienets cambios:
+
+1. en la pagina de http://localhost:3000/dashboard/survey?childId=68d1af5315d0e9b1cc189544 , debe de decir "Cuestionario completado" en evz de ¡Encuesta Completada!
+Ya has completado la encuesta de sueño para este niño. Las recomendaciones personalizadas están disponibles en el dashboard., ok?
+
+2. Sin afecrame nada , en los botones rapido de Dormir/siesta/despertar noctunro, dependiendod de la hora, queiro que cuado sea dormir/siesta: abra un modal donde el user pueda poner , cuanto tiempo tardo en dormise, el estado emocional y notas input text, y cuando sea de despertar/despertar nocturno igual pero sin el de "cuanto tardo en dormirse", ok?, tarta de ver como esta el codigo de los modales paar ver si podemos reutilizar codigo, y ser dry!. Recuerda no afectrame nada! al final queremos qlograr que eso que ponag el suer tambein se gaurde en el backend en mognod, asiq ue si me voy a la pagian de http://localhost:3000/dashboard/children/68d1af5315d0e9b1cc189544/events puedo ver lo que el suer pone en las notas, el estado y cuantio tiempo tardo en dormise en caso de, y siq ueiro editar el evento, pueda editra el evento sin porbelma!!, ayduame
