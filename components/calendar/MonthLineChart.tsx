@@ -114,6 +114,14 @@ export function MonthLineChart({
         event.startTime.startsWith(dayStr)
       )
 
+      // Tambien buscar eventos de sleep que TERMINAN en este dia (para despertar)
+      const wakeFromSleep = events.filter(event => {
+        if (event.eventType === 'sleep' && event.endTime) {
+          return event.endTime.startsWith(dayStr)
+        }
+        return false
+      })
+
       // Agrupar eventos por tipo
       const eventsByType: Record<string, { hours: number; event: Event }[]> = {}
 
@@ -125,6 +133,19 @@ export function MonthLineChart({
           eventsByType[event.eventType] = []
         }
         eventsByType[event.eventType].push({ hours, event })
+      })
+
+      // Agregar despertares basados en endTime de eventos sleep
+      wakeFromSleep.forEach(event => {
+        if (event.endTime) {
+          const wakeDate = new Date(event.endTime)
+          const hours = wakeDate.getHours() + wakeDate.getMinutes() / 60
+
+          if (!eventsByType['wake']) {
+            eventsByType['wake'] = []
+          }
+          eventsByType['wake'].push({ hours, event })
+        }
       })
 
       // Procesar cada tipo de evento
@@ -260,6 +281,7 @@ export function MonthLineChart({
   const eventTypes = useMemo(() => {
     const types = new Set<string>()
     const napCounts: Record<string, number> = {} // Contar siestas por dia
+    let hasWakeData = false // Flag para verificar si hay datos de despertar
 
     events.forEach(event => {
       if (event.eventType === 'nap') {
@@ -269,7 +291,17 @@ export function MonthLineChart({
       } else {
         types.add(event.eventType)
       }
+
+      // Verificar si hay eventos sleep con endTime (generan datos de wake)
+      if (event.eventType === 'sleep' && event.endTime) {
+        hasWakeData = true
+      }
     })
+
+    // Agregar 'wake' si hay datos de despertar
+    if (hasWakeData) {
+      types.add('wake')
+    }
 
     // Determinar cuantas lineas de siesta necesitamos
     const maxNaps = Math.min(MAX_INDIVIDUAL_NAPS, Math.max(0, ...Object.values(napCounts)))
