@@ -8,10 +8,17 @@ import { nowInTimeZone } from '@/lib/timezone'
 
 export type SleepStatus = 'awake' | 'sleeping' | 'napping' | 'night_waking'
 
-interface PendingEvent {
-  type: 'sleep' | 'nap' | 'night_waking'
+interface SleepPending {
+  type: 'sleep' | 'nap'
   start: string
   sleepDelay?: number
+  emotionalState?: string
+  notes?: string
+}
+
+interface NightWakePending {
+  type: 'night_waking'
+  start: string
   emotionalState?: string
   notes?: string
 }
@@ -36,45 +43,77 @@ const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 export function useSleepState(childId: string | null, timeZone?: string) {
   const { getTimeContext } = useChildPlan(childId, timeZone)
-  const [pendingEvent, setPendingEvent] = useState<PendingEvent | null>(null)
+  const [sleepPending, setSleepPending] = useState<SleepPending | null>(null)
+  const [nightWakePending, setNightWakePending] = useState<NightWakePending | null>(null)
 
-  // Cargar pending event de localStorage (solo en cliente)
+  // Cargar pending events de localStorage (solo en cliente)
   useEffect(() => {
     if (typeof window === 'undefined' || !childId) return
-    const storageKey = `pending_sleep_event_${childId}`
+    const sleepStorageKey = `pending_sleep_event_${childId}`
+    const nightWakeStorageKey = `pending_night_wake_${childId}`
+
     try {
-      const stored = window.localStorage.getItem(storageKey)
-      if (stored) {
-        const parsed = JSON.parse(stored) as PendingEvent
+      const storedSleep = window.localStorage.getItem(sleepStorageKey)
+      if (storedSleep) {
+        const parsed = JSON.parse(storedSleep) as SleepPending
         if (parsed?.type && parsed?.start) {
-          setPendingEvent(parsed)
+          setSleepPending(parsed)
         }
       } else {
-        setPendingEvent(null)
+        setSleepPending(null)
       }
     } catch (e) {
-      console.warn('[useSleepState] No se pudo parsear pending event', e)
+      console.warn('[useSleepState] No se pudo parsear sleep pending', e)
+    }
+
+    try {
+      const storedNightWake = window.localStorage.getItem(nightWakeStorageKey)
+      if (storedNightWake) {
+        const parsed = JSON.parse(storedNightWake) as NightWakePending
+        if (parsed?.type && parsed?.start) {
+          setNightWakePending(parsed)
+        }
+      } else {
+        setNightWakePending(null)
+      }
+    } catch (e) {
+      console.warn('[useSleepState] No se pudo parsear night wake pending', e)
     }
   }, [childId])
 
   // Escuchar cambios en localStorage (para sincronizar con SleepButton)
   useEffect(() => {
     if (typeof window === 'undefined' || !childId) return
-    const storageKey = `pending_sleep_event_${childId}`
+    const sleepStorageKey = `pending_sleep_event_${childId}`
+    const nightWakeStorageKey = `pending_night_wake_${childId}`
 
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === storageKey) {
+      if (e.key === sleepStorageKey) {
         if (e.newValue) {
           try {
-            const parsed = JSON.parse(e.newValue) as PendingEvent
+            const parsed = JSON.parse(e.newValue) as SleepPending
             if (parsed?.type && parsed?.start) {
-              setPendingEvent(parsed)
+              setSleepPending(parsed)
             }
           } catch {
-            setPendingEvent(null)
+            setSleepPending(null)
           }
         } else {
-          setPendingEvent(null)
+          setSleepPending(null)
+        }
+      }
+      if (e.key === nightWakeStorageKey) {
+        if (e.newValue) {
+          try {
+            const parsed = JSON.parse(e.newValue) as NightWakePending
+            if (parsed?.type && parsed?.start) {
+              setNightWakePending(parsed)
+            }
+          } catch {
+            setNightWakePending(null)
+          }
+        } else {
+          setNightWakePending(null)
         }
       }
     }
@@ -83,34 +122,55 @@ export function useSleepState(childId: string | null, timeZone?: string) {
     return () => window.removeEventListener('storage', handleStorageChange)
   }, [childId])
 
-  // Polling de localStorage para detectar cambios en la misma pestaña
+  // Polling de localStorage para detectar cambios en la misma pestana
   useEffect(() => {
     if (typeof window === 'undefined' || !childId) return
-    const storageKey = `pending_sleep_event_${childId}`
+    const sleepStorageKey = `pending_sleep_event_${childId}`
+    const nightWakeStorageKey = `pending_night_wake_${childId}`
 
     const checkLocalStorage = () => {
+      // Check sleep pending
       try {
-        const stored = window.localStorage.getItem(storageKey)
-        if (stored) {
-          const parsed = JSON.parse(stored) as PendingEvent
+        const storedSleep = window.localStorage.getItem(sleepStorageKey)
+        if (storedSleep) {
+          const parsed = JSON.parse(storedSleep) as SleepPending
           if (parsed?.type && parsed?.start) {
-            setPendingEvent(prev => {
-              // Solo actualizar si cambió
-              if (JSON.stringify(prev) !== stored) {
+            setSleepPending(prev => {
+              if (JSON.stringify(prev) !== storedSleep) {
                 return parsed
               }
               return prev
             })
           }
         } else {
-          setPendingEvent(null)
+          setSleepPending(null)
         }
       } catch {
-        // Ignorar errores de localStorage
+        // Ignorar errores
+      }
+
+      // Check night wake pending
+      try {
+        const storedNightWake = window.localStorage.getItem(nightWakeStorageKey)
+        if (storedNightWake) {
+          const parsed = JSON.parse(storedNightWake) as NightWakePending
+          if (parsed?.type && parsed?.start) {
+            setNightWakePending(prev => {
+              if (JSON.stringify(prev) !== storedNightWake) {
+                return parsed
+              }
+              return prev
+            })
+          }
+        } else {
+          setNightWakePending(null)
+        }
+      } catch {
+        // Ignorar errores
       }
     }
 
-    const interval = setInterval(checkLocalStorage, 500) // Check cada 500ms
+    const interval = setInterval(checkLocalStorage, 500)
     return () => clearInterval(interval)
   }, [childId])
 
@@ -125,24 +185,26 @@ export function useSleepState(childId: string | null, timeZone?: string) {
   )
 
   // Derivar estado del pending event
-  const derivedStatusFromPending: SleepStatus | null = pendingEvent
-    ? pendingEvent.type === 'night_waking'
-      ? 'night_waking'
-      : pendingEvent.type === 'nap'
+  // nightWakePending tiene prioridad (estamos en medio de un despertar nocturno)
+  const derivedStatusFromPending: SleepStatus | null = nightWakePending
+    ? 'night_waking'
+    : sleepPending
+      ? sleepPending.type === 'nap'
         ? 'napping'
         : 'sleeping'
-    : null
+      : null
 
   // Estado efectivo: pending event tiene prioridad sobre API
   const effectiveStatus = derivedStatusFromPending ?? data?.status ?? 'awake'
 
   // Convertir la respuesta del API al formato interno (usando estado efectivo)
+  // Para lastEventTime: usar sleepPending.start (hora original de inicio del sueno)
   const sleepState: SleepState = {
     status: effectiveStatus,
-    lastEventTime: pendingEvent?.start
-      ? new Date(pendingEvent.start)
+    lastEventTime: sleepPending?.start
+      ? new Date(sleepPending.start)
       : (data?.lastEventTime ? new Date(data.lastEventTime) : null),
-    lastEventType: pendingEvent?.type ?? data?.lastEventType ?? null,
+    lastEventType: nightWakePending?.type ?? sleepPending?.type ?? data?.lastEventType ?? null,
     lastEventId: data?.lastEventId || null,
     duration: data?.duration || null
   }

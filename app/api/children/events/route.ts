@@ -25,16 +25,16 @@ function calculateSleepDuration(startTime: string, endTime: string, sleepDelay: 
   try {
     const start = parseISO(startTime)
     const end = parseISO(endTime)
-    
+
     // Calcular duración total en cama
     const totalMinutes = differenceInMinutes(end, start)
-    
+
     // Restar el tiempo que tardó en dormirse (máximo 180 minutos = 3 horas)
     const limitedSleepDelay = Math.min(Math.max(sleepDelay || 0, 0), 180)
     const realSleepDuration = Math.max(0, totalMinutes - limitedSleepDelay)
-    
+
     logger.info(`Cálculo de duración: ${totalMinutes}min total - ${limitedSleepDelay}min delay = ${realSleepDuration}min real`)
-    
+
     return realSleepDuration
   } catch (error) {
     logger.error("Error calculando duración de sueño:", error)
@@ -53,16 +53,16 @@ function calculateAwakeDuration(startTime: string, endTime: string, awakeDelay: 
   try {
     const start = parseISO(startTime)
     const end = parseISO(endTime)
-    
+
     // La duración del despertar nocturno es simplemente el tiempo entre startTime y endTime
     // awakeDelay es información adicional pero no se resta porque ES el tiempo despierto
     const totalMinutes = differenceInMinutes(end, start)
-    
+
     // Si awakeDelay está presente, usarlo como referencia (pero no para cálculos)
     if (awakeDelay > 0) {
       logger.info(`Despertar nocturno: ${totalMinutes}min calculados, ${awakeDelay}min reportados por usuario`)
     }
-    
+
     return totalMinutes
   } catch (error) {
     logger.error("Error calculando duración de despertar:", error)
