@@ -433,7 +433,7 @@ export default function CalendarPage() {
       setCalendarTab("calendar")
     }
   }, [isAdminView, calendarTab])
-  
+
   // Función para cambiar la vista y guardar en localStorage
   const handleViewChange = (newView: "month" | "week" | "day") => {
     setView(newView)
@@ -1492,117 +1492,37 @@ export default function CalendarPage() {
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-3 lg:gap-4">
+              {/* Navegación de periodo a la derecha */}
+              {calendarTab === "calendar" && (
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-sleep" />
-                  <span className="text-sm text-gray-600">Dormir</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={navigatePrevious}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm font-medium text-gray-700 min-w-[180px] text-center">
+                    {getPeriodTitle()}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={navigateNext}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-nap" />
-                  <span className="text-sm text-gray-600">Siesta</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-wake" />
-                  <span className="text-sm text-gray-600">Despertar</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-night-wake" />
-                  <span className="text-sm text-gray-600">Nocturno</span>
-                </div>
-              </div>
+              )}
             </div>
-          </div>
-
-          {/* Resumen de estadísticas con navegación integrada */}
-          <div className="px-6">
-            <Card className="p-3 md:p-4 bg-gray-50 border-gray-200">
-              <div className="flex flex-col gap-3">
-                {/* Header: Navegación + Título + Métricas */}
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                  {/* Navegación y título a la izquierda */}
-                  <div className="flex items-center gap-3">
-                    {/* Navegación de fechas */}
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={navigatePrevious}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={navigateNext}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    
-                    {/* Título del período */}
-                    <div className="flex flex-col">
-                      <span className="text-xs text-gray-500">Período seleccionado</span>
-                      <h3 className="text-sm font-semibold text-gray-700">
-                        {getPeriodTitle()}
-                      </h3>
-                    </div>
-                  </div>
-                  
-                  {/* Métricas a la derecha */}
-                  <div className="flex items-center gap-3 md:gap-6 flex-wrap">
-                    {/* Sueño nocturno */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-sleep/20 flex items-center justify-center">
-                        <Moon className="w-4 h-4 text-sleep" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs text-gray-500">
-                          Promedio sueño
-                        </span>
-                        <span className="text-sm font-bold text-gray-900">
-                          {monthlyStats.nightSleepHours.toFixed(1)}h
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Siestas */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-nap/20 flex items-center justify-center">
-                        <Cloud className="w-4 h-4 text-nap" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs text-gray-500">
-                          Promedio siesta
-                        </span>
-                        <span className="text-sm font-bold text-gray-900">
-                          {monthlyStats.napHours.toFixed(1)}h
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Despertares */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-night-wake/20 flex items-center justify-center">
-                        <AlertCircle className="w-4 h-4 text-night-wake" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs text-gray-500">Despertares</span>
-                        <span className="text-sm font-bold text-gray-900">
-                          {monthlyStats.nightWakings}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
           </div>
 
           {calendarTab === "calendar" ? (
             <div className="px-6 pb-6">
-              <Card className={`p-4 ${view === 'month' ? 'h-[600px]' : view === 'day' ? 'h-[calc(100vh-320px)]' : ''}`} style={{ minHeight: '500px' }}>
+              <Card className="p-4 h-[calc(100vh-150px)] overflow-auto" style={{ minHeight: '450px', maxHeight: 'calc(100vh - 120px)' }}>
+                <div className="h-full">
                 {isLoading ? (
                   <div className="flex justify-center items-center h-96">
                     <div className="text-center">
@@ -1624,6 +1544,7 @@ export default function CalendarPage() {
                     onDayNavigateForward={navigateOneDayForward}
                   />
                 )}
+                </div>
               </Card>
             </div>
           ) : (

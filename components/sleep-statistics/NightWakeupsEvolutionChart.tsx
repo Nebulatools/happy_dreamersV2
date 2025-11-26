@@ -1,6 +1,6 @@
 import React from "react"
 import { useSleepData } from "@/hooks/use-sleep-data"
-import { AlertCircle, TrendingDown, TrendingUp, Minus, Clock } from "lucide-react"
+import { AlertCircle, TrendingDown, TrendingUp, Minus, Clock, ChevronLeft, ChevronRight } from "lucide-react"
 import { parseISO, format, differenceInMinutes, subDays, startOfDay, isSameDay, getHours, getMinutes } from "date-fns"
 import { es } from "date-fns/locale"
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from "recharts"
@@ -34,7 +34,7 @@ function decimalToTimeString(decimal: number): string {
 }
 
 // Función para procesar evolución de despertares por fecha con detalles individuales y tiempo
-function processNightWakeupsEvolution(events: any[], dateRange: string) {
+function processNightWakeupsEvolution(events: any[], dateRange: string, periodOffset: number = 0) {
   const now = new Date()
   let daysToSubtract = 7
 
@@ -44,10 +44,13 @@ function processNightWakeupsEvolution(events: any[], dateRange: string) {
     daysToSubtract = 90
   }
 
+  // Calcular offset de dias basado en el periodo seleccionado
+  const totalDaysOffset = Math.abs(periodOffset) * daysToSubtract
+
   // Crear array de fechas para el período
   const dates = []
   for (let i = daysToSubtract - 1; i >= 0; i--) {
-    dates.push(subDays(now, i))
+    dates.push(subDays(now, i + totalDaysOffset))
   }
 
   // Procesar eventos de despertares nocturnos
@@ -159,17 +162,35 @@ const CustomDot = (props: any) => {
   )
 }
 
-export default function NightWakeupsEvolutionChart({ 
-  childId, 
-  dateRange = "7-days" 
+export default function NightWakeupsEvolutionChart({
+  childId,
+  dateRange = "7-days"
 }: NightWakeupsEvolutionChartProps) {
-  const { data: sleepData, loading, error } = useSleepData(childId, dateRange)
+  // Traer 5 periodos de datos para permitir navegacion historica
+  const { data: sleepData, loading, error } = useSleepData(childId, dateRange, 5)
+
+  // Estado para navegacion entre periodos de tiempo
+  const [periodOffset, setPeriodOffset] = React.useState(0)
+
+  // Navegacion entre periodos de tiempo
+  const handlePeriodNavigation = (direction: 'prev' | 'next') => {
+    if (direction === 'prev') {
+      setPeriodOffset(prev => prev - 1)
+    } else {
+      setPeriodOffset(prev => Math.min(0, prev + 1))
+    }
+  }
+
+  // Resetear offset cuando cambia el rango de fechas
+  React.useEffect(() => {
+    setPeriodOffset(0)
+  }, [dateRange])
 
   // Calcular evolución de datos
   const { scatterData, dailySummary, dates } = React.useMemo(() => {
     if (!sleepData?.events) return { scatterData: [], dailySummary: [], dates: [] }
-    return processNightWakeupsEvolution(sleepData.events, dateRange)
-  }, [sleepData, dateRange])
+    return processNightWakeupsEvolution(sleepData.events, dateRange, periodOffset)
+  }, [sleepData, dateRange, periodOffset])
 
   // Calcular tendencia
   const trend = React.useMemo(() => {
@@ -266,9 +287,21 @@ export default function NightWakeupsEvolutionChart({
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-[#2F2F2F]">
-          Evolución de despertares nocturnos
-        </h3>
+        <div className="min-w-0">
+          <h3 className="text-lg font-bold text-[#2F2F2F]">
+            Evolución de despertares nocturnos
+          </h3>
+          {dates.length > 0 && (
+            <p className="text-sm text-gray-600">
+              {periodOffset === 0 ? 'Últimos' : ''} {dates.length} días
+              {periodOffset < 0 && (
+                <span className="ml-1">
+                  ({format(dates[0], 'd MMM', { locale: es })} - {format(dates[dates.length - 1], 'd MMM', { locale: es })})
+                </span>
+              )}
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {trend && (
             <div className={`flex items-center gap-1 ${trend.color}`}>
@@ -277,6 +310,35 @@ export default function NightWakeupsEvolutionChart({
             </div>
           )}
           <AlertCircle className="w-5 h-5 text-[#FF6B6B]" />
+          {/* Navegación de periodos */}
+          <div className="flex items-center gap-1 ml-2">
+            <button
+              type="button"
+              aria-label="Ver días anteriores"
+              onClick={() => handlePeriodNavigation('prev')}
+              disabled={periodOffset <= -4}
+              className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all ${
+                periodOffset > -4
+                  ? 'border-gray-200 bg-white text-gray-700 hover:bg-gray-100 hover:border-gray-300'
+                  : 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Ver días siguientes"
+              onClick={() => handlePeriodNavigation('next')}
+              disabled={periodOffset >= 0}
+              className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all ${
+                periodOffset < 0
+                  ? 'border-gray-200 bg-white text-gray-700 hover:bg-gray-100 hover:border-gray-300'
+                  : 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
+              }`}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
       

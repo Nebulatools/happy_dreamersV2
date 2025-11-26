@@ -53,12 +53,15 @@ export default function SleepDataStorytellingCard({
   dateRange, 
   className = "" 
 }: SleepDataStorytellingCardProps) {
-  const { data: sleepData, loading, error } = useSleepData(childId, dateRange)
+  // Traer 5 periodos de datos para permitir navegacion historica (4 hacia atras + actual)
+  const { data: sleepData, loading, error } = useSleepData(childId, dateRange, 5)
   const [showAnomaliesOnly, setShowAnomaliesOnly] = useState(false)
   const [hoveredDay, setHoveredDay] = useState<string | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
   const chartScrollRef = useRef<HTMLDivElement | null>(null)
   const [scrollState, setScrollState] = useState({ canScrollLeft: false, canScrollRight: false })
+  // Estado para navegacion entre periodos de tiempo
+  const [periodOffset, setPeriodOffset] = useState(0) // 0 = periodo actual, -1 = periodo anterior, etc.
 
   // 📊 Procesar datos reales usando la función unificada de cálculos
   const processedData = useMemo(() => {
@@ -75,19 +78,23 @@ export default function SleepDataStorytellingCard({
 
     const daysCount = getDaysCount()
     const days: SleepDayMetrics[] = []
-    
+
     // Obtener todos los eventos de sueño
     const allEvents = sleepData.events
-    
+
     logger.debug('Procesando eventos', { total: allEvents.length })
     logger.debug('Tipos de eventos', allEvents.reduce((acc, e) => {
       acc[e.eventType] = (acc[e.eventType] || 0) + 1
       return acc
     }, {} as Record<string, number>))
-    
+
+    // Calcular el offset de dias basado en el periodo seleccionado
+    // periodOffset: 0 = actual, -1 = periodo anterior, -2 = dos periodos atras, etc.
+    const totalDaysOffset = Math.abs(periodOffset) * daysCount
+
     // Procesar cada día individualmente con la función unificada
     for (let i = 0; i < daysCount; i++) {
-      const date = subDays(new Date(), daysCount - 1 - i)
+      const date = subDays(new Date(), daysCount - 1 - i + totalDaysOffset)
       const dayStart = startOfDay(date)
       const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
       
@@ -140,7 +147,7 @@ export default function SleepDataStorytellingCard({
     }
     
     return days // Más viejo primero (izquierda), más reciente último (derecha)
-  }, [sleepData, dateRange])
+  }, [sleepData, dateRange, periodOffset])
 
   // 🔍 Filtrar datos según vista seleccionada
   const { filteredData, stats } = useMemo(() => {
@@ -227,6 +234,22 @@ export default function SleepDataStorytellingCard({
     })
   }
 
+  // Navegacion entre periodos de tiempo
+  const handlePeriodNavigation = (direction: 'prev' | 'next') => {
+    if (direction === 'prev') {
+      // Ir al periodo anterior (mas antiguo)
+      setPeriodOffset(prev => prev - 1)
+    } else {
+      // Ir al periodo siguiente (mas reciente)
+      setPeriodOffset(prev => Math.min(0, prev + 1))
+    }
+  }
+
+  // Resetear offset cuando cambia el rango de fechas
+  useEffect(() => {
+    setPeriodOffset(0)
+  }, [dateRange])
+
   const napCount = useMemo(() => {
     if (!sleepData?.events) return 0
     return sleepData.events.filter(event => event.eventType === 'nap').length
@@ -274,26 +297,64 @@ export default function SleepDataStorytellingCard({
         <div className="min-w-0">
           <h3 className="text-lg md:text-xl font-bold text-[#2F2F2F]">Tendencia de Sueño</h3>
           <p className="text-sm text-gray-600 truncate">
-            Últimos {processedData.length} días • {stats.anomalies} anomalías detectadas
+            {periodOffset === 0 ? 'Últimos' : ''} {processedData.length} días
+            {periodOffset < 0 && processedData.length > 0 && (
+              <span className="ml-1">
+                ({format(parseISO(processedData[0]?.date || new Date().toISOString()), 'd MMM', { locale: es })} - {format(parseISO(processedData[processedData.length - 1]?.date || new Date().toISOString()), 'd MMM', { locale: es })})
+              </span>
+            )}
+            {' '}• {stats.anomalies} anomalías detectadas
           </p>
         </div>
         
-        <button
-          onClick={() => setShowAnomaliesOnly(!showAnomaliesOnly)}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            showAnomaliesOnly 
-              ? 'bg-red-100 text-red-700 hover:bg-red-200 shadow-sm' 
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          {showAnomaliesOnly ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-          <span className="hidden sm:inline">
-            {showAnomaliesOnly ? 'Mostrar Todo' : 'Solo Anomalías'}
-          </span>
-          <span className="sm:hidden">
-            {showAnomaliesOnly ? 'Todo' : 'Anomalías'}
-          </span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowAnomaliesOnly(!showAnomaliesOnly)}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              showAnomaliesOnly
+                ? 'bg-red-100 text-red-700 hover:bg-red-200 shadow-sm'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            {showAnomaliesOnly ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            <span className="hidden sm:inline">
+              {showAnomaliesOnly ? 'Mostrar Todo' : 'Solo Anomalías'}
+            </span>
+            <span className="sm:hidden">
+              {showAnomaliesOnly ? 'Todo' : 'Anomalías'}
+            </span>
+          </button>
+
+          {/* Navegación de periodos */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              aria-label="Ver días anteriores"
+              onClick={() => handlePeriodNavigation('prev')}
+              disabled={periodOffset <= -4}
+              className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all ${
+                periodOffset > -4
+                  ? 'border-gray-200 bg-white text-gray-700 hover:bg-gray-100 hover:border-gray-300'
+                  : 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Ver días siguientes"
+              onClick={() => handlePeriodNavigation('next')}
+              disabled={periodOffset >= 0}
+              className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all ${
+                periodOffset < 0
+                  ? 'border-gray-200 bg-white text-gray-700 hover:bg-gray-100 hover:border-gray-300'
+                  : 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
+              }`}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* 🎨 Leyenda mejorada y responsive */}
@@ -308,24 +369,6 @@ export default function SleepDataStorytellingCard({
 
       {/* 📊 Gráfico principal mejorado */}
       <div className="relative bg-gray-50 rounded-lg p-4 pl-12 pr-4">
-        <button
-          type="button"
-          aria-label="Ver días anteriores"
-          onClick={() => handleChartScroll('left')}
-          disabled={!scrollState.canScrollLeft}
-          className={`hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full border border-gray-200 bg-white shadow-sm items-center justify-center transition ${scrollState.canScrollLeft ? 'text-gray-700 hover:bg-gray-100' : 'text-gray-300 cursor-not-allowed'}`}
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          aria-label="Ver días siguientes"
-          onClick={() => handleChartScroll('right')}
-          disabled={!scrollState.canScrollRight}
-          className={`hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full border border-gray-200 bg-white shadow-sm items-center justify-center transition ${scrollState.canScrollRight ? 'text-gray-700 hover:bg-gray-100' : 'text-gray-300 cursor-not-allowed'}`}
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
         <div
           ref={chartScrollRef}
           className={`flex items-end ${vizConfig.gap} ${vizConfig.justify} relative overflow-x-auto pb-6 no-scrollbar`}

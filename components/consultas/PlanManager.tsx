@@ -396,55 +396,49 @@ export function PlanManager({
   }
 
   // Obtener información de planes disponibles basada en validaciones
-  const getAvailablePlans = () => {
-    const availablePlans = []
+  // Determinar si hay un plan activo
+  const hasActivePlan = plans.some(p => p.status === "active")
 
-    // Plan Inicial
-    const initialValidation = planValidations.initial
-    if (initialValidation) {
-      availablePlans.push({
-        planType: "initial" as const,
-        canGenerate: initialValidation.canGenerate,
-        buttonText: "Generar Plan Inicial",
-        description: initialValidation.canGenerate 
-          ? "Crear el primer plan basado en survey, estadísticas y conocimiento especializado"
-          : initialValidation.reason,
-        nextVersion: initialValidation.nextVersion,
-        validation: initialValidation
-      })
+  // Obtener solo el boton relevante segun el estado del paciente
+  const getVisiblePlanButton = () => {
+    // Si NO hay plan activo, mostrar solo "Generar Plan Inicial"
+    if (!hasActivePlan) {
+      const initialValidation = planValidations.initial
+      if (initialValidation) {
+        return {
+          planType: "initial" as const,
+          canGenerate: initialValidation.canGenerate,
+          buttonText: "Generar Plan Inicial",
+          description: initialValidation.canGenerate
+            ? "Crear el primer plan basado en survey, estadísticas y conocimiento especializado"
+            : initialValidation.reason,
+          nextVersion: initialValidation.nextVersion,
+          validation: initialValidation
+        }
+      }
+      return null
     }
 
-    // Plan basado en eventos
+    // Si YA hay plan activo, mostrar solo "Plan de Progresion"
     const eventValidation = planValidations.event_based
     if (eventValidation) {
-      availablePlans.push({
+      return {
         planType: "event_based" as const,
         canGenerate: eventValidation.canGenerate,
-        buttonText: eventValidation.canGenerate 
+        buttonText: eventValidation.canGenerate
           ? `Generar Plan ${eventValidation.nextVersion} (Progresión)`
           : "Plan de Progresión",
         description: eventValidation.reason,
         nextVersion: eventValidation.nextVersion,
         validation: eventValidation
-      })
+      }
     }
+    return null
+  }
 
-    // Plan de refinamiento con transcript
-    const transcriptValidation = planValidations.transcript_refinement
-    if (transcriptValidation) {
-      availablePlans.push({
-        planType: "transcript_refinement" as const,
-        canGenerate: transcriptValidation.canGenerate,
-        buttonText: transcriptValidation.canGenerate
-          ? `Generar Plan ${transcriptValidation.nextVersion} (Refinamiento)`
-          : "Plan de Refinamiento",
-        description: transcriptValidation.reason,
-        nextVersion: transcriptValidation.nextVersion,
-        validation: transcriptValidation
-      })
-    }
-
-    return availablePlans
+  const getAvailablePlans = () => {
+    const visibleButton = getVisiblePlanButton()
+    return visibleButton ? [visibleButton] : []
   }
 
   const availablePlans = getAvailablePlans()
@@ -490,7 +484,7 @@ export function PlanManager({
                 <span className="text-sm text-muted-foreground">Validando opciones...</span>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full max-w-3xl">
+              <div className="flex gap-2">
                 {availablePlans.map((planOption) => (
                   <div key={planOption.planType} className="flex flex-col items-stretch">
                     <TooltipProvider>

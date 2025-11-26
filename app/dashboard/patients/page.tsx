@@ -191,18 +191,30 @@ export default function PatientsPage() {
     window.location.href = `/dashboard?refresh=${timestamp}`;
   }
 
-  // Filtrar usuarios basándose en el término de búsqueda
-  const filteredUsers = users.filter(user => {
-    if (!searchTerm) return true
-    const search = searchTerm.toLowerCase()
-    const matchesUser = user.name.toLowerCase().includes(search) ||
-      user.email.toLowerCase().includes(search)
-    const children = userChildren[user._id] || allChildrenMap[user._id] || []
-    const matchesChild = children.some(child => 
-      `${child.firstName || ''} ${child.lastName || ''}`.toLowerCase().includes(search)
-    )
-    return matchesUser || matchesChild
-  })
+  // Extraer apellido del nombre completo (ultima palabra)
+  const getLastName = (name: string): string => {
+    const parts = name.trim().split(" ")
+    return parts.length > 1 ? parts[parts.length - 1] : name
+  }
+
+  // Filtrar usuarios basándose en el término de búsqueda y ordenar A-Z por apellido
+  const filteredUsers = users
+    .filter(user => {
+      if (!searchTerm) return true
+      const search = searchTerm.toLowerCase()
+      const matchesUser = user.name.toLowerCase().includes(search) ||
+        user.email.toLowerCase().includes(search)
+      const children = userChildren[user._id] || allChildrenMap[user._id] || []
+      const matchesChild = children.some(child =>
+        `${child.firstName || ''} ${child.lastName || ''}`.toLowerCase().includes(search)
+      )
+      return matchesUser || matchesChild
+    })
+    .sort((a, b) => {
+      const lastNameA = getLastName(a.name).toLowerCase()
+      const lastNameB = getLastName(b.name).toLowerCase()
+      return lastNameA.localeCompare(lastNameB, 'es')
+    })
 
   if (loading) {
     return (

@@ -3,10 +3,10 @@
 
 "use client"
 
-import React from 'react'
-import { 
-  Moon, 
-  Sun, 
+import React, { useState, useEffect, useRef } from 'react'
+import {
+  Moon,
+  Sun,
   AlertCircle,
   Clock
 } from "lucide-react"
@@ -72,13 +72,63 @@ interface EventBlockProps {
   onClick?: (event: Event) => void
 }
 
-export function EventBlock({ 
-  event, 
-  hourHeight, 
+export function EventBlock({
+  event,
+  hourHeight,
   className,
   showTooltip = true,
-  onClick 
+  onClick
 }: EventBlockProps) {
+  // Estado para tooltip en mobile (click)
+  const [isMobileTooltipOpen, setIsMobileTooltipOpen] = useState(false)
+  const [isTouchDevice, setIsTouchDevice] = useState(false)
+  const blockRef = useRef<HTMLDivElement>(null)
+
+  // Detectar si es dispositivo tactil
+  useEffect(() => {
+    const checkTouch = () => {
+      setIsTouchDevice(
+        'ontouchstart' in window ||
+        navigator.maxTouchPoints > 0 ||
+        // @ts-ignore - matchMedia para coarse pointer
+        window.matchMedia('(pointer: coarse)').matches
+      )
+    }
+    checkTouch()
+    window.addEventListener('resize', checkTouch)
+    return () => window.removeEventListener('resize', checkTouch)
+  }, [])
+
+  // Cerrar tooltip al hacer click fuera
+  useEffect(() => {
+    if (!isMobileTooltipOpen) return
+
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (blockRef.current && !blockRef.current.contains(e.target as Node)) {
+        setIsMobileTooltipOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+    }
+  }, [isMobileTooltipOpen])
+
+  // Manejar click en el evento
+  const handleBlockClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+
+    if (isTouchDevice && showTooltip) {
+      // En mobile: toggle tooltip
+      setIsMobileTooltipOpen(prev => !prev)
+    }
+
+    // Siempre ejecutar callback si existe
+    onClick?.(event)
+  }
 
   // Calcular duración del evento
   const calculateEventDuration = () => {
@@ -315,6 +365,7 @@ export function EventBlock({
 
   return (
     <div
+      ref={blockRef}
       className={cn(
         "absolute rounded-lg border-2 flex items-center justify-start",
         "shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer",
@@ -331,54 +382,75 @@ export function EventBlock({
         ...blockStyles // Aplicar los estilos de ancho y posición horizontal
       }}
       title={showTooltip ? undefined : `${getEventTypeName()} - ${formatEventTime()}`}
-      onClick={(e) => {
-        e.stopPropagation()
-        onClick?.(event)
-      }}
+      onClick={handleBlockClick}
     >
-      {/* Contenido del bloque - Ajustado dinámicamente según altura */}
+      {/* Contenido del bloque - Ajustado dinámicamente según altura del bloque */}
+      {/* UX: Eventos pequeños solo muestran emoji + horario para evitar texto apretado */}
       <div className="flex items-center w-full overflow-hidden justify-center">
-        {/* Estrategia de renderizado MUY estricta según altura del bloque */}
-        {blockHeight < 22 ? (
-          // MUY PEQUEÑO: Solo emoji centrado (< 22px)
+        {blockHeight < 20 ? (
+          // MUY PEQUEÑO (< 20px): Solo emoji centrado
           <div className="flex items-center justify-center">
             {getEventEmoji()}
           </div>
-        ) : blockHeight < 35 ? (
-          // PEQUEÑO: Solo hora centrada (22-35px) - SIN emoji, SIN nombre
-          <span className="font-bold truncate text-center" style={{ fontSize: '8px', lineHeight: '1', letterSpacing: '-0.3px' }}>
-            {format(parseLocalISODate(event.startTime), "HH:mm")}
-          </span>
-        ) : blockHeight < 50 ? (
-          // MEDIANO: Emoji + hora (35-50px) - SIN nombre
+        ) : blockHeight < 30 ? (
+          // PEQUEÑO (20-30px): Emoji + hora compacta
+          <div className="flex items-center gap-0.5">
+            {getEventEmoji()}
+            <span className="font-bold truncate" style={{ fontSize: '8px', lineHeight: '1' }}>
+              {format(parseLocalISODate(event.startTime), "HH:mm")}
+            </span>
+          </div>
+        ) : blockHeight < 55 ? (
+          // MEDIANO (30-55px): Emoji + horario completo (SIN nombre para mejor legibilidad)
           <div className="flex items-center gap-1">
             {getEventEmoji()}
-            <span className="font-bold truncate" style={{ fontSize: '8.5px', lineHeight: '1', letterSpacing: '-0.2px' }}>
+            <span className="font-bold truncate" style={{ fontSize: '9px', lineHeight: '1' }}>
               {formatEventTime()}
             </span>
           </div>
         ) : (
-          // GRANDE: Emoji + Nombre + hora (> 50px)
-          <div className="flex items-center gap-1 w-full">
+          // GRANDE (> 55px): Emoji + Nombre + horario (hay suficiente espacio)
+          <div className="flex items-center gap-1 w-full min-w-0">
             {getEventEmoji()}
-            <div className="flex-1 min-w-0" style={{ lineHeight: '1.3' }}>
-              <div className="truncate font-bold" style={{ fontSize: '9px', letterSpacing: '-0.2px' }}>
-                {getEventTypeName()}
-              </div>
-              <div className="truncate opacity-90 font-semibold" style={{ fontSize: '7.5px', letterSpacing: '-0.1px' }}>
-                {formatEventTime()}
-              </div>
-            </div>
+            <span className="truncate font-bold" style={{ fontSize: '10px' }}>
+              {getEventTypeName()}
+            </span>
+            <span className="font-medium opacity-90" style={{ fontSize: '9px' }}>
+              {formatEventTime()}
+            </span>
           </div>
         )}
       </div>
 
-      {/* Tooltip */}
+      {/* Tooltip - Hover en desktop, click en mobile */}
       {showTooltip && (
-        <div className="absolute left-full top-0 ml-2 bg-gray-900 text-white p-2 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20 whitespace-nowrap">
+        <div
+          className={cn(
+            "absolute left-full top-0 ml-2 bg-gray-900 text-white p-2 rounded shadow-lg transition-opacity duration-200 z-20 whitespace-nowrap",
+            // En dispositivos tactiles: controlado por estado
+            isTouchDevice
+              ? isMobileTooltipOpen
+                ? "opacity-100 pointer-events-auto"
+                : "opacity-0 pointer-events-none"
+              // En desktop: hover con CSS
+              : "opacity-0 group-hover:opacity-100 pointer-events-none"
+          )}
+        >
           {getTooltipContent()}
           {/* Flecha del tooltip */}
           <div className="absolute right-full top-2 border-4 border-transparent border-r-gray-900" />
+          {/* Boton cerrar solo en mobile */}
+          {isTouchDevice && isMobileTooltipOpen && (
+            <button
+              className="absolute -top-2 -right-2 bg-gray-700 hover:bg-gray-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsMobileTooltipOpen(false)
+              }}
+            >
+              x
+            </button>
+          )}
         </div>
       )}
     </div>

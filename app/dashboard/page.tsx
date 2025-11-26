@@ -422,19 +422,7 @@ export default function DashboardPage() {
     .slice(-5)
     .reverse()
 
-  if (!activeChildId) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <Activity className="h-16 w-16 text-muted-foreground" />
-        <h2 className="text-2xl font-bold">Selecciona un niño</h2>
-        <p className="text-muted-foreground text-center">
-          Elige un niño desde el selector para ver su dashboard de sueño.
-        </p>
-      </div>
-    )
-  }
-
-  // Si es admin, mostrar las estadísticas completas
+  // Si es admin, mostrar las estadísticas completas (independiente de selección)
   if (isAdmin) {
     return (
       <Suspense fallback={
@@ -444,6 +432,19 @@ export default function DashboardPage() {
       }>
         <AdminStatistics />
       </Suspense>
+    )
+  }
+
+  // Para usuarios normales: verificar que haya un niño seleccionado
+  if (!activeChildId) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <Activity className="h-16 w-16 text-muted-foreground" />
+        <h2 className="text-2xl font-bold">Selecciona un niño</h2>
+        <p className="text-muted-foreground text-center">
+          Elige un niño desde el selector para ver su dashboard de sueño.
+        </p>
+      </div>
     )
   }
 

@@ -396,6 +396,36 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
 
   const samplesWithData = ranges.total?.samples ?? ranges.night?.samples ?? ranges.nap?.samples ?? 0
 
+  // Calcular detalles de despertares nocturnos: dias con despertares y rango
+  // IMPORTANTE: Este useMemo debe estar ANTES de cualquier return temprano
+  const nightWakingsDetails = React.useMemo(() => {
+    if (!sleepData?.events || sleepData.events.length === 0) {
+      return { daysWithWakeups: 0, totalDays: breakdown.daysInPeriod, minPerNight: 0, maxPerNight: 0 }
+    }
+
+    // Agrupar despertares nocturnos por fecha
+    const wakeupsByDate: Record<string, number> = {}
+    sleepData.events.forEach((event: any) => {
+      if (event.eventType === 'night_waking' && event.startTime) {
+        const dateKey = event.startTime.substring(0, 10) // YYYY-MM-DD
+        wakeupsByDate[dateKey] = (wakeupsByDate[dateKey] || 0) + 1
+      }
+    })
+
+    const dates = Object.keys(wakeupsByDate)
+    const daysWithWakeups = dates.length
+    const counts = Object.values(wakeupsByDate)
+    const minPerNight = counts.length > 0 ? Math.min(...counts) : 0
+    const maxPerNight = counts.length > 0 ? Math.max(...counts) : 0
+
+    return {
+      daysWithWakeups,
+      totalDays: breakdown.daysInPeriod,
+      minPerNight,
+      maxPerNight
+    }
+  }, [sleepData?.events, breakdown.daysInPeriod])
+
   if (loading) {
     return (
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
@@ -497,9 +527,22 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
                 <p className="text-2xl font-bold text-gray-900">{sleepData.totalWakeups}</p>
               </div>
             </div>
-            <Badge variant={wakeupsStatus.variant} className="text-xs">
-              {wakeupsStatus.label}
-            </Badge>
+            <div className="flex items-center justify-between mb-1">
+              <Badge variant={wakeupsStatus.variant} className="text-xs">
+                {wakeupsStatus.label}
+              </Badge>
+            </div>
+            <div className="text-xs text-gray-600 space-y-0.5">
+              <p>{nightWakingsDetails.daysWithWakeups} de {nightWakingsDetails.totalDays} dias</p>
+              {nightWakingsDetails.daysWithWakeups > 0 && (
+                <p className="text-gray-500">
+                  {nightWakingsDetails.minPerNight === nightWakingsDetails.maxPerNight
+                    ? `${nightWakingsDetails.minPerNight} por noche`
+                    : `${nightWakingsDetails.minPerNight}-${nightWakingsDetails.maxPerNight} por noche`
+                  }
+                </p>
+              )}
+            </div>
           </div>
         </motion.div>
 
@@ -536,13 +579,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
                         <>
                           <div className="grid grid-cols-3 gap-3 text-sm">
                             <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wide">Promedio</p>
-                              <p className="text-base font-semibold text-gray-900">
-                                {formatDuration(summary.avg)}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wide">Mínimo</p>
+                              <p className="text-xs text-gray-500 uppercase tracking-wide">Minimo</p>
                               <p className="text-base font-semibold text-gray-900">
                                 {formatDuration(summary.min.value)}
                               </p>
@@ -551,7 +588,13 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
                               </p>
                             </div>
                             <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wide">Máximo</p>
+                              <p className="text-xs text-gray-500 uppercase tracking-wide">Promedio</p>
+                              <p className="text-base font-semibold text-gray-900">
+                                {formatDuration(summary.avg)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wide">Maximo</p>
                               <p className="text-base font-semibold text-gray-900">
                                 {formatDuration(summary.max.value)}
                               </p>

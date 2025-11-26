@@ -40,7 +40,7 @@ export interface SleepData {
   recentEvents: any[] // todos los eventos (no solo sleep) dentro del rango
 }
 
-export function useSleepData(childId: string | null, dateRange: string = "7-days") {
+export function useSleepData(childId: string | null, dateRange: string = "7-days", periodsToFetch: number = 1) {
   const [data, setData] = useState<SleepData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -56,26 +56,30 @@ export function useSleepData(childId: string | null, dateRange: string = "7-days
       try {
         setLoading(true)
         const response = await fetch(`/api/children/events?childId=${childId}`)
-        
+
         if (!response.ok) {
           throw new Error('Error al cargar datos de sueño')
         }
-        
+
         const result = await response.json()
         const allEvents = result.events || []
-        
+
         // Calcular días a filtrar basado en dateRange
+        // periodsToFetch permite traer mas periodos historicos para navegacion
         const now = new Date()
-        let daysToSubtract = 7 // default
-        
+        let baseDays = 7 // default
+
         if (dateRange === "30-days") {
-          daysToSubtract = 30
+          baseDays = 30
         } else if (dateRange === "90-days") {
-          daysToSubtract = 90
+          baseDays = 90
         } else if (dateRange === "7-days") {
-          daysToSubtract = 7
+          baseDays = 7
         }
-        
+
+        // Multiplicar por periodsToFetch para traer datos historicos
+        const daysToSubtract = baseDays * Math.max(1, periodsToFetch)
+
         const filterDate = subDays(now, daysToSubtract)
         
         logger.debug('Filtrando eventos', { desde: filterDate.toLocaleDateString(), dias: daysToSubtract })
@@ -108,7 +112,7 @@ export function useSleepData(childId: string | null, dateRange: string = "7-days
     }
 
     fetchData()
-  }, [childId, dateRange])
+  }, [childId, dateRange, periodsToFetch])
 
   return { data, loading, error }
 }

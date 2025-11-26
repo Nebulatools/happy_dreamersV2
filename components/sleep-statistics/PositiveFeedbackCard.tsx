@@ -16,12 +16,13 @@ interface PositiveFeedbackCardProps {
 export default function PositiveFeedbackCard({ childId, dateRange = "7-days" }: PositiveFeedbackCardProps) {
   const { data: session } = useSession()
 
+  // IMPORTANTE: Todos los hooks deben ejecutarse ANTES de cualquier return temprano
+  const { data: sleepData } = useSleepData(childId, dateRange)
+  const { data: comparison } = useSleepComparison(childId, dateRange)
+
   // Solo para padres/usuarios no admin
   if (session?.user?.role === "admin") return null
   if (!childId) return null
-
-  const { data: sleepData } = useSleepData(childId, dateRange)
-  const { data: comparison } = useSleepComparison(childId, dateRange)
 
   // Salvaguardas
   const awake = sleepData?.awakePeriods || []
