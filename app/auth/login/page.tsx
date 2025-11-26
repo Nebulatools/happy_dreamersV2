@@ -152,14 +152,9 @@ export default function LoginPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="flex items-center justify-between mb-2">
-                        <FormLabel className="block text-sm font-medium text-[#374151] century-gothic">
-                          Password
-                        </FormLabel>
-                        <Link href="/auth/forgot-password" className="text-sm text-[#4299E1] hover:underline century-gothic">
-                          Forgot password?
-                        </Link>
-                      </div>
+                      <FormLabel className="block text-sm font-medium text-[#374151] mb-2 century-gothic">
+                        Password
+                      </FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
@@ -183,6 +178,11 @@ export default function LoginPage() {
                         </div>
                       </FormControl>
                       <FormMessage />
+                      <div className="text-right mt-1">
+                        <Link href="/auth/forgot-password" className="text-sm text-[#4299E1] hover:underline century-gothic">
+                          Forgot password?
+                        </Link>
+                      </div>
                     </FormItem>
                   )}
                 />
