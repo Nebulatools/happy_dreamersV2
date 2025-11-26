@@ -1,5 +1,5 @@
 // Hook para manejar el estado de sueño sincronizado con la base de datos
-// Reemplaza el uso de localStorage con datos en tiempo real
+// Incluye soporte para pending events de localStorage (usados por SleepButton)
 
 import { useState, useEffect, useCallback } from 'react'
 import useSWR from 'swr'
@@ -7,6 +7,14 @@ import { useChildPlan } from './use-child-plan'
 import { nowInTimeZone } from '@/lib/timezone'
 
 export type SleepStatus = 'awake' | 'sleeping' | 'napping' | 'night_waking'
+
+interface PendingEvent {
+  type: 'sleep' | 'nap' | 'night_waking'
+  start: string
+  sleepDelay?: number
+  emotionalState?: string
+  notes?: string
+}
 
 interface SleepState {
   status: SleepStatus
@@ -28,7 +36,84 @@ const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 export function useSleepState(childId: string | null, timeZone?: string) {
   const { getTimeContext } = useChildPlan(childId, timeZone)
-  
+  const [pendingEvent, setPendingEvent] = useState<PendingEvent | null>(null)
+
+  // Cargar pending event de localStorage (solo en cliente)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !childId) return
+    const storageKey = `pending_sleep_event_${childId}`
+    try {
+      const stored = window.localStorage.getItem(storageKey)
+      if (stored) {
+        const parsed = JSON.parse(stored) as PendingEvent
+        if (parsed?.type && parsed?.start) {
+          setPendingEvent(parsed)
+        }
+      } else {
+        setPendingEvent(null)
+      }
+    } catch (e) {
+      console.warn('[useSleepState] No se pudo parsear pending event', e)
+    }
+  }, [childId])
+
+  // Escuchar cambios en localStorage (para sincronizar con SleepButton)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !childId) return
+    const storageKey = `pending_sleep_event_${childId}`
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === storageKey) {
+        if (e.newValue) {
+          try {
+            const parsed = JSON.parse(e.newValue) as PendingEvent
+            if (parsed?.type && parsed?.start) {
+              setPendingEvent(parsed)
+            }
+          } catch {
+            setPendingEvent(null)
+          }
+        } else {
+          setPendingEvent(null)
+        }
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [childId])
+
+  // Polling de localStorage para detectar cambios en la misma pestaña
+  useEffect(() => {
+    if (typeof window === 'undefined' || !childId) return
+    const storageKey = `pending_sleep_event_${childId}`
+
+    const checkLocalStorage = () => {
+      try {
+        const stored = window.localStorage.getItem(storageKey)
+        if (stored) {
+          const parsed = JSON.parse(stored) as PendingEvent
+          if (parsed?.type && parsed?.start) {
+            setPendingEvent(prev => {
+              // Solo actualizar si cambió
+              if (JSON.stringify(prev) !== stored) {
+                return parsed
+              }
+              return prev
+            })
+          }
+        } else {
+          setPendingEvent(null)
+        }
+      } catch {
+        // Ignorar errores de localStorage
+      }
+    }
+
+    const interval = setInterval(checkLocalStorage, 500) // Check cada 500ms
+    return () => clearInterval(interval)
+  }, [childId])
+
   const { data, error, isLoading, mutate } = useSWR<SleepStateResponse>(
     childId ? `/api/children/${childId}/current-sleep-state` : null,
     fetcher,
@@ -39,11 +124,25 @@ export function useSleepState(childId: string | null, timeZone?: string) {
     }
   )
 
-  // Convertir la respuesta del API al formato interno
+  // Derivar estado del pending event
+  const derivedStatusFromPending: SleepStatus | null = pendingEvent
+    ? pendingEvent.type === 'night_waking'
+      ? 'night_waking'
+      : pendingEvent.type === 'nap'
+        ? 'napping'
+        : 'sleeping'
+    : null
+
+  // Estado efectivo: pending event tiene prioridad sobre API
+  const effectiveStatus = derivedStatusFromPending ?? data?.status ?? 'awake'
+
+  // Convertir la respuesta del API al formato interno (usando estado efectivo)
   const sleepState: SleepState = {
-    status: data?.status || 'awake',
-    lastEventTime: data?.lastEventTime ? new Date(data.lastEventTime) : null,
-    lastEventType: data?.lastEventType || null,
+    status: effectiveStatus,
+    lastEventTime: pendingEvent?.start
+      ? new Date(pendingEvent.start)
+      : (data?.lastEventTime ? new Date(data.lastEventTime) : null),
+    lastEventType: pendingEvent?.type ?? data?.lastEventType ?? null,
     lastEventId: data?.lastEventId || null,
     duration: data?.duration || null
   }

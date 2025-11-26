@@ -2,7 +2,7 @@
 "use client"
 
 import React from 'react'
-import { format, addDays, startOfWeek, endOfWeek, isToday, isSameDay, startOfDay, endOfDay, eachDayOfInterval } from 'date-fns'
+import { format, addDays, isToday, startOfDay, endOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -186,7 +186,6 @@ export function CalendarWeekView({
           const dayName = weekDays[index]
           const dayEvents = getEventsForDay(day)
           const isDayToday = isToday(day)
-          const isSelectedDay = isSameDay(day, date) // Día seleccionado por navegación
           
           return (
             <div key={day.toString()} className="flex-1 relative">
@@ -194,8 +193,7 @@ export function CalendarWeekView({
               <div
                 className={cn(
                   "h-6 bg-white border-b border-gray-200 flex items-center justify-center text-xs font-medium relative",
-                  isDayToday && "bg-blue-50 text-blue-600",
-                  isSelectedDay && !isDayToday && "bg-gray-100 text-gray-800 font-bold"
+                  isDayToday && "bg-blue-50 text-blue-600"
                 )}
               >
                 {/* Flecha izquierda - solo en el primer día (domingo) */}
@@ -231,10 +229,9 @@ export function CalendarWeekView({
               </div>
               
               {/* Container de eventos */}
-              <div 
+              <div
                 className={cn(
-                  "relative border-r border-gray-200 cursor-pointer",
-                  isSelectedDay && !isDayToday && "border-l-2 border-l-gray-400"
+                  "relative border-r border-gray-200 cursor-pointer"
                 )}
                 style={{ height: `${24 * hourHeight}px` }}
                 onClick={(e) => onCalendarClick?.(e, day)}

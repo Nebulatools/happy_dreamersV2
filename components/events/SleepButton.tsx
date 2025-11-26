@@ -115,12 +115,13 @@ export function SleepButton({
       minutes,
       isNight: minutes >= 18 * 60 || minutes < 6 * 60,
       isNapWindow: minutes >= 8 * 60 && minutes < 17 * 60,
-      isNightWakingWindow: minutes >= 22 * 60 || minutes < 6 * 60
+      isNightWakingWindow: minutes >= 22 * 60 || minutes < 6 * 60,
+      isMorning: minutes >= 6 * 60  // >= 6:00 AM es manana (fin del sueno nocturno)
     }
   }
 
   const getButtonConfig = () => {
-    const { isNight, isNapWindow, isNightWakingWindow } = getTimeWindows()
+    const { isNight, isNapWindow, isNightWakingWindow, isMorning } = getTimeWindows()
     const isSleeping = effectiveStatus === 'sleeping'
     const isNapping = effectiveStatus === 'napping'
     const isNightWaking = effectiveStatus === 'night_waking'
@@ -135,13 +136,21 @@ export function SleepButton({
     }
 
     if (isSleeping) {
+      // Si es sueno nocturno (tipo 'sleep'):
+      // - Durante horas nocturnas (18:00-6:00): mostrar DESPERTAR NOCTURNO
+      // - Despues de 6 AM (y antes de 18:00): mostrar SE DESPERTO (es manana)
+      const isNightSleep = pendingEvent?.type === 'sleep'
+      const shouldShowNightWaking = isNightSleep
+        ? isNight  // Tipo sleep: DESPERTAR NOCTURNO durante horas nocturnas (18:00-6:00)
+        : isNightWakingWindow   // Sin pending: usar logica de ventana horaria (legacy)
+
       return {
-        text: isNightWakingWindow ? 'DESPERTAR NOCTURNO' : 'SE DESPERTÓ',
+        text: shouldShowNightWaking ? 'DESPERTAR NOCTURNO' : 'SE DESPERTÓ',
         icon: Sun,
-        color: isNightWakingWindow
+        color: shouldShowNightWaking
           ? 'from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600'
           : 'from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600',
-        action: isNightWakingWindow ? 'night_wake' : 'wake'
+        action: shouldShowNightWaking ? 'night_wake' : 'wake'
       }
     }
 
@@ -286,7 +295,9 @@ export function SleepButton({
 
   // Manejar click del botón (abre el modal correspondiente)
   const handleClick = () => {
-    const { now } = getTimeWindows()
+    // Usar getCurrentTime() directamente para obtener el tiempo real (o simulado)
+    // NO usar getTimeWindows().now que es un Date "shifted" para display
+    const now = getCurrentTime()
     if (config.action === 'sleep' || config.action === 'nap') {
       setSleepModalConfig({ eventType: config.action, start: now })
       return
@@ -309,7 +320,7 @@ export function SleepButton({
 
       setPendingEvent({
         type: sleepModalConfig.eventType,
-        start: startTime.toISOString(),
+        start: toLocalISOString(startTime, userData.timezone),
         sleepDelay: delay,
         emotionalState: emotionalStateValue,
         notes: notesValue
