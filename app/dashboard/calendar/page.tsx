@@ -1708,8 +1708,8 @@ export default function CalendarPage() {
                 <h3 className="text-base font-semibold text-slate-900">
                   Últimos 7 días
                 </h3>
-                {/* Navegación visible solo en mobile */}
-                <div className="flex md:hidden items-center gap-2">
+                {/* Navegación anterior/siguiente */}
+                <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="icon"

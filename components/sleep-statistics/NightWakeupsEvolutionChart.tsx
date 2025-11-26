@@ -348,7 +348,7 @@ export default function NightWakeupsEvolutionChart({
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               
               {/* Eje X - Días */}
-              <XAxis 
+              <XAxis
                 type="number"
                 dataKey="x"
                 domain={[0, dates.length - 1]}
@@ -359,6 +359,7 @@ export default function NightWakeupsEvolutionChart({
                 tick={{ fontSize: 12 }}
                 label={{ value: '', position: 'insideBottom', offset: -5 }}
                 padding={{ left: 0, right: 0 }}
+                interval={0}
               />
               
               {/* Eje Y - Horas (invertido para que 21:00 esté arriba) */}
