@@ -17,7 +17,7 @@ import {
   ReferenceLine,
   Label,
 } from 'recharts'
-import { format, getDaysInMonth, startOfMonth, addDays } from 'date-fns'
+import { format, getDaysInMonth, startOfMonth, addDays, startOfDay, endOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 
@@ -100,9 +100,16 @@ export function MonthLineChart({
       }
       
       // Procesar eventos del día por tipo
-      const dayEvents = events.filter(event => 
-        event.startTime.startsWith(dayStr)
-      )
+      // CORRECCION: Usar comparacion de objetos Date en lugar de strings
+      // para manejar correctamente las zonas horarias
+      const dayStartDate = startOfDay(currentDay)
+      const dayEndDate = endOfDay(currentDay)
+
+      const dayEvents = events.filter(event => {
+        if (!event.startTime) return false
+        const eventDate = new Date(event.startTime)
+        return eventDate >= dayStartDate && eventDate <= dayEndDate
+      })
       
       // Agrupar eventos por tipo y obtener la hora promedio
       const eventsByType: Record<string, number[]> = {}
