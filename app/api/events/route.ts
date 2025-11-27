@@ -80,10 +80,11 @@ export async function POST(req: Request) {
     const client = await clientPromise
     const db = client.db()
 
-    // Crear el evento
+    // Crear el evento - IMPORTANTE: convertir childId y parentId a ObjectId
     const result = await db.collection("events").insertOne({
       ...data,
-      parentId: session.user.id,
+      childId: new ObjectId(data.childId),
+      parentId: new ObjectId(session.user.id),
       createdAt: new Date(),
     })
 

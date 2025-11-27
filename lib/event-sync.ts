@@ -48,15 +48,23 @@ export async function syncEventToAnalyticsCollection(eventData: EventSyncData): 
     const { db } = await connectToDatabase()
     
     // Verificar si ya existe el evento en la colección analytics
-    const existingEvent = await db.collection("events").findOne({ _id: eventData._id })
+    const existingEvent = await db.collection("events").findOne({ _id: new ObjectId(eventData._id) })
     
+    // Convertir IDs a ObjectId para consistencia
+    const normalizedData = {
+      ...eventData,
+      _id: new ObjectId(eventData._id),
+      childId: new ObjectId(eventData.childId),
+      parentId: new ObjectId(eventData.parentId),
+    }
+
     if (existingEvent) {
       // Actualizar evento existente
       await db.collection("events").updateOne(
-        { _id: eventData._id },
-        { 
+        { _id: normalizedData._id },
+        {
           $set: {
-            ...eventData,
+            ...normalizedData,
             updatedAt: new Date().toISOString()
           }
         }
@@ -65,7 +73,7 @@ export async function syncEventToAnalyticsCollection(eventData: EventSyncData): 
     } else {
       // Crear nuevo evento
       await db.collection("events").insertOne({
-        ...eventData,
+        ...normalizedData,
         createdAt: eventData.createdAt || new Date().toISOString()
       })
       logger.info(`Evento ${eventData._id} sincronizado a colección analytics`)
@@ -84,8 +92,8 @@ export async function syncEventToAnalyticsCollection(eventData: EventSyncData): 
 export async function removeEventFromAnalyticsCollection(eventId: string): Promise<void> {
   try {
     const { db } = await connectToDatabase()
-    
-    await db.collection("events").deleteOne({ _id: eventId })
+
+    await db.collection("events").deleteOne({ _id: new ObjectId(eventId) })
     logger.info(`Evento ${eventId} eliminado de colección analytics`)
     
   } catch (error) {
