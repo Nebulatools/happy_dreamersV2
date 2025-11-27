@@ -287,14 +287,14 @@ export function EventBlock({
   const formatEventTime = () => {
     try {
       if (!event.startTime || event.startTime === '') return '--:--'
-      
+
       const start = parseLocalISODate(event.startTime)
       // Validar que la fecha sea válida antes de formatear
       if (isNaN(start.getTime())) {
         console.error('formatEventTime: fecha de inicio inválida', event.startTime)
         return '--:--'
       }
-      
+
       if (event.endTime && event.endTime !== '') {
         const end = parseLocalISODate(event.endTime)
         if (isNaN(end.getTime())) {
@@ -309,6 +309,24 @@ export function EventBlock({
       return '--:--'
     }
   }
+
+  // Formatear duración del evento
+  const formatDuration = () => {
+    // Priorizar event.duration si existe (ya calculado en API)
+    let duration = event.duration && event.duration > 0
+      ? event.duration
+      : calculateEventDuration()
+
+    if (duration <= 0) return ''
+    const hours = Math.floor(duration / 60)
+    const mins = duration % 60
+    if (hours === 0) return `${mins}m`
+    if (mins === 0) return `${hours}h`
+    return `${hours}h ${mins}m`
+  }
+
+  // Verificar si es evento de despertar nocturno
+  const isNightWaking = event.eventType === 'night_waking'
   
   // Formatear tiempo compacto para mostrar en el bloque
   const formatCompactTime = () => {
@@ -386,6 +404,7 @@ export function EventBlock({
     >
       {/* Contenido del bloque - Ajustado dinámicamente según altura del bloque */}
       {/* UX: Eventos pequeños solo muestran emoji + horario para evitar texto apretado */}
+      {/* EXCEPCION: night_waking siempre muestra duración en lugar de hora */}
       <div className="flex items-center w-full overflow-hidden justify-center">
         {blockHeight < 20 ? (
           // MUY PEQUEÑO (< 20px): Solo emoji centrado
@@ -393,31 +412,40 @@ export function EventBlock({
             {getEventEmoji()}
           </div>
         ) : blockHeight < 30 ? (
-          // PEQUEÑO (20-30px): Emoji + hora compacta
+          // PEQUEÑO (20-30px): Emoji + hora/duración compacta
           <div className="flex items-center gap-0.5">
             {getEventEmoji()}
             <span className="font-bold truncate" style={{ fontSize: '8px', lineHeight: '1' }}>
-              {format(parseLocalISODate(event.startTime), "HH:mm")}
+              {isNightWaking ? formatDuration() : format(parseLocalISODate(event.startTime), "HH:mm")}
             </span>
           </div>
         ) : blockHeight < 55 ? (
-          // MEDIANO (30-55px): Emoji + horario completo (SIN nombre para mejor legibilidad)
+          // MEDIANO (30-55px): Emoji + hora/duración (SIN nombre para mejor legibilidad)
           <div className="flex items-center gap-1">
             {getEventEmoji()}
-            <span className="font-bold truncate" style={{ fontSize: '9px', lineHeight: '1' }}>
-              {formatEventTime()}
+            <span className="font-bold truncate" style={{ fontSize: isNightWaking ? '11px' : '9px', lineHeight: '1' }}>
+              {isNightWaking ? formatDuration() : formatEventTime()}
             </span>
           </div>
         ) : (
-          // GRANDE (> 55px): Emoji + Nombre + horario (hay suficiente espacio)
+          // GRANDE (> 55px): Emoji + Nombre/Duración + horario (hay suficiente espacio)
           <div className="flex items-center gap-1 w-full min-w-0">
             {getEventEmoji()}
-            <span className="truncate font-bold" style={{ fontSize: '10px' }}>
-              {getEventTypeName()}
-            </span>
-            <span className="font-medium opacity-90" style={{ fontSize: '9px' }}>
-              {formatEventTime()}
-            </span>
+            {isNightWaking ? (
+              // Para night_waking: mostrar duración grande como texto principal
+              <span className="truncate font-bold" style={{ fontSize: '12px' }}>
+                {formatDuration()}
+              </span>
+            ) : (
+              <>
+                <span className="truncate font-bold" style={{ fontSize: '10px' }}>
+                  {getEventTypeName()}
+                </span>
+                <span className="font-medium opacity-90" style={{ fontSize: '9px' }}>
+                  {formatEventTime()}
+                </span>
+              </>
+            )}
           </div>
         )}
       </div>

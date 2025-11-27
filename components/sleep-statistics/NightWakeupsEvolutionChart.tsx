@@ -71,13 +71,16 @@ function processNightWakeupsEvolution(events: any[], dateRange: string, periodOf
     const wakeups = dayEvents.map((event, wakeupIndex) => {
       const eventDate = parseISO(event.startTime)
       let duration = 0
-      
-      if (event.endTime) {
+
+      // Prioridad: usar el campo duration ya calculado por la API
+      if (event.duration && event.duration > 0) {
+        duration = event.duration
+      } else if (event.endTime) {
         duration = differenceInMinutes(parseISO(event.endTime), eventDate)
+      } else if (event.awakeDelay) {
+        duration = event.awakeDelay
       } else if (event.nightWakingDelay) {
         duration = event.nightWakingDelay
-      } else if (event.sleepDelay) {
-        duration = event.sleepDelay
       } else {
         duration = 15 // Duración estimada si no hay datos
       }
