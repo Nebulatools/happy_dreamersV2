@@ -10,45 +10,33 @@ import {
   AlertCircle,
   Clock
 } from "lucide-react"
-import { format, differenceInMinutes, differenceInHours, parseISO } from 'date-fns'
+import { format, differenceInMinutes, differenceInHours } from 'date-fns'
 import { cn } from '@/lib/utils'
 
-// Función auxiliar para parsear fechas ISO locales correctamente
+// Funcion auxiliar para parsear fechas ISO locales correctamente
+// CORREGIDO: Usa el constructor Date nativo que respeta el offset en el string
+// No usar parseISO porque puede tener comportamiento inconsistente con timezones
 function parseLocalISODate(isoString: string): Date {
-  // Validar que el string no esté vacío
+  // Validar que el string no este vacio
   if (!isoString || isoString === '') {
-    console.error('parseLocalISODate: string vacío o undefined')
+    console.error('parseLocalISODate: string vacio o undefined')
     return new Date() // Retornar fecha actual como fallback
   }
-  
+
   try {
-    // Usar parseISO de date-fns que maneja correctamente las zonas horarias
-    // parseISO convierte a UTC pero luego getHours() devuelve hora local correcta
-    const date = parseISO(isoString)
-    
-    // Validar que la fecha sea válida
+    // El constructor Date() nativo respeta el offset de timezone en el string ISO
+    // ej: "2025-11-27T14:30:00.000-06:00" se interpreta correctamente
+    const date = new Date(isoString)
+
+    // Validar que la fecha sea valida
     if (isNaN(date.getTime())) {
-      console.error('parseLocalISODate: fecha inválida de:', isoString)
-      // Intentar con Date constructor como fallback
-      const fallbackDate = new Date(isoString)
-      if (isNaN(fallbackDate.getTime())) {
-        return new Date() // Fallback a fecha actual
-      }
-      return fallbackDate
+      console.error('parseLocalISODate: fecha invalida de:', isoString)
+      return new Date() // Fallback a fecha actual
     }
-    
+
     return date
   } catch (error) {
     console.error('parseLocalISODate error:', error, 'para string:', isoString)
-    // Último intento con Date constructor
-    try {
-      const lastTry = new Date(isoString)
-      if (!isNaN(lastTry.getTime())) {
-        return lastTry
-      }
-    } catch {
-      // Nada
-    }
     return new Date() // Fallback seguro
   }
 }

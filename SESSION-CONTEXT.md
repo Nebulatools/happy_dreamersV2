@@ -1,7 +1,7 @@
-# Session Context - Happy Dreamers 🌙
-*Última actualización: Enero 2025*
+# Session Context - Happy Dreamers
+*Última actualización: Noviembre 2025*
 
-## 🎯 Estado Actual del Sistema
+## Estado Actual del Sistema
 
 ### Stack Técnico
 - **Frontend**: Next.js 15.2.4, React 19, TypeScript 5
@@ -12,13 +12,111 @@
 - **AI**: OpenAI GPT-4, LangChain, Google Gemini
 - **Deployment**: Vercel
 
-### Estado de Producción
-- **Build Status**: ✅ Sin errores TypeScript
-- **Features**: Sistema de eventos v5.0 completo
-- **Testing**: ✅ QA completo + Sistema funcionando
-- **Branch Actual**: regevento
+### Estado de Produccion
+- **Build Status**: Sin errores TypeScript
+- **Features**: Sistema de eventos v5.1 + Timezone fixes
+- **Testing**: QA completo + Sistema funcionando
+- **Branch Actual**: Test
 
-## 📊 Sesión Actual - Sistema de Eventos v5.1 ✅
+---
+
+## SESION ACTUAL - Auditoria y Limpieza de Codigo Legacy (Nov 2025)
+
+### Problema Detectado
+Eventos registrados mostraban horas incorrectas cuando el navegador del usuario
+tenia configuracion de timezone diferente a la timezone del usuario en la app.
+Ejemplo: Siesta registrada a las 14:29 aparecia como 05:33.
+
+### Causa Raiz
+Las funciones de timezone usaban `getTimezoneOffset()` que SIEMPRE retorna el
+offset del navegador local, NO el offset de la timezone especificada.
+
+### Correcciones Realizadas
+
+#### Fase 1: Fixes Criticos de Timezone
+
+**1. lib/date-utils.ts - toLocalISOString()**
+- Reescrito para calcular offset usando `Intl.DateTimeFormat`
+- Ya no depende de `getTimezoneOffset()` del navegador
+- Calcula diferencia real entre UTC y la timezone especificada
+
+**2. lib/timezone.ts - getTimePartsInTimeZone()**
+- Eliminado sufijo "Z" que causaba interpretacion UTC incorrecta
+- Ahora crea fecha sin sufijo para interpretacion local correcta
+
+**3. lib/timezone.ts - startOfDayUTCForTZ()**
+- Simplificado usando `Intl.DateTimeFormat` directamente
+- Elimina dependencia de calculo manual de offset
+
+**4. components/calendar/EventBlock.tsx**
+- Reemplazado `parseISO` de date-fns con `new Date()` nativo
+- El constructor nativo respeta el offset en strings ISO
+
+#### Fase 2: Limpieza de Codigo Legacy
+
+**1. components/events/SleepButton.tsx**
+- Eliminado `isNightWakingWindow` (dead code)
+- Simplificada logica de `shouldShowNightWaking`
+- Eliminados imports no usados
+
+**2. app/api/children/events/route.ts**
+- Eliminado fallback legacy que borraba de `children.events`
+- Ahora solo opera en coleccion `events`
+- Agregado warning para eventos legacy muy antiguos
+
+### Arquitectura Correcta del Flujo de Eventos
+
+```
+[Usuario presiona boton]
+    |
+    v
+[SleepButton.tsx]
+    |-- Guarda pendiente en localStorage (para persistencia)
+    |-- Muestra modal de configuracion (delay, emociones, etc)
+    |
+    v
+[Modal confirma]
+    |
+    v
+[POST /api/children/events/route.ts]
+    |-- Valida datos con Zod
+    |-- Normaliza childId/parentId a ObjectId
+    |-- Guarda en coleccion 'events' (NO en children.events)
+    |-- Recalcula duracion si tiene startTime y endTime
+    |
+    v
+[Respuesta exitosa]
+    |
+    v
+[SleepButton limpia localStorage]
+[UI actualiza via onEventRegistered callback]
+```
+
+### Patron de Timezone Correcto
+
+```typescript
+// CORRECTO: Usar Intl.DateTimeFormat para obtener componentes
+const formatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/Monterrey",
+  year: "numeric", month: "2-digit", day: "2-digit",
+  hour: "2-digit", minute: "2-digit", second: "2-digit",
+  hour12: false
+})
+const parts = formatter.formatToParts(date)
+
+// INCORRECTO: Usar getTimezoneOffset()
+const offset = date.getTimezoneOffset() // Siempre retorna offset del browser!
+```
+
+### Colecciones de Datos
+
+- **`events`** (coleccion principal): Todos los eventos nuevos
+- **`children.events`** (DEPRECADO): Array embebido legacy, ya no se usa
+- **`children.currentSleepState`**: Estado de sueno actual del nino
+
+---
+
+## Sesion Anterior - Sistema de Eventos v5.1
 
 ### SISTEMA COMPLETO DE EVENTOS CON EDICIÓN REUTILIZABLE
 **Fecha**: Enero 2025

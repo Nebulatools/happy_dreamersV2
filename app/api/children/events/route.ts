@@ -866,20 +866,14 @@ export async function DELETE(req: NextRequest) {
       logger.warn('Error eliminando de colección events:', e)
     }
 
-    // PASO 2: Eliminar del array embebido children.events (compatibilidad)
-    const result = await db.collection("children").updateOne(
-      { 
-        _id: new ObjectId(childId),
-        parentId: new ObjectId(accessContext.ownerId)
-      },
-      { $pull: { events: { _id: eventId } } as any }
-    )
+    // LEGACY DEPRECADO: Ya no eliminamos del array embebido children.events
+    // Todos los eventos nuevos se guardan en la coleccion 'events'
+    // Si deletedFromEvents > 0, el evento se elimino correctamente
+    // Si deletedFromEvents === 0, el evento no existia o era muy antiguo
 
-    logger.info("Resultado de la eliminación del array embebido:", result)
-
-    // Verificar que al menos se eliminó de uno de los dos lugares
-    if (deletedFromEvents === 0 && result.modifiedCount === 0) {
-      logger.error("No se pudo eliminar el evento de ninguna colección")
+    // Verificar que se elimino de la coleccion events
+    if (deletedFromEvents === 0) {
+      logger.warn("Evento no encontrado en coleccion events - puede ser evento legacy muy antiguo")
       return NextResponse.json(
         { error: "No se pudo eliminar el evento o no existe" },
         { status: 404 }

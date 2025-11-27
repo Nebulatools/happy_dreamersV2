@@ -125,13 +125,12 @@ export function SleepButton({
       minutes,
       isNight: minutes >= 19 * 60 || minutes < 6 * 60,  // 7 PM a 6 AM
       isNapWindow: minutes >= 8 * 60 && minutes < 17 * 60,
-      isNightWakingWindow: minutes >= 22 * 60 || minutes < 6 * 60,
       isMorning: minutes >= 6 * 60  // >= 6:00 AM es manana (fin del sueno nocturno)
     }
   }
 
   const getButtonConfig = () => {
-    const { isNight, isNapWindow, isNightWakingWindow, isMorning } = getTimeWindows()
+    const { isNight, isNapWindow, isMorning } = getTimeWindows()
     const isSleeping = effectiveStatus === 'sleeping'
     const isNapping = effectiveStatus === 'napping'
     const isNightWaking = effectiveStatus === 'night_waking'
@@ -147,12 +146,12 @@ export function SleepButton({
 
     if (isSleeping) {
       // Si es sueno nocturno (tipo 'sleep'):
-      // - Durante horas nocturnas (18:00-6:00): mostrar DESPERTAR NOCTURNO
-      // - Despues de 6 AM (y antes de 18:00): mostrar SE DESPERTO (es manana)
-      const isNightSleep = sleepPending?.type === 'sleep'
-      const shouldShowNightWaking = isNightSleep
-        ? isNight  // Tipo sleep: DESPERTAR NOCTURNO durante horas nocturnas (18:00-6:00)
-        : isNightWakingWindow   // Sin pending: usar logica de ventana horaria (legacy)
+      // - Durante horas nocturnas (19:00-6:00): mostrar DESPERTAR NOCTURNO
+      // - Despues de 6 AM (y antes de 19:00): mostrar SE DESPERTO (es manana)
+      // SIMPLIFICADO: Siempre usar isNight para determinar si mostrar despertar nocturno
+      // Si hay sleepPending.type === 'sleep', respetamos el horario
+      // Si no hay sleepPending (estado viene del backend), igual usamos isNight
+      const shouldShowNightWaking = isNight && (sleepPending?.type === 'sleep' || !sleepPending)
 
       return {
         text: shouldShowNightWaking ? 'DESPERTAR NOCTURNO' : 'SE DESPERTÓ',
