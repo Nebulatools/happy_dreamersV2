@@ -20,6 +20,7 @@ import {
 import { format, getDaysInMonth, startOfMonth, addDays } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import { getStartOfDayAsDate, getEndOfDayAsDate, parseTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
 
 interface Event {
   _id: string
@@ -40,6 +41,7 @@ interface MonthLineChartProps {
   className?: string
   idealBedtime?: string  // Hora ideal de dormir del plan (ej: "20:00")
   idealWakeTime?: string // Hora ideal de despertar del plan (ej: "07:00")
+  timezone?: string      // Timezone del usuario (ej: "America/Monterrey")
 }
 
 // Colores consistentes con el sistema existente
@@ -66,13 +68,14 @@ const EVENT_LABELS: Record<string, string> = {
 // Maximo de siestas a mostrar individualmente
 const MAX_INDIVIDUAL_NAPS = 3
 
-export function MonthLineChart({ 
-  events, 
-  currentDate, 
+export function MonthLineChart({
+  events,
+  currentDate,
   onEventClick,
   className,
   idealBedtime,
   idealWakeTime,
+  timezone = DEFAULT_TIMEZONE,
 }: MonthLineChartProps) {
   
   // Si no hay eventos, mostrar mensaje informativo
@@ -110,14 +113,22 @@ export function MonthLineChart({
       }
 
       // Procesar eventos del día por tipo
-      const dayEvents = events.filter(event =>
-        event.startTime.startsWith(dayStr)
-      )
+      // CORRECCION: Usar comparacion de objetos Date con timezone en lugar de strings
+      // para manejar correctamente las zonas horarias
+      const dayStartDate = getStartOfDayAsDate(currentDay, timezone)
+      const dayEndDate = getEndOfDayAsDate(currentDay, timezone)
+
+      const dayEvents = events.filter(event => {
+        if (!event.startTime) return false
+        const eventDate = parseTimestamp(event.startTime)
+        return eventDate >= dayStartDate && eventDate <= dayEndDate
+      })
 
       // Tambien buscar eventos de sleep que TERMINAN en este dia (para despertar)
       const wakeFromSleep = events.filter(event => {
         if (event.eventType === "sleep" && event.endTime) {
-          return event.endTime.startsWith(dayStr)
+          const endDate = parseTimestamp(event.endTime)
+          return endDate >= dayStartDate && endDate <= dayEndDate
         }
         return false
       })

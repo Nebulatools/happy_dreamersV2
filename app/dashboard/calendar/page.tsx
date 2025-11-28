@@ -1379,13 +1379,14 @@ export default function CalendarPage() {
   const renderMonthLineView = () => {
     return (
       <div className="h-full flex flex-col">
-        <MonthLineChart 
+        <MonthLineChart
           events={monthEventsForStats}
           currentDate={date}
           onEventClick={handleEventClick}
           className="h-full"
           idealBedtime={activePlan?.schedule?.bedtime}
           idealWakeTime={activePlan?.schedule?.wakeTime}
+          timezone={userTimeZone}
         />
       </div>
     )
