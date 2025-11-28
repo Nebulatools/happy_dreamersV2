@@ -3,7 +3,7 @@
 
 "use client"
 
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useRef } from "react"
 import { createLogger } from "@/lib/logger"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -695,6 +695,9 @@ export default function CalendarPage() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
+  // Ref para el contenedor del calendario (para auto-scroll)
+  const calendarContainerRef = useRef<HTMLDivElement>(null)
+
   // Configurar el header dinámico - simplificado con solo botón de agregar
   const headerActions = useMemo(() => {
     if (!isAdminView) return null
@@ -743,7 +746,25 @@ export default function CalendarPage() {
       filterEventsFromCache()
     }
   }, [date, view])
-  
+
+  // Auto-scroll a las 6AM cuando se carga el calendario o cambia la vista
+  useEffect(() => {
+    // Solo aplicar en vistas de día y semana (tienen timeline de 24 horas)
+    if ((view === "day" || view === "week") && calendarContainerRef.current && !isLoading) {
+      const HOUR_HEIGHT = 30 // px por hora
+      const scrollToHour = 6 // 6:00 AM
+      const scrollPosition = scrollToHour * HOUR_HEIGHT // 180px
+
+      // Usar setTimeout para asegurar que el contenido esté renderizado
+      setTimeout(() => {
+        calendarContainerRef.current?.scrollTo({
+          top: scrollPosition,
+          behavior: "instant", // Sin animación para carga inicial
+        })
+      }, 100) // Timeout ligeramente mayor para asegurar renderizado completo
+    }
+  }, [view, activeChildId, isLoading])
+
   // Función para obtener el plan activo del niño
   const fetchActivePlan = async () => {
     try {
@@ -1569,7 +1590,7 @@ export default function CalendarPage() {
 
           {calendarTab === "calendar" ? (
             <div className="px-6 pb-6">
-              <Card className="p-4 h-[calc(100vh-150px)] overflow-auto" style={{ minHeight: "450px", maxHeight: "calc(100vh - 120px)" }}>
+              <Card ref={calendarContainerRef} className="p-4 h-[calc(100vh-150px)] overflow-auto" style={{ minHeight: "450px", maxHeight: "calc(100vh - 120px)" }}>
                 <div className="h-full">
                   {isLoading ? (
                     <div className="flex justify-center items-center h-96">
