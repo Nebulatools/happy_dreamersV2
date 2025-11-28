@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useMemo } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -22,6 +22,8 @@ import {
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { CalendarDays, Loader2 } from "lucide-react"
+import { detectContinuousSleepEvents, formatMinutesAsHours as formatDuration } from "@/lib/utils/continuous-sleep-detector"
+import { ContinuousSleepOverlay } from "@/components/dashboard/ContinuousSleepOverlay"
 
 type RangeOption = "7-days" | "30-days" | "90-days"
 
@@ -215,6 +217,11 @@ export default function SleepMetricsCombinedChart({
     [eventsInRange, windowStart, windowEnd]
   )
 
+  // Detectar eventos continuos que cruzan medianoche
+  const continuousEvents = useMemo(() => {
+    return detectContinuousSleepEvents(eventsInRange)
+  }, [eventsInRange])
+
   const midpointForWeek = React.useMemo(
     () => subDays(windowEnd, Math.floor(daysToShow / 2)),
     [windowEnd, daysToShow]
@@ -281,6 +288,7 @@ export default function SleepMetricsCombinedChart({
             dailySummary={dailySummary}
             rangeLabel={getRangeLabel(range)}
             daysToShow={daysToShow}
+            continuousEvents={continuousEvents}
           />
         ) : range === "7-days" ? (
           <div className="overflow-x-auto pb-4">
@@ -298,6 +306,7 @@ export default function SleepMetricsCombinedChart({
             dailySummary={dailySummary}
             rangeLabel={getRangeLabel(range)}
             daysToShow={daysToShow}
+            continuousEvents={continuousEvents}
           />
         )}
       </CardContent>
@@ -311,6 +320,7 @@ interface RollingCalendarGridProps {
   dailySummary: Map<string, DailySummary>
   rangeLabel: string
   daysToShow: number
+  continuousEvents: ReturnType<typeof detectContinuousSleepEvents>
 }
 
 function RollingCalendarGrid({
@@ -319,6 +329,7 @@ function RollingCalendarGrid({
   dailySummary,
   rangeLabel,
   daysToShow,
+  continuousEvents,
 }: RollingCalendarGridProps) {
   const isSevenDayMode = daysToShow <= 7
   const gridStart = isSevenDayMode
@@ -329,6 +340,15 @@ function RollingCalendarGrid({
     : endOfWeek(endDate, { weekStartsOn: 0 })
   const days = eachDayOfInterval({ start: gridStart, end: gridEnd })
   const weeks = chunkBy(days, 7)
+
+  // Crear Set de días que tienen eventos continuos para ocultar segmentos individuales
+  const daysWithContinuousEvents = React.useMemo(() => {
+    const daySet = new Set<string>()
+    continuousEvents.forEach(event => {
+      event.daysSpanned.forEach(day => daySet.add(day))
+    })
+    return daySet
+  }, [continuousEvents])
 
   return (
     <div className="space-y-3">
@@ -350,61 +370,83 @@ function RollingCalendarGrid({
             ))}
           </div>
 
-          <div className="space-y-2">
-            {weeks.map((week, idx) => (
-              <div key={idx} className="grid grid-cols-7 gap-2">
-                {week.map((day) => {
-                  const key = format(day, "yyyy-MM-dd")
-                  const summary = dailySummary.get(key)
-                  const isOutsideRange = day < startDate || day > endDate
-                  const monthBreak = day.getDate() === 1
-                  const classes = summary
-                    ? getIntensityClasses(summary.totalMinutes)
-                    : "bg-white border border-gray-200"
+          {/* Wrapper con position relative para overlay */}
+          <div className="relative">
+            <div className="space-y-2">
+              {weeks.map((week, idx) => (
+                <div key={idx} className="grid grid-cols-7 gap-2">
+                  {week.map((day) => {
+                    const key = format(day, "yyyy-MM-dd")
+                    const summary = dailySummary.get(key)
+                    const isOutsideRange = day < startDate || day > endDate
+                    const monthBreak = day.getDate() === 1
+                    const classes = summary
+                      ? getIntensityClasses(summary.totalMinutes)
+                      : "bg-white border border-gray-200"
 
-                  return (
-                    <div
-                      key={key}
-                      className={cn(
-                        "min-h-[130px] rounded-xl border p-2 text-left transition-colors",
-                        classes,
-                        isOutsideRange && "opacity-40"
-                      )}
-                    >
-                      <div className="flex items-center justify-between text-xs font-semibold">
-                        <span>{day.getDate()}</span>
-                        {monthBreak || day.getDate() === 1 ? (
-                          <span className="text-[10px] uppercase tracking-wide">
-                            {format(day, "MMM", { locale: es })}
-                          </span>
-                        ) : (
-                          <span />
+                    return (
+                      <div
+                        key={key}
+                        className={cn(
+                          "min-h-[130px] rounded-xl border p-2 text-left transition-colors",
+                          classes,
+                          isOutsideRange && "opacity-40"
                         )}
-                      </div>
+                      >
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span>{day.getDate()}</span>
+                          {monthBreak || day.getDate() === 1 ? (
+                            <span className="text-[10px] uppercase tracking-wide">
+                              {format(day, "MMM", { locale: es })}
+                            </span>
+                          ) : (
+                            <span />
+                          )}
+                        </div>
 
-                      <div className="mt-2 space-y-1">
-                        {summary?.segments.slice(0, 3).map((segment) => (
-                          <div
-                            key={segment.id}
-                            className="rounded-md bg-white/70 px-2 py-1 text-[11px] text-gray-700 shadow-sm"
-                          >
-                            <span className="font-medium mr-1">{getSegmentEmoji(segment.type)}</span>
-                            {format(segment.start, "HH:mm")} - {format(segment.end, "HH:mm")}
-                          </div>
-                        ))}
-                        {summary && summary.segments.length > 3 && (
-                          <div className="text-[10px] text-gray-600">+{summary.segments.length - 3} eventos</div>
-                        )}
-                      </div>
+                        <div className="mt-2 space-y-1">
+                          {summary?.segments
+                            .filter((segment) => {
+                              // Ocultar segmentos de sueño si son parte de un evento continuo
+                              if (daysWithContinuousEvents.has(key) && isSleepBlock(segment.type)) {
+                                return false
+                              }
+                              return true
+                            })
+                            .slice(0, 3)
+                            .map((segment) => (
+                              <div
+                                key={segment.id}
+                                className="rounded-md bg-white/70 px-2 py-1 text-[11px] text-gray-700 shadow-sm"
+                              >
+                                <span className="font-medium mr-1">{getSegmentEmoji(segment.type)}</span>
+                                {format(segment.start, "HH:mm")} - {format(segment.end, "HH:mm")}
+                              </div>
+                            ))}
+                          {summary && summary.segments.filter(s => !daysWithContinuousEvents.has(key) || !isSleepBlock(s.type)).length > 3 && (
+                            <div className="text-[10px] text-gray-600">
+                              +{summary.segments.filter(s => !daysWithContinuousEvents.has(key) || !isSleepBlock(s.type)).length - 3} eventos
+                            </div>
+                          )}
+                        </div>
 
-                      <div className="mt-3 text-[11px] font-semibold">
-                        Sueño total: {summary ? formatMinutesAsHours(summary.totalMinutes) : "0h"}
+                        <div className="mt-3 text-[11px] font-semibold">
+                          Sueño total: {summary ? formatMinutesAsHours(summary.totalMinutes) : "0h"}
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
-              </div>
-            ))}
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+
+            {/* Overlay de eventos continuos */}
+            {continuousEvents.length > 0 && (
+              <ContinuousSleepOverlay
+                continuousEvents={continuousEvents}
+                visibleDays={days}
+              />
+            )}
           </div>
         </div>
       </div>
