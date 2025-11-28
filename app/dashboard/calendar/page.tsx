@@ -612,35 +612,61 @@ export default function CalendarPage() {
   }
 
   // Función auxiliar para filtrar eventos por vista
+  // Considera tanto startTime como endTime para incluir eventos que cruzan límites de fecha
   const filterEventsByView = (eventsData: Event[], currentView: string, currentDate: Date) => {
     let filteredEvents = eventsData
 
     if (currentView === "month") {
       filteredEvents = eventsData.filter((event: Event) => {
-        const eventDate = new Date(event.startTime)
-        return eventDate.getMonth() === currentDate.getMonth() &&
-               eventDate.getFullYear() === currentDate.getFullYear()
+        const eventStart = new Date(event.startTime)
+        const eventEnd = event.endTime ? new Date(event.endTime) : null
+        const monthStart = startOfMonth(currentDate)
+        const monthEnd = endOfMonth(currentDate)
+
+        // Incluir si: empieza en el mes, termina en el mes, o cruza el mes
+        const startsInMonth = eventStart >= monthStart && eventStart <= monthEnd
+        const endsInMonth = eventEnd && eventEnd >= monthStart && eventEnd <= monthEnd
+        const crossesMonth = eventStart < monthStart && eventEnd && eventEnd > monthEnd
+
+        return startsInMonth || endsInMonth || crossesMonth
       })
     } else if (currentView === "week") {
-      // CAMBIO: Usar los últimos 7 días reales (hoy y 6 días atrás)
-      const todayStart = getStartOfDayAsDate(currentDate, userTimeZone)
-      const weekStart = subDays(todayStart, 6) // 6 días atrás
-      const weekEnd = endOfDay(todayStart) // Hasta el final de hoy
+      // IMPORTANTE: La vista semanal muestra 7 días centrados en currentDate
+      // días visibles: date-3, date-2, date-1, date, date+1, date+2, date+3
+      // El filtro debe coincidir con estos días para que todos los eventos sean visibles
+      const centerDate = getStartOfDayAsDate(currentDate, userTimeZone)
+      const weekStart = subDays(centerDate, 3)
+      const weekEnd = endOfDay(addDays(centerDate, 3))
+
       filteredEvents = eventsData.filter((event: Event) => {
-        const eventDate = new Date(event.startTime)
-        return eventDate >= weekStart && eventDate <= weekEnd
+        const eventStart = new Date(event.startTime)
+        const eventEnd = event.endTime ? new Date(event.endTime) : null
+
+        // Incluir si: empieza en el rango, termina en el rango, cruza el rango, o sleep en progreso
+        const startsInRange = eventStart >= weekStart && eventStart <= weekEnd
+        const endsInRange = eventEnd && eventEnd >= weekStart && eventEnd <= weekEnd
+        const crossesRange = eventStart < weekStart && eventEnd && eventEnd > weekEnd
+        const sleepInProgress = !eventEnd && event.eventType === "sleep" && eventStart < weekEnd
+
+        return startsInRange || endsInRange || crossesRange || sleepInProgress
       })
     } else if (currentView === "day") {
       const dayStart = startOfDay(currentDate)
       const dayEnd = endOfDay(currentDate)
+
       filteredEvents = eventsData.filter((event: Event) => {
-        const eventDate = new Date(event.startTime)
-        return eventDate >= dayStart && eventDate <= dayEnd
+        const eventStart = new Date(event.startTime)
+        const eventEnd = event.endTime ? new Date(event.endTime) : null
+
+        // Incluir si: empieza en el día, termina en el día, cruza el día, o sleep en progreso
+        const startsInDay = eventStart >= dayStart && eventStart <= dayEnd
+        const endsInDay = eventEnd && eventEnd >= dayStart && eventEnd <= dayEnd
+        const crossesDay = eventStart < dayStart && eventEnd && eventEnd > dayEnd
+        const sleepInProgress = !eventEnd && event.eventType === "sleep" && eventStart < dayEnd
+
+        return startsInDay || endsInDay || crossesDay || sleepInProgress
       })
     }
-
-    // Ya filtramos correctamente por rango en las vistas específicas
-    // No necesitamos refilter aquí
 
     return filteredEvents
   }
