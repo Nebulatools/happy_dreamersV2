@@ -2,9 +2,9 @@
 
 // Proveedor para registrar y gestionar el Service Worker
 
-import { createContext, useContext, useEffect, useState } from 'react'
-import { swManager } from '@/lib/service-worker-registration'
-import { toast } from 'sonner'
+import { createContext, useContext, useEffect, useState } from "react"
+import { swManager } from "@/lib/service-worker-registration"
+import { toast } from "sonner"
 
 interface ServiceWorkerContextValue {
   isSupported: boolean
@@ -20,12 +20,12 @@ interface ServiceWorkerContextValue {
 const ServiceWorkerContext = createContext<ServiceWorkerContextValue>({
   isSupported: false,
   isRegistered: false,
-  permission: 'default',
+  permission: "default",
   isSubscribed: false,
   registerSW: async () => {},
   subscribeToPush: async () => {},
   unsubscribe: async () => {},
-  sendTestNotification: async () => {}
+  sendTestNotification: async () => {},
 })
 
 export function useServiceWorker() {
@@ -40,8 +40,8 @@ export function ServiceWorkerProvider({ children }: ServiceWorkerProviderProps) 
   const [status, setStatus] = useState({
     isSupported: false,
     isRegistered: false,
-    permission: 'default' as NotificationPermission,
-    isSubscribed: false
+    permission: "default" as NotificationPermission,
+    isSubscribed: false,
   })
 
   // Verificar estado inicial
@@ -49,15 +49,15 @@ export function ServiceWorkerProvider({ children }: ServiceWorkerProviderProps) 
     checkStatus()
     
     // Registrar automáticamente en producción
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === "production") {
       registerServiceWorker()
     }
 
     // Escuchar actualizaciones del SW
-    window.addEventListener('sw-update-available', handleSWUpdate)
+    window.addEventListener("sw-update-available", handleSWUpdate)
     
     return () => {
-      window.removeEventListener('sw-update-available', handleSWUpdate)
+      window.removeEventListener("sw-update-available", handleSWUpdate)
     }
   }, [])
 
@@ -67,7 +67,7 @@ export function ServiceWorkerProvider({ children }: ServiceWorkerProviderProps) 
       isSupported: currentStatus.supported,
       isRegistered: currentStatus.registered,
       permission: currentStatus.permission,
-      isSubscribed: currentStatus.subscribed
+      isSubscribed: currentStatus.subscribed,
     })
 
     // Verificar suscripción actual
@@ -75,7 +75,7 @@ export function ServiceWorkerProvider({ children }: ServiceWorkerProviderProps) 
       const subscription = await swManager.getCurrentSubscription()
       setStatus(prev => ({
         ...prev,
-        isSubscribed: !!subscription
+        isSubscribed: !!subscription,
       }))
     }
   }
@@ -84,20 +84,20 @@ export function ServiceWorkerProvider({ children }: ServiceWorkerProviderProps) 
     try {
       const registration = await swManager.register()
       if (registration) {
-        console.log('Service Worker registrado exitosamente')
+        console.log("Service Worker registrado exitosamente")
         await checkStatus()
         
         // En desarrollo, mostrar notificación de éxito
-        if (process.env.NODE_ENV === 'development') {
-          toast.success('Service Worker registrado', {
-            description: 'Las notificaciones push están listas'
+        if (process.env.NODE_ENV === "development") {
+          toast.success("Service Worker registrado", {
+            description: "Las notificaciones push están listas",
           })
         }
       }
     } catch (error) {
-      console.error('Error registrando Service Worker:', error)
-      if (process.env.NODE_ENV === 'development') {
-        toast.error('Error registrando Service Worker')
+      console.error("Error registrando Service Worker:", error)
+      if (process.env.NODE_ENV === "development") {
+        toast.error("Error registrando Service Worker")
       }
     }
   }
@@ -108,24 +108,24 @@ export function ServiceWorkerProvider({ children }: ServiceWorkerProviderProps) 
       const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
       
       if (!vapidPublicKey) {
-        throw new Error('VAPID public key no configurada')
+        throw new Error("VAPID public key no configurada")
       }
 
       const subscription = await swManager.subscribeToPush(vapidPublicKey)
       
       if (subscription) {
         await checkStatus()
-        toast.success('Notificaciones activadas', {
-          description: 'Recibirás alertas de los horarios de sueño'
+        toast.success("Notificaciones activadas", {
+          description: "Recibirás alertas de los horarios de sueño",
         })
       } else {
-        toast.error('No se pudo activar las notificaciones', {
-          description: 'Verifica los permisos del navegador'
+        toast.error("No se pudo activar las notificaciones", {
+          description: "Verifica los permisos del navegador",
         })
       }
     } catch (error) {
-      console.error('Error suscribiendo a push:', error)
-      toast.error('Error al activar notificaciones')
+      console.error("Error suscribiendo a push:", error)
+      toast.error("Error al activar notificaciones")
     }
   }
 
@@ -134,32 +134,32 @@ export function ServiceWorkerProvider({ children }: ServiceWorkerProviderProps) 
       const success = await swManager.unsubscribeFromPush()
       if (success) {
         await checkStatus()
-        toast.success('Notificaciones desactivadas')
+        toast.success("Notificaciones desactivadas")
       }
     } catch (error) {
-      console.error('Error desuscribiendo:', error)
-      toast.error('Error al desactivar notificaciones')
+      console.error("Error desuscribiendo:", error)
+      toast.error("Error al desactivar notificaciones")
     }
   }
 
   const sendTestNotification = async () => {
     try {
       await swManager.sendTestNotification()
-      toast.success('Notificación de prueba enviada')
+      toast.success("Notificación de prueba enviada")
     } catch (error) {
-      console.error('Error enviando notificación de prueba:', error)
-      toast.error('Error al enviar notificación de prueba')
+      console.error("Error enviando notificación de prueba:", error)
+      toast.error("Error al enviar notificación de prueba")
     }
   }
 
   const handleSWUpdate = () => {
-    toast.info('Nueva versión disponible', {
-      description: 'Recarga la página para actualizar',
+    toast.info("Nueva versión disponible", {
+      description: "Recarga la página para actualizar",
       action: {
-        label: 'Recargar',
-        onClick: () => window.location.reload()
+        label: "Recargar",
+        onClick: () => window.location.reload(),
       },
-      duration: 10000
+      duration: 10000,
     })
   }
 
@@ -171,7 +171,7 @@ export function ServiceWorkerProvider({ children }: ServiceWorkerProviderProps) 
     registerSW: registerServiceWorker,
     subscribeToPush,
     unsubscribe,
-    sendTestNotification
+    sendTestNotification,
   }
 
   return (

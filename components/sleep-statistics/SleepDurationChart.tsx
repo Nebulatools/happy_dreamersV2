@@ -29,26 +29,26 @@ export default function SleepDurationChart({ childId, dateRange = "7-days" }: Sl
       <div className="h-64 flex items-end justify-center space-x-8 mb-4">
         {/* Barra de sueño nocturno */}
         <div className="flex flex-col items-center">
-          <div className="w-16 bg-gray-100 rounded-t-lg relative" style={{ height: '200px' }}>
+          <div className="w-16 bg-gray-100 rounded-t-lg relative" style={{ height: "200px" }}>
             <div 
               className="w-full bg-gradient-to-t from-[#628BE6] to-[#67C5FF] rounded-t-lg absolute bottom-0 transition-all duration-1000"
               style={{ height: `${sleepPercentage}%` }}
             />
           </div>
           <p className="mt-2 text-sm font-medium text-gray-700">Nocturno</p>
-          <p className="text-xs text-gray-500">{data?.avgSleepDuration?.toFixed(1) || '0.0'}h</p>
+          <p className="text-xs text-gray-500">{data?.avgSleepDuration?.toFixed(1) || "0.0"}h</p>
         </div>
         
         {/* Barra de siestas */}
         <div className="flex flex-col items-center">
-          <div className="w-16 bg-gray-100 rounded-t-lg relative" style={{ height: '200px' }}>
+          <div className="w-16 bg-gray-100 rounded-t-lg relative" style={{ height: "200px" }}>
             <div 
               className="w-full bg-gradient-to-t from-[#FFB84D] to-[#FFDD85] rounded-t-lg absolute bottom-0 transition-all duration-1000"
               style={{ height: `${napPercentage}%` }}
             />
           </div>
           <p className="mt-2 text-sm font-medium text-gray-700">Siestas</p>
-          <p className="text-xs text-gray-500">{data?.avgNapDuration?.toFixed(1) || '0.0'}h</p>
+          <p className="text-xs text-gray-500">{data?.avgNapDuration?.toFixed(1) || "0.0"}h</p>
         </div>
       </div>
       
@@ -69,7 +69,7 @@ export default function SleepDurationChart({ childId, dateRange = "7-days" }: Sl
         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
           <span className="font-medium">Total diario:</span>
           <span className="font-bold text-[#2F2F2F]">
-            {data?.totalSleepHours?.toFixed(1) || '0.0'} horas
+            {data?.totalSleepHours?.toFixed(1) || "0.0"} horas
           </span>
         </div>
       </div>

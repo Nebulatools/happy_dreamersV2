@@ -24,33 +24,33 @@ export class ServiceWorkerManager {
 
   // Verificar si el navegador soporta Service Workers
   isSupported(): boolean {
-    return 'serviceWorker' in navigator && 'PushManager' in window
+    return "serviceWorker" in navigator && "PushManager" in window
   }
 
   // Registrar el Service Worker
   async register(): Promise<ServiceWorkerRegistration | null> {
     if (!this.isSupported()) {
-      console.log('Service Workers no soportados en este navegador')
+      console.log("Service Workers no soportados en este navegador")
       return null
     }
 
     try {
       // Registrar el service worker
-      this.registration = await navigator.serviceWorker.register('/service-worker.js', {
-        scope: '/'
+      this.registration = await navigator.serviceWorker.register("/service-worker.js", {
+        scope: "/",
       })
 
-      console.log('Service Worker registrado:', this.registration)
+      console.log("Service Worker registrado:", this.registration)
 
       // Esperar a que esté listo
       await navigator.serviceWorker.ready
 
       // Actualizar si hay una nueva versión
-      this.registration.addEventListener('updatefound', () => {
+      this.registration.addEventListener("updatefound", () => {
         const newWorker = this.registration?.installing
         if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          newWorker.addEventListener("statechange", () => {
+            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
               // Nuevo service worker disponible
               this.notifyUpdateAvailable()
             }
@@ -60,7 +60,7 @@ export class ServiceWorkerManager {
 
       return this.registration
     } catch (error) {
-      console.error('Error registrando Service Worker:', error)
+      console.error("Error registrando Service Worker:", error)
       return null
     }
   }
@@ -77,51 +77,51 @@ export class ServiceWorkerManager {
       }
       return success
     } catch (error) {
-      console.error('Error desregistrando Service Worker:', error)
+      console.error("Error desregistrando Service Worker:", error)
       return false
     }
   }
 
   // Solicitar permisos de notificación
   async requestNotificationPermission(): Promise<NotificationPermission> {
-    if (!('Notification' in window)) {
-      console.error('Este navegador no soporta notificaciones')
-      return 'denied'
+    if (!("Notification" in window)) {
+      console.error("Este navegador no soporta notificaciones")
+      return "denied"
     }
 
     // Si ya tenemos permiso, retornar
-    if (Notification.permission === 'granted') {
-      return 'granted'
+    if (Notification.permission === "granted") {
+      return "granted"
     }
 
     // Si fue denegado, no podemos volver a preguntar
-    if (Notification.permission === 'denied') {
-      console.warn('Los permisos de notificación fueron denegados previamente')
-      return 'denied'
+    if (Notification.permission === "denied") {
+      console.warn("Los permisos de notificación fueron denegados previamente")
+      return "denied"
     }
 
     // Solicitar permiso
     try {
       const permission = await Notification.requestPermission()
-      console.log('Permiso de notificación:', permission)
+      console.log("Permiso de notificación:", permission)
       return permission
     } catch (error) {
-      console.error('Error solicitando permisos:', error)
-      return 'denied'
+      console.error("Error solicitando permisos:", error)
+      return "denied"
     }
   }
 
   // Suscribirse a push notifications
   async subscribeToPush(vapidPublicKey: string): Promise<PushSubscriptionData | null> {
     if (!this.registration) {
-      console.error('Service Worker no registrado')
+      console.error("Service Worker no registrado")
       return null
     }
 
     // Verificar permisos
     const permission = await this.requestNotificationPermission()
-    if (permission !== 'granted') {
-      console.error('Permisos de notificación no otorgados')
+    if (permission !== "granted") {
+      console.error("Permisos de notificación no otorgados")
       return null
     }
 
@@ -132,18 +132,18 @@ export class ServiceWorkerManager {
       // Suscribirse a push
       this.subscription = await this.registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey
+        applicationServerKey,
       })
 
-      console.log('Push subscription creada:', this.subscription)
+      console.log("Push subscription creada:", this.subscription)
 
       // Convertir a formato JSON
       const subscriptionData: PushSubscriptionData = {
         endpoint: this.subscription.endpoint,
         keys: {
-          p256dh: this.arrayBufferToBase64(this.subscription.getKey('p256dh')),
-          auth: this.arrayBufferToBase64(this.subscription.getKey('auth'))
-        }
+          p256dh: this.arrayBufferToBase64(this.subscription.getKey("p256dh")),
+          auth: this.arrayBufferToBase64(this.subscription.getKey("auth")),
+        },
       }
 
       // Enviar suscripción al servidor
@@ -151,7 +151,7 @@ export class ServiceWorkerManager {
 
       return subscriptionData
     } catch (error) {
-      console.error('Error suscribiendo a push:', error)
+      console.error("Error suscribiendo a push:", error)
       return null
     }
   }
@@ -159,7 +159,7 @@ export class ServiceWorkerManager {
   // Desuscribirse de push notifications
   async unsubscribeFromPush(): Promise<boolean> {
     if (!this.subscription) {
-      console.log('No hay suscripción activa')
+      console.log("No hay suscripción activa")
       return true
     }
 
@@ -172,7 +172,7 @@ export class ServiceWorkerManager {
       }
       return success
     } catch (error) {
-      console.error('Error desuscribiendo de push:', error)
+      console.error("Error desuscribiendo de push:", error)
       return false
     }
   }
@@ -185,7 +185,7 @@ export class ServiceWorkerManager {
       this.subscription = await this.registration.pushManager.getSubscription()
       return this.subscription
     } catch (error) {
-      console.error('Error obteniendo suscripción:', error)
+      console.error("Error obteniendo suscripción:", error)
       return null
     }
   }
@@ -193,33 +193,33 @@ export class ServiceWorkerManager {
   // Enviar mensaje de prueba
   async sendTestNotification(): Promise<void> {
     if (!this.registration || !this.registration.active) {
-      throw new Error('Service Worker no activo')
+      throw new Error("Service Worker no activo")
     }
 
     // Enviar mensaje al service worker
     this.registration.active.postMessage({
-      type: 'TEST_NOTIFICATION'
+      type: "TEST_NOTIFICATION",
     })
   }
 
   // Enviar suscripción al servidor
   private async sendSubscriptionToServer(subscription: PushSubscriptionData): Promise<void> {
     try {
-      const response = await fetch('/api/notifications/subscribe', {
-        method: 'POST',
+      const response = await fetch("/api/notifications/subscribe", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(subscription)
+        body: JSON.stringify(subscription),
       })
 
       if (!response.ok) {
-        throw new Error('Error enviando suscripción al servidor')
+        throw new Error("Error enviando suscripción al servidor")
       }
 
-      console.log('Suscripción enviada al servidor')
+      console.log("Suscripción enviada al servidor")
     } catch (error) {
-      console.error('Error enviando suscripción:', error)
+      console.error("Error enviando suscripción:", error)
       throw error
     }
   }
@@ -227,38 +227,38 @@ export class ServiceWorkerManager {
   // Remover suscripción del servidor
   private async removeSubscriptionFromServer(): Promise<void> {
     try {
-      const response = await fetch('/api/notifications/unsubscribe', {
-        method: 'POST',
+      const response = await fetch("/api/notifications/unsubscribe", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
-        }
+          "Content-Type": "application/json",
+        },
       })
 
       if (!response.ok) {
-        throw new Error('Error removiendo suscripción del servidor')
+        throw new Error("Error removiendo suscripción del servidor")
       }
 
-      console.log('Suscripción removida del servidor')
+      console.log("Suscripción removida del servidor")
     } catch (error) {
-      console.error('Error removiendo suscripción:', error)
+      console.error("Error removiendo suscripción:", error)
     }
   }
 
   // Notificar que hay una actualización disponible
   private notifyUpdateAvailable(): void {
     // Aquí podrías mostrar un toast o banner al usuario
-    console.log('Nueva versión del Service Worker disponible')
+    console.log("Nueva versión del Service Worker disponible")
     
     // Enviar evento personalizado
-    window.dispatchEvent(new CustomEvent('sw-update-available'))
+    window.dispatchEvent(new CustomEvent("sw-update-available"))
   }
 
   // Utilidades para conversión de datos
   private urlBase64ToUint8Array(base64String: string): Uint8Array {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4)
+    const padding = "=".repeat((4 - base64String.length % 4) % 4)
     const base64 = (base64String + padding)
-      .replace(/\-/g, '+')
-      .replace(/_/g, '/')
+      .replace(/\-/g, "+")
+      .replace(/_/g, "/")
 
     const rawData = window.atob(base64)
     const outputArray = new Uint8Array(rawData.length)
@@ -270,10 +270,10 @@ export class ServiceWorkerManager {
   }
 
   private arrayBufferToBase64(buffer: ArrayBuffer | null): string {
-    if (!buffer) return ''
+    if (!buffer) return ""
     
     const bytes = new Uint8Array(buffer)
-    let binary = ''
+    let binary = ""
     for (let i = 0; i < bytes.byteLength; i++) {
       binary += String.fromCharCode(bytes[i])
     }
@@ -286,12 +286,12 @@ export class ServiceWorkerManager {
     registered: boolean
     permission: NotificationPermission
     subscribed: boolean
-  } {
+    } {
     return {
       supported: this.isSupported(),
       registered: !!this.registration,
-      permission: 'Notification' in window ? Notification.permission : 'denied',
-      subscribed: !!this.subscription
+      permission: "Notification" in window ? Notification.permission : "denied",
+      subscribed: !!this.subscription,
     }
   }
 }

@@ -283,7 +283,7 @@ Generado por Happy Dreamers AI Assistant
               {result.metadata.processingTime && (
                 <div>
                   <strong>Tiempo de procesamiento:</strong><br />
-                  {typeof result.metadata.processingTime === 'number' 
+                  {typeof result.metadata.processingTime === "number" 
                     ? `${result.metadata.processingTime}ms`
                     : result.metadata.processingTime}
                 </div>
@@ -303,7 +303,7 @@ Generado por Happy Dreamers AI Assistant
                     )}
                     <span className="text-xs">
                       {result.metadata.dataQuality.allSourcesUsed 
-                        ? 'Se utilizaron TODAS las fuentes disponibles'
+                        ? "Se utilizaron TODAS las fuentes disponibles"
                         : `Se utilizaron ${result.metadata.sourcesUsed || 0} fuentes`
                       }
                     </span>
@@ -319,8 +319,8 @@ Generado por Happy Dreamers AI Assistant
                     <div className="text-xs text-gray-600">
                       <strong>Método:</strong> 
                       <Badge variant="outline" className="ml-1 text-xs">
-                        {result.metadata.dataQuality.statsMethod === 'unified_with_dashboard' 
-                          ? 'Unificado con Dashboard' 
+                        {result.metadata.dataQuality.statsMethod === "unified_with_dashboard" 
+                          ? "Unificado con Dashboard" 
                           : result.metadata.dataQuality.statsMethod
                         }
                       </Badge>

@@ -23,7 +23,7 @@ const BASE_URL = process.env.NEXTAUTH_URL || "http://localhost:3000"
 
 // Generar token único para invitación
 function generateInvitationToken(): string {
-  return crypto.randomBytes(32).toString('hex')
+  return crypto.randomBytes(32).toString("hex")
 }
 
 // Obtener colección de invitaciones
@@ -79,30 +79,30 @@ export async function createInvitation(
     if (!childId || childId === "undefined" || childId === "null") {
       return {
         success: false,
-        error: "Primero debes registrar un niño antes de invitar cuidadores"
+        error: "Primero debes registrar un niño antes de invitar cuidadores",
       }
     }
     
     const child = await childrenCollection.findOne({
       _id: new ObjectId(childId),
-      parentId: new ObjectId(invitedBy)
+      parentId: new ObjectId(invitedBy),
     })
     
     if (!child) {
       // Verificar si el niño existe pero no es del usuario
       const childExists = await childrenCollection.findOne({
-        _id: new ObjectId(childId)
+        _id: new ObjectId(childId),
       })
       
       if (childExists) {
         return {
           success: false,
-          error: "No tienes permisos para compartir este perfil"
+          error: "No tienes permisos para compartir este perfil",
         }
       } else {
         return {
           success: false,
-          error: "El perfil del niño no existe. Por favor, registra un niño primero"
+          error: "El perfil del niño no existe. Por favor, registra un niño primero",
         }
       }
     }
@@ -114,7 +114,7 @@ export async function createInvitation(
     if (!inviter) {
       return {
         success: false,
-        error: "Usuario que invita no encontrado"
+        error: "Usuario que invita no encontrado",
       }
     }
     
@@ -123,7 +123,7 @@ export async function createInvitation(
     const existingInvitation = await invitationsCollection.findOne({
       email: email.toLowerCase(),
       childId: new ObjectId(childId),
-      status: "pending"
+      status: "pending",
     })
     
     if (existingInvitation) {
@@ -137,15 +137,15 @@ export async function createInvitation(
             relationshipType: relationshipType as any,
             relationshipDescription,
             expiresAt: new Date(Date.now() + INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000),
-            updatedAt: new Date()
-          }
+            updatedAt: new Date(),
+          },
         },
         { returnDocument: "after" }
       )
       
       return {
         success: true,
-        invitation: (updatedInvitation.value || existingInvitation) as PendingInvitation
+        invitation: (updatedInvitation.value || existingInvitation) as PendingInvitation,
       }
     }
     
@@ -159,7 +159,7 @@ export async function createInvitation(
       childId: new ObjectId(childId),
       invitedBy: new ObjectId(invitedBy),
       invitedByName: inviter.name,
-      childName: `${child.firstName} ${child.lastName || ''}`.trim(),
+      childName: `${child.firstName} ${child.lastName || ""}`.trim(),
       role,
       permissions: ROLE_PERMISSIONS[role],
       relationshipType: relationshipType as any,
@@ -168,7 +168,7 @@ export async function createInvitation(
       expiresAt,
       status: "pending",
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     }
     
     await invitationsCollection.insertOne(newInvitation as any)
@@ -176,14 +176,14 @@ export async function createInvitation(
     logger.info(`Invitación creada para ${email} al niño ${childId}`)
     return {
       success: true,
-      invitation: newInvitation
+      invitation: newInvitation,
     }
     
   } catch (error) {
     logger.error("Error creando invitación:", error)
     return {
       success: false,
-      error: "Error interno al crear invitación"
+      error: "Error interno al crear invitación",
     }
   }
 }
@@ -200,13 +200,13 @@ export async function acceptInvitation(
     const invitation = await invitationsCollection.findOne({
       invitationToken: token,
       status: "pending",
-      expiresAt: { $gt: new Date() }
+      expiresAt: { $gt: new Date() },
     })
     
     if (!invitation) {
       return {
         success: false,
-        error: "Invitación no válida o expirada"
+        error: "Invitación no válida o expirada",
       }
     }
     
@@ -218,7 +218,7 @@ export async function acceptInvitation(
     if (!user) {
       return {
         success: false,
-        error: "Usuario no encontrado"
+        error: "Usuario no encontrado",
       }
     }
     
@@ -226,7 +226,7 @@ export async function acceptInvitation(
     if (user.email.toLowerCase() !== invitation.email.toLowerCase()) {
       return {
         success: false,
-        error: "Esta invitación es para otro email"
+        error: "Esta invitación es para otro email",
       }
     }
     
@@ -247,7 +247,7 @@ export async function acceptInvitation(
       invitationSentAt: invitation.createdAt,
       acceptedAt: new Date(),
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     }
     
     await accessCollection.insertOne(newAccess as any)
@@ -260,8 +260,8 @@ export async function acceptInvitation(
           status: "accepted",
           acceptedAt: new Date(),
           acceptedBy: new ObjectId(userId),
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       }
     )
     
@@ -271,7 +271,7 @@ export async function acceptInvitation(
       { _id: invitation.childId },
       { 
         $addToSet: { sharedWith: userId },
-        $set: { updatedAt: new Date() }
+        $set: { updatedAt: new Date() },
       }
     )
     
@@ -289,7 +289,7 @@ export async function acceptInvitation(
       message: `${displayName} aceptó la invitación para acceder a ${invitation.childName}`,
       scheduledFor: new Date(),
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     } as any)
 
     // Marcar como leída la notificación de invitación para el usuario que aceptó
@@ -298,27 +298,27 @@ export async function acceptInvitation(
         userId: new ObjectId(userId),
         childId: invitation.childId,
         type: "invitation",
-        status: { $in: ["sent", "delivered"] }
+        status: { $in: ["sent", "delivered"] },
       },
       {
         $set: {
           status: "read",
           updatedAt: new Date(),
-          readAt: new Date()
-        }
+          readAt: new Date(),
+        },
       }
     )
     
     return {
       success: true,
-      childId: invitation.childId.toString()
+      childId: invitation.childId.toString(),
     }
     
   } catch (error) {
     logger.error("Error aceptando invitación:", error)
     return {
       success: false,
-      error: "Error interno al aceptar invitación"
+      error: "Error interno al aceptar invitación",
     }
   }
 }
@@ -333,7 +333,7 @@ export async function getInvitationByToken(
     const invitation = await invitationsCollection.findOne({
       invitationToken: token,
       status: "pending",
-      expiresAt: { $gt: new Date() }
+      expiresAt: { $gt: new Date() },
     })
     
     return invitation
@@ -353,7 +353,7 @@ export async function getInvitationsForEmail(
     const invitations = await invitationsCollection.find({
       email: email.toLowerCase(),
       status: "pending",
-      expiresAt: { $gt: new Date() }
+      expiresAt: { $gt: new Date() },
     }).sort({ createdAt: -1 }).toArray()
     return invitations
   } catch (error) {
@@ -375,7 +375,7 @@ export async function declineInvitation(
     const invitation = await invitationsCollection.findOne({
       invitationToken: token,
       status: "pending",
-      expiresAt: { $gt: new Date() }
+      expiresAt: { $gt: new Date() },
     })
     
     if (!invitation) {
@@ -410,7 +410,7 @@ export async function declineInvitation(
       message: `${displayName} denegó la invitación para acceder a ${invitation.childName}`,
       scheduledFor: new Date(),
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     } as any)
 
     await notifications.updateMany(
@@ -418,14 +418,14 @@ export async function declineInvitation(
         userId: new ObjectId(userId),
         childId: invitation.childId,
         type: "invitation",
-        status: { $in: ["sent", "delivered"] }
+        status: { $in: ["sent", "delivered"] },
       },
       {
         $set: {
           status: "read",
           updatedAt: new Date(),
-          readAt: new Date()
-        }
+          readAt: new Date(),
+        },
       }
     )
     
@@ -448,13 +448,13 @@ export async function cancelInvitation(
     const invitation = await invitationsCollection.findOne({
       _id: new ObjectId(invitationId),
       invitedBy: new ObjectId(cancelledBy),
-      status: "pending"
+      status: "pending",
     })
     
     if (!invitation) {
       return {
         success: false,
-        error: "Invitación no encontrada o no tienes permisos"
+        error: "Invitación no encontrada o no tienes permisos",
       }
     }
     
@@ -464,8 +464,8 @@ export async function cancelInvitation(
       {
         $set: {
           status: "cancelled",
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       }
     )
     
@@ -477,7 +477,7 @@ export async function cancelInvitation(
     logger.error("Error cancelando invitación:", error)
     return {
       success: false,
-      error: "Error interno al cancelar invitación"
+      error: "Error interno al cancelar invitación",
     }
   }
 }
@@ -492,13 +492,13 @@ export async function getPendingInvitations(
     const { db } = await connectToDatabase()
     const childrenCollection = db.collection<Child>(CHILDREN_COLLECTION)
     const child = await childrenCollection.findOne({
-      _id: new ObjectId(childId)
+      _id: new ObjectId(childId),
     })
     
     if (!child) {
       return {
         success: false,
-        error: "Niño no encontrado"
+        error: "Niño no encontrado",
       }
     }
     
@@ -511,13 +511,13 @@ export async function getPendingInvitations(
       const access = await accessCollection.findOne({
         userId: new ObjectId(requestedBy),
         childId: new ObjectId(childId),
-        status: "active"
+        status: "active",
       })
       
       if (!access) {
         return {
           success: false,
-          error: "No tienes permisos para ver estas invitaciones"
+          error: "No tienes permisos para ver estas invitaciones",
         }
       }
     }
@@ -526,19 +526,19 @@ export async function getPendingInvitations(
     const invitations = await invitationsCollection.find({
       childId: new ObjectId(childId),
       status: "pending",
-      expiresAt: { $gt: new Date() }
+      expiresAt: { $gt: new Date() },
     }).toArray()
     
     return {
       success: true,
-      invitations
+      invitations,
     }
     
   } catch (error) {
     logger.error("Error obteniendo invitaciones:", error)
     return {
       success: false,
-      error: "Error interno al obtener invitaciones"
+      error: "Error interno al obtener invitaciones",
     }
   }
 }
@@ -551,13 +551,13 @@ export async function cleanupExpiredInvitations(): Promise<number> {
     const result = await invitationsCollection.updateMany(
       {
         status: "pending",
-        expiresAt: { $lt: new Date() }
+        expiresAt: { $lt: new Date() },
       },
       {
         $set: {
           status: "expired",
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       }
     )
     

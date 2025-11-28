@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
-import { Eye, EyeOff, User, Mail, Lock, ArrowLeft } from 'lucide-react'
+import { Eye, EyeOff, User, Mail, Lock, ArrowLeft } from "lucide-react"
 import { signIn } from "next-auth/react"
 
 const registerSchema = z
@@ -114,7 +114,7 @@ export default function RegisterPage() {
     <div
       className="min-h-screen flex flex-col md:flex-row items-stretch md:items-center justify-center overflow-y-auto py-6 px-4"
       style={{
-        background: 'linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)'
+        background: "linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)",
       }}
     >
       {/* Logo (oculto en móvil, visible en md+) */}
@@ -166,11 +166,11 @@ export default function RegisterPage() {
                           <Input
                             {...field}
                             placeholder="Enter your full name"
-                            style={{ fontFamily: 'Century Gothic, sans-serif' }}
+                            style={{ fontFamily: "Century Gothic, sans-serif" }}
                             autoComplete="off"
                             data-form-type="other"
                             data-lpignore="true"
-                            className="w-full border-0 rounded-lg px-10 py-3 text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]" style={{ backgroundColor: '#DEF1F1' }}
+                            className="w-full border-0 rounded-lg px-10 py-3 text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]" style={{ backgroundColor: "#DEF1F1" }}
                           />
                           <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
                         </div>
@@ -195,11 +195,11 @@ export default function RegisterPage() {
                             {...field}
                             type="email"
                             placeholder="Enter your email"
-                            style={{ fontFamily: 'Century Gothic, sans-serif' }}
+                            style={{ fontFamily: "Century Gothic, sans-serif" }}
                             autoComplete="off"
                             data-form-type="other"
                             data-lpignore="true"
-                            className="w-full border-0 rounded-lg px-10 py-3 text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]" style={{ backgroundColor: '#DEF1F1' }}
+                            className="w-full border-0 rounded-lg px-10 py-3 text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]" style={{ backgroundColor: "#DEF1F1" }}
                           />
                           <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
                         </div>
@@ -224,11 +224,11 @@ export default function RegisterPage() {
                             {...field}
                             type={showPassword ? "text" : "password"}
                             placeholder="Create a password"
-                            style={{ fontFamily: 'Century Gothic, sans-serif' }}
+                            style={{ fontFamily: "Century Gothic, sans-serif" }}
                             autoComplete="new-password"
                             data-form-type="other"
                             data-lpignore="true"
-                            className="w-full border-0 rounded-lg px-10 py-3 text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]" style={{ backgroundColor: '#DEF1F1' }}
+                            className="w-full border-0 rounded-lg px-10 py-3 text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]" style={{ backgroundColor: "#DEF1F1" }}
                           />
                           <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
                           <button
@@ -260,11 +260,11 @@ export default function RegisterPage() {
                             {...field}
                             type={showConfirmPassword ? "text" : "password"}
                             placeholder="Confirm your password"
-                            style={{ fontFamily: 'Century Gothic, sans-serif' }}
+                            style={{ fontFamily: "Century Gothic, sans-serif" }}
                             autoComplete="new-password"
                             data-form-type="other"
                             data-lpignore="true"
-                            className="w-full border-0 rounded-lg px-10 py-3 text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]" style={{ backgroundColor: '#DEF1F1' }}
+                            className="w-full border-0 rounded-lg px-10 py-3 text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]" style={{ backgroundColor: "#DEF1F1" }}
                           />
                           <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
                           <button
@@ -291,9 +291,9 @@ export default function RegisterPage() {
                     className="mt-1 w-4 h-4 border border-gray-300 rounded focus:ring-[#4299E1] focus:ring-2"
                   />
                   <label htmlFor="acceptTerms" className="text-xs text-[#4A5568] leading-relaxed century-gothic">
-                    I agree to the{' '}
+                    I agree to the{" "}
                     <Link href="#" className="text-[#4299E1] hover:underline">Terms of Service</Link>
-                    {' '}and{' '}
+                    {" "}and{" "}
                     <Link href="#" className="text-[#4299E1] hover:underline">Privacy Policy</Link>
                   </label>
                 </div>
@@ -305,12 +305,12 @@ export default function RegisterPage() {
                     disabled={!acceptTerms || isLoading}
                     className="w-full text-white border-0 rounded-xl py-3 font-normal text-[13px]"
                     style={{ 
-                      fontFamily: 'Century Gothic, sans-serif',
-                      background: '#68A1C8',
-                      backgroundColor: '#68A1C8' 
+                      fontFamily: "Century Gothic, sans-serif",
+                      background: "#68A1C8",
+                      backgroundColor: "#68A1C8", 
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a91b8'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#68A1C8'}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#5a91b8"}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#68A1C8"}
                   >
                     {isLoading ? "Creating account..." : "Create Account"}
                   </Button>
@@ -319,7 +319,7 @@ export default function RegisterPage() {
                     type="button"
                     variant="outline"
                     className="w-full bg-[#A0D8D0] hover:bg-[#A0D8D0] text-[#EBFFFC] border-0 rounded-xl py-3 font-normal text-[13px]"
-                    style={{ fontFamily: 'Century Gothic, sans-serif' }}
+                    style={{ fontFamily: "Century Gothic, sans-serif" }}
                   >
                     Sign up with Google
                   </Button>
@@ -330,7 +330,7 @@ export default function RegisterPage() {
             {/* Footer */}
             <div className="text-center mt-6">
               <p className="text-sm text-[#718096] century-gothic">
-                Already have an account?{' '}
+                Already have an account?{" "}
                 <Link href="/auth/login" className="text-[#4299E1] hover:underline font-medium">
                   Sign in
                 </Link>

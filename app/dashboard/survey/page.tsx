@@ -34,7 +34,7 @@ export default function SurveyPage() {
     title: "Encuesta de Sueño",
     showChildSelector: true,
     showSearch: false,
-    showNotifications: true
+    showNotifications: true,
   })
 
   // Sincronizar el cambio de niño en el selector con la URL
@@ -54,7 +54,7 @@ export default function SurveyPage() {
   }, [childId])
 
   const loadSurveyData = async () => {
-    console.log('🔵🔵🔵 [LOAD] ===== INICIANDO CARGA DE DATOS =====', childId)
+    console.log("🔵🔵🔵 [LOAD] ===== INICIANDO CARGA DE DATOS =====", childId)
     try {
       setIsLoading(true)
 
@@ -73,7 +73,7 @@ export default function SurveyPage() {
       let serverSurvey: SurveyData | null = null
       let serverUpdatedAt = 0
 
-      console.log('[LOAD] 1. Intentando cargar desde API...')
+      console.log("[LOAD] 1. Intentando cargar desde API...")
       const response = await fetch(`/api/survey?childId=${childId}`)
       
       if (response.ok) {
@@ -100,7 +100,7 @@ export default function SurveyPage() {
         logger.info("Encuesta restaurada desde borrador local", { childId })
         toast({
           title: "Progreso recuperado",
-          description: "Hemos cargado tus últimas respuestas guardadas en este dispositivo."
+          description: "Hemos cargado tus últimas respuestas guardadas en este dispositivo.",
         })
         return
       }
@@ -114,7 +114,7 @@ export default function SurveyPage() {
         logger.info("Encuesta existente cargada", {
           childId,
           isCompleted,
-          isPartial: serverSurvey.isPartial
+          isPartial: serverSurvey.isPartial,
         })
         return
       }
@@ -124,12 +124,12 @@ export default function SurveyPage() {
         setIsViewMode(false)
         toast({
           title: "Progreso recuperado",
-          description: "Hemos recuperado tu progreso anterior en la encuesta"
+          description: "Hemos recuperado tu progreso anterior en la encuesta",
         })
         return
       }
 
-      console.log('[LOAD] No hay datos guardados en localStorage para este niño')
+      console.log("[LOAD] No hay datos guardados en localStorage para este niño")
     } catch (error) {
       logger.error("Error cargando encuesta", error)
     } finally {
@@ -141,7 +141,7 @@ export default function SurveyPage() {
     setIsViewMode(false)
     toast({
       title: "Modo de edición",
-      description: "Ahora puedes modificar las respuestas de la encuesta"
+      description: "Ahora puedes modificar las respuestas de la encuesta",
     })
   }
 

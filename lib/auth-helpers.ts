@@ -24,7 +24,7 @@ const OWNER_PERMISSIONS: UserChildAccess["permissions"] = {
   canEditEvents: true,
   canViewReports: true,
   canEditProfile: true,
-  canViewPlan: true
+  canViewPlan: true,
 }
 
 // Verificar si el usuario actual tiene acceso a un niño específico
@@ -39,7 +39,7 @@ export async function verifyChildAccess(
       return {
         authorized: false,
         isOwner: false,
-        error: "No autenticado"
+        error: "No autenticado",
       }
     }
 
@@ -50,7 +50,7 @@ export async function verifyChildAccess(
       return {
         authorized: false,
         isOwner: false,
-        error: "No tienes acceso a este perfil"
+        error: "No tienes acceso a este perfil",
       }
     }
 
@@ -60,7 +60,7 @@ export async function verifyChildAccess(
         authorized: true,
         isOwner: true,
         permissions: OWNER_PERMISSIONS,
-        child: accessResult.child || undefined
+        child: accessResult.child || undefined,
       }
     }
 
@@ -72,7 +72,7 @@ export async function verifyChildAccess(
         return {
           authorized: false,
           isOwner: false,
-          error: `No tienes permiso para: ${requiredPermission}`
+          error: `No tienes permiso para: ${requiredPermission}`,
         }
       }
     }
@@ -81,7 +81,7 @@ export async function verifyChildAccess(
       authorized: true,
       isOwner: false,
       permissions: accessResult.access?.permissions,
-      child: accessResult.child || undefined
+      child: accessResult.child || undefined,
     }
 
   } catch (error) {
@@ -89,7 +89,7 @@ export async function verifyChildAccess(
     return {
       authorized: false,
       isOwner: false,
-      error: "Error interno verificando permisos"
+      error: "Error interno verificando permisos",
     }
   }
 }
@@ -106,7 +106,7 @@ export async function getUserAccessibleChildren(): Promise<{
     if (!session?.user?.id) {
       return {
         success: false,
-        error: "No autenticado"
+        error: "No autenticado",
       }
     }
 
@@ -115,14 +115,14 @@ export async function getUserAccessibleChildren(): Promise<{
 
     return {
       success: true,
-      children
+      children,
     }
 
   } catch (error) {
     logger.error("Error obteniendo niños accesibles:", error)
     return {
       success: false,
-      error: "Error interno obteniendo perfiles"
+      error: "Error interno obteniendo perfiles",
     }
   }
 }
@@ -138,7 +138,7 @@ export async function canUserPerformAction(
       create_event: "canCreateEvents",
       edit_event: "canEditEvents",
       edit_profile: "canEditProfile",
-      manage_access: null // Solo el dueño puede gestionar accesos
+      manage_access: null, // Solo el dueño puede gestionar accesos
     }
 
     // Si la acción es gestionar accesos, solo el dueño puede
@@ -175,7 +175,7 @@ export async function withChildAccess(
       JSON.stringify({ error: result.error || "No autorizado" }),
       { 
         status: 403,
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
       }
     )
   }
@@ -190,7 +190,7 @@ export async function withChildAccess(
     JSON.stringify({ authorized: true }),
     { 
       status: 200,
-      headers: { "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json" },
     }
   )
 }
@@ -230,7 +230,7 @@ export async function getUserRoleForChild(
     // Verificar si es el dueño
     const child = await db.collection<Child>("children").findOne({
       _id: new ObjectId(childId),
-      parentId: new ObjectId(userId)
+      parentId: new ObjectId(userId),
     })
     
     if (child) {
@@ -241,7 +241,7 @@ export async function getUserRoleForChild(
     const access = await db.collection<UserChildAccess>("userChildAccess").findOne({
       userId: new ObjectId(userId),
       childId: new ObjectId(childId),
-      invitationStatus: "accepted"
+      invitationStatus: "accepted",
     })
     
     return access?.role || null

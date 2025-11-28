@@ -87,7 +87,7 @@ export function Sidebar({ className }: { className?: string }) {
         toast({
           title: "Selecciona un niño primero",
           description: "Debes seleccionar o registrar un niño para ver sus eventos.",
-          variant: "default"
+          variant: "default",
         })
       } : undefined,
     },
@@ -170,7 +170,7 @@ export function Sidebar({ className }: { className?: string }) {
             <span className="sr-only">Abrir menú</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-[256px] pr-0" style={{ backgroundColor: '#68A1C8' }}>
+        <SheetContent side="left" className="w-[256px] pr-0" style={{ backgroundColor: "#68A1C8" }}>
           {/* Título accesible oculto para lectores de pantalla */}
           <SheetHeader>
             <SheetTitle className="sr-only">Menú</SheetTitle>
@@ -178,7 +178,7 @@ export function Sidebar({ className }: { className?: string }) {
           <MobileSidebar items={filteredItems} setOpen={setOpen} onItemClick={handleItemClick} />
         </SheetContent>
       </Sheet>
-      <div className="hidden md:block w-[256px] min-h-screen fixed left-0 top-0 bottom-0 border-r border-white/10" style={{ backgroundColor: '#68A1C8' }}>
+      <div className="hidden md:block w-[256px] min-h-screen fixed left-0 top-0 bottom-0 border-r border-white/10" style={{ backgroundColor: "#68A1C8" }}>
         <div className="flex flex-col h-full">
           {/* Logo Section */}
           <div className="px-6 pt-6 pb-6">
@@ -187,9 +187,9 @@ export function Sidebar({ className }: { className?: string }) {
                 src="/LOGO.svg"
                 alt="Happy Dreamers Logo"
                 style={{ 
-                  width: '163.61px',
-                  height: '105px',
-                  objectFit: 'contain'
+                  width: "163.61px",
+                  height: "105px",
+                  objectFit: "contain",
                 }}
                 draggable={false}
               />
@@ -207,16 +207,16 @@ export function Sidebar({ className }: { className?: string }) {
           <div className="p-4 mt-auto border-t border-white/10">
             <button 
               className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 hover:bg-white/10 w-full mb-1"
-              style={{ color: '#DEF1F1', fontFamily: 'Century Gothic, sans-serif' }}
-              onClick={() => router.push('/dashboard/ayuda')}
+              style={{ color: "#DEF1F1", fontFamily: "Century Gothic, sans-serif" }}
+              onClick={() => router.push("/dashboard/ayuda")}
             >
               <HelpCircle className="h-5 w-5" />
               Ayuda
             </button>
             <button 
               className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 hover:bg-white/10 w-full"
-              style={{ color: '#DEF1F1', fontFamily: 'Century Gothic, sans-serif' }}
-              onClick={() => router.push('/dashboard/contacto')}
+              style={{ color: "#DEF1F1", fontFamily: "Century Gothic, sans-serif" }}
+              onClick={() => router.push("/dashboard/contacto")}
             >
               <Mail className="h-5 w-5" />
               Contacto
@@ -256,7 +256,7 @@ function SidebarNav({ items, className, onItemClick }: SidebarNavProps) {
                 "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 text-left w-full",
                 item.disabled ? "opacity-50 cursor-not-allowed" : ""
               )}
-              style={{ color: '#DEF1F1', fontFamily: 'Century Gothic, sans-serif' }}
+              style={{ color: "#DEF1F1", fontFamily: "Century Gothic, sans-serif" }}
             >
               {item.icon}
               {item.title}
@@ -276,9 +276,9 @@ function SidebarNav({ items, className, onItemClick }: SidebarNavProps) {
               item.disabled ? "opacity-50 pointer-events-none cursor-not-allowed" : ""
             )}
             style={{ 
-              backgroundColor: pathname === item.href && !item.disabled ? '#DEF1F1' : 'transparent',
-              color: pathname === item.href && !item.disabled ? '#68A1C8' : '#DEF1F1',
-              fontFamily: 'Century Gothic, sans-serif'
+              backgroundColor: pathname === item.href && !item.disabled ? "#DEF1F1" : "transparent",
+              color: pathname === item.href && !item.disabled ? "#68A1C8" : "#DEF1F1",
+              fontFamily: "Century Gothic, sans-serif",
             }}
             aria-disabled={item.disabled}
             tabIndex={item.disabled ? -1 : undefined}
@@ -317,9 +317,9 @@ function MobileSidebar({
           src="/LOGO.svg"
           alt="Happy Dreamers Logo"
           style={{ 
-            width: '140px',
-            height: '90px',
-            objectFit: 'contain'
+            width: "140px",
+            height: "90px",
+            objectFit: "contain",
           }}
           draggable={false}
         />
@@ -342,7 +342,7 @@ function MobileSidebar({
                   "hover:bg-white/10",
                   item.disabled ? "opacity-50 cursor-not-allowed" : ""
                 )}
-                style={{ color: '#DEF1F1', fontFamily: 'Century Gothic, sans-serif' }}
+                style={{ color: "#DEF1F1", fontFamily: "Century Gothic, sans-serif" }}
               >
                 {item.icon}
                 {item.title}
@@ -361,8 +361,8 @@ function MobileSidebar({
                 item.disabled ? "opacity-50 pointer-events-none cursor-not-allowed" : ""
               )}
               style={{ 
-                backgroundColor: pathname === item.href && !item.disabled ? '#DEF1F1' : 'transparent',
-                color: pathname === item.href && !item.disabled ? '#68A1C8' : '#DEF1F1'
+                backgroundColor: pathname === item.href && !item.disabled ? "#DEF1F1" : "transparent",
+                color: pathname === item.href && !item.disabled ? "#68A1C8" : "#DEF1F1",
               }}
               aria-disabled={item.disabled}
               tabIndex={item.disabled ? -1 : undefined}

@@ -29,7 +29,7 @@ const openai = new OpenAI({
 // Para cambiar entre RAG_SUMMARY.md (archivo estático) y RAG vectorial (MongoDB):
 // - 'summary': Usa docs/RAG_SUMMARY.md (recomendado para garantizar horarios ideales)
 // - 'vector': Usa MongoDB vector search (escalable pero requiere queries precisas)
-const RAG_SOURCE: 'summary' | 'vector' = 'summary'
+const RAG_SOURCE: "summary" | "vector" = "summary"
 
 // ================================
 // FUNCIONES UTILITARIAS PARA VERSIONES DE PLANES
@@ -54,7 +54,7 @@ function calculateNextPlanVersion(existingPlans: any[], planType: "initial" | "e
     const nextNumber = latestPlan ? latestPlan.planNumber + 1 : 1
     return { 
       planNumber: nextNumber, 
-      planVersion: nextNumber.toString() 
+      planVersion: nextNumber.toString(), 
     }
   }
   
@@ -74,7 +74,7 @@ function calculateNextPlanVersion(existingPlans: any[], planType: "initial" | "e
     
     return {
       planNumber: basePlanNumber, // Mismo número que el plan base
-      planVersion: refinementVersion
+      planVersion: refinementVersion,
     }
   }
   
@@ -104,11 +104,11 @@ function __minutesToHHMM(mins: number | null): string | null {
   if (mins == null) return null
   const h = Math.floor(mins / 60) % 24
   const m = mins % 60
-  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`
 }
 
 function computeNapStatsFromEvents(events: any[]) {
-  const naps = (events || []).filter(e => e?.eventType === 'nap' && e?.startTime && e?.endTime)
+  const naps = (events || []).filter(e => e?.eventType === "nap" && e?.startTime && e?.endTime)
   if (!naps.length) return { count: 0, avgDuration: 0, typicalTime: null as string | null }
   const starts = naps.map((e: any) => new Date(e.startTime))
   const durations = naps.map((e: any) => __minutesBetween(new Date(e.startTime), new Date(e.endTime)))
@@ -118,7 +118,7 @@ function computeNapStatsFromEvents(events: any[]) {
 }
 
 function computeBedtimeAvgFromEvents(events: any[]) {
-  const sleeps = (events || []).filter(e => e?.eventType === 'sleep' && e?.startTime)
+  const sleeps = (events || []).filter(e => e?.eventType === "sleep" && e?.startTime)
   if (!sleeps.length) return { avgBedtime: null as string | null }
   const starts = sleeps.map((e: any) => new Date(e.startTime))
   const typicalMin = __avgMinutesFromDates(starts, true)
@@ -126,7 +126,7 @@ function computeBedtimeAvgFromEvents(events: any[]) {
 }
 
 function computeFeedingTypicalTimesFromEvents(events: any[]) {
-  const fed = (events || []).filter(e => e?.eventType === 'feeding' && e?.startTime)
+  const fed = (events || []).filter(e => e?.eventType === "feeding" && e?.startTime)
   const buckets: any = {
     breakfast: { from: 6 * 60, to: 10 * 60, times: [] as Date[] },
     lunch: { from: 11 * 60, to: 14 * 60, times: [] as Date[] },
@@ -146,7 +146,7 @@ function computeFeedingTypicalTimesFromEvents(events: any[]) {
     const arr: Date[] = buckets[key].times
     const avg = __avgMinutesFromDates(arr, false)
     result[key] = arr.length ? __minutesToHHMM(avg) : null
-    result[key + 'Count'] = arr.length
+    result[key + "Count"] = arr.length
   }
   return result
 }
@@ -170,11 +170,11 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
     logger.info("hasEventsAfterDate: Buscando eventos", {
       childId,
       afterDate: afterDateISO,
-      now: nowISO
+      now: nowISO,
     })
 
     // Preferir colección canónica 'events'
-    const eventsCol = db.collection('events')
+    const eventsCol = db.collection("events")
 
     // CORRECCIÓN: Todos los eventos fueron migrados a childId como ObjectId
     // Por eso debemos buscar usando ObjectId
@@ -182,8 +182,8 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
       childId: new ObjectId(childId),  // ✅ Usar ObjectId después de la migración
       startTime: {
         $gt: afterDateISO,  // Mayor que (no igual) la fecha del plan
-        $lte: nowISO         // Menor o igual a ahora
-      }
+        $lte: nowISO,         // Menor o igual a ahora
+      },
     }, { projection: { eventType: 1, startTime: 1, _id: 1 } as any }).toArray()
 
     logger.info("hasEventsAfterDate: Eventos encontrados", {
@@ -194,31 +194,31 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
       allEventDetails: events.map((e: any) => ({
         id: e._id?.toString(),
         type: e.eventType,
-        startTime: e.startTime
-      }))
+        startTime: e.startTime,
+      })),
     })
 
     const eventTypes = [...new Set(events.map((e: any) => e.eventType).filter(Boolean))]
 
     // Añadir detalles de eventos para debug
     const eventDetails = events.map((e: any) => ({
-      _id: e._id?.toString() || 'sin-id',
-      eventType: e.eventType || 'desconocido',
+      _id: e._id?.toString() || "sin-id",
+      eventType: e.eventType || "desconocido",
       startTime: e.startTime,
-      formattedDate: e.startTime ? new Date(e.startTime).toLocaleString('es-ES', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      }) : 'sin-fecha'
+      formattedDate: e.startTime ? new Date(e.startTime).toLocaleString("es-ES", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }) : "sin-fecha",
     }))
 
     return {
       hasEvents: events.length > 0,
       eventCount: events.length,
       eventTypes,
-      eventDetails
+      eventDetails,
     }
   } catch (error) {
     logger.error("Error verificando eventos después de fecha:", error)
@@ -247,7 +247,7 @@ async function hasAvailableTranscript(childId: string, afterDate?: Date): Promis
     
     return {
       hasTranscript: !!latestReport,
-      latestReportId: latestReport?._id?.toString()
+      latestReportId: latestReport?._id?.toString(),
     }
   } catch (error) {
     logger.error("Error verificando transcript disponible:", error)
@@ -270,7 +270,7 @@ export async function GET(req: NextRequest) {
 
     if (!childId || !userId) {
       return NextResponse.json({ 
-        error: "Faltan parámetros requeridos: childId, userId" 
+        error: "Faltan parámetros requeridos: childId, userId", 
       }, { status: 400 })
     }
 
@@ -287,7 +287,7 @@ export async function GET(req: NextRequest) {
       userId,
       requesterId: session.user.id,
       isAdmin,
-      isParent
+      isParent,
     })
 
     const { db } = await connectToDatabase()
@@ -296,7 +296,7 @@ export async function GET(req: NextRequest) {
     const plans = await db.collection("child_plans")
       .find({ 
         childId: new ObjectId(childId),
-        userId: new ObjectId(userId)
+        userId: new ObjectId(userId),
       })
       .sort({ planNumber: 1 })
       .toArray()
@@ -304,20 +304,20 @@ export async function GET(req: NextRequest) {
     logger.info("Planes obtenidos", {
       childId,
       totalPlanes: plans.length,
-      planNumbers: plans.map(p => p.planNumber)
+      planNumbers: plans.map(p => p.planNumber),
     })
 
     return NextResponse.json({
       success: true,
       plans,
-      totalCount: plans.length
+      totalCount: plans.length,
     })
 
   } catch (error) {
     logger.error("Error obteniendo planes:", error)
     return NextResponse.json({ 
       error: "Error interno del servidor",
-      details: error instanceof Error ? error.message : "Error desconocido"
+      details: error instanceof Error ? error.message : "Error desconocido",
     }, { status: 500 })
   }
 }
@@ -337,7 +337,7 @@ export async function POST(req: NextRequest) {
 
     if (!userId || !childId || !planType) {
       return NextResponse.json({ 
-        error: "Faltan parámetros requeridos: userId, childId, planType" 
+        error: "Faltan parámetros requeridos: userId, childId, planType", 
       }, { status: 400 })
     }
 
@@ -345,13 +345,13 @@ export async function POST(req: NextRequest) {
     const validPlanTypes = ["initial", "event_based", "transcript_refinement"]
     if (!validPlanTypes.includes(planType)) {
       return NextResponse.json({ 
-        error: `Tipo de plan no válido. Tipos permitidos: ${validPlanTypes.join(", ")}` 
+        error: `Tipo de plan no válido. Tipos permitidos: ${validPlanTypes.join(", ")}`, 
       }, { status: 400 })
     }
 
     if (planType === "transcript_refinement" && !reportId) {
       return NextResponse.json({ 
-        error: "Para planes de refinamiento con transcript se requiere el reportId del análisis" 
+        error: "Para planes de refinamiento con transcript se requiere el reportId del análisis", 
       }, { status: 400 })
     }
 
@@ -360,7 +360,7 @@ export async function POST(req: NextRequest) {
       childId,
       planType,
       reportId,
-      adminId: session.user.id
+      adminId: session.user.id,
     })
 
     const { db } = await connectToDatabase()
@@ -369,7 +369,7 @@ export async function POST(req: NextRequest) {
     const existingPlans = await db.collection("child_plans")
       .find({ 
         childId: new ObjectId(childId),
-        userId: new ObjectId(userId)
+        userId: new ObjectId(userId),
       })
       .sort({ planNumber: -1 })
       .toArray()
@@ -380,19 +380,19 @@ export async function POST(req: NextRequest) {
     // VALIDACIONES ESPECÍFICAS POR TIPO DE PLAN
     if (planType === "initial" && existingPlans.length > 0) {
       return NextResponse.json({ 
-        error: "Ya existe un plan inicial para este niño" 
+        error: "Ya existe un plan inicial para este niño", 
       }, { status: 400 })
     }
 
     if (planType === "event_based" && existingPlans.length === 0) {
       return NextResponse.json({ 
-        error: "Debe existir un plan inicial antes de crear planes basados en eventos" 
+        error: "Debe existir un plan inicial antes de crear planes basados en eventos", 
       }, { status: 400 })
     }
 
     if (planType === "transcript_refinement" && existingPlans.length === 0) {
       return NextResponse.json({ 
-        error: "Debe existir al menos un plan base antes de crear un refinamiento" 
+        error: "Debe existir al menos un plan base antes de crear un refinamiento", 
       }, { status: 400 })
     }
 
@@ -403,7 +403,7 @@ export async function POST(req: NextRequest) {
       
       if (!eventsCheck.hasEvents) {
         return NextResponse.json({ 
-          error: "No hay eventos registrados después del último plan para generar uno nuevo" 
+          error: "No hay eventos registrados después del último plan para generar uno nuevo", 
         }, { status: 400 })
       }
     }
@@ -416,7 +416,7 @@ export async function POST(req: NextRequest) {
       
       if (!transcriptCheck.hasTranscript && !reportId) {
         return NextResponse.json({ 
-          error: "No hay transcript de consulta nuevo disponible para generar un refinamiento" 
+          error: "No hay transcript de consulta nuevo disponible para generar un refinamiento", 
         }, { status: 400 })
       }
     }
@@ -465,7 +465,7 @@ export async function POST(req: NextRequest) {
       planVersion,
       createdAt: new Date(),
       updatedAt: new Date(),
-      status: "borrador"
+      status: "borrador",
     })
 
     const totalProcessingTime = Date.now() - startTime
@@ -476,7 +476,7 @@ export async function POST(req: NextRequest) {
       planVersion,
       planType,
       childId,
-      processingTime: totalProcessingTime
+      processingTime: totalProcessingTime,
     })
 
     return NextResponse.json({
@@ -489,14 +489,14 @@ export async function POST(req: NextRequest) {
         planVersion,
         createdAt: new Date(),
         updatedAt: new Date(),
-        status: "borrador"
+        status: "borrador",
       },
       metadata: {
         processingTime: totalProcessingTime,
         planNumber,
         planVersion,
-        totalPlans: existingPlans.length + 1
-      }
+        totalPlans: existingPlans.length + 1,
+      },
     })
 
   } catch (error) {
@@ -504,12 +504,12 @@ export async function POST(req: NextRequest) {
     logger.error("Error generando plan", {
       error: error instanceof Error ? error.message : "Error desconocido",
       stack: error instanceof Error ? error.stack : undefined,
-      processingTime: totalProcessingTime
+      processingTime: totalProcessingTime,
     })
     
     return NextResponse.json({ 
       error: "Error interno del servidor",
-      details: error instanceof Error ? error.message : "Error desconocido"
+      details: error instanceof Error ? error.message : "Error desconocido",
     }, { status: 500 })
   }
 }
@@ -527,7 +527,7 @@ export async function PUT(req: NextRequest) {
 
     if (!userId || !childId || !planType) {
       return NextResponse.json({ 
-        error: "Faltan parámetros requeridos: userId, childId, planType" 
+        error: "Faltan parámetros requeridos: userId, childId, planType", 
       }, { status: 400 })
     }
 
@@ -545,7 +545,7 @@ export async function PUT(req: NextRequest) {
     const existingPlans = await db.collection("child_plans")
       .find({ 
         childId: new ObjectId(childId),
-        userId: new ObjectId(userId)
+        userId: new ObjectId(userId),
       })
       .sort({ planNumber: -1 })
       .toArray()
@@ -574,8 +574,8 @@ export async function PUT(req: NextRequest) {
           allPlansVersions: existingPlans.map((p: any) => ({
             version: p.planVersion,
             createdAt: p.createdAt,
-            createdAtISO: new Date(p.createdAt).toISOString()
-          }))
+            createdAtISO: new Date(p.createdAt).toISOString(),
+          })),
         })
 
         const eventsCheck = await hasEventsAfterDate(childId, new Date(latestByCreatedAt.createdAt))
@@ -585,18 +585,18 @@ export async function PUT(req: NextRequest) {
           eventCount: eventsCheck.eventCount,
           eventTypes: eventsCheck.eventTypes,
           searchedAfterDate: new Date(latestByCreatedAt.createdAt).toISOString(),
-          eventDetails: eventsCheck.eventDetails || []
+          eventDetails: eventsCheck.eventDetails || [],
         })
 
-        console.log('🔍 DEBUG PUT - Eventos encontrados después del plan:', {
-          planCreatedAt: new Date(latestByCreatedAt.createdAt).toLocaleString('es-ES'),
+        console.log("🔍 DEBUG PUT - Eventos encontrados después del plan:", {
+          planCreatedAt: new Date(latestByCreatedAt.createdAt).toLocaleString("es-ES"),
           planCreatedAtISO: new Date(latestByCreatedAt.createdAt).toISOString(),
           eventCount: eventsCheck.eventCount,
           eventos: (eventsCheck.eventDetails || []).map((e: any) => ({
             tipo: e.eventType,
             hora: e.startTime,
-            horaFormateada: e.formattedDate
-          }))
+            horaFormateada: e.formattedDate,
+          })),
         })
 
         canGenerate = eventsCheck.hasEvents
@@ -610,7 +610,7 @@ export async function PUT(req: NextRequest) {
           eventDetails: eventsCheck.eventDetails || [],
           lastPlanDate: latestByCreatedAt.createdAt,
           lastPlanVersion: latestByCreatedAt.planVersion,
-          searchedAfterDateISO: new Date(latestByCreatedAt.createdAt).toISOString()
+          searchedAfterDateISO: new Date(latestByCreatedAt.createdAt).toISOString(),
         }
       }
 
@@ -627,7 +627,7 @@ export async function PUT(req: NextRequest) {
         // Verificar si ya existe un plan de refinamiento para el plan actual
         const currentPlanNumber = existingPlans[0].planNumber
         const existingRefinement = existingPlans.find(plan => 
-          plan.planNumber === currentPlanNumber && plan.planVersion.includes('.1')
+          plan.planNumber === currentPlanNumber && plan.planVersion.includes(".1")
         )
         
         if (existingRefinement) {
@@ -648,7 +648,7 @@ export async function PUT(req: NextRequest) {
           hasTranscript: true, // Si llegamos aquí, asumimos que hay transcript
           basePlanVersion: existingPlans[0].planVersion,
           hasRefinement: !!existingRefinement,
-          latestReportId: transcriptCheck?.latestReportId || null
+          latestReportId: transcriptCheck?.latestReportId || null,
         }
       }
     } else {
@@ -662,14 +662,14 @@ export async function PUT(req: NextRequest) {
       reason,
       planType,
       nextVersion: canGenerate ? calculateNextPlanVersion(existingPlans, planType).planVersion : null,
-      additionalInfo
+      additionalInfo,
     })
 
   } catch (error) {
     logger.error("Error validando posibilidad de generar plan:", error)
     return NextResponse.json({ 
       error: "Error interno del servidor",
-      details: error instanceof Error ? error.message : "Error desconocido"
+      details: error instanceof Error ? error.message : "Error desconocido",
     }, { status: 500 })
   }
 }
@@ -687,7 +687,7 @@ export async function PATCH(req: NextRequest) {
 
     if (!planId || !childId || !userId) {
       return NextResponse.json({
-        error: "Faltan parámetros requeridos: planId, childId, userId"
+        error: "Faltan parámetros requeridos: planId, childId, userId",
       }, { status: 400 })
     }
 
@@ -695,7 +695,7 @@ export async function PATCH(req: NextRequest) {
       planId,
       childId,
       userId,
-      adminId: session.user.id
+      adminId: session.user.id,
     })
 
     const { db } = await connectToDatabase()
@@ -705,12 +705,12 @@ export async function PATCH(req: NextRequest) {
       _id: new ObjectId(planId),
       childId: new ObjectId(childId),
       userId: new ObjectId(userId),
-      status: "borrador"
+      status: "borrador",
     })
 
     if (!planToActivate) {
       return NextResponse.json({
-        error: "Plan no encontrado o ya está activo"
+        error: "Plan no encontrado o ya está activo",
       }, { status: 404 })
     }
 
@@ -720,13 +720,13 @@ export async function PATCH(req: NextRequest) {
         childId: new ObjectId(childId),
         userId: new ObjectId(userId),
         planNumber: { $lt: planToActivate.planNumber },
-        status: { $ne: "superseded" } // Solo actualizar si no están ya superseded
+        status: { $ne: "superseded" }, // Solo actualizar si no están ya superseded
       },
       {
         $set: {
           status: "superseded",
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       }
     )
 
@@ -738,14 +738,14 @@ export async function PATCH(req: NextRequest) {
           status: "active",
           activatedAt: new Date(),
           activatedBy: new ObjectId(session.user.id),
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       }
     )
 
     if (updateCurrentResult.modifiedCount === 0) {
       return NextResponse.json({
-        error: "No se pudo activar el plan"
+        error: "No se pudo activar el plan",
       }, { status: 500 })
     }
 
@@ -754,7 +754,7 @@ export async function PATCH(req: NextRequest) {
       planNumber: planToActivate.planNumber,
       planVersion: planToActivate.planVersion,
       previousPlansSuperseded: updatePreviousResult.modifiedCount,
-      childId
+      childId,
     })
 
     return NextResponse.json({
@@ -763,14 +763,14 @@ export async function PATCH(req: NextRequest) {
       planId,
       planNumber: planToActivate.planNumber,
       planVersion: planToActivate.planVersion,
-      previousPlansSuperseded: updatePreviousResult.modifiedCount
+      previousPlansSuperseded: updatePreviousResult.modifiedCount,
     })
 
   } catch (error) {
     logger.error("Error aplicando plan:", error)
     return NextResponse.json({
       error: "Error interno del servidor",
-      details: error instanceof Error ? error.message : "Error desconocido"
+      details: error instanceof Error ? error.message : "Error desconocido",
     }, { status: 500 })
   }
 }
@@ -822,12 +822,12 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
       ...child,
       ageInMonths,
       stats,
-      events
+      events,
     },
     ragContext,
     surveyData: child.surveyData,
     policies,
-    enrichedStats: { napStats, bedtimeStats, feedingStats }
+    enrichedStats: { napStats, bedtimeStats, feedingStats },
   })
 
   return {
@@ -846,12 +846,12 @@ async function generateInitialPlan(userId: string, childId: string, adminId: str
       childStatsUsed: true,
       ragSources: ragContext.map(r => r.source),
       ageInMonths: ageInMonths || 0,
-      totalEvents: events.length
+      totalEvents: events.length,
     },
     createdAt: new Date(),
     updatedAt: new Date(),
     createdBy: new ObjectId(adminId),
-    status: "borrador"
+    status: "borrador",
   }
 }
 
@@ -869,7 +869,7 @@ async function generateEventBasedPlan(
     userId, 
     childId, 
     basePlanVersion: basePlan.planVersion,
-    newPlanVersion: planVersion 
+    newPlanVersion: planVersion, 
   })
 
   const { db } = await connectToDatabase()
@@ -895,7 +895,7 @@ async function generateEventBasedPlan(
     eventsFromDate: eventsFromDate.toISOString(),
     eventsToDate: eventsToDate.toISOString(),
     basePlanVersion: basePlan.planVersion,
-    basePlanCreatedAt: basePlan.createdAt
+    basePlanCreatedAt: basePlan.createdAt,
   })
 
   let newEvents: any[] = []
@@ -903,19 +903,19 @@ async function generateEventBasedPlan(
   // CORRECCIÓN: Todos los eventos fueron migrados a childId como ObjectId
   newEvents = await eventsCol.find({
     childId: new ObjectId(childId),  // ✅ Usar ObjectId después de la migración
-    startTime: { $gt: eventsFromDate.toISOString(), $lte: eventsToDate.toISOString() }
+    startTime: { $gt: eventsFromDate.toISOString(), $lte: eventsToDate.toISOString() },
   }).sort({ startTime: 1 }).toArray()
 
   logger.info("generateEventBasedPlan: Eventos encontrados", {
     count: newEvents.length,
-    eventDates: newEvents.map((e: any) => e.startTime).slice(0, 5)
+    eventDates: newEvents.map((e: any) => e.startTime).slice(0, 5),
   })
 
   if (newEvents.length === 0) {
     logger.error("generateEventBasedPlan: No hay eventos nuevos", {
       eventsFromDate: eventsFromDate.toISOString(),
       eventsToDate: eventsToDate.toISOString(),
-      childId
+      childId,
     })
     throw new Error("No hay eventos nuevos para analizar")
   }
@@ -942,7 +942,7 @@ async function generateEventBasedPlan(
       ...child,
       ageInMonths,
       stats,
-      events: newEvents
+      events: newEvents,
     },
     ragContext,
     previousPlan: basePlan,
@@ -951,9 +951,9 @@ async function generateEventBasedPlan(
       eventsAnalyzed: newEvents.length,
       eventTypes: [...new Set(newEvents.map((e: any) => e.eventType))],
       dateRange: { from: eventsFromDate, to: eventsToDate },
-      basePlanVersion: basePlan.planVersion
+      basePlanVersion: basePlan.planVersion,
     },
-    enrichedStats: { napStats, bedtimeStats, feedingStats }
+    enrichedStats: { napStats, bedtimeStats, feedingStats },
   })
 
   return {
@@ -969,24 +969,24 @@ async function generateEventBasedPlan(
     basedOn: "events_stats_rag",
     basedOnPlan: {
       planId: basePlan._id,
-      planVersion: basePlan.planVersion
+      planVersion: basePlan.planVersion,
     },
     eventsDateRange: {
       fromDate: eventsFromDate,
       toDate: eventsToDate,
-      totalEventsAnalyzed: newEvents.length
+      totalEventsAnalyzed: newEvents.length,
     },
     eventAnalysis: {
       eventsAnalyzed: newEvents.length,
       eventTypes: [...new Set(newEvents.map((e: any) => e.eventType))],
       progressFromPrevious: aiPlan.progressAnalysis || "Análisis de progresión basado en eventos recientes",
       ragSources: ragContext.map(r => r.source),
-      basePlanVersion: basePlan.planVersion
+      basePlanVersion: basePlan.planVersion,
     },
     createdAt: new Date(),
     updatedAt: new Date(),
     createdBy: new ObjectId(adminId),
-    status: "borrador"
+    status: "borrador",
   }
 }
 
@@ -1005,7 +1005,7 @@ async function generateTranscriptRefinementPlan(
     childId, 
     basePlanVersion: basePlan.planVersion,
     newPlanVersion: planVersion,
-    reportId
+    reportId,
   })
 
   const { db } = await connectToDatabase()
@@ -1013,7 +1013,7 @@ async function generateTranscriptRefinementPlan(
   // 1. Obtener el reporte de análisis completo
   const consultationReport = await db.collection("consultation_reports").findOne({
     _id: new ObjectId(reportId),
-    childId: new ObjectId(childId)
+    childId: new ObjectId(childId),
   })
 
   if (!consultationReport) {
@@ -1022,7 +1022,7 @@ async function generateTranscriptRefinementPlan(
 
   // 2. Obtener datos básicos del niño
   const child = await db.collection("children").findOne({
-    _id: new ObjectId(childId)
+    _id: new ObjectId(childId),
   })
 
   if (!child) {
@@ -1043,9 +1043,9 @@ async function generateTranscriptRefinementPlan(
     transcriptAnalysis: {
       analysis: consultationReport.analysis,
       recommendations: consultationReport.recommendations,
-      transcript: consultationReport.transcript
+      transcript: consultationReport.transcript,
     },
-    scheduleChanges
+    scheduleChanges,
   })
 
   return {
@@ -1061,18 +1061,18 @@ async function generateTranscriptRefinementPlan(
     basedOn: "transcript_refinement",
     basedOnPlan: {
       planId: basePlan._id,
-      planVersion: basePlan.planVersion
+      planVersion: basePlan.planVersion,
     },
     transcriptAnalysis: {
       reportId: new ObjectId(reportId),
       improvements: aiPlan.improvements || [],
       adjustments: aiPlan.adjustments || [],
-      basePlanVersion: basePlan.planVersion
+      basePlanVersion: basePlan.planVersion,
     },
     createdAt: new Date(),
     updatedAt: new Date(),
     createdBy: new ObjectId(adminId),
-    status: "borrador"
+    status: "borrador",
   }
 }
 
@@ -1089,7 +1089,7 @@ async function generateTranscriptBasedPlan(
     userId, 
     childId, 
     reportId,
-    planNumber 
+    planNumber, 
   })
 
   const { db } = await connectToDatabase()
@@ -1097,7 +1097,7 @@ async function generateTranscriptBasedPlan(
   // 1. Obtener el reporte de análisis completo
   const consultationReport = await db.collection("consultation_reports").findOne({
     _id: new ObjectId(reportId),
-    childId: new ObjectId(childId)
+    childId: new ObjectId(childId),
   })
 
   if (!consultationReport) {
@@ -1108,7 +1108,7 @@ async function generateTranscriptBasedPlan(
   const previousPlan = await db.collection("child_plans").findOne({
     childId: new ObjectId(childId),
     userId: new ObjectId(userId),
-    planNumber: previousPlanNumber
+    planNumber: previousPlanNumber,
   })
 
   if (!previousPlan) {
@@ -1117,7 +1117,7 @@ async function generateTranscriptBasedPlan(
 
   // 3. Obtener datos básicos del niño
   const child = await db.collection("children").findOne({
-    _id: new ObjectId(childId)
+    _id: new ObjectId(childId),
   })
 
   if (!child) {
@@ -1138,9 +1138,9 @@ async function generateTranscriptBasedPlan(
     transcriptAnalysis: {
       analysis: consultationReport.analysis,
       recommendations: consultationReport.recommendations,
-      transcript: consultationReport.transcript
+      transcript: consultationReport.transcript,
     },
-    scheduleChanges
+    scheduleChanges,
   })
 
   // (sin normalización adicional)
@@ -1159,12 +1159,12 @@ async function generateTranscriptBasedPlan(
       reportId: new ObjectId(reportId),
       improvements: aiPlan.improvements || [],
       adjustments: aiPlan.adjustments || [],
-      previousPlanNumber
+      previousPlanNumber,
     },
     createdAt: new Date(),
     updatedAt: new Date(),
     createdBy: new ObjectId(adminId),
-    status: "borrador"
+    status: "borrador",
   }
 }
 
@@ -1288,7 +1288,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
       logger.error("Error parseando análisis ligero:", parseError)
       return {
         analysis: responseContent,
-        recommendations: "Ver análisis para recomendaciones específicas."
+        recommendations: "Ver análisis para recomendaciones específicas.",
       }
     }
   } catch (error) {
@@ -1308,12 +1308,12 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 async function loadRAGFromSummary(ageInMonths: number | null): Promise<Array<{source: string, content: string}>> {
   try {
     // Ruta al archivo RAG_SUMMARY_OPTIMIZED.md
-    const ragFilePath = path.join(process.cwd(), 'docs', 'RAG_SUMMARY_OPTIMIZED.md')
+    const ragFilePath = path.join(process.cwd(), "docs", "RAG_SUMMARY_OPTIMIZED.md")
 
     logger.info(`📚 Leyendo RAG desde archivo: ${ragFilePath}`)
 
     // Leer el archivo
-    const fileContent = fs.readFileSync(ragFilePath, 'utf-8')
+    const fileContent = fs.readFileSync(ragFilePath, "utf-8")
 
     const documents: Array<{source: string, content: string}> = []
 
@@ -1322,16 +1322,16 @@ async function loadRAGFromSummary(ageInMonths: number | null): Promise<Array<{so
 
     const matchesAgeSpec = (spec: any, months: number | null): boolean => {
       if (months === null || spec === undefined || spec === null) return false
-      if (typeof spec === 'number') {
+      if (typeof spec === "number") {
         return months === spec
       }
       const specStr = String(spec).trim()
-      if (specStr.includes('+')) {
+      if (specStr.includes("+")) {
         const base = parseInt(specStr)
         return !isNaN(base) && months >= base
       }
-      if (specStr.includes('-')) {
-        const [startStr, endStr] = specStr.split('-')
+      if (specStr.includes("-")) {
+        const [startStr, endStr] = specStr.split("-")
         const start = parseInt(startStr)
         const end = parseInt(endStr)
         if (!isNaN(start) && !isNaN(end)) {
@@ -1359,42 +1359,42 @@ async function loadRAGFromSummary(ageInMonths: number | null): Promise<Array<{so
       const tips: string[] = Array.isArray(targetSchedule.tips) ? targetSchedule.tips : []
 
       const characteristicsText = Object.entries(characteristics)
-        .map(([key, value]) => `- ${key.replace(/([A-Z])/g, ' $1').replace(/^\w/, ch => ch.toUpperCase())}: ${value}`)
-        .join('\n')
+        .map(([key, value]) => `- ${key.replace(/([A-Z])/g, " $1").replace(/^\w/, ch => ch.toUpperCase())}: ${value}`)
+        .join("\n")
 
       const napsText = Array.isArray(target.naps) && target.naps.length > 0
         ? target.naps.map((nap: any) =>
-            `- Siesta ${nap.napNumber}: ${nap.time} (${nap.duration}${nap.optional ? ', opcional' : ''})`
-          ).join('\n')
+          `- Siesta ${nap.napNumber}: ${nap.time} (${nap.duration}${nap.optional ? ", opcional" : ""})`
+        ).join("\n")
         : target.quietTime
           ? `- Tiempo tranquilo (sin siesta): ${target.quietTime}`
-          : ''
+          : ""
 
       const tipsText = tips.length > 0
-        ? `\nRecomendaciones prácticas:\n${tips.map(tip => `- ${tip}`).join('\n')}`
-        : ''
+        ? `\nRecomendaciones prácticas:\n${tips.map(tip => `- ${tip}`).join("\n")}`
+        : ""
 
       const formattedContent = [
         `HORARIOS OBJETIVO PARA ${scheduleLabel.toUpperCase()}`,
-        '',
-        characteristicsText ? `Características clave:\n${characteristicsText}` : '',
-        'Horarios objetivo:',
-        `- Hora de despertar: ${target.wakeTime || 'N/D'}`,
-        `- Hora de dormir: ${target.bedtime || 'N/D'}`,
-        target.nightSleepDuration ? `- Duración sueño nocturno: ${target.nightSleepDuration}` : '',
-        napsText ? `\nSiestas recomendadas:\n${napsText}` : '',
-        target.totalNapTime ? `\nTiempo total de siestas: ${target.totalNapTime}` : '',
+        "",
+        characteristicsText ? `Características clave:\n${characteristicsText}` : "",
+        "Horarios objetivo:",
+        `- Hora de despertar: ${target.wakeTime || "N/D"}`,
+        `- Hora de dormir: ${target.bedtime || "N/D"}`,
+        target.nightSleepDuration ? `- Duración sueño nocturno: ${target.nightSleepDuration}` : "",
+        napsText ? `\nSiestas recomendadas:\n${napsText}` : "",
+        target.totalNapTime ? `\nTiempo total de siestas: ${target.totalNapTime}` : "",
         target.awakeWindows
-          ? `Ventanas despierto: ${Array.isArray(target.awakeWindows) ? target.awakeWindows.join(' → ') : target.awakeWindows}`
-          : '',
-        target.nightFeedings ? `Tomas nocturnas esperadas: ${target.nightFeedings}` : '',
-        targetSchedule.notes ? `\nNotas específicas: ${targetSchedule.notes}` : '',
-        tipsText
-      ].filter(Boolean).join('\n\n')
+          ? `Ventanas despierto: ${Array.isArray(target.awakeWindows) ? target.awakeWindows.join(" → ") : target.awakeWindows}`
+          : "",
+        target.nightFeedings ? `Tomas nocturnas esperadas: ${target.nightFeedings}` : "",
+        targetSchedule.notes ? `\nNotas específicas: ${targetSchedule.notes}` : "",
+        tipsText,
+      ].filter(Boolean).join("\n\n")
 
       documents.push({
         source: `Horarios ideales - ${scheduleLabel}`,
-        content: formattedContent.trim()
+        content: formattedContent.trim(),
       })
 
       logger.info(`✅ RAG cargado exitosamente para ${scheduleLabel}`)
@@ -1404,28 +1404,28 @@ async function loadRAGFromSummary(ageInMonths: number | null): Promise<Array<{so
 
     if (ragData.generalRules) {
       const rulesEntries = Object.entries(ragData.generalRules)
-        .map(([key, value]) => `- ${key.replace(/([A-Z])/g, ' $1').replace(/^\w/, ch => ch.toUpperCase())}: ${value}`)
-        .join('\n')
+        .map(([key, value]) => `- ${key.replace(/([A-Z])/g, " $1").replace(/^\w/, ch => ch.toUpperCase())}: ${value}`)
+        .join("\n")
 
       if (rulesEntries) {
         documents.push({
-          source: 'Reglas generales de ajuste',
-          content: `Principios para ajustar horarios:\n${rulesEntries}`
+          source: "Reglas generales de ajuste",
+          content: `Principios para ajustar horarios:\n${rulesEntries}`,
         })
       }
     }
 
     if (ragData.sleepCues?.signs) {
       const cuesContent = [
-        ragData.sleepCues.description ? `Descripción: ${ragData.sleepCues.description}` : '',
-        Array.isArray(ragData.sleepCues.signs) ? `Señales clave:\n${ragData.sleepCues.signs.map((cue: string) => `- ${cue}`).join('\n')}` : '',
-        ragData.sleepCues.importance ? `Importancia: ${ragData.sleepCues.importance}` : ''
-      ].filter(Boolean).join('\n\n')
+        ragData.sleepCues.description ? `Descripción: ${ragData.sleepCues.description}` : "",
+        Array.isArray(ragData.sleepCues.signs) ? `Señales clave:\n${ragData.sleepCues.signs.map((cue: string) => `- ${cue}`).join("\n")}` : "",
+        ragData.sleepCues.importance ? `Importancia: ${ragData.sleepCues.importance}` : "",
+      ].filter(Boolean).join("\n\n")
 
       if (cuesContent) {
         documents.push({
-          source: 'Señales universales de sueño',
-          content: cuesContent
+          source: "Señales universales de sueño",
+          content: cuesContent,
         })
       }
     }
@@ -1434,27 +1434,27 @@ async function loadRAGFromSummary(ageInMonths: number | null): Promise<Array<{so
       const planAdjustment = ragData.progressivePlanAdjustment
       const plansDetail = planAdjustment.plans
         ? Object.entries(planAdjustment.plans).map(([planKey, details]: [string, any]) => {
-            const items = Object.entries(details)
-              .map(([detailKey, detailValue]) => `  - ${detailKey.replace(/([A-Z])/g, ' $1').replace(/^\w/, ch => ch.toUpperCase())}: ${detailValue}`)
-              .join('\n')
-            return `• ${planKey.toUpperCase()}:\n${items}`
-          }).join('\n')
-        : ''
+          const items = Object.entries(details)
+            .map(([detailKey, detailValue]) => `  - ${detailKey.replace(/([A-Z])/g, " $1").replace(/^\w/, ch => ch.toUpperCase())}: ${detailValue}`)
+            .join("\n")
+          return `• ${planKey.toUpperCase()}:\n${items}`
+        }).join("\n")
+        : ""
 
       const adjustmentContent = [
-        planAdjustment.description || 'Reglas para ajuste progresivo de horarios',
-        '',
-        plansDetail ? `Planes:\n${plansDetail}` : '',
-        planAdjustment.steps ? `Pasos recomendados: ${planAdjustment.steps}` : '',
+        planAdjustment.description || "Reglas para ajuste progresivo de horarios",
+        "",
+        plansDetail ? `Planes:\n${plansDetail}` : "",
+        planAdjustment.steps ? `Pasos recomendados: ${planAdjustment.steps}` : "",
         planAdjustment.example
           ? `\nEjemplo:\n- Datos reales: ${planAdjustment.example.realData}\n- Plan 0: ${planAdjustment.example.plan0}\n- Plan 1: ${planAdjustment.example.plan1}\n- Plan 2: ${planAdjustment.example.plan2}`
-          : ''
-      ].filter(Boolean).join('\n')
+          : "",
+      ].filter(Boolean).join("\n")
 
       if (adjustmentContent.trim().length > 0) {
         documents.push({
-          source: 'Ajuste progresivo de planes',
-          content: adjustmentContent.trim()
+          source: "Ajuste progresivo de planes",
+          content: adjustmentContent.trim(),
         })
       }
     }
@@ -1476,7 +1476,7 @@ async function loadRAGFromSummary(ageInMonths: number | null): Promise<Array<{so
 async function searchRAGForPlan(ageInMonths: number | null) {
   try {
     // ✅ SWITCH: Elegir fuente RAG según configuración
-    if (RAG_SOURCE === 'summary') {
+    if (RAG_SOURCE === "summary") {
       logger.info("🗂️  Usando RAG_SUMMARY.md como fuente (Document 4 priorizado)")
       return await loadRAGFromSummary(ageInMonths)
     }
@@ -1491,7 +1491,7 @@ async function searchRAGForPlan(ageInMonths: number | null) {
       `rutina de sueño para niños de ${ageInMonths} meses`,
       "horarios de comida infantil",
       "siestas apropiadas por edad",
-      "transición de siestas según edad"  // Para capturar info de transiciones
+      "transición de siestas según edad",  // Para capturar info de transiciones
     ]
 
     let allResults: any[] = []
@@ -1525,7 +1525,7 @@ async function generatePlanWithAI({
   transcriptAnalysis,
   scheduleChanges,
   eventAnalysis,
-  enrichedStats
+  enrichedStats,
 }: {
   planType: "initial" | "event_based" | "transcript_refinement"
   childData: any
@@ -1550,18 +1550,18 @@ INFORMACIÓN DEL NIÑO:
 - Edad: ${childData.ageInMonths} meses
 - Eventos de sueño registrados: ${childData.events?.length || 0}
 - Sueño nocturno (promedio): ${childData.stats?.avgSleepDurationMinutes || 0} minutos
-- Hora promedio de despertar: ${String(Math.floor((childData.stats?.avgWakeTimeMinutes || 0) / 60)).padStart(2, '0')}:${((childData.stats?.avgWakeTimeMinutes || 0) % 60).toString().padStart(2, "0")} (formato 24h)
-${enrichedStats ? `- Hora media de acostarse observada: ${enrichedStats?.bedtimeStats?.avgBedtime || 'N/A'}
-- Siestas: total=${enrichedStats?.napStats?.count || 0}, hora típica=${enrichedStats?.napStats?.typicalTime || 'N/A'}, duración prom=${enrichedStats?.napStats?.avgDuration || 0} min
-- Comidas típicas (si existen eventos): desayuno=${enrichedStats?.feedingStats?.breakfast || 'N/A'} (n=${enrichedStats?.feedingStats?.breakfastCount || 0}), almuerzo=${enrichedStats?.feedingStats?.lunch || 'N/A'} (n=${enrichedStats?.feedingStats?.lunchCount || 0}), merienda=${enrichedStats?.feedingStats?.snack || 'N/A'} (n=${enrichedStats?.feedingStats?.snackCount || 0}), cena=${enrichedStats?.feedingStats?.dinner || 'N/A'} (n=${enrichedStats?.feedingStats?.dinnerCount || 0})` : ''}
+- Hora promedio de despertar: ${String(Math.floor((childData.stats?.avgWakeTimeMinutes || 0) / 60)).padStart(2, "0")}:${((childData.stats?.avgWakeTimeMinutes || 0) % 60).toString().padStart(2, "0")} (formato 24h)
+${enrichedStats ? `- Hora media de acostarse observada: ${enrichedStats?.bedtimeStats?.avgBedtime || "N/A"}
+- Siestas: total=${enrichedStats?.napStats?.count || 0}, hora típica=${enrichedStats?.napStats?.typicalTime || "N/A"}, duración prom=${enrichedStats?.napStats?.avgDuration || 0} min
+- Comidas típicas (si existen eventos): desayuno=${enrichedStats?.feedingStats?.breakfast || "N/A"} (n=${enrichedStats?.feedingStats?.breakfastCount || 0}), almuerzo=${enrichedStats?.feedingStats?.lunch || "N/A"} (n=${enrichedStats?.feedingStats?.lunchCount || 0}), merienda=${enrichedStats?.feedingStats?.snack || "N/A"} (n=${enrichedStats?.feedingStats?.snackCount || 0}), cena=${enrichedStats?.feedingStats?.dinner || "N/A"} (n=${enrichedStats?.feedingStats?.dinnerCount || 0})` : ""}
 
 ${surveyData ? `
 DATOS DEL CUESTIONARIO:
 - Rutina antes de acostarse: ${surveyData.rutinaHabitos?.rutinaAntesAcostarse}
 - Hora específica de dormir: ${surveyData.rutinaHabitos?.horaDormir}
-- Hace siestas: ${surveyData.rutinaHabitos?.haceSiestas ? 'Sí' : 'No'}
+- Hace siestas: ${surveyData.rutinaHabitos?.haceSiestas ? "Sí" : "No"}
 - Donde duerme: ${surveyData.rutinaHabitos?.dondeDuermeNoche}
-` : ''}
+` : ""}
 
 ${ragContext ? `
 🎯 OBJETIVO IDEAL (hacia donde queremos llegar progresivamente):
@@ -1572,7 +1572,7 @@ ${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join
 
 ⚠️ IMPORTANTE: Estos son horarios IDEALES. En el Plan 0, usa los registros actuales como punto de partida
 y da el PRIMER PASO suave hacia estos objetivos ideales.
-` : ''}
+` : ""}
 
 INSTRUCCIONES:
 1. Crea un plan DETALLADO con horarios específicos
@@ -1599,7 +1599,7 @@ INSTRUCCIONES:
 7. Adapta las recomendaciones a la edad del niño
 8. Proporciona objetivos claros y medibles basados en el PRIMER PASO hacia el ideal
 9. Incluye recomendaciones específicas para los padres sobre cómo implementar este primer ajuste
-10. Si hubo siestas registradas en el histórico, DEBES incluir al menos 1 siesta en un horario cercano a la hora típica observada (${enrichedStats?.napStats?.typicalTime || '14:00'}) y duración aproximada (${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min)
+10. Si hubo siestas registradas en el histórico, DEBES incluir al menos 1 siesta en un horario cercano a la hora típica observada (${enrichedStats?.napStats?.typicalTime || "14:00"}) y duración aproximada (${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min)
 11. Para comidas, si no hubo eventos en una categoría (n=0), no inventes el horario; puedes omitirla o marcarla como opcional
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
@@ -1641,10 +1641,10 @@ ANÁLISIS DE EVENTOS RECIENTES (${eventAnalysis?.eventsAnalyzed || 0} eventos):
 - Tipos de eventos: ${eventAnalysis?.eventTypes?.join(", ") || "No especificado"}
 - Período analizado: ${eventAnalysis?.dateRange?.from || "No especificado"} a ${eventAnalysis?.dateRange?.to || "No especificado"}
 - Sueño nocturno (promedio): ${childData.stats?.avgSleepDurationMinutes || 0} minutos
-- Hora promedio de despertar: ${String(Math.floor((childData.stats?.avgWakeTimeMinutes || 0) / 60)).padStart(2, '0')}:${((childData.stats?.avgWakeTimeMinutes || 0) % 60).toString().padStart(2, "0")} (formato 24h)
-${enrichedStats ? `- Siestas (período): total=${enrichedStats?.napStats?.count || 0}, hora típica=${enrichedStats?.napStats?.typicalTime || 'N/A'}, duración prom=${enrichedStats?.napStats?.avgDuration || 0} min
-- Hora media de acostarse (período): ${enrichedStats?.bedtimeStats?.avgBedtime || 'N/A'}
-- Comidas típicas (período): desayuno=${enrichedStats?.feedingStats?.breakfast || 'N/A'} (n=${enrichedStats?.feedingStats?.breakfastCount || 0}), almuerzo=${enrichedStats?.feedingStats?.lunch || 'N/A'} (n=${enrichedStats?.feedingStats?.lunchCount || 0}), merienda=${enrichedStats?.feedingStats?.snack || 'N/A'} (n=${enrichedStats?.feedingStats?.snackCount || 0}), cena=${enrichedStats?.feedingStats?.dinner || 'N/A'} (n=${enrichedStats?.feedingStats?.dinnerCount || 0})` : ''}
+- Hora promedio de despertar: ${String(Math.floor((childData.stats?.avgWakeTimeMinutes || 0) / 60)).padStart(2, "0")}:${((childData.stats?.avgWakeTimeMinutes || 0) % 60).toString().padStart(2, "0")} (formato 24h)
+${enrichedStats ? `- Siestas (período): total=${enrichedStats?.napStats?.count || 0}, hora típica=${enrichedStats?.napStats?.typicalTime || "N/A"}, duración prom=${enrichedStats?.napStats?.avgDuration || 0} min
+- Hora media de acostarse (período): ${enrichedStats?.bedtimeStats?.avgBedtime || "N/A"}
+- Comidas típicas (período): desayuno=${enrichedStats?.feedingStats?.breakfast || "N/A"} (n=${enrichedStats?.feedingStats?.breakfastCount || 0}), almuerzo=${enrichedStats?.feedingStats?.lunch || "N/A"} (n=${enrichedStats?.feedingStats?.lunchCount || 0}), merienda=${enrichedStats?.feedingStats?.snack || "N/A"} (n=${enrichedStats?.feedingStats?.snackCount || 0}), cena=${enrichedStats?.feedingStats?.dinner || "N/A"} (n=${enrichedStats?.feedingStats?.dinnerCount || 0})` : ""}
 
 ${ragContext ? `
 🎯 OBJETIVO IDEAL (hacia donde continuamos avanzando):
@@ -1655,7 +1655,7 @@ ${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join
 
 ⚠️ IMPORTANTE: Usa el plan anterior como base y da el SIGUIENTE PASO progresivo hacia estos horarios ideales.
 NO saltes directamente al ideal si el plan anterior está lejos. Avanza gradualmente.
-` : ''}
+` : ""}
 
 INSTRUCCIONES PARA PROGRESIÓN:
 1. 🎯 PRIORIDAD: Utiliza el PLAN ANTERIOR como base sólida
@@ -1681,7 +1681,7 @@ INSTRUCCIONES PARA PROGRESIÓN:
    - Usa los eventos reales para validar si el niño está tolerando bien los ajustes
 7. ✨ EVOLUCIONA el plan manteniendo coherencia con el anterior
 8. 🔧 OPTIMIZA horarios según los datos reales registrados y el siguiente paso hacia el ideal
-9. Si el período contiene siestas (conteo>0), DEBES incluir al menos 1 siesta con hora cercana a ${enrichedStats?.napStats?.typicalTime || '14:00'} y duración ~${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min
+9. Si el período contiene siestas (conteo>0), DEBES incluir al menos 1 siesta con hora cercana a ${enrichedStats?.napStats?.typicalTime || "14:00"} y duración ~${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min
 10. Para comidas, no inventes categorías sin eventos; puedes omitirlas o marcarlas como opcionales
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
@@ -1720,7 +1720,7 @@ CAMBIOS ESPECÍFICOS DE HORARIOS EXTRAÍDOS DEL TRANSCRIPT:
 ${JSON.stringify(scheduleChanges, null, 2)}
 
 ⚠️ IMPORTANTE: Estos horarios específicos tienen PRIORIDAD sobre el plan anterior. Si se especifica un horario aquí, ÚSALO en lugar del horario del plan anterior.
-` : ''}
+` : ""}
 
 TRANSCRIPT DE LA CONSULTA (COMPLETO):
 ${transcriptAnalysis?.transcript || "No disponible"}
@@ -1792,7 +1792,7 @@ CAMBIOS ESPECÍFICOS DE HORARIOS EXTRAÍDOS DEL TRANSCRIPT:
 ${JSON.stringify(scheduleChanges, null, 2)}
 
 ⚠️ IMPORTANTE: Estos horarios específicos tienen PRIORIDAD sobre el plan anterior. Si se especifica un horario aquí, ÚSALO en lugar del horario del plan anterior.
-` : ''}
+` : ""}
 
 TRANSCRIPT DE LA SESIÓN (COMPLETO):
 ${transcriptAnalysis.transcript}
@@ -1833,23 +1833,23 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
     // Inyectar políticas de ajuste como mensaje de sistema adicional (seguro si falla)
     let policyText = ""
     try {
-      const ageM = typeof childData?.ageInMonths === 'number' ? childData.ageInMonths : (childData?.birthDate ? Math.floor(differenceInDays(new Date(), new Date(childData.birthDate)) / 30.44) : null)
+      const ageM = typeof childData?.ageInMonths === "number" ? childData.ageInMonths : (childData?.birthDate ? Math.floor(differenceInDays(new Date(), new Date(childData.birthDate)) / 30.44) : null)
       const p = derivePlanPolicy({ ageInMonths: ageM, events: childData?.events || [] })
       const napLine = p.napTransition.isTransitionWindow
         ? `Transición 2→1 siestas (15–18 meses): cambios de ${Math.max(10, Math.min(15, p.napTransition.recommendedStepMinutes))} min cada 3–4 días.`
         : `Ajustes generales: puedes mover bloques de ${p.napTransition.recommendedStepMinutes} min si el niño lo tolera.`
       const nightLine = p.nightWeaning.isActive
         ? `Destete nocturno activo: mover toma ${p.nightWeaning.shiftEarlierMinutesPerStep} min más temprano y aumentar ~${p.nightWeaning.increaseBottleOzPerStep} oz cada ${p.nightWeaning.stepEveryDays} días.`
-        : `Si no hay tomas nocturnas recientes, no incluir destete.`
+        : "Si no hay tomas nocturnas recientes, no incluir destete."
       policyText = `POLÍTICAS Y LÍMITES DE AJUSTE (OBLIGATORIO RESPETAR):\n- ${napLine}\n- ${nightLine}`
     } catch (_) {}
     const __messages: any[] = [
-      { role: "system", content: systemPrompt }
+      { role: "system", content: systemPrompt },
     ]
     if (policyText) {
       __messages.push({ role: "system", content: policyText })
     }
-    __messages.push({ role: "user", content: `Genera el plan detallado siguiendo exactamente el formato JSON especificado.` })
+    __messages.push({ role: "user", content: "Genera el plan detallado siguiendo exactamente el formato JSON especificado." })
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
       messages: __messages,
@@ -1863,7 +1863,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
     responseContent = responseContent.trim()
     
     // Si la respuesta no empieza con {, intentar extraer el JSON
-    if (!responseContent.startsWith('{')) {
+    if (!responseContent.startsWith("{")) {
       const jsonMatch = responseContent.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
         responseContent = jsonMatch[0]
@@ -1876,7 +1876,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
       logger.error("Error parseando respuesta de IA:", {
         parseError: parseError.message,
         responseContent: responseContent.substring(0, 500) + "...",
-        fullLength: responseContent.length
+        fullLength: responseContent.length,
       })
       
       // Intentar generar un plan básico como fallback
@@ -1889,20 +1889,20 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
             { time: "07:30", type: "desayuno", description: "Desayuno nutritivo" },
             { time: "12:00", type: "almuerzo", description: "Almuerzo balanceado" },
             { time: "16:00", type: "merienda", description: "Merienda ligera" },
-            { time: "19:00", type: "cena", description: "Cena temprana" }
+            { time: "19:00", type: "cena", description: "Cena temprana" },
           ],
           activities: [
             { time: "08:00", activity: "jugar", duration: 60, description: "Tiempo de juego" },
-            { time: "17:00", activity: "ejercicio", duration: 30, description: "Actividad física" }
+            { time: "17:00", activity: "ejercicio", duration: 30, description: "Actividad física" },
           ],
           naps: [
-            { time: "14:00", duration: 90, description: "Siesta vespertina" }
-          ]
+            { time: "14:00", duration: 90, description: "Siesta vespertina" },
+          ],
         },
         objectives: ["Establecer rutina de sueño consistente", "Mejorar calidad del descanso"],
         recommendations: ["Mantener horarios fijos", "Crear ambiente propicio para dormir"],
         improvements: ["Plan refinado basado en consulta médica"],
-        adjustments: ["Horarios ajustados según recomendaciones"]
+        adjustments: ["Horarios ajustados según recomendaciones"],
       }
     }
   } catch (error) {
@@ -1917,25 +1917,25 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
           { time: "07:30", type: "desayuno", description: "Desayuno nutritivo" },
           { time: "12:00", type: "almuerzo", description: "Almuerzo balanceado" },
           { time: "16:00", type: "merienda", description: "Merienda ligera" },
-          { time: "19:00", type: "cena", description: "Cena temprana" }
+          { time: "19:00", type: "cena", description: "Cena temprana" },
         ],
         activities: [
-          { time: "18:30", activity: "rutina", duration: 30, description: "Rutina relajante antes de dormir" }
+          { time: "18:30", activity: "rutina", duration: 30, description: "Rutina relajante antes de dormir" },
         ],
         naps: [
-          { time: "14:00", duration: 90, description: "Siesta vespertina" }
-        ]
+          { time: "14:00", duration: 90, description: "Siesta vespertina" },
+        ],
       },
       objectives: [
         "Establecer rutina de sueño consistente",
-        "Mejorar calidad del descanso"
+        "Mejorar calidad del descanso",
       ],
       recommendations: [
         "Mantener horarios fijos",
-        "Ambiente oscuro y tranquilo por la noche"
+        "Ambiente oscuro y tranquilo por la noche",
       ],
       improvements: ["Plan generado con fallback por indisponibilidad de IA"],
-      adjustments: ["Ajustes estándar basados en edad"]
+      adjustments: ["Ajustes estándar basados en edad"],
     }
   }
 }

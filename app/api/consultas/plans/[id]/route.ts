@@ -8,7 +8,7 @@ import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { createLogger } from "@/lib/logger"
 
-const logger = createLogger('api/consultas/plans/[id]')
+const logger = createLogger("api/consultas/plans/[id]")
 
 // DELETE endpoint para eliminar un plan específico (solo admin)
 // Si se elimina el plan activo, auto-activa el plan anterior (considerando refinamientos)
@@ -51,7 +51,7 @@ export async function DELETE(
       planVersion: planToDelete.planVersion,
       status: planToDelete.status,
       childId: planToDelete.childId,
-      userId: planToDelete.userId
+      userId: planToDelete.userId,
     })
 
     // 2. Si el plan a eliminar es ACTIVO, buscar el plan anterior para reactivarlo
@@ -61,13 +61,13 @@ export async function DELETE(
       const allPlans = await collection.find({
         childId: planToDelete.childId,
         userId: planToDelete.userId,
-        _id: { $ne: new ObjectId(planId) } // Excluir el plan a eliminar
+        _id: { $ne: new ObjectId(planId) }, // Excluir el plan a eliminar
       }).toArray()
 
       // Función para comparar versiones de planes (considera refinamientos como 1.1, 2.1, etc.)
       const compareVersions = (versionA: string, versionB: string): number => {
         const parseVersion = (v: string) => {
-          const parts = v.split('.')
+          const parts = v.split(".")
           const major = parseInt(parts[0]) || 0
           const minor = parseInt(parts[1]) || 0
           return { major, minor }
@@ -91,8 +91,8 @@ export async function DELETE(
         totalPlans: sortedPlans.length,
         versions: sortedPlans.map(p => ({
           version: p.planVersion,
-          status: p.status
-        }))
+          status: p.status,
+        })),
       })
 
       // El primer plan en la lista ordenada es el más reciente (anterior al eliminado)
@@ -108,8 +108,8 @@ export async function DELETE(
               updatedAt: new Date(),
               reactivatedAt: new Date(),
               reactivatedBy: new ObjectId(session.user.id),
-              reactivatedReason: `Plan ${planToDelete.planVersion} eliminado`
-            }
+              reactivatedReason: `Plan ${planToDelete.planVersion} eliminado`,
+            },
           }
         )
 
@@ -119,12 +119,12 @@ export async function DELETE(
           reactivatedPlanId: previousPlan._id,
           reactivatedVersion: previousPlan.planVersion,
           previousStatus: previousPlan.status,
-          newStatus: "active"
+          newStatus: "active",
         })
       } else {
         logger.warn("No hay plan anterior para reactivar", {
           childId: planToDelete.childId,
-          deletedPlanVersion: planToDelete.planVersion
+          deletedPlanVersion: planToDelete.planVersion,
         })
       }
     }
@@ -145,9 +145,9 @@ export async function DELETE(
       wasActive: planToDelete.status === "active",
       reactivatedPlan: reactivatedPlan ? {
         id: reactivatedPlan._id,
-        version: reactivatedPlan.planVersion
+        version: reactivatedPlan.planVersion,
       } : null,
-      adminId: session.user.id
+      adminId: session.user.id,
     })
 
     return NextResponse.json({
@@ -155,8 +155,8 @@ export async function DELETE(
       message: "Plan eliminado correctamente",
       reactivated: reactivatedPlan ? {
         planId: reactivatedPlan._id,
-        planVersion: reactivatedPlan.planVersion
-      } : null
+        planVersion: reactivatedPlan.planVersion,
+      } : null,
     })
   } catch (error) {
     logger.error("Error eliminando plan:", error)
@@ -212,14 +212,14 @@ export async function PUT(
 
     // Verificar que el plan existe
     const existingPlan = await plansCollection.findOne({
-      _id: new ObjectId(planId)
+      _id: new ObjectId(planId),
     })
 
     if (!existingPlan) {
       logger.info("Plan no encontrado, creando nuevo plan", { 
         planId,
         childId,
-        collection: "child_plans"
+        collection: "child_plans",
       })
       
       // Si el plan no existe y tenemos la información necesaria, lo creamos
@@ -233,8 +233,8 @@ export async function PUT(
       // Crear el nuevo plan con el ID proporcionado
       const newPlan = {
         _id: new ObjectId(planId),
-        childId: typeof childId === 'string' ? new ObjectId(childId) : childId,
-        userId: typeof userId === 'string' ? new ObjectId(userId) : userId,
+        childId: typeof childId === "string" ? new ObjectId(childId) : childId,
+        userId: typeof userId === "string" ? new ObjectId(userId) : userId,
         planNumber: planNumber || 0,
         planVersion: planVersion || "1.0",
         planType: planType || "initial",
@@ -245,7 +245,7 @@ export async function PUT(
         createdAt: new Date(),
         createdBy: new ObjectId(session.user.id),
         updatedAt: new Date(),
-        updatedBy: new ObjectId(session.user.id)
+        updatedBy: new ObjectId(session.user.id),
       }
 
       const insertResult = await plansCollection.insertOne(newPlan)
@@ -261,20 +261,20 @@ export async function PUT(
       logger.info("Plan creado exitosamente", {
         planId,
         childId,
-        adminId: session.user.id
+        adminId: session.user.id,
       })
 
       return NextResponse.json({
         success: true,
         plan: newPlan,
         message: "Plan creado correctamente",
-        created: true
+        created: true,
       })
     }
 
     logger.info("Plan encontrado, procediendo con actualización", {
       planId,
-      childId: existingPlan.childId
+      childId: existingPlan.childId,
     })
 
     // Actualizar el plan existente
@@ -287,8 +287,8 @@ export async function PUT(
           recommendations,
           sleepRoutine: sleepRoutine || null,
           updatedAt: new Date(),
-          updatedBy: new ObjectId(session.user.id)
-        }
+          updatedBy: new ObjectId(session.user.id),
+        },
       }
     )
 
@@ -302,19 +302,19 @@ export async function PUT(
 
     // Obtener el plan actualizado
     const updatedPlan = await plansCollection.findOne({
-      _id: new ObjectId(planId)
+      _id: new ObjectId(planId),
     })
 
     logger.info("Plan actualizado exitosamente", {
       planId,
       adminId: session.user.id,
-      adminName: session.user.name
+      adminName: session.user.name,
     })
 
     return NextResponse.json({
       success: true,
       plan: updatedPlan,
-      message: "Plan actualizado correctamente"
+      message: "Plan actualizado correctamente",
     })
 
   } catch (error) {
@@ -356,7 +356,7 @@ export async function GET(
 
     // Obtener el plan
     const plan = await plansCollection.findOne({
-      _id: new ObjectId(planId)
+      _id: new ObjectId(planId),
     })
 
     if (!plan) {
@@ -368,7 +368,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      plan
+      plan,
     })
 
   } catch (error) {
@@ -409,7 +409,7 @@ export async function PATCH(
 
     // Obtener el plan a aplicar
     const planToApply = await plansCollection.findOne({
-      _id: new ObjectId(planId)
+      _id: new ObjectId(planId),
     })
 
     if (!planToApply) {
@@ -431,7 +431,7 @@ export async function PATCH(
       planId,
       childId: planToApply.childId,
       userId: planToApply.userId,
-      adminId: session.user.id
+      adminId: session.user.id,
     })
 
     // 1. Cambiar todos los planes activos anteriores a "superseded"
@@ -440,13 +440,13 @@ export async function PATCH(
         childId: planToApply.childId,
         userId: planToApply.userId,
         status: "active",
-        _id: { $ne: new ObjectId(planId) }
+        _id: { $ne: new ObjectId(planId) },
       },
       {
         $set: {
           status: "superseded",
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       }
     )
 
@@ -458,8 +458,8 @@ export async function PATCH(
           status: "active",
           updatedAt: new Date(),
           appliedBy: new ObjectId(session.user.id),
-          appliedAt: new Date()
-        }
+          appliedAt: new Date(),
+        },
       }
     )
 
@@ -472,19 +472,19 @@ export async function PATCH(
 
     // Obtener el plan actualizado
     const updatedPlan = await plansCollection.findOne({
-      _id: new ObjectId(planId)
+      _id: new ObjectId(planId),
     })
 
     logger.info("Plan aplicado exitosamente", {
       planId,
       childId: planToApply.childId,
-      adminId: session.user.id
+      adminId: session.user.id,
     })
 
     return NextResponse.json({
       success: true,
       plan: updatedPlan,
-      message: "Plan aplicado correctamente. Los planes anteriores han sido marcados como supersedidos."
+      message: "Plan aplicado correctamente. Los planes anteriores han sido marcados como supersedidos.",
     })
 
   } catch (error) {

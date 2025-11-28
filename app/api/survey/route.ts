@@ -54,7 +54,7 @@ export async function GET(req: Request) {
         parentId: child.parentId,
         surveyData: child.surveyData,
         updatedAt: child.surveyUpdatedAt || child.updatedAt || child.createdAt,
-      }
+      },
     })
   } catch (error) {
     logger.error("Error al obtener encuesta:", error)
@@ -86,14 +86,14 @@ export async function POST(req: Request) {
       accessContext = await resolveChildAccess(db, session.user, childId, "canEditProfile")
     } catch (error) {
       if (error instanceof ChildAccessError) {
-        logger.error('Error de acceso al guardar encuesta', {
+        logger.error("Error de acceso al guardar encuesta", {
           userId: session.user.id,
           childId,
-          error: error.message
+          error: error.message,
         })
         return NextResponse.json({
           message: error.message,
-          success: false
+          success: false,
         }, { status: error.status })
       }
       throw error
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
         completed: false,
         currentStep: currentStep,
         lastSavedAt: new Date(),
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       }
       updateFields = {
         surveyData: surveyDataToSave,
@@ -126,7 +126,7 @@ export async function POST(req: Request) {
         completed: true,
         completedAt: surveyData.completedAt || new Date(),
         lastUpdated: new Date(),
-        currentStep: undefined // Limpiar paso actual ya que está completo
+        currentStep: undefined, // Limpiar paso actual ya que está completo
       }
       updateFields = {
         surveyData: surveyDataToSave,

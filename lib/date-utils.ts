@@ -15,7 +15,7 @@ export function calculateAge(birthDate: string | Date): number | string {
   
   // Si se llama con un string, devolver el formato "X años"
   if (typeof birthDate === "string") {
-    return `${years} año${years !== 1 ? 's' : ''}`
+    return `${years} año${years !== 1 ? "s" : ""}`
   }
   
   return years
@@ -64,19 +64,19 @@ export function toLocalISOString(date: Date, timeZone?: string): string {
   if (!timeZone) {
     // Sin timezone especificada, usar formato local simple
     const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-    const seconds = String(date.getSeconds()).padStart(2, '0')
-    const milliseconds = String(date.getMilliseconds()).padStart(3, '0')
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    const hours = String(date.getHours()).padStart(2, "0")
+    const minutes = String(date.getMinutes()).padStart(2, "0")
+    const seconds = String(date.getSeconds()).padStart(2, "0")
+    const milliseconds = String(date.getMilliseconds()).padStart(3, "0")
 
     // Usar offset del navegador local solo cuando no hay timezone especificada
     const offsetMinutesTotal = -date.getTimezoneOffset()
-    const offsetSign = offsetMinutesTotal >= 0 ? '+' : '-'
+    const offsetSign = offsetMinutesTotal >= 0 ? "+" : "-"
     const offsetHours = Math.floor(Math.abs(offsetMinutesTotal) / 60)
     const offsetMins = Math.abs(offsetMinutesTotal) % 60
-    const offsetString = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMins).padStart(2, '0')}`
+    const offsetString = `${offsetSign}${String(offsetHours).padStart(2, "0")}:${String(offsetMins).padStart(2, "0")}`
 
     return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${offsetString}`
   }
@@ -90,7 +90,7 @@ export function toLocalISOString(date: Date, timeZone?: string): string {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    hour12: false
+    hour12: false,
   })
 
   const parts = formatter.formatToParts(date).reduce<Record<string, string>>((acc, part) => {
@@ -104,9 +104,9 @@ export function toLocalISOString(date: Date, timeZone?: string): string {
   // Calcular offset usando la diferencia real entre UTC y la timezone
   // Método: comparar la hora en UTC con la hora en la timezone
   const utcStr = date.toISOString() // "2025-11-27T21:24:19.283Z"
-  const [utcDatePart] = utcStr.split('T')
-  const [utcYear, utcMonth, utcDay] = utcDatePart.split('-')
-  const [utcHour, utcMinute, utcSecond] = date.toISOString().split('T')[1].split(':')
+  const [utcDatePart] = utcStr.split("T")
+  const [utcYear, utcMonth, utcDay] = utcDatePart.split("-")
+  const [utcHour, utcMinute, utcSecond] = date.toISOString().split("T")[1].split(":")
 
   // Diferencia en horas y minutos entre UTC y la timezone
   const tzHours = parseInt(hour, 10)
@@ -128,10 +128,10 @@ export function toLocalISOString(date: Date, timeZone?: string): string {
     offsetMinutes += 24 * 60
   }
 
-  const offsetSign = offsetMinutes >= 0 ? '+' : '-'
+  const offsetSign = offsetMinutes >= 0 ? "+" : "-"
   const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60)
   const offsetMins = Math.abs(offsetMinutes) % 60
-  const offsetString = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMins).padStart(2, '0')}`
+  const offsetString = `${offsetSign}${String(offsetHours).padStart(2, "0")}:${String(offsetMins).padStart(2, "0")}`
 
   return `${parts.year}-${parts.month}-${parts.day}T${hour}:${parts.minute}:${parts.second}.000${offsetString}`
 }

@@ -13,7 +13,7 @@ import {
   Stethoscope, 
   History,
   Check,
-  ChevronRight
+  ChevronRight,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
@@ -176,9 +176,9 @@ export function ConsultationWizard({
                           ? "bg-green-500"
                           // Línea azul si el paso actual está disponible y el siguiente también
                           : (isStepAvailable(step.id) && isStepAvailable(step.id + 1))
-                          ? "bg-primary/40"
+                            ? "bg-primary/40"
                           // Línea gris si no están disponibles
-                          : "bg-gray-300"
+                            : "bg-gray-300"
                       )}
                     />
                   </div>

@@ -48,12 +48,12 @@ export async function GET(
     // Enriquecer surveyData con flags estándar
     const surveyData = child?.surveyData
       ? {
-          ...child.surveyData,
-          completed:
+        ...child.surveyData,
+        completed:
             child.surveyData.completed ??
             (!!child.surveyData.completedAt && child.surveyData.isPartial !== true),
-          lastUpdated: child.surveyData.lastUpdated ?? (child.surveyUpdatedAt || child.updatedAt || child.createdAt),
-        }
+        lastUpdated: child.surveyData.lastUpdated ?? (child.surveyUpdatedAt || child.updatedAt || child.createdAt),
+      }
       : undefined
 
     // Agregar información sobre el tipo de acceso
@@ -63,7 +63,7 @@ export async function GET(
       isOwner: accessContext.isOwner,
       userPermissions: accessContext.isOwner
         ? OWNER_FULL_PERMISSIONS
-        : accessContext.permissions
+        : accessContext.permissions,
     }
 
     logger.info(`Niño encontrado: ${child.firstName} ${child.lastName}`)

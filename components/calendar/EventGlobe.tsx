@@ -1,7 +1,7 @@
 // 🎯 Componente de globo de evento - Versión completa funcional
 "use client"
 
-import React from 'react'
+import React from "react"
 import { Moon, Sun, AlertCircle, Clock } from "lucide-react"
 
 interface Event {
@@ -20,7 +20,7 @@ function extractTimeFromISO(isoString: string) {
     // Usar Date constructor para convertir correctamente a hora local
     const date = new Date(isoString)
     if (isNaN(date.getTime())) {
-      console.error('extractTimeFromISO: fecha inválida', isoString)
+      console.error("extractTimeFromISO: fecha inválida", isoString)
       return null
     }
     
@@ -30,10 +30,10 @@ function extractTimeFromISO(isoString: string) {
     return {
       hours,
       minutes,
-      formatted: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+      formatted: `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`,
     }
   } catch (error) {
-    console.error('extractTimeFromISO error:', error, isoString)
+    console.error("extractTimeFromISO error:", error, isoString)
     return null
   }
 }
@@ -86,48 +86,48 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
   // 🎨 COLOR POR TIPO DE EVENTO
   const getColor = () => {
     switch (event.eventType) {
-      case 'nap': return 'bg-orange-400 text-white'
-      case 'sleep': return 'bg-blue-400 text-white'  
-      case 'wake': return 'bg-wake text-white'
-      case 'night_waking': return 'bg-night-wake text-white'
-      case 'feeding': return 'bg-feeding text-white'
-      case 'medication': return 'bg-purple-500 text-white'
-      case 'extra_activities': return 'bg-teal-500 text-white'
-      default: return 'bg-gray-400 text-white'
+    case "nap": return "bg-orange-400 text-white"
+    case "sleep": return "bg-blue-400 text-white"  
+    case "wake": return "bg-wake text-white"
+    case "night_waking": return "bg-night-wake text-white"
+    case "feeding": return "bg-feeding text-white"
+    case "medication": return "bg-purple-500 text-white"
+    case "extra_activities": return "bg-teal-500 text-white"
+    default: return "bg-gray-400 text-white"
     }
   }
   
   // 🎭 EMOJI POR TIPO
   const getEmoji = () => {
     switch (event.eventType) {
-      case 'nap': return <span className="text-sm">💤</span>
-      case 'sleep': return <span className="text-sm">😴</span>
-      case 'wake': return <span className="text-sm">☀️</span>
-      case 'night_waking': return <span className="text-sm">👶</span>
-      case 'feeding': return <span className="text-sm">🍼</span>
-      case 'medication': return <span className="text-sm">💊</span>
-      case 'extra_activities': return <span className="text-sm">🎈</span>
-      default: return <span className="text-sm">⏰</span>
+    case "nap": return <span className="text-sm">💤</span>
+    case "sleep": return <span className="text-sm">😴</span>
+    case "wake": return <span className="text-sm">☀️</span>
+    case "night_waking": return <span className="text-sm">👶</span>
+    case "feeding": return <span className="text-sm">🍼</span>
+    case "medication": return <span className="text-sm">💊</span>
+    case "extra_activities": return <span className="text-sm">🎈</span>
+    default: return <span className="text-sm">⏰</span>
     }
   }
   
   // 📝 NOMBRE DEL EVENTO
   const getName = () => {
     const names: Record<string, string> = {
-      nap: 'Siesta',
-      sleep: 'Dormir',
-      wake: 'Despertar',
-      night_waking: 'Despertar nocturno',
-      feeding: 'Alimentación',
-      medication: 'Medicamento',
-      extra_activities: 'Actividad Extra'
+      nap: "Siesta",
+      sleep: "Dormir",
+      wake: "Despertar",
+      night_waking: "Despertar nocturno",
+      feeding: "Alimentación",
+      medication: "Medicamento",
+      extra_activities: "Actividad Extra",
     }
     return names[event.eventType] || event.eventType
   }
 
   // ⏱️ FORMATEAR DURACIÓN
   const formatDuration = () => {
-    if (duration <= 0) return ''
+    if (duration <= 0) return ""
     const hours = Math.floor(duration / 60)
     const mins = duration % 60
     if (hours === 0) return `${mins}m`
@@ -157,7 +157,7 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
         <div className="flex items-center w-full">
           <div className="flex-shrink-0">{getEmoji()}</div>
           <div className="flex-1 text-center">
-            <span className="font-bold" style={{ fontSize: '11px' }}>
+            <span className="font-bold" style={{ fontSize: "11px" }}>
               {formatDuration() || timeData.formatted}
             </span>
           </div>
@@ -169,7 +169,7 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
         <div className="flex items-center w-full">
           <div className="flex-shrink-0">{getEmoji()}</div>
           <div className="flex-1 text-center">
-            <span className="font-bold" style={{ fontSize: '13px' }}>
+            <span className="font-bold" style={{ fontSize: "13px" }}>
               {formatDuration() || timeData.formatted}
             </span>
           </div>
@@ -194,11 +194,11 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
 
   return (
     <div
-      className={`absolute shadow-md px-2 py-1 text-xs font-medium flex items-center justify-center cursor-pointer hover:shadow-lg transition-shadow z-10 ${getColor()} ${isTruncated ? 'rounded-t-lg' : 'rounded-lg'}`}
+      className={`absolute shadow-md px-2 py-1 text-xs font-medium flex items-center justify-center cursor-pointer hover:shadow-lg transition-shadow z-10 ${getColor()} ${isTruncated ? "rounded-t-lg" : "rounded-lg"}`}
       style={{
         top: `${position}px`,
         height: `${height}px`,
-        minHeight: '20px',
+        minHeight: "20px",
         left: actualLeft,
         width: actualWidth,
       }}
@@ -206,13 +206,13 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
         e.stopPropagation()
         onClick?.(event)
       }}
-      title={`${getName()} - ${timeData.formatted}${endTimeData ? `-${endTimeData.formatted}` : ''}`}
+      title={`${getName()} - ${timeData.formatted}${endTimeData ? `-${endTimeData.formatted}` : ""}`}
     >
       {renderContent()}
       {/* Indicador de continuacion al dia siguiente */}
       {isTruncated && (
         <div className="absolute bottom-0 left-0 right-0 h-3 flex items-center justify-center bg-black/20 rounded-b-none">
-          <span style={{ fontSize: '8px' }}>↓</span>
+          <span style={{ fontSize: "8px" }}>↓</span>
         </div>
       )}
     </div>

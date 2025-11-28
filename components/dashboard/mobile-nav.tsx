@@ -1,15 +1,15 @@
 "use client"
 
-import React from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
+import React from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
 import { 
   LayoutDashboard, 
   BarChart3, 
   Calendar,
-  User
-} from 'lucide-react'
+  User,
+} from "lucide-react"
 
 interface NavItem {
   href: string
@@ -23,25 +23,25 @@ export function MobileBottomNav() {
   
   const navItems: NavItem[] = [
     {
-      href: '/dashboard',
+      href: "/dashboard",
       icon: <LayoutDashboard className="h-5 w-5" />,
-      label: 'Inicio'
+      label: "Inicio",
     },
     {
-      href: '/dashboard/sleep-statistics',
+      href: "/dashboard/sleep-statistics",
       icon: <BarChart3 className="h-5 w-5" />,
-      label: 'Estadísticas'
+      label: "Estadísticas",
     },
     {
-      href: '/dashboard/calendar',
+      href: "/dashboard/calendar",
       icon: <Calendar className="h-5 w-5" />,
-      label: 'Calendario'
+      label: "Calendario",
     },
     {
-      href: '/dashboard/profile',
+      href: "/dashboard/profile",
       icon: <User className="h-5 w-5" />,
-      label: 'Perfil'
-    }
+      label: "Perfil",
+    },
   ]
   
   return (

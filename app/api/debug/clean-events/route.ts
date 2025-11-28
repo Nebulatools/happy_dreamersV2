@@ -7,7 +7,7 @@ import { ObjectId } from "mongodb"
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('🧹 INICIANDO LIMPIEZA DE EVENTOS...')
+    console.log("🧹 INICIANDO LIMPIEZA DE EVENTOS...")
     
     const { db } = await connectToDatabase()
     
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const children = await db.collection("children").find({}).toArray()
     
     let totalFixed = 0
-    let report = []
+    const report = []
     
     for (const child of children) {
       const childReport = {
@@ -23,11 +23,11 @@ export async function POST(req: NextRequest) {
         id: child._id.toString(),
         originalEvents: child.events?.length || 0,
         duplicatesRemoved: 0,
-        eventsKept: 0
+        eventsKept: 0,
       }
       
       if (!child.events || child.events.length === 0) {
-        childReport.action = 'Sin eventos'
+        childReport.action = "Sin eventos"
         report.push(childReport)
         continue
       }
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
         if (seen.has(key)) {
           // Es un duplicado - lo eliminamos
           childReport.duplicatesRemoved++
-          console.log(`  ❌ Eliminando duplicado: ${event.eventType} a las ${new Date(event.startTime).toLocaleString('es-ES')}`)
+          console.log(`  ❌ Eliminando duplicado: ${event.eventType} a las ${new Date(event.startTime).toLocaleString("es-ES")}`)
         } else {
           // Es único - lo mantenemos
           seen.add(key)
@@ -67,22 +67,22 @@ export async function POST(req: NextRequest) {
         totalFixed++
         childReport.action = `${childReport.duplicatesRemoved} duplicados eliminados`
       } else {
-        childReport.action = 'Sin duplicados'
+        childReport.action = "Sin duplicados"
       }
       
       report.push(childReport)
     }
     
-    console.log('✅ LIMPIEZA COMPLETADA')
+    console.log("✅ LIMPIEZA COMPLETADA")
     
     return NextResponse.json({
       success: true,
       message: `Limpieza completada. ${totalFixed} niños actualizados.`,
-      report
+      report,
     })
     
   } catch (error) {
-    console.error('❌ ERROR en limpieza:', error)
+    console.error("❌ ERROR en limpieza:", error)
     return NextResponse.json(
       { error: "Error en la limpieza", details: error.message },
       { status: 500 }

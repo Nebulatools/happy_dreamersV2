@@ -10,7 +10,7 @@ import {
   Stethoscope, 
   History,
   User,
-  Baby
+  Baby,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 

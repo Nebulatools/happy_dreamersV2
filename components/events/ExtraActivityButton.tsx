@@ -1,15 +1,15 @@
 "use client"
 
-import React, { useState } from 'react'
-import { Activity, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
-import { EventData } from './types'
-import { toLocalISOString } from '@/lib/date-utils'
-import { cn } from '@/lib/utils'
-import { useDevTime } from '@/context/dev-time-context'
-import { ExtraActivityModal } from './ExtraActivityModal'
-import { useUser } from '@/context/UserContext'
+import React, { useState } from "react"
+import { Activity, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
+import { EventData } from "./types"
+import { dateToTimestamp } from "@/lib/datetime"
+import { cn } from "@/lib/utils"
+import { useDevTime } from "@/context/dev-time-context"
+import { ExtraActivityModal } from "./ExtraActivityModal"
+import { useUser } from "@/context/UserContext"
 
 interface ExtraActivityButtonProps {
   childId: string
@@ -20,7 +20,7 @@ interface ExtraActivityButtonProps {
 interface ExtraActivityModalData {
   activityDescription: string
   activityDuration: number // en minutos
-  activityImpact?: 'positive' | 'neutral' | 'negative'
+  activityImpact?: "positive" | "neutral" | "negative"
   activityNotes: string
 }
 
@@ -40,7 +40,7 @@ interface ExtraActivityModalData {
 export function ExtraActivityButton({ 
   childId, 
   childName,
-  onEventRegistered 
+  onEventRegistered, 
 }: ExtraActivityButtonProps) {
   const { toast } = useToast()
   const [isProcessing, setIsProcessing] = useState(false)
@@ -51,9 +51,9 @@ export function ExtraActivityButton({
   // Configuración del botón
   const getButtonConfig = () => {
     return {
-      text: 'ACTIVIDAD',
+      text: "ACTIVIDAD",
       icon: Activity,
-      color: 'from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700'
+      color: "from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700",
     }
   }
   
@@ -68,28 +68,28 @@ export function ExtraActivityButton({
       const now = getCurrentTime()
       
       // Crear evento de actividad extra con todos los datos en campos separados
-      const impact = activityData.activityImpact ?? 'neutral'
+      const impact = activityData.activityImpact ?? "neutral"
       const eventData: Partial<EventData> = {
         childId,
-        eventType: 'extra_activities',
-        startTime: toLocalISOString(now, userData.timezone),
+        eventType: "extra_activities",
+        startTime: dateToTimestamp(now, userData.timezone),
         activityDescription: activityData.activityDescription,
         activityDuration: activityData.activityDuration,
         activityImpact: impact,
-        activityNotes: activityData.activityNotes || '',
+        activityNotes: activityData.activityNotes || "",
         // El campo notes puede combinar descripción y notas para compatibilidad
         notes: activityData.activityNotes ? 
           `${activityData.activityDescription} - ${activityData.activityNotes}` : 
           activityData.activityDescription,
         description: activityData.activityDescription, // Campo legacy para compatibilidad
-        emotionalState: impact === 'positive' ? 'tranquilo' : 
-                        impact === 'negative' ? 'inquieto' : 'neutral'
+        emotionalState: impact === "positive" ? "tranquilo" : 
+          impact === "negative" ? "inquieto" : "neutral",
       }
       
-      const response = await fetch('/api/children/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData)
+      const response = await fetch("/api/children/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(eventData),
       })
       
       if (!response.ok) {
@@ -101,7 +101,7 @@ export function ExtraActivityButton({
       // Mostrar confirmación personalizada
       toast({
         title: "Actividad registrada",
-        description: `${childName}: ${activityData.activityDescription} (${activityData.activityDuration} min)`
+        description: `${childName}: ${activityData.activityDescription} (${activityData.activityDuration} min)`,
       })
       
       // Cerrar modal y limpiar
@@ -111,11 +111,11 @@ export function ExtraActivityButton({
       onEventRegistered?.()
       
     } catch (error) {
-      console.error('Error registrando actividad extra:', error)
+      console.error("Error registrando actividad extra:", error)
       toast({
         title: "Error",
         description: "No se pudo registrar la actividad",
-        variant: "destructive"
+        variant: "destructive",
       })
     } finally {
       setIsProcessing(false)

@@ -31,7 +31,7 @@ export default function RecentEvents({ childId }: RecentEventsProps) {
         setLoading(true)
         const response = await fetch(`/api/children/${childId}/events?limit=5&type=sleep,wake`)
         if (!response.ok) {
-          throw new Error('Error al cargar eventos recientes')
+          throw new Error("Error al cargar eventos recientes")
         }
         const data = await response.json()
         
@@ -39,20 +39,20 @@ export default function RecentEvents({ childId }: RecentEventsProps) {
         const formattedEvents: SleepEvent[] = data.events?.map((event: any) => ({
           id: event._id,
           type: event.eventType as "sleep" | "wake",
-          timestamp: new Date(event.startTime).toLocaleTimeString('es-ES', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
+          timestamp: new Date(event.startTime).toLocaleTimeString("es-ES", { 
+            hour: "2-digit", 
+            minute: "2-digit", 
           }),
-          date: new Date(event.startTime).toLocaleDateString('es-ES', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })
+          date: new Date(event.startTime).toLocaleDateString("es-ES", { 
+            year: "numeric", 
+            month: "long", 
+            day: "numeric", 
+          }),
         })) || []
         
         setRecentEvents(formattedEvents)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error desconocido')
+        setError(err instanceof Error ? err.message : "Error desconocido")
       } finally {
         setLoading(false)
       }
@@ -118,37 +118,37 @@ export default function RecentEvents({ childId }: RecentEventsProps) {
           </div>
         ) : (
           recentEvents.map((event, index) => (
-          <div 
-            key={event.id}
-            className={`p-6 flex items-center justify-between hover:bg-gray-50 transition-colors ${
-              index === 0 ? "" : "border-t border-gray-100"
-            }`}
-          >
-            <div className="flex items-center space-x-4">
-              {/* Ícono del evento */}
-              <div className="w-10 h-10 rounded-full bg-[#F0F7FF] flex items-center justify-center">
-                <div className="text-[#4A90E2]">
-                  {getEventIcon(event.type)}
+            <div 
+              key={event.id}
+              className={`p-6 flex items-center justify-between hover:bg-gray-50 transition-colors ${
+                index === 0 ? "" : "border-t border-gray-100"
+              }`}
+            >
+              <div className="flex items-center space-x-4">
+                {/* Ícono del evento */}
+                <div className="w-10 h-10 rounded-full bg-[#F0F7FF] flex items-center justify-center">
+                  <div className="text-[#4A90E2]">
+                    {getEventIcon(event.type)}
+                  </div>
+                </div>
+
+                {/* Información del evento */}
+                <div>
+                  <h4 className="font-medium text-[#2F2F2F] mb-1">
+                    {getEventTitle(event.type)}
+                  </h4>
+                  <p className="text-sm text-gray-600">
+                    {event.timestamp} - {event.date}
+                  </p>
                 </div>
               </div>
 
-              {/* Información del evento */}
-              <div>
-                <h4 className="font-medium text-[#2F2F2F] mb-1">
-                  {getEventTitle(event.type)}
-                </h4>
-                <p className="text-sm text-gray-600">
-                  {event.timestamp} - {event.date}
-                </p>
-              </div>
+              {/* Flecha de navegación */}
+              <button className="text-gray-400 hover:text-gray-600 transition-colors">
+                <ChevronRight className="w-5 h-4" />
+              </button>
             </div>
-
-            {/* Flecha de navegación */}
-            <button className="text-gray-400 hover:text-gray-600 transition-colors">
-              <ChevronRight className="w-5 h-4" />
-            </button>
-          </div>
-        ))
+          ))
         )}
       </div>
     </div>

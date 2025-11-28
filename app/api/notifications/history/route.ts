@@ -27,13 +27,13 @@ export async function GET(request: NextRequest) {
     // Construir filtro de búsqueda
     const userObjectId = new ObjectId(session.user.id)
     const filter: any = {
-      userId: userObjectId
+      userId: userObjectId,
     }
 
     if (childId) {
       // Verificar acceso al niño
       const child = await db.collection("children").findOne({
-        _id: new ObjectId(childId)
+        _id: new ObjectId(childId),
       })
       
       if (!child) {
@@ -80,8 +80,8 @@ export async function GET(request: NextRequest) {
         .find({
           $or: [
             { readByAdmin: { $ne: true } },
-            { readByAdmin: { $exists: false } }
-          ]
+            { readByAdmin: { $exists: false } },
+          ],
         })
         .sort({ createdAt: -1 })
         .limit(20) // Mostrar hasta 20 transcripts no leídos
@@ -98,8 +98,8 @@ export async function GET(request: NextRequest) {
         childId: transcript.childId,
         metadata: {
           transcriptId: transcript._id,
-          childName: transcript.childName
-        }
+          childName: transcript.childName,
+        },
       }))
 
       // Combinar y ordenar por fecha
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
       sent: 0,
       delivered: 0,
       read: 0,
-      failed: 0
+      failed: 0,
     }
 
     if (childId) {
@@ -124,8 +124,8 @@ export async function GET(request: NextRequest) {
         { $match: { childId: new ObjectId(childId), userId: userObjectId } },
         { $group: {
           _id: "$status",
-          count: { $sum: 1 }
-        }}
+          count: { $sum: 1 },
+        } },
       ]
 
       const statsResult = await db.collection("notificationlogs")
@@ -148,9 +148,9 @@ export async function GET(request: NextRequest) {
         total,
         limit,
         offset,
-        hasMore: offset + limit < total
+        hasMore: offset + limit < total,
       },
-      stats
+      stats,
     })
 
   } catch (error) {
@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
     // Primero verificar si es un transcript de Zoom (para admins)
     if (session.user.role === "admin") {
       const zoomTranscript = await db.collection("zoom_transcripts").findOne({
-        _id: new ObjectId(notificationId)
+        _id: new ObjectId(notificationId),
       })
 
       if (zoomTranscript) {
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
 
           return NextResponse.json({
             success: true,
-            message: "Transcript de Zoom marcado como leído"
+            message: "Transcript de Zoom marcado como leído",
           })
         }
       }
@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
     // Buscar la notificación normal
     const notification = await db.collection("notificationlogs").findOne({
       _id: new ObjectId(notificationId),
-      userId: new ObjectId(session.user.id)
+      userId: new ObjectId(session.user.id),
     })
 
     if (!notification) {
@@ -222,25 +222,25 @@ export async function POST(request: NextRequest) {
     let updateData: any = {}
     
     switch (action) {
-      case "read":
-        updateData = { 
-          status: "read", 
-          readAt: new Date(),
-          updatedAt: new Date()
-        }
-        break
-      case "delivered":
-        updateData = { 
-          status: "delivered", 
-          deliveredAt: new Date(),
-          updatedAt: new Date()
-        }
-        break
-      default:
-        return NextResponse.json(
-          { error: "Acción no válida" },
-          { status: 400 }
-        )
+    case "read":
+      updateData = { 
+        status: "read", 
+        readAt: new Date(),
+        updatedAt: new Date(),
+      }
+      break
+    case "delivered":
+      updateData = { 
+        status: "delivered", 
+        deliveredAt: new Date(),
+        updatedAt: new Date(),
+      }
+      break
+    default:
+      return NextResponse.json(
+        { error: "Acción no válida" },
+        { status: 400 }
+      )
     }
 
     // Actualizar la notificación
@@ -252,7 +252,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: `Notificación marcada como ${action}`,
-      notification: { ...notification, ...updateData }
+      notification: { ...notification, ...updateData },
     })
 
   } catch (error) {
@@ -287,7 +287,7 @@ export async function DELETE(request: NextRequest) {
     const filter: any = {
       userId: new ObjectId(session.user.id),
       createdAt: { $lt: dateLimit },
-      status: { $in: ["read", "failed", "cancelled"] }
+      status: { $in: ["read", "failed", "cancelled"] },
     }
 
     if (childId) {
@@ -300,7 +300,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: `${result.deletedCount} notificaciones eliminadas`,
-      deletedCount: result.deletedCount
+      deletedCount: result.deletedCount,
     })
 
   } catch (error) {

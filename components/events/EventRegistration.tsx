@@ -1,16 +1,16 @@
 "use client"
 
-import React, { useState } from 'react'
-import { SleepButton } from './SleepButton'
-import { FeedingButton } from './FeedingButton'
-import { MedicationButton } from './MedicationButton'
-import { ExtraActivityButton } from './ExtraActivityButton'
-import { ManualEventModal } from './ManualEventModal'
-import { Button } from '@/components/ui/button'
-import { Clock } from 'lucide-react'
-import { useSleepState } from '@/hooks/use-sleep-state'
-import { useUser } from '@/context/UserContext'
-import { cn } from '@/lib/utils'
+import React, { useState } from "react"
+import { SleepButton } from "./SleepButton"
+import { FeedingButton } from "./FeedingButton"
+import { MedicationButton } from "./MedicationButton"
+import { ExtraActivityButton } from "./ExtraActivityButton"
+import { ManualEventModal } from "./ManualEventModal"
+import { Button } from "@/components/ui/button"
+import { Clock } from "lucide-react"
+import { useSleepState } from "@/hooks/use-sleep-state"
+import { useUser } from "@/context/UserContext"
+import { cn } from "@/lib/utils"
 
 interface EventRegistrationProps {
   childId: string
@@ -33,7 +33,7 @@ interface EventRegistrationProps {
 export function EventRegistration({
   childId,
   childName,
-  onEventRegistered
+  onEventRegistered,
 }: EventRegistrationProps) {
   const [showManualModal, setShowManualModal] = useState(false)
   const { userData } = useUser()
@@ -41,10 +41,10 @@ export function EventRegistration({
 
   // Determinar estado actual
   const currentStatus = sleepState.status
-  const isAwake = currentStatus === 'awake'
-  const isSleeping = currentStatus === 'sleeping'
-  const isNapping = currentStatus === 'napping'
-  const isNightWaking = currentStatus === 'night_waking'
+  const isAwake = currentStatus === "awake"
+  const isSleeping = currentStatus === "sleeping"
+  const isNapping = currentStatus === "napping"
+  const isNightWaking = currentStatus === "night_waking"
 
   // Visibilidad de botones segun estado
   const showFeedingButton = isAwake || isSleeping || isNightWaking

@@ -15,7 +15,7 @@ import {
   SelectContent, 
   SelectItem, 
   SelectTrigger, 
-  SelectValue 
+  SelectValue, 
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
@@ -52,7 +52,7 @@ import {
   ChevronRight,
   MessageSquare,
   Plus,
-  X
+  X,
 } from "lucide-react"
 import { PDFExportButton } from "@/components/reports/PDFExportButton"
 import { format } from "date-fns"
@@ -128,7 +128,7 @@ export function ProfessionalReportEditor({
   onSign,
   isProfessional = false,
   childName,
-  childId
+  childId,
 }: ProfessionalReportEditorProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -147,17 +147,17 @@ export function ProfessionalReportEditor({
       followUp: professionalReport?.editedData?.followUp || {
         required: false,
         frequency: "monthly",
-        notes: ""
+        notes: "",
       },
-      customSections: professionalReport?.editedData?.customSections || []
+      customSections: professionalReport?.editedData?.customSections || [],
     },
     status: professionalReport?.status || "draft",
     version: professionalReport?.version || 1,
     privacy: professionalReport?.privacy || {
       parentCanView: true,
       parentCanDownload: false,
-      requiresApproval: true
-    }
+      requiresApproval: true,
+    },
   })
 
   // Estado para tracking de cambios
@@ -170,8 +170,8 @@ export function ProfessionalReportEditor({
       ...prev,
       editedData: {
         ...prev.editedData,
-        [field]: value
-      }
+        [field]: value,
+      },
     }))
     
     // Marcar campo como cambiado
@@ -186,13 +186,13 @@ export function ProfessionalReportEditor({
     try {
       await onSave(editedReport)
       toast.success("Reporte guardado exitosamente", {
-        description: `Versión ${editedReport.version + 1} creada`
+        description: `Versión ${editedReport.version + 1} creada`,
       })
       
       // Incrementar versión y limpiar cambios
       setEditedReport(prev => ({
         ...prev,
-        version: prev.version + 1
+        version: prev.version + 1,
       }))
       setChangedFields(new Set())
       setIsEditing(false)
@@ -213,10 +213,10 @@ export function ProfessionalReportEditor({
       await onApprove(editedReport._id)
       setEditedReport(prev => ({
         ...prev,
-        status: "approved"
+        status: "approved",
       }))
       toast.success("Reporte aprobado", {
-        description: "El reporte está listo para compartir con los padres"
+        description: "El reporte está listo para compartir con los padres",
       })
     } catch (error) {
       toast.error("Error al aprobar el reporte")
@@ -228,15 +228,15 @@ export function ProfessionalReportEditor({
     const newSection = {
       title: "",
       content: "",
-      order: (editedReport.editedData.customSections?.length || 0) + 1
+      order: (editedReport.editedData.customSections?.length || 0) + 1,
     }
     
     setEditedReport(prev => ({
       ...prev,
       editedData: {
         ...prev.editedData,
-        customSections: [...(prev.editedData.customSections || []), newSection]
-      }
+        customSections: [...(prev.editedData.customSections || []), newSection],
+      },
     }))
     
     setChangedFields(prev => new Set(prev.add("customSections")))
@@ -248,8 +248,8 @@ export function ProfessionalReportEditor({
       ...prev,
       editedData: {
         ...prev.editedData,
-        customSections: prev.editedData.customSections?.filter((_, i) => i !== index)
-      }
+        customSections: prev.editedData.customSections?.filter((_, i) => i !== index),
+      },
     }))
     
     setChangedFields(prev => new Set(prev.add("customSections")))
@@ -261,13 +261,13 @@ export function ProfessionalReportEditor({
     
     return (
       <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className={`p-3 rounded-lg border ${hasChanges ? 'border-gray-200' : 'border-transparent'}`}>
+        <div className={`p-3 rounded-lg border ${hasChanges ? "border-gray-200" : "border-transparent"}`}>
           <Label className="text-xs text-muted-foreground mb-1">Original</Label>
           <ScrollArea className="h-32">
             <p className="text-sm whitespace-pre-wrap">{original}</p>
           </ScrollArea>
         </div>
-        <div className={`p-3 rounded-lg border ${hasChanges ? 'border-green-200 bg-green-50' : 'border-transparent'}`}>
+        <div className={`p-3 rounded-lg border ${hasChanges ? "border-green-200 bg-green-50" : "border-transparent"}`}>
           <Label className="text-xs text-muted-foreground mb-1">
             Editado {hasChanges && <Badge variant="outline" className="ml-2 text-xs">Modificado</Badge>}
           </Label>
@@ -295,12 +295,12 @@ export function ProfessionalReportEditor({
                 Versión {editedReport.version} • Estado: {" "}
                 <Badge variant={
                   editedReport.status === "approved" ? "default" :
-                  editedReport.status === "review" ? "secondary" :
-                  editedReport.status === "shared" ? "outline" : "destructive"
+                    editedReport.status === "review" ? "secondary" :
+                      editedReport.status === "shared" ? "outline" : "destructive"
                 }>
                   {editedReport.status === "draft" ? "Borrador" :
-                   editedReport.status === "review" ? "En Revisión" :
-                   editedReport.status === "approved" ? "Aprobado" : "Compartido"}
+                    editedReport.status === "review" ? "En Revisión" :
+                      editedReport.status === "approved" ? "Aprobado" : "Compartido"}
                 </Badge>
               </CardDescription>
             </div>
@@ -588,7 +588,7 @@ export function ProfessionalReportEditor({
                   onCheckedChange={(checked) => 
                     handleFieldChange("followUp", {
                       ...editedReport.editedData.followUp,
-                      required: checked
+                      required: checked,
                     })
                   }
                   disabled={!isEditing}
@@ -607,7 +607,7 @@ export function ProfessionalReportEditor({
                         onChange={(e) => 
                           handleFieldChange("followUp", {
                             ...editedReport.editedData.followUp,
-                            nextAppointment: e.target.value
+                            nextAppointment: e.target.value,
                           })
                         }
                         disabled={!isEditing}
@@ -622,7 +622,7 @@ export function ProfessionalReportEditor({
                         onValueChange={(value) => 
                           handleFieldChange("followUp", {
                             ...editedReport.editedData.followUp,
-                            frequency: value
+                            frequency: value,
                           })
                         }
                         disabled={!isEditing}
@@ -649,7 +649,7 @@ export function ProfessionalReportEditor({
                       onChange={(e) => 
                         handleFieldChange("followUp", {
                           ...editedReport.editedData.followUp,
-                          notes: e.target.value
+                          notes: e.target.value,
                         })
                       }
                       disabled={!isEditing}
@@ -688,8 +688,8 @@ export function ProfessionalReportEditor({
                         ...prev,
                         privacy: {
                           ...prev.privacy!,
-                          parentCanView: checked
-                        }
+                          parentCanView: checked,
+                        },
                       }))
                     }
                     disabled={!isEditing}
@@ -712,8 +712,8 @@ export function ProfessionalReportEditor({
                         ...prev,
                         privacy: {
                           ...prev.privacy!,
-                          parentCanDownload: checked
-                        }
+                          parentCanDownload: checked,
+                        },
                       }))
                     }
                     disabled={!isEditing || !editedReport.privacy?.parentCanView}
@@ -736,8 +736,8 @@ export function ProfessionalReportEditor({
                         ...prev,
                         privacy: {
                           ...prev.privacy!,
-                          requiresApproval: checked
-                        }
+                          requiresApproval: checked,
+                        },
                       }))
                     }
                     disabled={!isEditing}
@@ -755,8 +755,8 @@ export function ProfessionalReportEditor({
                         {editedReport.privacy.parentCanView && editedReport.privacy.parentCanDownload
                           ? "Los padres podrán ver y descargar este reporte una vez aprobado."
                           : editedReport.privacy.parentCanView
-                          ? "Los padres podrán ver este reporte en línea pero no descargarlo."
-                          : "Este reporte permanecerá privado y solo será accesible para profesionales."}
+                            ? "Los padres podrán ver este reporte en línea pero no descargarlo."
+                            : "Este reporte permanecerá privado y solo será accesible para profesionales."}
                       </p>
                     </div>
                   </div>

@@ -1,11 +1,11 @@
 // Hook principal para manejar el estado del formulario
 // Centraliza toda la lógica de estado y actualizaciones
 
-import { useState, useCallback } from 'react'
-import type { SurveyData } from '@/types/models'
-import type { ValidationErrors } from '../types/survey.types'
-import { validateStep } from '../validation/validators'
-import { stepValidations } from '../validation/schemas'
+import { useState, useCallback } from "react"
+import type { SurveyData } from "@/types/models"
+import type { ValidationErrors } from "../types/survey.types"
+import { validateStep } from "../validation/validators"
+import { stepValidations } from "../validation/schemas"
 
 const defaultFormData: Partial<SurveyData> = {
   informacionFamiliar: {
@@ -15,7 +15,7 @@ const defaultFormData: Partial<SurveyData> = {
       direccion: "",
       email: "",
       trabajaFueraCasa: false,
-      tieneAlergias: false
+      tieneAlergias: false,
     },
     mama: {
       nombre: "",
@@ -24,15 +24,15 @@ const defaultFormData: Partial<SurveyData> = {
       direccion: "",
       email: "",
       trabajaFueraCasa: false,
-      tieneAlergias: false
+      tieneAlergias: false,
     },
-    primaryCaregiver: "father"
+    primaryCaregiver: "father",
   },
   dinamicaFamiliar: {},
   historial: {},
   desarrollo: {},
   actividadFisica: {},
-  rutinaHabitos: {}
+  rutinaHabitos: {},
 }
 
 function normalizeSurveyData(data?: Partial<SurveyData>): Partial<SurveyData> {
@@ -45,7 +45,7 @@ function normalizeSurveyData(data?: Partial<SurveyData>): Partial<SurveyData> {
     historial: { ...(data.historial || {}) },
     desarrollo: { ...(data.desarrollo || {}) },
     actividadFisica: { ...(data.actividadFisica || {}) },
-    rutinaHabitos: { ...(data.rutinaHabitos || {}) }
+    rutinaHabitos: { ...(data.rutinaHabitos || {}) },
   }
 
   const historialAny = normalized.historial as any
@@ -58,7 +58,7 @@ function normalizeSurveyData(data?: Partial<SurveyData>): Partial<SurveyData> {
   if (normalized.actividadFisica?.situacionesHijo && !normalized.desarrollo?.situacionesHijo) {
     normalized.desarrollo = {
       ...normalized.desarrollo,
-      situacionesHijo: normalized.actividadFisica.situacionesHijo
+      situacionesHijo: normalized.actividadFisica.situacionesHijo,
     }
   }
 
@@ -85,8 +85,8 @@ export function useSurveyForm(initialData?: Partial<SurveyData>) {
         ...prev,
         [stepKey]: {
           ...(prev[stepKey as keyof SurveyData] || {}),
-          ...data
-        }
+          ...data,
+        },
       }
       
       // Si el paso ya fue tocado, validar en tiempo real
@@ -96,7 +96,7 @@ export function useSurveyForm(initialData?: Partial<SurveyData>) {
           const stepErrors = validateStep(updatedData[stepKey as keyof SurveyData], validation)
           setErrors(prevErrors => ({
             ...prevErrors,
-            [step]: stepErrors
+            [step]: stepErrors,
           }))
         }
       }
@@ -117,7 +117,7 @@ export function useSurveyForm(initialData?: Partial<SurveyData>) {
     
     setErrors(prev => ({
       ...prev,
-      [step]: stepErrors
+      [step]: stepErrors,
     }))
     
     return stepErrors
@@ -163,34 +163,34 @@ export function useSurveyForm(initialData?: Partial<SurveyData>) {
           ...normalized.informacionFamiliar,
           papa: {
             ...(prevData.informacionFamiliar?.papa || {}),
-            ...(normalized.informacionFamiliar?.papa || {})
+            ...(normalized.informacionFamiliar?.papa || {}),
           },
           mama: {
             ...(prevData.informacionFamiliar?.mama || {}),
-            ...(normalized.informacionFamiliar?.mama || {})
+            ...(normalized.informacionFamiliar?.mama || {}),
           },
-          primaryCaregiver: normalized.informacionFamiliar?.primaryCaregiver ?? prevData.informacionFamiliar?.primaryCaregiver
+          primaryCaregiver: normalized.informacionFamiliar?.primaryCaregiver ?? prevData.informacionFamiliar?.primaryCaregiver,
         },
         dinamicaFamiliar: {
           ...prevData.dinamicaFamiliar,
-          ...normalized.dinamicaFamiliar
+          ...normalized.dinamicaFamiliar,
         },
         historial: {
           ...prevData.historial,
-          ...normalized.historial
+          ...normalized.historial,
         },
         desarrollo: {
           ...prevData.desarrollo,
-          ...normalized.desarrollo
+          ...normalized.desarrollo,
         },
         actividadFisica: {
           ...prevData.actividadFisica,
-          ...normalized.actividadFisica
+          ...normalized.actividadFisica,
         },
         rutinaHabitos: {
           ...prevData.rutinaHabitos,
-          ...normalized.rutinaHabitos
-        }
+          ...normalized.rutinaHabitos,
+        },
       }
 
       return merged
@@ -200,7 +200,7 @@ export function useSurveyForm(initialData?: Partial<SurveyData>) {
   const setFormData = useCallback((
     value: Partial<SurveyData> | ((prev: Partial<SurveyData>) => Partial<SurveyData>)
   ) => {
-    if (typeof value === 'function') {
+    if (typeof value === "function") {
       setRawFormData(prev => {
         const normalized = normalizeSurveyData(value(prev))
         return Object.keys(normalized).length > 0 ? normalized : prev
@@ -222,19 +222,19 @@ export function useSurveyForm(initialData?: Partial<SurveyData>) {
     isFormComplete,
     getStepData,
     setFormData,
-    setInitialData
+    setInitialData,
   }
 }
 
 // Mapeo de número de paso a clave en formData
 function getStepKey(step: number): string {
   const stepKeys: Record<number, string> = {
-    1: 'informacionFamiliar',
-    2: 'dinamicaFamiliar',
-    3: 'historial',
-    4: 'desarrollo',
-    5: 'actividadFisica',
-    6: 'rutinaHabitos'
+    1: "informacionFamiliar",
+    2: "dinamicaFamiliar",
+    3: "historial",
+    4: "desarrollo",
+    5: "actividadFisica",
+    6: "rutinaHabitos",
   }
-  return stepKeys[step] || ''
+  return stepKeys[step] || ""
 }

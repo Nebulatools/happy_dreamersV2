@@ -1,22 +1,22 @@
 "use client"
 
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
-import { createLogger } from '@/lib/logger'
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react"
+import { createLogger } from "@/lib/logger"
 
-const logger = createLogger('SleepDataStorytellingCard')
-import { AlertTriangle, Eye, EyeOff, Moon, Clock, TrendingUp, TrendingDown, Info, ChevronLeft, ChevronRight } from 'lucide-react'
-import { useSleepData } from '@/hooks/use-sleep-data'
-import { format, parseISO, subDays, startOfDay, isAfter, isBefore, differenceInMinutes } from 'date-fns'
-import { es } from 'date-fns/locale'
-import { processSleepStatistics } from '@/lib/sleep-calculations'
+const logger = createLogger("SleepDataStorytellingCard")
+import { AlertTriangle, Eye, EyeOff, Moon, Clock, TrendingUp, TrendingDown, Info, ChevronLeft, ChevronRight } from "lucide-react"
+import { useSleepData } from "@/hooks/use-sleep-data"
+import { format, parseISO, subDays, startOfDay, isAfter, isBefore, differenceInMinutes } from "date-fns"
+import { es } from "date-fns/locale"
+import { processSleepStatistics } from "@/lib/sleep-calculations"
 
 interface SleepDayMetrics {
   date: string
   totalHours: number
   nightSleepHours: number
   napHours: number
-  quality: 'insufficient' | 'low' | 'optimal' | 'excellent'
-  consistency: 'poor' | 'average' | 'good'
+  quality: "insufficient" | "low" | "optimal" | "excellent"
+  consistency: "poor" | "average" | "good"
   hasAnomaly: boolean
   wakeups: number
   bedtime?: string
@@ -31,19 +31,19 @@ interface SleepDataStorytellingCardProps {
 
 // 🎨 Configuración de colores y umbrales mejorada - Rangos más realistas para niños
 const SLEEP_THRESHOLDS = {
-  'no-data': { min: -1, max: 0, color: 'bg-gray-300', label: 'Sin datos' },
-  insufficient: { min: 0, max: 7, color: 'bg-red-500', label: 'Insuficiente (<7h)' },
-  low: { min: 7, max: 8.5, color: 'bg-orange-500', label: 'Bajo (7-8.5h)' },
-  optimal: { min: 8.5, max: 12, color: 'bg-green-500', label: 'Óptimo (8.5-12h)' },
-  excellent: { min: 12, max: 16, color: 'bg-blue-500', label: 'Excelente (12-16h)' }
+  "no-data": { min: -1, max: 0, color: "bg-gray-300", label: "Sin datos" },
+  insufficient: { min: 0, max: 7, color: "bg-red-500", label: "Insuficiente (<7h)" },
+  low: { min: 7, max: 8.5, color: "bg-orange-500", label: "Bajo (7-8.5h)" },
+  optimal: { min: 8.5, max: 12, color: "bg-green-500", label: "Óptimo (8.5-12h)" },
+  excellent: { min: 12, max: 16, color: "bg-blue-500", label: "Excelente (12-16h)" },
 }
 
 const getQualityFromHours = (hours: number, hasData: boolean): keyof typeof SLEEP_THRESHOLDS => {
-  if (!hasData) return 'no-data'
-  if (hours < SLEEP_THRESHOLDS.insufficient.max) return 'insufficient'
-  if (hours < SLEEP_THRESHOLDS.low.max) return 'low' 
-  if (hours < SLEEP_THRESHOLDS.optimal.max) return 'optimal'
-  return 'excellent'
+  if (!hasData) return "no-data"
+  if (hours < SLEEP_THRESHOLDS.insufficient.max) return "insufficient"
+  if (hours < SLEEP_THRESHOLDS.low.max) return "low" 
+  if (hours < SLEEP_THRESHOLDS.optimal.max) return "optimal"
+  return "excellent"
 }
 
 const getQualityConfig = (quality: keyof typeof SLEEP_THRESHOLDS) => SLEEP_THRESHOLDS[quality]
@@ -51,7 +51,7 @@ const getQualityConfig = (quality: keyof typeof SLEEP_THRESHOLDS) => SLEEP_THRES
 export default function SleepDataStorytellingCard({ 
   childId, 
   dateRange, 
-  className = "" 
+  className = "", 
 }: SleepDataStorytellingCardProps) {
   // Traer 5 periodos de datos para permitir navegacion historica (4 hacia atras + actual)
   const { data: sleepData, loading, error } = useSleepData(childId, dateRange, 5)
@@ -69,10 +69,10 @@ export default function SleepDataStorytellingCard({
     
     const getDaysCount = () => {
       switch (dateRange) {
-        case '7-days': return 7
-        case '30-days': return 30
-        case '90-days': return 90
-        default: return 7
+      case "7-days": return 7
+      case "30-days": return 30
+      case "90-days": return 90
+      default: return 7
       }
     }
 
@@ -82,8 +82,8 @@ export default function SleepDataStorytellingCard({
     // Obtener todos los eventos de sueño
     const allEvents = sleepData.events
 
-    logger.debug('Procesando eventos', { total: allEvents.length })
-    logger.debug('Tipos de eventos', allEvents.reduce((acc, e) => {
+    logger.debug("Procesando eventos", { total: allEvents.length })
+    logger.debug("Tipos de eventos", allEvents.reduce((acc, e) => {
       acc[e.eventType] = (acc[e.eventType] || 0) + 1
       return acc
     }, {} as Record<string, number>))
@@ -116,21 +116,21 @@ export default function SleepDataStorytellingCard({
       // Usar la función unificada para procesar los eventos de este día
       const dayStats = processSleepStatistics(eventsToProcess)
       
-      logger.debug(`Estadísticas del día ${format(date, 'dd/MM')}`, {
+      logger.debug(`Estadísticas del día ${format(date, "dd/MM")}`, {
         avgSleepDuration: dayStats.avgSleepDuration.toFixed(1),
         avgNapDuration: dayStats.avgNapDuration.toFixed(1),
         totalSleepHours: dayStats.totalSleepHours.toFixed(1),
         avgBedtime: dayStats.avgBedtime,
         avgWakeTime: dayStats.avgWakeTime,
-        totalWakeups: dayStats.totalWakeups
+        totalWakeups: dayStats.totalWakeups,
       })
       
       // Construir métricas del día con valores reales calculados
       const totalHours = dayStats.totalSleepHours
       // Verificar si tenemos datos completos (al menos hora de acostarse O despertar)
-      const hasCompleteData = dayStats.avgBedtime !== '--:--' || dayStats.avgWakeTime !== '--:--' || totalHours > 0
+      const hasCompleteData = dayStats.avgBedtime !== "--:--" || dayStats.avgWakeTime !== "--:--" || totalHours > 0
       const quality = getQualityFromHours(totalHours, hasCompleteData)
-      const hasAnomaly = hasCompleteData && (quality === 'insufficient' || quality === 'low' || dayStats.avgWakeupsPerNight > 3)
+      const hasAnomaly = hasCompleteData && (quality === "insufficient" || quality === "low" || dayStats.avgWakeupsPerNight > 3)
       
       days.push({
         date: date.toISOString(),
@@ -138,11 +138,11 @@ export default function SleepDataStorytellingCard({
         nightSleepHours: Math.round(dayStats.avgSleepDuration * 10) / 10,
         napHours: Math.round(dayStats.avgNapDuration * 10) / 10,
         quality,
-        consistency: hasAnomaly ? 'poor' : 'good',
+        consistency: hasAnomaly ? "poor" : "good",
         hasAnomaly,
         wakeups: Math.round(dayStats.totalWakeups),
-        bedtime: dayStats.avgBedtime !== '--:--' ? dayStats.avgBedtime : undefined,
-        wakeTime: dayStats.avgWakeTime !== '--:--' ? dayStats.avgWakeTime : undefined
+        bedtime: dayStats.avgBedtime !== "--:--" ? dayStats.avgBedtime : undefined,
+        wakeTime: dayStats.avgWakeTime !== "--:--" ? dayStats.avgWakeTime : undefined,
       })
     }
     
@@ -158,13 +158,13 @@ export default function SleepDataStorytellingCard({
       totalDays: processedData.length,
       anomalies: anomalies.length,
       qualityDistribution: {
-        'no-data': processedData.filter(d => d.quality === 'no-data').length,
-        insufficient: processedData.filter(d => d.quality === 'insufficient').length,
-        low: processedData.filter(d => d.quality === 'low').length,
-        optimal: processedData.filter(d => d.quality === 'optimal').length,
-        excellent: processedData.filter(d => d.quality === 'excellent').length,
+        "no-data": processedData.filter(d => d.quality === "no-data").length,
+        insufficient: processedData.filter(d => d.quality === "insufficient").length,
+        low: processedData.filter(d => d.quality === "low").length,
+        optimal: processedData.filter(d => d.quality === "optimal").length,
+        excellent: processedData.filter(d => d.quality === "excellent").length,
       },
-      averageWakeups: sleepData?.avgWakeupsPerNight || 0
+      averageWakeups: sleepData?.avgWakeupsPerNight || 0,
     }
     
     return { filteredData, stats }
@@ -173,23 +173,23 @@ export default function SleepDataStorytellingCard({
   // 📱 Configuración responsive
   const getVisualizationConfig = () => {
     const config = {
-      barWidth: 'w-8',
+      barWidth: "w-8",
       showLabels: true,
-      tooltipWidth: 'min-w-56',
+      tooltipWidth: "min-w-56",
       maxHeight: 240,
-      gap: 'gap-1',
-      justify: 'justify-start'
+      gap: "gap-1",
+      justify: "justify-start",
     }
     
     switch (dateRange) {
-      case '7-days':
-        return { ...config, barWidth: 'flex-1 max-w-[3rem]', showLabels: true, gap: 'gap-2', justify: 'justify-between' }
-      case '30-days':
-        return { ...config, barWidth: 'w-4', showLabels: false, gap: 'gap-1', justify: 'justify-start' }
-      case '90-days':
-        return { ...config, barWidth: 'w-1.5', showLabels: false, tooltipWidth: 'min-w-48', gap: 'gap-0.5', justify: 'justify-start' }
-      default:
-        return config
+    case "7-days":
+      return { ...config, barWidth: "flex-1 max-w-[3rem]", showLabels: true, gap: "gap-2", justify: "justify-between" }
+    case "30-days":
+      return { ...config, barWidth: "w-4", showLabels: false, gap: "gap-1", justify: "justify-start" }
+    case "90-days":
+      return { ...config, barWidth: "w-1.5", showLabels: false, tooltipWidth: "min-w-48", gap: "gap-0.5", justify: "justify-start" }
+    default:
+      return config
     }
   }
 
@@ -210,10 +210,10 @@ export default function SleepDataStorytellingCard({
 
     const handleScroll = () => updateScrollState()
     updateScrollState()
-    element.addEventListener('scroll', handleScroll)
+    element.addEventListener("scroll", handleScroll)
 
     return () => {
-      element.removeEventListener('scroll', handleScroll)
+      element.removeEventListener("scroll", handleScroll)
     }
   }, [updateScrollState, filteredData, dateRange, showAnomaliesOnly])
 
@@ -224,19 +224,19 @@ export default function SleepDataStorytellingCard({
     updateScrollState()
   }, [filteredData, dateRange, showAnomaliesOnly, updateScrollState])
 
-  const handleChartScroll = (direction: 'left' | 'right') => {
+  const handleChartScroll = (direction: "left" | "right") => {
     const element = chartScrollRef.current
     if (!element) return
     const scrollAmount = element.clientWidth * 0.6 || 240
     element.scrollBy({
-      left: direction === 'left' ? -scrollAmount : scrollAmount,
-      behavior: 'smooth'
+      left: direction === "left" ? -scrollAmount : scrollAmount,
+      behavior: "smooth",
     })
   }
 
   // Navegacion entre periodos de tiempo
-  const handlePeriodNavigation = (direction: 'prev' | 'next') => {
-    if (direction === 'prev') {
+  const handlePeriodNavigation = (direction: "prev" | "next") => {
+    if (direction === "prev") {
       // Ir al periodo anterior (mas antiguo)
       setPeriodOffset(prev => prev - 1)
     } else {
@@ -252,7 +252,7 @@ export default function SleepDataStorytellingCard({
 
   const napCount = useMemo(() => {
     if (!sleepData?.events) return 0
-    return sleepData.events.filter(event => event.eventType === 'nap').length
+    return sleepData.events.filter(event => event.eventType === "nap").length
   }, [sleepData])
 
   const totalSleepHours = sleepData?.totalSleepHours ?? 0
@@ -297,13 +297,13 @@ export default function SleepDataStorytellingCard({
         <div className="min-w-0">
           <h3 className="text-lg md:text-xl font-bold text-[#2F2F2F]">Tendencia de Sueño</h3>
           <p className="text-sm text-gray-600 truncate">
-            {periodOffset === 0 ? 'Últimos' : ''} {processedData.length} días
+            {periodOffset === 0 ? "Últimos" : ""} {processedData.length} días
             {periodOffset < 0 && processedData.length > 0 && (
               <span className="ml-1">
-                ({format(parseISO(processedData[0]?.date || new Date().toISOString()), 'd MMM', { locale: es })} - {format(parseISO(processedData[processedData.length - 1]?.date || new Date().toISOString()), 'd MMM', { locale: es })})
+                ({format(parseISO(processedData[0]?.date || new Date().toISOString()), "d MMM", { locale: es })} - {format(parseISO(processedData[processedData.length - 1]?.date || new Date().toISOString()), "d MMM", { locale: es })})
               </span>
             )}
-            {' '}• {stats.anomalies} anomalías detectadas
+            {" "}• {stats.anomalies} anomalías detectadas
           </p>
         </div>
         
@@ -312,16 +312,16 @@ export default function SleepDataStorytellingCard({
             onClick={() => setShowAnomaliesOnly(!showAnomaliesOnly)}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               showAnomaliesOnly
-                ? 'bg-red-100 text-red-700 hover:bg-red-200 shadow-sm'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? "bg-red-100 text-red-700 hover:bg-red-200 shadow-sm"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
             {showAnomaliesOnly ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
             <span className="hidden sm:inline">
-              {showAnomaliesOnly ? 'Mostrar Todo' : 'Solo Anomalías'}
+              {showAnomaliesOnly ? "Mostrar Todo" : "Solo Anomalías"}
             </span>
             <span className="sm:hidden">
-              {showAnomaliesOnly ? 'Todo' : 'Anomalías'}
+              {showAnomaliesOnly ? "Todo" : "Anomalías"}
             </span>
           </button>
 
@@ -330,12 +330,12 @@ export default function SleepDataStorytellingCard({
             <button
               type="button"
               aria-label="Ver días anteriores"
-              onClick={() => handlePeriodNavigation('prev')}
+              onClick={() => handlePeriodNavigation("prev")}
               disabled={periodOffset <= -4}
               className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all ${
                 periodOffset > -4
-                  ? 'border-gray-200 bg-white text-gray-700 hover:bg-gray-100 hover:border-gray-300'
-                  : 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
+                  ? "border-gray-200 bg-white text-gray-700 hover:bg-gray-100 hover:border-gray-300"
+                  : "border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed"
               }`}
             >
               <ChevronLeft className="w-4 h-4" />
@@ -343,12 +343,12 @@ export default function SleepDataStorytellingCard({
             <button
               type="button"
               aria-label="Ver días siguientes"
-              onClick={() => handlePeriodNavigation('next')}
+              onClick={() => handlePeriodNavigation("next")}
               disabled={periodOffset >= 0}
               className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all ${
                 periodOffset < 0
-                  ? 'border-gray-200 bg-white text-gray-700 hover:bg-gray-100 hover:border-gray-300'
-                  : 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
+                  ? "border-gray-200 bg-white text-gray-700 hover:bg-gray-100 hover:border-gray-300"
+                  : "border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed"
               }`}
             >
               <ChevronRight className="w-4 h-4" />
@@ -391,7 +391,7 @@ export default function SleepDataStorytellingCard({
             className="absolute left-0 right-0 bg-green-100 opacity-30 border-t border-b border-green-400 rounded"
             style={{
               bottom: `${(SLEEP_THRESHOLDS.optimal.min / maxHours) * 100}%`,
-              height: `${((SLEEP_THRESHOLDS.optimal.max - SLEEP_THRESHOLDS.optimal.min) / maxHours) * 100}%`
+              height: `${((SLEEP_THRESHOLDS.optimal.max - SLEEP_THRESHOLDS.optimal.min) / maxHours) * 100}%`,
             }}
           />
           
@@ -405,7 +405,7 @@ export default function SleepDataStorytellingCard({
                 className={`relative ${vizConfig.barWidth} group cursor-pointer flex-shrink-0 transition-all duration-300 hover:scale-105`}
                 style={{ 
                   height: `${(day.totalHours / maxHours) * 85}%`,
-                  transitionDelay: `${index * 15}ms`
+                  transitionDelay: `${index * 15}ms`,
                 }}
                 onMouseEnter={(e) => {
                   // Usar coordenadas del mouse directamente
@@ -465,7 +465,7 @@ export default function SleepDataStorytellingCard({
                 {/* 📊 Barra principal */}
                 <div 
                   className={`w-full h-full ${config.color} rounded-t-md transition-all duration-200 ${
-                    isHovered ? 'opacity-90 shadow-lg' : 'hover:opacity-80'
+                    isHovered ? "opacity-90 shadow-lg" : "hover:opacity-80"
                   }`}
                 />
                 
@@ -477,7 +477,7 @@ export default function SleepDataStorytellingCard({
                 {/* 📅 Etiqueta de día (solo 7 días) */}
                 {vizConfig.showLabels && (
                   <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 font-medium">
-                    {format(parseISO(day.date), 'dd')}
+                    {format(parseISO(day.date), "dd")}
                   </div>
                 )}
               </div>
@@ -507,7 +507,7 @@ export default function SleepDataStorytellingCard({
         </div>
         <div className="text-center p-3 bg-orange-50 rounded-lg">
           <div className="text-xl md:text-2xl font-bold text-orange-600">{avgNapHours.toFixed(1)}h</div>
-          <div className="text-xs md:text-sm text-gray-600">Siestas{napCount ? ` (${napCount})` : ''}</div>
+          <div className="text-xs md:text-sm text-gray-600">Siestas{napCount ? ` (${napCount})` : ""}</div>
         </div>
         <div className="text-center p-3 bg-red-50 rounded-lg">
           <div className="text-xl md:text-2xl font-bold text-red-600">{Math.round(avgWakeups)}</div>
@@ -527,15 +527,15 @@ export default function SleepDataStorytellingCard({
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-600">Hora de acostarse:</span>
-              <span className="font-medium text-blue-700">{sleepData?.avgBedtime || '--:--'}</span>
+              <span className="font-medium text-blue-700">{sleepData?.avgBedtime || "--:--"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Tiempo para dormir:</span>
-              <span className="font-medium text-blue-700">{sleepData?.bedtimeToSleepDifference || '--'}</span>
+              <span className="font-medium text-blue-700">{sleepData?.bedtimeToSleepDifference || "--"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Hora de despertar:</span>
-              <span className="font-medium text-blue-700">{sleepData?.avgWakeTime || '--:--'}</span>
+              <span className="font-medium text-blue-700">{sleepData?.avgWakeTime || "--:--"}</span>
             </div>
           </div>
         </div>
@@ -550,16 +550,16 @@ export default function SleepDataStorytellingCard({
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-600">Sueño nocturno:</span>
-              <span className="font-medium text-green-700">{sleepData?.avgSleepDuration.toFixed(1) || '0'}h</span>
+              <span className="font-medium text-green-700">{sleepData?.avgSleepDuration.toFixed(1) || "0"}h</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Siestas promedio:</span>
-              <span className="font-medium text-green-700">{sleepData?.avgNapDuration.toFixed(1) || '0'}h</span>
+              <span className="font-medium text-green-700">{sleepData?.avgNapDuration.toFixed(1) || "0"}h</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Despertares/noche:</span>
-              <span className={`font-medium ${(sleepData?.avgWakeupsPerNight || 0) > 2 ? 'text-red-600' : 'text-green-700'}`}>
-                {sleepData?.avgWakeupsPerNight.toFixed(1) || '0.0'}
+              <span className={`font-medium ${(sleepData?.avgWakeupsPerNight || 0) > 2 ? "text-red-600" : "text-green-700"}`}>
+                {sleepData?.avgWakeupsPerNight.toFixed(1) || "0.0"}
               </span>
             </div>
           </div>
@@ -596,8 +596,8 @@ export default function SleepDataStorytellingCard({
           style={{ 
             left: `${tooltipPosition.x}px`, // Usar coordenadas ya ajustadas
             top: `${tooltipPosition.y}px`,  // Usar coordenadas ya ajustadas
-            transform: 'none', // Sin transform para posicionamiento directo
-            maxWidth: '90vw'
+            transform: "none", // Sin transform para posicionamiento directo
+            maxWidth: "90vw",
           }}
         >
           {(() => {
@@ -630,15 +630,15 @@ export default function SleepDataStorytellingCard({
                   <div className="space-y-1">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Acostar:</span>
-                      <span className="font-medium">{day.bedtime || '--:--'}</span>
+                      <span className="font-medium">{day.bedtime || "--:--"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Despertar:</span>
-                      <span className="font-medium">{day.wakeTime || '--:--'}</span>
+                      <span className="font-medium">{day.wakeTime || "--:--"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Despertares:</span>
-                      <span className={`font-medium ${day.wakeups > 2 ? 'text-red-600' : 'text-green-600'}`}>
+                      <span className={`font-medium ${day.wakeups > 2 ? "text-red-600" : "text-green-600"}`}>
                         {day.wakeups}
                       </span>
                     </div>
@@ -646,10 +646,10 @@ export default function SleepDataStorytellingCard({
                 </div>
                 
                 <div className={`text-xs pt-2 border-t border-gray-100 text-center font-medium ${
-                  day.quality === 'no-data' ? 'text-gray-500' :
-                  day.quality === 'insufficient' ? 'text-red-600' :
-                  day.quality === 'low' ? 'text-orange-600' : 
-                  day.quality === 'optimal' ? 'text-green-600' : 'text-blue-600'
+                  day.quality === "no-data" ? "text-gray-500" :
+                    day.quality === "insufficient" ? "text-red-600" :
+                      day.quality === "low" ? "text-orange-600" : 
+                        day.quality === "optimal" ? "text-green-600" : "text-blue-600"
                 }`}>
                   {config.label}
                 </div>
@@ -671,9 +671,9 @@ const styles = `
 `
 
 // Inyectar estilos si no existen
-if (typeof document !== 'undefined' && !document.getElementById('sleep-card-styles')) {
-  const styleSheet = document.createElement('style')
-  styleSheet.id = 'sleep-card-styles'
+if (typeof document !== "undefined" && !document.getElementById("sleep-card-styles")) {
+  const styleSheet = document.createElement("style")
+  styleSheet.id = "sleep-card-styles"
   styleSheet.textContent = styles
   document.head.appendChild(styleSheet)
 }

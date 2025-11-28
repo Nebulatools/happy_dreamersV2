@@ -15,7 +15,7 @@ import {
   CheckCircle,
   Moon as Nap,
   Calendar,
-  Info
+  Info,
 } from "lucide-react"
 import { ChildPlan } from "@/types/models"
 
@@ -37,16 +37,16 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
 
   // Función para formatear hora con validación
   const formatTime = (time: string) => {
-    if (!time || typeof time !== 'string') return 'N/A'
+    if (!time || typeof time !== "string") return "N/A"
     
-    const parts = time.split(':')
+    const parts = time.split(":")
     if (parts.length !== 2) return time
     
     const [hour, minute] = parts
     const hourNum = parseInt(hour)
     if (isNaN(hourNum)) return time
     
-    const period = hourNum >= 12 ? 'PM' : 'AM'
+    const period = hourNum >= 12 ? "PM" : "AM"
     const displayHour = hourNum > 12 ? hourNum - 12 : hourNum === 0 ? 12 : hourNum
     return `${displayHour}:${minute} ${period}`
   }
@@ -59,12 +59,12 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
 
 
   const normalizeTime = (t?: string | null) => {
-    if (!t || typeof t !== 'string') return null
+    if (!t || typeof t !== "string") return null
     const m = t.match(/^(\d{1,2}):(\d{2})$/)
     if (!m) return null
     const hh = Math.max(0, Math.min(23, parseInt(m[1], 10)))
     const mm = Math.max(0, Math.min(59, parseInt(m[2], 10)))
-    return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`
+    return `${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`
   }
 
   type SleepRoutineData = NonNullable<ChildPlan["sleepRoutine"]>
@@ -88,7 +88,7 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
   type TimelineEvent = {
     id: string
     time: string
-    type: 'bedtime' | 'wake' | 'meal' | 'activity' | 'nap'
+    type: "bedtime" | "wake" | "meal" | "activity" | "nap"
     title: string
     description: string
     duration?: number
@@ -122,12 +122,12 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
     const wakeT = normalizeTime(plan.schedule?.wakeTime)
     if (wakeT) {
       events.push({
-        id: 'wakeTime',
+        id: "wakeTime",
         time: wakeT,
-        type: 'wake',
-        title: 'Despertar',
-        description: 'Hora de levantarse',
-        icon: <Sun className="h-4 w-4" />
+        type: "wake",
+        title: "Despertar",
+        description: "Hora de levantarse",
+        icon: <Sun className="h-4 w-4" />,
       })
     }
 
@@ -135,14 +135,14 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
     (plan.schedule?.meals || []).forEach((meal: any, index: number) => {
       const mt = normalizeTime(meal?.time)
       if (!mt) return
-      const type = typeof meal?.type === 'string' ? meal.type : 'comida'
+      const type = typeof meal?.type === "string" ? meal.type : "comida"
       events.push({
         id: getStableMealId(meal, index, mt),
         time: mt,
-        type: 'meal',
-        title: type && type.length ? type.charAt(0).toUpperCase() + type.slice(1) : 'Comida',
-        description: meal?.description || '',
-        icon: getMealIcon(type)
+        type: "meal",
+        title: type && type.length ? type.charAt(0).toUpperCase() + type.slice(1) : "Comida",
+        description: meal?.description || "",
+        icon: getMealIcon(type),
       })
     })
 
@@ -155,11 +155,11 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
         events.push({
           id: getStableNapId(nap, index, nt),
           time: nt,
-          type: 'nap',
-          title: 'Siesta',
-          description: nap?.description || (nap?.duration ? `Siesta de ${nap.duration} minutos` : 'Siesta'),
-          duration: typeof nap?.duration === 'number' ? nap.duration : undefined,
-          icon: <Nap className="h-4 w-4" />
+          type: "nap",
+          title: "Siesta",
+          description: nap?.description || (nap?.duration ? `Siesta de ${nap.duration} minutos` : "Siesta"),
+          duration: typeof nap?.duration === "number" ? nap.duration : undefined,
+          icon: <Nap className="h-4 w-4" />,
         })
       })
     }
@@ -168,21 +168,21 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
     const bedT = normalizeTime(plan.schedule?.bedtime)
     if (bedT) {
       events.push({
-        id: 'bedtime',
+        id: "bedtime",
         time: bedT,
-        type: 'bedtime',
-        title: 'Hora de dormir',
-        description: 'Ir a la cama',
-        icon: <Moon className="h-4 w-4" />
+        type: "bedtime",
+        title: "Hora de dormir",
+        description: "Ir a la cama",
+        icon: <Moon className="h-4 w-4" />,
       })
     }
 
     // Ordenar por hora
     return events
-      .filter(e => typeof e.time === 'string')
+      .filter(e => typeof e.time === "string")
       .sort((a, b) => {
-        const [ah, am] = a.time.split(':').map(Number)
-        const [bh, bm] = b.time.split(':').map(Number)
+        const [ah, am] = a.time.split(":").map(Number)
+        const [bh, bm] = b.time.split(":").map(Number)
         return ah * 60 + am - (bh * 60 + bm)
       })
   }
@@ -219,10 +219,10 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
                   {plan.title}
                 </CardTitle>
                 <Badge variant={plan.planType === "initial" ? "default" : 
-                              plan.planType === "event_based" ? "secondary" : "outline"}>
+                  plan.planType === "event_based" ? "secondary" : "outline"}>
                   {plan.planType === "initial" ? "Plan Inicial" : 
-                   plan.planType === "event_based" ? "Progresión" :
-                   plan.planType === "transcript_refinement" ? "Refinamiento" : "Actualización"}
+                    plan.planType === "event_based" ? "Progresión" :
+                      plan.planType === "transcript_refinement" ? "Refinamiento" : "Actualización"}
                 </Badge>
                 {plan.status === "active" && (
                   <Badge variant="outline" className="text-green-600 border-green-600">
@@ -232,18 +232,18 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
                 )}
               </div>
               <CardDescription>
-                Creado el {new Date(plan.createdAt).toLocaleDateString('es-ES', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
+                Creado el {new Date(plan.createdAt).toLocaleDateString("es-ES", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
                 })}
                 {plan.basedOn === "transcript_analysis" && (
                   <span className="ml-2">• Basado en análisis de transcript</span>
                 )}
                 {plan.basedOn === "events_stats_rag" && (
                   <span className="ml-2">
-                    • Basado en plan anterior + {plan.eventAnalysis?.eventsAnalyzed || 'eventos'} eventos registrados + RAG
+                    • Basado en plan anterior + {plan.eventAnalysis?.eventsAnalyzed || "eventos"} eventos registrados + RAG
                   </span>
                 )}
                 {plan.basedOn === "survey_stats_rag" && (
@@ -276,12 +276,12 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
                     <div className="flex flex-col items-center">
                       <div className={`
                         p-2 rounded-full border-2 
-                        ${event.type === 'bedtime' ? 'bg-purple-100 border-purple-500 text-purple-600' :
-                          event.type === 'wake' ? 'bg-yellow-100 border-yellow-500 text-yellow-600' :
-                          event.type === 'meal' ? 'bg-orange-100 border-orange-500 text-orange-600' :
-                          event.type === 'activity' ? 'bg-blue-100 border-blue-500 text-blue-600' :
-                          'bg-indigo-100 border-indigo-500 text-indigo-600'
-                        }
+                        ${event.type === "bedtime" ? "bg-purple-100 border-purple-500 text-purple-600" :
+                    event.type === "wake" ? "bg-yellow-100 border-yellow-500 text-yellow-600" :
+                      event.type === "meal" ? "bg-orange-100 border-orange-500 text-orange-600" :
+                        event.type === "activity" ? "bg-blue-100 border-blue-500 text-blue-600" :
+                          "bg-indigo-100 border-indigo-500 text-indigo-600"
+                  }
                       `}>
                         {event.icon}
                       </div>
@@ -329,11 +329,11 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
             <CardContent>
               <div className="space-y-3">
                 {plan.objectives.map((objective: any, index: number) => {
-                  const text = typeof objective === 'string'
+                  const text = typeof objective === "string"
                     ? objective
-                    : objective && typeof objective === 'object'
+                    : objective && typeof objective === "object"
                       ? (objective.description || JSON.stringify(objective))
-                      : String(objective ?? '')
+                      : String(objective ?? "")
                   return (
                     <div key={index} className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
@@ -381,8 +381,8 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
                         <p className="text-sm font-medium">Número de siestas</p>
                         <p className="text-sm text-muted-foreground">
                           {typeof legacySleepRoutine.numberOfNaps === "number"
-                            ? `${legacySleepRoutine.numberOfNaps} ${legacySleepRoutine.numberOfNaps === 1 ? 'siesta' : 'siestas'}`
-                            : 'No especificado'}
+                            ? `${legacySleepRoutine.numberOfNaps} ${legacySleepRoutine.numberOfNaps === 1 ? "siesta" : "siestas"}`
+                            : "No especificado"}
                         </p>
                       </div>
                     </div>
@@ -390,14 +390,14 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
                       <Clock className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                       <div>
                         <p className="text-sm font-medium">Duración aproximada de siestas</p>
-                        <p className="text-sm text-muted-foreground">{legacySleepRoutine.napDuration || 'No especificado'}</p>
+                        <p className="text-sm text-muted-foreground">{legacySleepRoutine.napDuration || "No especificado"}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
                       <Clock className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
                       <div>
                         <p className="text-sm font-medium">Ventanas de vigilia</p>
-                        <p className="text-sm text-muted-foreground">{legacySleepRoutine.wakeWindows || 'No especificado'}</p>
+                        <p className="text-sm text-muted-foreground">{legacySleepRoutine.wakeWindows || "No especificado"}</p>
                       </div>
                     </div>
                   </div>
@@ -417,11 +417,11 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
             <CardContent>
               <div className="space-y-3">
                 {plan.recommendations.map((recommendation: any, index: number) => {
-                  const text = typeof recommendation === 'string'
+                  const text = typeof recommendation === "string"
                     ? recommendation
-                    : recommendation && typeof recommendation === 'object'
+                    : recommendation && typeof recommendation === "object"
                       ? (recommendation.description || JSON.stringify(recommendation))
-                      : String(recommendation ?? '')
+                      : String(recommendation ?? "")
                   return (
                     <div key={index} className="p-3 bg-muted rounded-lg">
                       <p className="text-sm">{text}</p>
@@ -486,19 +486,19 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
                   <span>Tipo:</span>
                   <span>
                     {plan.planType === "initial" ? "Inicial" : 
-                     plan.planType === "event_based" ? "Progresión basada en eventos" :
-                     plan.planType === "transcript_refinement" ? "Refinamiento por transcript" : 
-                     "Actualización"}
+                      plan.planType === "event_based" ? "Progresión basada en eventos" :
+                        plan.planType === "transcript_refinement" ? "Refinamiento por transcript" : 
+                          "Actualización"}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Basado en:</span>
                   <span>
                     {plan.basedOn === "survey_stats_rag" ? "Survey + Stats + RAG" : 
-                     plan.basedOn === "events_stats_rag" ? 
-                       `Plan ${plan.basedOnPlan?.planVersion || 'anterior'} + ${plan.eventAnalysis?.eventsAnalyzed || 'X'} eventos + RAG` :
-                     plan.basedOn === "transcript_analysis" ? "Análisis de transcript" : 
-                     plan.basedOn}
+                      plan.basedOn === "events_stats_rag" ? 
+                        `Plan ${plan.basedOnPlan?.planVersion || "anterior"} + ${plan.eventAnalysis?.eventsAnalyzed || "X"} eventos + RAG` :
+                        plan.basedOn === "transcript_analysis" ? "Análisis de transcript" : 
+                          plan.basedOn}
                   </span>
                 </div>
                 {(plan.sourceData || plan.eventAnalysis || plan.eventsDateRange) && (
@@ -514,8 +514,8 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
                           <span>Período de análisis:</span>
                           <span>
                             {plan.eventsDateRange?.fromDate && plan.eventsDateRange?.toDate ? 
-                              `${new Date(plan.eventsDateRange.fromDate).toLocaleDateString('es-ES')} - ${new Date(plan.eventsDateRange.toDate).toLocaleDateString('es-ES')}` :
-                              'N/A'
+                              `${new Date(plan.eventsDateRange.fromDate).toLocaleDateString("es-ES")} - ${new Date(plan.eventsDateRange.toDate).toLocaleDateString("es-ES")}` :
+                              "N/A"
                             }
                           </span>
                         </div>
@@ -529,7 +529,7 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
                         </div>
                         <div className="flex justify-between">
                           <span>Fuentes RAG:</span>
-                          <span>{plan.sourceData.ragSources?.length || 'N/A'}</span>
+                          <span>{plan.sourceData.ragSources?.length || "N/A"}</span>
                         </div>
                       </>
                     )}

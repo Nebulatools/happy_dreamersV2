@@ -97,11 +97,11 @@ export default function TranscriptsPage() {
     try {
       const res = await fetch(`/api/integrations/zoom/reports?childId=${childId}&limit=20`)
       const data = await res.json().catch(() => ({}))
-      if (!res.ok || !data?.success) throw new Error(data?.error || 'No se pudieron cargar transcripts asignados')
+      if (!res.ok || !data?.success) throw new Error(data?.error || "No se pudieron cargar transcripts asignados")
       setAssigned(data.reports || [])
     } catch (e: any) {
       setAssigned([])
-      toast({ title: 'Error', description: e?.message || 'No se pudieron cargar transcripts asignados', variant: 'destructive' })
+      toast({ title: "Error", description: e?.message || "No se pudieron cargar transcripts asignados", variant: "destructive" })
     } finally {
       setLoadingAssigned(false)
     }
@@ -113,13 +113,13 @@ export default function TranscriptsPage() {
 
   useEffect(() => {
     const onVis = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         loadZoomItems()
         if (selectedChildForReports) loadAssignedForChild(selectedChildForReports)
       }
     }
-    document.addEventListener('visibilitychange', onVis)
-    return () => document.removeEventListener('visibilitychange', onVis)
+    document.addEventListener("visibilitychange", onVis)
+    return () => document.removeEventListener("visibilitychange", onVis)
   }, [selectedChildForReports])
 
   const [assignMap, setAssignMap] = useState<Record<string, string>>({})
@@ -204,34 +204,34 @@ export default function TranscriptsPage() {
       const url = zoomUserId ? `${base}&userId=${encodeURIComponent(zoomUserId)}` : base
       const res = await fetch(url)
       const data = await res.json().catch(() => ({}))
-      if (!res.ok || !data?.success) throw new Error(data?.error || 'No se pudieron cargar transcripts de Zoom')
+      if (!res.ok || !data?.success) throw new Error(data?.error || "No se pudieron cargar transcripts de Zoom")
       setZoomItems(data.items || [])
     } catch (e: any) {
-      toast({ title: 'Zoom', description: e?.message || 'No se pudieron cargar transcripts de Zoom', variant: 'destructive' })
+      toast({ title: "Zoom", description: e?.message || "No se pudieron cargar transcripts de Zoom", variant: "destructive" })
     } finally {
       setLoadingZoom(false)
     }
   }
 
   const showPreview = async (item: any) => {
-    const key = item.key || item.uuid || String(item.meetingId || '')
+    const key = item.key || item.uuid || String(item.meetingId || "")
     // Toggle: if already open, collapse
     if (previewing === key) {
       setPreviewing(null)
-      setPreviewText('')
+      setPreviewText("")
       return
     }
     setPreviewing(key)
-    setPreviewText('')
+    setPreviewText("")
     try {
       const idParam = item.uuid ? `uuid=${encodeURIComponent(item.uuid)}` : `meetingId=${encodeURIComponent(item.meetingId)}`
       const fileId = selectedFileByKey[key]
       const res = await fetch(`/api/integrations/zoom/transcripts/download?${idParam}&fileId=${encodeURIComponent(fileId)}`)
       const text = await res.text()
-      if (!res.ok) throw new Error(text || 'Error descargando transcript')
+      if (!res.ok) throw new Error(text || "Error descargando transcript")
       setPreviewText(text)
     } catch (e: any) {
-      setPreviewText(`Error: ${e?.message || 'No se pudo descargar el transcript'}`)
+      setPreviewText(`Error: ${e?.message || "No se pudo descargar el transcript"}`)
     }
   }
 
@@ -275,7 +275,7 @@ export default function TranscriptsPage() {
               </Select>
               <Input className="w-[220px]" placeholder="Usuario Zoom (me o email)" value={zoomUserId} onChange={(e) => setZoomUserId(e.target.value)} />
               <Button variant="outline" onClick={loadZoomItems} disabled={loadingZoom}>
-                <RefreshCw className={`h-4 w-4 ${loadingZoom ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 ${loadingZoom ? "animate-spin" : ""}`} />
               </Button>
             </div>
           </div>
@@ -293,19 +293,19 @@ export default function TranscriptsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                           <Badge variant="outline">Zoom</Badge>
-                          {z.startTime && (<span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" /> {new Date(z.startTime).toLocaleString('es-ES')}</span>)}
+                          {z.startTime && (<span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" /> {new Date(z.startTime).toLocaleString("es-ES")}</span>)}
                           {z.uuid && (<span>UUID: {String(z.uuid).slice(0,8)}…</span>)}
                           {z.meetingId && (<span>Meeting: {z.meetingId}</span>)}
                         </div>
-                        <div className="font-medium mb-1 truncate">{z.topic || '(sin tema)'}</div>
+                        <div className="font-medium mb-1 truncate">{z.topic || "(sin tema)"}</div>
                         {/* Preferimos mostrar solo el Transcript; si solo existe CC, se usa ese automáticamente. */}
                         {previewing === key && (
-                          <pre className="whitespace-pre-wrap text-sm bg-gray-50 p-3 rounded border max-h-60 overflow-auto">{previewText || 'Cargando...'}</pre>
+                          <pre className="whitespace-pre-wrap text-sm bg-gray-50 p-3 rounded border max-h-60 overflow-auto">{previewText || "Cargando..."}</pre>
                         )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <Button variant="outline" size="sm" onClick={() => showPreview(z)}>
-                          <Eye className="h-4 w-4 mr-1" /> {previewing === key ? 'Ocultar' : 'Ver'}
+                          <Eye className="h-4 w-4 mr-1" /> {previewing === key ? "Ocultar" : "Ver"}
                         </Button>
                         <Select value={assignMap[key] || ""} onValueChange={(val) => setAssignMap(prev => ({ ...prev, [key]: val }))}>
                           <SelectTrigger className="w-[220px]">
@@ -320,7 +320,7 @@ export default function TranscriptsPage() {
                           </SelectContent>
                         </Select>
                         <Button onClick={() => assign({ uuid: z.uuid, meetingId: z.meetingId })} disabled={!assignMap[key] || linkingId === key}>
-                          <Link2 className="h-4 w-4 mr-1" /> {linkingId === key ? 'Asignando...' : 'Asignar'}
+                          <Link2 className="h-4 w-4 mr-1" /> {linkingId === key ? "Asignando..." : "Asignar"}
                         </Button>
                       </div>
                     </div>
@@ -356,7 +356,7 @@ export default function TranscriptsPage() {
                 </SelectContent>
               </Select>
               <Button variant="outline" onClick={() => loadAssignedForChild(selectedChildForReports)} disabled={!selectedChildForReports || loadingAssigned}>
-                <RefreshCw className={`h-4 w-4 ${loadingAssigned ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 ${loadingAssigned ? "animate-spin" : ""}`} />
               </Button>
             </div>
           </div>
@@ -374,9 +374,9 @@ export default function TranscriptsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                         <Badge variant="outline">Zoom</Badge>
-                        {r.createdAt && (<span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" /> {new Date(r.createdAt).toLocaleString('es-ES')}</span>)}
+                        {r.createdAt && (<span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" /> {new Date(r.createdAt).toLocaleString("es-ES")}</span>)}
                       </div>
-                      <p className="text-sm text-muted-foreground line-clamp-3">{r.transcript?.slice(0, 220) || '(vacío)'}</p>
+                      <p className="text-sm text-muted-foreground line-clamp-3">{r.transcript?.slice(0, 220) || "(vacío)"}</p>
                     </div>
                   </div>
                   {idx < assigned.length - 1 && <Separator className="mt-3" />}

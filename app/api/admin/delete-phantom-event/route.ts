@@ -37,47 +37,47 @@ export async function DELETE(req: Request) {
       childId,
       deletedFromEvents: 0,
       deletedFromChildrenArray: 0,
-      success: false
+      success: false,
     }
 
     // PASO 1: Eliminar de colección 'events' (intentar ambas formas)
     try {
       // Intentar con ObjectId
-      let deleteResult = await db.collection('events').deleteOne({
-        _id: new ObjectId(eventId)
+      let deleteResult = await db.collection("events").deleteOne({
+        _id: new ObjectId(eventId),
       })
       results.deletedFromEvents = deleteResult.deletedCount || 0
       logger.info(`Eliminado de events (ObjectId): ${results.deletedFromEvents}`)
 
       // Si no se eliminó, intentar con string
       if (results.deletedFromEvents === 0) {
-        deleteResult = await db.collection('events').deleteOne({
-          _id: eventId
+        deleteResult = await db.collection("events").deleteOne({
+          _id: eventId,
         })
         results.deletedFromEvents = deleteResult.deletedCount || 0
         logger.info(`Eliminado de events (string): ${results.deletedFromEvents}`)
       }
     } catch (e) {
-      logger.warn('Error eliminando de events:', e)
+      logger.warn("Error eliminando de events:", e)
     }
 
     // PASO 2: Eliminar del array children.events
     try {
-      const updateResult = await db.collection('children').updateOne(
+      const updateResult = await db.collection("children").updateOne(
         { _id: new ObjectId(childId) },
         { $pull: { events: { _id: eventId } } }
       )
       results.deletedFromChildrenArray = updateResult.modifiedCount || 0
       logger.info(`Eliminado de children.events: ${results.deletedFromChildrenArray}`)
     } catch (e) {
-      logger.warn('Error eliminando de children.events:', e)
+      logger.warn("Error eliminando de children.events:", e)
     }
 
     // PASO 3: Verificar que se eliminó
-    const stillInEvents = await db.collection('events').findOne({ _id: eventId })
-    const stillInEventsObjectId = await db.collection('events').findOne({ _id: new ObjectId(eventId) })
+    const stillInEvents = await db.collection("events").findOne({ _id: eventId })
+    const stillInEventsObjectId = await db.collection("events").findOne({ _id: new ObjectId(eventId) })
 
-    const childDoc = await db.collection('children').findOne(
+    const childDoc = await db.collection("children").findOne(
       { _id: new ObjectId(childId) },
       { projection: { events: 1 } }
     )
@@ -91,7 +91,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({
         success: true,
         message: "Evento fantasma eliminado correctamente",
-        details: results
+        details: results,
       })
     } else {
       return NextResponse.json({
@@ -100,8 +100,8 @@ export async function DELETE(req: Request) {
         details: results,
         stillExists: {
           inEvents: !!stillInEvents || !!stillInEventsObjectId,
-          inChildrenArray: !!stillInArray
-        }
+          inChildrenArray: !!stillInArray,
+        },
       }, { status: 500 })
     }
 

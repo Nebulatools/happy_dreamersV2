@@ -8,7 +8,7 @@ import {
   grantAccess, 
   getCaregivers, 
   revokeAccess,
-  updateCaregiverPermissions 
+  updateCaregiverPermissions, 
 } from "@/lib/db/user-child-access"
 import { createLogger } from "@/lib/logger"
 
@@ -44,7 +44,7 @@ export async function GET(
     return NextResponse.json({
       success: true,
       caregivers: result.caregivers,
-      message: "Cuidadores obtenidos exitosamente"
+      message: "Cuidadores obtenidos exitosamente",
     })
 
   } catch (error) {
@@ -80,7 +80,7 @@ export async function POST(
       role = "caregiver",
       relationshipType,
       relationshipDescription,
-      expiresAt 
+      expiresAt, 
     } = body
 
     if (!email) {
@@ -107,7 +107,7 @@ export async function POST(
       relationshipType,
       relationshipDescription,
       expiresAt ? new Date(expiresAt) : undefined,
-      (session.user as any).role === 'admin'
+      (session.user as any).role === "admin"
     )
 
     if (!result.success) {
@@ -122,7 +122,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       invitationToken: result.invitationToken,
-      message: "Acceso otorgado exitosamente"
+      message: "Acceso otorgado exitosamente",
     })
 
   } catch (error) {
@@ -157,7 +157,7 @@ export async function PUT(
       userId,
       role,
       expiresAt,
-      relationshipDescription 
+      relationshipDescription, 
     } = body
 
     if (!userId) {
@@ -183,7 +183,7 @@ export async function PUT(
       {
         role,
         expiresAt: expiresAt !== undefined ? (expiresAt ? new Date(expiresAt) : null) : undefined,
-        relationshipDescription
+        relationshipDescription,
       }
     )
 
@@ -198,7 +198,7 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
-      message: "Permisos actualizados exitosamente"
+      message: "Permisos actualizados exitosamente",
     })
 
   } catch (error) {
@@ -256,7 +256,7 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: "Acceso revocado exitosamente"
+      message: "Acceso revocado exitosamente",
     })
 
   } catch (error) {

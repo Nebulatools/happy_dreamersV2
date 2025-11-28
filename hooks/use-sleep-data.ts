@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react"
 import { differenceInMinutes, parseISO, subDays } from "date-fns"
 import { processSleepStatistics } from "@/lib/sleep-calculations"
-import { createLogger } from "@/lib/logger"
-
-const logger = createLogger('useSleepData')
 
 export interface SleepEvent {
   _id: string
@@ -81,9 +78,7 @@ export function useSleepData(childId: string | null, dateRange: string = "7-days
         const daysToSubtract = baseDays * Math.max(1, periodsToFetch)
 
         const filterDate = subDays(now, daysToSubtract)
-        
-        logger.debug('Filtrando eventos', { desde: filterDate.toLocaleDateString(), dias: daysToSubtract })
-        
+
         const sleepEvents = allEvents.filter((e: any) => {
           // Solo procesar eventos que tengan startTime definido
           if (!e.startTime) return false
@@ -98,8 +93,6 @@ export function useSleepData(childId: string | null, dateRange: string = "7-days
           const date = parseISO(e.startTime)
           return date >= filterDate
         })
-        
-        logger.debug('Eventos procesados', { total: allEvents.length, filtrados: sleepEvents.length })
         
         // Calcular métricas
         const processedData = processSleepData(sleepEvents, allEvents, recentEvents, dateRange)
@@ -208,7 +201,6 @@ function calculateAwakePeriods(events: any[], dateRange: string = "7-days"): Awa
     return eventDate >= filterDate && eventDate <= now
   })
   
-  logger.debug('Eventos en el rango para períodos despierto', { count: rangeEvents.length, days: daysToProcess })
   
   // Agrupar eventos por día para procesamiento más preciso
   const eventsByDay = new Map<string, any[]>()

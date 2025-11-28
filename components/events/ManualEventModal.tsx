@@ -1,21 +1,23 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { useToast } from '@/hooks/use-toast'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { format, parseISO, differenceInMinutes } from 'date-fns'
-import { Clock, Plus, Minus } from 'lucide-react'
-import { eventTypes, getEventType } from '@/lib/event-types'
+import React, { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { useToast } from "@/hooks/use-toast"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { format } from "date-fns"
+import { Clock, Plus, Minus } from "lucide-react"
+import { eventTypes, getEventType } from "@/lib/event-types"
+import { useUser } from "@/context/UserContext"
+import { dateToTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
 
 // Eventos disponibles en el modal manual (excluyendo wake y night_feeding)
 const manualEventTypes = eventTypes.filter(type => 
-  !['wake', 'night_feeding'].includes(type.id)
+  !["wake", "night_feeding"].includes(type.id)
 )
 
 interface ManualEventModalProps {
@@ -40,16 +42,18 @@ export function ManualEventModal({
   childName, 
   onEventRegistered,
   defaultEventType,
-  lockEventType
+  lockEventType,
 }: ManualEventModalProps) {
   const { toast } = useToast()
+  const { userData } = useUser()
+  const timezone = userData.timezone || DEFAULT_TIMEZONE
   const [isSubmitting, setIsSubmitting] = useState(false)
   
   // Función para obtener hora en punto (redondear hacia abajo)
   const getCurrentHourRounded = () => {
     const now = new Date()
     now.setMinutes(0, 0, 0) // Poner minutos, segundos y milisegundos a 0
-    return format(now, 'HH:mm')
+    return format(now, "HH:mm")
   }
 
   // Estado del formulario - completo y mejorado
@@ -58,7 +62,7 @@ export function ManualEventModal({
     return eventTypeConfig?.defaultStartTime || getCurrentHourRounded()
   }
 
-  const initialEventType = defaultEventType || 'sleep'
+  const initialEventType = defaultEventType || "sleep"
   const [eventType, setEventType] = useState<string>(initialEventType)
   // Sincronizar tipo por defecto cuando se abre el modal
   useEffect(() => {
@@ -67,35 +71,35 @@ export function ManualEventModal({
       setStartTime(getDefaultStartTimeForType(defaultEventType))
     }
   }, [open, defaultEventType])
-  const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"))
   const [startTime, setStartTime] = useState(getDefaultStartTimeForType(initialEventType))
-  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [endDate, setEndDate] = useState(format(new Date(), "yyyy-MM-dd"))
   const [endTime, setEndTime] = useState(getCurrentHourRounded())
-  const [includeEndTime, setIncludeEndTime] = useState<boolean>(initialEventType === 'sleep') // Hora fin opcional
-  const [notes, setNotes] = useState('')
+  const [includeEndTime, setIncludeEndTime] = useState<boolean>(initialEventType === "sleep") // Hora fin opcional
+  const [notes, setNotes] = useState("")
   
   // Campos específicos de sueño (sleep, nap, night_waking)
   const [sleepDelay, setSleepDelay] = useState(0)
   const [awakeDelay, setAwakeDelay] = useState(0)
-  const [emotionalState, setEmotionalState] = useState<'tranquilo' | 'inquieto' | 'alterado'>('tranquilo')
+  const [emotionalState, setEmotionalState] = useState<"tranquilo" | "inquieto" | "alterado">("tranquilo")
   
   // Campos específicos de alimentación
-  const [feedingType, setFeedingType] = useState<'breast' | 'bottle' | 'solids'>('bottle')
+  const [feedingType, setFeedingType] = useState<"breast" | "bottle" | "solids">("bottle")
   const [feedingAmount, setFeedingAmount] = useState(4) // onzas (oz)
   const [feedingDuration, setFeedingDuration] = useState(15)
-  const [babyState, setBabyState] = useState<'awake' | 'asleep'>('awake')
-  const [feedingNotes, setFeedingNotes] = useState('')
+  const [babyState, setBabyState] = useState<"awake" | "asleep">("awake")
+  const [feedingNotes, setFeedingNotes] = useState("")
   
   // Campos específicos de medicamentos
-  const [medicationName, setMedicationName] = useState('')
-  const [medicationDose, setMedicationDose] = useState('')
-  const [medicationNotes, setMedicationNotes] = useState('')
+  const [medicationName, setMedicationName] = useState("")
+  const [medicationDose, setMedicationDose] = useState("")
+  const [medicationNotes, setMedicationNotes] = useState("")
   
   // Campos específicos de actividades
-  const [activityDescription, setActivityDescription] = useState('')
+  const [activityDescription, setActivityDescription] = useState("")
   const [activityDuration, setActivityDuration] = useState(30)
-  const [activityImpact, setActivityImpact] = useState<'positive' | 'neutral' | 'negative'>('neutral')
-  const [activityNotes, setActivityNotes] = useState('')
+  const [activityImpact, setActivityImpact] = useState<"positive" | "neutral" | "negative">("neutral")
+  const [activityNotes, setActivityNotes] = useState("")
   
   // Determinar si el evento actual tiene hora de fin
   const currentEventType = getEventType(eventType)
@@ -107,37 +111,37 @@ export function ManualEventModal({
     try {
       // Validaciones básicas
       // Validación de fin obligatorio para "Dormir"
-      if ((eventType === 'sleep') || (hasEndTime && includeEndTime)) {
+      if ((eventType === "sleep") || (hasEndTime && includeEndTime)) {
         const startDateTime = new Date(`${startDate}T${startTime}`)
         const endDateTime = new Date(`${endDate}T${endTime}`)
         if (endDateTime <= startDateTime) {
           toast({
             title: "Error de validación",
             description: "La hora de fin debe ser posterior a la hora de inicio",
-            variant: "destructive"
+            variant: "destructive",
           })
           return
         }
       }
       
       // Validaciones específicas por tipo de evento
-      if (eventType === 'medication') {
+      if (eventType === "medication") {
         if (!medicationName.trim() || !medicationDose.trim()) {
           toast({
             title: "Error de validación", 
             description: "El nombre y dosis del medicamento son requeridos",
-            variant: "destructive"
+            variant: "destructive",
           })
           return
         }
       }
       
-      if (eventType === 'extra_activities') {
+      if (eventType === "extra_activities") {
         if (!activityDescription.trim()) {
           toast({
             title: "Error de validación",
             description: "La descripción de la actividad es requerida", 
-            variant: "destructive"
+            variant: "destructive",
           })
           return
         }
@@ -148,59 +152,60 @@ export function ManualEventModal({
       
       // Calcular endTime automáticamente para alimentación y actividades extra
       let calculatedEndTime: Date | null = null
-      if (eventType === 'feeding') {
+      if (eventType === "feeding") {
         // Alimentación: usar duración (máximo 60 minutos)
         const durationMinutes = Math.min(feedingDuration, 60)
         calculatedEndTime = new Date(startDateTime.getTime() + (durationMinutes * 60 * 1000))
-      } else if (eventType === 'extra_activities') {
+      } else if (eventType === "extra_activities") {
         // Actividad extra: usar duración (sin límite)
         calculatedEndTime = new Date(startDateTime.getTime() + (activityDuration * 60 * 1000))
       }
       
       // Construir datos del evento base
+      // IMPORTANTE: Usar dateToTimestamp para incluir offset de timezone
       const eventData: any = {
         childId,
         eventType,
-        startTime: startDateTime.toISOString(),
-        notes: notes || undefined
+        startTime: dateToTimestamp(startDateTime, timezone),
+        notes: notes || undefined,
       }
-      
+
       // Agregar endTime si corresponde (obligatorio para "Dormir")
-      if ((eventType === 'sleep') || (hasEndTime && includeEndTime)) {
+      if ((eventType === "sleep") || (hasEndTime && includeEndTime)) {
         const endDateTime = new Date(`${endDate}T${endTime}`)
-        eventData.endTime = endDateTime.toISOString()
+        eventData.endTime = dateToTimestamp(endDateTime, timezone)
       } else if (!hasEndTime && calculatedEndTime) {
-        // Usar endTime calculado automáticamente para alimentación y actividades extra
-        eventData.endTime = calculatedEndTime.toISOString()
+        // Usar endTime calculado automaticamente para alimentacion y actividades extra
+        eventData.endTime = dateToTimestamp(calculatedEndTime, timezone)
       }
       
       // Campos específicos según tipo de evento
-      if (eventType === 'sleep' || eventType === 'nap') {
+      if (eventType === "sleep" || eventType === "nap") {
         eventData.sleepDelay = sleepDelay
         eventData.emotionalState = emotionalState
       }
       
-      if (eventType === 'night_waking') {
+      if (eventType === "night_waking") {
         eventData.emotionalState = emotionalState
       }
       
-      if (eventType === 'feeding') {
+      if (eventType === "feeding") {
         eventData.feedingType = feedingType
         // Convertir oz → ml para biberón
-        eventData.feedingAmount = feedingType === 'bottle' ? Math.round((feedingAmount || 0) * 29.5735) : feedingAmount
+        eventData.feedingAmount = feedingType === "bottle" ? Math.round((feedingAmount || 0) * 29.5735) : feedingAmount
         eventData.feedingDuration = feedingDuration
         eventData.babyState = babyState
         eventData.feedingNotes = feedingNotes
       }
       
-      if (eventType === 'medication') {
+      if (eventType === "medication") {
         eventData.medicationName = medicationName
         eventData.medicationDose = medicationDose
-        eventData.medicationTime = startDateTime.toISOString()
+        eventData.medicationTime = dateToTimestamp(startDateTime, timezone)
         eventData.medicationNotes = medicationNotes
       }
       
-      if (eventType === 'extra_activities') {
+      if (eventType === "extra_activities") {
         eventData.activityDescription = activityDescription
         eventData.activityDuration = activityDuration
         eventData.activityImpact = activityImpact
@@ -208,20 +213,20 @@ export function ManualEventModal({
       }
       
       // Enviar al backend
-      const response = await fetch('/api/children/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData)
+      const response = await fetch("/api/children/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(eventData),
       })
       
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || errorData.details || 'Error al registrar evento')
+        throw new Error(errorData.error || errorData.details || "Error al registrar evento")
       }
       
       toast({
         title: "Evento registrado",
-        description: `${currentEventType?.label || 'Evento'} registrado exitosamente para ${childName}`
+        description: `${currentEventType?.label || "Evento"} registrado exitosamente para ${childName}`,
       })
       
       // Limpiar y cerrar
@@ -230,11 +235,11 @@ export function ManualEventModal({
       onEventRegistered?.()
       
     } catch (error) {
-      console.error('Error:', error)
+      console.error("Error:", error)
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "No se pudo registrar el evento",
-        variant: "destructive"
+        variant: "destructive",
       })
     } finally {
       setIsSubmitting(false)
@@ -242,36 +247,36 @@ export function ManualEventModal({
   }
   
   const resetForm = () => {
-    setEventType('sleep')
-    setStartDate(format(new Date(), 'yyyy-MM-dd'))
-    setStartTime(getDefaultStartTimeForType('sleep'))
-    setEndDate(format(new Date(), 'yyyy-MM-dd'))
+    setEventType("sleep")
+    setStartDate(format(new Date(), "yyyy-MM-dd"))
+    setStartTime(getDefaultStartTimeForType("sleep"))
+    setEndDate(format(new Date(), "yyyy-MM-dd"))
     setEndTime(getCurrentHourRounded())
     setIncludeEndTime(true)
-    setNotes('')
+    setNotes("")
     
     // Reset campos de sueño
     setSleepDelay(0)
     setAwakeDelay(0)
-    setEmotionalState('tranquilo')
+    setEmotionalState("tranquilo")
     
     // Reset campos de alimentación
-    setFeedingType('bottle')
+    setFeedingType("bottle")
     setFeedingAmount(120)
     setFeedingDuration(15)
-    setBabyState('awake')
-    setFeedingNotes('')
+    setBabyState("awake")
+    setFeedingNotes("")
     
     // Reset campos de medicamento
-    setMedicationName('')
-    setMedicationDose('')
-    setMedicationNotes('')
+    setMedicationName("")
+    setMedicationDose("")
+    setMedicationNotes("")
     
     // Reset campos de actividad
-    setActivityDescription('')
+    setActivityDescription("")
     setActivityDuration(30)
-    setActivityImpact('neutral')
-    setActivityNotes('')
+    setActivityImpact("neutral")
+    setActivityNotes("")
   }
   
   useEffect(() => {
@@ -281,7 +286,7 @@ export function ManualEventModal({
 
   // Ajustar disponibilidad de hora de fin por tipo de evento
   useEffect(() => {
-    if (eventType === 'sleep') {
+    if (eventType === "sleep") {
       setIncludeEndTime(true)
       return
     }
@@ -296,16 +301,16 @@ export function ManualEventModal({
       const startDateTime = new Date(`${startDate}T${startTime}`)
       let defaultDuration = 60 // 1 hora por defecto
       
-      if (eventType === 'nap') defaultDuration = 90 // 1.5 horas para siesta
-      if (eventType === 'sleep') defaultDuration = 600 // 10 horas para sueño nocturno
-      if (eventType === 'night_waking') defaultDuration = 60 // 1 hora para despertar nocturno (redondeado)
+      if (eventType === "nap") defaultDuration = 90 // 1.5 horas para siesta
+      if (eventType === "sleep") defaultDuration = 600 // 10 horas para sueño nocturno
+      if (eventType === "night_waking") defaultDuration = 60 // 1 hora para despertar nocturno (redondeado)
       
       const endDateTime = new Date(startDateTime.getTime() + defaultDuration * 60000)
       // Redondear la hora de fin al próximo punto en hora
       endDateTime.setMinutes(0, 0, 0)
       
-      const endDateStr = format(endDateTime, 'yyyy-MM-dd')
-      const endTimeStr = format(endDateTime, 'HH:mm')
+      const endDateStr = format(endDateTime, "yyyy-MM-dd")
+      const endTimeStr = format(endDateTime, "HH:mm")
       
       setEndDate(endDateStr)
       setEndTime(endTimeStr)
@@ -350,7 +355,7 @@ export function ManualEventModal({
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                max={format(new Date(), 'yyyy-MM-dd')}
+                max={format(new Date(), "yyyy-MM-dd")}
               />
             </div>
             <div>
@@ -366,7 +371,7 @@ export function ManualEventModal({
           {/* Fecha y hora de fin - obligatorio para "Dormir", opcional para otros tipos con duración */}
           {hasEndTime && (
             <div className="space-y-2">
-              {eventType !== 'sleep' ? (
+              {eventType !== "sleep" ? (
                 <div className="flex items-center gap-2">
                   <input
                     id="toggle-end-time"
@@ -380,7 +385,7 @@ export function ManualEventModal({
                 <div className="text-sm text-muted-foreground">Hora de fin requerida para "Dormir"</div>
               )}
 
-              {(includeEndTime || eventType === 'sleep') && (
+              {(includeEndTime || eventType === "sleep") && (
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label>Fecha de fin</Label>
@@ -388,7 +393,7 @@ export function ManualEventModal({
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      max={format(new Date(), 'yyyy-MM-dd')}
+                      max={format(new Date(), "yyyy-MM-dd")}
                       min={startDate}
                     />
                   </div>
@@ -406,7 +411,7 @@ export function ManualEventModal({
           )}
           
           {/* Campos específicos de sueño */}
-          {(eventType === 'sleep' || eventType === 'nap') && (
+          {(eventType === "sleep" || eventType === "nap") && (
             <>
               <div>
                 <Label>¿Cuánto tardó en dormirse?</Label>
@@ -448,7 +453,7 @@ export function ManualEventModal({
           )}
           
           {/* Campos específicos de despertar nocturno */}
-          {eventType === 'night_waking' && (
+          {eventType === "night_waking" && (
             <>
               <div>
                 <Label>Estado emocional al despertar</Label>
@@ -471,7 +476,7 @@ export function ManualEventModal({
           )}
           
           {/* Campos específicos de alimentación */}
-          {eventType === 'feeding' && (
+          {eventType === "feeding" && (
             <>
               <div>
                 <Label>Tipo de alimentación</Label>
@@ -491,7 +496,7 @@ export function ManualEventModal({
                 </RadioGroup>
               </div>
               
-              {feedingType === 'bottle' && (
+              {feedingType === "bottle" && (
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label>Cantidad (oz)</Label>
@@ -555,10 +560,10 @@ export function ManualEventModal({
               )}
 
               {/* Controles para Pecho y Sólidos: Duración y (para sólidos) Cantidad en gramos */}
-              {(feedingType === 'breast' || feedingType === 'solids') && (
+              {(feedingType === "breast" || feedingType === "solids") && (
                 <div className="grid grid-cols-2 gap-2">
                   {/* Cantidad en gramos solo para sólidos */}
-                  {feedingType === 'solids' ? (
+                  {feedingType === "solids" ? (
                     <div>
                       <Label>Cantidad (gr)</Label>
                       <div className="flex items-center gap-2">
@@ -651,7 +656,7 @@ export function ManualEventModal({
           )}
           
           {/* Campos específicos de medicamentos */}
-          {eventType === 'medication' && (
+          {eventType === "medication" && (
             <>
               <div>
                 <Label>Nombre del medicamento *</Label>
@@ -689,7 +694,7 @@ export function ManualEventModal({
           )}
           
           {/* Campos específicos de actividades extra */}
-          {eventType === 'extra_activities' && (
+          {eventType === "extra_activities" && (
             <>
               <div>
                 <Label>Descripción de la actividad *</Label>
@@ -764,20 +769,20 @@ export function ManualEventModal({
           )}
           
           {/* Notas generales - solo para eventos sin notas específicas */}
-          {!['feeding', 'medication', 'extra_activities'].includes(eventType) && (
+          {!["feeding", "medication", "extra_activities"].includes(eventType) && (
             <div>
               <Label>Notas (opcional)</Label>
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder={
-                  (eventType === 'sleep' || eventType === 'nap')
+                  (eventType === "sleep" || eventType === "nap")
                     ? "¿Cómo se durmió? ¿Lo arrullaron, tomó pecho, lo dejaron en la cuna despierto?"
-                    : eventType === 'night_waking'
-                    ? "¿Qué causó el despertar? ¿Cómo se volvió a dormir?"
-                    : eventType === 'wake'
-                    ? "¿Cómo despertó? ¿De buen humor, llorando?"
-                    : "Agregar observaciones..."
+                    : eventType === "night_waking"
+                      ? "¿Qué causó el despertar? ¿Cómo se volvió a dormir?"
+                      : eventType === "wake"
+                        ? "¿Cómo despertó? ¿De buen humor, llorando?"
+                        : "Agregar observaciones..."
                 }
                 rows={2}
                 maxLength={200}
@@ -792,7 +797,7 @@ export function ManualEventModal({
               disabled={isSubmitting}
               className="flex-1"
             >
-              {isSubmitting ? 'Guardando...' : 'Guardar'}
+              {isSubmitting ? "Guardando..." : "Guardar"}
             </Button>
             <Button 
               variant="outline"

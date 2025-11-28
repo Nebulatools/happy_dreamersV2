@@ -6,17 +6,17 @@
  */
 
 // Re-exportar todos los tokens
-export * from './tokens';
+export * from "./tokens"
 
 // Re-exportar helpers específicos
 export { 
   getEventColor, 
   getMoodColor, 
-  getChartColor 
-} from './tokens';
+  getChartColor, 
+} from "./tokens"
 
 // Exportar un objeto único con todos los tokens para uso conveniente
-import * as tokens from './tokens';
+import * as tokens from "./tokens"
 
 export const designSystem = {
   colors: tokens.colors,
@@ -28,8 +28,8 @@ export const designSystem = {
   zIndex: tokens.zIndex,
   animations: tokens.animations,
   happyDreamers: tokens.happyDreamersTokens,
-} as const;
+} as const
 
 // Alias convenientes para uso común
-export const theme = designSystem;
-export const ds = designSystem;
+export const theme = designSystem
+export const ds = designSystem

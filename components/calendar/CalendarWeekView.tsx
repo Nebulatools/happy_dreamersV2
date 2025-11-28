@@ -1,17 +1,17 @@
 // 📅 Vista Semanal - 7 días con eventos
 "use client"
 
-import React from 'react'
-import { format, addDays, isToday, startOfDay, endOfDay } from 'date-fns'
-import { es } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { TimeAxis } from './TimeAxis'
-import { BackgroundAreas } from './BackgroundAreas'
-import { GridLines } from './GridLines'
-import { EventGlobe } from './EventGlobe'
-import { SleepSessionBlock } from './SleepSessionBlock'
-import { processSleepSessions, type Event as SleepEvent } from '@/lib/utils/sleep-sessions'
+import React from "react"
+import { format, addDays, isToday, startOfDay, endOfDay } from "date-fns"
+import { es } from "date-fns/locale"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { TimeAxis } from "./TimeAxis"
+import { BackgroundAreas } from "./BackgroundAreas"
+import { GridLines } from "./GridLines"
+import { EventGlobe } from "./EventGlobe"
+import { SleepSessionBlock } from "./SleepSessionBlock"
+import { processSleepSessions, type Event as SleepEvent } from "@/lib/utils/sleep-sessions"
 
 interface Event {
   _id: string;
@@ -70,7 +70,7 @@ function calculateEventColumns(events: Event[]): EventWithColumn[] {
     eventsWithColumns.push({
       ...event,
       column,
-      totalColumns: Math.max(...activeColumns.map(c => c.column)) + 1
+      totalColumns: Math.max(...activeColumns.map(c => c.column)) + 1,
     })
   })
 
@@ -126,7 +126,7 @@ export function CalendarWeekView({
   onCalendarClick,
   className = "",
   onDayNavigateBack,
-  onDayNavigateForward
+  onDayNavigateForward,
 }: CalendarWeekViewProps) {
   // CAMBIO: En lugar de mostrar la semana completa, mostrar 7 días consecutivos
   // centrando la fecha seleccionada en el medio (posición 3, índice 2)
@@ -145,7 +145,7 @@ export function CalendarWeekView({
     const dayEnd = endOfDay(day)
 
     const dayEvents = events.filter(event => {
-      if (!event.startTime || event.startTime === '') return false
+      if (!event.startTime || event.startTime === "") return false
 
       try {
         const eventStart = new Date(event.startTime)
@@ -160,7 +160,7 @@ export function CalendarWeekView({
         const startsThisDay = eventStart >= dayStart && eventStart <= dayEnd
         const endsThisDay = eventEnd >= dayStart && eventEnd <= dayEnd
         const crossesThisDay = eventStart < dayStart && eventEnd > dayEnd
-        const sleepInProgress = event.eventType === 'sleep' && !event.endTime && eventStart < dayEnd
+        const sleepInProgress = event.eventType === "sleep" && !event.endTime && eventStart < dayEnd
 
         return startsThisDay || endsThisDay || crossesThisDay || sleepInProgress
       } catch (error) {

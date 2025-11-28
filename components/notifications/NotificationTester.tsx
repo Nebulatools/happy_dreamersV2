@@ -38,15 +38,15 @@ export function NotificationTester({ childId, childName }: NotificationTesterPro
     
     try {
       // Primero verificar permisos del navegador
-      if ('Notification' in window) {
-        if (Notification.permission === 'default') {
+      if ("Notification" in window) {
+        if (Notification.permission === "default") {
           const permission = await Notification.requestPermission()
-          if (permission !== 'granted') {
+          if (permission !== "granted") {
             toast.warning("Necesitas permitir las notificaciones en tu navegador")
             setTesting(false)
             return
           }
-        } else if (Notification.permission === 'denied') {
+        } else if (Notification.permission === "denied") {
           toast.error("Las notificaciones están bloqueadas en tu navegador")
           setTesting(false)
           return
@@ -60,8 +60,8 @@ export function NotificationTester({ childId, childName }: NotificationTesterPro
         body: JSON.stringify({
           childId,
           type: notificationType,
-          delaySeconds: parseInt(delaySeconds)
-        })
+          delaySeconds: parseInt(delaySeconds),
+        }),
       })
 
       if (!response.ok) {
@@ -73,24 +73,24 @@ export function NotificationTester({ childId, childName }: NotificationTesterPro
       
       // Mostrar toast de confirmación
       toast.success(`Notificación programada para ${childName}`, {
-        description: `Se enviará en ${delaySeconds} segundos`
+        description: `Se enviará en ${delaySeconds} segundos`,
       })
 
       // Mostrar notificación del navegador después del delay
       setTimeout(() => {
-        if ('Notification' in window && Notification.permission === 'granted') {
+        if ("Notification" in window && Notification.permission === "granted") {
           const titles = {
             bedtime: "🌙 Hora de dormir",
             naptime: "☀️ Hora de siesta",
             routine_start: "🛁 Iniciar rutina",
-            wake_window: "⏰ Ventana de vigilia"
+            wake_window: "⏰ Ventana de vigilia",
           }
           
           const messages = {
             bedtime: `Es hora de preparar a ${childName} para dormir`,
             naptime: `Hora de siesta para ${childName}`,
             routine_start: `Inicia la rutina de sueño de ${childName}`,
-            wake_window: `${childName} ha estado despierto por mucho tiempo`
+            wake_window: `${childName} ha estado despierto por mucho tiempo`,
           }
 
           new Notification(titles[notificationType] || "Notificación", {
@@ -98,13 +98,13 @@ export function NotificationTester({ childId, childName }: NotificationTesterPro
             icon: "/logo.png",
             badge: "/logo.png",
             tag: "test-notification",
-            requireInteraction: false
+            requireInteraction: false,
           })
 
           // También mostrar como toast in-app
           toast.info(titles[notificationType], {
             description: messages[notificationType],
-            duration: 5000
+            duration: 5000,
           })
         }
       }, parseInt(delaySeconds) * 1000)
@@ -128,7 +128,7 @@ export function NotificationTester({ childId, childName }: NotificationTesterPro
       // Mostrar información del sistema
       toast.success("Sistema de notificaciones activo", {
         description: `Configuraciones: ${data.settings.length}, ` +
-                    `Browser: ${data.browserSupport.permission}`
+                    `Browser: ${data.browserSupport.permission}`,
       })
     } catch (error) {
       toast.error("Error verificando el sistema de notificaciones")

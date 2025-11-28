@@ -1,12 +1,12 @@
 // Hook para manejar la persistencia automática de la encuesta
 // Guarda automáticamente en localStorage y proporciona métodos de recuperación
 
-import { useEffect, useCallback, useRef } from 'react'
-import { useToast } from '@/hooks/use-toast'
-import type { SurveyData } from '@/types/models'
-import { createLogger } from '@/lib/logger'
+import { useEffect, useCallback, useRef } from "react"
+import { useToast } from "@/hooks/use-toast"
+import type { SurveyData } from "@/types/models"
+import { createLogger } from "@/lib/logger"
 
-const logger = createLogger('survey-persistence')
+const logger = createLogger("survey-persistence")
 
 interface UseSurveyPersistenceProps {
   childId: string
@@ -19,14 +19,14 @@ export function useSurveyPersistence({
   childId,
   formData,
   currentStep,
-  enabled = true
+  enabled = true,
 }: UseSurveyPersistenceProps) {
   const { toast } = useToast()
-  const lastSavedRef = useRef<string>('')
+  const lastSavedRef = useRef<string>("")
   const saveTimeoutRef = useRef<NodeJS.Timeout>()
   const serverSaveTimeoutRef = useRef<NodeJS.Timeout>()
   const lastSaveTimeRef = useRef<Date>(new Date())
-  const lastServerPayloadRef = useRef<string>('')
+  const lastServerPayloadRef = useRef<string>("")
 
   // Guardar en localStorage
   const saveToLocalStorage = useCallback(() => {
@@ -38,7 +38,7 @@ export function useSurveyPersistence({
       const dataToSave = {
         formData,
         currentStep,
-        lastSaved: new Date().toISOString()
+        lastSaved: new Date().toISOString(),
       }
 
       const serialized = JSON.stringify(dataToSave)
@@ -53,20 +53,20 @@ export function useSurveyPersistence({
         lastSavedRef.current = serialized
         lastSaveTimeRef.current = now
 
-        console.log('[SAVE] ✅ Guardado automático exitoso')
-        logger.info('Encuesta guardada automáticamente', { childId, currentStep })
+        console.log("[SAVE] ✅ Guardado automático exitoso")
+        logger.info("Encuesta guardada automáticamente", { childId, currentStep })
         
         const timeSinceLastSave = now.getTime() - previousSave.getTime()
         if (timeSinceLastSave > 30000) {
           toast({
             title: "Guardado automático",
             description: "Tu progreso se ha guardado",
-            duration: 2000
+            duration: 2000,
           })
         }
       }
     } catch (error) {
-      logger.error('Error al guardar en localStorage', error)
+      logger.error("Error al guardar en localStorage", error)
     }
   }, [childId, formData, currentStep, enabled, toast])
 
@@ -78,11 +78,11 @@ export function useSurveyPersistence({
       const saved = localStorage.getItem(`survey_${childId}`)
       if (saved) {
         const parsed = JSON.parse(saved)
-        logger.info('Encuesta cargada desde localStorage', { childId })
+        logger.info("Encuesta cargada desde localStorage", { childId })
         return parsed
       }
     } catch (error) {
-      logger.error('Error al cargar desde localStorage', error)
+      logger.error("Error al cargar desde localStorage", error)
     }
 
     return null
@@ -95,9 +95,9 @@ export function useSurveyPersistence({
     try {
       localStorage.removeItem(`survey_${childId}`)
       localStorage.removeItem(`survey_step_${childId}`)
-      logger.info('Datos de encuesta limpiados de localStorage', { childId })
+      logger.info("Datos de encuesta limpiados de localStorage", { childId })
     } catch (error) {
-      logger.error('Error al limpiar localStorage', error)
+      logger.error("Error al limpiar localStorage", error)
     }
   }, [childId])
 
@@ -106,11 +106,11 @@ export function useSurveyPersistence({
     isPartialSave: boolean = true,
     options: { force?: boolean; keepAlive?: boolean } = {}
   ) => {
-    if (!childId) return { success: false, error: 'No childId' }
+    if (!childId) return { success: false, error: "No childId" }
 
     const payloadSnapshot = JSON.stringify({
       formData,
-      currentStep
+      currentStep,
     })
 
     if (isPartialSave && !options.force && payloadSnapshot === lastServerPayloadRef.current) {
@@ -118,16 +118,16 @@ export function useSurveyPersistence({
     }
 
     try {
-      const response = await fetch('/api/survey', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/survey", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         keepalive: options.keepAlive ?? false,
         body: JSON.stringify({
           childId,
           surveyData: formData,
           isPartialSave,
-          currentStep
-        })
+          currentStep,
+        }),
       })
 
       if (!response.ok) {
@@ -137,16 +137,16 @@ export function useSurveyPersistence({
       const result = await response.json()
       
       if (result.success) {
-        logger.info('Encuesta guardada en servidor', { 
+        logger.info("Encuesta guardada en servidor", { 
           childId, 
           isPartialSave, 
-          currentStep 
+          currentStep, 
         })
 
         if (isPartialSave) {
           lastServerPayloadRef.current = payloadSnapshot
         } else {
-          lastServerPayloadRef.current = ''
+          lastServerPayloadRef.current = ""
         }
         
         // Si es guardado final exitoso, limpiar localStorage
@@ -157,16 +157,16 @@ export function useSurveyPersistence({
 
       return result
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
-      logger.error('Error al guardar en servidor', {
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido"
+      logger.error("Error al guardar en servidor", {
         error: errorMessage,
         childId,
-        currentStep
+        currentStep,
       })
 
       return {
         success: false,
-        error: errorMessage
+        error: errorMessage,
       }
     }
   }, [childId, formData, currentStep, saveToLocalStorage, clearLocalStorage])
@@ -211,14 +211,14 @@ export function useSurveyPersistence({
 
       if (lastSavedRef.current) {
         e.preventDefault()
-        e.returnValue = '¿Estás seguro de que quieres salir? Tu progreso se guardará automáticamente.'
+        e.returnValue = "¿Estás seguro de que quieres salir? Tu progreso se guardará automáticamente."
       }
     }
 
-    window.addEventListener('beforeunload', handleBeforeUnload)
+    window.addEventListener("beforeunload", handleBeforeUnload)
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload)
+      window.removeEventListener("beforeunload", handleBeforeUnload)
     }
   }, [saveToLocalStorage, enabled])
 
@@ -230,6 +230,6 @@ export function useSurveyPersistence({
     loadFromLocalStorage,
     clearLocalStorage,
     saveToServer,
-    lastSaveTime: lastSaveTimeRef.current
+    lastSaveTime: lastSaveTimeRef.current,
   }
 }

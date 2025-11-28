@@ -32,7 +32,7 @@ interface BaseChartProps {
 
 // Skeleton de carga para gráficos
 export function ChartSkeleton({ height = 300 }: { height?: number | string }) {
-  const heightValue = typeof height === 'number' ? `${height}px` : height
+  const heightValue = typeof height === "number" ? `${height}px` : height
   
   return (
     <div 
@@ -50,12 +50,12 @@ export function ChartSkeleton({ height = 300 }: { height?: number | string }) {
 // Componente de error para gráficos
 export function ChartError({ 
   message = "Error al cargar datos", 
-  height = 300 
+  height = 300, 
 }: { 
   message?: string
   height?: number | string 
 }) {
-  const heightValue = typeof height === 'number' ? `${height}px` : height
+  const heightValue = typeof height === "number" ? `${height}px` : height
   
   return (
     <div 
@@ -73,12 +73,12 @@ export function ChartError({
 // Componente de no data
 export function ChartNoData({ 
   message = "No hay datos disponibles", 
-  height = 300 
+  height = 300, 
 }: { 
   message?: string
   height?: number | string 
 }) {
-  const heightValue = typeof height === 'number' ? `${height}px` : height
+  const heightValue = typeof height === "number" ? `${height}px` : height
   
   return (
     <div 
@@ -148,7 +148,7 @@ export function BaseChart({
 
   // Si hay error
   if (error) {
-    const errorMsg = typeof error === 'string' ? error : errorMessage
+    const errorMsg = typeof error === "string" ? error : errorMessage
     
     if (noCard) {
       return <ChartError message={errorMsg} height={height} />
@@ -213,7 +213,7 @@ export function BaseChart({
         </div>
       </CardHeader>
       <CardContent>
-        <div style={{ height: typeof height === 'number' ? `${height}px` : height }}>
+        <div style={{ height: typeof height === "number" ? `${height}px` : height }}>
           {children}
         </div>
       </CardContent>
@@ -226,13 +226,13 @@ export const CHART_COLORS = {
   primary: colors.brand.mediumBlue,
   primaryLight: colors.brand.lightBlue,
   secondary: colors.chart.tertiary,
-  secondaryLight: '#FFDD85',
+  secondaryLight: "#FFDD85",
   success: colors.status.success,
   warning: colors.status.warning,
   danger: colors.status.error,
   info: colors.status.info,
   purple: colors.chart.primary,
-  pink: '#F472B6',
+  pink: "#F472B6",
   gray: colors.gray[400],
   // Paleta para múltiples series - usa la función getChartColor
   palette: [
@@ -244,7 +244,7 @@ export const CHART_COLORS = {
     colors.chart.senary,
     colors.brand.mediumBlue,
     colors.brand.lightBlue,
-  ]
+  ],
 }
 
 // Dimensiones estándar - Usa las del sistema de diseño
@@ -256,26 +256,26 @@ export const CHART_CONFIG = {
     top: parseInt(spacing[1]), 
     right: parseInt(spacing[2.5]), 
     left: parseInt(spacing[2.5]), 
-    bottom: parseInt(spacing[1]) 
+    bottom: parseInt(spacing[1]), 
   },
   animationDuration: parseInt(animations.duration[1000]),
   strokeWidth: 2,
   fontSize: parseInt(typography.fontSize.xs[0]),
-  fontFamily: typography.fontFamily.sans.join(', '),
+  fontFamily: typography.fontFamily.sans.join(", "),
 }
 
 // Utilidad para formatear valores en gráficos
-export function formatChartValue(value: number, type: 'hours' | 'minutes' | 'count' | 'percentage' = 'count'): string {
+export function formatChartValue(value: number, type: "hours" | "minutes" | "count" | "percentage" = "count"): string {
   switch (type) {
-    case 'hours':
-      return `${value.toFixed(1)}h`
-    case 'minutes':
-      return `${Math.round(value)}min`
-    case 'percentage':
-      return `${Math.round(value)}%`
-    case 'count':
-    default:
-      return value.toString()
+  case "hours":
+    return `${value.toFixed(1)}h`
+  case "minutes":
+    return `${Math.round(value)}min`
+  case "percentage":
+    return `${Math.round(value)}%`
+  case "count":
+  default:
+    return value.toString()
   }
 }
 
@@ -299,7 +299,7 @@ export function useChartState<T>(
       const result = await fetchData()
       setData(result)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido')
+      setError(err instanceof Error ? err.message : "Error desconocido")
       setData(null)
     } finally {
       setLoading(false)

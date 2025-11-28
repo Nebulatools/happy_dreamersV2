@@ -3,12 +3,12 @@
 
 "use client"
 
-import React, { Suspense, lazy } from 'react'
-import { Loader2 } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
+import React, { Suspense, lazy } from "react"
+import { Loader2 } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
 
 // Lazy load del componente de consultas AI
-const AIConsultation = lazy(() => import('./AIConsultation'))
+const AIConsultation = lazy(() => import("./AIConsultation"))
 
 // Componente de carga mientras se descarga el módulo
 function AILoadingFallback() {
@@ -49,7 +49,7 @@ class AIErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log para monitoreo
-    console.error('Error cargando módulo AI:', error, errorInfo)
+    console.error("Error cargando módulo AI:", error, errorInfo)
   }
 
   render() {
@@ -165,14 +165,14 @@ export default function AIConsultationLazy(props: AIConsultationLazyProps) {
 export function usePreloadAI() {
   React.useEffect(() => {
     // Pre-cargar el módulo después de que la página esté idle
-    if ('requestIdleCallback' in window) {
+    if ("requestIdleCallback" in window) {
       requestIdleCallback(() => {
-        import('./AIConsultation')
+        import("./AIConsultation")
       })
     } else {
       // Fallback para navegadores que no soportan requestIdleCallback
       setTimeout(() => {
-        import('./AIConsultation')
+        import("./AIConsultation")
       }, 2000)
     }
   }, [])

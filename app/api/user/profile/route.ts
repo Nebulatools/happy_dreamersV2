@@ -27,7 +27,7 @@ export async function PUT(request: NextRequest) {
     const { name, phone, accountType, timezone } = body
 
     // Validate input data
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+    if (!name || typeof name !== "string" || name.trim().length === 0) {
       logger.warn("Invalid name provided in profile update", { name })
       return NextResponse.json(
         { error: "El nombre es requerido" },
@@ -36,9 +36,9 @@ export async function PUT(request: NextRequest) {
     }
 
     // Validate phone format if provided
-    if (phone && typeof phone === 'string' && phone.trim().length > 0) {
+    if (phone && typeof phone === "string" && phone.trim().length > 0) {
       const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/
-      if (!phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''))) {
+      if (!phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ""))) {
         logger.warn("Invalid phone format provided", { phone })
         return NextResponse.json(
           { error: "Formato de teléfono inválido" },
@@ -78,7 +78,7 @@ export async function PUT(request: NextRequest) {
 
     const updateData: any = {
       name: name.trim(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     }
 
     // Always update phone field - either set to value or empty string
@@ -93,7 +93,7 @@ export async function PUT(request: NextRequest) {
     
     logger.info("Updating user profile with data:", { 
       email: session.user.email, 
-      updateData: { ...updateData, email: session.user.email } 
+      updateData: { ...updateData, email: session.user.email }, 
     })
     
     const result = await db.collection("users").updateOne(
@@ -121,18 +121,18 @@ export async function PUT(request: NextRequest) {
       email: session.user.email,
       role: updatedUser?.role || "user",
       accountType: updatedUser?.accountType || "",
-      timezone: updatedUser?.timezone || "America/Monterrey"
+      timezone: updatedUser?.timezone || "America/Monterrey",
     }
 
     logger.info("Profile updated successfully", { 
       userEmail: session.user.email,
-      responseData
+      responseData,
     })
 
     return NextResponse.json({
       success: true,
       message: "Perfil actualizado correctamente",
-      data: responseData
+      data: responseData,
     })
 
   } catch (error) {
@@ -180,17 +180,17 @@ export async function GET(request: NextRequest) {
       phone: user.phone || "",
       role: user.role || "user",
       accountType: user.accountType || "",
-      timezone: user.timezone || "America/Monterrey"
+      timezone: user.timezone || "America/Monterrey",
     }
 
     logger.info("Profile data retrieved", { 
       userEmail: session.user.email, 
-      userData 
+      userData, 
     })
 
     return NextResponse.json({
       success: true,
-      data: userData
+      data: userData,
     })
 
   } catch (error) {

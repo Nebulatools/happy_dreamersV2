@@ -11,7 +11,7 @@ export {
   CHART_CONFIG,
   formatChartValue,
   useChartState,
-} from './BaseChart'
+} from "./BaseChart"
 
 // Re-exportar el BaseChart como default también
-export { default } from './BaseChart'
+export { default } from "./BaseChart"

@@ -71,7 +71,7 @@ export class PDFGenerator {
     this.doc = new jsPDF({
       orientation: "portrait",
       unit: "mm",
-      format: "a4"
+      format: "a4",
     })
     
     this.pageHeight = 297
@@ -88,7 +88,7 @@ export class PDFGenerator {
       this.doc = new jsPDF({
         orientation: "portrait",
         unit: "mm",
-        format: "a4"
+        format: "a4",
       })
       this.currentY = this.margin
       
@@ -148,7 +148,7 @@ export class PDFGenerator {
         scale: 2,
         logging: false,
         useCORS: true,
-        backgroundColor: "#ffffff"
+        backgroundColor: "#ffffff",
       })
       
       // Calcular dimensiones
@@ -159,7 +159,7 @@ export class PDFGenerator {
       const pdf = new jsPDF({
         orientation: imgHeight > imgWidth ? "portrait" : "landscape",
         unit: "mm",
-        format: "a4"
+        format: "a4",
       })
       
       // Agregar imagen al PDF
@@ -210,7 +210,7 @@ export class PDFGenerator {
       `Generado el ${new Date(data.generatedAt).toLocaleDateString("es-ES", {
         day: "2-digit",
         month: "long",
-        year: "numeric"
+        year: "numeric",
       })}`,
       this.pageWidth / 2,
       this.currentY,
@@ -237,7 +237,7 @@ export class PDFGenerator {
       `Nombre: ${child.name}`,
       `Edad: ${child.ageInMonths} meses`,
       `Fecha de nacimiento: ${new Date(child.birthDate).toLocaleDateString("es-ES")}`,
-      child.gender ? `Género: ${child.gender}` : null
+      child.gender ? `Género: ${child.gender}` : null,
     ].filter(Boolean)
     
     info.forEach(line => {
@@ -268,7 +268,7 @@ export class PDFGenerator {
       ["Número de siestas", `${sleepData.napCount} siestas`],
       sleepData.averageBedtime ? ["Hora promedio de dormir", sleepData.averageBedtime] : null,
       sleepData.averageWakeTime ? ["Hora promedio de despertar", sleepData.averageWakeTime] : null,
-      sleepData.sleepEfficiency ? ["Eficiencia del sueño", `${sleepData.sleepEfficiency}%`] : null
+      sleepData.sleepEfficiency ? ["Eficiencia del sueño", `${sleepData.sleepEfficiency}%`] : null,
     ].filter(Boolean) as string[][]
     
     const colWidth = (this.pageWidth - 2 * this.margin) / 2
@@ -329,7 +329,7 @@ export class PDFGenerator {
       followUp.nextAppointment ? 
         `Próxima cita: ${new Date(followUp.nextAppointment).toLocaleDateString("es-ES")}` : null,
       followUp.frequency ? `Frecuencia: ${this.translateFrequency(followUp.frequency)}` : null,
-      followUp.notes ? `Notas: ${followUp.notes}` : null
+      followUp.notes ? `Notas: ${followUp.notes}` : null,
     ].filter(Boolean)
     
     followUpInfo.forEach(line => {
@@ -357,7 +357,7 @@ export class PDFGenerator {
     this.doc.setFontSize(9)
     this.doc.setFont("helvetica", "normal")
     
-    let footerText = "Happy Dreamers - Plataforma de Seguimiento del Sueño Infantil"
+    const footerText = "Happy Dreamers - Plataforma de Seguimiento del Sueño Infantil"
     
     if (metadata?.professional) {
       this.doc.setFont("helvetica", "bold")
@@ -403,7 +403,7 @@ export class PDFGenerator {
       sleep_report: "Reporte de Sueño",
       professional_report: "Reporte Profesional",
       consultation: "Análisis de Consulta",
-      monthly_summary: "Resumen Mensual"
+      monthly_summary: "Resumen Mensual",
     }
     return titles[type] || "Reporte"
   }
@@ -415,7 +415,7 @@ export class PDFGenerator {
       biweekly: "Quincenal",
       monthly: "Mensual",
       quarterly: "Trimestral",
-      as_needed: "Según necesidad"
+      as_needed: "Según necesidad",
     }
     return translations[frequency] || frequency
   }

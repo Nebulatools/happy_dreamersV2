@@ -23,7 +23,7 @@ export const ROLE_PERMISSIONS = {
     canEditEvents: false,
     canViewReports: true,
     canEditProfile: false,
-    canViewPlan: true
+    canViewPlan: true,
   },
   caregiver: {
     canViewEvents: true,
@@ -31,7 +31,7 @@ export const ROLE_PERMISSIONS = {
     canEditEvents: true,
     canViewReports: true,
     canEditProfile: false,
-    canViewPlan: true
+    canViewPlan: true,
   },
   editor: {
     canViewEvents: true,
@@ -39,13 +39,13 @@ export const ROLE_PERMISSIONS = {
     canEditEvents: true,
     canViewReports: true,
     canEditProfile: true,
-    canViewPlan: true
-  }
+    canViewPlan: true,
+  },
 }
 
 // Función para generar token de invitación único
 function generateInvitationToken(): string {
-  return crypto.randomBytes(32).toString('hex')
+  return crypto.randomBytes(32).toString("hex")
 }
 
 // Obtener la colección de accesos
@@ -100,7 +100,7 @@ export async function checkUserAccess(
     // Primero verificar si es el dueño principal
     const childrenCollection = await getChildrenCollection()
     const child = await childrenCollection.findOne({
-      _id: new ObjectId(childId)
+      _id: new ObjectId(childId),
     })
     
     if (!child) {
@@ -110,7 +110,7 @@ export async function checkUserAccess(
     
     // Si es el padre/dueño principal, tiene acceso completo
     // Comparar de forma segura, considerando que parentId puede ser string o ObjectId
-    const parentIdStr = typeof child.parentId === 'string' 
+    const parentIdStr = typeof child.parentId === "string" 
       ? child.parentId 
       : child.parentId.toString()
     
@@ -126,7 +126,7 @@ export async function checkUserAccess(
     const access = await accessCollection.findOne({
       userId: new ObjectId(userId),
       childId: new ObjectId(childId),
-      invitationStatus: "accepted"
+      invitationStatus: "accepted",
     })
     
     if (access && (!access.expiresAt || access.expiresAt > new Date())) {
@@ -157,7 +157,7 @@ export async function grantAccess(
     if (!childId || childId === "undefined" || childId === "null") {
       return {
         success: false,
-        error: "Primero debes registrar un niño antes de compartir acceso"
+        error: "Primero debes registrar un niño antes de compartir acceso",
       }
     }
     // Obtener el niño
@@ -193,7 +193,7 @@ export async function grantAccess(
       if (!invitationResult.success) {
         return {
           success: false,
-          error: invitationResult.error || "Error al crear invitación"
+          error: invitationResult.error || "Error al crear invitación",
         }
       }
       
@@ -205,7 +205,7 @@ export async function grantAccess(
       return {
         success: true,
         invitationToken: invitationResult.invitation?.invitationToken,
-        error: `Invitación enviada a ${caregiverEmail}. El usuario debe crear una cuenta para aceptarla.`
+        error: `Invitación enviada a ${caregiverEmail}. El usuario debe crear una cuenta para aceptarla.`,
       }
     }
     
@@ -214,7 +214,7 @@ export async function grantAccess(
     // Verificar si ya existe acceso
     const existingAccess = await accessCollection.findOne({
       userId: caregiverUser._id,
-      childId: new ObjectId(childId)
+      childId: new ObjectId(childId),
     })
     
     if (existingAccess) {
@@ -229,8 +229,8 @@ export async function grantAccess(
             relationshipDescription,
             expiresAt: expiresAt ?? null,
             invitationStatus: "accepted",
-            updatedAt: new Date()
-          }
+            updatedAt: new Date(),
+          },
         }
       )
       
@@ -239,7 +239,7 @@ export async function grantAccess(
         { _id: new ObjectId(childId) },
         { 
           $addToSet: { sharedWith: caregiverUser._id.toString() },
-          $set: { updatedAt: new Date() }
+          $set: { updatedAt: new Date() },
         }
       )
       
@@ -263,7 +263,7 @@ export async function grantAccess(
       acceptedAt: new Date(),
       expiresAt: expiresAt ?? null,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     }
     
     await accessCollection.insertOne(newAccess as any)
@@ -273,7 +273,7 @@ export async function grantAccess(
       { _id: new ObjectId(childId) },
       { 
         $addToSet: { sharedWith: caregiverUser._id.toString() },
-        $set: { updatedAt: new Date() }
+        $set: { updatedAt: new Date() },
       }
     )
     
@@ -284,7 +284,7 @@ export async function grantAccess(
     logger.error("Error otorgando acceso:", error)
     return { 
       success: false, 
-      error: "Error interno al otorgar acceso" 
+      error: "Error interno al otorgar acceso", 
     }
   }
 }
@@ -300,13 +300,13 @@ export async function revokeAccess(
     const childrenCollection = await getChildrenCollection()
     const child = await childrenCollection.findOne({
       _id: new ObjectId(childId),
-      parentId: new ObjectId(requestedBy)
+      parentId: new ObjectId(requestedBy),
     })
     
     if (!child) {
       return { 
         success: false, 
-        error: "No tienes permisos para revocar acceso a este perfil" 
+        error: "No tienes permisos para revocar acceso a este perfil", 
       }
     }
     
@@ -314,13 +314,13 @@ export async function revokeAccess(
     const accessCollection = await getAccessCollection()
     const result = await accessCollection.deleteOne({
       userId: new ObjectId(userId),
-      childId: new ObjectId(childId)
+      childId: new ObjectId(childId),
     })
     
     if (result.deletedCount === 0) {
       return { 
         success: false, 
-        error: "Acceso no encontrado" 
+        error: "Acceso no encontrado", 
       }
     }
     
@@ -329,7 +329,7 @@ export async function revokeAccess(
       { _id: new ObjectId(childId) },
       { 
         $pull: { sharedWith: userId },
-        $set: { updatedAt: new Date() }
+        $set: { updatedAt: new Date() },
       }
     )
     
@@ -340,7 +340,7 @@ export async function revokeAccess(
     logger.error("Error revocando acceso:", error)
     return { 
       success: false, 
-      error: "Error interno al revocar acceso" 
+      error: "Error interno al revocar acceso", 
     }
   }
 }
@@ -356,14 +356,14 @@ export async function getCaregivers(
     if (!accessCheck.hasAccess) {
       return { 
         success: false, 
-        error: "No tienes acceso a este perfil" 
+        error: "No tienes acceso a este perfil", 
       }
     }
     
     const accessCollection = await getAccessCollection()
     const accesses = await accessCollection.find({
       childId: new ObjectId(childId),
-      invitationStatus: "accepted"
+      invitationStatus: "accepted",
     }).toArray()
     
     // Obtener información de usuarios
@@ -383,8 +383,8 @@ export async function getCaregivers(
             _id: user._id,
             name: user.name,
             email: user.email,
-            image: user.image
-          } : null
+            image: user.image,
+          } : null,
         }
       })
     )
@@ -395,7 +395,7 @@ export async function getCaregivers(
     logger.error("Error obteniendo cuidadores:", error)
     return { 
       success: false, 
-      error: "Error interno al obtener cuidadores" 
+      error: "Error interno al obtener cuidadores", 
     }
   }
 }
@@ -409,7 +409,7 @@ export async function getAccessibleChildren(
     
     // Buscar niños donde el usuario es dueño
     const ownedChildren = await childrenCollection.find({
-      parentId: new ObjectId(userId)
+      parentId: new ObjectId(userId),
     }).toArray()
     
     // Buscar niños donde el usuario tiene acceso compartido
@@ -418,20 +418,20 @@ export async function getAccessibleChildren(
       userId: new ObjectId(userId),
       $or: [
         { invitationStatus: "accepted" },
-        { invitationStatus: { $exists: false } }
+        { invitationStatus: { $exists: false } },
       ],
       $or: [
         { expiresAt: { $exists: false } },
         { expiresAt: null },
-        { expiresAt: { $gt: new Date() } }
-      ]
+        { expiresAt: { $gt: new Date() } },
+      ],
     }).toArray()
     
     const sharedChildIds = sharedAccesses.map(a => a.childId)
     const sharedChildren = sharedChildIds.length > 0 
       ? await childrenCollection.find({
-          _id: { $in: sharedChildIds }
-        }).toArray()
+        _id: { $in: sharedChildIds },
+      }).toArray()
       : []
     
     // Combinar y eliminar duplicados
@@ -464,19 +464,19 @@ export async function updateCaregiverPermissions(
     const childrenCollection = await getChildrenCollection()
     const child = await childrenCollection.findOne({
       _id: new ObjectId(childId),
-      parentId: new ObjectId(requestedBy)
+      parentId: new ObjectId(requestedBy),
     })
     
     if (!child) {
       return { 
         success: false, 
-        error: "No tienes permisos para actualizar accesos" 
+        error: "No tienes permisos para actualizar accesos", 
       }
     }
     
     const accessCollection = await getAccessCollection()
     const updateData: any = {
-      updatedAt: new Date()
+      updatedAt: new Date(),
     }
     
     if (updates.role) {
@@ -495,7 +495,7 @@ export async function updateCaregiverPermissions(
     const result = await accessCollection.updateOne(
       {
         userId: new ObjectId(userId),
-        childId: new ObjectId(childId)
+        childId: new ObjectId(childId),
       },
       { $set: updateData }
     )
@@ -503,7 +503,7 @@ export async function updateCaregiverPermissions(
     if (result.matchedCount === 0) {
       return { 
         success: false, 
-        error: "Acceso no encontrado" 
+        error: "Acceso no encontrado", 
       }
     }
     
@@ -514,7 +514,7 @@ export async function updateCaregiverPermissions(
     logger.error("Error actualizando permisos:", error)
     return { 
       success: false, 
-      error: "Error interno al actualizar permisos" 
+      error: "Error interno al actualizar permisos", 
     }
   }
 }

@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { createLogger } from "@/lib/logger"
 import Link from "next/link"
 
-const logger = createLogger('ErrorBoundary')
+const logger = createLogger("ErrorBoundary")
 
 interface Props {
   children: ReactNode
@@ -34,7 +34,7 @@ export function ErrorFallback({
   error, 
   resetError, 
   context = "aplicación",
-  showDetails = false 
+  showDetails = false, 
 }: { 
   error?: Error | null
   resetError?: () => void
@@ -61,7 +61,7 @@ export function ErrorFallback({
         
         <CardContent className="space-y-4">
           {/* Mostrar detalles del error solo en desarrollo */}
-          {showDetails && error && process.env.NODE_ENV === 'development' && (
+          {showDetails && error && process.env.NODE_ENV === "development" && (
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <p className="text-sm font-medium text-gray-700 mb-2">
                 Detalles del error (solo visible en desarrollo):
@@ -147,10 +147,10 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    const { onError, context = 'Unknown' } = this.props
+    const { onError, context = "Unknown" } = this.props
     
     // Log del error para servicios de monitoreo
-    logger.error('Component error caught', {
+    logger.error("Component error caught", {
       error: {
         message: error.message,
         stack: error.stack,
@@ -174,7 +174,7 @@ class ErrorBoundary extends Component<Props, State> {
     }
     
     // En producción, aquí enviaríamos a un servicio de monitoreo como Sentry
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === "production") {
       // TODO: Integrar con servicio de monitoreo
       // Sentry.captureException(error, { contexts: { react: errorInfo } })
     }
@@ -272,7 +272,7 @@ export function useErrorHandler() {
 // HOC para envolver componentes con Error Boundary
 export function withErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
-  errorBoundaryProps?: Omit<Props, 'children'>
+  errorBoundaryProps?: Omit<Props, "children">
 ) {
   const WrappedComponent = (props: P) => (
     <ErrorBoundary {...errorBoundaryProps}>

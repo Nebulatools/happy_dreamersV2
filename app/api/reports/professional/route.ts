@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
       // Si es padre y el reporte no permite visualización, denegar acceso
       if (report.userId.toString() === session.user.id && !report.privacy.parentCanView) {
         return NextResponse.json({ 
-          error: "Este reporte aún no está disponible para visualización" 
+          error: "Este reporte aún no está disponible para visualización", 
         }, { status: 403 })
       }
 
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Listar reportes
-    let query: any = {}
+    const query: any = {}
 
     if (childId) {
       query.childId = new Types.ObjectId(childId)
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
       // Profesionales ven reportes donde son profesionales asignados o compartidos
       query.$or = [
         { professionalId: new Types.ObjectId(session.user.id) },
-        { "sharedWith.professionalId": new Types.ObjectId(session.user.id) }
+        { "sharedWith.professionalId": new Types.ObjectId(session.user.id) },
       ]
     } else {
       // Padres solo ven reportes de sus hijos donde tienen permiso
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ 
       reports,
-      isProfessional 
+      isProfessional, 
     })
 
   } catch (error) {
@@ -132,13 +132,13 @@ export async function POST(request: NextRequest) {
       userId,
       originalData,
       editedData,
-      privacy
+      privacy,
     } = body
 
     // Verificar que no exista ya un reporte profesional para este reporte original
     const existingReport = await ProfessionalReport.findOne({
       originalReportId,
-      professionalId: session.user.id
+      professionalId: session.user.id,
     })
 
     if (existingReport) {
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
       professionalId: new Types.ObjectId(session.user.id),
       originalData: {
         ...originalData,
-        generatedAt: originalData.generatedAt || new Date()
+        generatedAt: originalData.generatedAt || new Date(),
       },
       editedData: editedData || originalData,
       status: "draft",
@@ -174,8 +174,8 @@ export async function POST(request: NextRequest) {
       privacy: privacy || {
         parentCanView: true,
         parentCanDownload: false,
-        requiresApproval: true
-      }
+        requiresApproval: true,
+      },
     })
 
     // Popular datos relacionados
@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      report: professionalReport
+      report: professionalReport,
     })
 
   } catch (error) {
@@ -269,7 +269,7 @@ export async function PUT(request: NextRequest) {
         newValue: editedData.analysis.substring(0, 100) + "...",
         editedBy: new Types.ObjectId(session.user.id),
         editedAt: new Date(),
-        reason: editReason
+        reason: editReason,
       })
     }
 
@@ -280,7 +280,7 @@ export async function PUT(request: NextRequest) {
         newValue: editedData.recommendations.substring(0, 100) + "...",
         editedBy: new Types.ObjectId(session.user.id),
         editedAt: new Date(),
-        reason: editReason
+        reason: editReason,
       })
     }
 
@@ -291,7 +291,7 @@ export async function PUT(request: NextRequest) {
         newValue: editedData.professionalNotes || "",
         editedBy: new Types.ObjectId(session.user.id),
         editedAt: new Date(),
-        reason: editReason
+        reason: editReason,
       })
     }
 
@@ -302,7 +302,7 @@ export async function PUT(request: NextRequest) {
         newValue: editedData.diagnosis || "",
         editedBy: new Types.ObjectId(session.user.id),
         editedAt: new Date(),
-        reason: editReason
+        reason: editReason,
       })
     }
 
@@ -313,7 +313,7 @@ export async function PUT(request: NextRequest) {
         newValue: editedData.treatment || "",
         editedBy: new Types.ObjectId(session.user.id),
         editedAt: new Date(),
-        reason: editReason
+        reason: editReason,
       })
     }
 
@@ -341,7 +341,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       success: true,
       report,
-      changesCount: changedFields.length
+      changesCount: changedFields.length,
     })
 
   } catch (error) {
@@ -394,58 +394,58 @@ export async function PATCH(request: NextRequest) {
     }
 
     switch (action) {
-      case "approve":
-        await report.approve(new Types.ObjectId(session.user.id))
-        break
+    case "approve":
+      await report.approve(new Types.ObjectId(session.user.id))
+      break
 
-      case "sign":
-        if (!user?.name || !signatureData?.license) {
-          return NextResponse.json(
-            { error: "Datos de firma incompletos" },
-            { status: 400 }
-          )
-        }
-        
-        await report.sign(
-          new Types.ObjectId(session.user.id),
-          user.name,
-          signatureData.license,
-          signatureData.signature
-        )
-        break
-
-      case "share":
-        if (!sharedWith?.professionalId) {
-          return NextResponse.json(
-            { error: "ID del profesional requerido" },
-            { status: 400 }
-          )
-        }
-        
-        await report.shareWith(
-          new Types.ObjectId(sharedWith.professionalId),
-          sharedWith.permissions || "view"
-        )
-        break
-
-      case "revert":
-        if (report.status !== "approved") {
-          return NextResponse.json(
-            { error: "Solo se pueden revertir reportes aprobados" },
-            { status: 400 }
-          )
-        }
-        report.status = "review"
-        report.approvedAt = undefined
-        report.approvedBy = undefined
-        await report.save()
-        break
-
-      default:
+    case "sign":
+      if (!user?.name || !signatureData?.license) {
         return NextResponse.json(
-          { error: "Acción no válida" },
+          { error: "Datos de firma incompletos" },
           { status: 400 }
         )
+      }
+        
+      await report.sign(
+        new Types.ObjectId(session.user.id),
+        user.name,
+        signatureData.license,
+        signatureData.signature
+      )
+      break
+
+    case "share":
+      if (!sharedWith?.professionalId) {
+        return NextResponse.json(
+          { error: "ID del profesional requerido" },
+          { status: 400 }
+        )
+      }
+        
+      await report.shareWith(
+        new Types.ObjectId(sharedWith.professionalId),
+        sharedWith.permissions || "view"
+      )
+      break
+
+    case "revert":
+      if (report.status !== "approved") {
+        return NextResponse.json(
+          { error: "Solo se pueden revertir reportes aprobados" },
+          { status: 400 }
+        )
+      }
+      report.status = "review"
+      report.approvedAt = undefined
+      report.approvedBy = undefined
+      await report.save()
+      break
+
+    default:
+      return NextResponse.json(
+        { error: "Acción no válida" },
+        { status: 400 }
+      )
     }
 
     // Popular datos relacionados
@@ -456,7 +456,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({
       success: true,
       report,
-      message: `Reporte ${action === "approve" ? "aprobado" : action === "sign" ? "firmado" : "actualizado"} exitosamente`
+      message: `Reporte ${action === "approve" ? "aprobado" : action === "sign" ? "firmado" : "actualizado"} exitosamente`,
     })
 
   } catch (error) {

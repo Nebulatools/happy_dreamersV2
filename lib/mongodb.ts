@@ -30,11 +30,11 @@ const options: MongoClientOptions = {
   retryReads: true,                   // Retry automático para lecturas
   
   // Performance
-  compressors: ['snappy', 'zlib'],    // Compresión de datos
+  compressors: ["snappy", "zlib"],    // Compresión de datos
   zlibCompressionLevel: 6,            // Nivel de compresión balanceado
   
   // Monitoring
-  monitorCommands: process.env.NODE_ENV === 'development',
+  monitorCommands: process.env.NODE_ENV === "development",
 }
 
 // 🏗️ SINGLETON PATTERN SIMPLE (SIN HEALTH CHECKS)
@@ -77,8 +77,8 @@ export async function getConnectionStats() {
         connections: stats.connections,
         uptime: stats.uptime,
         version: stats.version,
-        host: stats.host
-      }
+        host: stats.host,
+      },
     }
   } catch (error) {
     return { connected: false, stats: null, error: error.message }

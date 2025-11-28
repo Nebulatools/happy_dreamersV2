@@ -3,7 +3,7 @@
  * Este archivo muestra el antes y después de migrar un componente
  */
 
-import { colors, spacing, borders, typography } from '@/lib/design-system'
+import { colors, spacing, borders, typography } from "@/lib/design-system"
 
 // ============================================
 // ANTES: Colores hardcodeados
@@ -14,25 +14,25 @@ export function ComponenteBefore() {
     <div 
       className="p-4 rounded-lg"
       style={{
-        backgroundColor: '#F5F9FF',
-        border: '1px solid #E5E7EB'
+        backgroundColor: "#F5F9FF",
+        border: "1px solid #E5E7EB",
       }}
     >
       <h3 
         style={{ 
-          color: '#2F2F2F',
-          fontSize: '20px',
-          marginBottom: '8px'
+          color: "#2F2F2F",
+          fontSize: "20px",
+          marginBottom: "8px",
         }}
       >
         Título
       </h3>
       <div
         style={{
-          backgroundColor: '#628BE6',
-          color: '#FFFFFF',
-          padding: '8px 16px',
-          borderRadius: '8px'
+          backgroundColor: "#628BE6",
+          color: "#FFFFFF",
+          padding: "8px 16px",
+          borderRadius: "8px",
         }}
       >
         Botón
@@ -51,14 +51,14 @@ export function ComponenteAfter() {
       className="p-4 rounded-lg"
       style={{
         backgroundColor: colors.blue[50], // #F5F9FF
-        border: `1px solid ${colors.gray[200]}` // #E5E7EB
+        border: `1px solid ${colors.gray[200]}`, // #E5E7EB
       }}
     >
       <h3 
         style={{ 
           color: colors.gray[800], // #2F2F2F
           fontSize: typography.fontSize.xl[0], // 20px
-          marginBottom: spacing[2] // 8px
+          marginBottom: spacing[2], // 8px
         }}
       >
         Título
@@ -68,7 +68,7 @@ export function ComponenteAfter() {
           backgroundColor: colors.brand.mediumBlue, // #628BE6
           color: colors.white,
           padding: `${spacing[2]} ${spacing[4]}`, // 8px 16px
-          borderRadius: borders.radius.lg // 8px
+          borderRadius: borders.radius.lg, // 8px
         }}
       >
         Botón
@@ -84,14 +84,14 @@ export function ComponenteAfter() {
 // ANTES
 function getPriorityColorBefore(priority: string) {
   switch (priority) {
-    case 'high':
-      return 'bg-red-50 border-red-100'
-    case 'medium':
-      return 'bg-yellow-50 border-yellow-100'
-    case 'low':
-      return 'bg-green-50 border-green-100'
-    default:
-      return 'bg-gray-50 border-gray-100'
+  case "high":
+    return "bg-red-50 border-red-100"
+  case "medium":
+    return "bg-yellow-50 border-yellow-100"
+  case "low":
+    return "bg-green-50 border-green-100"
+  default:
+    return "bg-gray-50 border-gray-100"
   }
 }
 
@@ -100,14 +100,14 @@ function getPriorityColorAfter(priority: string) {
   // Nota: Las clases Tailwind ya están configuradas con nuestros tokens
   // Esta función se mantiene igual porque Tailwind ya usa nuestro sistema
   switch (priority) {
-    case 'high':
-      return 'bg-red-50 border-red-100'
-    case 'medium':
-      return 'bg-yellow-50 border-yellow-100'
-    case 'low':
-      return 'bg-green-50 border-green-100'
-    default:
-      return 'bg-gray-50 border-gray-100'
+  case "high":
+    return "bg-red-50 border-red-100"
+  case "medium":
+    return "bg-yellow-50 border-yellow-100"
+  case "low":
+    return "bg-green-50 border-green-100"
+  default:
+    return "bg-gray-50 border-gray-100"
   }
 }
 
@@ -115,16 +115,16 @@ function getPriorityColorAfter(priority: string) {
 // EJEMPLO: Colores de gráficos migrados
 // ============================================
 
-import { getChartColor, getEventColor, getMoodColor } from '@/lib/design-system'
+import { getChartColor, getEventColor, getMoodColor } from "@/lib/design-system"
 
 // ANTES
-const chartColors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300']
-const sleepColor = '#7DBFE2'
+const chartColors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300"]
+const sleepColor = "#7DBFE2"
 const moodColors = {
-  feliz: '#FFBB28',
-  tranquilo: '#00C49F',
-  cansado: '#0088FE',
-  irritable: '#FF8042'
+  feliz: "#FFBB28",
+  tranquilo: "#00C49F",
+  cansado: "#0088FE",
+  irritable: "#FF8042",
 }
 
 // DESPUÉS
@@ -133,19 +133,19 @@ function ChartExample() {
   const seriesColors = [0, 1, 2, 3].map(i => getChartColor(i))
   
   // Color de evento de sueño
-  const sleepEventColor = getEventColor('sleep')
+  const sleepEventColor = getEventColor("sleep")
   
   // Colores de estado de ánimo
-  const happyMoodColor = getMoodColor('feliz')
-  const calmMoodColor = getMoodColor('tranquilo')
+  const happyMoodColor = getMoodColor("feliz")
+  const calmMoodColor = getMoodColor("tranquilo")
   
   return {
     seriesColors,
     sleepEventColor,
     moodColors: {
       happy: happyMoodColor,
-      calm: calmMoodColor
-    }
+      calm: calmMoodColor,
+    },
   }
 }
 
@@ -153,27 +153,27 @@ function ChartExample() {
 // EJEMPLO: Componente completo migrado
 // ============================================
 
-import React from 'react'
-import { happyDreamersTokens } from '@/lib/design-system'
+import React from "react"
+import { happyDreamersTokens } from "@/lib/design-system"
 
 // ANTES
 export function SleepCardBefore() {
   return (
     <div 
       style={{
-        backgroundColor: '#FFFFFF',
-        padding: '24px',
-        borderRadius: '12px',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+        backgroundColor: "#FFFFFF",
+        padding: "24px",
+        borderRadius: "12px",
+        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
       }}
     >
-      <h2 style={{ color: '#4A90E2', fontSize: '24px' }}>
+      <h2 style={{ color: "#4A90E2", fontSize: "24px" }}>
         Análisis de Sueño
       </h2>
-      <div style={{ marginTop: '16px' }}>
-        <div style={{ backgroundColor: '#F5F9FF', padding: '12px', borderRadius: '8px' }}>
-          <span style={{ color: '#6B7280' }}>Horas recomendadas:</span>
-          <strong style={{ color: '#2F2F2F', marginLeft: '8px' }}>11-14 horas</strong>
+      <div style={{ marginTop: "16px" }}>
+        <div style={{ backgroundColor: "#F5F9FF", padding: "12px", borderRadius: "8px" }}>
+          <span style={{ color: "#6B7280" }}>Horas recomendadas:</span>
+          <strong style={{ color: "#2F2F2F", marginLeft: "8px" }}>11-14 horas</strong>
         </div>
       </div>
     </div>
@@ -191,12 +191,12 @@ export function SleepCardAfter() {
         backgroundColor: colors.white,
         padding: components.card.padding,
         borderRadius: components.card.borderRadius,
-        boxShadow: components.card.shadow
+        boxShadow: components.card.shadow,
       }}
     >
       <h2 style={{ 
         color: colors.brand.secondary, 
-        fontSize: typography.fontSize['2xl'][0] 
+        fontSize: typography.fontSize["2xl"][0], 
       }}>
         Análisis de Sueño
       </h2>
@@ -204,14 +204,14 @@ export function SleepCardAfter() {
         <div style={{ 
           backgroundColor: colors.blue[50], 
           padding: spacing[3], 
-          borderRadius: borders.radius.lg 
+          borderRadius: borders.radius.lg, 
         }}>
           <span style={{ color: colors.gray[500] }}>
             Horas recomendadas:
           </span>
           <strong style={{ 
             color: colors.gray[800], 
-            marginLeft: spacing[2] 
+            marginLeft: spacing[2], 
           }}>
             {toddlerSleep.min}-{toddlerSleep.max} horas
           </strong>

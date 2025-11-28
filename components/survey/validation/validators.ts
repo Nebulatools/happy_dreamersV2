@@ -1,12 +1,12 @@
 // Funciones de validación reutilizables
 // Sistema centralizado para validar campos y mostrar errores
 
-import type { ValidationErrors, FieldValidation, StepValidation } from '../types/survey.types'
+import type { ValidationErrors, FieldValidation, StepValidation } from "../types/survey.types"
 
 export function validateField(value: any, rules: any): string | null {
   // Validación requerida
-  if (rules.required && (!value || value === '')) {
-    return 'Este campo es obligatorio'
+  if (rules.required && (!value || value === "")) {
+    return "Este campo es obligatorio"
   }
 
   // Validación de longitud mínima
@@ -21,20 +21,20 @@ export function validateField(value: any, rules: any): string | null {
 
   // Validación de patrón (regex)
   if (rules.pattern && value && !rules.pattern.test(value)) {
-    if (rules.pattern.toString().includes('@')) {
-      return 'Ingresa un email válido'
+    if (rules.pattern.toString().includes("@")) {
+      return "Ingresa un email válido"
     }
-    return 'Formato inválido'
+    return "Formato inválido"
   }
 
   // Validación personalizada
   if (rules.custom && value) {
     const result = rules.custom(value)
-    if (typeof result === 'string') {
+    if (typeof result === "string") {
       return result
     }
     if (result === false) {
-      return 'Valor inválido'
+      return "Valor inválido"
     }
   }
 
@@ -65,12 +65,12 @@ export function validateStep(data: any, validation: StepValidation): ValidationE
 
 // Obtener valor anidado usando path (e.g., "papa.nombre")
 function getNestedValue(obj: any, path: string): any {
-  return path.split('.').reduce((current, key) => current?.[key], obj)
+  return path.split(".").reduce((current, key) => current?.[key], obj)
 }
 
 // Establecer error anidado usando path
 function setNestedError(errors: ValidationErrors, path: string, error: string): void {
-  const keys = path.split('.')
+  const keys = path.split(".")
   let current: any = errors
 
   keys.forEach((key, index) => {
@@ -91,15 +91,15 @@ export function hasStepErrors(errors: ValidationErrors): boolean {
 }
 
 // Obtener lista de campos con errores
-export function getErrorFields(errors: ValidationErrors, prefix = ''): string[] {
+export function getErrorFields(errors: ValidationErrors, prefix = ""): string[] {
   const fields: string[] = []
 
   Object.entries(errors).forEach(([key, value]) => {
     const fieldPath = prefix ? `${prefix}.${key}` : key
     
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       fields.push(fieldPath)
-    } else if (typeof value === 'object' && value !== null) {
+    } else if (typeof value === "object" && value !== null) {
       fields.push(...getErrorFields(value as ValidationErrors, fieldPath))
     }
   })

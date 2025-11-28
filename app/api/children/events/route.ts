@@ -76,7 +76,7 @@ function calculateAwakeDuration(startTime: string, endTime: string, awakeDelay: 
  * @returns String legible de la duración
  */
 function formatDurationReadable(minutes: number | null): string {
-  if (!minutes || minutes === 0) return ''
+  if (!minutes || minutes === 0) return ""
   
   const hours = Math.floor(minutes / 60)
   const mins = minutes % 60
@@ -106,12 +106,12 @@ export async function POST(req: NextRequest) {
     const data = await req.json()
     
     // LOG ESPECIAL PARA NIGHT_WAKING
-    if (data.eventType === 'night_waking') {
+    if (data.eventType === "night_waking") {
       logger.info("[NIGHT_WAKING] Recibido evento de despertar nocturno:", {
         childId: data.childId,
         startTime: data.startTime,
         emotionalState: data.emotionalState,
-        fullData: data
+        fullData: data,
       })
     }
     
@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
     // Validaciones específicas para eventos de alimentación
     if (data.eventType === "feeding") {
       // feedingType es requerido
-      if (!data.feedingType || !['breast', 'bottle', 'solids'].includes(data.feedingType)) {
+      if (!data.feedingType || !["breast", "bottle", "solids"].includes(data.feedingType)) {
         logger.error("Tipo de alimentación inválido o faltante")
         return NextResponse.json(
           { error: "Tipo de alimentación requerido: 'breast', 'bottle', o 'solids'" },
@@ -196,12 +196,12 @@ export async function POST(req: NextRequest) {
       }
 
       // Normalización de estado: sólidos siempre es 'awake'
-      if (data.feedingType === 'solids') {
-        data.babyState = 'awake'
+      if (data.feedingType === "solids") {
+        data.babyState = "awake"
       }
 
       // Validar babyState
-      if (!data.babyState || !['awake', 'asleep'].includes(data.babyState)) {
+      if (!data.babyState || !["awake", "asleep"].includes(data.babyState)) {
         logger.error("Estado del bebé inválido o faltante")
         return NextResponse.json(
           { error: "Estado del bebé requerido: 'awake' o 'asleep'" },
@@ -210,7 +210,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Validaciones específicas por tipo
-      if (data.feedingType === 'breast') {
+      if (data.feedingType === "breast") {
         // Pecho: minutos
         if (!data.feedingDuration || data.feedingDuration < 1 || data.feedingDuration > 60) {
           logger.error("Duración de alimentación inválida (pecho)")
@@ -229,7 +229,7 @@ export async function POST(req: NextRequest) {
             )
           }
         }
-      } else if (data.feedingType === 'bottle') {
+      } else if (data.feedingType === "bottle") {
         // Biberón: cantidad (ml) y duración requeridas
         if (!data.feedingAmount || data.feedingAmount < 1 || data.feedingAmount > 500) {
           logger.error("Cantidad de alimentación inválida (biberón)")
@@ -245,7 +245,7 @@ export async function POST(req: NextRequest) {
             { status: 400 }
           )
         }
-      } else if (data.feedingType === 'solids') {
+      } else if (data.feedingType === "solids") {
         // Sólidos: cantidad (gr) y duración requeridas; estado siempre awake
         if (!data.feedingAmount || data.feedingAmount < 1 || data.feedingAmount > 500) {
           logger.error("Cantidad de alimentación inválida (sólidos)")
@@ -349,11 +349,11 @@ export async function POST(req: NextRequest) {
     // CALCULAR DURACIÓN AUTOMÁTICAMENTE si tiene startTime y endTime pero no duration manual
     if (event.startTime && event.endTime && !data.duration) {
       // Solo calcular para eventos de sueño/siesta que se benefician del cálculo de duración
-      if (['sleep', 'nap'].includes(event.eventType)) {
+      if (["sleep", "nap"].includes(event.eventType)) {
         event.duration = calculateSleepDuration(event.startTime, event.endTime, event.sleepDelay)
         event.durationReadable = formatDurationReadable(event.duration)
         logger.info(`Duración calculada automáticamente: ${event.duration} minutos (${event.durationReadable})`)
-      } else if (event.eventType === 'night_waking') {
+      } else if (event.eventType === "night_waking") {
         // Para night_waking, usar calculateAwakeDuration con awakeDelay
         event.duration = calculateAwakeDuration(event.startTime, event.endTime, event.awakeDelay)
         event.durationReadable = formatDurationReadable(event.duration)
@@ -370,7 +370,7 @@ export async function POST(req: NextRequest) {
 
     // GUARDAR EN COLECCIÓN CANÓNICA 'events' (fuente principal de verdad)
     try {
-      await db.collection('events').insertOne({
+      await db.collection("events").insertOne({
         _id: new ObjectId(event._id),
         childId: new ObjectId(event.childId),
         parentId: ownerObjectId,
@@ -398,7 +398,7 @@ export async function POST(req: NextRequest) {
         activityDuration: event.activityDuration,
         activityImpact: event.activityImpact,
         activityNotes: event.activityNotes,
-        createdAt: event.createdAt
+        createdAt: event.createdAt,
       })
       logger.info(`✅ Evento ${event._id} guardado en colección 'events'`)
     } catch (insertError: any) {
@@ -438,7 +438,7 @@ export async function POST(req: NextRequest) {
         activityDuration: event.activityDuration,
         activityImpact: event.activityImpact,
         activityNotes: event.activityNotes,
-        createdAt: event.createdAt
+        createdAt: event.createdAt,
       })
       logger.info(`Evento ${event._id} sincronizado a colección analytics`)
     } catch (syncError) {
@@ -726,7 +726,7 @@ export async function PATCH(req: NextRequest) {
       
       if (existingEvent && existingEvent.startTime) {
         // Para eventos de sueño/siesta, usar calculateSleepDuration
-        if (['sleep', 'nap'].includes(existingEvent.eventType)) {
+        if (["sleep", "nap"].includes(existingEvent.eventType)) {
           const sleepDelay = data.sleepDelay !== undefined ? data.sleepDelay : existingEvent.sleepDelay
           const calculatedDuration = calculateSleepDuration(existingEvent.startTime, data.endTime, sleepDelay)
           updateFields["events.$.duration"] = calculatedDuration
@@ -734,7 +734,7 @@ export async function PATCH(req: NextRequest) {
           logger.info(`Duración calculada automáticamente en PATCH: ${calculatedDuration} minutos (${formatDurationReadable(calculatedDuration)})`)
         } 
         // Para eventos night_waking, usar calculateAwakeDuration
-        else if (existingEvent.eventType === 'night_waking') {
+        else if (existingEvent.eventType === "night_waking") {
           const awakeDelay = data.awakeDelay !== undefined ? data.awakeDelay : existingEvent.awakeDelay
           const calculatedDuration = calculateAwakeDuration(existingEvent.startTime, data.endTime, awakeDelay)
           updateFields["events.$.duration"] = calculatedDuration
@@ -766,15 +766,15 @@ export async function PATCH(req: NextRequest) {
       const eventResult = await db.collection("events").updateOne(
         { 
           _id: data.eventId,
-          childId: data.childId
+          childId: data.childId,
         },
         { 
           $set: {
             endTime: data.endTime,
             duration: data.duration,
             ...(data.notes !== undefined && { notes: data.notes }),
-            ...(data.emotionalState && { emotionalState: data.emotionalState })
-          }
+            ...(data.emotionalState && { emotionalState: data.emotionalState }),
+          },
         }
       )
       
@@ -850,7 +850,7 @@ export async function DELETE(req: NextRequest) {
     // PASO 1: Eliminar de la colección canónica 'events'
     let deletedFromEvents = 0
     try {
-      const eventsCol = db.collection('events')
+      const eventsCol = db.collection("events")
       // Intentar eliminar con ObjectId
       let deleteResult = await eventsCol.deleteOne({ _id: new ObjectId(eventId) })
       deletedFromEvents = deleteResult.deletedCount || 0
@@ -863,7 +863,7 @@ export async function DELETE(req: NextRequest) {
         logger.info(`Eliminado de colección events (string): ${deletedFromEvents}`)
       }
     } catch (e) {
-      logger.warn('Error eliminando de colección events:', e)
+      logger.warn("Error eliminando de colección events:", e)
     }
 
     // LEGACY DEPRECADO: Ya no eliminamos del array embebido children.events

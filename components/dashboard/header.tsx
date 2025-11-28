@@ -87,7 +87,7 @@ export function Header() {
         setSearchLoading(true)
         const [usersRes, childrenRes] = await Promise.all([
           fetch("/api/admin/users"),
-          fetch("/api/children")
+          fetch("/api/children"),
         ])
 
         if (usersRes.ok) {
@@ -176,32 +176,32 @@ export function Header() {
       if (!session?.user?.email) return
 
       try {
-        const response = await fetch('/api/notifications/count')
+        const response = await fetch("/api/notifications/count")
         if (response.ok) {
           const data = await response.json()
           setNotificationCount(data.count || 0)
         }
       } catch (error) {
-        logger.error('Error fetching notification count:', error)
+        logger.error("Error fetching notification count:", error)
       }
     }
 
     fetchNotificationCount()
 
     // Para admins, actualizar más frecuentemente para capturar nuevos transcripts de Zoom
-    const refreshInterval = session?.user?.role === 'admin' ? 30000 : 60000 // 30s para admins, 60s para otros
+    const refreshInterval = session?.user?.role === "admin" ? 30000 : 60000 // 30s para admins, 60s para otros
     const interval = setInterval(fetchNotificationCount, refreshInterval)
 
     const handleNotificationsUpdated = () => {
       fetchNotificationCount()
     }
 
-    window.addEventListener('notificationsUpdated', handleNotificationsUpdated)
+    window.addEventListener("notificationsUpdated", handleNotificationsUpdated)
     
     return () => {
       isMountedComponent = false
       clearInterval(interval)
-      window.removeEventListener('notificationsUpdated', handleNotificationsUpdated)
+      window.removeEventListener("notificationsUpdated", handleNotificationsUpdated)
     }
   }, [session])
 
@@ -210,8 +210,8 @@ export function Header() {
     setNotificationsLoading(true)
 
     try {
-      const response = await fetch('/api/notifications/history?limit=10')
-      if (!response.ok) throw new Error('Error cargando notificaciones')
+      const response = await fetch("/api/notifications/history?limit=10")
+      if (!response.ok) throw new Error("Error cargando notificaciones")
 
       const data = await response.json()
       const list = data.notifications || []
@@ -219,30 +219,30 @@ export function Header() {
 
       const toMark = list
         .filter((item: any) =>
-          item?.status === 'delivered' &&
-          ['invitation', 'invitation_response'].includes(item?.type)
+          item?.status === "delivered" &&
+          ["invitation", "invitation_response"].includes(item?.type)
         )
         .map((item: any) => item?._id)
         .filter(Boolean)
 
       if (toMark.length > 0) {
         await Promise.all(toMark.map((id: string) =>
-          fetch('/api/notifications/history', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ notificationId: id, action: 'read' })
+          fetch("/api/notifications/history", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ notificationId: id, action: "read" }),
           })
         ))
 
-        window.dispatchEvent(new CustomEvent('notificationsUpdated'))
+        window.dispatchEvent(new CustomEvent("notificationsUpdated"))
         setNotifications((current) => current.map((item: any) =>
           toMark.includes(item._id)
-            ? { ...item, status: 'read', readAt: new Date().toISOString() }
+            ? { ...item, status: "read", readAt: new Date().toISOString() }
             : item
         ))
       }
     } catch (error) {
-      logger.error('Error loading notifications list:', error)
+      logger.error("Error loading notifications list:", error)
     } finally {
       setNotificationsLoading(false)
     }
@@ -253,7 +253,7 @@ export function Header() {
       fetchNotificationsList()
 
       // Para admins, auto-refrescar la lista de notificaciones mientras está abierta
-      if (session?.user?.role === 'admin') {
+      if (session?.user?.role === "admin") {
         const refreshInterval = setInterval(fetchNotificationsList, 15000) // Cada 15 segundos
         return () => clearInterval(refreshInterval)
       }
@@ -315,7 +315,7 @@ export function Header() {
       "/dashboard/survey": "Encuesta de Sueño",
       "/dashboard/profile": "Perfil",
       "/dashboard/reports": "Reportes",
-      "/dashboard/reports/professional": "Reportes Profesionales"
+      "/dashboard/reports/professional": "Reportes Profesionales",
     }
 
     if (directMatch[normalized]) {
@@ -389,7 +389,7 @@ export function Header() {
             <div className="divide-y">
               {notifications.map((notification) => {
                 const createdAt = notification?.createdAt ? new Date(notification.createdAt) : null
-                const isZoomTranscript = notification.type === 'zoom_transcript'
+                const isZoomTranscript = notification.type === "zoom_transcript"
 
                 return (
                   <div
@@ -404,7 +404,7 @@ export function Header() {
                           }
                         }
                         setNotificationsOpen(false)
-                        router.push('/dashboard/consultas')
+                        router.push("/dashboard/consultas")
                       }
                     }}
                   >
@@ -418,7 +418,7 @@ export function Header() {
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-medium text-[#1F2937]">
-                          {notification.title || 'Nueva notificación'}
+                          {notification.title || "Nueva notificación"}
                         </p>
                         {notification.message && (
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
@@ -431,7 +431,7 @@ export function Header() {
                           </p>
                         )}
                       </div>
-                      {notification.status !== 'read' && (
+                      {notification.status !== "read" && (
                         <span className="inline-flex h-2 w-2 rounded-full bg-[#68A1C8] mt-2" />
                       )}
                     </div>
@@ -482,7 +482,7 @@ export function Header() {
   )
 
   return (
-    <header className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: '#A0D8D0' }}>
+    <header className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: "#A0D8D0" }}>
       <div
         className="px-3 md:px-6 pb-3 md:pb-4"
         style={{ paddingTop: safeAreaPaddingTop }}

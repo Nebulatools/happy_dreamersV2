@@ -46,9 +46,9 @@ export function ZoomTranscriptsList({ onInsert, onInsertAndAnalyze }: { onInsert
     fetchReports()
     // Auto-refresh every 30s and on tab focus
     const iv = setInterval(fetchReports, 30000)
-    const onVis = () => { if (document.visibilityState === 'visible') fetchReports() }
-    document.addEventListener('visibilitychange', onVis)
-    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis) }
+    const onVis = () => { if (document.visibilityState === "visible") fetchReports() }
+    document.addEventListener("visibilitychange", onVis)
+    return () => { clearInterval(iv); document.removeEventListener("visibilitychange", onVis) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChildId])
 
@@ -110,15 +110,15 @@ export function ZoomTranscriptsList({ onInsert, onInsertAndAnalyze }: { onInsert
           </div>
           <div className="flex items-center gap-2">
             {status && (
-              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${status.token && status.api ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                {status.token && status.api ? 'Conectado' : 'Revisar' }
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${status.token && status.api ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                {status.token && status.api ? "Conectado" : "Revisar" }
               </span>
             )}
             <Button size="sm" variant="outline" onClick={testConnection} disabled={testing}>
-              <PlugZap className={`h-4 w-4 ${testing ? 'animate-pulse' : ''}`} />
+              <PlugZap className={`h-4 w-4 ${testing ? "animate-pulse" : ""}`} />
             </Button>
             <Button size="sm" variant="outline" onClick={fetchReports} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
           </div>
         </div>

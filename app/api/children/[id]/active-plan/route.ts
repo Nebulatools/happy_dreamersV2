@@ -34,15 +34,15 @@ export async function GET(
     const activePlan = await db.collection("child_plans").findOne(
       { 
         childId: new ObjectId(childId),
-        status: "active"
+        status: "active",
       },
       { 
         projection: { 
           schedule: 1, 
           planNumber: 1, 
-          title: 1 
+          title: 1, 
         },
-        sort: { planNumber: -1, createdAt: -1 }
+        sort: { planNumber: -1, createdAt: -1 },
       }
     )
 
@@ -52,15 +52,15 @@ export async function GET(
         schedule: {
           bedtime: "20:00",
           wakeTime: "07:00",
-          naps: []
+          naps: [],
         },
-        isDefault: true
+        isDefault: true,
       })
     }
 
     return NextResponse.json({
       ...activePlan,
-      isDefault: false
+      isDefault: false,
     })
     
   } catch (error) {

@@ -653,7 +653,7 @@ const SidebarMenuSkeleton = React.forwardRef<
   // Deterministic width based on the component's index or a stable pattern
   const width = React.useMemo(() => {
     // Use a simple pattern for skeleton widths to create visual variety
-    const widths = ['65%', '80%', '70%', '85%', '75%']
+    const widths = ["65%", "80%", "70%", "85%", "75%"]
     const index = React.useId().charCodeAt(0) % widths.length
     return widths[index]
   }, [])

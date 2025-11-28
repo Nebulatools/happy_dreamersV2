@@ -1,9 +1,9 @@
-import { getGoogleDriveClient } from './drive-client'
-import { getGoogleDriveDocumentLoader } from './document-loader'
-import { getMongoDBVectorStoreManager } from '@/lib/rag/vector-store-mongodb'
-import { createLogger } from '@/lib/logger'
+import { getGoogleDriveClient } from "./drive-client"
+import { getGoogleDriveDocumentLoader } from "./document-loader"
+import { getMongoDBVectorStoreManager } from "@/lib/rag/vector-store-mongodb"
+import { createLogger } from "@/lib/logger"
 
-const logger = createLogger('GoogleDriveSyncService')
+const logger = createLogger("GoogleDriveSyncService")
 
 export interface SyncResult {
   success: boolean
@@ -22,7 +22,7 @@ export interface SyncResult {
 export interface SyncStatus {
   isEnabled: boolean
   lastSyncAt?: string
-  lastSyncStatus?: 'success' | 'error' | 'running'
+  lastSyncStatus?: "success" | "error" | "running"
   lastSyncResult?: SyncResult
   totalDocuments: number
 }
@@ -36,7 +36,7 @@ export class GoogleDriveSyncService {
   private vectorStore = getMongoDBVectorStoreManager()
   private lastSyncStatus: SyncStatus = {
     isEnabled: false,
-    totalDocuments: 0
+    totalDocuments: 0,
   }
 
   constructor() {
@@ -48,7 +48,7 @@ export class GoogleDriveSyncService {
    * Verifica si el servicio está habilitado y configurado correctamente
    */
   isEnabled(): boolean {
-    const enabled = process.env.GOOGLE_DRIVE_SYNC_ENABLED === 'true'
+    const enabled = process.env.GOOGLE_DRIVE_SYNC_ENABLED === "true"
     const hasCredentials = !!(
       process.env.GOOGLE_DRIVE_CLIENT_EMAIL &&
       process.env.GOOGLE_DRIVE_PRIVATE_KEY &&
@@ -65,30 +65,30 @@ export class GoogleDriveSyncService {
   async syncWithDrive(fullSync: boolean = false): Promise<SyncResult> {
     const startTime = Date.now()
     
-    logger.info(`🚀 Iniciando ${fullSync ? 'sincronización completa' : 'sincronización incremental'} con Google Drive`)
+    logger.info(`🚀 Iniciando ${fullSync ? "sincronización completa" : "sincronización incremental"} con Google Drive`)
     
     const result: SyncResult = {
       success: false,
-      message: '',
+      message: "",
       stats: {
         filesScanned: 0,
         filesProcessed: 0,
         filesSkipped: 0,
         chunksAdded: 0,
-        errorsCount: 0
+        errorsCount: 0,
       },
       errors: [],
-      duration: 0
+      duration: 0,
     }
 
     try {
       // Verificar que esté habilitado
       if (!this.isEnabled()) {
-        throw new Error('Google Drive sync no está habilitado o configurado correctamente')
+        throw new Error("Google Drive sync no está habilitado o configurado correctamente")
       }
 
       // Actualizar estado
-      this.lastSyncStatus.lastSyncStatus = 'running'
+      this.lastSyncStatus.lastSyncStatus = "running"
 
       // Obtener carpeta de Google Drive
       const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID!
@@ -98,8 +98,8 @@ export class GoogleDriveSyncService {
       
       const driveFiles = await this.driveClient.listFilesInFolder(folderId, {
         includeSubfolders: true,
-        fileTypes: ['pdf', 'docx', 'pptx', 'xlsx', 'txt', 'md', 'png', 'jpg', 'jpeg', 'zip'],
-        maxResults: 1000
+        fileTypes: ["pdf", "docx", "pptx", "xlsx", "txt", "md", "png", "jpg", "jpeg", "zip"],
+        maxResults: 1000,
       })
 
       result.stats.filesScanned = driveFiles.length
@@ -107,7 +107,7 @@ export class GoogleDriveSyncService {
 
       if (driveFiles.length === 0) {
         result.success = true
-        result.message = 'No se encontraron archivos en Google Drive para sincronizar'
+        result.message = "No se encontraron archivos en Google Drive para sincronizar"
         result.duration = Date.now() - startTime
         return result
       }
@@ -117,7 +117,7 @@ export class GoogleDriveSyncService {
       if (!fullSync) {
         const vectorStoreDocs = await this.vectorStore.getDocumentsList()
         existingDocs = vectorStoreDocs
-          .filter((doc: any) => doc.source.startsWith('drive:'))
+          .filter((doc: any) => doc.source.startsWith("drive:"))
           .map((doc: any) => ({ id: doc.id, source: doc.source, displayName: doc.displayName }))
         
         logger.info(`📚 ${existingDocs.length} documentos de Google Drive ya en vector store`)
@@ -193,9 +193,9 @@ export class GoogleDriveSyncService {
       this.lastSyncStatus = {
         isEnabled: true,
         lastSyncAt: new Date().toISOString(),
-        lastSyncStatus: result.success ? 'success' : 'error',
+        lastSyncStatus: result.success ? "success" : "error",
         lastSyncResult: result,
-        totalDocuments: await this.vectorStore.getDocumentCount()
+        totalDocuments: await this.vectorStore.getDocumentCount(),
       }
 
       return result
@@ -206,15 +206,15 @@ export class GoogleDriveSyncService {
       result.message = `Error en sincronización: ${(error as Error).message}`
       result.errors.push((error as Error).message)
       
-      logger.error('❌ Error en sincronización con Google Drive:', error)
+      logger.error("❌ Error en sincronización con Google Drive:", error)
       
       // Actualizar estado de error
       this.lastSyncStatus = {
         isEnabled: this.isEnabled(),
         lastSyncAt: new Date().toISOString(),
-        lastSyncStatus: 'error',
+        lastSyncStatus: "error",
         lastSyncResult: result,
-        totalDocuments: await this.vectorStore.getDocumentCount()
+        totalDocuments: await this.vectorStore.getDocumentCount(),
       }
 
       return result
@@ -238,7 +238,7 @@ export class GoogleDriveSyncService {
   async testConnection(): Promise<boolean> {
     try {
       if (!this.isEnabled()) {
-        logger.warn('⚠️  Google Drive sync no está habilitado')
+        logger.warn("⚠️  Google Drive sync no está habilitado")
         return false
       }
 
@@ -250,15 +250,15 @@ export class GoogleDriveSyncService {
         const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID!
         await this.driveClient.listFilesInFolder(folderId, { maxResults: 1 })
         
-        logger.info('✅ Conexión con Google Drive verificada')
+        logger.info("✅ Conexión con Google Drive verificada")
         return true
       } else {
-        logger.error('❌ Error en conexión con Google Drive')
+        logger.error("❌ Error en conexión con Google Drive")
         return false
       }
 
     } catch (error) {
-      logger.error('❌ Error probando conexión con Google Drive:', error)
+      logger.error("❌ Error probando conexión con Google Drive:", error)
       return false
     }
   }
@@ -274,14 +274,14 @@ export class GoogleDriveSyncService {
     syncStatus: string
   }> {
     const vectorStoreDocs = await this.vectorStore.getDocumentsList()
-    const driveDocuments = vectorStoreDocs.filter(doc => doc.source.startsWith('drive:')).length
+    const driveDocuments = vectorStoreDocs.filter(doc => doc.source.startsWith("drive:")).length
 
     return {
       isEnabled: this.isEnabled(),
       totalDocuments: await this.vectorStore.getDocumentCount(),
       driveDocuments,
       lastSync: this.lastSyncStatus.lastSyncAt || null,
-      syncStatus: this.lastSyncStatus.lastSyncStatus || 'never'
+      syncStatus: this.lastSyncStatus.lastSyncStatus || "never",
     }
   }
 }

@@ -11,7 +11,7 @@ interface WakeTimeConsistencyChartProps {
 
 export default function WakeTimeConsistencyChart({ 
   childId, 
-  dateRange = "7-days" 
+  dateRange = "7-days", 
 }: WakeTimeConsistencyChartProps) {
   const { refreshTrigger, subscribe } = useEventsCache(childId)
   const { data: sleepData, loading, error } = useSleepData(childId, dateRange)
@@ -32,7 +32,7 @@ export default function WakeTimeConsistencyChart({
       return { 
         label: "Sin datos", 
         variant: "poor",
-        description: "No hay suficientes datos de despertar"
+        description: "No hay suficientes datos de despertar",
       }
     }
 
@@ -50,7 +50,7 @@ export default function WakeTimeConsistencyChart({
       return { 
         label: "Ideal", 
         variant: "good",
-        description: "Hora de despertar ideal para niños"
+        description: "Hora de despertar ideal para niños",
       }
     } else if (
       (wakeTimeInMinutes >= 5.5 * 60 && wakeTimeInMinutes < 6 * 60) || // 5:30-6:00
@@ -59,7 +59,7 @@ export default function WakeTimeConsistencyChart({
       return { 
         label: "Bueno", 
         variant: "consistent",
-        description: "Hora de despertar dentro de rango saludable"
+        description: "Hora de despertar dentro de rango saludable",
       }
     } else if (
       (wakeTimeInMinutes >= 5 * 60 && wakeTimeInMinutes < 5.5 * 60) ||  // 5:00-5:30
@@ -68,13 +68,13 @@ export default function WakeTimeConsistencyChart({
       return { 
         label: "Aceptable", 
         variant: "average",
-        description: "Podría beneficiarse de ajustes graduales"
+        description: "Podría beneficiarse de ajustes graduales",
       }
     } else {
       return { 
         label: "Necesita ajuste", 
         variant: "poor",
-        description: "Considerar ajustar rutina de sueño"
+        description: "Considerar ajustar rutina de sueño",
       }
     }
   }
@@ -152,16 +152,16 @@ export default function WakeTimeConsistencyChart({
           <Badge 
             variant={
               wakeTimeStatus.variant === "good" ? "secondary" :
-              wakeTimeStatus.variant === "consistent" ? "secondary" :
-              wakeTimeStatus.variant === "average" ? "secondary" :
-              "destructive"
+                wakeTimeStatus.variant === "consistent" ? "secondary" :
+                  wakeTimeStatus.variant === "average" ? "secondary" :
+                    "destructive"
             }
             className={`
               text-xs font-medium px-3 py-2 rounded-full shadow-sm transition-colors
               ${wakeTimeStatus.variant === "good" ? "bg-green-100 text-green-800 border-green-200" :
-                wakeTimeStatus.variant === "consistent" ? "bg-blue-100 text-blue-800 border-blue-200" :
-                wakeTimeStatus.variant === "average" ? "bg-yellow-100 text-yellow-800 border-yellow-200" :
-                "bg-red-100 text-red-800 border-red-200"}
+      wakeTimeStatus.variant === "consistent" ? "bg-blue-100 text-blue-800 border-blue-200" :
+        wakeTimeStatus.variant === "average" ? "bg-yellow-100 text-yellow-800 border-yellow-200" :
+          "bg-red-100 text-red-800 border-red-200"}
             `}
           >
             {wakeTimeStatus.label}

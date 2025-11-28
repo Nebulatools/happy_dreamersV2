@@ -3,13 +3,13 @@
 
 "use client"
 
-import React from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { AlertCircle, RefreshCw } from 'lucide-react'
-import { createLogger } from '@/lib/logger'
+import React from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { AlertCircle, RefreshCw } from "lucide-react"
+import { createLogger } from "@/lib/logger"
 
-const logger = createLogger('ConsultasErrorBoundary')
+const logger = createLogger("ConsultasErrorBoundary")
 
 interface Props {
   children: React.ReactNode
@@ -35,16 +35,16 @@ export class ConsultasErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log del error para análisis
-    logger.error('Error capturado en ConsultasErrorBoundary:', {
+    logger.error("Error capturado en ConsultasErrorBoundary:", {
       error: error.toString(),
       stack: error.stack,
-      componentStack: errorInfo.componentStack
+      componentStack: errorInfo.componentStack,
     })
     
     // Actualizar el estado con información detallada
     this.setState({
       error,
-      errorInfo
+      errorInfo,
     })
   }
 
@@ -78,7 +78,7 @@ export class ConsultasErrorBoundary extends React.Component<Props, State> {
                   Ha ocurrido un error inesperado. Tu trabajo ha sido guardado.
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {this.state.error?.message || 'Error desconocido'}
+                  {this.state.error?.message || "Error desconocido"}
                 </p>
               </div>
               
@@ -111,7 +111,7 @@ export class ConsultasErrorBoundary extends React.Component<Props, State> {
               </div>
 
               {/* Información de debug en desarrollo */}
-              {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
+              {process.env.NODE_ENV === "development" && this.state.errorInfo && (
                 <details className="mt-4">
                   <summary className="text-xs text-muted-foreground cursor-pointer">
                     Detalles técnicos (desarrollo)

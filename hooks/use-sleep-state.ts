@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import useSWR from 'swr'
 import { useChildPlan } from './use-child-plan'
-import { nowInTimeZone } from '@/lib/timezone'
+import { getTimePartsInTimezone, DEFAULT_TIMEZONE } from '@/lib/datetime'
 
 export type SleepStatus = 'awake' | 'sleeping' | 'napping' | 'night_waking'
 
@@ -211,7 +211,8 @@ export function useSleepState(childId: string | null, timeZone?: string) {
 
   // Función para determinar el siguiente estado basado en el contexto temporal
   const getNextState = useCallback((currentStatus: SleepStatus): SleepStatus => {
-    const { date } = nowInTimeZone(timeZone)
+    const parts = getTimePartsInTimezone(new Date(), timeZone || DEFAULT_TIMEZONE)
+    const date = new Date(parts.year, parts.month - 1, parts.day, parts.hours, parts.minutes, parts.seconds)
     const timeContext = getTimeContext(date)
     
     switch (currentStatus) {

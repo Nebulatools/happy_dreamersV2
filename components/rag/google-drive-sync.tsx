@@ -19,7 +19,7 @@ import {
   FileText,
   Activity,
   Settings,
-  AlertTriangle
+  AlertTriangle,
 } from "lucide-react"
 
 interface SyncStats {
@@ -80,7 +80,7 @@ export function GoogleDriveSync() {
 
   const loadStatus = async () => {
     try {
-      const response = await fetch('/api/rag/sync-drive')
+      const response = await fetch("/api/rag/sync-drive")
       const data = await response.json()
       
       if (response.ok) {
@@ -89,14 +89,14 @@ export function GoogleDriveSync() {
         toast({
           title: "Error",
           description: data.error || "Error cargando estado de Google Drive",
-          variant: "destructive"
+          variant: "destructive",
         })
       }
     } catch (error) {
       toast({
         title: "Error",
         description: "Error conectando con el servidor",
-        variant: "destructive"
+        variant: "destructive",
       })
     } finally {
       setLoading(false)
@@ -107,10 +107,10 @@ export function GoogleDriveSync() {
     setTestingConnection(true)
     
     try {
-      const response = await fetch('/api/rag/sync-drive', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ testConnection: true })
+      const response = await fetch("/api/rag/sync-drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ testConnection: true }),
       })
       
       const data = await response.json()
@@ -119,13 +119,13 @@ export function GoogleDriveSync() {
         toast({
           title: "Conexión exitosa",
           description: data.message,
-          variant: "default"
+          variant: "default",
         })
       } else {
         toast({
           title: "Error de conexión",
           description: data.message,
-          variant: "destructive"
+          variant: "destructive",
         })
       }
       
@@ -136,7 +136,7 @@ export function GoogleDriveSync() {
       toast({
         title: "Error",
         description: "Error probando conexión",
-        variant: "destructive"
+        variant: "destructive",
       })
     } finally {
       setTestingConnection(false)
@@ -147,10 +147,10 @@ export function GoogleDriveSync() {
     setSyncing(true)
     
     try {
-      const response = await fetch('/api/rag/sync-drive', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullSync, async: true })
+      const response = await fetch("/api/rag/sync-drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullSync, async: true }),
       })
       
       const data = await response.json()
@@ -158,14 +158,14 @@ export function GoogleDriveSync() {
       if (data.success) {
         toast({
           title: data.started ? "Sincronización iniciada" : "Sincronización exitosa",
-          description: data.started ? `Ejecutándose en segundo plano (${fullSync ? 'completa' : 'incremental'})` : `${data.stats.filesProcessed} archivos procesados, ${data.stats.chunksAdded} chunks agregados`,
-          variant: "default"
+          description: data.started ? `Ejecutándose en segundo plano (${fullSync ? "completa" : "incremental"})` : `${data.stats.filesProcessed} archivos procesados, ${data.stats.chunksAdded} chunks agregados`,
+          variant: "default",
         })
       } else {
         toast({
           title: "Error en sincronización",
           description: data.message,
-          variant: "destructive"
+          variant: "destructive",
         })
       }
       
@@ -176,7 +176,7 @@ export function GoogleDriveSync() {
       toast({
         title: "Error",
         description: "Error ejecutando sincronización",
-        variant: "destructive"
+        variant: "destructive",
       })
     } finally {
       setSyncing(false)
@@ -185,7 +185,7 @@ export function GoogleDriveSync() {
 
   // Auto-refresh mientras está sincronizando o cuando el backend reporta 'running'
   useEffect(() => {
-    const isRunning = syncing || (status?.googleDrive?.lastSyncStatus === 'running')
+    const isRunning = syncing || (status?.googleDrive?.lastSyncStatus === "running")
     if (!isRunning) {
       setAutoRefreshing(false)
       return
@@ -197,12 +197,12 @@ export function GoogleDriveSync() {
     return () => clearInterval(id)
   }, [syncing, status?.googleDrive?.lastSyncStatus])
 
-  const controlScheduler = async (action: 'start' | 'stop' | 'restart') => {
+  const controlScheduler = async (action: "start" | "stop" | "restart") => {
     try {
-      const response = await fetch('/api/rag/sync-drive', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action })
+      const response = await fetch("/api/rag/sync-drive", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
       })
       
       const data = await response.json()
@@ -211,7 +211,7 @@ export function GoogleDriveSync() {
         toast({
           title: "Scheduler actualizado",
           description: data.message,
-          variant: "default"
+          variant: "default",
         })
         
         // Recargar estado
@@ -220,32 +220,32 @@ export function GoogleDriveSync() {
         toast({
           title: "Error",
           description: data.error || "Error controlando scheduler",
-          variant: "destructive"
+          variant: "destructive",
         })
       }
     } catch (error) {
       toast({
         title: "Error",
         description: "Error conectando con el servidor",
-        variant: "destructive"
+        variant: "destructive",
       })
     }
   }
 
   const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return 'Nunca'
+    if (!dateStr) return "Nunca"
     
     try {
       const date = new Date(dateStr)
-      return date.toLocaleString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+      return date.toLocaleString("es-ES", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       })
     } catch {
-      return 'Fecha inválida'
+      return "Fecha inválida"
     }
   }
 
@@ -259,14 +259,14 @@ export function GoogleDriveSync() {
     }
     
     switch (lastSyncStatus) {
-      case 'success':
-        return <Badge variant="default"><CheckCircle className="w-3 h-3 mr-1" />Funcionando</Badge>
-      case 'error':
-        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Error</Badge>
-      case 'running':
-        return <Badge variant="secondary"><RefreshCw className="w-3 h-3 mr-1 animate-spin" />Sincronizando</Badge>
-      default:
-        return <Badge variant="outline"><Clock className="w-3 h-3 mr-1" />Sin sincronizar</Badge>
+    case "success":
+      return <Badge variant="default"><CheckCircle className="w-3 h-3 mr-1" />Funcionando</Badge>
+    case "error":
+      return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Error</Badge>
+    case "running":
+      return <Badge variant="secondary"><RefreshCw className="w-3 h-3 mr-1 animate-spin" />Sincronizando</Badge>
+    default:
+      return <Badge variant="outline"><Clock className="w-3 h-3 mr-1" />Sin sincronizar</Badge>
     }
   }
 
@@ -323,7 +323,7 @@ export function GoogleDriveSync() {
               <Settings className="w-4 h-4 text-gray-500" />
               <div>
                 <p className="text-sm font-medium">Proyecto</p>
-                <p className="text-xs text-gray-600">{configuration.projectId || 'No configurado'}</p>
+                <p className="text-xs text-gray-600">{configuration.projectId || "No configurado"}</p>
               </div>
             </div>
             
@@ -331,7 +331,7 @@ export function GoogleDriveSync() {
               <Folder className="w-4 h-4 text-gray-500" />
               <div>
                 <p className="text-sm font-medium">Carpeta ID</p>
-                <p className="text-xs text-gray-600 truncate">{configuration.folderId || 'No configurado'}</p>
+                <p className="text-xs text-gray-600 truncate">{configuration.folderId || "No configurado"}</p>
               </div>
             </div>
             
@@ -487,7 +487,7 @@ export function GoogleDriveSync() {
             <div className="flex space-x-2">
               {scheduler.isRunning ? (
                 <Button
-                  onClick={() => controlScheduler('stop')}
+                  onClick={() => controlScheduler("stop")}
                   variant="outline"
                   size="sm"
                 >
@@ -496,7 +496,7 @@ export function GoogleDriveSync() {
                 </Button>
               ) : (
                 <Button
-                  onClick={() => controlScheduler('start')}
+                  onClick={() => controlScheduler("start")}
                   disabled={!googleDrive.isConfigured}
                   variant="outline"
                   size="sm"
@@ -507,7 +507,7 @@ export function GoogleDriveSync() {
               )}
               
               <Button
-                onClick={() => controlScheduler('restart')}
+                onClick={() => controlScheduler("restart")}
                 disabled={!googleDrive.isConfigured}
                 variant="outline"
                 size="sm"

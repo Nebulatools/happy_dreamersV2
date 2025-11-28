@@ -9,44 +9,44 @@
 // Mapeo de componentes Radix UI más usados
 export const RADIX_COMPONENTS = {
   // Componentes de layout
-  'Accordion': '@radix-ui/react-accordion',
-  'AlertDialog': '@radix-ui/react-alert-dialog',
-  'AspectRatio': '@radix-ui/react-aspect-ratio',
-  'Avatar': '@radix-ui/react-avatar',
+  "Accordion": "@radix-ui/react-accordion",
+  "AlertDialog": "@radix-ui/react-alert-dialog",
+  "AspectRatio": "@radix-ui/react-aspect-ratio",
+  "Avatar": "@radix-ui/react-avatar",
   
   // Componentes de formulario
-  'Checkbox': '@radix-ui/react-checkbox',
-  'Collapsible': '@radix-ui/react-collapsible',
-  'ContextMenu': '@radix-ui/react-context-menu',
-  'Dialog': '@radix-ui/react-dialog',
-  'DropdownMenu': '@radix-ui/react-dropdown-menu',
+  "Checkbox": "@radix-ui/react-checkbox",
+  "Collapsible": "@radix-ui/react-collapsible",
+  "ContextMenu": "@radix-ui/react-context-menu",
+  "Dialog": "@radix-ui/react-dialog",
+  "DropdownMenu": "@radix-ui/react-dropdown-menu",
   
   // Componentes de navegación
-  'HoverCard': '@radix-ui/react-hover-card',
-  'Label': '@radix-ui/react-label',
-  'Menubar': '@radix-ui/react-menubar',
-  'NavigationMenu': '@radix-ui/react-navigation-menu',
+  "HoverCard": "@radix-ui/react-hover-card",
+  "Label": "@radix-ui/react-label",
+  "Menubar": "@radix-ui/react-menubar",
+  "NavigationMenu": "@radix-ui/react-navigation-menu",
   
   // Componentes de datos
-  'Popover': '@radix-ui/react-popover',
-  'Progress': '@radix-ui/react-progress',
-  'RadioGroup': '@radix-ui/react-radio-group',
-  'ScrollArea': '@radix-ui/react-scroll-area',
-  'Select': '@radix-ui/react-select',
-  'Separator': '@radix-ui/react-separator',
+  "Popover": "@radix-ui/react-popover",
+  "Progress": "@radix-ui/react-progress",
+  "RadioGroup": "@radix-ui/react-radio-group",
+  "ScrollArea": "@radix-ui/react-scroll-area",
+  "Select": "@radix-ui/react-select",
+  "Separator": "@radix-ui/react-separator",
   
   // Componentes de feedback
-  'Slider': '@radix-ui/react-slider',
-  'Switch': '@radix-ui/react-switch',
-  'Tabs': '@radix-ui/react-tabs',
-  'Toast': '@radix-ui/react-toast',
-  'Toggle': '@radix-ui/react-toggle',
-  'ToggleGroup': '@radix-ui/react-toggle-group',
-  'Tooltip': '@radix-ui/react-tooltip',
+  "Slider": "@radix-ui/react-slider",
+  "Switch": "@radix-ui/react-switch",
+  "Tabs": "@radix-ui/react-tabs",
+  "Toast": "@radix-ui/react-toast",
+  "Toggle": "@radix-ui/react-toggle",
+  "ToggleGroup": "@radix-ui/react-toggle-group",
+  "Tooltip": "@radix-ui/react-tooltip",
   
   // Utilidades
-  'Slot': '@radix-ui/react-slot',
-  'VisuallyHidden': '@radix-ui/react-visually-hidden',
+  "Slot": "@radix-ui/react-slot",
+  "VisuallyHidden": "@radix-ui/react-visually-hidden",
 } as const
 
 // Script para analizar y optimizar imports en el proyecto
@@ -70,12 +70,12 @@ export function generateOptimizedImports(usedComponents: string[]): string {
     if (components.length === 1) {
       imports.push(`import * as ${components[0]} from '${packageName}'`)
     } else {
-      const componentList = components.join(', ')
+      const componentList = components.join(", ")
       imports.push(`import { ${componentList} } from '${packageName}'`)
     }
   })
   
-  return imports.join('\n')
+  return imports.join("\n")
 }
 
 // Configuración para webpack (usar en next.config.js)
@@ -83,9 +83,9 @@ export const radixWebpackConfig = {
   resolve: {
     alias: {
       // Consolidar imports comunes
-      '@radix-ui/react-primitives': '@radix-ui/react-primitive',
+      "@radix-ui/react-primitives": "@radix-ui/react-primitive",
       // Optimizar carga de íconos
-      '@radix-ui/react-icons': '@radix-ui/react-icons/dist/index.esm.js',
+      "@radix-ui/react-icons": "@radix-ui/react-icons/dist/index.esm.js",
     },
   },
   optimization: {
@@ -122,31 +122,31 @@ export async function findUnusedRadixPackages(): Promise<string[]> {
   // Esta función sería ejecutada como script de análisis
   // npm run analyze:radix
   
-  const fs = await import('fs')
-  const path = await import('path')
-  const glob = await import('glob')
+  const fs = await import("fs")
+  const path = await import("path")
+  const glob = await import("glob")
   
   const projectRoot = process.cwd()
   const packageJson = JSON.parse(
-    fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf-8')
+    fs.readFileSync(path.join(projectRoot, "package.json"), "utf-8")
   )
   
   // Obtener todos los paquetes Radix instalados
   const installedRadixPackages = Object.keys({
     ...packageJson.dependencies,
     ...packageJson.devDependencies,
-  }).filter(pkg => pkg.startsWith('@radix-ui/'))
+  }).filter(pkg => pkg.startsWith("@radix-ui/"))
   
   // Buscar imports en el código
-  const files = glob.sync('**/*.{ts,tsx,js,jsx}', {
+  const files = glob.sync("**/*.{ts,tsx,js,jsx}", {
     cwd: projectRoot,
-    ignore: ['node_modules/**', '.next/**', 'dist/**'],
+    ignore: ["node_modules/**", ".next/**", "dist/**"],
   })
   
   const usedPackages = new Set<string>()
   
   for (const file of files) {
-    const content = fs.readFileSync(path.join(projectRoot, file), 'utf-8')
+    const content = fs.readFileSync(path.join(projectRoot, file), "utf-8")
     const importRegex = /from\s+['"](@radix-ui\/[^'"]+)['"]/g
     let match
     
@@ -164,7 +164,7 @@ export async function findUnusedRadixPackages(): Promise<string[]> {
 }
 
 // Re-exportar React para el hook
-import * as React from 'react'
+import * as React from "react"
 
 export default {
   RADIX_COMPONENTS,

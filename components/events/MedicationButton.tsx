@@ -1,16 +1,16 @@
 "use client"
 
-import React, { useState } from 'react'
-import { Pill, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
-import { EventData } from './types'
-import { toLocalISOString } from '@/lib/date-utils'
-import { cn } from '@/lib/utils'
-import { useDevTime } from '@/context/dev-time-context'
-import { MedicationModal } from './MedicationModal'
-import { format } from 'date-fns'
-import { useUser } from '@/context/UserContext'
+import React, { useState } from "react"
+import { Pill, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
+import { EventData } from "./types"
+import { dateToTimestamp } from "@/lib/datetime"
+import { cn } from "@/lib/utils"
+import { useDevTime } from "@/context/dev-time-context"
+import { MedicationModal } from "./MedicationModal"
+import { format } from "date-fns"
+import { useUser } from "@/context/UserContext"
 
 interface MedicationButtonProps {
   childId: string
@@ -41,7 +41,7 @@ interface MedicationModalData {
 export function MedicationButton({ 
   childId, 
   childName,
-  onEventRegistered 
+  onEventRegistered, 
 }: MedicationButtonProps) {
   const { toast } = useToast()
   const [isProcessing, setIsProcessing] = useState(false)
@@ -52,9 +52,9 @@ export function MedicationButton({
   // Configuración del botón
   const getButtonConfig = () => {
     return {
-      text: 'MEDICAMENTO',
+      text: "MEDICAMENTO",
       icon: Pill,
-      color: 'from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700'
+      color: "from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700",
     }
   }
   
@@ -71,20 +71,20 @@ export function MedicationButton({
       // Crear evento de medicamento con todos los datos en campos separados
       const eventData: Partial<EventData> = {
         childId,
-        eventType: 'medication',
-        startTime: toLocalISOString(now, userData.timezone),
+        eventType: "medication",
+        startTime: dateToTimestamp(now, userData.timezone),
         medicationName: medicationData.medicationName,
         medicationDose: medicationData.medicationDose,
-        medicationTime: medicationData.medicationTime || format(now, 'HH:mm'), // Usar hora actual si no se especifica
+        medicationTime: medicationData.medicationTime || format(now, "HH:mm"), // Usar hora actual si no se especifica
         medicationNotes: medicationData.medicationNotes,
         notes: medicationData.medicationNotes, // Mantener en notes para compatibilidad
-        emotionalState: 'neutral' // Por defecto neutral para medicamento
+        emotionalState: "neutral", // Por defecto neutral para medicamento
       }
       
-      const response = await fetch('/api/children/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData)
+      const response = await fetch("/api/children/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(eventData),
       })
       
       if (!response.ok) {
@@ -96,7 +96,7 @@ export function MedicationButton({
       // Mostrar confirmación personalizada
       toast({
         title: "Medicamento registrado",
-        description: `${childName}: ${medicationData.medicationName} - ${medicationData.medicationDose}`
+        description: `${childName}: ${medicationData.medicationName} - ${medicationData.medicationDose}`,
       })
       
       // Cerrar modal y limpiar
@@ -106,11 +106,11 @@ export function MedicationButton({
       onEventRegistered?.()
       
     } catch (error) {
-      console.error('Error registrando medicamento:', error)
+      console.error("Error registrando medicamento:", error)
       toast({
         title: "Error",
         description: "No se pudo registrar el medicamento",
-        variant: "destructive"
+        variant: "destructive",
       })
     } finally {
       setIsProcessing(false)

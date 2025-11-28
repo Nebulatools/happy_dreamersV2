@@ -49,26 +49,26 @@ export default function SleepConsistencyChart({ childId, dateRange = "7-days" }:
     )
   }
   
-  const sleepQuality = sleepDuration >= 9 && sleepDuration <= 11 ? 'excellent' :
-                      sleepDuration >= 8 && sleepDuration <= 12 ? 'good' :
-                      sleepDuration >= 7 && sleepDuration <= 13 ? 'fair' : 'poor'
+  const sleepQuality = sleepDuration >= 9 && sleepDuration <= 11 ? "excellent" :
+    sleepDuration >= 8 && sleepDuration <= 12 ? "good" :
+      sleepDuration >= 7 && sleepDuration <= 13 ? "fair" : "poor"
   
   const qualityScore = sleepDuration >= 9 && sleepDuration <= 11 ? 90 :
-                      sleepDuration >= 8 && sleepDuration <= 12 ? 70 :
-                      sleepDuration >= 7 && sleepDuration <= 13 ? 50 : 25
+    sleepDuration >= 8 && sleepDuration <= 12 ? 70 :
+      sleepDuration >= 7 && sleepDuration <= 13 ? 50 : 25
 
   const getSleepQualityColor = () => {
-    if (sleepQuality === 'excellent') return 'from-green-400 to-green-500'
-    if (sleepQuality === 'good') return 'from-blue-400 to-blue-500'
-    if (sleepQuality === 'fair') return 'from-yellow-400 to-yellow-500'
-    return 'from-red-400 to-red-500'
+    if (sleepQuality === "excellent") return "from-green-400 to-green-500"
+    if (sleepQuality === "good") return "from-blue-400 to-blue-500"
+    if (sleepQuality === "fair") return "from-yellow-400 to-yellow-500"
+    return "from-red-400 to-red-500"
   }
 
   const getSleepQualityLabel = () => {
-    if (sleepQuality === 'excellent') return 'Excelente'
-    if (sleepQuality === 'good') return 'Buena'
-    if (sleepQuality === 'fair') return 'Regular'
-    return 'Necesita mejorar'
+    if (sleepQuality === "excellent") return "Excelente"
+    if (sleepQuality === "good") return "Buena"
+    if (sleepQuality === "fair") return "Regular"
+    return "Necesita mejorar"
   }
 
   return (
@@ -90,7 +90,7 @@ export default function SleepConsistencyChart({ childId, dateRange = "7-days" }:
           <div 
             className={`absolute top-0 left-0 w-full h-full rounded-full bg-gradient-to-r ${getSleepQualityColor()} opacity-80`}
             style={{
-              clipPath: `polygon(50% 50%, 50% 0%, ${50 + (qualityScore / 100) * 50}% 0%, 100% 100%, 0% 100%)`
+              clipPath: `polygon(50% 50%, 50% 0%, ${50 + (qualityScore / 100) * 50}% 0%, 100% 100%, 0% 100%)`,
             }}
           ></div>
           
@@ -105,9 +105,9 @@ export default function SleepConsistencyChart({ childId, dateRange = "7-days" }:
         
         <div className="text-center">
           <p className={`text-sm font-medium ${
-            sleepQuality === 'excellent' ? 'text-green-600' :
-            sleepQuality === 'good' ? 'text-blue-600' :
-            sleepQuality === 'fair' ? 'text-yellow-600' : 'text-red-600'
+            sleepQuality === "excellent" ? "text-green-600" :
+              sleepQuality === "good" ? "text-blue-600" :
+                sleepQuality === "fair" ? "text-yellow-600" : "text-red-600"
           }`}>
             {getSleepQualityLabel()}
           </p>
@@ -131,9 +131,9 @@ export default function SleepConsistencyChart({ childId, dateRange = "7-days" }:
         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
           <span>Duración del sueño:</span>
           <span className={`font-medium ${
-            sleepQuality === 'excellent' ? 'text-green-600' :
-            sleepQuality === 'good' ? 'text-blue-600' :
-            sleepQuality === 'fair' ? 'text-yellow-600' : 'text-red-600'
+            sleepQuality === "excellent" ? "text-green-600" :
+              sleepQuality === "good" ? "text-blue-600" :
+                sleepQuality === "fair" ? "text-yellow-600" : "text-red-600"
           }`}>
             {sleepDuration.toFixed(1)} horas
           </span>

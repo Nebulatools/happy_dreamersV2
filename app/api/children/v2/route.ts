@@ -92,7 +92,7 @@ export const GET = withErrorHandlerV2(async (request: NextRequest) => {
     userId: session.user.id, 
     isAdmin, 
     filters: { userId, search, minAge, maxAge },
-    pagination: { page, pageSize }
+    pagination: { page, pageSize },
   })
   
   // 2. Conectar a base de datos
@@ -119,7 +119,7 @@ export const GET = withErrorHandlerV2(async (request: NextRequest) => {
       .skip(skip)
       .limit(pageSize)
       .toArray(),
-    db.collection("children").countDocuments(baseQuery)
+    db.collection("children").countDocuments(baseQuery),
   ])
   
   // 5. Procesar resultados
@@ -177,7 +177,7 @@ export const POST = withErrorHandlerV2(async (request: NextRequest) => {
   
   logger.info("Creating new child", { 
     userId: session.user.id,
-    childData: { ...body, birthDate: "[REDACTED]" }
+    childData: { ...body, birthDate: "[REDACTED]" },
   })
   
   // 2. Validaciones de negocio
@@ -242,7 +242,7 @@ export const POST = withErrorHandlerV2(async (request: NextRequest) => {
   
   // 7. Obtener el documento creado
   const createdChild = await db.collection("children").findOne({
-    _id: result.insertedId
+    _id: result.insertedId,
   })
   
   if (!createdChild) {
@@ -293,7 +293,7 @@ export const PATCH = withErrorHandlerV2(async (request: NextRequest) => {
       notes: z.string().max(500).optional(),
       gender: z.enum(["male", "female", "other"]).optional(),
     }).refine(data => Object.keys(data).length > 0, {
-      message: "Debes proporcionar al menos un campo para actualizar"
+      message: "Debes proporcionar al menos un campo para actualizar",
     }),
     validateQuery: z.object({
       childId: commonSchemas.mongoId,
@@ -312,7 +312,7 @@ export const PATCH = withErrorHandlerV2(async (request: NextRequest) => {
             "No se pueden editar niños del sistema"
           )
         }
-      }
+      },
     ],
     rateLimitConfig: {
       enabled: true,

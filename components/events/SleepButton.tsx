@@ -1,18 +1,17 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
-import { Moon, Sun, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
-import { SleepStatus, useSleepState } from '@/hooks/use-sleep-state'
-import { EventData } from './types'
-import { toLocalISOString } from '@/lib/date-utils'
-import { cn } from '@/lib/utils'
-import { useDevTime } from '@/context/dev-time-context'
-import { useUser } from '@/context/UserContext'
-import { getTimePartsInTimeZone } from '@/lib/timezone'
-import { SleepDelayModal } from './SleepDelayModal'
-import { EventNotesModal } from './EventNotesModal'
+import React, { useState, useEffect } from "react"
+import { Moon, Sun, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
+import { SleepStatus, useSleepState } from "@/hooks/use-sleep-state"
+import { EventData } from "./types"
+import { cn } from "@/lib/utils"
+import { useDevTime } from "@/context/dev-time-context"
+import { useUser } from "@/context/UserContext"
+import { dateToTimestamp, getTimePartsInTimezone, DEFAULT_TIMEZONE } from "@/lib/datetime"
+import { SleepDelayModal } from "./SleepDelayModal"
+import { EventNotesModal } from "./EventNotesModal"
 
 interface SleepButtonProps {
   childId: string
@@ -32,7 +31,7 @@ interface SleepButtonProps {
 export function SleepButton({ 
   childId, 
   childName,
-  onEventRegistered 
+  onEventRegistered, 
 }: SleepButtonProps) {
   const { toast } = useToast()
   const { userData } = useUser()
@@ -43,7 +42,7 @@ export function SleepButton({
   const [lastOpenEventId, setLastOpenEventId] = useState<string | null>(null)
   // Estado principal de sueño (dormir/siesta) - se mantiene durante toda la noche
   const [sleepPending, setSleepPending] = useState<{
-    type: 'sleep' | 'nap'
+    type: "sleep" | "nap"
     start: string // ISO string for persistence
     sleepDelay?: number
     emotionalState?: string
@@ -52,20 +51,20 @@ export function SleepButton({
 
   // Estado separado para despertares nocturnos - NO reemplaza sleepPending
   const [nightWakePending, setNightWakePending] = useState<{
-    type: 'night_waking'
+    type: "night_waking"
     start: string
     emotionalState?: string
     notes?: string
   } | null>(null)
-  const [sleepModalConfig, setSleepModalConfig] = useState<{ eventType: 'sleep' | 'nap'; start: Date } | null>(null)
-  const [notesModalConfig, setNotesModalConfig] = useState<{ action: 'wake' | 'night_wake'; start: Date } | null>(null)
+  const [sleepModalConfig, setSleepModalConfig] = useState<{ eventType: "sleep" | "nap"; start: Date } | null>(null)
+  const [notesModalConfig, setNotesModalConfig] = useState<{ action: "wake" | "night_wake"; start: Date } | null>(null)
 
   const sleepStorageKey = `pending_sleep_event_${childId}`
   const nightWakeStorageKey = `pending_night_wake_${childId}`
   
   // Calcular duración localmente usando tiempo simulado
   useEffect(() => {
-    if (sleepState.lastEventTime && (sleepState.status === 'sleeping' || sleepState.status === 'napping')) {
+    if (sleepState.lastEventTime && (sleepState.status === "sleeping" || sleepState.status === "napping")) {
       const interval = setInterval(() => {
         const now = getCurrentTime()
         const eventTime = new Date(sleepState.lastEventTime!)
@@ -88,7 +87,7 @@ export function SleepButton({
       setLocalDuration(diffMinutes >= 0 ? diffMinutes : 0)
       
       return () => clearInterval(interval)
-    } else if (sleepState.status === 'awake' && sleepState.lastEventTime) {
+    } else if (sleepState.status === "awake" && sleepState.lastEventTime) {
       // Calcular tiempo despierto
       const interval = setInterval(() => {
         const now = getCurrentTime()
@@ -118,29 +117,29 @@ export function SleepButton({
   
   const getTimeWindows = () => {
     const baseNow = getCurrentTime()
-    const parts = getTimePartsInTimeZone(baseNow, userData.timezone)
+    const parts = getTimePartsInTimezone(baseNow, userData.timezone)
     const minutes = parts.hours * 60 + parts.minutes
     return {
       now: parts.date,
       minutes,
       isNight: minutes >= 19 * 60 || minutes < 6 * 60,  // 7 PM a 6 AM
       isNapWindow: minutes >= 8 * 60 && minutes < 17 * 60,
-      isMorning: minutes >= 6 * 60  // >= 6:00 AM es manana (fin del sueno nocturno)
+      isMorning: minutes >= 6 * 60,  // >= 6:00 AM es manana (fin del sueno nocturno)
     }
   }
 
   const getButtonConfig = () => {
     const { isNight, isNapWindow, isMorning } = getTimeWindows()
-    const isSleeping = effectiveStatus === 'sleeping'
-    const isNapping = effectiveStatus === 'napping'
-    const isNightWaking = effectiveStatus === 'night_waking'
+    const isSleeping = effectiveStatus === "sleeping"
+    const isNapping = effectiveStatus === "napping"
+    const isNightWaking = effectiveStatus === "night_waking"
 
     if (isNightWaking) {
       return {
-        text: 'VOLVER A DORMIR',
+        text: "VOLVER A DORMIR",
         icon: Moon,
-        color: 'from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600',
-        action: 'sleep'
+        color: "from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600",
+        action: "sleep",
       }
     }
 
@@ -151,43 +150,43 @@ export function SleepButton({
       // SIMPLIFICADO: Siempre usar isNight para determinar si mostrar despertar nocturno
       // Si hay sleepPending.type === 'sleep', respetamos el horario
       // Si no hay sleepPending (estado viene del backend), igual usamos isNight
-      const shouldShowNightWaking = isNight && (sleepPending?.type === 'sleep' || !sleepPending)
+      const shouldShowNightWaking = isNight && (sleepPending?.type === "sleep" || !sleepPending)
 
       return {
-        text: shouldShowNightWaking ? 'DESPERTAR NOCTURNO' : 'SE DESPERTÓ',
+        text: shouldShowNightWaking ? "DESPERTAR NOCTURNO" : "SE DESPERTÓ",
         icon: Sun,
         color: shouldShowNightWaking
-          ? 'from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600'
-          : 'from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600',
-        action: shouldShowNightWaking ? 'night_wake' : 'wake'
+          ? "from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+          : "from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600",
+        action: shouldShowNightWaking ? "night_wake" : "wake",
       }
     }
 
     if (isNapping) {
       return {
-        text: 'SE DESPERTÓ',
+        text: "SE DESPERTÓ",
         icon: Sun,
-        color: 'from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600',
-        action: 'wake'
+        color: "from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600",
+        action: "wake",
       }
     }
 
     if (isNight) {
       return {
-        text: 'DORMIR',
+        text: "DORMIR",
         icon: Moon,
-        color: 'from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600',
-        action: 'sleep'
+        color: "from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600",
+        action: "sleep",
       }
     }
 
     // Si no es noche (18:00-6:00), entonces es día → mostrar SIESTA
     // Esto cubre: 6:00-8:00 (antes de napWindow) y 8:00-17:00 (napWindow) y 17:00-18:00
     return {
-      text: 'SIESTA',
+      text: "SIESTA",
       icon: Moon,
-      color: 'from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600',
-      action: 'nap'
+      color: "from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600",
+      action: "nap",
     }
   }
   
@@ -196,11 +195,11 @@ export function SleepButton({
   // Derivar estado efectivo considerando pending (persistido) + backend
   // nightWakePending tiene prioridad sobre sleepPending (estamos en medio de un despertar nocturno)
   const derivedStatusFromPending = nightWakePending
-    ? 'night_waking'
+    ? "night_waking"
     : sleepPending
-      ? sleepPending.type === 'nap'
-        ? 'napping'
-        : 'sleeping'
+      ? sleepPending.type === "nap"
+        ? "napping"
+        : "sleeping"
       : null
 
   const effectiveStatus = derivedStatusFromPending ?? optimisticStatus ?? sleepState.status
@@ -216,7 +215,7 @@ export function SleepButton({
           setSleepPending(parsed)
         }
       } catch (e) {
-        console.warn('No se pudo parsear sleep pending', e)
+        console.warn("No se pudo parsear sleep pending", e)
       }
     }
 
@@ -229,7 +228,7 @@ export function SleepButton({
           setNightWakePending(parsed)
         }
       } catch (e) {
-        console.warn('No se pudo parsear night wake pending', e)
+        console.warn("No se pudo parsear night wake pending", e)
       }
     }
   }, [sleepStorageKey, nightWakeStorageKey])
@@ -257,7 +256,7 @@ export function SleepButton({
     if (sleepPending || nightWakePending) return
     if (sleepState.lastEventId) {
       setLastOpenEventId(sleepState.lastEventId)
-    } else if (sleepState.status === 'awake') {
+    } else if (sleepState.status === "awake") {
       setLastOpenEventId(null)
     }
   }, [sleepState.lastEventId, sleepState.status, sleepPending, nightWakePending])
@@ -270,21 +269,11 @@ export function SleepButton({
 
   const config = getButtonConfig()
 
-  const isSleepingState = effectiveStatus === 'sleeping' || effectiveStatus === 'napping' || effectiveStatus === 'night_waking'
+  const isSleepingState = effectiveStatus === "sleeping" || effectiveStatus === "napping" || effectiveStatus === "night_waking"
   const displayText = config.text // Siempre mostrar la acción, no el estado
   const buttonColor = config.color // Usar el color de la acción
   const DisplayIcon = config.icon // Usar el icono de la acción
   
-  // Debug logging exhaustivo
-  useEffect(() => {
-    const now = getCurrentTime()
-    console.log('[DEBUG SleepButton]', {
-      status: sleepState.status,
-      lastEventId: sleepState.lastEventId,
-      accion: config.action,
-      hora: now.toLocaleTimeString()
-    })
-  }, [sleepState.status, config.action, getCurrentTime])
 
   const combineNotes = (...values: (string | undefined)[]) =>
     values.filter((val) => val && val.trim().length > 0).join(" | ")
@@ -297,22 +286,22 @@ export function SleepButton({
       Math.floor((endTime.getTime() - startDate.getTime()) / (1000 * 60))
     )
 
-    const response = await fetch('/api/children/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch("/api/children/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         childId,
-        eventType: 'night_waking',
-        startTime: toLocalISOString(startDate, userData.timezone),
-        endTime: toLocalISOString(endTime, userData.timezone),
-        emotionalState: nightWakePending.emotionalState || 'tranquilo',
-        notes: nightWakePending.notes || '',
-        awakeDelay
-      })
+        eventType: "night_waking",
+        startTime: dateToTimestamp(startDate, userData.timezone),
+        endTime: dateToTimestamp(endTime, userData.timezone),
+        emotionalState: nightWakePending.emotionalState || "tranquilo",
+        notes: nightWakePending.notes || "",
+        awakeDelay,
+      }),
     })
     const respJson = await response.json().catch(() => null)
     if (!response.ok) {
-      throw new Error(respJson?.error || 'Error al registrar despertar nocturno')
+      throw new Error(respJson?.error || "Error al registrar despertar nocturno")
     }
 
     // Solo limpiar nightWakePending, NO tocar sleepPending
@@ -324,12 +313,12 @@ export function SleepButton({
     // Usar getCurrentTime() directamente para obtener el tiempo real (o simulado)
     // NO usar getTimeWindows().now que es un Date "shifted" para display
     const now = getCurrentTime()
-    if (config.action === 'sleep' || config.action === 'nap') {
+    if (config.action === "sleep" || config.action === "nap") {
       setSleepModalConfig({ eventType: config.action, start: now })
       return
     }
 
-    if (config.action === 'wake' || config.action === 'night_wake') {
+    if (config.action === "wake" || config.action === "night_wake") {
       setNotesModalConfig({ action: config.action, start: now })
     }
   }
@@ -344,34 +333,34 @@ export function SleepButton({
       if (nightWakePending) {
         await finalizeNightWaking(startTime)
         // sleepPending se mantiene intacto con su hora original (ej: 9 PM)
-        setOptimisticStatus('sleeping')
+        setOptimisticStatus("sleeping")
         toast({
           title: "Volvio a dormir",
-          description: "El despertar nocturno fue registrado."
+          description: "El despertar nocturno fue registrado.",
         })
       } else {
         // Caso normal: inicio de nuevo sueño o siesta
         setSleepPending({
           type: sleepModalConfig.eventType,
-          start: toLocalISOString(startTime, userData.timezone),
+          start: dateToTimestamp(startTime, userData.timezone),
           sleepDelay: delay,
           emotionalState: emotionalStateValue,
-          notes: notesValue
+          notes: notesValue,
         })
 
-        setOptimisticStatus(sleepModalConfig.eventType === 'nap' ? 'napping' : 'sleeping')
+        setOptimisticStatus(sleepModalConfig.eventType === "nap" ? "napping" : "sleeping")
         toast({
-          title: sleepModalConfig.eventType === 'nap' ? "Siesta iniciada" : "A dormir",
-          description: "Guarda el despertar para registrar la duracion y notas."
+          title: sleepModalConfig.eventType === "nap" ? "Siesta iniciada" : "A dormir",
+          description: "Guarda el despertar para registrar la duracion y notas.",
         })
       }
     } catch (error) {
-      console.error('Error:', error)
+      console.error("Error:", error)
       setOptimisticStatus(null)
       toast({
         title: "Error",
         description: "No se pudo preparar el registro",
-        variant: "destructive"
+        variant: "destructive",
       })
     } finally {
       setSleepModalConfig(null)
@@ -383,20 +372,20 @@ export function SleepButton({
     if (!notesModalConfig) return
 
     // Si es despertar nocturno, crear nightWakePending (NO tocar sleepPending)
-    if (notesModalConfig.action === 'night_wake') {
+    if (notesModalConfig.action === "night_wake") {
       setIsProcessing(true)
       try {
         // Crear nightWakePending separado - sleepPending se mantiene intacto
         setNightWakePending({
-          type: 'night_waking',
-          start: toLocalISOString(notesModalConfig.start, userData.timezone),
+          type: "night_waking",
+          start: dateToTimestamp(notesModalConfig.start, userData.timezone),
           emotionalState: emotionalStateValue,
-          notes: notesValue
+          notes: notesValue,
         })
-        setOptimisticStatus('night_waking')
+        setOptimisticStatus("night_waking")
         toast({
           title: "Despertar nocturno",
-          description: "Marca cuando vuelva a dormir para guardar la duracion."
+          description: "Marca cuando vuelva a dormir para guardar la duracion.",
         })
       } finally {
         setNotesModalConfig(null)
@@ -408,32 +397,32 @@ export function SleepButton({
     // Caso despertar normal (cierra todo el ciclo de sueno)
     setIsProcessing(true)
     const endTime = notesModalConfig.start
-    const emotion = emotionalStateValue || sleepPending?.emotionalState || 'tranquilo'
+    const emotion = emotionalStateValue || sleepPending?.emotionalState || "tranquilo"
     const mergedNotes = combineNotes(sleepPending?.notes, notesValue)
     const sleepDelay = sleepPending?.sleepDelay
-    const eventType = sleepPending?.type ?? (sleepState.status === 'napping' ? 'nap' : 'sleep')
+    const eventType = sleepPending?.type ?? (sleepState.status === "napping" ? "nap" : "sleep")
     // IMPORTANTE: usar sleepPending.start que tiene la hora original del inicio del sueno
     const startTime = sleepPending?.start
       ? new Date(sleepPending.start)
       : (sleepState.lastEventTime ? new Date(sleepState.lastEventTime) : endTime)
 
     try {
-      const response = await fetch('/api/children/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/children/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           childId,
           eventType,
-          startTime: toLocalISOString(startTime, userData.timezone),
-          endTime: toLocalISOString(endTime, userData.timezone),
+          startTime: dateToTimestamp(startTime, userData.timezone),
+          endTime: dateToTimestamp(endTime, userData.timezone),
           emotionalState: emotion,
           notes: mergedNotes,
-          ...(sleepDelay !== undefined ? { sleepDelay } : {})
-        } satisfies Partial<EventData>)
+          ...(sleepDelay !== undefined ? { sleepDelay } : {}),
+        } satisfies Partial<EventData>),
       })
       const respJson = await response.json().catch(() => null)
       if (!response.ok) {
-        throw new Error(respJson?.error || 'Error al registrar evento')
+        throw new Error(respJson?.error || "Error al registrar evento")
       }
       if (respJson?.event?._id) {
         setLastOpenEventId(respJson.event._id)
@@ -442,23 +431,23 @@ export function SleepButton({
       // Limpiar ambos pendings al finalizar el ciclo completo
       setSleepPending(null)
       setNightWakePending(null)
-      setOptimisticStatus('awake')
+      setOptimisticStatus("awake")
       toast({
-        title: eventType === 'nap' ? "Fin de siesta" : "Despertar registrado",
+        title: eventType === "nap" ? "Fin de siesta" : "Despertar registrado",
         description: mergedNotes
           ? "Guardamos tus notas y estado emocional."
-          : `${childName} se desperto`
+          : `${childName} se desperto`,
       })
 
       await refetch()
       onEventRegistered?.()
     } catch (error) {
-      console.error('Error:', error)
+      console.error("Error:", error)
       setOptimisticStatus(null)
       toast({
         title: "Error",
         description: "No se pudo registrar el evento",
-        variant: "destructive"
+        variant: "destructive",
       })
     } finally {
       setNotesModalConfig(null)
@@ -489,8 +478,8 @@ export function SleepButton({
   }
   
   // Determinar si mostrar duración
-  const isAsleep = sleepState.status === 'sleeping' || sleepState.status === 'napping'
-  const showDuration = localDuration !== null && (isAsleep || sleepState.status === 'awake')
+  const isAsleep = sleepState.status === "sleeping" || sleepState.status === "napping"
+  const showDuration = localDuration !== null && (isAsleep || sleepState.status === "awake")
   
   return (
     <div className="w-full">
@@ -524,7 +513,7 @@ export function SleepButton({
         onClose={() => setSleepModalConfig(null)}
         onConfirm={handleSleepConfirm}
         childName={childName}
-        eventType={sleepModalConfig?.eventType || 'sleep'}
+        eventType={sleepModalConfig?.eventType || "sleep"}
       />
 
       <EventNotesModal
@@ -532,21 +521,21 @@ export function SleepButton({
         onClose={() => setNotesModalConfig(null)}
         onConfirm={handleNotesConfirm}
         title={
-          notesModalConfig?.action === 'night_wake'
-            ? 'Despertar nocturno'
-            : 'Registrar despertar'
+          notesModalConfig?.action === "night_wake"
+            ? "Despertar nocturno"
+            : "Registrar despertar"
         }
         description={
-          notesModalConfig?.action === 'night_wake'
-            ? 'Añade el estado emocional y notas breves del despertar nocturno.'
-            : 'Captura cómo se despertó y cualquier detalle importante.'
+          notesModalConfig?.action === "night_wake"
+            ? "Añade el estado emocional y notas breves del despertar nocturno."
+            : "Captura cómo se despertó y cualquier detalle importante."
         }
         defaultEmotion={sleepPending?.emotionalState}
         defaultNotes={sleepPending?.notes}
         confirmLabel={
-          notesModalConfig?.action === 'night_wake'
-            ? 'Guardar despertar'
-            : 'Guardar'
+          notesModalConfig?.action === "night_wake"
+            ? "Guardar despertar"
+            : "Guardar"
         }
       />
     </div>

@@ -32,7 +32,7 @@ export function ChildAvatar({ name, image, className }: ChildAvatarProps) {
       "bg-red-400",
       "bg-orange-400",
       "bg-teal-400",
-      "bg-cyan-400"
+      "bg-cyan-400",
     ]
     
     // Usar la suma de los códigos de caracteres para seleccionar un color

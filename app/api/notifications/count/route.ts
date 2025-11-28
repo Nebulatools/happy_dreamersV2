@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     // Contar notificaciones in-app no leídas (sent/delivered)
     const unreadNotifications = await db.collection("notificationlogs").countDocuments({
       userId: new ObjectId(session.user.id),
-      status: { $in: ["sent", "delivered"] }
+      status: { $in: ["sent", "delivered"] },
     })
 
     let zoomTranscriptsCount = 0
@@ -38,8 +38,8 @@ export async function GET(request: NextRequest) {
       zoomTranscriptsCount = await db.collection("zoom_transcripts").countDocuments({
         $or: [
           { readByAdmin: { $ne: true } },
-          { readByAdmin: { $exists: false } }
-        ]
+          { readByAdmin: { $exists: false } },
+        ],
       })
     }
 

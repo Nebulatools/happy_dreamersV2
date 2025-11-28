@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
-import { Mail, ArrowLeft } from 'lucide-react'
+import { Mail, ArrowLeft } from "lucide-react"
 
 const forgotPasswordSchema = z.object({
   email: z.string().email({
@@ -71,7 +71,7 @@ export default function ForgotPasswordPage() {
     <div
       className="min-h-screen flex items-center justify-center"
       style={{
-        background: 'linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)'
+        background: "linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)",
       }}
     >
       {/* Logo */}
@@ -88,12 +88,12 @@ export default function ForgotPasswordPage() {
       <div className="flex items-center justify-center">
         <div className="w-[451px]">
           {/* Reset Card */}
-          <div className="backdrop-blur-sm shadow-2xl border border-white/20" style={{ backgroundColor: '#EFFFFF', width: '451px', minHeight: '500px', borderRadius: '20px', padding: '32px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div className="backdrop-blur-sm shadow-2xl border border-white/20" style={{ backgroundColor: "#EFFFFF", width: "451px", minHeight: "500px", borderRadius: "20px", padding: "32px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
             {!emailSent ? (
               <>
                 {/* Header */}
                 <div className="text-center mb-6">
-                  <h1 className="mb-2 ludicrous-title" style={{ fontSize: '48px' }}>
+                  <h1 className="mb-2 ludicrous-title" style={{ fontSize: "48px" }}>
                     Reset Password
                   </h1>
                   <p className="text-[#718096] text-sm century-gothic">
@@ -119,7 +119,7 @@ export default function ForgotPasswordPage() {
                                 {...field}
                                 type="email"
                                 placeholder="Enter your email"
-                                style={{ fontFamily: 'Century Gothic, sans-serif', backgroundColor: '#DEF1F1' }}
+                                style={{ fontFamily: "Century Gothic, sans-serif", backgroundColor: "#DEF1F1" }}
                                 autoComplete="email"
                                 className="w-full border-0 rounded-lg px-10 py-3 text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
                               />
@@ -137,12 +137,12 @@ export default function ForgotPasswordPage() {
                       disabled={isLoading}
                       className="w-full text-white border-0 rounded-xl py-3 font-normal text-[13px]"
                       style={{ 
-                        fontFamily: 'Century Gothic, sans-serif',
-                        background: '#68A1C8',
-                        backgroundColor: '#68A1C8'
+                        fontFamily: "Century Gothic, sans-serif",
+                        background: "#68A1C8",
+                        backgroundColor: "#68A1C8",
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a91b8'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#68A1C8'}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#5a91b8"}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#68A1C8"}
                     >
                       {isLoading ? "Sending..." : "Send Reset Link"}
                     </Button>
@@ -186,7 +186,7 @@ export default function ForgotPasswordPage() {
                       form.reset()
                     }}
                     className="w-full border-[#68A1C8] text-[#68A1C8] hover:bg-[#68A1C8] hover:text-white rounded-xl py-3 font-normal text-[13px]"
-                    style={{ fontFamily: 'Century Gothic, sans-serif' }}
+                    style={{ fontFamily: "Century Gothic, sans-serif" }}
                   >
                     Try another email
                   </Button>

@@ -60,24 +60,24 @@ export default function PatientsPage() {
     const fetchUsers = async () => {
       try {
         setLoading(true)
-        const response = await fetch('/api/admin/users')
+        const response = await fetch("/api/admin/users")
         
         if (!response.ok) {
-          throw new Error('Error al cargar los usuarios')
+          throw new Error("Error al cargar los usuarios")
         }
         
         const data = await response.json()
         // Excluir a los usuarios admin
-        const filteredUsers = data.filter((user: User) => user.role !== 'admin')
+        const filteredUsers = data.filter((user: User) => user.role !== "admin")
         setUsers(filteredUsers)
         
         // Verificar si hay un usuario seleccionado en localStorage
-        const savedUserId = localStorage.getItem('admin_selected_user_id')
+        const savedUserId = localStorage.getItem("admin_selected_user_id")
         if (savedUserId) {
           setSelectedUser(savedUserId)
         }
       } catch (error) {
-        logger.error('Error:', error);
+        logger.error("Error:", error)
         toast({
           title: "Error",
           description: "No se pudieron cargar los usuarios. Verifica que tengas permisos de administrador.",
@@ -95,9 +95,9 @@ export default function PatientsPage() {
     if (!users.length || childrenPrefetched) return
     const fetchAllChildren = async () => {
       try {
-        const response = await fetch('/api/children')
+        const response = await fetch("/api/children")
         if (!response.ok) {
-          throw new Error('Error al precargar niños')
+          throw new Error("Error al precargar niños")
         }
         const data = await response.json()
         const children = extractChildrenFromPayload(data)
@@ -114,7 +114,7 @@ export default function PatientsPage() {
           setUserChildren(prev => ({ ...grouped, ...prev }))
         }
       } catch (error) {
-        logger.warn('No se pudieron precargar los niños', error)
+        logger.warn("No se pudieron precargar los niños", error)
       } finally {
         setChildrenPrefetched(true)
       }
@@ -133,21 +133,21 @@ export default function PatientsPage() {
       const response = await fetch(`/api/children?userId=${userId}`)
       
       if (!response.ok) {
-        throw new Error('Error al cargar los niños del usuario')
+        throw new Error("Error al cargar los niños del usuario")
       }
       
       const data = await response.json()
       const children = extractChildrenFromPayload(data)
       setUserChildren(prev => ({
         ...prev,
-        [userId]: children
+        [userId]: children,
       }))
       setAllChildrenMap(prev => ({
         ...prev,
-        [userId]: children
+        [userId]: children,
       }))
     } catch (error) {
-      logger.error('Error:', error);
+      logger.error("Error:", error)
       toast({
         title: "Error",
         description: "No se pudieron cargar los niños del usuario.",
@@ -167,17 +167,17 @@ export default function PatientsPage() {
     setSelectedUser(userId)
     
     // Guardar el ID y nombre del usuario seleccionado en localStorage
-    localStorage.setItem('admin_selected_user_id', userId)
-    localStorage.setItem('admin_selected_user_name', userName)
+    localStorage.setItem("admin_selected_user_id", userId)
+    localStorage.setItem("admin_selected_user_name", userName)
     
     // Disparar un evento personalizado para notificar a otros componentes
-    const event = new StorageEvent('storage', {
-      key: 'admin_selected_user_id',
+    const event = new StorageEvent("storage", {
+      key: "admin_selected_user_id",
       newValue: userId,
       oldValue: null,
-      storageArea: localStorage
-    });
-    window.dispatchEvent(event);
+      storageArea: localStorage,
+    })
+    window.dispatchEvent(event)
     
     toast({
       title: "Usuario seleccionado",
@@ -187,8 +187,8 @@ export default function PatientsPage() {
     
     // Forzar una recarga completa de la página para actualizar todos los componentes
     // Agregar un parámetro de tiempo para evitar caché
-    const timestamp = new Date().getTime();
-    window.location.href = `/dashboard?refresh=${timestamp}`;
+    const timestamp = new Date().getTime()
+    window.location.href = `/dashboard?refresh=${timestamp}`
   }
 
   // Extraer apellido del nombre completo (ultima palabra)
@@ -206,14 +206,14 @@ export default function PatientsPage() {
         user.email.toLowerCase().includes(search)
       const children = userChildren[user._id] || allChildrenMap[user._id] || []
       const matchesChild = children.some(child =>
-        `${child.firstName || ''} ${child.lastName || ''}`.toLowerCase().includes(search)
+        `${child.firstName || ""} ${child.lastName || ""}`.toLowerCase().includes(search)
       )
       return matchesUser || matchesChild
     })
     .sort((a, b) => {
       const lastNameA = getLastName(a.name).toLowerCase()
       const lastNameB = getLastName(b.name).toLowerCase()
-      return lastNameA.localeCompare(lastNameB, 'es')
+      return lastNameA.localeCompare(lastNameB, "es")
     })
 
   if (loading) {
@@ -266,60 +266,60 @@ export default function PatientsPage() {
             ) : (
               <Accordion type="single" collapsible className="w-full">
                 {filteredUsers.map(user => (
-                <AccordionItem key={user._id} value={user._id}>
-                  <AccordionTrigger 
-                    onClick={() => handleAccordionChange(user._id)}
-                    className="px-4 hover:bg-accent/30 rounded-md"
-                  >
-                    <div className="flex items-center">
-                      <span className="font-medium">{user.name}</span>
-                      {selectedUser === user._id && (
-                        <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                  <AccordionItem key={user._id} value={user._id}>
+                    <AccordionTrigger 
+                      onClick={() => handleAccordionChange(user._id)}
+                      className="px-4 hover:bg-accent/30 rounded-md"
+                    >
+                      <div className="flex items-center">
+                        <span className="font-medium">{user.name}</span>
+                        {selectedUser === user._id && (
+                          <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
                           Seleccionado
-                        </span>
-                      )}
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4">
-                    <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground">Email: {user.email}</p>
-                      
-                      <Button 
-                        variant={selectedUser === user._id ? "secondary" : "default"} 
-                        className="w-full"
-                        onClick={() => handleSelectUser(user._id, user.name)}
-                      >
-                        {selectedUser === user._id ? "Usuario seleccionado" : "Seleccionar este usuario"}
-                      </Button>
-                      
-                      <div className="pt-2">
-                        <h4 className="text-sm font-medium mb-2">Niños registrados:</h4>
-                        
-                        {userChildren[user._id] ? (
-                          userChildren[user._id].length > 0 ? (
-                            <div className="space-y-2">
-                              {userChildren[user._id].map(child => (
-                                <div 
-                                  key={child._id} 
-                                  className="p-3 border rounded-md flex items-center"
-                                >
-                                  <span>{child.firstName} {child.lastName}</span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-muted-foreground">Este usuario no tiene niños registrados.</p>
-                          )
-                        ) : (
-                          <div className="flex items-center">
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            <span className="text-sm">Cargando niños...</span>
-                          </div>
+                          </span>
                         )}
                       </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4">
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">Email: {user.email}</p>
+                      
+                        <Button 
+                          variant={selectedUser === user._id ? "secondary" : "default"} 
+                          className="w-full"
+                          onClick={() => handleSelectUser(user._id, user.name)}
+                        >
+                          {selectedUser === user._id ? "Usuario seleccionado" : "Seleccionar este usuario"}
+                        </Button>
+                      
+                        <div className="pt-2">
+                          <h4 className="text-sm font-medium mb-2">Niños registrados:</h4>
+                        
+                          {userChildren[user._id] ? (
+                            userChildren[user._id].length > 0 ? (
+                              <div className="space-y-2">
+                                {userChildren[user._id].map(child => (
+                                  <div 
+                                    key={child._id} 
+                                    className="p-3 border rounded-md flex items-center"
+                                  >
+                                    <span>{child.firstName} {child.lastName}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">Este usuario no tiene niños registrados.</p>
+                            )
+                          ) : (
+                            <div className="flex items-center">
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              <span className="text-sm">Cargando niños...</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
                 ))}
               </Accordion>
             )}

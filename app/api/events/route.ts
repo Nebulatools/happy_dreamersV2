@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth"
 import clientPromise from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { createLogger } from "@/lib/logger"
+import { getStartOfDay, getEndOfDay, parseTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
 
 const logger = createLogger("API:events:route")
 
@@ -43,11 +44,34 @@ export async function GET(req: Request) {
     }
 
     // Si se especifica un rango de fechas
+    // CORREGIDO: Obtener timezone del usuario y comparar correctamente
+    // Los eventos se guardan como ISO strings con offset
     if (startDate && endDate) {
-      query.startTime = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      }
+      const userTimezone = session.user.timezone || DEFAULT_TIMEZONE
+
+      // Convertir a ISO strings con offset para comparacion consistente
+      // startDate viene como "YYYY-MM-DD", lo convertimos al inicio del dia
+      // endDate viene como "YYYY-MM-DD", lo convertimos al fin del dia
+      const startISO = getStartOfDay(new Date(startDate + "T00:00:00"), userTimezone)
+      const endISO = getEndOfDay(new Date(endDate + "T23:59:59"), userTimezone)
+
+      // Comparacion de strings ISO con offset
+      // Nota: startTime puede ser string ISO o Date dependiendo de cuando se creo
+      // Usamos $or para manejar ambos casos
+      query.$or = [
+        // Caso 1: startTime es string ISO
+        {
+          startTime: { $type: "string", $gte: startISO, $lte: endISO },
+        },
+        // Caso 2: startTime es Date (eventos legacy)
+        {
+          startTime: {
+            $type: "date",
+            $gte: parseTimestamp(startISO),
+            $lte: parseTimestamp(endISO),
+          },
+        },
+      ]
     }
 
     // Obtener los eventos

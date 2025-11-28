@@ -30,7 +30,7 @@ export function DeleteConfirmationModal({
   title = "Confirmar Eliminación",
   description,
   itemName,
-  isDeleting = false
+  isDeleting = false,
 }: DeleteConfirmationModalProps) {
   
   const [mounted, setMounted] = useState(false)

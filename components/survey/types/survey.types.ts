@@ -38,4 +38,4 @@ export interface SurveyStep {
 }
 
 // Re-exportar tipos existentes
-export type { SurveyData } from '@/types/models'
+export type { SurveyData } from "@/types/models"

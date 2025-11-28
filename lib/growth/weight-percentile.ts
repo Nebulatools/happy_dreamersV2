@@ -14,33 +14,33 @@ const percentileBands: PercentileBand[] = [
   {
     maxMonths: 6,
     male: [5.5, 6.5, 7.8, 9.2],
-    female: [5.0, 6.0, 7.3, 8.7]
+    female: [5.0, 6.0, 7.3, 8.7],
   },
   {
     maxMonths: 12,
     male: [7.0, 8.5, 10.0, 11.5],
-    female: [6.5, 8.0, 9.5, 11.0]
+    female: [6.5, 8.0, 9.5, 11.0],
   },
   {
     maxMonths: 24,
     male: [9.0, 10.5, 12.0, 13.5],
-    female: [8.5, 10.0, 11.5, 13.0]
+    female: [8.5, 10.0, 11.5, 13.0],
   },
   {
     maxMonths: 36,
     male: [11.0, 12.5, 14.0, 15.5],
-    female: [10.5, 12.0, 13.5, 15.0]
+    female: [10.5, 12.0, 13.5, 15.0],
   },
   {
     maxMonths: 60,
     male: [13.0, 15.0, 17.0, 19.0],
-    female: [12.5, 14.0, 16.0, 18.0]
+    female: [12.5, 14.0, 16.0, 18.0],
   },
   {
     maxMonths: Infinity,
     male: [16.0, 18.0, 21.0, 24.0],
-    female: [15.0, 17.0, 20.0, 23.0]
-  }
+    female: [15.0, 17.0, 20.0, 23.0],
+  },
 ]
 
 const normalizeSex = (sex?: string | null): Sex => {

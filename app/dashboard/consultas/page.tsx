@@ -199,7 +199,7 @@ export default function ConsultasPage() {
       )
     }
 
-    const childName = `${childData.firstName || ''} ${childData.lastName || ''}`.trim() || 'Niño'
+    const childName = `${childData.firstName || ""} ${childData.lastName || ""}`.trim() || "Niño"
 
     try {
       switch (activeTab) {
@@ -291,14 +291,14 @@ export default function ConsultasPage() {
               logger.debug(`Cambiando de tab: ${activeTab} -> ${newTab}`)
               
               // Validar que el nuevo tab es válido
-              if (['transcript', 'plan', 'analysis', 'history'].includes(newTab)) {
+              if (["transcript", "plan", "analysis", "history"].includes(newTab)) {
                 setActiveTab(newTab)
               } else {
                 logger.warn(`Tab inválido: ${newTab}`)
               }
             }}
             userName={activeUserName || ""}
-            childName={childData ? `${childData.firstName || ''} ${childData.lastName || ''}`.trim() : "Cargando..."}
+            childName={childData ? `${childData.firstName || ""} ${childData.lastName || ""}`.trim() : "Cargando..."}
           />
 
           {/* Contenido principal */}

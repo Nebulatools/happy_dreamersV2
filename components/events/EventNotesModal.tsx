@@ -6,7 +6,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogHeader,
-  DialogTitle
+  DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -38,7 +38,7 @@ export function EventNotesModal({
   description,
   defaultEmotion = "tranquilo",
   defaultNotes = "",
-  confirmLabel = "Guardar"
+  confirmLabel = "Guardar",
 }: EventNotesModalProps) {
   const [emotionalState, setEmotionalState] = useState(defaultEmotion)
   const [notes, setNotes] = useState(defaultNotes)
@@ -61,7 +61,7 @@ export function EventNotesModal({
   const emotionalStates = [
     { value: "tranquilo", label: "Tranquilo", helper: "Calmado" },
     { value: "inquieto", label: "Inquieto", helper: "Algo alterado" },
-    { value: "alterado", label: "Alterado", helper: "Muy molesto" }
+    { value: "alterado", label: "Alterado", helper: "Muy molesto" },
   ]
 
   return (

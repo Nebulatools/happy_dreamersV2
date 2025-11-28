@@ -1,58 +1,58 @@
 // Esquemas de validación centralizados para la encuesta
 // Fácil mantenimiento y modificación de reglas
 
-import type { StepValidation, ValidationErrors } from '../types/survey.types'
+import type { StepValidation, ValidationErrors } from "../types/survey.types"
 
 export const familyInfoValidation: StepValidation = {
   fields: {
-    'papa.nombre': {
+    "papa.nombre": {
       required: true,
       minLength: 2,
-      maxLength: 100
+      maxLength: 100,
     },
-    'papa.edad': {
+    "papa.edad": {
       required: true,
       custom: (value) => {
         const num = parseInt(value)
         if (isNaN(num) || num < 18 || num > 100) {
-          return 'Ingresa una edad válida (18-100)'
+          return "Ingresa una edad válida (18-100)"
         }
         return true
-      }
+      },
     },
-    'papa.ocupacion': {
+    "papa.ocupacion": {
       required: true,
       minLength: 2,
-      maxLength: 100
+      maxLength: 100,
     },
-    'papa.direccion': {
+    "papa.direccion": {
       required: true,
       minLength: 5,
-      maxLength: 200
+      maxLength: 200,
     },
-    'papa.email': {
+    "papa.email": {
       required: true,
-      pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
     },
-    'mama.nombre': {
-      required: true,
-      minLength: 2,
-      maxLength: 100
-    },
-    'mama.ocupacion': {
+    "mama.nombre": {
       required: true,
       minLength: 2,
-      maxLength: 100
+      maxLength: 100,
     },
-    'mama.telefono': {
+    "mama.ocupacion": {
+      required: true,
+      minLength: 2,
+      maxLength: 100,
+    },
+    "mama.telefono": {
       required: true,
       pattern: /^[\d\s()+\-]+$/,
-      minLength: 8
+      minLength: 8,
     },
-    'mama.email': {
+    "mama.email": {
       required: true,
-      pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    }
+      pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+    },
   },
   customValidation: (data: any) => {
     const errors: ValidationErrors = {}
@@ -60,14 +60,14 @@ export const familyInfoValidation: StepValidation = {
     if (data?.papa?.tieneAlergias && !data.papa.alergias) {
       errors.papa = {
         ...(errors.papa as any),
-        alergias: 'Describe las alergias de papá'
+        alergias: "Describe las alergias de papá",
       }
     }
     
     if (data?.mama?.tieneAlergias && !data.mama.alergias) {
       errors.mama = {
         ...(errors.mama as any),
-        alergias: 'Describe las alergias de mamá'
+        alergias: "Describe las alergias de mamá",
       }
     }
 
@@ -76,99 +76,99 @@ export const familyInfoValidation: StepValidation = {
       if (!data?.mama?.direccion || data.mama.direccion.trim().length < 5) {
         errors.mama = {
           ...(errors.mama as any),
-          direccion: 'La dirección de mamá es obligatoria'
+          direccion: "La dirección de mamá es obligatoria",
         }
       }
       if (!data?.mama?.ciudad || data.mama.ciudad.trim().length < 2) {
         errors.mama = {
           ...(errors.mama as any),
-          ciudad: 'La ciudad de mamá es obligatoria'
+          ciudad: "La ciudad de mamá es obligatoria",
         }
       }
     }
     
     return errors
-  }
+  },
 }
 
 export const familyDynamicsValidation: StepValidation = {
   fields: {
     // telefonoSeguimiento y emailObservaciones se toman de información familiar
     // No se requieren aquí porque ya se validaron en el paso 1
-    'quienAtiende': {
+    "quienAtiende": {
       required: true,
-      minLength: 2
-    }
-  }
+      minLength: 2,
+    },
+  },
 }
 
 export const childHistoryValidation: StepValidation = {
   fields: {
-    'nombreHijo': {
+    "nombreHijo": {
       required: true,
       minLength: 2,
-      maxLength: 100
+      maxLength: 100,
     },
-    'fechaNacimiento': {
-      required: true
+    "fechaNacimiento": {
+      required: true,
     },
-    'pesoHijo': {
-      required: true
-    }
+    "pesoHijo": {
+      required: true,
+    },
   },
   customValidation: (data: any) => {
     const errors: ValidationErrors = {}
     
     if (data?.problemasNacer && !data.problemasNacerDetalle) {
-      errors.problemasNacerDetalle = 'Describe el problema que presentó al nacer'
+      errors.problemasNacerDetalle = "Describe el problema que presentó al nacer"
     }
 
     if (data?.complicacionesParto && !data.complicacionesPartoDescripcion) {
-      errors.complicacionesPartoDescripcion = 'Describe la complicación durante el parto'
+      errors.complicacionesPartoDescripcion = "Describe la complicación durante el parto"
     }
     
     return errors
-  }
+  },
 }
 
 export const healthDevValidation: StepValidation = {
   fields: {
     // Los campos de desarrollo son opcionales
     // Los campos de checkboxes (problemasHijo) no requieren validación especial
-  }
+  },
 }
 
 export const physicalActivityValidation: StepValidation = {
   fields: {
     // Todos los campos de actividad física son opcionales según el formulario
-  }
+  },
 }
 
 export const routineHabitsValidation: StepValidation = {
   fields: {
-    'diaTipico': {
+    "diaTipico": {
       required: true,
-      minLength: 20
+      minLength: 20,
     },
-    'quienCuida': {
+    "quienCuida": {
       required: true,
-      minLength: 2
+      minLength: 2,
     },
-    'rutinaDormir': {
+    "rutinaDormir": {
       required: true,
-      minLength: 10
+      minLength: 10,
     },
-    'horaDormir': {
-      required: true
-    },
-    'dondeDuerme': {
-      required: true
-    },
-    'objetivoPadres': {
+    "horaDormir": {
       required: true,
-      minLength: 20
-    }
-  }
+    },
+    "dondeDuerme": {
+      required: true,
+    },
+    "objetivoPadres": {
+      required: true,
+      minLength: 20,
+    },
+  },
 }
 
 // Mapa de validaciones por paso
@@ -178,5 +178,5 @@ export const stepValidations: Record<number, StepValidation> = {
   3: childHistoryValidation,
   4: healthDevValidation,
   5: physicalActivityValidation,
-  6: routineHabitsValidation
+  6: routineHabitsValidation,
 }

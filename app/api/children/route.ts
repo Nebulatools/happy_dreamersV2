@@ -15,7 +15,7 @@ import {
   ApiErrorType,
   ApiError,
   validateMongoId,
-  getRequestData
+  getRequestData,
 } from "@/lib/api-utils"
 import { calculateAge } from "@/lib/date-utils"
 import type { Child } from "@/types/models"
@@ -26,12 +26,12 @@ const logger = createLogger("API:Children")
 const serializeChild = (child: Child | any) => {
   const surveyData = child?.surveyData
     ? {
-        ...child.surveyData,
-        completed:
+      ...child.surveyData,
+      completed:
           child.surveyData.completed ??
           (!!child.surveyData.completedAt && child.surveyData.isPartial !== true),
-        lastUpdated: child.surveyData.lastUpdated ?? (child.surveyUpdatedAt || child.updatedAt || child.createdAt),
-      }
+      lastUpdated: child.surveyData.lastUpdated ?? (child.surveyUpdatedAt || child.updatedAt || child.createdAt),
+    }
     : undefined
 
   return {
@@ -159,7 +159,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   logger.debug("Conexión a MongoDB establecida")
 
   // Crear documento completo con datos básicos y encuesta
-  const newChild: Omit<Child, '_id'> = {
+  const newChild: Omit<Child, "_id"> = {
     firstName: data.firstName!,
     lastName: data.lastName!,
     birthDate: data.birthDate || "",
@@ -170,31 +170,31 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     ...(data.surveyData && { surveyData: data.surveyData }),
   }
 
-    logger.debug("Insertando nuevo documento en la colección 'children'")
-    const result = await db.collection("children").insertOne(newChild)
-    logger.info("Documento insertado con éxito", { childId: result.insertedId })
+  logger.debug("Insertando nuevo documento en la colección 'children'")
+  const result = await db.collection("children").insertOne(newChild)
+  logger.info("Documento insertado con éxito", { childId: result.insertedId })
 
-    // Ahora actualizamos el usuario (padre) con el ID del niño
-    const userId = session.user.id
-    logger.debug("Actualizando usuario con el ID del niño", { userId })
+  // Ahora actualizamos el usuario (padre) con el ID del niño
+  const userId = session.user.id
+  logger.debug("Actualizando usuario con el ID del niño", { userId })
     
-    // Actualizamos el usuario usando $addToSet para evitar duplicados
-    // Usamos casting a any para evitar errores de TypeScript con los operadores de MongoDB
-    const updateUserResult = await db.collection("users").updateOne(
-      { _id: new ObjectId(userId) },
-      { 
-        $set: { updatedAt: new Date() },
-        $addToSet: { children: result.insertedId } as any,
-      }
-    )
+  // Actualizamos el usuario usando $addToSet para evitar duplicados
+  // Usamos casting a any para evitar errores de TypeScript con los operadores de MongoDB
+  const updateUserResult = await db.collection("users").updateOne(
+    { _id: new ObjectId(userId) },
+    { 
+      $set: { updatedAt: new Date() },
+      $addToSet: { children: result.insertedId } as any,
+    }
+  )
     
-    logger.debug("Usuario actualizado", { updated: updateUserResult.modifiedCount > 0 })
+  logger.debug("Usuario actualizado", { updated: updateUserResult.modifiedCount > 0 })
 
-    return NextResponse.json({
-      message: "Niño registrado correctamente y vinculado al usuario",
-      id: result.insertedId,
-      userUpdated: updateUserResult.modifiedCount > 0,
-    }, { status: 201 })
+  return NextResponse.json({
+    message: "Niño registrado correctamente y vinculado al usuario",
+    id: result.insertedId,
+    userUpdated: updateUserResult.modifiedCount > 0,
+  }, { status: 201 })
 })
 
 // PUT /api/children/:id - actualizar un niño existente

@@ -15,13 +15,13 @@ export async function POST(req: Request) {
     // Validar datos
     if (!token || !password) {
       return NextResponse.json({
-        message: "Token y contraseña son requeridos"
+        message: "Token y contraseña son requeridos",
       }, { status: 400 })
     }
 
     if (password.length < 6) {
       return NextResponse.json({
-        message: "La contraseña debe tener al menos 6 caracteres"
+        message: "La contraseña debe tener al menos 6 caracteres",
       }, { status: 400 })
     }
 
@@ -32,12 +32,12 @@ export async function POST(req: Request) {
     // Buscar usuario con token válido
     const user = await usersCollection.findOne({
       resetPasswordToken: token,
-      resetPasswordExpiry: { $gt: new Date() } // Token no expirado
+      resetPasswordExpiry: { $gt: new Date() }, // Token no expirado
     })
 
     if (!user) {
       return NextResponse.json({
-        message: "Token inválido o expirado"
+        message: "Token inválido o expirado",
       }, { status: 400 })
     }
 
@@ -50,12 +50,12 @@ export async function POST(req: Request) {
       {
         $set: {
           password: hashedPassword,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
         $unset: {
           resetPasswordToken: "",
-          resetPasswordExpiry: ""
-        }
+          resetPasswordExpiry: "",
+        },
       }
     )
 
@@ -73,13 +73,13 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       message: "Contraseña actualizada correctamente",
-      success: true
+      success: true,
     }, { status: 200 })
 
   } catch (error) {
     logger.error("Error en reset-password:", error)
     return NextResponse.json({
-      message: "Error interno del servidor"
+      message: "Error interno del servidor",
     }, { status: 500 })
   }
 }
@@ -88,12 +88,12 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
-    const token = searchParams.get('token')
+    const token = searchParams.get("token")
 
     if (!token) {
       return NextResponse.json({
         valid: false,
-        message: "Token requerido"
+        message: "Token requerido",
       }, { status: 400 })
     }
 
@@ -104,27 +104,27 @@ export async function GET(req: Request) {
     // Verificar si el token es válido
     const user = await usersCollection.findOne({
       resetPasswordToken: token,
-      resetPasswordExpiry: { $gt: new Date() }
+      resetPasswordExpiry: { $gt: new Date() },
     })
 
     if (!user) {
       return NextResponse.json({
         valid: false,
-        message: "Token inválido o expirado"
+        message: "Token inválido o expirado",
       }, { status: 400 })
     }
 
     return NextResponse.json({
       valid: true,
       message: "Token válido",
-      email: user.email // Solo para mostrar en la UI
+      email: user.email, // Solo para mostrar en la UI
     }, { status: 200 })
 
   } catch (error) {
     logger.error("Error validando token:", error)
     return NextResponse.json({
       valid: false,
-      message: "Error interno del servidor"
+      message: "Error interno del servidor",
     }, { status: 500 })
   }
 }

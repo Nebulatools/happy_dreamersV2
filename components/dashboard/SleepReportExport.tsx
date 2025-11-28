@@ -37,7 +37,7 @@ export function SleepReportExport({ childId, childName }: SleepReportExportProps
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(new Date().setDate(new Date().getDate() - 30)),
-    to: new Date()
+    to: new Date(),
   })
 
   const getExportDateRange = () => {
@@ -45,17 +45,17 @@ export function SleepReportExport({ childId, childName }: SleepReportExportProps
       const now = new Date()
       return {
         from: new Date(now.setDate(now.getDate() - 7)),
-        to: new Date()
+        to: new Date(),
       }
     } else if (reportType === "month") {
       return {
         year: selectedYear,
-        month: selectedMonth
+        month: selectedMonth,
       }
     } else {
       return dateRange ? {
         from: dateRange.from || new Date(),
-        to: dateRange.to || new Date()
+        to: dateRange.to || new Date(),
       } : undefined
     }
   }
@@ -74,7 +74,7 @@ export function SleepReportExport({ childId, childName }: SleepReportExportProps
     { value: 9, label: "Septiembre" },
     { value: 10, label: "Octubre" },
     { value: 11, label: "Noviembre" },
-    { value: 12, label: "Diciembre" }
+    { value: 12, label: "Diciembre" },
   ]
 
   return (

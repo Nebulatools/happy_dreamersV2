@@ -39,7 +39,7 @@ export async function POST(
       relationshipType,
       relationshipDescription,
       expiresAt ? new Date(expiresAt) : undefined,
-      (session.user as any).role === 'admin'
+      (session.user as any).role === "admin"
     )
 
     if (!result.success) {

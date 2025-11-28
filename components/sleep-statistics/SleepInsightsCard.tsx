@@ -22,28 +22,28 @@ export default function SleepInsightsCard({ childId, dateRange }: SleepInsightsC
   const displayedInsights = showAll ? insights : insights.slice(0, 4)
 
   // Función para obtener el color según la prioridad (más sutil)
-  const getPriorityColor = (priority: SleepInsight['priority']) => {
+  const getPriorityColor = (priority: SleepInsight["priority"]) => {
     switch (priority) {
-      case 'high':
-        return 'bg-red-50 border-red-100'
-      case 'medium':
-        return 'bg-yellow-50 border-yellow-100'
-      case 'low':
-        return 'bg-green-50 border-green-100'
-      default:
-        return 'bg-gray-50 border-gray-100'
+    case "high":
+      return "bg-red-50 border-red-100"
+    case "medium":
+      return "bg-yellow-50 border-yellow-100"
+    case "low":
+      return "bg-green-50 border-green-100"
+    default:
+      return "bg-gray-50 border-gray-100"
     }
   }
 
   // Función para obtener el estilo de la métrica
-  const getMetricStyle = (type: SleepInsight['type']) => {
+  const getMetricStyle = (type: SleepInsight["type"]) => {
     switch (type) {
-      case 'achievement':
-        return 'bg-green-100 text-green-700'
-      case 'deviation':
-        return 'bg-red-100 text-red-700'
-      default:
-        return 'bg-blue-100 text-blue-700'
+    case "achievement":
+      return "bg-green-100 text-green-700"
+    case "deviation":
+      return "bg-red-100 text-red-700"
+    default:
+      return "bg-blue-100 text-blue-700"
     }
   }
 
@@ -115,7 +115,7 @@ export default function SleepInsightsCard({ childId, dateRange }: SleepInsightsC
               onClick={() => setShowAll(!showAll)}
               className="border-[#628BE6] text-[#628BE6] hover:bg-[#628BE6] hover:text-white"
             >
-              {showAll ? 'Ver menos' : `Ver todas (${insights.length})`}
+              {showAll ? "Ver menos" : `Ver todas (${insights.length})`}
             </Button>
           )}
         </div>
@@ -142,7 +142,7 @@ export default function SleepInsightsCard({ childId, dateRange }: SleepInsightsC
               </div>
 
               {/* Métricas si existen y son válidas */}
-              {insight.metric && insight.metric.actual !== '--:--' && (
+              {insight.metric && insight.metric.actual !== "--:--" && (
                 <div className="mt-2">
                   {insight.metric.percentage !== undefined && (
                     <div className="mb-2">

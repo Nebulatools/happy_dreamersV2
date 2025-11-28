@@ -1,3 +1,15 @@
+/**
+ * @deprecated Este archivo esta DEPRECADO. Usar `lib/datetime.ts` en su lugar.
+ *
+ * Las funciones han sido reemplazadas por:
+ * - getTimePartsInTimeZone -> getTimePartsInTimezone (lib/datetime.ts)
+ * - nowInTimeZone -> getTimePartsInTimezone(new Date(), tz) (lib/datetime.ts)
+ * - startOfDayUTCForTZ -> getStartOfDayAsDate (lib/datetime.ts)
+ * - toLocalISOString -> dateToTimestamp (lib/datetime.ts)
+ *
+ * Este archivo se mantiene temporalmente para compatibilidad.
+ */
+
 // Utilidades simples para manejar zonas horarias sin dependencias externas
 // Usa Intl.DateTimeFormat para obtener componentes en una zona horaria específica.
 
@@ -14,7 +26,7 @@ export function getTimePartsInTimeZone(date: Date, timeZone?: string): TimeParts
       date,
       hours: date.getHours(),
       minutes: date.getMinutes(),
-      seconds: date.getSeconds()
+      seconds: date.getSeconds(),
     }
   }
 
@@ -26,7 +38,7 @@ export function getTimePartsInTimeZone(date: Date, timeZone?: string): TimeParts
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit"
+    second: "2-digit",
   }).formatToParts(date).reduce<Record<string, string>>((acc, part) => {
     if (part.type !== "literal") acc[part.type] = part.value
     return acc
@@ -45,7 +57,7 @@ export function getTimePartsInTimeZone(date: Date, timeZone?: string): TimeParts
     date: zonedDate,
     hours: Number(hour),
     minutes: Number(parts.minute),
-    seconds: Number(parts.second)
+    seconds: Number(parts.second),
   }
 }
 
@@ -68,7 +80,7 @@ export function startOfDayUTCForTZ(baseDate: Date = new Date(), timeZone?: strin
     timeZone,
     year: "numeric",
     month: "2-digit",
-    day: "2-digit"
+    day: "2-digit",
   }).formatToParts(baseDate).reduce<Record<string, string>>((acc, part) => {
     if (part.type !== "literal") acc[part.type] = part.value
     return acc

@@ -66,7 +66,7 @@ export default function MisSonadoresPage() {
     title: "Mis Soñadores",
     showChildSelector: false,
     showSearch: false,
-    showNotifications: true
+    showNotifications: true,
   })
 
   useEffect(() => {
@@ -75,21 +75,21 @@ export default function MisSonadoresPage() {
 
   const fetchChildren = async () => {
     try {
-      const response = await fetch('/api/children')
+      const response = await fetch("/api/children")
       if (response.ok) {
         const data = await response.json()
         const childrenData = extractChildrenFromResponse(data)
         setChildren(childrenData)
         
         if (childrenData.length === 0 && data && !Array.isArray(data)) {
-          logger.warn('No se pudieron extraer niños de la respuesta:', data)
+          logger.warn("No se pudieron extraer niños de la respuesta:", data)
         }
       } else {
-        toast.error('Error al cargar los soñadores')
+        toast.error("Error al cargar los soñadores")
       }
     } catch (error) {
-      logger.error('Error:', error);
-      toast.error('Error al cargar los soñadores')
+      logger.error("Error:", error)
+      toast.error("Error al cargar los soñadores")
     } finally {
       setLoading(false)
     }
@@ -105,20 +105,20 @@ export default function MisSonadoresPage() {
 
     try {
       const response = await fetch(`/api/children/${childToDelete._id}`, {
-        method: 'DELETE'
+        method: "DELETE",
       })
 
       if (response.ok) {
-        toast.success('Soñador eliminado correctamente')
+        toast.success("Soñador eliminado correctamente")
         fetchChildren()
         setShowDeleteModal(false)
         setChildToDelete(null)
       } else {
-        toast.error('Error al eliminar el soñador')
+        toast.error("Error al eliminar el soñador")
       }
     } catch (error) {
-      logger.error('Error:', error);
-      toast.error('Error al eliminar el soñador')
+      logger.error("Error:", error)
+      toast.error("Error al eliminar el soñador")
     }
   }
 
@@ -151,10 +151,10 @@ export default function MisSonadoresPage() {
         {children.map((child, index) => {
           const colorScheme = avatarColors[index % avatarColors.length]
           const age = calculateAge(child.birthDate)
-          const lastSurvey = new Date(child.updatedAt).toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
+          const lastSurvey = new Date(child.updatedAt).toLocaleDateString("es-ES", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
           })
 
           return (
@@ -174,7 +174,7 @@ export default function MisSonadoresPage() {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                        {child.firstName} {child.lastName || ''}
+                        {child.firstName} {child.lastName || ""}
                       </h3>
                       <p className="text-sm text-gray-500">
                         {age} años
@@ -233,7 +233,7 @@ export default function MisSonadoresPage() {
         {/* Add New Child Card */}
         <Card 
           className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 border-2 border-dashed border-blue-300 hover:border-blue-400 cursor-pointer group"
-          onClick={() => router.push('/dashboard/children/new')}
+          onClick={() => router.push("/dashboard/children/new")}
         >
           <div className="p-6 h-full flex flex-col items-center justify-center text-center min-h-[200px]">
             <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-200 transition-colors">
@@ -262,7 +262,7 @@ export default function MisSonadoresPage() {
             Comienza agregando el primer perfil de tu pequeño soñador
           </p>
           <Button 
-            onClick={() => router.push('/dashboard/children/new')}
+            onClick={() => router.push("/dashboard/children/new")}
             className="bg-gradient-to-r from-blue-500 to-blue-400 hover:from-blue-600 hover:to-blue-500 text-white font-medium px-6 py-2.5 rounded-xl shadow-sm"
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -281,7 +281,7 @@ export default function MisSonadoresPage() {
             <DialogTitle className="text-center text-xl">Confirmar Eliminación</DialogTitle>
             <DialogDescription className="text-center space-y-3">
               <span className="block text-black">
-                ¿Estás seguro de que quieres eliminar a <strong>{childToDelete?.firstName} {childToDelete?.lastName || ''}</strong>?
+                ¿Estás seguro de que quieres eliminar a <strong>{childToDelete?.firstName} {childToDelete?.lastName || ""}</strong>?
               </span>
               <span className="block text-red-400">
                 Esta acción no se puede deshacer y se perderán todos los datos asociados.

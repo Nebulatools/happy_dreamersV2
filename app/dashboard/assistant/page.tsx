@@ -438,7 +438,7 @@ export default function AssistantPage() {
 
       {/* Tabs Container */}
       <Tabs defaultValue="chat" className="w-full">
-        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-3' : 'grid-cols-1'}`}>
+        <TabsList className={`grid w-full ${isAdmin ? "grid-cols-3" : "grid-cols-1"}`}>
           <TabsTrigger value="chat" className="flex items-center gap-2">
             <Bot className="w-4 h-4" />
             Chat
@@ -460,196 +460,196 @@ export default function AssistantPage() {
         {/* Chat Tab */}
         <TabsContent value="chat">
           <Card className="h-[calc(100vh-16rem)] flex flex-col overflow-hidden">
-        {/* Assistant Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#4A90E2] rounded-full flex items-center justify-center">
-              <Bot className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-base">Tu Coach de Sueño Virtual</h3>
-              <div className="text-xs text-gray-500 space-y-1">
-                <p>
-                  {childData 
-                    ? `Consultando sobre ${childData.firstName}` 
-                    : "Selecciona un niño para comenzar"
-                  }
-                </p>
-                {childData && (
-                  <div className="flex items-center gap-2">
-                    {loadingPlan ? (
-                      <span className="text-gray-400">Cargando plan...</span>
-                    ) : currentPlan ? (
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+            {/* Assistant Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#4A90E2] rounded-full flex items-center justify-center">
+                  <Bot className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-base">Tu Coach de Sueño Virtual</h3>
+                  <div className="text-xs text-gray-500 space-y-1">
+                    <p>
+                      {childData 
+                        ? `Consultando sobre ${childData.firstName}` 
+                        : "Selecciona un niño para comenzar"
+                      }
+                    </p>
+                    {childData && (
+                      <div className="flex items-center gap-2">
+                        {loadingPlan ? (
+                          <span className="text-gray-400">Cargando plan...</span>
+                        ) : currentPlan ? (
+                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
                         Plan {currentPlan.planVersion || currentPlan.planNumber} Activo
-                      </span>
-                    ) : (
-                      <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
+                          </span>
+                        ) : (
+                          <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
                         Sin plan activo
-                      </span>
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
+                </div>
               </div>
-            </div>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="w-5 h-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleClearChat}>
-                <MessageSquare className="w-4 h-4 mr-2" />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="w-5 h-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleClearChat}>
+                    <MessageSquare className="w-4 h-4 mr-2" />
                 Limpiar chat
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleShowInfo}>
-                <Info className="w-4 h-4 mr-2" />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleShowInfo}>
+                    <Info className="w-4 h-4 mr-2" />
                 Información
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Messages Area */}
-        <ScrollArea className="flex-1 p-4 bg-gray-50/30 chat-messages-scroll">
-          <div className="space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={cn(
-                  "flex gap-3",
-                  message.role === "user" && "flex-row-reverse"
-                )}
-              >
-                {/* Avatar */}
-                {message.role === "assistant" && (
-                  <div className="w-8 h-8 bg-[#4A90E2] rounded-full flex items-center justify-center flex-shrink-0">
-                    <Bot className="w-5 h-5 text-white" />
-                  </div>
-                )}
-
-                {/* Message Bubble */}
-                <div
-                  className={cn(
-                    "rounded-2xl p-4 max-w-[70%]",
-                    message.role === "assistant" 
-                      ? "chat-bubble-assistant" 
-                      : "chat-bubble-user"
-                  )}
-                >
-                  <div className="text-sm">
-                    {formatContent(message.content)}
-                  </div>
-                  
-                  {/* Sources */}
-                  {message.sources && message.sources.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-purple-200">
-                      <a href="#" className="text-xs text-[#4A90E2] hover:underline">
-                        Ver guía completa sobre ambientes de sueño
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-            
-            {/* Loading Indicator */}
-            {isLoading && (
-              <div className="flex gap-3">
-                <div className="w-8 h-8 bg-[#4A90E2] rounded-full flex items-center justify-center">
-                  <Bot className="w-5 h-5 text-white" />
-                </div>
-                <div className="chat-bubble-assistant">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
-                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <div ref={messagesEndRef} />
-          </div>
-        </ScrollArea>
-
-        {/* Suggestions */}
-        <div className="px-4 py-2 border-t">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600 flex items-center gap-1">
-              <HelpCircle className="w-4 h-4" />
-              Sugerencias:
-            </span>
-            <div className="flex gap-2">
-              {quickSuggestions.map((suggestion) => (
-                <Button
-                  key={suggestion}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleQuickSuggestion(suggestion)}
-                  className="text-xs rounded-full"
-                >
-                  {suggestion}
-                </Button>
-              ))}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          </div>
-        </div>
 
-        {/* Input Area */}
-        <form onSubmit={handleSendMessage} className="p-4 border-t">
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="text-gray-500"
-            >
-              <Paperclip className="w-5 h-5" />
-            </Button>
+            {/* Messages Area */}
+            <ScrollArea className="flex-1 p-4 bg-gray-50/30 chat-messages-scroll">
+              <div className="space-y-4">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={cn(
+                      "flex gap-3",
+                      message.role === "user" && "flex-row-reverse"
+                    )}
+                  >
+                    {/* Avatar */}
+                    {message.role === "assistant" && (
+                      <div className="w-8 h-8 bg-[#4A90E2] rounded-full flex items-center justify-center flex-shrink-0">
+                        <Bot className="w-5 h-5 text-white" />
+                      </div>
+                    )}
+
+                    {/* Message Bubble */}
+                    <div
+                      className={cn(
+                        "rounded-2xl p-4 max-w-[70%]",
+                        message.role === "assistant" 
+                          ? "chat-bubble-assistant" 
+                          : "chat-bubble-user"
+                      )}
+                    >
+                      <div className="text-sm">
+                        {formatContent(message.content)}
+                      </div>
+                  
+                      {/* Sources */}
+                      {message.sources && message.sources.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-purple-200">
+                          <a href="#" className="text-xs text-[#4A90E2] hover:underline">
+                        Ver guía completa sobre ambientes de sueño
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
             
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Message"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              disabled={isLoading}
-              className="flex-1 px-4 py-2 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={handleRecordToggle}
-              className={cn(
-                "text-gray-500",
-                isRecording && "text-red-500"
-              )}
-            >
-              <div className="relative">
-                <Mic className="w-5 h-5" />
-                {isRecording && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-8 h-8 bg-red-500/20 rounded-full animate-ping" />
+                {/* Loading Indicator */}
+                {isLoading && (
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 bg-[#4A90E2] rounded-full flex items-center justify-center">
+                      <Bot className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="chat-bubble-assistant">
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                      </div>
+                    </div>
                   </div>
                 )}
-              </div>
-            </Button>
             
-            <Button
-              type="submit"
-              size="icon"
-              disabled={isLoading || !input.trim() || !childData}
-              className="hd-gradient-button text-white rounded-full"
-            >
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
-        </form>
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
+
+            {/* Suggestions */}
+            <div className="px-4 py-2 border-t">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 flex items-center gap-1">
+                  <HelpCircle className="w-4 h-4" />
+              Sugerencias:
+                </span>
+                <div className="flex gap-2">
+                  {quickSuggestions.map((suggestion) => (
+                    <Button
+                      key={suggestion}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleQuickSuggestion(suggestion)}
+                      className="text-xs rounded-full"
+                    >
+                      {suggestion}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Input Area */}
+            <form onSubmit={handleSendMessage} className="p-4 border-t">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="text-gray-500"
+                >
+                  <Paperclip className="w-5 h-5" />
+                </Button>
+            
+                <input
+                  ref={inputRef}
+                  type="text"
+                  placeholder="Message"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+            
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRecordToggle}
+                  className={cn(
+                    "text-gray-500",
+                    isRecording && "text-red-500"
+                  )}
+                >
+                  <div className="relative">
+                    <Mic className="w-5 h-5" />
+                    {isRecording && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-8 h-8 bg-red-500/20 rounded-full animate-ping" />
+                      </div>
+                    )}
+                  </div>
+                </Button>
+            
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={isLoading || !input.trim() || !childData}
+                  className="hd-gradient-button text-white rounded-full"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            </form>
           </Card>
         </TabsContent>
 

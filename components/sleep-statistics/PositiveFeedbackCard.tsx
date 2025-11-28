@@ -55,16 +55,16 @@ export default function PositiveFeedbackCard({ childId, dateRange = "7-days" }: 
 
   if (bedtimeVar <= 30 && bedtimeVar > 0) messages.push({ text: `Consistencia al acostarse: variación ~ ±${Math.round(bedtimeVar)} min. Gran trabajo.`, score: 80 })
 
-  if (avgWakeups <= 1 && awake.length > 0) messages.push({ text: `Despertares bajos (≤1 por noche). Se nota la estabilidad.`, score: 75 })
+  if (avgWakeups <= 1 && awake.length > 0) messages.push({ text: "Despertares bajos (≤1 por noche). Se nota la estabilidad.", score: 75 })
 
   // Progresos recientes
   if (dSleep >= 0.3) messages.push({ text: `¡Progreso! +${dSleep.toFixed(1)} h de sueño nocturno respecto al periodo anterior. 👏`, score: 72 })
-  if (dWakeups <= -0.5) messages.push({ text: `Menos despertares por noche. Buen avance mantenido.`, score: 68 })
-  if (dConsistency <= -10) messages.push({ text: `Horarios más consistentes: variación al acostarse reducida.`, score: 66 })
+  if (dWakeups <= -0.5) messages.push({ text: "Menos despertares por noche. Buen avance mantenido.", score: 68 })
+  if (dConsistency <= -10) messages.push({ text: "Horarios más consistentes: variación al acostarse reducida.", score: 66 })
 
   // Si hay pocos datos
   if (!sampleOk && messages.length === 0) {
-    messages.push({ text: `Estamos aprendiendo su rutina. Cada registro ayuda a personalizar mejor las recomendaciones.`, score: 50 })
+    messages.push({ text: "Estamos aprendiendo su rutina. Cada registro ayuda a personalizar mejor las recomendaciones.", score: 50 })
   }
 
   // Elegir las 2 mejores

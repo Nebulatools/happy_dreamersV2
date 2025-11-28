@@ -28,19 +28,19 @@ export async function GET(req: NextRequest) {
         { $sort: { updatedAt: -1, createdAt: -1 } },
         { $limit: limit },
         { $project: {
-            uuid: 1,
-            meetingId: 1,
-            topic: 1,
-            startTime: 1,
-            status: 1,
-            updatedAt: 1,
-            createdAt: 1,
-            userId: 1,
-            childId: 1,
-            // Cap the preview to avoid huge payloads
-            transcriptPreview: { $substr: ["$transcriptText", 0, 800] },
-          }
-        }
+          uuid: 1,
+          meetingId: 1,
+          topic: 1,
+          startTime: 1,
+          status: 1,
+          updatedAt: 1,
+          createdAt: 1,
+          userId: 1,
+          childId: 1,
+          // Cap the preview to avoid huge payloads
+          transcriptPreview: { $substr: ["$transcriptText", 0, 800] },
+        },
+        },
       ])
       .toArray()
 

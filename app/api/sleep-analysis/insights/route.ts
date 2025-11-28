@@ -22,9 +22,9 @@ const openai = new OpenAI({
 // Tipos para los insights
 export interface SleepInsight {
   id: string
-  type: 'adherence' | 'deviation' | 'pattern' | 'achievement' | 'recommendation'
-  category: 'schedule' | 'quality' | 'consistency' | 'health'
-  priority: 'high' | 'medium' | 'low'
+  type: "adherence" | "deviation" | "pattern" | "achievement" | "recommendation"
+  category: "schedule" | "quality" | "consistency" | "health"
+  priority: "high" | "medium" | "low"
   title: string
   description: string
   metric?: {
@@ -55,14 +55,14 @@ export async function GET(req: NextRequest) {
 
     if (!childId) {
       return NextResponse.json({ 
-        error: "Falta el parámetro childId" 
+        error: "Falta el parámetro childId", 
       }, { status: 400 })
     }
 
     logger.info("Generando insights de sueño", {
       childId,
       dateRange,
-      userId: session.user.id
+      userId: session.user.id,
     })
 
     const client = await clientPromise
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     const activePlan = await db.collection<ChildPlan>("child_plans")
       .findOne({
         childId: new ObjectId(childId),
-        status: "active"
+        status: "active",
       })
 
     if (!activePlan) {
@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
     const events = await db.collection("events")
       .find({
         childId: new ObjectId(childId),
-        startTime: { $gte: filterDate.toISOString() }
+        startTime: { $gte: filterDate.toISOString() },
       })
       .sort({ startTime: -1 })
       .toArray()
@@ -121,13 +121,13 @@ export async function GET(req: NextRequest) {
       stats,
       events,
       activePlan,
-      dateRange
+      dateRange,
     })
 
     logger.info("Insights generados exitosamente", {
       childId,
       totalInsights: insights.length,
-      hasPlan: !!activePlan
+      hasPlan: !!activePlan,
     })
 
     return NextResponse.json({
@@ -138,15 +138,15 @@ export async function GET(req: NextRequest) {
         dateRange,
         totalEvents: events.length,
         hasPlan: !!activePlan,
-        planNumber: activePlan?.planNumber
-      }
+        planNumber: activePlan?.planNumber,
+      },
     })
 
   } catch (error) {
     logger.error("Error generando insights:", error)
     return NextResponse.json({ 
       error: "Error interno del servidor",
-      details: error instanceof Error ? error.message : "Error desconocido"
+      details: error instanceof Error ? error.message : "Error desconocido",
     }, { status: 500 })
   }
 }
@@ -157,7 +157,7 @@ async function generateInsights({
   stats,
   events,
   activePlan,
-  dateRange
+  dateRange,
 }: {
   child: any
   stats: any
@@ -175,12 +175,12 @@ async function generateInsights({
     if (bedtimeAdherence) {
       insights.push({
         id: (insightId++).toString(),
-        type: bedtimeAdherence.adherencePercentage >= 80 ? 'achievement' : 'deviation',
-        category: 'schedule',
-        priority: bedtimeAdherence.adherencePercentage < 70 ? 'high' : 'medium',
+        type: bedtimeAdherence.adherencePercentage >= 80 ? "achievement" : "deviation",
+        category: "schedule",
+        priority: bedtimeAdherence.adherencePercentage < 70 ? "high" : "medium",
         title: bedtimeAdherence.adherencePercentage >= 80 
-          ? `¡Excelente adherencia!`
-          : `Horario variable`,
+          ? "¡Excelente adherencia!"
+          : "Horario variable",
         description: bedtimeAdherence.adherencePercentage >= 80
           ? `Siguiendo el horario con ${bedtimeAdherence.adherencePercentage}% de precisión`
           : `Varía ${bedtimeAdherence.averageDifference} min del plan`,
@@ -188,14 +188,14 @@ async function generateInsights({
           actual: stats.avgBedtime,
           expected: activePlan.schedule.bedtime,
           difference: `${bedtimeAdherence.averageDifference} min`,
-          percentage: bedtimeAdherence.adherencePercentage
+          percentage: bedtimeAdherence.adherencePercentage,
         },
-        icon: bedtimeAdherence.adherencePercentage >= 80 ? '🌟' : '⚠️',
+        icon: bedtimeAdherence.adherencePercentage >= 80 ? "🌟" : "⚠️",
         actionable: bedtimeAdherence.adherencePercentage < 80,
         action: bedtimeAdherence.adherencePercentage < 80 ? {
-          label: 'Ver estrategias',
-          link: '#strategies'
-        } : undefined
+          label: "Ver estrategias",
+          link: "#strategies",
+        } : undefined,
       })
     }
 
@@ -205,23 +205,23 @@ async function generateInsights({
       if (wakeTimeAdherence) {
         insights.push({
           id: (insightId++).toString(),
-          type: wakeTimeAdherence.adherencePercentage >= 80 ? 'achievement' : 'deviation',
-          category: 'schedule',
-          priority: wakeTimeAdherence.adherencePercentage < 70 ? 'high' : 'medium',
+          type: wakeTimeAdherence.adherencePercentage >= 80 ? "achievement" : "deviation",
+          category: "schedule",
+          priority: wakeTimeAdherence.adherencePercentage < 70 ? "high" : "medium",
           title: wakeTimeAdherence.adherencePercentage >= 80 
-            ? `Despertar consistente`
-            : `Despertar variable`,
+            ? "Despertar consistente"
+            : "Despertar variable",
           description: wakeTimeAdherence.adherencePercentage >= 80
-            ? `Cerca de la hora planificada`
+            ? "Cerca de la hora planificada"
             : `Varía ${wakeTimeAdherence.averageDifference} min`,
           metric: {
             actual: stats.avgWakeTime,
             expected: activePlan.schedule.wakeTime,
             difference: `${wakeTimeAdherence.averageDifference} min`,
-            percentage: wakeTimeAdherence.adherencePercentage
+            percentage: wakeTimeAdherence.adherencePercentage,
           },
-          icon: wakeTimeAdherence.adherencePercentage >= 80 ? '☀️' : '⏰',
-          actionable: wakeTimeAdherence.adherencePercentage < 80
+          icon: wakeTimeAdherence.adherencePercentage >= 80 ? "☀️" : "⏰",
+          actionable: wakeTimeAdherence.adherencePercentage < 80,
         })
       }
     }
@@ -234,18 +234,18 @@ async function generateInsights({
     const sleepQuality = evaluateSleepQuality(stats, child)
     insights.push({
       id: (insightId++).toString(),
-      type: sleepQuality.isGood ? 'achievement' : 'pattern',
-      category: 'quality',
-      priority: sleepQuality.isGood ? 'low' : 'high',
+      type: sleepQuality.isGood ? "achievement" : "pattern",
+      category: "quality",
+      priority: sleepQuality.isGood ? "low" : "high",
       title: sleepQuality.title,
       description: sleepQuality.description,
       metric: {
         actual: `${stats.totalSleepHours.toFixed(1)} horas`,
         expected: `${sleepQuality.recommendedHours} horas`,
-        difference: `${Math.abs(stats.totalSleepHours - sleepQuality.recommendedHours).toFixed(1)} horas`
+        difference: `${Math.abs(stats.totalSleepHours - sleepQuality.recommendedHours).toFixed(1)} horas`,
       },
-      icon: sleepQuality.isGood ? '😴' : '💤',
-      actionable: !sleepQuality.isGood
+      icon: sleepQuality.isGood ? "😴" : "💤",
+      actionable: !sleepQuality.isGood,
     })
   }
 
@@ -253,48 +253,48 @@ async function generateInsights({
   if (stats.bedtimeVariation > 30) {
     insights.push({
       id: (insightId++).toString(),
-      type: 'pattern',
-      category: 'consistency',
-      priority: stats.bedtimeVariation > 45 ? 'high' : 'medium',
-      title: 'Horarios irregulares',
+      type: "pattern",
+      category: "consistency",
+      priority: stats.bedtimeVariation > 45 ? "high" : "medium",
+      title: "Horarios irregulares",
       description: `Varía ${Math.round(stats.bedtimeVariation)} min entre días`,
       metric: {
         actual: `±${Math.round(stats.bedtimeVariation)} min`,
-        expected: '±15 min',
-        difference: `${Math.round(stats.bedtimeVariation - 15)} min`
+        expected: "±15 min",
+        difference: `${Math.round(stats.bedtimeVariation - 15)} min`,
       },
-      icon: '🔄',
+      icon: "🔄",
       actionable: true,
       action: {
-        label: 'Mejorar consistencia',
-        link: '#consistency'
-      }
+        label: "Mejorar consistencia",
+        link: "#consistency",
+      },
     })
   }
 
   // Despertares nocturnos
   if (stats.totalWakeups > 0) {
-    const wakeupSeverity = stats.avgWakeupsPerNight > 2 ? 'high' : 
-                          stats.avgWakeupsPerNight > 1 ? 'medium' : 'low'
+    const wakeupSeverity = stats.avgWakeupsPerNight > 2 ? "high" : 
+      stats.avgWakeupsPerNight > 1 ? "medium" : "low"
     
     insights.push({
       id: (insightId++).toString(),
-      type: 'pattern',
-      category: 'quality',
+      type: "pattern",
+      category: "quality",
       priority: wakeupSeverity,
-      title: `Despertares nocturnos`,
+      title: "Despertares nocturnos",
       description: `${stats.avgWakeupsPerNight.toFixed(1)} por noche`,
       metric: {
         actual: stats.avgWakeupsPerNight.toFixed(1),
-        expected: '0-1',
-        difference: stats.totalWakeups
+        expected: "0-1",
+        difference: stats.totalWakeups,
       },
-      icon: '🌙',
+      icon: "🌙",
       actionable: stats.avgWakeupsPerNight > 1,
       action: stats.avgWakeupsPerNight > 1 ? {
-        label: 'Ver consejos',
-        link: '#night-waking'
-      } : undefined
+        label: "Ver consejos",
+        link: "#night-waking",
+      } : undefined,
     })
   }
 
@@ -303,22 +303,22 @@ async function generateInsights({
   if (sleepDelayMinutes > 20 && stats.bedtimeToSleepDifference !== "--") {
     insights.push({
       id: (insightId++).toString(),
-      type: 'pattern',
-      category: 'quality',
-      priority: sleepDelayMinutes > 30 ? 'high' : 'medium',
-      title: 'Tarda en dormirse',
+      type: "pattern",
+      category: "quality",
+      priority: sleepDelayMinutes > 30 ? "high" : "medium",
+      title: "Tarda en dormirse",
       description: `${stats.bedtimeToSleepDifference} después de acostarse`,
       metric: {
         actual: stats.bedtimeToSleepDifference,
-        expected: '10-15 min',
-        difference: `+${sleepDelayMinutes - 15} min`
+        expected: "10-15 min",
+        difference: `+${sleepDelayMinutes - 15} min`,
       },
-      icon: '⏱️',
+      icon: "⏱️",
       actionable: true,
       action: {
-        label: 'Estrategias para dormir',
-        link: '#sleep-strategies'
-      }
+        label: "Estrategias para dormir",
+        link: "#sleep-strategies",
+      },
     })
   }
 
@@ -327,21 +327,21 @@ async function generateInsights({
     child,
     stats,
     activePlan,
-    insights
+    insights,
   })
 
   // Agregar las recomendaciones de IA
   aiRecommendations.forEach(rec => {
     insights.push({
       id: (insightId++).toString(),
-      type: 'recommendation',
+      type: "recommendation",
       category: rec.category as any,
       priority: rec.priority as any,
       title: rec.title,
       description: rec.description,
-      icon: '💡',
+      icon: "💡",
       actionable: true,
-      action: rec.action
+      action: rec.action,
     })
   })
 
@@ -367,7 +367,7 @@ function calculateBedtimeAdherence(stats: any, plan: ChildPlan) {
 
   return {
     averageDifference: difference,
-    adherencePercentage: Math.round(adherencePercentage)
+    adherencePercentage: Math.round(adherencePercentage),
   }
 }
 
@@ -384,14 +384,14 @@ function calculateWakeTimeAdherence(stats: any, plan: ChildPlan) {
 
   return {
     averageDifference: difference,
-    adherencePercentage: Math.round(adherencePercentage)
+    adherencePercentage: Math.round(adherencePercentage),
   }
 }
 
 function parseTime(timeString: string): number | null {
   if (!timeString || timeString === "--:--") return null
   
-  const [hours, minutes] = timeString.split(':').map(Number)
+  const [hours, minutes] = timeString.split(":").map(Number)
   return hours * 60 + minutes
 }
 
@@ -424,13 +424,13 @@ function evaluateSleepQuality(stats: any, child: any) {
     isGood,
     recommendedHours,
     title: isGood 
-      ? 'Sueño adecuado' 
+      ? "Sueño adecuado" 
       : stats.totalSleepHours < recommendedHours 
-        ? 'Sueño insuficiente'
-        : 'Exceso de sueño',
+        ? "Sueño insuficiente"
+        : "Exceso de sueño",
     description: isGood
-      ? `Duerme lo recomendado`
-      : `Recomendado: ${recommendedHours}h para su edad`
+      ? "Duerme lo recomendado"
+      : `Recomendado: ${recommendedHours}h para su edad`,
   }
 }
 
@@ -439,7 +439,7 @@ async function generateAIRecommendations({
   child,
   stats,
   activePlan,
-  insights
+  insights,
 }: {
   child: any
   stats: any
@@ -465,11 +465,11 @@ ${activePlan ? `
 PLAN ACTIVO:
 - Hora de dormir planificada: ${activePlan.schedule.bedtime}
 - Hora de despertar planificada: ${activePlan.schedule.wakeTime}
-` : ''}
+` : ""}
 
 PROBLEMAS DETECTADOS:
-${insights.filter(i => i.type === 'deviation' || i.type === 'pattern')
-  .map(i => `- ${i.title}: ${i.description}`).join('\n')}
+${insights.filter(i => i.type === "deviation" || i.type === "pattern")
+    .map(i => `- ${i.title}: ${i.description}`).join("\n")}
 
 Genera recomendaciones en formato JSON:
 [
@@ -497,15 +497,15 @@ Las recomendaciones deben ser:
       messages: [
         {
           role: "system",
-          content: systemPrompt
+          content: systemPrompt,
         },
         {
           role: "user",
-          content: "Genera 1-2 recomendaciones específicas basadas en los datos proporcionados. Títulos máximo 4 palabras, descripciones máximo 10 palabras."
-        }
+          content: "Genera 1-2 recomendaciones específicas basadas en los datos proporcionados. Títulos máximo 4 palabras, descripciones máximo 10 palabras.",
+        },
       ],
       max_tokens: 800,
-      temperature: 0.7
+      temperature: 0.7,
     })
 
     const responseContent = completion.choices[0]?.message?.content || ""

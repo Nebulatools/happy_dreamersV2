@@ -42,7 +42,7 @@ export default function EditChildProfilePage() {
     const fetchChild = async () => {
       try {
         setIsFetching(true)
-        const response = await fetch(`/api/children?id=${childId}`, { cache: 'no-store' })
+        const response = await fetch(`/api/children?id=${childId}`, { cache: "no-store" })
         if (!response.ok) {
           throw new Error("Error al cargar los datos del niño")
         }
@@ -116,17 +116,17 @@ export default function EditChildProfilePage() {
       // Mapear género al formato canónico si el backend lo usa en inglés
       const mapGenderForApi = (g: string) => {
         const v = String(g).toLowerCase()
-        if (v === 'masculino' || v === 'm') return 'male'
-        if (v === 'femenino' || v === 'f') return 'female'
-        if (v === 'otro' || v === 'x') return 'other'
+        if (v === "masculino" || v === "m") return "male"
+        if (v === "femenino" || v === "f") return "female"
+        if (v === "otro" || v === "x") return "other"
         return g
       }
 
       const payload = {
         ...formData,
-        gender: mapGenderForApi(formData.gender)
+        gender: mapGenderForApi(formData.gender),
       }
-      const response = await fetch(`/api/children`, {
+      const response = await fetch("/api/children", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

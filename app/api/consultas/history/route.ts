@@ -130,18 +130,18 @@ async function getConsultationStats(childId: string) {
                 $cond: [
                   { $eq: [{ $type: "$analysis" }, "string"] },
                   { $strLenCP: "$analysis" },
-                  0
-                ]
-              }
+                  0,
+                ],
+              },
             },
             avgRecommendationsLength: { 
               $avg: { 
                 $cond: [
                   { $eq: [{ $type: "$recommendations" }, "string"] },
                   { $strLenCP: "$recommendations" },
-                  0
-                ]
-              }
+                  0,
+                ],
+              },
             },
           },
         },

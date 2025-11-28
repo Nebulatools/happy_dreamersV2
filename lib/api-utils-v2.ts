@@ -478,7 +478,7 @@ export async function checkRateLimitV2(
       { 
         limit, 
         resetTime: new Date(record.resetTime).toISOString(),
-        retryAfter: Math.ceil((record.resetTime - now) / 1000)
+        retryAfter: Math.ceil((record.resetTime - now) / 1000),
       }
     )
   }
@@ -527,5 +527,5 @@ export {
   createSuccessResponse,
   createErrorResponse,
   ApiError,
-  type ApiResponse
+  type ApiResponse,
 } from "./api-utils"

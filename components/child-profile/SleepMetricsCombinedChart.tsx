@@ -342,8 +342,8 @@ function RollingCalendarGrid({
           <div className="grid grid-cols-7 gap-2 text-center text-[11px] font-medium text-gray-500">
             {(isSevenDayMode
               ? Array.from({ length: 7 }, (_, idx) =>
-                  format(addDays(gridStart, idx), "EEE", { locale: es })
-                )
+                format(addDays(gridStart, idx), "EEE", { locale: es })
+              )
               : WEEKDAY_LABELS
             ).map((label, idx) => (
               <span key={`${label}-${idx}`}>{label}</span>

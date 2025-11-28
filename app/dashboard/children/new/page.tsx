@@ -60,7 +60,7 @@ export default function AddChildPage() {
       }
       
       // Validar tipo de archivo
-      if (!file.type.startsWith('image/')) {
+      if (!file.type.startsWith("image/")) {
         toast.error("Por favor selecciona una imagen válida")
         return
       }
@@ -129,14 +129,14 @@ export default function AddChildPage() {
         // Establecer el nuevo niño como activo inmediatamente
         if (childId) {
           setActiveChildId(childId)
-          localStorage.setItem('activeChildId', childId)
+          localStorage.setItem("activeChildId", childId)
           setNewChildId(childId)
         }
         
         toast.success("Soñador registrado exitosamente")
         
         // Forzar actualización del selector disparando un evento
-        window.dispatchEvent(new Event('childrenUpdated'))
+        window.dispatchEvent(new Event("childrenUpdated"))
         
         // Mostrar modal para preguntar sobre la encuesta
         setShowSurveyModal(true)
@@ -283,7 +283,7 @@ export default function AddChildPage() {
                     value={formData.birthDate}
                     onChange={handleInputChange}
                     min="2015-01-01"
-                    max={new Date().toISOString().split('T')[0]}
+                    max={new Date().toISOString().split("T")[0]}
                     className="h-12 bg-white border-gray-200 rounded-xl focus:border-blue-400 transition-all pr-12"
                     required
                   />

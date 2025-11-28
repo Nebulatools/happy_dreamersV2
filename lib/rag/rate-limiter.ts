@@ -41,7 +41,7 @@ export function checkRateLimit(
     const newData: RateLimitData = {
       count: 1,
       resetTime: now + limits.window,
-      firstRequest: now
+      firstRequest: now,
     }
     
     requestCounts.set(userId, newData)
@@ -51,7 +51,7 @@ export function checkRateLimit(
     return {
       allowed: true,
       remaining: limits.requests - 1,
-      resetTime: newData.resetTime
+      resetTime: newData.resetTime,
     }
   }
   
@@ -63,7 +63,7 @@ export function checkRateLimit(
     return {
       allowed: false,
       remaining: 0,
-      resetTime: userLimit.resetTime
+      resetTime: userLimit.resetTime,
     }
   }
   
@@ -74,7 +74,7 @@ export function checkRateLimit(
     return {
       allowed: false,
       remaining: 0,
-      resetTime: userLimit.resetTime
+      resetTime: userLimit.resetTime,
     }
   }
   
@@ -87,7 +87,7 @@ export function checkRateLimit(
   return {
     allowed: true,
     remaining,
-    resetTime: userLimit.resetTime
+    resetTime: userLimit.resetTime,
   }
 }
 
@@ -105,7 +105,7 @@ export function getRateLimitStats() {
   return {
     activeUsers: active,
     totalTracked: total,
-    cacheSize: requestCounts.size
+    cacheSize: requestCounts.size,
   }
 }
 

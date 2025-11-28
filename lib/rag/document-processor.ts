@@ -174,18 +174,18 @@ export async function processDocument(filePath: string, fileName: string): Promi
 // Funciones auxiliares
 function getPromptForFileType(fileType: string): string {
   switch (fileType.toLowerCase()) {
-    case "pdf":
-      return "Extrae TODO el texto de este PDF. Devuelve solo el texto sin explicaciones adicionales. Mantén la estructura y formato cuando sea posible."
-    case "docx":
-      return "Extrae TODO el texto de este documento Word. Incluye títulos, párrafos, listas y cualquier texto visible. Mantén la estructura y formato cuando sea posible. Devuelve solo el texto sin explicaciones adicionales."
-    case "pptx":
-      return "Extrae TODO el texto de esta presentación PowerPoint. Incluye títulos de slides, contenido, notas del presentador y cualquier texto visible. Organiza por slides cuando sea posible. Devuelve solo el texto sin explicaciones adicionales."
-    case "xlsx":
-      return "Extrae TODO el texto y datos de esta hoja de cálculo Excel. Incluye nombres de hojas, encabezados, datos de celdas y cualquier texto visible. Organiza por hojas cuando sea posible. Devuelve solo el contenido sin explicaciones adicionales."
-    case "image":
-      return "Extrae TODO el texto visible en esta imagen. Incluye cualquier texto, números, etiquetas, títulos o contenido legible. Si hay diagramas o gráficos, describe brevemente su contenido textual. Devuelve solo el texto extraído sin explicaciones adicionales."
-    default:
-      return "Extrae TODO el texto de este archivo. Devuelve solo el contenido textual sin explicaciones adicionales."
+  case "pdf":
+    return "Extrae TODO el texto de este PDF. Devuelve solo el texto sin explicaciones adicionales. Mantén la estructura y formato cuando sea posible."
+  case "docx":
+    return "Extrae TODO el texto de este documento Word. Incluye títulos, párrafos, listas y cualquier texto visible. Mantén la estructura y formato cuando sea posible. Devuelve solo el texto sin explicaciones adicionales."
+  case "pptx":
+    return "Extrae TODO el texto de esta presentación PowerPoint. Incluye títulos de slides, contenido, notas del presentador y cualquier texto visible. Organiza por slides cuando sea posible. Devuelve solo el texto sin explicaciones adicionales."
+  case "xlsx":
+    return "Extrae TODO el texto y datos de esta hoja de cálculo Excel. Incluye nombres de hojas, encabezados, datos de celdas y cualquier texto visible. Organiza por hojas cuando sea posible. Devuelve solo el contenido sin explicaciones adicionales."
+  case "image":
+    return "Extrae TODO el texto visible en esta imagen. Incluye cualquier texto, números, etiquetas, títulos o contenido legible. Si hay diagramas o gráficos, describe brevemente su contenido textual. Devuelve solo el texto extraído sin explicaciones adicionales."
+  default:
+    return "Extrae TODO el texto de este archivo. Devuelve solo el contenido textual sin explicaciones adicionales."
   }
 }
 
@@ -246,16 +246,16 @@ export function isValidFileType(fileName: string): boolean {
 export function getMimeType(fileName: string): string {
   const ext = path.extname(fileName).toLowerCase()
   switch (ext) {
-    case ".txt": return "text/plain"
-    case ".md": return "text/markdown"
-    case ".pdf": return "application/pdf"
-    case ".docx": return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    case ".pptx": return "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-    case ".xlsx": return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    case ".png": return "image/png"
-    case ".jpg":
-    case ".jpeg": return "image/jpeg"
-    case ".zip": return "application/zip"
-    default: return "application/octet-stream"
+  case ".txt": return "text/plain"
+  case ".md": return "text/markdown"
+  case ".pdf": return "application/pdf"
+  case ".docx": return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  case ".pptx": return "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+  case ".xlsx": return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  case ".png": return "image/png"
+  case ".jpg":
+  case ".jpeg": return "image/jpeg"
+  case ".zip": return "application/zip"
+  default: return "application/octet-stream"
   }
 } 

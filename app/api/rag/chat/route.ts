@@ -16,11 +16,11 @@ import { SystemMessage, HumanMessage } from "@langchain/core/messages"
 import { getChildPlanContext, getAllPlansContext } from "@/lib/rag/plan-context-builder"
 import { checkRateLimit } from "@/lib/rag/rate-limiter"
 
-const logger = createLogger('RAGChatAPI')
+const logger = createLogger("RAGChatAPI")
 
 // 🎛️ CONFIGURACIÓN DE LOGGING PROFESIONAL
-const IS_PRODUCTION = process.env.NODE_ENV === 'production'
-const DEBUG_ENABLED = process.env.DEBUG_RAG === 'true'
+const IS_PRODUCTION = process.env.NODE_ENV === "production"
+const DEBUG_ENABLED = process.env.DEBUG_RAG === "true"
 const VERBOSE_LOGGING = !IS_PRODUCTION || DEBUG_ENABLED
 
 // Helper para logging condicional
@@ -61,76 +61,76 @@ function cleanExpiredCache() {
 // 🗓️ HELPER PARA CONVERTIR NOMBRES DE MESES
 function getMonthIndex(monthName: string): number {
   const months = {
-    'january': 0, 'enero': 0,
-    'february': 1, 'febrero': 1,
-    'march': 2, 'marzo': 2,
-    'april': 3, 'abril': 3,
-    'may': 4, 'mayo': 4,
-    'june': 5, 'junio': 5,
-    'july': 6, 'julio': 6,
-    'august': 7, 'agosto': 7,
-    'september': 8, 'septiembre': 8,
-    'october': 9, 'octubre': 9,
-    'november': 10, 'noviembre': 10,
-    'december': 11, 'diciembre': 11
-  };
-  return months[monthName.toLowerCase()] ?? -1;
+    "january": 0, "enero": 0,
+    "february": 1, "febrero": 1,
+    "march": 2, "marzo": 2,
+    "april": 3, "abril": 3,
+    "may": 4, "mayo": 4,
+    "june": 5, "junio": 5,
+    "july": 6, "julio": 6,
+    "august": 7, "agosto": 7,
+    "september": 8, "septiembre": 8,
+    "october": 9, "octubre": 9,
+    "november": 10, "noviembre": 10,
+    "december": 11, "diciembre": 11,
+  }
+  return months[monthName.toLowerCase()] ?? -1
 }
 
 // 📅 FUNCIÓN PARA FILTRAR EVENTOS POR PERIODO
 function filterEventsByPeriod(events: any[], period?: string): any[] {
-  if (!period || period === 'all') {
+  if (!period || period === "all") {
     logger.info(`Sin filtro de periodo - usando todos los eventos: ${events.length}`)
-    return events;
+    return events
   }
   
-  const now = new Date();
-  let filteredEvents: any[] = [];
+  const now = new Date()
+  let filteredEvents: any[] = []
   
-  if (period.includes('-')) {
+  if (period.includes("-")) {
     // Formato: "july-2025", "june-2024"
-    const [monthName, yearStr] = period.split('-');
-    const monthIndex = getMonthIndex(monthName);
-    const targetYear = parseInt(yearStr);
+    const [monthName, yearStr] = period.split("-")
+    const monthIndex = getMonthIndex(monthName)
+    const targetYear = parseInt(yearStr)
     
     if (monthIndex === -1) {
-      logger.warn(`Mes no reconocido: ${monthName}`);
-      return events;
+      logger.warn(`Mes no reconocido: ${monthName}`)
+      return events
     }
     
     filteredEvents = events.filter(event => {
-      const eventDate = new Date(event.startTime);
+      const eventDate = new Date(event.startTime)
       return eventDate.getMonth() === monthIndex && 
-             eventDate.getFullYear() === targetYear;
-    });
+             eventDate.getFullYear() === targetYear
+    })
     
-    logger.info(`Filtrado por ${monthName} ${yearStr}: ${filteredEvents.length} eventos de ${events.length} totales`);
+    logger.info(`Filtrado por ${monthName} ${yearStr}: ${filteredEvents.length} eventos de ${events.length} totales`)
     
-  } else if (period === 'last-7-days') {
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  } else if (period === "last-7-days") {
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
     filteredEvents = events.filter(event => 
       new Date(event.startTime) >= sevenDaysAgo
-    );
-    logger.info(`Filtrado últimos 7 días: ${filteredEvents.length} eventos`);
+    )
+    logger.info(`Filtrado últimos 7 días: ${filteredEvents.length} eventos`)
     
-  } else if (period === 'current-month') {
+  } else if (period === "current-month") {
     filteredEvents = events.filter(event => {
-      const eventDate = new Date(event.startTime);
+      const eventDate = new Date(event.startTime)
       return eventDate.getMonth() === now.getMonth() && 
-             eventDate.getFullYear() === now.getFullYear();
-    });
-    logger.info(`Filtrado mes actual: ${filteredEvents.length} eventos`);
+             eventDate.getFullYear() === now.getFullYear()
+    })
+    logger.info(`Filtrado mes actual: ${filteredEvents.length} eventos`)
     
-  } else if (period === 'since-current-plan') {
+  } else if (period === "since-current-plan") {
     // Este caso especial se maneja en el tool, aquí solo retornamos todos los eventos
-    logger.info(`Periodo since-current-plan - se procesará en el tool con fecha del plan actual`);
-    return events;
+    logger.info("Periodo since-current-plan - se procesará en el tool con fecha del plan actual")
+    return events
   } else {
-    logger.warn(`Periodo no reconocido: ${period}`);
-    return events;
+    logger.warn(`Periodo no reconocido: ${period}`)
+    return events
   }
   
-  return filteredEvents;
+  return filteredEvents
 }
 
 // 🔍 HELPER PARA EXTRAER KEYWORDS RELEVANTES PARA RAG
@@ -139,19 +139,19 @@ function extractRelevantKeywords(question: string): string {
   const lowerQuestion = question.toLowerCase()
   
   // Si la pregunta es muy específica sobre el niño, agregar contexto médico
-  if (lowerQuestion.includes('mi niño') || lowerQuestion.includes('mi hijo') || 
-      lowerQuestion.includes('alejandro') || lowerQuestion.includes('cómo está')) {
+  if (lowerQuestion.includes("mi niño") || lowerQuestion.includes("mi hijo") || 
+      lowerQuestion.includes("alejandro") || lowerQuestion.includes("cómo está")) {
     return question + " desarrollo infantil sueño pediátrico"
   }
   
   // Si pregunta sobre plan, agregar contexto
-  if (lowerQuestion.includes('plan')) {
+  if (lowerQuestion.includes("plan")) {
     return question + " plan sueño rutina infantil"
   }
   
   // Para estadísticas, agregar contexto de sueño
-  if (lowerQuestion.includes('estadísticas') || lowerQuestion.includes('duerme') || 
-      lowerQuestion.includes('horas')) {
+  if (lowerQuestion.includes("estadísticas") || lowerQuestion.includes("duerme") || 
+      lowerQuestion.includes("horas")) {
     return question + " sueño infantil estadísticas"
   }
   
@@ -200,8 +200,8 @@ const ragSearchTool = new DynamicStructuredTool({
       if (VERBOSE_LOGGING) {
         results.forEach((doc: any, i: number) => {
           const metadata = doc.metadata as any
-          const source = metadata.source || 'Fuente desconocida'
-          const similarity = doc.score ? ` (similitud: ${(doc.score * 100).toFixed(1)}%)` : ''
+          const source = metadata.source || "Fuente desconocida"
+          const similarity = doc.score ? ` (similitud: ${(doc.score * 100).toFixed(1)}%)` : ""
           logger.info(`   📄 ${i + 1}. ${source}${similarity}`)
           logger.info(`      📝 Preview: ${doc.pageContent.substring(0, 100)}...`)
         })
@@ -216,7 +216,7 @@ const ragSearchTool = new DynamicStructuredTool({
       ragCache.set(cacheKey, {
         result: ragContext,
         timestamp: Date.now(),
-        hitCount: 1
+        hitCount: 1,
       })
       logInfo(`💾 Resultado guardado en cache para: "${query}"`)
 
@@ -239,10 +239,10 @@ const childDataTool = new DynamicStructuredTool({
   }),
   func: async ({ childId, userId, dataType, period }) => {
     try {
-      logDebug('childDataTool invocado', { childId, userId, dataType, period })
+      logDebug("childDataTool invocado", { childId, userId, dataType, period })
       
       if (!childId || childId === "null" || childId === "") {
-        logger.warn('childId inválido o no proporcionado')
+        logger.warn("childId inválido o no proporcionado")
         return "Por favor selecciona un niño específico para obtener sus estadísticas"
       }
 
@@ -255,20 +255,20 @@ const childDataTool = new DynamicStructuredTool({
       })
       
       if (!childDoc) {
-        logger.warn('Niño no encontrado en la base de datos', { childId })
+        logger.warn("Niño no encontrado en la base de datos", { childId })
         return "No se encontró información del niño"
       }
       
-      logInfo('Niño encontrado', { name: `${childDoc.firstName} ${childDoc.lastName}` })
+      logInfo("Niño encontrado", { name: `${childDoc.firstName} ${childDoc.lastName}` })
       
       const events = childDoc.events || []
-      logDebug('Eventos encontrados', { count: events.length })
+      logDebug("Eventos encontrados", { count: events.length })
       
       // 📅 FILTRAR EVENTOS POR PERIODO SI SE ESPECIFICÓ
       let filteredEvents = filterEventsByPeriod(events, period)
       
       // 🎯 LÓGICA ESPECIAL PARA ESTADÍSTICAS COHERENTES CON PLANES
-      if (period === 'since-current-plan') {
+      if (period === "since-current-plan") {
         // Obtener fecha del plan actual para filtrar eventos desde que empezó
         const currentPlanDate = await getCurrentPlanDate(childId, userId)
         if (currentPlanDate) {
@@ -292,14 +292,14 @@ const childDataTool = new DynamicStructuredTool({
       // 🏗️ CONSTRUIR CONTEXTO CON INFORMACIÓN DEL PERIODO
       let context = buildProcessedStatsContext(childDoc, sleepStats)
       
-      if (period && period !== 'all') {
+      if (period && period !== "all") {
         context += `\n📅 PERIODO ANALIZADO: ${period}\n`
         context += `📊 Eventos en este periodo: ${filteredEvents.length} de ${events.length} totales\n`
       }
       
       return context
     } catch (error) {
-      logger.error('Error en childDataTool', error)
+      logger.error("Error en childDataTool", error)
       return "Error al acceder a las estadísticas del niño"
     }
   },
@@ -315,10 +315,10 @@ const childPlanTool = new DynamicStructuredTool({
   }),
   func: async ({ childId, userId, infoType }) => {
     try {
-      logger.debug('childPlanTool invocado', { childId, userId, infoType })
+      logger.debug("childPlanTool invocado", { childId, userId, infoType })
       
       if (!childId || childId === "null" || childId === "") {
-        logger.warn('childId inválido para obtener plan')
+        logger.warn("childId inválido para obtener plan")
         return "Por favor selecciona un niño específico para obtener su plan de sueño"
       }
 
@@ -330,15 +330,15 @@ const childPlanTool = new DynamicStructuredTool({
       }
 
       // Filtrar información según el tipo solicitado
-      if (infoType === 'schedule') {
+      if (infoType === "schedule") {
         // Extraer solo la sección de horarios
         const scheduleMatch = planContext.match(/⏰ HORARIOS ESTABLECIDOS:(.*?)(?=\n\n|💡|📊|===)/s)
         return scheduleMatch ? `⏰ HORARIOS ESTABLECIDOS:${scheduleMatch[1]}` : "No hay horarios definidos en el plan"
-      } else if (infoType === 'recommendations') {
+      } else if (infoType === "recommendations") {
         // Extraer solo las recomendaciones
         const recMatch = planContext.match(/💡 RECOMENDACIONES ESPECÍFICAS:(.*?)(?=\n\n|📊|===)/s)
         return recMatch ? `💡 RECOMENDACIONES ESPECÍFICAS:${recMatch[1]}` : "No hay recomendaciones específicas en el plan"
-      } else if (infoType === 'summary') {
+      } else if (infoType === "summary") {
         // Extraer solo información básica
         const summaryMatch = planContext.match(/=== PLAN ACTUAL DEL NIÑO ===(.*?)(?=⏰|💡|📊)/s)
         return summaryMatch ? `=== RESUMEN DEL PLAN ===${summaryMatch[1]}` : "No se pudo obtener resumen del plan"
@@ -347,7 +347,7 @@ const childPlanTool = new DynamicStructuredTool({
       // Por defecto, devolver el contexto completo
       return planContext
     } catch (error) {
-      logger.error('Error en childPlanTool', error)
+      logger.error("Error en childPlanTool", error)
       return "Error al acceder al plan de sueño del niño"
     }
   },
@@ -374,22 +374,22 @@ const superComprehensiveAgent = async (
     if (isPlanProgressQuestion) {
       period = "since-current-plan" // Estadísticas desde el plan actual para ver cómo va
       usesPlanBasedPeriod = true
-      logInfo(`🤖 AI detectó pregunta sobre progreso del plan - usando estadísticas desde el plan actual`)
+      logInfo("🤖 AI detectó pregunta sobre progreso del plan - usando estadísticas desde el plan actual")
     } else {
       period = "last-30-days" // Por defecto si no es sobre progreso del plan
-      logInfo(`🤖 AI detectó pregunta general - usando últimos 30 días`)
+      logInfo("🤖 AI detectó pregunta general - usando últimos 30 días")
     }
   }
   
-  logInfo(`📅 Periodo detectado para estadísticas: ${period} ${usesPlanBasedPeriod ? '(coherente con plan)' : ''}`)
+  logInfo(`📅 Periodo detectado para estadísticas: ${period} ${usesPlanBasedPeriod ? "(coherente con plan)" : ""}`)
   
   // 2. EJECUCIÓN PARALELA DE TODOS LOS TOOLS
-  logInfo(`⚡ Ejecutando todos los tools en paralelo...`)
+  logInfo("⚡ Ejecutando todos los tools en paralelo...")
   
   const [ragResults, statistics, currentPlan, plansHistory] = await Promise.all([
     // RAG - Búsqueda contextual
     ragSearchTool.func({ 
-      query: extractRelevantKeywords(question) 
+      query: extractRelevantKeywords(question), 
     }).catch(err => {
       logger.error("Error en RAG:", err)
       return "Error obteniendo información médica"
@@ -400,7 +400,7 @@ const superComprehensiveAgent = async (
       childId, 
       userId, 
       dataType: "stats",
-      period 
+      period, 
     }).catch(err => {
       logger.error("Error en estadísticas:", err)
       return "Error obteniendo estadísticas del niño"
@@ -410,7 +410,7 @@ const superComprehensiveAgent = async (
     childPlanTool.func({ 
       childId, 
       userId, 
-      infoType: "full_plan" 
+      infoType: "full_plan", 
     }).catch(err => {
       logger.error("Error en plan actual:", err)
       return "Error obteniendo plan actual"
@@ -420,21 +420,21 @@ const superComprehensiveAgent = async (
     getAllPlansContext(childId, userId).catch(err => {
       logger.error("Error en historial de planes:", err)
       return "Error obteniendo historial de planes"
-    })
+    }),
   ])
   
-  logInfo(`✅ Todos los tools completados, sintetizando respuesta...`)
+  logInfo("✅ Todos los tools completados, sintetizando respuesta...")
   
   // 3. CONSTRUCCIÓN DE CONTEXTO PARA GPT
   const conversationContext = conversationHistory && conversationHistory.length > 0
-    ? `Contexto conversacional: ${conversationHistory.slice(-4).map(msg => `${msg.role}: ${msg.content}`).join(' | ')}`
+    ? `Contexto conversacional: ${conversationHistory.slice(-4).map(msg => `${msg.role}: ${msg.content}`).join(" | ")}`
     : "Sin contexto previo."
   
   // 4. SÍNTESIS INTELIGENTE CON GPT
   const llm = new ChatOpenAI({
     modelName: "gpt-4o-mini",
     temperature: 0.7,
-    maxTokens: 1000
+    maxTokens: 1000,
   })
   
   const synthesisPrompt = `Eres la Dra. Mariana, pediatra especialista en sueño infantil.
@@ -480,8 +480,8 @@ INSTRUCCIONES:
       startTime, 
       endTime: Date.now(), 
       agent: "SUPER_COMPREHENSIVE",
-      executionTime 
-    }
+      executionTime, 
+    },
   }
 }
 
@@ -495,7 +495,7 @@ async function intelligentAgentRouter(question: string): Promise<{
     const llm = new ChatOpenAI({
       modelName: "gpt-4o-mini",
       temperature: 0.1,
-      maxTokens: 200
+      maxTokens: 200,
     })
 
     const routerPrompt = `Eres un experto en sueño infantil que decide qué información necesitas para responder preguntas.
@@ -533,7 +533,7 @@ Responde en JSON exacto:
 
     const response = await llm.invoke([
       new SystemMessage(routerPrompt),
-      new HumanMessage("Decide qué agentes usar")
+      new HumanMessage("Decide qué agentes usar"),
     ])
 
     const result = response.content.toString().trim()
@@ -545,7 +545,7 @@ Responde en JSON exacto:
       // Fallback inteligente
       return {
         agents: ["general_insights"],
-        reasoning: "Fallback a vista general por error en parsing"
+        reasoning: "Fallback a vista general por error en parsing",
       }
     }
 
@@ -554,7 +554,7 @@ Responde en JSON exacto:
     // Fallback seguro
     return {
       agents: ["general_insights"],
-      reasoning: "Fallback por error en AI router"
+      reasoning: "Fallback por error en AI router",
     }
   }
 }
@@ -566,18 +566,18 @@ function detectPeriodFromQuestion(question: string): string | null {
   
   // Detección de meses específicos (esto sí se mantiene porque es preciso)
   const monthPatterns = {
-    'enero': `january-${currentYear}`,
-    'febrero': `february-${currentYear}`,
-    'marzo': `march-${currentYear}`,
-    'abril': `april-${currentYear}`,
-    'mayo': `may-${currentYear}`,
-    'junio': `june-${currentYear}`,
-    'julio': `july-${currentYear}`,
-    'agosto': `august-${currentYear}`,
-    'septiembre': `september-${currentYear}`,
-    'octubre': `october-${currentYear}`,
-    'noviembre': `november-${currentYear}`,
-    'diciembre': `december-${currentYear}`
+    "enero": `january-${currentYear}`,
+    "febrero": `february-${currentYear}`,
+    "marzo": `march-${currentYear}`,
+    "abril": `april-${currentYear}`,
+    "mayo": `may-${currentYear}`,
+    "junio": `june-${currentYear}`,
+    "julio": `july-${currentYear}`,
+    "agosto": `august-${currentYear}`,
+    "septiembre": `september-${currentYear}`,
+    "octubre": `october-${currentYear}`,
+    "noviembre": `november-${currentYear}`,
+    "diciembre": `december-${currentYear}`,
   }
   
   // Buscar mes específico primero (esto es preciso)
@@ -589,16 +589,16 @@ function detectPeriodFromQuestion(question: string): string | null {
   }
   
   // Períodos relativos claros
-  if (lowerQuestion.includes('este mes') || lowerQuestion.includes('mes actual')) {
-    return 'current-month'
+  if (lowerQuestion.includes("este mes") || lowerQuestion.includes("mes actual")) {
+    return "current-month"
   }
   
-  if (lowerQuestion.includes('semana') || lowerQuestion.includes('últimos días')) {
-    return 'last-7-days'
+  if (lowerQuestion.includes("semana") || lowerQuestion.includes("últimos días")) {
+    return "last-7-days"
   }
   
-  if (lowerQuestion.includes('evolución') || lowerQuestion.includes('últimos meses')) {
-    return 'last-90-days'
+  if (lowerQuestion.includes("evolución") || lowerQuestion.includes("últimos meses")) {
+    return "last-90-days"
   }
   
   // No hay período específico detectado - AI decidirá el contexto
@@ -608,13 +608,13 @@ function detectPeriodFromQuestion(question: string): string | null {
 // 🎯 AGENTE ESPECIALIZADO: PROGRESO DEL PLAN
 async function planProgressAgent(childId: string, userId: string): Promise<string> {
   try {
-    logInfo(`🎯 Ejecutando PlanProgressAgent`)
+    logInfo("🎯 Ejecutando PlanProgressAgent")
     
     // 1. Obtener plan actual
     const currentPlan = await childPlanTool.func({ 
       childId, 
       userId, 
-      infoType: "full_plan" 
+      infoType: "full_plan", 
     })
     
     // 2. Obtener fecha del plan para estadísticas coherentes
@@ -627,14 +627,14 @@ async function planProgressAgent(childId: string, userId: string): Promise<strin
         childId, 
         userId, 
         dataType: "stats",
-        period: "since-current-plan"
+        period: "since-current-plan",
       })
     } else {
       statistics = await childDataTool.func({ 
         childId, 
         userId, 
         dataType: "stats",
-        period: "last-30-days"
+        period: "last-30-days",
       })
     }
     
@@ -656,10 +656,10 @@ Datos para evaluar efectividad del plan actual`
 // 🧠 AGENTE ESPECIALIZADO: CONOCIMIENTO MÉDICO
 async function medicalRAGAgent(question: string): Promise<string> {
   try {
-    logInfo(`🧠 Ejecutando MedicalRAGAgent`)
+    logInfo("🧠 Ejecutando MedicalRAGAgent")
     
     const ragResults = await ragSearchTool.func({ 
-      query: extractRelevantKeywords(question)
+      query: extractRelevantKeywords(question),
     })
     
     return `=== CONOCIMIENTO MÉDICO ESPECIALIZADO ===
@@ -683,7 +683,7 @@ async function statisticsAgent(childId: string, userId: string, period: string):
       childId, 
       userId, 
       dataType: "stats",
-      period
+      period,
     })
     
     return `=== ESTADÍSTICAS DEL PERÍODO: ${period.toUpperCase()} ===
@@ -701,7 +701,7 @@ Datos específicos del período solicitado`
 // 🌍 AGENTE ESPECIALIZADO: VISTA INTEGRAL
 async function generalInsightsAgent(childId: string, userId: string): Promise<string> {
   try {
-    logInfo(`🌍 Ejecutando GeneralInsightsAgent`)
+    logInfo("🌍 Ejecutando GeneralInsightsAgent")
     
     // Ejecutar en paralelo para eficiencia
     const [statistics, currentPlan, plansHistory] = await Promise.all([
@@ -709,14 +709,14 @@ async function generalInsightsAgent(childId: string, userId: string): Promise<st
         childId, 
         userId, 
         dataType: "stats",
-        period: "last-30-days"
+        period: "last-30-days",
       }),
       childPlanTool.func({ 
         childId, 
         userId, 
-        infoType: "full_plan" 
+        infoType: "full_plan", 
       }),
-      getAllPlansContext(childId, userId)
+      getAllPlansContext(childId, userId),
     ])
     
     return `=== VISTA INTEGRAL DEL NIÑO ===
@@ -740,12 +740,12 @@ Visión completa del estado actual del niño`
 // 📋 AGENTE ESPECIALIZADO: CONTEXTO DEL PLAN
 async function planContextAgent(childId: string, userId: string): Promise<string> {
   try {
-    logInfo(`📋 Ejecutando PlanContextAgent`)
+    logInfo("📋 Ejecutando PlanContextAgent")
     
     const currentPlan = await childPlanTool.func({ 
       childId, 
       userId, 
-      infoType: "full_plan" 
+      infoType: "full_plan", 
     })
     
     return `=== CONTEXTO DEL PLAN ACTUAL ===
@@ -768,9 +768,9 @@ async function getCurrentPlanDate(childId: string, userId: string): Promise<Date
     const currentPlan = await db.collection("child_plans").findOne({
       childId: new ObjectId(childId),
       userId: new ObjectId(userId),
-      status: "active"
+      status: "active",
     }, {
-      sort: { planNumber: -1 } // El más reciente
+      sort: { planNumber: -1 }, // El más reciente
     })
     
     if (currentPlan && currentPlan.createdAt) {
@@ -778,7 +778,7 @@ async function getCurrentPlanDate(childId: string, userId: string): Promise<Date
       return new Date(currentPlan.createdAt)
     }
     
-    logInfo(`❌ No se encontró plan actual para el niño`)
+    logInfo("❌ No se encontró plan actual para el niño")
     return null
   } catch (error) {
     logger.error("Error obteniendo fecha del plan actual:", error)
@@ -800,7 +800,7 @@ const intelligentOrchestrator = async (
   // 1. ROUTER INTELIGENTE DECIDE QUÉ AGENTES USAR
   const routing = await intelligentAgentRouter(question)
   
-  logInfo(`🤖 Router AI decidió usar agentes: [${routing.agents.join(', ')}]`)
+  logInfo(`🤖 Router AI decidió usar agentes: [${routing.agents.join(", ")}]`)
   logInfo(`💭 Razón: ${routing.reasoning}`)
   
   // 2. EJECUTAR AGENTES SELECCIONADOS EN PARALELO
@@ -808,25 +808,25 @@ const intelligentOrchestrator = async (
   
   for (const agentName of routing.agents) {
     switch (agentName) {
-      case 'plan_progress':
-        agentPromises.push(planProgressAgent(childId, userId))
-        break
-      case 'medical_rag':
-        agentPromises.push(medicalRAGAgent(question))
-        break
-      case 'statistics':
-        const period = routing.period || detectPeriodFromQuestion(question) || 'last-30-days'
-        agentPromises.push(statisticsAgent(childId, userId, period))
-        break
-      case 'general_insights':
-        agentPromises.push(generalInsightsAgent(childId, userId))
-        break
-      case 'plan_context':
-        agentPromises.push(planContextAgent(childId, userId))
-        break
-      default:
-        logInfo(`⚠️ Agente desconocido: ${agentName}, usando general_insights`)
-        agentPromises.push(generalInsightsAgent(childId, userId))
+    case "plan_progress":
+      agentPromises.push(planProgressAgent(childId, userId))
+      break
+    case "medical_rag":
+      agentPromises.push(medicalRAGAgent(question))
+      break
+    case "statistics":
+      const period = routing.period || detectPeriodFromQuestion(question) || "last-30-days"
+      agentPromises.push(statisticsAgent(childId, userId, period))
+      break
+    case "general_insights":
+      agentPromises.push(generalInsightsAgent(childId, userId))
+      break
+    case "plan_context":
+      agentPromises.push(planContextAgent(childId, userId))
+      break
+    default:
+      logInfo(`⚠️ Agente desconocido: ${agentName}, usando general_insights`)
+      agentPromises.push(generalInsightsAgent(childId, userId))
     }
   }
   
@@ -835,21 +835,21 @@ const intelligentOrchestrator = async (
   // 3. OBTENER RESULTADOS DE TODOS LOS AGENTES
   const agentResults = await Promise.all(agentPromises)
   
-  logInfo(`✅ Todos los agentes completados, sintetizando respuesta...`)
+  logInfo("✅ Todos los agentes completados, sintetizando respuesta...")
   
   // 4. CONSTRUCCIÓN DE CONTEXTO PARA GPT
   const conversationContext = conversationHistory && conversationHistory.length > 0
-    ? `Contexto conversacional: ${conversationHistory.slice(-4).map(msg => `${msg.role}: ${msg.content}`).join(' | ')}`
+    ? `Contexto conversacional: ${conversationHistory.slice(-4).map(msg => `${msg.role}: ${msg.content}`).join(" | ")}`
     : "Sin contexto previo."
   
   // 5. SÍNTESIS INTELIGENTE CON GPT
   const llm = new ChatOpenAI({
     modelName: "gpt-4o-mini",
     temperature: 0.7,
-    maxTokens: 1000
+    maxTokens: 1000,
   })
   
-  const combinedInformation = agentResults.join('\n\n')
+  const combinedInformation = agentResults.join("\n\n")
   
   const synthesisPrompt = `Eres la Dra. Mariana, pediatra especialista en sueño infantil.
 
@@ -874,7 +874,7 @@ INSTRUCCIONES:
   ])
   
   const executionTime = Date.now() - startTime
-  logInfo(`🎯 Orquestador completado en ${executionTime}ms con agentes: [${routing.agents.join(', ')}]`)
+  logInfo(`🎯 Orquestador completado en ${executionTime}ms con agentes: [${routing.agents.join(", ")}]`)
   
   return {
     finalAnswer: response.content,
@@ -884,8 +884,8 @@ INSTRUCCIONES:
       agent: "INTELLIGENT_ORCHESTRATOR",
       agents: routing.agents,
       reasoning: routing.reasoning,
-      executionTime 
-    }
+      executionTime, 
+    },
   }
 }
 
@@ -907,14 +907,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ 
         error: "Demasiadas solicitudes. Por favor espera un momento.",
         retryAfter: waitTime,
-        remaining: rateLimitCheck.remaining
+        remaining: rateLimitCheck.remaining,
       }, { 
         status: 429,
         headers: {
-          'Retry-After': waitTime.toString(),
-          'X-RateLimit-Remaining': rateLimitCheck.remaining.toString(),
-          'X-RateLimit-Reset': new Date(rateLimitCheck.resetTime).toISOString()
-        }
+          "Retry-After": waitTime.toString(),
+          "X-RateLimit-Remaining": rateLimitCheck.remaining.toString(),
+          "X-RateLimit-Reset": new Date(rateLimitCheck.resetTime).toISOString(),
+        },
       })
     }
 
@@ -926,7 +926,7 @@ export async function POST(req: NextRequest) {
 
     // 💬 LOGGING DE PREGUNTA RECIBIDA (Solo en desarrollo/debug)
     logInfo(`💬 Nueva pregunta recibida: "${message}"`)
-    logDebug(`👶 ChildId: ${childId || 'No especificado'}`)
+    logDebug(`👶 ChildId: ${childId || "No especificado"}`)
     logDebug(`👤 Usuario: ${session.user.email || session.user.id}`)
 
     // 🔍 OBTENER EL PARENT ID CORRECTO DEL NIÑO
@@ -936,17 +936,17 @@ export async function POST(req: NextRequest) {
       try {
         const { db } = await connectToDatabase()
         const child = await db.collection("children").findOne({
-          _id: new ObjectId(childId)
+          _id: new ObjectId(childId),
         })
         
         if (child && child.parentId) {
           parentUserId = child.parentId
-          logInfo('Niño encontrado', { name: `${child.firstName} ${child.lastName}`, parentId: parentUserId })
+          logInfo("Niño encontrado", { name: `${child.firstName} ${child.lastName}`, parentId: parentUserId })
         } else {
-          logger.warn('Niño no encontrado', { childId })
+          logger.warn("Niño no encontrado", { childId })
         }
       } catch (error) {
-        logger.error('Error obteniendo parent ID', error)
+        logger.error("Error obteniendo parent ID", error)
       }
     }
 
@@ -1009,7 +1009,7 @@ async function processSleepStatistics(events: any[]) {
       totalSleepEvents: 0,
       totalNaps: 0,
       totalMeals: 0,
-      recentEventsCount: 0
+      recentEventsCount: 0,
     }
   }
 
@@ -1022,20 +1022,20 @@ async function processSleepStatistics(events: any[]) {
   })
 
   // Separar tipos de eventos
-  const sleepEvents = events.filter((e: any) => e.eventType === 'sleep')
-  const naps = events.filter((e: any) => e.eventType === 'nap')
-  const meals = events.filter((e: any) => e.eventType === 'meal')
-  const bedtimeEvents = events.filter((e: any) => e.eventType === 'bedtime')
+  const sleepEvents = events.filter((e: any) => e.eventType === "sleep")
+  const naps = events.filter((e: any) => e.eventType === "nap")
+  const meals = events.filter((e: any) => e.eventType === "meal")
+  const bedtimeEvents = events.filter((e: any) => e.eventType === "bedtime")
 
   // Calcular promedios usando la misma lógica que useSleepData
   const avgSleepDuration = calculateInferredSleepDuration(events)
   const avgNapDuration = naps.length > 0
     ? naps.reduce((sum: number, event: any) => {
-        if (event.endTime) {
-          return sum + differenceInMinutes(parseISO(event.endTime), parseISO(event.startTime)) / 60
-        }
-        return sum
-      }, 0) / naps.length
+      if (event.endTime) {
+        return sum + differenceInMinutes(parseISO(event.endTime), parseISO(event.startTime)) / 60
+      }
+      return sum
+    }, 0) / naps.length
     : 0
 
   // Calcular horarios promedio
@@ -1069,7 +1069,7 @@ async function processSleepStatistics(events: any[]) {
     totalSleepEvents: sleepEvents.length,
     totalNaps: naps.length,
     totalMeals: meals.length,
-    recentEventsCount: recentEvents.length
+    recentEventsCount: recentEvents.length,
   }
 }
 
@@ -1087,8 +1087,8 @@ function calculateInferredSleepDuration(events: any[]): number {
     const nextEvent = sortedEvents[i + 1]
     
     if (
-      ['bedtime', 'sleep'].includes(currentEvent.eventType) &&
-      nextEvent.eventType === 'wake'
+      ["bedtime", "sleep"].includes(currentEvent.eventType) &&
+      nextEvent.eventType === "wake"
     ) {
       const bedTime = parseISO(currentEvent.startTime)
       const wakeTime = parseISO(nextEvent.startTime)
@@ -1126,10 +1126,10 @@ function calculateAverageTime(dates: Date[]): string {
     }, 0)
     
     const avgMinutes = totalMinutes / dates.length
-    let finalHours = Math.floor(avgMinutes / 60) % 24
+    const finalHours = Math.floor(avgMinutes / 60) % 24
     const finalMinutes = Math.round(avgMinutes % 60)
     
-    return `${finalHours.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`
+    return `${finalHours.toString().padStart(2, "0")}:${finalMinutes.toString().padStart(2, "0")}`
   } catch {
     return "--:--"
   }
@@ -1149,8 +1149,8 @@ function calculateInferredWakeTime(events: any[]): string {
     const nextEvent = sortedEvents[i + 1]
     
     if (
-      ['bedtime', 'sleep'].includes(currentEvent.eventType) &&
-      nextEvent.eventType === 'wake'
+      ["bedtime", "sleep"].includes(currentEvent.eventType) &&
+      nextEvent.eventType === "wake"
     ) {
       wakeTimes.push(parseISO(nextEvent.startTime))
     }

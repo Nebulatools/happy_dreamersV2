@@ -85,7 +85,7 @@ export default function TodayInstructionsCard({ childId }: TodayInstructionsCard
       time: t,
       minutesUntil: diffMinutes(toTodayDate(t), now),
       changed: !!(prevSchedule?.wakeTime && prevSchedule.wakeTime !== t && Math.abs(diffMinutes(toTodayDate(t), toTodayDate(prevSchedule.wakeTime))) >= 15),
-      oldTime: prevSchedule?.wakeTime || undefined
+      oldTime: prevSchedule?.wakeTime || undefined,
     })
   }
 
@@ -99,7 +99,7 @@ export default function TodayInstructionsCard({ childId }: TodayInstructionsCard
         minutesUntil: diffMinutes(toTodayDate(n.time), now),
         changed: !!(prevSchedule?.naps?.[idx]?.time && prevSchedule.naps[idx].time !== n.time && Math.abs(diffMinutes(toTodayDate(n.time), toTodayDate(prevSchedule.naps[idx].time))) >= 15),
         oldTime: prevSchedule?.naps?.[idx]?.time,
-        extra: n.duration ? `${n.duration} min` : undefined
+        extra: n.duration ? `${n.duration} min` : undefined,
       })
     })
   }
@@ -112,7 +112,7 @@ export default function TodayInstructionsCard({ childId }: TodayInstructionsCard
       time: t,
       minutesUntil: diffMinutes(toTodayDate(t), now),
       changed: !!(prevSchedule?.bedtime && prevSchedule.bedtime !== t && Math.abs(diffMinutes(toTodayDate(t), toTodayDate(prevSchedule.bedtime))) >= 15),
-      oldTime: prevSchedule?.bedtime || undefined
+      oldTime: prevSchedule?.bedtime || undefined,
     })
   }
 

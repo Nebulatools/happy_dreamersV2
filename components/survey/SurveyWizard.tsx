@@ -32,7 +32,7 @@ const stepComponents = {
   3: ChildHistoryStep,
   4: HealthDevStep,
   5: PhysicalActivityStep,
-  6: RoutineHabitsStep
+  6: RoutineHabitsStep,
 }
 
 const stepKeyMap: Record<number, keyof SurveyData> = {
@@ -68,7 +68,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
   const userPrefillContact = useMemo(() => ({
     name: userProfile?.name || session?.user?.name || "",
     email: userProfile?.email || session?.user?.email || "",
-    phone: userProfile?.phone || session?.user?.phone || ""
+    phone: userProfile?.phone || session?.user?.phone || "",
   }), [userProfile, session])
   
   const {
@@ -82,7 +82,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
     isFormComplete,
     getStepData,
     setFormData,
-    setInitialData
+    setInitialData,
   } = useSurveyForm(initialData)
 
   const primaryCaregiver = formData?.informacionFamiliar?.primaryCaregiver
@@ -90,7 +90,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
   const {
     showValidationErrors,
     focusErrorField,
-    shouldShowError
+    shouldShowError,
   } = useSurveyValidation()
   
   const {
@@ -98,12 +98,12 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
     loadFromLocalStorage,
     clearLocalStorage,
     saveToServer,
-    lastSaveTime
+    lastSaveTime,
   } = useSurveyPersistence({
     childId,
     formData,
     currentStep,
-    enabled: true
+    enabled: true,
   })
 
   // Función para verificar si TODAS las preguntas del paso están respondidas
@@ -117,7 +117,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
     )
 
     const getValueAtPath = (obj: any, path: string) => {
-      return path.split('.').reduce((acc, key) => (acc ? acc[key] : undefined), obj)
+      return path.split(".").reduce((acc, key) => (acc ? acc[key] : undefined), obj)
     }
 
     return requiredEntries.every(([fieldPath]) => {
@@ -175,7 +175,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
       toast({
         title: "Campos obligatorios",
         description: "Por favor completa todos los campos obligatorios antes de continuar",
-        variant: "destructive"
+        variant: "destructive",
       })
       return
     }
@@ -187,13 +187,13 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        const response = await fetch('/api/user/profile')
+        const response = await fetch("/api/user/profile")
         if (response.ok) {
           const data = await response.json()
           setUserProfile(data.data)
         }
       } catch (error) {
-        console.error('Error al cargar perfil del usuario:', error)
+        console.error("Error al cargar perfil del usuario:", error)
       }
     }
     
@@ -205,7 +205,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
           setChildData(data)
         }
       } catch (error) {
-        console.error('Error al cargar datos del niño:', error)
+        console.error("Error al cargar datos del niño:", error)
       }
     }
     
@@ -228,14 +228,14 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
     if (savedData?.formData) {
       setFormData(prev => ({
         ...prev,
-        ...savedData.formData
+        ...savedData.formData,
       }))
       if (savedData.currentStep) {
         setCurrentStep(savedData.currentStep)
       }
       toast({
         title: "Progreso local restaurado",
-        description: "Recuperamos tus últimas respuestas guardadas en este dispositivo."
+        description: "Recuperamos tus últimas respuestas guardadas en este dispositivo.",
       })
     }
     restoredLocalRef.current = true
@@ -259,7 +259,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
         telefono: shouldPrefillFather ? defaultPhone : "",
         email: shouldPrefillFather ? defaultEmail : "",
         trabajaFueraCasa: false,
-        tieneAlergias: false
+        tieneAlergias: false,
       }
 
       const motherDefaults = {
@@ -270,7 +270,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
         telefono: shouldPrefillMother ? defaultPhone : "",
         email: shouldPrefillMother ? defaultEmail : "",
         trabajaFueraCasa: false,
-        tieneAlergias: false
+        tieneAlergias: false,
       }
 
       // Pre-llenar información familiar con datos del usuario
@@ -278,21 +278,21 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
         informacionFamiliar: {
           papa: fatherDefaults,
           mama: motherDefaults,
-          primaryCaregiver: accountType || ""
+          primaryCaregiver: accountType || "",
         },
         dinamicaFamiliar: {
           telefonoSeguimiento: defaultPhone,
-          emailObservaciones: defaultEmail
+          emailObservaciones: defaultEmail,
         },
         historial: {
           // Pre-llenar información del niño si está disponible
           nombreHijo: childData ? [childData.firstName, childData.lastName].filter(Boolean).join(" ") : "",
-          fechaNacimiento: childData?.birthDate ? String(childData.birthDate).split('T')[0] : "",
-          genero: childData?.gender || ""
+          fechaNacimiento: childData?.birthDate ? String(childData.birthDate).split("T")[0] : "",
+          genero: childData?.gender || "",
         },
         desarrollo: {},
         actividadFisica: {},
-        rutinaHabitos: {}
+        rutinaHabitos: {},
       }
       
       // Actualizar los datos iniciales con la información pre-llenada
@@ -310,26 +310,26 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
             ...savedData.formData.informacionFamiliar,
             papa: {
               ...prefilledData.informacionFamiliar?.papa,
-              ...savedData.formData.informacionFamiliar?.papa
+              ...savedData.formData.informacionFamiliar?.papa,
             },
             mama: {
               ...prefilledData.informacionFamiliar?.mama,
-              ...savedData.formData.informacionFamiliar?.mama
+              ...savedData.formData.informacionFamiliar?.mama,
             },
-            primaryCaregiver: savedData.formData.informacionFamiliar?.primaryCaregiver ?? prefilledData.informacionFamiliar?.primaryCaregiver
-          }
+            primaryCaregiver: savedData.formData.informacionFamiliar?.primaryCaregiver ?? prefilledData.informacionFamiliar?.primaryCaregiver,
+          },
         }
         if (savedData.formData.actividadFisica?.situacionesHijo && !savedData.formData.desarrollo?.situacionesHijo) {
           mergedData.desarrollo = {
             ...mergedData.desarrollo,
-            situacionesHijo: savedData.formData.actividadFisica.situacionesHijo
+            situacionesHijo: savedData.formData.actividadFisica.situacionesHijo,
           }
         }
         setFormData(mergedData)
         setCurrentStep(savedData.currentStep || 1)
         toast({
           title: "Progreso recuperado",
-          description: "Hemos recuperado tu progreso anterior en la encuesta"
+          description: "Hemos recuperado tu progreso anterior en la encuesta",
         })
       } else {
         setFormData(prefilledData)
@@ -342,7 +342,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
         setCurrentStep(savedData.currentStep || 1)
         toast({
           title: "Progreso recuperado",
-          description: "Hemos recuperado tu progreso anterior en la encuesta"
+          description: "Hemos recuperado tu progreso anterior en la encuesta",
         })
       }
     }
@@ -355,7 +355,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
 
     if (!trimmedName && !trimmedEmail && !trimmedPhone) return
 
-    const parentsToPrefill: Array<'papa' | 'mama'> = []
+    const parentsToPrefill: Array<"papa" | "mama"> = []
 
     if (resolvedAccountType === "father") {
       parentsToPrefill.push("papa")
@@ -421,8 +421,8 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
         informacionFamiliar: {
           ...info,
           papa: nextPapa,
-          mama: nextMama
-        }
+          mama: nextMama,
+        },
       }
     })
   }, [
@@ -431,7 +431,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
     userPrefillContact.phone,
     resolvedAccountType,
     primaryCaregiver,
-    setFormData
+    setFormData,
   ])
 
   // Mostrar indicador de guardado
@@ -458,7 +458,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
       toast({
         title: "Encuesta incompleta",
         description: "Por favor completa todos los campos obligatorios marcados con *",
-        variant: "destructive"
+        variant: "destructive",
       })
       return
     }
@@ -477,7 +477,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
           description: isExisting 
             ? "Los cambios se han guardado exitosamente"
             : "Gracias por completar la encuesta. Los datos se han guardado correctamente.",
-          duration: 5000
+          duration: 5000,
         })
         
         router.push("/dashboard")
@@ -487,7 +487,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
           title: "Error de conexión",
           description: "No se pudo conectar con el servidor. Tu progreso se ha guardado localmente y se intentará enviar más tarde.",
           variant: "destructive",
-          duration: 7000
+          duration: 7000,
         })
       }
     } catch (error) {
@@ -496,7 +496,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
         title: "Error al guardar",
         description: "Hubo un problema al guardar la encuesta. Tu progreso se ha guardado localmente.",
         variant: "destructive",
-        duration: 7000
+        duration: 7000,
       })
     } finally {
       setIsSubmitting(false)
@@ -515,13 +515,13 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
       toast({
         title: "Progreso guardado",
         description: "Tu progreso se ha guardado en el servidor. Puedes continuar cuando quieras.",
-        duration: 4000
+        duration: 4000,
       })
     } else {
       toast({
         title: "Progreso guardado localmente",
         description: "Tu progreso se ha guardado en tu dispositivo. Se sincronizará cuando vuelvas.",
-        duration: 4000
+        duration: 4000,
       })
     }
     

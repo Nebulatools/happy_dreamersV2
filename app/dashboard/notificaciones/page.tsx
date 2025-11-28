@@ -62,7 +62,7 @@ export default function NotificacionesPage() {
     sent: 0,
     delivered: 0,
     read: 0,
-    failed: 0
+    failed: 0,
   })
   
   // Invitaciones pendientes del usuario actual
@@ -88,7 +88,7 @@ export default function NotificacionesPage() {
       activeChildId,
       sessionRole: session?.user?.role,
       loading,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
     console.log("=== NotificacionesPage DEBUG END ===")
   }, [activeUserId, activeChildId, session, loading])
@@ -96,13 +96,13 @@ export default function NotificacionesPage() {
   // Cargar lista de niños basada en el contexto
   useEffect(() => {
     // Para admins, cargar cuando hay un usuario seleccionado
-    if (session?.user.role === 'admin' && activeUserId) {
+    if (session?.user.role === "admin" && activeUserId) {
       loadChildren()
-    } else if (session?.user.role === 'admin' && !activeUserId) {
+    } else if (session?.user.role === "admin" && !activeUserId) {
       // Admin sin selección - no cargar nada
       setChildren([])
       setLoading(false)
-    } else if (session?.user.role && session?.user.role !== 'admin') {
+    } else if (session?.user.role && session?.user.role !== "admin") {
       // Para usuarios normales, cargar sus propios hijos
       loadUserChildren()
     }
@@ -113,7 +113,7 @@ export default function NotificacionesPage() {
       setLoading(true)
       
       // Para admins, cargar los niños del usuario seleccionado
-      const url = session?.user.role === 'admin' && activeUserId 
+      const url = session?.user.role === "admin" && activeUserId 
         ? `/api/children?userId=${activeUserId}`
         : "/api/children"
       
@@ -143,7 +143,7 @@ export default function NotificacionesPage() {
       // Mapear los datos para incluir el nombre completo
       const formattedChildren = childrenData.map((child: any) => ({
         ...child,
-        name: `${child.firstName || ''} ${child.lastName || ''}`.trim() || 'Sin nombre'
+        name: `${child.firstName || ""} ${child.lastName || ""}`.trim() || "Sin nombre",
       }))
       
       console.log("NotificacionesPage - Formatted children:", formattedChildren)
@@ -188,7 +188,7 @@ export default function NotificacionesPage() {
       // Mapear los datos para incluir el nombre completo
       const formattedChildren = childrenData.map((child: any) => ({
         ...child,
-        name: `${child.firstName || ''} ${child.lastName || ''}`.trim() || 'Sin nombre'
+        name: `${child.firstName || ""} ${child.lastName || ""}`.trim() || "Sin nombre",
       }))
       
       console.log("NotificacionesPage - User formatted children:", formattedChildren)
@@ -218,12 +218,12 @@ export default function NotificacionesPage() {
   const loadPendingInvitations = async () => {
     try {
       setLoadingInvitations(true)
-      const response = await fetch('/api/invitations/me')
-      if (!response.ok) throw new Error('Error cargando invitaciones')
+      const response = await fetch("/api/invitations/me")
+      if (!response.ok) throw new Error("Error cargando invitaciones")
       const data = await response.json()
       setPendingInvitations(data.invitations || [])
     } catch (error) {
-      console.error('Error cargando invitaciones:', error)
+      console.error("Error cargando invitaciones:", error)
       setPendingInvitations([])
     } finally {
       setLoadingInvitations(false)
@@ -236,37 +236,37 @@ export default function NotificacionesPage() {
 
   const acceptInvitation = async (token: string) => {
     try {
-      const response = await fetch('/api/invitation/accept', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
+      const response = await fetch("/api/invitation/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
       })
       const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Error al aceptar invitación')
-      toast.success('¡Invitación aceptada!')
+      if (!response.ok) throw new Error(data.error || "Error al aceptar invitación")
+      toast.success("¡Invitación aceptada!")
       await loadPendingInvitations()
       await loadNotificationHistory()
-      window.dispatchEvent(new CustomEvent('notificationsUpdated'))
+      window.dispatchEvent(new CustomEvent("notificationsUpdated"))
     } catch (error: any) {
-      toast.error(error.message || 'Error al aceptar invitación')
+      toast.error(error.message || "Error al aceptar invitación")
     }
   }
 
   const declineInvitation = async (token: string) => {
     try {
-      const response = await fetch('/api/invitation/decline', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
+      const response = await fetch("/api/invitation/decline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
       })
       const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Error al denegar invitación')
-      toast.success('Invitación denegada')
+      if (!response.ok) throw new Error(data.error || "Error al denegar invitación")
+      toast.success("Invitación denegada")
       await loadPendingInvitations()
       await loadNotificationHistory()
-      window.dispatchEvent(new CustomEvent('notificationsUpdated'))
+      window.dispatchEvent(new CustomEvent("notificationsUpdated"))
     } catch (error: any) {
-      toast.error(error.message || 'Error al denegar invitación')
+      toast.error(error.message || "Error al denegar invitación")
     }
   }
 
@@ -274,8 +274,8 @@ export default function NotificacionesPage() {
     try {
       const targets = items
         .filter((notification: any) =>
-          notification?.status === 'delivered' &&
-          ['invitation', 'invitation_response'].includes(notification?.type)
+          notification?.status === "delivered" &&
+          ["invitation", "invitation_response"].includes(notification?.type)
         )
         .map((notification: any) => notification?._id)
         .filter(Boolean)
@@ -283,18 +283,18 @@ export default function NotificacionesPage() {
       if (targets.length === 0) return
 
       await Promise.all(targets.map((id: string) =>
-        fetch('/api/notifications/history', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ notificationId: id, action: 'read' })
+        fetch("/api/notifications/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ notificationId: id, action: "read" }),
         })
       ))
 
       // Refrescar conteo sin bloquear
-      fetch('/api/notifications/count').catch(() => undefined)
-      window.dispatchEvent(new CustomEvent('notificationsUpdated'))
+      fetch("/api/notifications/count").catch(() => undefined)
+      window.dispatchEvent(new CustomEvent("notificationsUpdated"))
     } catch (error) {
-      console.error('Error auto-marcando notificaciones:', error)
+      console.error("Error auto-marcando notificaciones:", error)
     }
   }
 
@@ -316,15 +316,15 @@ export default function NotificacionesPage() {
         sent: 0,
         delivered: 0,
         read: 0,
-        failed: 0
+        failed: 0,
       })
 
       if (Array.isArray(notificationsList) && notificationsList.length > 0) {
         await autoMarkNotifications(notificationsList)
         const autoReadIds = notificationsList
           .filter((notification: any) =>
-            notification?.status === 'delivered' &&
-            ['invitation', 'invitation_response'].includes(notification?.type)
+            notification?.status === "delivered" &&
+            ["invitation", "invitation_response"].includes(notification?.type)
           )
           .map((notification: any) => notification?._id)
           .filter(Boolean)
@@ -332,7 +332,7 @@ export default function NotificacionesPage() {
         if (autoReadIds.length > 0) {
           setNotifications(notificationsList.map((notification: any) =>
             autoReadIds.includes(notification._id)
-              ? { ...notification, status: 'read', readAt: new Date().toISOString() }
+              ? { ...notification, status: "read", readAt: new Date().toISOString() }
               : notification
           ))
         }
@@ -350,15 +350,15 @@ export default function NotificacionesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           notificationId,
-          action: "read"
-        })
+          action: "read",
+        }),
       })
       
       if (!response.ok) throw new Error("Error marcando notificación")
       
       toast.success("Notificación marcada como leída")
       loadNotificationHistory()
-      window.dispatchEvent(new CustomEvent('notificationsUpdated'))
+      window.dispatchEvent(new CustomEvent("notificationsUpdated"))
     } catch (error) {
       console.error("Error:", error)
       toast.error("Error al marcar notificación")
@@ -372,7 +372,7 @@ export default function NotificacionesPage() {
       delivered: { variant: "secondary", label: "Entregada" },
       read: { variant: "good", label: "Leída" },
       failed: { variant: "destructive", label: "Fallida" },
-      cancelled: { variant: "outline", label: "Cancelada" }
+      cancelled: { variant: "outline", label: "Cancelada" },
     }
     
     const config = variants[status] || { variant: "outline", label: status }
@@ -381,16 +381,16 @@ export default function NotificacionesPage() {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case "bedtime":
-        return <Icons.moon className="h-4 w-4" />
-      case "naptime":
-        return <Icons.sun className="h-4 w-4" />
-      case "wake_window":
-        return <Icons.clock className="h-4 w-4" />
-      case "routine_start":
-        return <Icons.calendar className="h-4 w-4" />
-      default:
-        return <Icons.bell className="h-4 w-4" />
+    case "bedtime":
+      return <Icons.moon className="h-4 w-4" />
+    case "naptime":
+      return <Icons.sun className="h-4 w-4" />
+    case "wake_window":
+      return <Icons.clock className="h-4 w-4" />
+    case "routine_start":
+      return <Icons.calendar className="h-4 w-4" />
+    default:
+      return <Icons.bell className="h-4 w-4" />
     }
   }
 
@@ -497,8 +497,8 @@ export default function NotificacionesPage() {
                     <div>
                       <div className="font-medium">{inv.invitedByName} te invitó al perfil de {inv.childName}</div>
                       <div className="text-sm text-muted-foreground mt-1">
-                        Rol: <strong>{inv.role === 'editor' ? 'Editor completo' : inv.role === 'caregiver' ? 'Cuidador' : 'Solo lectura'}</strong>
-                        {inv.relationshipDescription ? ` · ${inv.relationshipDescription}` : ''}
+                        Rol: <strong>{inv.role === "editor" ? "Editor completo" : inv.role === "caregiver" ? "Cuidador" : "Solo lectura"}</strong>
+                        {inv.relationshipDescription ? ` · ${inv.relationshipDescription}` : ""}
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
                         {formatDistanceToNow(new Date(inv.createdAt), { addSuffix: true, locale: es })}
@@ -517,7 +517,7 @@ export default function NotificacionesPage() {
       ) : null}
 
       {/* Mostrar mensaje apropiado según el contexto */}
-      {session?.user.role === 'admin' && !activeUserId ? (
+      {session?.user.role === "admin" && !activeUserId ? (
         <Card>
           <CardContent className="text-center py-8">
             <Icons.alert className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -535,7 +535,7 @@ export default function NotificacionesPage() {
             <p className="text-muted-foreground">
               No hay perfiles de niños registrados para este usuario.
             </p>
-            {session?.user.role !== 'admin' && (
+            {session?.user.role !== "admin" && (
               <Button className="mt-4" onClick={() => window.location.href = "/dashboard/children"}>
                 Agregar Niño
               </Button>
@@ -555,7 +555,7 @@ export default function NotificacionesPage() {
           {children.map(child => (
             <TabsContent key={child._id} value={child._id} className="space-y-6">
               {/* Componente de prueba */}
-              {process.env.NODE_ENV === 'development' && (
+              {process.env.NODE_ENV === "development" && (
                 <NotificationTester
                   childId={child._id}
                   childName={child.name}
@@ -603,7 +603,7 @@ export default function NotificacionesPage() {
                                 <p className="text-xs text-muted-foreground mt-2">
                                   {formatDistanceToNow(new Date(notification.scheduledFor), { 
                                     addSuffix: true,
-                                    locale: es 
+                                    locale: es, 
                                   })}
                                 </p>
                               </div>

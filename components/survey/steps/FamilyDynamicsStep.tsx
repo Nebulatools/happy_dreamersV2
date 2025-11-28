@@ -6,13 +6,13 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { Home } from "lucide-react"
-import type { SurveyStepProps } from '../types/survey.types'
+import type { SurveyStepProps } from "../types/survey.types"
 
 export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepProps) {
   const updateField = (field: string, value: any) => {
     onChange({
       ...data,
-      [field]: value
+      [field]: value,
     })
   }
 
@@ -39,7 +39,7 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         <Textarea
           id="otros-residentes"
           value={data.otrosResidentes || ""}
-          onChange={(e) => updateField('otrosResidentes', e.target.value)}
+          onChange={(e) => updateField("otrosResidentes", e.target.value)}
           placeholder="Describe quiénes más viven en la casa..."
           rows={2}
         />
@@ -50,7 +50,7 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         <Label>2. ¿De quién será el contacto principal para seguimiento? <span className="text-red-500">*</span></Label>
         <RadioGroup
           value={data.contactoPrincipal || ""}
-          onValueChange={(value) => updateField('contactoPrincipal', value)}
+          onValueChange={(value) => updateField("contactoPrincipal", value)}
         >
           <div className="flex gap-4 mt-2">
             <div className="flex items-center space-x-2">
@@ -63,8 +63,8 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
             </div>
           </div>
         </RadioGroup>
-        {hasError('contactoPrincipal') && (
-          <p className="text-red-500 text-sm mt-1">{getError('contactoPrincipal')}</p>
+        {hasError("contactoPrincipal") && (
+          <p className="text-red-500 text-sm mt-1">{getError("contactoPrincipal")}</p>
         )}
         <p className="text-sm text-gray-500 mt-2">
           Se utilizará el teléfono y correo electrónico proporcionados en la sección de información familiar
@@ -79,7 +79,7 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         <Textarea
           id="como-supiste"
           value={data.comoSupiste || ""}
-          onChange={(e) => updateField('comoSupiste', e.target.value)}
+          onChange={(e) => updateField("comoSupiste", e.target.value)}
           placeholder="¿Cómo te enteraste de nuestros servicios?"
           rows={2}
         />
@@ -93,7 +93,7 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         <Textarea
           id="libros-consultados"
           value={data.librosConsultados || ""}
-          onChange={(e) => updateField('librosConsultados', e.target.value)}
+          onChange={(e) => updateField("librosConsultados", e.target.value)}
           placeholder="Lista los libros que han leído sobre sueño infantil..."
           rows={2}
         />
@@ -107,7 +107,7 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         <Textarea
           id="metodos-contra"
           value={data.metodosContra || ""}
-          onChange={(e) => updateField('metodosContra', e.target.value)}
+          onChange={(e) => updateField("metodosContra", e.target.value)}
           placeholder="¿Hay algún método que no estén dispuestos a usar?"
           rows={2}
         />
@@ -119,18 +119,18 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         <RadioGroup
           value={data.otroAsesor === true ? "si" : data.otroAsesor === false ? "no" : ""}
           onValueChange={(value) => {
-            const hadOtherAdvisor = value === 'si'
+            const hadOtherAdvisor = value === "si"
             onChange({
               ...data,
               otroAsesor: hadOtherAdvisor,
-              otroAsesorDetalle: hadOtherAdvisor ? data.otroAsesorDetalle || "" : ""
+              otroAsesorDetalle: hadOtherAdvisor ? data.otroAsesorDetalle || "" : "",
             })
           }}
         >
           <div className="flex gap-4 mt-2">
             <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="si" id="otro-asesor-si" />
-                  <Label htmlFor="otro-asesor-si">Sí</Label>
+              <RadioGroupItem value="si" id="otro-asesor-si" />
+              <Label htmlFor="otro-asesor-si">Sí</Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="no" id="otro-asesor-no" />
@@ -146,13 +146,13 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
             <Textarea
               id="otro-asesor-detalle"
               value={data.otroAsesorDetalle || ""}
-              onChange={(e) => updateField('otroAsesorDetalle', e.target.value)}
+              onChange={(e) => updateField("otroAsesorDetalle", e.target.value)}
               placeholder="Describe qué métodos probaste y qué resultados obtuviste..."
               rows={3}
-              className={hasError('otroAsesorDetalle') ? 'border-red-500 mt-1' : 'mt-1'}
+              className={hasError("otroAsesorDetalle") ? "border-red-500 mt-1" : "mt-1"}
             />
-            {hasError('otroAsesorDetalle') && (
-              <p className="text-red-500 text-sm mt-1">{getError('otroAsesorDetalle')}</p>
+            {hasError("otroAsesorDetalle") && (
+              <p className="text-red-500 text-sm mt-1">{getError("otroAsesorDetalle")}</p>
             )}
           </div>
         )}
@@ -166,13 +166,13 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
         <Textarea
           id="quien-atiende"
           value={data.quienAtiende || ""}
-          onChange={(e) => updateField('quienAtiende', e.target.value)}
+          onChange={(e) => updateField("quienAtiende", e.target.value)}
           placeholder="Describe quién atiende al niño en la noche..."
           rows={2}
-          className={hasError('quienAtiende') ? 'border-red-500' : ''}
+          className={hasError("quienAtiende") ? "border-red-500" : ""}
         />
-        {hasError('quienAtiende') && (
-          <p className="text-red-500 text-sm mt-1">{getError('quienAtiende')}</p>
+        {hasError("quienAtiende") && (
+          <p className="text-red-500 text-sm mt-1">{getError("quienAtiende")}</p>
         )}
       </div>
     </div>
