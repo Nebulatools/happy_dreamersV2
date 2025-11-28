@@ -40,7 +40,7 @@ export async function GET(req: Request) {
 
     // Si se especifica un ID de niño
     if (childId) {
-      query.childId = childId
+      query.childId = new ObjectId(childId)
     }
 
     // Si se especifica un rango de fechas
@@ -152,7 +152,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ message: "Evento no encontrado" }, { status: 404 })
     }
 
-    if (event.parentId !== session.user.id && session.user.role !== "admin") {
+    if (event.parentId.toString() !== session.user.id && session.user.role !== "admin") {
       return NextResponse.json({ message: "No autorizado" }, { status: 403 })
     }
 
@@ -202,7 +202,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ message: "Evento no encontrado" }, { status: 404 })
     }
 
-    if (event.parentId !== session.user.id && session.user.role !== "admin") {
+    if (event.parentId.toString() !== session.user.id && session.user.role !== "admin") {
       return NextResponse.json({ message: "No autorizado" }, { status: 403 })
     }
 

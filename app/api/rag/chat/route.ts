@@ -1257,7 +1257,7 @@ async function getChildContextForResponse(childId: string, userId: string) {
 
     // 🔧 CARGAR EVENTOS RECIENTES DEL NIÑO
     const events = await db.collection("events")
-      .find({ childId: activeChild._id.toString() })
+      .find({ childId: activeChild._id })
       .sort({ startTime: -1 })
       .toArray()
 
