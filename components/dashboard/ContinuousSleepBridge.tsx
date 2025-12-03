@@ -35,6 +35,12 @@ export function ContinuousSleepBridge({
   const gridColumnSpan = Math.min(event.spansDays, 7 - (startDayIndex % 7))
   const gridColumnEnd = gridColumnStart + gridColumnSpan
 
+  // Calcular margenes para efecto de cruce elegante (50% de cada dia)
+  const baseMarginPercent = 50 / gridColumnSpan
+  const isEndTruncated = event.spansDays > gridColumnSpan
+  const marginLeftValue = `${baseMarginPercent}%`
+  const marginRightValue = isEndTruncated ? '0' : `${baseMarginPercent}%`
+
   // Formatear duración para mostrar
   const durationText = formatMinutesAsHours(event.totalMinutes)
 
@@ -42,7 +48,7 @@ export function ContinuousSleepBridge({
     <div
       className={cn(
         "h-8 rounded-lg border border-white/30 backdrop-blur-sm",
-        "flex items-center justify-between px-3",
+        "flex items-center justify-center gap-1 px-2",
         "transition-all duration-200",
         "hover:opacity-100 z-10",
         "cursor-pointer group pointer-events-auto"
@@ -50,28 +56,18 @@ export function ContinuousSleepBridge({
       style={{
         gridColumn: `${gridColumnStart} / ${gridColumnEnd}`,
         gridRow: 1,
-        marginTop: '65px', // Posicionado SOBRE la sección de dormir
+        marginTop: '65px',
+        marginLeft: marginLeftValue,
+        marginRight: marginRightValue,
         background: 'linear-gradient(to right, rgba(59, 130, 246, 0.25), rgba(139, 92, 246, 0.22), rgba(251, 191, 36, 0.18))',
         opacity: 0.95
       }}
       title={`${event.startTime} - ${event.endTime} (${durationText})${event.nightWakings > 0 ? `\n${event.nightWakings} despertar${event.nightWakings > 1 ? 'es' : ''}` : ''}`}
     >
-      {/* Sección Izquierda - Hora de inicio */}
-      <span className="text-xs font-semibold text-gray-700">
-        {event.startTime}
-      </span>
-
-      {/* Sección Centro - Duración total */}
-      <div className="flex items-center gap-1">
-        <span className="text-xs">🌙</span>
-        <span className="text-xs font-bold text-gray-800">
-          {durationText}
-        </span>
-      </div>
-
-      {/* Sección Derecha - Hora de fin */}
-      <span className="text-xs font-semibold text-gray-700">
-        {event.endTime}
+      {/* Solo emoji y duración - detalles en tooltip */}
+      <span className="text-xs">🌙</span>
+      <span className="text-xs font-bold text-gray-800">
+        {durationText}
       </span>
 
       {/* Tooltip con detalles al hacer hover */}

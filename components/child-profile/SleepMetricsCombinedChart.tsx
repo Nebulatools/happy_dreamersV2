@@ -57,7 +57,9 @@ function formatMinutesAsHours(minutes: number): string {
   const mins = minutes % 60
   if (hrs === 0) return `${mins}m`
   if (mins === 0) return `${hrs}h`
-  return `${hrs}h ${mins}m`
+  // Redondear a media hora para display compacto
+  if (mins >= 30) return `${hrs}.5h`
+  return `${hrs}h`
 }
 
 function buildDailySummary(
@@ -388,7 +390,7 @@ function RollingCalendarGrid({
                       <div
                         key={key}
                         className={cn(
-                          "min-h-[130px] rounded-xl border p-2 text-left transition-colors",
+                          "min-h-[130px] rounded-xl border p-2 text-left transition-colors flex flex-col",
                           classes,
                           isOutsideRange && "opacity-40"
                         )}
@@ -430,7 +432,7 @@ function RollingCalendarGrid({
                           )}
                         </div>
 
-                        <div className="mt-3 text-[11px] font-semibold">
+                        <div className="mt-auto text-[11px] font-semibold">
                           Sueño total: {summary ? formatMinutesAsHours(summary.totalMinutes) : "0h"}
                         </div>
                       </div>
