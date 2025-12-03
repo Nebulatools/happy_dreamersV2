@@ -478,7 +478,7 @@ function RollingCalendarGrid({
                                 <div className="w-4 h-4 rounded-full bg-nap cursor-default hover:ring-2 hover:ring-orange-300 transition-all" />
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover/nap:opacity-100 transition-opacity pointer-events-none z-50">
                                   <div className="bg-gray-900 text-white text-[10px] rounded px-2 py-1 whitespace-nowrap">
-                                    Siesta: {formatMinutesAsHours(differenceInMinutes(nap.end, nap.start))}
+                                    {formatMinutesAsHours(differenceInMinutes(nap.end, nap.start))}
                                   </div>
                                 </div>
                               </div>
