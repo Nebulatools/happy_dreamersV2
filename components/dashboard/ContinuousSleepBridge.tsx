@@ -73,8 +73,7 @@ export function ContinuousSleepBridge({
       {/* Tooltip con detalles al hacer hover */}
       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
         <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
-          <div className="font-medium">{durationText} de sueño</div>
-          <div className="text-gray-300">{event.startTime} - {event.endTime}</div>
+          <div className="font-medium">{event.startTime} - {event.endTime}</div>
           {event.nightWakings > 0 && (
             <div className="text-gray-300 mt-1">
               {event.nightWakings} despertar{event.nightWakings > 1 ? 'es' : ''} nocturno{event.nightWakings > 1 ? 's' : ''}
