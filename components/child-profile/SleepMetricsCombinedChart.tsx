@@ -62,6 +62,20 @@ function formatMinutesAsHours(minutes: number): string {
   return `${hrs}h`
 }
 
+// Obtener despertares nocturnos ordenados cronológicamente
+function getNightWakings(segments: EventSegment[]): EventSegment[] {
+  return segments
+    .filter(s => s.type === 'night_waking' || s.type === 'despertar_nocturno')
+    .sort((a, b) => a.start.getTime() - b.start.getTime())
+}
+
+// Obtener siestas de un día
+function getNaps(segments: EventSegment[]): EventSegment[] {
+  return segments.filter(s =>
+    s.type === 'nap' || s.type === 'siesta'
+  )
+}
+
 function buildDailySummary(
   events: SleepEvent[],
   rangeStart: Date,
@@ -386,15 +400,36 @@ function RollingCalendarGrid({
                       ? getIntensityClasses(summary.totalMinutes)
                       : "bg-white border border-gray-200"
 
+                    const nightWakings = summary ? getNightWakings(summary.segments) : []
+                    const naps = summary ? getNaps(summary.segments) : []
+
                     return (
                       <div
                         key={key}
                         className={cn(
-                          "min-h-[130px] rounded-xl border p-2 text-left transition-colors flex flex-col",
+                          "min-h-[130px] rounded-xl border p-2 text-left transition-colors flex flex-col relative",
                           classes,
                           isOutsideRange && "opacity-40"
                         )}
                       >
+                        {/* Horarios de despertares nocturnos */}
+                        {nightWakings.length > 0 && (
+                          <div className="absolute top-2 right-2 group/wake">
+                            <div className="bg-night-wake text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center cursor-default">
+                              {nightWakings.length}
+                            </div>
+                            <div className="absolute bottom-full right-0 mb-1 opacity-0 group-hover/wake:opacity-100 transition-opacity pointer-events-none z-50">
+                              <div className="bg-gray-900 text-white text-[10px] rounded px-2 py-1 space-y-1">
+                                {nightWakings.map((wake) => (
+                                  <div key={wake.id} className="whitespace-nowrap">
+                                    {format(wake.start, "HH:mm")}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="flex items-center justify-between text-xs font-semibold">
                           <span>{day.getDate()}</span>
                           {monthBreak || day.getDate() === 1 ? (
@@ -409,6 +444,14 @@ function RollingCalendarGrid({
                         <div className="mt-2 space-y-1">
                           {summary?.segments
                             .filter((segment) => {
+                              // Ocultar siestas (se muestran como circulos)
+                              if (segment.type === 'nap' || segment.type === 'siesta') {
+                                return false
+                              }
+                              // Ocultar despertares nocturnos (se muestran como badge)
+                              if (segment.type === 'night_waking' || segment.type === 'despertar_nocturno') {
+                                return false
+                              }
                               // Ocultar segmentos de sueño si son parte de un evento continuo
                               if (daysWithContinuousEvents.has(key) && isSleepBlock(segment.type)) {
                                 return false
@@ -425,12 +468,26 @@ function RollingCalendarGrid({
                                 {format(segment.start, "HH:mm")} - {format(segment.end, "HH:mm")}
                               </div>
                             ))}
-                          {summary && summary.segments.filter(s => !daysWithContinuousEvents.has(key) || !isSleepBlock(s.type)).length > 3 && (
-                            <div className="text-[10px] text-gray-600">
-                              +{summary.segments.filter(s => !daysWithContinuousEvents.has(key) || !isSleepBlock(s.type)).length - 3} eventos
-                            </div>
-                          )}
                         </div>
+
+                        {/* Indicadores de siestas */}
+                        {naps.length > 0 && (
+                          <div className="flex items-center gap-1 mt-2">
+                            {naps.slice(0, 4).map((nap) => (
+                              <div key={nap.id} className="relative group/nap">
+                                <div className="w-4 h-4 rounded-full bg-nap cursor-default hover:ring-2 hover:ring-orange-300 transition-all" />
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover/nap:opacity-100 transition-opacity pointer-events-none z-50">
+                                  <div className="bg-gray-900 text-white text-[10px] rounded px-2 py-1 whitespace-nowrap">
+                                    Siesta: {formatMinutesAsHours(differenceInMinutes(nap.end, nap.start))}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                            {naps.length > 4 && (
+                              <span className="text-[10px] text-gray-500">+{naps.length - 4}</span>
+                            )}
+                          </div>
+                        )}
 
                         <div className="mt-auto text-[11px] font-semibold">
                           Sueño total: {summary ? formatMinutesAsHours(summary.totalMinutes) : "0h"}
