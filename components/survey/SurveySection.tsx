@@ -3,7 +3,6 @@
 
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 
 // Lista ordenada de TODOS los campos por seccion
@@ -379,24 +378,22 @@ function NestedObjectSection({ title, data, sectionKey, fieldsList }: NestedObje
   const fieldsToShow = fieldsList || Object.keys(safeData)
 
   return (
-    <Card className="mb-4">
-      <CardHeader className="py-3">
-        <CardTitle className="text-base">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <dl className="divide-y divide-muted">
-          {fieldsToShow.map((key) => {
-            // Ignorar campos internos o de metadata
-            if (key.startsWith("_") || key === "createdAt" || key === "updatedAt") {
-              return null
-            }
-            const label = labels[key] || key
-            const value = safeData[key]
-            return <FieldRow key={key} label={label} value={value} fieldKey={key} />
-          })}
-        </dl>
-      </CardContent>
-    </Card>
+    <div className="mb-4">
+      <h4 className="text-sm font-semibold text-muted-foreground mb-3 pb-2 border-b">
+        {title}
+      </h4>
+      <dl className="divide-y divide-muted">
+        {fieldsToShow.map((key) => {
+          // Ignorar campos internos o de metadata
+          if (key.startsWith("_") || key === "createdAt" || key === "updatedAt") {
+            return null
+          }
+          const label = labels[key] || key
+          const value = safeData[key]
+          return <FieldRow key={key} label={label} value={value} fieldKey={key} />
+        })}
+      </dl>
+    </div>
   )
 }
 
