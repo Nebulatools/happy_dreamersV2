@@ -4,9 +4,139 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import type { SurveyData } from "@/types/models"
+
+// Lista ordenada de TODOS los campos por seccion
+// Esto permite mostrar todos los campos incluso si no tienen respuesta
+const SECTION_ALL_FIELDS: Record<string, string[]> = {
+  informacionFamiliar: [
+    "primaryCaregiver",
+    "papa",
+    "mama",
+  ],
+  dinamicaFamiliar: [
+    "otrosResidentes",
+    "contactoPrincipal",
+    "comoSupiste",
+    "librosConsultados",
+    "metodosContra",
+    "otroAsesor",
+    "otroAsesorDetalle",
+    "quienAtiende",
+  ],
+  historial: [
+    "nombreHijo",
+    "fechaNacimiento",
+    "pesoHijo",
+    "percentilPeso",
+    "embarazoPlaneado",
+    "problemasEmbarazo",
+    "problemasEmbarazoDetalle",
+    "condicionesEmbarazo",
+    "condicionesEmbarazoOtro",
+    "tipoParto",
+    "complicacionesParto",
+    "complicacionesPartoDescripcion",
+    "nacioTermino",
+    "semanasNacimiento",
+    "problemasNacer",
+    "problemasNacerDetalle",
+    "pediatra",
+    "pediatraTelefono",
+    "pediatraEmail",
+    "pediatraDescarto",
+    "pediatraConfirma",
+    "pediatraConfirmaDetalle",
+    "tratamientoMedico",
+    "tratamientoMedicoDetalle",
+  ],
+  desarrolloSalud: [
+    "rodarMeses",
+    "sentarseMeses",
+    "gatearMeses",
+    "pararseMeses",
+    "caminarMeses",
+    "hijoUtiliza",
+    "alimentacion",
+    "alimentacionOtro",
+    "comeSolidos",
+    "problemasHijo",
+    "planDejarDedo",
+    "planDejarChupon",
+    "nombreObjetoSeguridad",
+    "problemasMedicosDetalle",
+    "situacionesHijo",
+    "alergiaAmbientalDetalle",
+    "alergiaAlimenticiaDetalle",
+    "infeccionesOidoDetalle",
+    "dificultadRespirarDetalle",
+  ],
+  actividadFisica: [
+    "vePantallas",
+    "pantallasDetalle",
+    "practicaActividad",
+    "actividadesLista",
+    "actividadesDespierto",
+    "signosIrritabilidad",
+    "irritabilidadDetalle",
+  ],
+  rutinaHabitos: [
+    "diaTipico",
+    "vaKinder",
+    "kinderDetalle",
+    "quienCuida",
+    "quienCuidaNoche",
+    "dondeDuermeSalida",
+    "rutinaDormir",
+    "horaDormir",
+    "duermeSolo",
+    "oscuridadCuarto",
+    "colorLamparita",
+    "ruidoBlanco",
+    "temperaturaCuarto",
+    "tipoPiyama",
+    "usaSaco",
+    "teQuedasHastaDuerma",
+    "dondeDuerme",
+    "comparteHabitacion",
+    "comparteHabitacionCon",
+    "horaAcostarBebe",
+    "tiempoDormir",
+    "horaDespertar",
+    "despiertaNoche",
+    "vecesDespierta",
+    "tiempoDespierto",
+    "desdeCuandoDespierta",
+    "queHacesDespierta",
+    "tomaSiestas",
+    "numeroSiestas",
+    "duracionTotalSiestas",
+    "dondeSiestas",
+    "principalPreocupacion",
+    "desdeCuandoProblema",
+    "objetivoPadres",
+    "infoAdicional",
+  ],
+}
+
+// Campos de papa y mama (objetos anidados)
+const PARENT_FIELDS = [
+  "nombre",
+  "edad",
+  "ocupacion",
+  "direccion",
+  "ciudad",
+  "telefono",
+  "email",
+  "trabajaFueraCasa",
+  "tieneAlergias",
+  "alergias",
+  "mismaDireccionPapa",
+  "puedeDormir",
+  "apetito",
+  "pensamientosNegativos",
+  "pensamientosNegativosDetalle",
+]
 
 // Labels en espanol para los campos de cada seccion
 const FIELD_LABELS: Record<string, Record<string, string>> = {
@@ -26,14 +156,12 @@ const FIELD_LABELS: Record<string, Record<string, string>> = {
     tieneAlergias: "Tiene alergias",
     alergias: "Alergias",
     mismaDireccionPapa: "Misma direccion que el papa",
-    puedeDormirConHijo: "Puede dormir con el hijo",
+    puedeDormir: "Puede dormir con el hijo",
     apetito: "Apetito",
     pensamientosNegativos: "Pensamientos negativos",
     pensamientosNegativosDetalle: "Detalle de pensamientos",
   },
   dinamicaFamiliar: {
-    cantidadHijos: "Cantidad de hijos",
-    hijosInfo: "Informacion de los hijos",
     otrosResidentes: "Otros residentes en casa",
     contactoPrincipal: "Contacto principal",
     comoSupiste: "Como supiste de nosotros",
@@ -46,18 +174,18 @@ const FIELD_LABELS: Record<string, Record<string, string>> = {
   historial: {
     nombreHijo: "Nombre del hijo",
     fechaNacimiento: "Fecha de nacimiento",
-    genero: "Genero",
     pesoHijo: "Peso del hijo",
     percentilPeso: "Percentil de peso",
     embarazoPlaneado: "Embarazo planeado",
     problemasEmbarazo: "Problemas en el embarazo",
     problemasEmbarazoDetalle: "Detalle de problemas",
     condicionesEmbarazo: "Condiciones del embarazo",
+    condicionesEmbarazoOtro: "Otra condicion (especificar)",
     tipoParto: "Tipo de parto",
-    semanasNacimiento: "Semanas de nacimiento",
     complicacionesParto: "Complicaciones del parto",
     complicacionesPartoDescripcion: "Descripcion de complicaciones",
-    problemasHijo: "Problemas del hijo",
+    nacioTermino: "Nacio a termino",
+    semanasNacimiento: "Semanas de nacimiento",
     problemasNacer: "Problemas al nacer",
     problemasNacerDetalle: "Detalle de problemas al nacer",
     pediatra: "Pediatra",
@@ -65,6 +193,7 @@ const FIELD_LABELS: Record<string, Record<string, string>> = {
     pediatraEmail: "Email del pediatra",
     pediatraDescarto: "Pediatra descarto problemas",
     pediatraConfirma: "Pediatra confirma capacidad de dormir",
+    pediatraConfirmaDetalle: "Detalle de porque no puede dormir",
     tratamientoMedico: "Tratamiento medico",
     tratamientoMedicoDetalle: "Detalle del tratamiento",
   },
@@ -74,32 +203,66 @@ const FIELD_LABELS: Record<string, Record<string, string>> = {
     gatearMeses: "Edad al gatear (meses)",
     pararseMeses: "Edad al pararse (meses)",
     caminarMeses: "Edad al caminar (meses)",
-    usoVaso: "Uso de vaso",
+    hijoUtiliza: "El hijo utiliza",
     alimentacion: "Tipo de alimentacion",
     alimentacionOtro: "Otra alimentacion",
     comeSolidos: "Come solidos",
-    hijoUtiliza: "El hijo utiliza",
-    nombreObjetoSeguridad: "Nombre del objeto de seguridad",
+    problemasHijo: "Caracteristicas del hijo",
     planDejarDedo: "Plan para dejar el dedo",
     planDejarChupon: "Plan para dejar el chupon",
+    nombreObjetoSeguridad: "Nombre del objeto de seguridad",
+    problemasMedicosDetalle: "Detalle de problemas medicos",
+    situacionesHijo: "Situaciones de salud",
+    alergiaAmbientalDetalle: "Detalle alergia ambiental",
+    alergiaAlimenticiaDetalle: "Detalle alergia alimenticia",
+    infeccionesOidoDetalle: "Detalle infecciones de oido",
+    dificultadRespirarDetalle: "Detalle dificultad respirar",
   },
   actividadFisica: {
-    tiempoPantalla: "Tiempo de pantalla",
-    actividadesFisicas: "Actividades fisicas",
-    irritabilidad: "Nivel de irritabilidad",
-    sensibilidadRuido: "Sensibilidad al ruido",
-    sensibilidadLuz: "Sensibilidad a la luz",
+    vePantallas: "Ve pantallas",
+    pantallasDetalle: "Detalle uso de pantallas",
+    practicaActividad: "Practica actividad fisica",
+    actividadesLista: "Lista de actividades",
+    actividadesDespierto: "Actividades cuando esta despierto",
+    signosIrritabilidad: "Signos de irritabilidad",
+    irritabilidadDetalle: "Detalle de irritabilidad",
   },
   rutinaHabitos: {
-    diaTypico: "Dia tipico",
+    diaTipico: "Dia tipico",
+    vaKinder: "Va al kinder o guarderia",
+    kinderDetalle: "Detalle del kinder",
+    quienCuida: "Quien cuida al nino",
+    quienCuidaNoche: "Quien cuida en la noche",
+    dondeDuermeSalida: "Donde duerme cuando salen",
+    rutinaDormir: "Rutina para dormir",
+    horaDormir: "Hora de dormir",
+    duermeSolo: "Duerme de forma independiente",
+    oscuridadCuarto: "Oscuridad del cuarto",
+    colorLamparita: "Color de la lamparita",
+    ruidoBlanco: "Usa ruido blanco",
+    temperaturaCuarto: "Temperatura del cuarto",
+    tipoPiyama: "Tipo de pijama",
+    usaSaco: "Usa saco para dormir",
+    teQuedasHastaDuerma: "Se queda hasta que duerma",
+    dondeDuerme: "Donde duerme",
+    comparteHabitacion: "Comparte habitacion",
+    comparteHabitacionCon: "Con quien comparte habitacion",
+    horaAcostarBebe: "Hora de acostar al bebe",
+    tiempoDormir: "Tiempo para dormirse",
     horaDespertar: "Hora de despertar",
-    horaSiesta: "Hora de siesta",
-    duracionSiesta: "Duracion de siesta",
-    horaAcostarse: "Hora de acostarse",
-    rutinaAntesDormir: "Rutina antes de dormir",
-    tiempoEnDormirse: "Tiempo en dormirse",
-    despiertasNocturnas: "Despertares nocturnos",
-    comoSeVuelveADormir: "Como se vuelve a dormir",
+    despiertaNoche: "Despierta por la noche",
+    vecesDespierta: "Veces que despierta",
+    tiempoDespierto: "Tiempo despierto",
+    desdeCuandoDespierta: "Desde cuando despierta",
+    queHacesDespierta: "Que hace cuando despierta",
+    tomaSiestas: "Toma siestas",
+    numeroSiestas: "Numero y horario de siestas",
+    duracionTotalSiestas: "Duracion total de siestas",
+    dondeSiestas: "Donde toma siestas",
+    principalPreocupacion: "Principal preocupacion",
+    desdeCuandoProblema: "Desde cuando existe el problema",
+    objetivoPadres: "Objetivo de los padres",
+    infoAdicional: "Informacion adicional",
   },
 }
 
@@ -203,14 +366,17 @@ function FieldRow({ label, value, fieldKey }: FieldRowProps) {
 
 interface NestedObjectSectionProps {
   title: string
-  data: Record<string, any>
+  data: Record<string, any> | null | undefined
   sectionKey: string
+  fieldsList?: string[]
 }
 
-function NestedObjectSection({ title, data, sectionKey }: NestedObjectSectionProps) {
-  if (!data || typeof data !== "object") return null
-
+function NestedObjectSection({ title, data, sectionKey, fieldsList }: NestedObjectSectionProps) {
   const labels = FIELD_LABELS[sectionKey] || {}
+  const safeData = data || {}
+
+  // Usar la lista de campos si se proporciona, sino usar las claves del objeto
+  const fieldsToShow = fieldsList || Object.keys(safeData)
 
   return (
     <Card className="mb-4">
@@ -219,12 +385,13 @@ function NestedObjectSection({ title, data, sectionKey }: NestedObjectSectionPro
       </CardHeader>
       <CardContent>
         <dl className="divide-y divide-muted">
-          {Object.entries(data).map(([key, value]) => {
+          {fieldsToShow.map((key) => {
             // Ignorar campos internos o de metadata
             if (key.startsWith("_") || key === "createdAt" || key === "updatedAt") {
               return null
             }
             const label = labels[key] || key
+            const value = safeData[key]
             return <FieldRow key={key} label={label} value={value} fieldKey={key} />
           })}
         </dl>
@@ -239,28 +406,30 @@ interface SurveySectionProps {
 }
 
 export function SurveySection({ sectionKey, data }: SurveySectionProps) {
-  if (!data) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        No hay datos disponibles para esta seccion
-      </div>
-    )
-  }
-
   const labels = FIELD_LABELS[sectionKey] || {}
+  const allFields = SECTION_ALL_FIELDS[sectionKey] || []
+  const safeData = data || {}
 
-  // Separar objetos anidados de campos simples
+  // Lista de campos que son objetos anidados (papa, mama)
+  const nestedObjectKeys = ["papa", "mama"]
+
+  // Campos de metadata a ignorar
+  const metadataFields = ["_id", "createdAt", "updatedAt", "completed", "completedAt", "lastUpdated", "isPartial"]
+
+  // Separar objetos anidados de campos simples basado en la lista completa
   const nestedObjects: Array<{ key: string; title: string; data: any }> = []
   const simpleFields: Array<{ key: string; label: string; value: any }> = []
 
-  Object.entries(data).forEach(([key, value]) => {
+  allFields.forEach((key) => {
     // Ignorar campos de metadata
-    if (key.startsWith("_") || key === "createdAt" || key === "updatedAt" || key === "completed" || key === "completedAt" || key === "lastUpdated" || key === "isPartial") {
+    if (metadataFields.includes(key) || key.startsWith("_")) {
       return
     }
 
-    // Campos que son objetos anidados (como papa, mama, hijosInfo)
-    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    const value = safeData[key]
+
+    // Campos que son objetos anidados (como papa, mama)
+    if (nestedObjectKeys.includes(key)) {
       const title = labels[key] || key
       nestedObjects.push({ key, title, data: value })
     } else {
@@ -268,6 +437,15 @@ export function SurveySection({ sectionKey, data }: SurveySectionProps) {
       simpleFields.push({ key, label, value })
     }
   })
+
+  // Si no hay campos definidos para esta seccion, mostrar mensaje
+  if (allFields.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        No hay campos definidos para esta seccion
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -285,13 +463,14 @@ export function SurveySection({ sectionKey, data }: SurveySectionProps) {
         <Separator className="my-4" />
       )}
 
-      {/* Objetos anidados */}
+      {/* Objetos anidados (papa, mama) con lista de campos */}
       {nestedObjects.map(({ key, title, data: nestedData }) => (
         <NestedObjectSection
           key={key}
           title={title}
           data={nestedData}
           sectionKey={sectionKey}
+          fieldsList={PARENT_FIELDS}
         />
       ))}
     </div>

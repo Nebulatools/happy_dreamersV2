@@ -4,11 +4,10 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { AlertCircle, Clock, FileText, TrendingUp } from "lucide-react"
+import { AlertCircle, Clock, FileText, TrendingUp, Loader2 } from "lucide-react"
 import { SurveyResponseViewer } from "@/components/survey/SurveyResponseViewer"
 import type { SurveyData } from "@/types/models"
 
@@ -23,15 +22,26 @@ export function AdminChildDetailClient({
   childName,
   surveyData: initialSurveyData,
 }: AdminChildDetailClientProps) {
-  const router = useRouter()
-  const [surveyData] = useState<SurveyData | null>(initialSurveyData)
+  const [surveyData, setSurveyData] = useState<SurveyData | null>(initialSurveyData)
   const [activeTab, setActiveTab] = useState("encuesta")
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Callback para refrescar datos despues de editar
-  const handleSurveyUpdate = useCallback(() => {
-    // Refrescar la pagina para obtener datos actualizados
-    router.refresh()
-  }, [router])
+  const handleSurveyUpdate = useCallback(async () => {
+    setIsRefreshing(true)
+    try {
+      // Fetch los datos actualizados de la encuesta
+      const response = await fetch(`/api/children/${childId}/survey`)
+      if (response.ok) {
+        const data = await response.json()
+        setSurveyData(data.surveyData)
+      }
+    } catch (error) {
+      console.error("Error al refrescar datos de encuesta:", error)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }, [childId])
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -99,8 +109,8 @@ export function AdminChildDetailClient({
                     {surveyData.informacionFamiliar.primaryCaregiver === "mother"
                       ? "Mama"
                       : surveyData.informacionFamiliar.primaryCaregiver === "father"
-                      ? "Papa"
-                      : "Cuidador"}
+                        ? "Papa"
+                        : "Cuidador"}
                   </p>
                 </div>
               )}
@@ -118,6 +128,12 @@ export function AdminChildDetailClient({
 
       {/* Tab Encuesta */}
       <TabsContent value="encuesta">
+        {isRefreshing && (
+          <div className="flex items-center justify-center py-4 mb-4 bg-muted/50 rounded-lg">
+            <Loader2 className="h-5 w-5 animate-spin mr-2 text-primary" />
+            <span className="text-sm text-muted-foreground">Actualizando datos...</span>
+          </div>
+        )}
         {surveyData ? (
           <SurveyResponseViewer
             surveyData={surveyData}
