@@ -28,21 +28,21 @@ export async function GET(req: NextRequest) {
     const analysis = {
       child: {
         name: `${child.firstName} ${child.lastName}`,
-        id: child._id.toString()
+        id: child._id.toString(),
       },
       totalEvents: events.length,
       eventsByType: {},
       eventsWithEndTime: 0,
       eventsWithoutEndTime: 0,
       duplicateTimes: [],
-      detailedEvents: []
+      detailedEvents: [],
     }
     
     const timeMap = new Map()
     
     events.forEach((event, index) => {
       // Agrupar por tipo
-      const type = event.eventType || 'unknown'
+      const type = event.eventType || "unknown"
       if (!analysis.eventsByType[type]) {
         analysis.eventsByType[type] = 0
       }
@@ -69,11 +69,11 @@ export async function GET(req: NextRequest) {
         index,
         id: event._id,
         type: event.eventType,
-        startTime: event.startTime ? new Date(event.startTime).toLocaleString('es-ES') : null,
-        endTime: event.endTime ? new Date(event.endTime).toLocaleString('es-ES') : null,
+        startTime: event.startTime ? new Date(event.startTime).toLocaleString("es-ES") : null,
+        endTime: event.endTime ? new Date(event.endTime).toLocaleString("es-ES") : null,
         hasEndTime: !!event.endTime,
         emotionalState: event.emotionalState,
-        notes: event.notes
+        notes: event.notes,
       })
     })
     
@@ -81,13 +81,13 @@ export async function GET(req: NextRequest) {
     timeMap.forEach((eventsAtTime, time) => {
       if (eventsAtTime.length > 1) {
         analysis.duplicateTimes.push({
-          time: new Date(time).toLocaleString('es-ES'),
+          time: new Date(time).toLocaleString("es-ES"),
           count: eventsAtTime.length,
           events: eventsAtTime.map(e => ({
             id: e._id,
             type: e.eventType,
-            hasEndTime: !!e.endTime
-          }))
+            hasEndTime: !!e.endTime,
+          })),
         })
       }
     })
@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(analysis)
     
   } catch (error) {
-    console.error('❌ ERROR:', error)
+    console.error("❌ ERROR:", error)
     return NextResponse.json(
       { error: "Error al revisar eventos", details: error.message },
       { status: 500 }

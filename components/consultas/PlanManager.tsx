@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react"
 import { createLogger } from "@/lib/logger"
 
-const logger = createLogger('PlanManager')
+const logger = createLogger("PlanManager")
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
@@ -40,7 +40,6 @@ export function PlanManager({
   const [selectedPlanIndex, setSelectedPlanIndex] = useState<number | null>(null)
   const [historyReports, setHistoryReports] = useState<any[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
-  const [showDebug, setShowDebug] = useState(false)
   // Mostrar solo el plan más reciente por defecto; permitir "ver todos"
   const [showAllPlans, setShowAllPlans] = useState(false)
 
@@ -48,9 +47,9 @@ export function PlanManager({
   const getPlanId = (plan: any): string | null => {
     const raw = plan?._id
     if (!raw) return null
-    if (typeof raw === 'string') return raw
-    if (typeof raw === 'object' && typeof raw.$oid === 'string') return raw.$oid
-    if (typeof raw.toString === 'function') return raw.toString()
+    if (typeof raw === "string") return raw
+    if (typeof raw === "object" && typeof raw.$oid === "string") return raw.$oid
+    if (typeof raw.toString === "function") return raw.toString()
     try { return String(raw) } catch { return null }
   }
   
@@ -62,7 +61,7 @@ export function PlanManager({
   }>({
     initial: null,
     event_based: null,
-    transcript_refinement: null
+    transcript_refinement: null,
   })
   const [loadingValidations, setLoadingValidations] = useState(false)
 
@@ -82,7 +81,7 @@ export function PlanManager({
       setPlanValidations({
         initial: null,
         event_based: null,
-        transcript_refinement: null
+        transcript_refinement: null,
       })
     }
   }, [selectedUserId, selectedChildId])
@@ -91,13 +90,13 @@ export function PlanManager({
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && selectedUserId && selectedChildId) {
-        logger.debug('Pestaña visible - revalidando capacidades de plan')
+        logger.debug("Pestaña visible - revalidando capacidades de plan")
         validatePlanCapabilities()
       }
     }
 
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange)
   }, [selectedUserId, selectedChildId])
 
   // Validar capacidades de generar planes
@@ -106,20 +105,20 @@ export function PlanManager({
 
     try {
       setLoadingValidations(true)
-      const planTypes = ['initial', 'event_based', 'transcript_refinement']
+      const planTypes = ["initial", "event_based", "transcript_refinement"]
       const validations: any = {}
 
       // Ejecutar validaciones en paralelo
       const validationPromises = planTypes.map(async (planType) => {
-        const response = await fetch('/api/consultas/plans', {
-          method: 'PUT',
+        const response = await fetch("/api/consultas/plans", {
+          method: "PUT",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             userId: selectedUserId,
             childId: selectedChildId,
-            planType
+            planType,
           }),
         })
 
@@ -129,8 +128,8 @@ export function PlanManager({
         } else {
           validations[planType] = {
             canGenerate: false,
-            reason: 'Error al validar',
-            planType
+            reason: "Error al validar",
+            planType,
           }
         }
       })
@@ -138,11 +137,11 @@ export function PlanManager({
       await Promise.all(validationPromises)
       setPlanValidations(validations)
     } catch (error) {
-      logger.error('Error validando capacidades de plan:', error)
+      logger.error("Error validando capacidades de plan:", error)
       setPlanValidations({
-        initial: { canGenerate: false, reason: 'Error de validación' },
-        event_based: { canGenerate: false, reason: 'Error de validación' },
-        transcript_refinement: { canGenerate: false, reason: 'Error de validación' }
+        initial: { canGenerate: false, reason: "Error de validación" },
+        event_based: { canGenerate: false, reason: "Error de validación" },
+        transcript_refinement: { canGenerate: false, reason: "Error de validación" },
       })
     } finally {
       setLoadingValidations(false)
@@ -158,13 +157,13 @@ export function PlanManager({
       const response = await fetch(`/api/consultas/history?childId=${selectedChildId}`)
       
       if (!response.ok) {
-        throw new Error('Error al cargar el historial')
+        throw new Error("Error al cargar el historial")
       }
       
       const data = await response.json()
       setHistoryReports(data.consultations || [])
     } catch (error) {
-      logger.error('Error cargando historial', error)
+      logger.error("Error cargando historial", error)
       setHistoryReports([])
     } finally {
       setLoadingHistory(false)
@@ -212,15 +211,15 @@ export function PlanManager({
   // Eliminar plan (solo admin desde UI de administrador)
   const deletePlan = async (planId: string) => {
     if (!planId) return
-    const confirmed = typeof window !== 'undefined' ? window.confirm('¿Eliminar este plan de forma permanente?') : true
+    const confirmed = typeof window !== "undefined" ? window.confirm("¿Eliminar este plan de forma permanente?") : true
     if (!confirmed) return
 
     try {
       setDeletingPlanId(planId)
-      const response = await fetch(`/api/consultas/plans/${planId}`, { method: 'DELETE' })
+      const response = await fetch(`/api/consultas/plans/${planId}`, { method: "DELETE" })
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
-        throw new Error(err.error || 'No se pudo eliminar el plan')
+        throw new Error(err.error || "No se pudo eliminar el plan")
       }
 
       // Refrescar lista y seleccionar el más reciente (índice 0)
@@ -229,15 +228,15 @@ export function PlanManager({
       setSelectedPlanIndex(0)
 
       toast({
-        title: 'Plan eliminado',
-        description: 'El plan se eliminó correctamente.'
+        title: "Plan eliminado",
+        description: "El plan se eliminó correctamente.",
       })
     } catch (error) {
-      logger.error('Error eliminando plan:', error)
+      logger.error("Error eliminando plan:", error)
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'No se pudo eliminar el plan',
-        variant: 'destructive'
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo eliminar el plan",
+        variant: "destructive",
       })
     } finally {
       setDeletingPlanId(null)
@@ -247,25 +246,25 @@ export function PlanManager({
   // Aplicar plan (cambiar de borrador a activo)
   const applyPlan = async (planId: string) => {
     if (!planId || !selectedUserId || !selectedChildId) return
-    const confirmed = typeof window !== 'undefined' ? window.confirm('¿Aplicar este plan? Los planes activos anteriores se marcarán como completados.') : true
+    const confirmed = typeof window !== "undefined" ? window.confirm("¿Aplicar este plan? Los planes activos anteriores se marcarán como completados.") : true
     if (!confirmed) return
 
     try {
-      const response = await fetch('/api/consultas/plans', {
-        method: 'PATCH',
+      const response = await fetch("/api/consultas/plans", {
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           planId,
           childId: selectedChildId,
-          userId: selectedUserId
-        })
+          userId: selectedUserId,
+        }),
       })
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
-        throw new Error(err.error || 'No se pudo aplicar el plan')
+        throw new Error(err.error || "No se pudo aplicar el plan")
       }
 
       // Refrescar lista y revalidar capacidades
@@ -273,15 +272,15 @@ export function PlanManager({
       await validatePlanCapabilities()
 
       toast({
-        title: 'Plan aplicado',
-        description: 'El plan ahora está activo y visible para el usuario.'
+        title: "Plan aplicado",
+        description: "El plan ahora está activo y visible para el usuario.",
       })
     } catch (error) {
-      logger.error('Error aplicando plan:', error)
+      logger.error("Error aplicando plan:", error)
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'No se pudo aplicar el plan',
-        variant: 'destructive'
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo aplicar el plan",
+        variant: "destructive",
       })
     }
   }
@@ -295,10 +294,10 @@ export function PlanManager({
     let validation = planValidations[planType]
     // 2) Revalidar contra el backend para evitar condiciones de carrera
     try {
-      const validateResp = await fetch('/api/consultas/plans', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: selectedUserId, childId: selectedChildId, planType })
+      const validateResp = await fetch("/api/consultas/plans", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: selectedUserId, childId: selectedChildId, planType }),
       })
       if (validateResp.ok) {
         const validateData = await validateResp.json()
@@ -353,7 +352,7 @@ export function PlanManager({
 
       if (!response.ok) {
         const raw = await response.text()
-        let details = ''
+        let details = ""
         try {
           const parsed = JSON.parse(raw)
           details = parsed.details || parsed.error || raw
@@ -370,13 +369,13 @@ export function PlanManager({
       await validatePlanCapabilities()
       
       // Verificar que el resultado tiene la estructura esperada
-      const planVersion = result?.plan?.planVersion ?? 'Nuevo'
-      const childNameForToast = selectedChildName || 'el niño'
+      const planVersion = result?.plan?.planVersion ?? "Nuevo"
+      const childNameForToast = selectedChildName || "el niño"
       
       const planTypeNames = {
         initial: "Plan Inicial",
         event_based: `Plan ${planVersion} (Progresión)`,
-        transcript_refinement: `Plan ${planVersion} (Refinamiento)`
+        transcript_refinement: `Plan ${planVersion} (Refinamiento)`,
       }
       
       toast({
@@ -396,55 +395,49 @@ export function PlanManager({
   }
 
   // Obtener información de planes disponibles basada en validaciones
-  const getAvailablePlans = () => {
-    const availablePlans = []
+  // Determinar si hay un plan activo
+  const hasActivePlan = plans.some(p => p.status === "active")
 
-    // Plan Inicial
-    const initialValidation = planValidations.initial
-    if (initialValidation) {
-      availablePlans.push({
-        planType: "initial" as const,
-        canGenerate: initialValidation.canGenerate,
-        buttonText: "Generar Plan Inicial",
-        description: initialValidation.canGenerate 
-          ? "Crear el primer plan basado en survey, estadísticas y conocimiento especializado"
-          : initialValidation.reason,
-        nextVersion: initialValidation.nextVersion,
-        validation: initialValidation
-      })
+  // Obtener solo el boton relevante segun el estado del paciente
+  const getVisiblePlanButton = () => {
+    // Si NO hay plan activo, mostrar solo "Generar Plan Inicial"
+    if (!hasActivePlan) {
+      const initialValidation = planValidations.initial
+      if (initialValidation) {
+        return {
+          planType: "initial" as const,
+          canGenerate: initialValidation.canGenerate,
+          buttonText: "Generar Plan Inicial",
+          description: initialValidation.canGenerate
+            ? "Crear el primer plan basado en survey, estadísticas y conocimiento especializado"
+            : initialValidation.reason,
+          nextVersion: initialValidation.nextVersion,
+          validation: initialValidation,
+        }
+      }
+      return null
     }
 
-    // Plan basado en eventos
+    // Si YA hay plan activo, mostrar solo "Plan de Progresion"
     const eventValidation = planValidations.event_based
     if (eventValidation) {
-      availablePlans.push({
+      return {
         planType: "event_based" as const,
         canGenerate: eventValidation.canGenerate,
-        buttonText: eventValidation.canGenerate 
+        buttonText: eventValidation.canGenerate
           ? `Generar Plan ${eventValidation.nextVersion} (Progresión)`
           : "Plan de Progresión",
         description: eventValidation.reason,
         nextVersion: eventValidation.nextVersion,
-        validation: eventValidation
-      })
+        validation: eventValidation,
+      }
     }
+    return null
+  }
 
-    // Plan de refinamiento con transcript
-    const transcriptValidation = planValidations.transcript_refinement
-    if (transcriptValidation) {
-      availablePlans.push({
-        planType: "transcript_refinement" as const,
-        canGenerate: transcriptValidation.canGenerate,
-        buttonText: transcriptValidation.canGenerate
-          ? `Generar Plan ${transcriptValidation.nextVersion} (Refinamiento)`
-          : "Plan de Refinamiento",
-        description: transcriptValidation.reason,
-        nextVersion: transcriptValidation.nextVersion,
-        validation: transcriptValidation
-      })
-    }
-
-    return availablePlans
+  const getAvailablePlans = () => {
+    const visibleButton = getVisiblePlanButton()
+    return visibleButton ? [visibleButton] : []
   }
 
   const availablePlans = getAvailablePlans()
@@ -478,7 +471,7 @@ export function PlanManager({
               </CardTitle>
               <CardDescription>
                 {plans.length > 0 
-                  ? `${plans.length} plan${plans.length > 1 ? 'es' : ''} generado${plans.length > 1 ? 's' : ''}`
+                  ? `${plans.length} plan${plans.length > 1 ? "es" : ""} generado${plans.length > 1 ? "s" : ""}`
                   : "No hay planes generados aún"
                 }
               </CardDescription>
@@ -490,7 +483,7 @@ export function PlanManager({
                 <span className="text-sm text-muted-foreground">Validando opciones...</span>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full max-w-3xl">
+              <div className="flex gap-2">
                 {availablePlans.map((planOption) => (
                   <div key={planOption.planType} className="flex flex-col items-stretch">
                     <TooltipProvider>
@@ -528,51 +521,7 @@ export function PlanManager({
               </div>
             )}
           </div>
-          {/* Debug panel (solo admin) */}
-          {(!loadingValidations) && (
-            <div className="mt-2">
-              <button
-                type="button"
-                className="text-xs text-muted-foreground underline"
-                onClick={() => setShowDebug(v => !v)}
-              >
-                {showDebug ? 'Ocultar' : 'Mostrar'} debug de validación
-              </button>
-              {showDebug && (
-                <div className="mt-2 space-y-2">
-                  <pre className="text-xs bg-muted/40 p-2 rounded border max-h-40 overflow-auto">
-{JSON.stringify({
-  initial: planValidations.initial,
-  event_based: planValidations.event_based,
-  transcript_refinement: planValidations.transcript_refinement
-}, null, 2)}
-                  </pre>
 
-                  {/* Mostrar detalles de eventos si existen */}
-                  {planValidations.event_based?.additionalInfo?.eventDetails?.length > 0 && (
-                    <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded border border-blue-200 dark:border-blue-800">
-                      <p className="text-xs font-semibold mb-2 text-blue-900 dark:text-blue-100">
-                        📋 Eventos encontrados ({planValidations.event_based.additionalInfo.eventDetails.length}):
-                      </p>
-                      <div className="space-y-1 max-h-48 overflow-auto">
-                        {planValidations.event_based.additionalInfo.eventDetails.map((event: any, idx: number) => (
-                          <div key={idx} className="text-xs bg-white dark:bg-gray-900 p-2 rounded border">
-                            <div className="flex justify-between gap-2">
-                              <span className="font-mono text-blue-600 dark:text-blue-400">{event.eventType}</span>
-                              <span className="text-gray-600 dark:text-gray-400">{event.formattedDate}</span>
-                            </div>
-                            <div className="text-gray-500 dark:text-gray-500 text-[10px] mt-1">
-                              ID: {event._id}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
         </CardHeader>
 
         {/* Lista de planes existentes */}
@@ -589,99 +538,99 @@ export function PlanManager({
               {plans.map((plan, index) => (
                 // Si no mostramos todos, ocultar a partir del segundo plan
                 (!showAllPlans && index > 0) ? null : (
-                <div
-                  key={getPlanId(plan) || `plan-${index}`}
-                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                    selectedPlanIndex === index
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                  onClick={() => setSelectedPlanIndex(index)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">Plan {plan.planVersion || plan.planNumber}</span>
-                        <Badge variant={plan.planType === "initial" ? "default" :
-                                      plan.planType === "event_based" ? "secondary" : "outline"}>
-                          {plan.planType === "initial" ? "Inicial" :
-                           plan.planType === "event_based" ? "Progresión" : "Refinamiento"}
-                        </Badge>
-                        {plan.status === "borrador" && (
-                          <Badge variant="outline" className="text-orange-600 border-orange-600">
-                            <AlertCircle className="h-3 w-3 mr-1" />
+                  <div
+                    key={getPlanId(plan) || `plan-${index}`}
+                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                      selectedPlanIndex === index
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                    onClick={() => setSelectedPlanIndex(index)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">Plan {plan.planVersion || plan.planNumber}</span>
+                          <Badge variant={plan.planType === "initial" ? "default" :
+                            plan.planType === "event_based" ? "secondary" : "outline"}>
+                            {plan.planType === "initial" ? "Inicial" :
+                              plan.planType === "event_based" ? "Progresión" : "Refinamiento"}
+                          </Badge>
+                          {plan.status === "borrador" && (
+                            <Badge variant="outline" className="text-orange-600 border-orange-600">
+                              <AlertCircle className="h-3 w-3 mr-1" />
                             Borrador
-                          </Badge>
-                        )}
-                        {plan.status === "active" && (
-                          <Badge variant="outline" className="text-green-600 border-green-600">
-                            <CheckCircle className="h-3 w-3 mr-1" />
+                            </Badge>
+                          )}
+                          {plan.status === "active" && (
+                            <Badge variant="outline" className="text-green-600 border-green-600">
+                              <CheckCircle className="h-3 w-3 mr-1" />
                             Activo
-                          </Badge>
-                        )}
-                        {plan.status === "superseded" && (
-                          <Badge variant="outline" className="text-gray-600 border-gray-600">
-                            <CheckCircle className="h-3 w-3 mr-1" />
+                            </Badge>
+                          )}
+                          {plan.status === "superseded" && (
+                            <Badge variant="outline" className="text-gray-600 border-gray-600">
+                              <CheckCircle className="h-3 w-3 mr-1" />
                             Completado
-                          </Badge>
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        {new Date(plan.createdAt).toLocaleDateString("es-ES", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        })}
+                        {plan.status === "borrador" && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const pid = getPlanId(plan)
+                              if (pid) applyPlan(pid)
+                            }}
+                            className="ml-2"
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                          Aplicar Plan
+                          </Button>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const pid = getPlanId(plan)
+                            if (pid) deletePlan(pid)
+                          }}
+                          disabled={deletingPlanId === (getPlanId(plan) || String(plan._id))}
+                          title="Eliminar plan"
+                        >
+                          <Trash2 className={`h-4 w-4 ${deletingPlanId === String(plan._id) ? "text-muted-foreground" : "text-destructive"}`} />
+                        </Button>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      {new Date(plan.createdAt).toLocaleDateString('es-ES', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric'
-                      })}
-                      {plan.status === "borrador" && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const pid = getPlanId(plan)
-                            if (pid) applyPlan(pid)
-                          }}
-                          className="ml-2"
-                        >
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Aplicar Plan
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const pid = getPlanId(plan)
-                          if (pid) deletePlan(pid)
-                        }}
-                        disabled={deletingPlanId === (getPlanId(plan) || String(plan._id))}
-                        title="Eliminar plan"
-                      >
-                        <Trash2 className={`h-4 w-4 ${deletingPlanId === String(plan._id) ? 'text-muted-foreground' : 'text-destructive'}`} />
-                      </Button>
+                  
+                    <div className="mt-2">
+                      <p className="text-sm text-muted-foreground">
+                        {plan.objectives.length > 0 && (() => {
+                          const first = plan.objectives[0] as any
+                          const text = typeof first === "string" ? first : (first?.description || JSON.stringify(first))
+                          return (
+                            <span className="flex items-center gap-1">
+                              <Target className="h-3 w-3" />
+                              {text}
+                              {plan.objectives.length > 1 && ` (+${plan.objectives.length - 1} más)`}
+                            </span>
+                          )
+                        })()}
+                      </p>
                     </div>
                   </div>
-                  
-                  <div className="mt-2">
-                    <p className="text-sm text-muted-foreground">
-                      {plan.objectives.length > 0 && (() => {
-                        const first = plan.objectives[0] as any
-                        const text = typeof first === 'string' ? first : (first?.description || JSON.stringify(first))
-                        return (
-                          <span className="flex items-center gap-1">
-                            <Target className="h-3 w-3" />
-                            {text}
-                            {plan.objectives.length > 1 && ` (+${plan.objectives.length - 1} más)`}
-                          </span>
-                        )
-                      })()}
-                    </p>
-                  </div>
-                </div>
                 )
               ))}
             </div>

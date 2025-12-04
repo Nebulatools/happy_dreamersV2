@@ -3,7 +3,11 @@
 
 import { useState, useEffect } from 'react'
 import useSWR from 'swr'
-import { getTimePartsInTimeZone } from '@/lib/timezone'
+import {
+  getTimePartsInTimezone,
+  isNightTime as isNightTimeUtil,
+  DEFAULT_TIMEZONE
+} from '@/lib/datetime'
 
 interface Schedule {
   bedtime: string
@@ -48,36 +52,24 @@ export function useChildPlan(childId: string | null, timeZone?: string) {
   }
 
   // Función helper para determinar si es horario nocturno
+  // ESTANDARIZADO: 7pm (19:00) a 6am (06:00) - rango fijo, no basado en plan
   const isNightTime = (date: Date = new Date()): boolean => {
-    if (!data?.schedule) return false
-    const parts = getTimePartsInTimeZone(date, timeZone)
-    const currentTime = parts.hours * 60 + parts.minutes
-    
-    const bedtime = toMinutes(data.schedule.bedtime) ?? toMinutes('20:00')!
-    const wakeTime = toMinutes(data.schedule.wakeTime) ?? toMinutes('07:00')!
-    
-    // Si bedtime es después de medianoche (ej: 01:00)
-    if (bedtime < wakeTime) {
-      return currentTime >= bedtime && currentTime < wakeTime
-    }
-    
-    // Si bedtime es antes de medianoche (ej: 20:00)
-    return currentTime >= bedtime || currentTime < wakeTime
+    return isNightTimeUtil(date, timeZone || DEFAULT_TIMEZONE)
   }
 
   // Función helper para determinar si es hora de siesta
   const isNapTime = (date: Date = new Date()): boolean => {
     const naps = data?.schedule?.naps
     if (!naps || naps.length === 0) return false
-    const parts = getTimePartsInTimeZone(date, timeZone)
+    const parts = getTimePartsInTimezone(date, timeZone || DEFAULT_TIMEZONE)
     const currentTime = parts.hours * 60 + parts.minutes
-    
+
     return naps.some(nap => {
       const napStart = toMinutes(nap?.time)
       const dur = typeof nap?.duration === 'number' ? nap.duration : 0
       if (napStart === null || dur <= 0) return false
       const napEnd = napStart + dur
-      
+
       return currentTime >= napStart && currentTime <= napEnd
     })
   }

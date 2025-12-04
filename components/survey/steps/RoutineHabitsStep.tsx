@@ -8,13 +8,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Moon } from "lucide-react"
-import type { SurveyStepProps } from '../types/survey.types'
+import type { SurveyStepProps } from "../types/survey.types"
 
 export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepProps) {
   const updateField = (field: string, value: any) => {
     onChange({
       ...data,
-      [field]: value
+      [field]: value,
     })
   }
 
@@ -34,32 +34,32 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
   }
 
   useEffect(() => {
-    console.log('RoutineHabitsStep mounted, data:', data)
+    console.log("RoutineHabitsStep mounted, data:", data)
     // Establecer valores predeterminados solo si están vacíos o undefined
     let hasChanges = false
     const updates: any = {}
 
     if (!data.horaAcostarBebe || data.horaAcostarBebe === "") {
-      console.log('Setting horaAcostarBebe to 20:00')
+      console.log("Setting horaAcostarBebe to 20:00")
       updates.horaAcostarBebe = "20:00"
       hasChanges = true
     }
     if (!data.tiempoDormir || data.tiempoDormir === "") {
-      console.log('Setting tiempoDormir to 20')
+      console.log("Setting tiempoDormir to 20")
       updates.tiempoDormir = "20"
       hasChanges = true
     }
     if (!data.horaDespertar || data.horaDespertar === "") {
-      console.log('Setting horaDespertar to 06:00')
+      console.log("Setting horaDespertar to 06:00")
       updates.horaDespertar = "06:00"
       hasChanges = true
     }
 
     if (hasChanges) {
-      console.log('Applying updates:', updates)
+      console.log("Applying updates:", updates)
       onChange({
         ...data,
-        ...updates
+        ...updates,
       })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -80,13 +80,13 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Textarea
           id="dia-tipico"
           value={data.diaTipico || ""}
-          onChange={(e) => updateField('diaTipico', e.target.value)}
+          onChange={(e) => updateField("diaTipico", e.target.value)}
           placeholder="Describe detalladamente un día completo desde que despierta hasta que duerme..."
           rows={5}
-          className={hasError('diaTipico') ? 'border-red-500' : ''}
+          className={hasError("diaTipico") ? "border-red-500" : ""}
         />
-        {hasError('diaTipico') && (
-          <p className="text-red-500 text-sm mt-1">{getError('diaTipico')}</p>
+        {hasError("diaTipico") && (
+          <p className="text-red-500 text-sm mt-1">{getError("diaTipico")}</p>
         )}
       </div>
 
@@ -96,11 +96,11 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <RadioGroup
           value={data.vaKinder === true ? "si" : data.vaKinder === false ? "no" : ""}
           onValueChange={(value) => {
-            const attendsKinder = value === 'si'
+            const attendsKinder = value === "si"
             onChange({
               ...data,
               vaKinder: attendsKinder,
-              kinderDetalle: attendsKinder ? data.kinderDetalle || "" : ""
+              kinderDetalle: attendsKinder ? data.kinderDetalle || "" : "",
             })
           }}
         >
@@ -123,7 +123,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
             <Textarea
               id="kinder-detalle"
               value={data.kinderDetalle || ""}
-              onChange={(e) => updateField('kinderDetalle', e.target.value)}
+              onChange={(e) => updateField("kinderDetalle", e.target.value)}
               placeholder="Ej: Desde enero 2024, de 8am a 2pm..."
               rows={2}
               className="mt-1"
@@ -140,12 +140,12 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Input
           id="quien-cuida"
           value={data.quienCuida || ""}
-          onChange={(e) => updateField('quienCuida', e.target.value)}
+          onChange={(e) => updateField("quienCuida", e.target.value)}
           placeholder="Ej: Mamá, papá, abuela, niñera..."
-          className={hasError('quienCuida') ? 'border-red-500' : ''}
+          className={hasError("quienCuida") ? "border-red-500" : ""}
         />
-        {hasError('quienCuida') && (
-          <p className="text-red-500 text-sm mt-1">{getError('quienCuida')}</p>
+        {hasError("quienCuida") && (
+          <p className="text-red-500 text-sm mt-1">{getError("quienCuida")}</p>
         )}
       </div>
 
@@ -157,7 +157,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Input
           id="quien-cuida-noche"
           value={data.quienCuidaNoche || ""}
-          onChange={(e) => updateField('quienCuidaNoche', e.target.value)}
+          onChange={(e) => updateField("quienCuidaNoche", e.target.value)}
           placeholder="Ej: Abuela, tía, niñera..."
         />
       </div>
@@ -170,7 +170,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Input
           id="donde-duerme-salida"
           value={data.dondeDuermeSalida || ""}
-          onChange={(e) => updateField('dondeDuermeSalida', e.target.value)}
+          onChange={(e) => updateField("dondeDuermeSalida", e.target.value)}
           placeholder="Ej: En su cama, con la abuela, en casa de familiares..."
         />
       </div>
@@ -183,13 +183,13 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Textarea
           id="rutina-dormir"
           value={data.rutinaDormir || ""}
-          onChange={(e) => updateField('rutinaDormir', e.target.value)}
+          onChange={(e) => updateField("rutinaDormir", e.target.value)}
           placeholder="Describe la rutina: baño, cena, cuento, etc. Incluye horarios de inicio y fin..."
           rows={4}
-          className={hasError('rutinaDormir') ? 'border-red-500' : ''}
+          className={hasError("rutinaDormir") ? "border-red-500" : ""}
         />
-        {hasError('rutinaDormir') && (
-          <p className="text-red-500 text-sm mt-1">{getError('rutinaDormir')}</p>
+        {hasError("rutinaDormir") && (
+          <p className="text-red-500 text-sm mt-1">{getError("rutinaDormir")}</p>
         )}
       </div>
 
@@ -201,12 +201,12 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Input
           id="hora-dormir"
           value={data.horaDormir || ""}
-          onChange={(e) => updateField('horaDormir', e.target.value)}
+          onChange={(e) => updateField("horaDormir", e.target.value)}
           placeholder="Ej: 20:00, 20:30..."
-          className={hasError('horaDormir') ? 'border-red-500' : ''}
+          className={hasError("horaDormir") ? "border-red-500" : ""}
         />
-        {hasError('horaDormir') && (
-          <p className="text-red-500 text-sm mt-1">{getError('horaDormir')}</p>
+        {hasError("horaDormir") && (
+          <p className="text-red-500 text-sm mt-1">{getError("horaDormir")}</p>
         )}
       </div>
 
@@ -215,7 +215,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Label>8. ¿Su hijo/a se queda dormido de forma independiente?</Label>
         <RadioGroup
           value={data.duermeSolo === true ? "si" : data.duermeSolo === false ? "no" : ""}
-          onValueChange={(value) => updateField('duermeSolo', value === 'si')}
+          onValueChange={(value) => updateField("duermeSolo", value === "si")}
         >
           <div className="flex gap-4 mt-2">
             <div className="flex items-center space-x-2">
@@ -239,7 +239,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
             onChange({
               ...data,
               oscuridadCuarto: value,
-              colorLamparita: value === 'lamparita' ? data.colorLamparita || "" : ""
+              colorLamparita: value === "lamparita" ? data.colorLamparita || "" : "",
             })
           }}
         >
@@ -248,7 +248,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
               <RadioGroupItem value="lamparita" id="osc-lamparita" />
               <Label htmlFor="osc-lamparita">Lamparita prendida</Label>
             </div>
-            {data.oscuridadCuarto === 'lamparita' && (
+            {data.oscuridadCuarto === "lamparita" && (
               <div className="ml-6 mt-2">
                 <Label htmlFor="color-lamparita" className="text-sm text-gray-600">
                   ¿De qué color es la lamparita?
@@ -256,7 +256,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
                 <Input
                   id="color-lamparita"
                   value={data.colorLamparita || ""}
-                  onChange={(e) => updateField('colorLamparita', e.target.value)}
+                  onChange={(e) => updateField("colorLamparita", e.target.value)}
                   placeholder="Ej: Blanca cálida, azul, amarilla..."
                   className="max-w-md mt-1"
                 />
@@ -279,7 +279,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Label>10. ¿Usan ustedes ruido blanco?</Label>
         <RadioGroup
           value={data.ruidoBlanco === true ? "si" : data.ruidoBlanco === false ? "no" : ""}
-          onValueChange={(value) => updateField('ruidoBlanco', value === 'si')}
+          onValueChange={(value) => updateField("ruidoBlanco", value === "si")}
         >
           <div className="flex gap-4 mt-2">
             <div className="flex items-center space-x-2">
@@ -302,7 +302,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Input
           id="temperatura"
           value={data.temperaturaCuarto || ""}
-          onChange={(e) => updateField('temperaturaCuarto', e.target.value)}
+          onChange={(e) => updateField("temperaturaCuarto", e.target.value)}
           placeholder="Ej: 22°C, fresco, templado..."
         />
       </div>
@@ -315,7 +315,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Textarea
           id="tipo-pijama"
           value={data.tipoPiyama || ""}
-          onChange={(e) => updateField('tipoPiyama', e.target.value)}
+          onChange={(e) => updateField("tipoPiyama", e.target.value)}
           placeholder="Describe el tipo de pijama: manga larga/corta, material, grosor..."
           rows={2}
         />
@@ -326,7 +326,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Label>13. ¿Usa su hijo/a saco para dormir?</Label>
         <RadioGroup
           value={data.usaSaco === true ? "si" : data.usaSaco === false ? "no" : ""}
-          onValueChange={(value) => updateField('usaSaco', value === 'si')}
+          onValueChange={(value) => updateField("usaSaco", value === "si")}
         >
           <div className="flex gap-4 mt-2">
             <div className="flex items-center space-x-2">
@@ -346,7 +346,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Label>14. ¿Se queda usted con él/ella hasta que concilie el sueño?</Label>
         <RadioGroup
           value={data.teQuedasHastaDuerma === true ? "si" : data.teQuedasHastaDuerma === false ? "no" : ""}
-          onValueChange={(value) => updateField('teQuedasHastaDuerma', value === 'si')}
+          onValueChange={(value) => updateField("teQuedasHastaDuerma", value === "si")}
         >
           <div className="flex gap-4 mt-2">
             <div className="flex items-center space-x-2">
@@ -369,14 +369,14 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
           <div className="flex items-center space-x-2">
             <Checkbox
               id="donde-cama-cuarto"
-              checked={data.dondeDuerme?.includes('cama-cuarto') || false}
+              checked={data.dondeDuerme?.includes("cama-cuarto") || false}
               onCheckedChange={(checked) => {
                 const isChecked = checked === true
                 const lugares = data.dondeDuerme || []
                 if (isChecked) {
-                  updateField('dondeDuerme', [...lugares, 'cama-cuarto'])
+                  updateField("dondeDuerme", [...lugares, "cama-cuarto"])
                 } else {
-                  updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cama-cuarto'))
+                  updateField("dondeDuerme", lugares.filter((l: string) => l !== "cama-cuarto"))
                 }
               }}
             />
@@ -385,14 +385,14 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
           <div className="flex items-center space-x-2">
             <Checkbox
               id="donde-cama-padres"
-              checked={data.dondeDuerme?.includes('cama-cuarto-padres') || false}
+              checked={data.dondeDuerme?.includes("cama-cuarto-padres") || false}
               onCheckedChange={(checked) => {
                 const isChecked = checked === true
                 const lugares = data.dondeDuerme || []
                 if (isChecked) {
-                  updateField('dondeDuerme', [...lugares, 'cama-cuarto-padres'])
+                  updateField("dondeDuerme", [...lugares, "cama-cuarto-padres"])
                 } else {
-                  updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cama-cuarto-padres'))
+                  updateField("dondeDuerme", lugares.filter((l: string) => l !== "cama-cuarto-padres"))
                 }
               }}
             />
@@ -401,14 +401,14 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
           <div className="flex items-center space-x-2">
             <Checkbox
               id="donde-cuna-cuarto"
-              checked={data.dondeDuerme?.includes('cuna-cuarto') || false}
+              checked={data.dondeDuerme?.includes("cuna-cuarto") || false}
               onCheckedChange={(checked) => {
                 const isChecked = checked === true
                 const lugares = data.dondeDuerme || []
                 if (isChecked) {
-                  updateField('dondeDuerme', [...lugares, 'cuna-cuarto'])
+                  updateField("dondeDuerme", [...lugares, "cuna-cuarto"])
                 } else {
-                  updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cuna-cuarto'))
+                  updateField("dondeDuerme", lugares.filter((l: string) => l !== "cuna-cuarto"))
                 }
               }}
             />
@@ -417,14 +417,14 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
           <div className="flex items-center space-x-2">
             <Checkbox
               id="donde-cuna-padres"
-              checked={data.dondeDuerme?.includes('cuna-padres') || false}
+              checked={data.dondeDuerme?.includes("cuna-padres") || false}
               onCheckedChange={(checked) => {
                 const isChecked = checked === true
                 const lugares = data.dondeDuerme || []
                 if (isChecked) {
-                  updateField('dondeDuerme', [...lugares, 'cuna-padres'])
+                  updateField("dondeDuerme", [...lugares, "cuna-padres"])
                 } else {
-                  updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cuna-padres'))
+                  updateField("dondeDuerme", lugares.filter((l: string) => l !== "cuna-padres"))
                 }
               }}
             />
@@ -433,14 +433,14 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
           <div className="flex items-center space-x-2">
             <Checkbox
               id="donde-solo-padres"
-              checked={data.dondeDuerme?.includes('cama-padres') || false}
+              checked={data.dondeDuerme?.includes("cama-padres") || false}
               onCheckedChange={(checked) => {
                 const isChecked = checked === true
                 const lugares = data.dondeDuerme || []
                 if (isChecked) {
-                  updateField('dondeDuerme', [...lugares, 'cama-padres'])
+                  updateField("dondeDuerme", [...lugares, "cama-padres"])
                 } else {
-                  updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cama-padres'))
+                  updateField("dondeDuerme", lugares.filter((l: string) => l !== "cama-padres"))
                 }
               }}
             />
@@ -449,14 +449,14 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
           <div className="flex items-center space-x-2">
             <Checkbox
               id="donde-cuna-luego"
-              checked={data.dondeDuerme?.includes('cuna-luego-padres') || false}
+              checked={data.dondeDuerme?.includes("cuna-luego-padres") || false}
               onCheckedChange={(checked) => {
                 const isChecked = checked === true
                 const lugares = data.dondeDuerme || []
                 if (isChecked) {
-                  updateField('dondeDuerme', [...lugares, 'cuna-luego-padres'])
+                  updateField("dondeDuerme", [...lugares, "cuna-luego-padres"])
                 } else {
-                  updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cuna-luego-padres'))
+                  updateField("dondeDuerme", lugares.filter((l: string) => l !== "cuna-luego-padres"))
                 }
               }}
             />
@@ -465,22 +465,22 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
           <div className="flex items-center space-x-2">
             <Checkbox
               id="donde-cama-luego"
-              checked={data.dondeDuerme?.includes('cama-luego-padres') || false}
+              checked={data.dondeDuerme?.includes("cama-luego-padres") || false}
               onCheckedChange={(checked) => {
                 const isChecked = checked === true
                 const lugares = data.dondeDuerme || []
                 if (isChecked) {
-                  updateField('dondeDuerme', [...lugares, 'cama-luego-padres'])
+                  updateField("dondeDuerme", [...lugares, "cama-luego-padres"])
                 } else {
-                  updateField('dondeDuerme', lugares.filter((l: string) => l !== 'cama-luego-padres'))
+                  updateField("dondeDuerme", lugares.filter((l: string) => l !== "cama-luego-padres"))
                 }
               }}
             />
             <Label htmlFor="donde-cama-luego">Primero en su cama y luego a cama de papás</Label>
           </div>
         </div>
-        {hasError('dondeDuerme') && (
-          <p className="text-red-500 text-sm mt-1">{getError('dondeDuerme')}</p>
+        {hasError("dondeDuerme") && (
+          <p className="text-red-500 text-sm mt-1">{getError("dondeDuerme")}</p>
         )}
       </div>
 
@@ -490,11 +490,11 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <RadioGroup
           value={data.comparteHabitacion === true ? "si" : data.comparteHabitacion === false ? "no" : ""}
           onValueChange={(value) => {
-            const shares = value === 'si'
+            const shares = value === "si"
             onChange({
               ...data,
               comparteHabitacion: shares,
-              comparteHabitacionCon: shares ? data.comparteHabitacionCon || "" : ""
+              comparteHabitacionCon: shares ? data.comparteHabitacionCon || "" : "",
             })
           }}
         >
@@ -517,7 +517,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
             <Input
               id="comparte-con"
               value={data.comparteHabitacionCon || ""}
-              onChange={(e) => updateField('comparteHabitacionCon', e.target.value)}
+              onChange={(e) => updateField("comparteHabitacionCon", e.target.value)}
               placeholder="Ej: Hermano mayor, hermana..."
               className="max-w-md mt-1"
             />
@@ -534,8 +534,8 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
           id="hora-acostarse-bebe"
           type="time"
           step="300"
-          value={getValueOrDefault('horaAcostarBebe', "20:00")}
-          onChange={(e) => updateField('horaAcostarBebe', e.target.value)}
+          value={getValueOrDefault("horaAcostarBebe", "20:00")}
+          onChange={(e) => updateField("horaAcostarBebe", e.target.value)}
           className="max-w-xs"
         />
       </div>
@@ -552,7 +552,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
             min="0"
             step="5"
             value={data.tiempoDormir || ""}
-            onChange={(e) => updateField('tiempoDormir', e.target.value)}
+            onChange={(e) => updateField("tiempoDormir", e.target.value)}
             placeholder="Ej: 20"
             className="max-w-xs"
           />
@@ -569,8 +569,8 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
           id="hora-despertar"
           type="time"
           step="300"
-          value={getValueOrDefault('horaDespertar', "06:00")}
-          onChange={(e) => updateField('horaDespertar', e.target.value)}
+          value={getValueOrDefault("horaDespertar", "06:00")}
+          onChange={(e) => updateField("horaDespertar", e.target.value)}
           className="max-w-xs"
         />
       </div>
@@ -580,7 +580,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Label>20. ¿Tu hijo(a) despierta por la noche?</Label>
         <RadioGroup
           value={data.despiertaNoche === true ? "si" : data.despiertaNoche === false ? "no" : ""}
-          onValueChange={(value) => updateField('despiertaNoche', value === 'si')}
+          onValueChange={(value) => updateField("despiertaNoche", value === "si")}
         >
           <div className="flex gap-4 mt-2">
             <div className="flex items-center space-x-2">
@@ -603,7 +603,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Input
           id="veces-despierta"
           value={data.vecesDespierta || ""}
-          onChange={(e) => updateField('vecesDespierta', e.target.value)}
+          onChange={(e) => updateField("vecesDespierta", e.target.value)}
           placeholder="Ej: 2-3 veces"
         />
       </div>
@@ -616,7 +616,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Input
           id="tiempo-despierto"
           value={data.tiempoDespierto || ""}
-          onChange={(e) => updateField('tiempoDespierto', e.target.value)}
+          onChange={(e) => updateField("tiempoDespierto", e.target.value)}
           placeholder="Ej: 15-30 minutos"
         />
       </div>
@@ -629,7 +629,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Input
           id="desde-cuando-despierta"
           value={data.desdeCuandoDespierta || ""}
-          onChange={(e) => updateField('desdeCuandoDespierta', e.target.value)}
+          onChange={(e) => updateField("desdeCuandoDespierta", e.target.value)}
           placeholder="Ej: Desde los 6 meses"
         />
       </div>
@@ -642,7 +642,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Textarea
           id="que-haces-despierta"
           value={data.queHacesDespierta || ""}
-          onChange={(e) => updateField('queHacesDespierta', e.target.value)}
+          onChange={(e) => updateField("queHacesDespierta", e.target.value)}
           placeholder="Describe qué haces cuando se despierta..."
           rows={3}
         />
@@ -653,7 +653,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Label>25. ¿Tu hijo(a) toma siestas durante el día?</Label>
         <RadioGroup
           value={data.tomaSiestas === true ? "si" : data.tomaSiestas === false ? "no" : ""}
-          onValueChange={(value) => updateField('tomaSiestas', value === 'si')}
+          onValueChange={(value) => updateField("tomaSiestas", value === "si")}
         >
           <div className="flex gap-4 mt-2">
             <div className="flex items-center space-x-2">
@@ -676,7 +676,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Input
           id="numero-siestas"
           value={data.numeroSiestas || ""}
-          onChange={(e) => updateField('numeroSiestas', e.target.value)}
+          onChange={(e) => updateField("numeroSiestas", e.target.value)}
           placeholder="Ej: 2 siestas, 10:00 y 15:00"
         />
       </div>
@@ -689,7 +689,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Input
           id="duracion-total-siestas"
           value={data.duracionTotalSiestas || ""}
-          onChange={(e) => updateField('duracionTotalSiestas', e.target.value)}
+          onChange={(e) => updateField("duracionTotalSiestas", e.target.value)}
           placeholder="Ej: 3 horas en total"
         />
       </div>
@@ -702,7 +702,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Input
           id="donde-siestas"
           value={data.dondeSiestas || ""}
-          onChange={(e) => updateField('dondeSiestas', e.target.value)}
+          onChange={(e) => updateField("dondeSiestas", e.target.value)}
           placeholder="Ej: En su cuna, en brazos..."
         />
       </div>
@@ -715,7 +715,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Textarea
           id="principal-preocupacion"
           value={data.principalPreocupacion || ""}
-          onChange={(e) => updateField('principalPreocupacion', e.target.value)}
+          onChange={(e) => updateField("principalPreocupacion", e.target.value)}
           placeholder="Describe tu principal preocupación..."
           rows={3}
         />
@@ -729,7 +729,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Input
           id="desde-cuando-problema"
           value={data.desdeCuandoProblema || ""}
-          onChange={(e) => updateField('desdeCuandoProblema', e.target.value)}
+          onChange={(e) => updateField("desdeCuandoProblema", e.target.value)}
           placeholder="Ej: Desde hace 3 meses"
         />
       </div>
@@ -742,13 +742,13 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Textarea
           id="objetivo-padres"
           value={data.objetivoPadres || ""}
-          onChange={(e) => updateField('objetivoPadres', e.target.value)}
+          onChange={(e) => updateField("objetivoPadres", e.target.value)}
           placeholder="Describe específicamente qué cambios desean ver en los hábitos de sueño..."
           rows={4}
-          className={hasError('objetivoPadres') ? 'border-red-500' : ''}
+          className={hasError("objetivoPadres") ? "border-red-500" : ""}
         />
-        {hasError('objetivoPadres') && (
-          <p className="text-red-500 text-sm mt-1">{getError('objetivoPadres')}</p>
+        {hasError("objetivoPadres") && (
+          <p className="text-red-500 text-sm mt-1">{getError("objetivoPadres")}</p>
         )}
       </div>
 
@@ -760,7 +760,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Textarea
           id="info-adicional"
           value={data.infoAdicional || ""}
-          onChange={(e) => updateField('infoAdicional', e.target.value)}
+          onChange={(e) => updateField("infoAdicional", e.target.value)}
           placeholder="Cualquier información adicional que consideres importante..."
           rows={3}
         />

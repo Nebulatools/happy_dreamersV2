@@ -3,8 +3,8 @@
 
 "use client"
 
-import React from 'react'
-import { cn } from '@/lib/utils'
+import React from "react"
+import { cn } from "@/lib/utils"
 
 interface TimelineColumnProps {
   className?: string
@@ -15,7 +15,7 @@ interface TimelineColumnProps {
 export function TimelineColumn({ 
   className,
   hourHeight = 25, // Altura optimizada para vista completa sin scroll
-  hourInterval = 3 // Por defecto muestra cada 3 horas
+  hourInterval = 3, // Por defecto muestra cada 3 horas
 }: TimelineColumnProps) {
   // NUEVO: Crear eje basado en posiciones REALES de globos
   // Los globos usan: totalMinutes * (hourHeight / 60)
@@ -40,7 +40,7 @@ export function TimelineColumn({
               className="absolute w-full flex justify-end pr-2"
               style={{ 
                 top: `${globePosition}px`, // USAR MISMA POSICIÓN QUE GLOBOS
-                height: `${hourHeight}px`
+                height: `${hourHeight}px`,
               }}
             >
               {/* Mostrar etiquetas según el intervalo especificado */}
@@ -56,16 +56,16 @@ export function TimelineColumn({
                       : "font-normal text-gray-500",
                     // Color según el área de fondo
                     hour >= 0 && hour < 6 ? "text-blue-700" :  // Área azul nocturna
-                    hour >= 6 && hour < 19 ? "text-amber-700" : // Área amarilla diurna  
-                    "text-blue-700" // Área azul nocturna
+                      hour >= 6 && hour < 19 ? "text-amber-700" : // Área amarilla diurna  
+                        "text-blue-700" // Área azul nocturna
                   )}
                   style={{ 
                     // NO centrar - alinear exactamente con donde están los globos
                     top: "0px",
-                    display: "inline-block"
+                    display: "inline-block",
                   }}
                 >
-                  {hour.toString().padStart(2, '0')}:00
+                  {hour.toString().padStart(2, "0")}:00
                 </span>
               )}
             </div>
@@ -79,7 +79,7 @@ export function TimelineColumn({
 // Componente compacto para móviles/tablets - ALINEADO CON GLOBOS
 export function CompactTimelineColumn({ 
   className,
-  hourHeight = 25 
+  hourHeight = 25, 
 }: TimelineColumnProps) {
   // Solo mostrar horas principales (cada 4 horas) pero alineadas con globos
   const mainHours = [0, 4, 8, 12, 16, 20]
@@ -109,10 +109,10 @@ export function CompactTimelineColumn({
                 "inline-block bg-gray-50 px-1 text-xs font-medium rounded",
                 // Color según el área de fondo
                 hour >= 0 && hour < 6 ? "text-blue-700" :  // Área azul nocturna
-                hour >= 6 && hour < 19 ? "text-amber-700" : // Área amarilla diurna  
-                "text-blue-700" // Área azul nocturna
+                  hour >= 6 && hour < 19 ? "text-amber-700" : // Área amarilla diurna  
+                    "text-blue-700" // Área azul nocturna
               )}>
-                {hour.toString().padStart(2, '0')}
+                {hour.toString().padStart(2, "0")}
               </div>
             </div>
           )

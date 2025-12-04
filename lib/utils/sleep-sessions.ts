@@ -1,7 +1,7 @@
 // Utilidad para procesar eventos de sueño y agruparlos en sesiones continuas
 // Maneja sesiones que cruzan días y despertares nocturnos
 
-import { startOfDay, endOfDay } from 'date-fns'
+import { startOfDay, endOfDay } from "date-fns"
 
 export interface Event {
   _id: string
@@ -15,7 +15,7 @@ export interface Event {
 }
 
 export interface SleepSession {
-  type: 'sleep-session'
+  type: "sleep-session"
   startTime: string
   endTime?: string
   originalStartTime: string // Tiempo original del evento completo
@@ -48,7 +48,7 @@ export function processSleepSessions(
   
   // Buscar eventos sleep
   dayEvents.forEach(event => {
-    if (event.eventType === 'sleep' && !processedEventIds.has(event._id)) {
+    if (event.eventType === "sleep" && !processedEventIds.has(event._id)) {
       processedEventIds.add(event._id)
       
       // Determinar los tiempos de inicio y fin para esta sesión
@@ -81,7 +81,7 @@ export function processSleepSessions(
       
       // Buscar despertares nocturnos dentro del rango de sueño
       const nightWakings = dayEvents.filter(e => 
-        e.eventType === 'night_waking' && 
+        e.eventType === "night_waking" && 
         e.startTime > event.startTime &&
         (!event.endTime || e.startTime < event.endTime)
       )
@@ -92,7 +92,7 @@ export function processSleepSessions(
       // Si hay endTime, buscar evento wake correspondiente y marcarlo como procesado
       if (event.endTime) {
         const wakeEvent = dayEvents.find(e => 
-          e.eventType === 'wake' && 
+          e.eventType === "wake" && 
           Math.abs(new Date(e.startTime).getTime() - new Date(event.endTime!).getTime()) < 60000 // Dentro de 1 minuto
         )
         if (wakeEvent) {
@@ -102,7 +102,7 @@ export function processSleepSessions(
       
       // Crear sesión de sueño con metadata sobre continuación
       sessions.push({
-        type: 'sleep-session',
+        type: "sleep-session",
         startTime: sessionStartTime,
         endTime: sessionEndTime,
         originalStartTime: event.startTime, // Tiempo original completo
@@ -110,7 +110,7 @@ export function processSleepSessions(
         nightWakings: nightWakings,
         originalEvent: event,
         isContinuationFromPrevious,
-        continuesNextDay
+        continuesNextDay,
       })
     }
   })

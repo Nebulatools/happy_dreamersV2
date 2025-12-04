@@ -1,11 +1,11 @@
 import { Document } from "@langchain/core/documents"
-import { getGoogleDriveClient } from './drive-client'
-import { processDocument, isValidFileType, getMimeType } from '@/lib/rag/document-processor'
-import { createLogger } from '@/lib/logger'
-import * as fs from 'fs'
-import * as path from 'path'
+import { getGoogleDriveClient } from "./drive-client"
+import { processDocument, isValidFileType, getMimeType } from "@/lib/rag/document-processor"
+import { createLogger } from "@/lib/logger"
+import * as fs from "fs"
+import * as path from "path"
 
-const logger = createLogger('GoogleDriveDocumentLoader')
+const logger = createLogger("GoogleDriveDocumentLoader")
 
 export interface DriveFileInfo {
   id: string
@@ -26,7 +26,7 @@ export class GoogleDriveDocumentLoader {
 
   constructor() {
     // Crear directorio temporal para downloads
-    this.tempDir = path.join(process.cwd(), 'temp', 'google-drive')
+    this.tempDir = path.join(process.cwd(), "temp", "google-drive")
     this.ensureTempDir()
   }
 
@@ -55,13 +55,13 @@ export class GoogleDriveDocumentLoader {
 
       // Determinar nombre efectivo con extensión adecuada (soporte Google Docs)
       let effectiveName = fileInfo.name || `file_${fileInfo.id}`
-      const isGoogleDoc = fileInfo.mimeType?.startsWith('application/vnd.google-apps.')
+      const isGoogleDoc = fileInfo.mimeType?.startsWith("application/vnd.google-apps.")
       if (isGoogleDoc) {
-        if (fileInfo.mimeType === 'application/vnd.google-apps.document' && !/\.docx$/i.test(effectiveName)) {
+        if (fileInfo.mimeType === "application/vnd.google-apps.document" && !/\.docx$/i.test(effectiveName)) {
           effectiveName = `${effectiveName}.docx`
-        } else if (fileInfo.mimeType === 'application/vnd.google-apps.spreadsheet' && !/\.xlsx$/i.test(effectiveName)) {
+        } else if (fileInfo.mimeType === "application/vnd.google-apps.spreadsheet" && !/\.xlsx$/i.test(effectiveName)) {
           effectiveName = `${effectiveName}.xlsx`
-        } else if (fileInfo.mimeType === 'application/vnd.google-apps.presentation' && !/\.pptx$/i.test(effectiveName)) {
+        } else if (fileInfo.mimeType === "application/vnd.google-apps.presentation" && !/\.pptx$/i.test(effectiveName)) {
           effectiveName = `${effectiveName}.pptx`
         }
       }
@@ -93,8 +93,8 @@ export class GoogleDriveDocumentLoader {
             driveModifiedTime: fileInfo.modifiedTime,
             driveWebViewLink: fileInfo.webViewLink,
             originalSize: fileInfo.size,
-            syncDate: new Date().toISOString()
-          }
+            syncDate: new Date().toISOString(),
+          },
         }))
 
         logger.info(`✅ Documento procesado desde Google Drive: ${fileInfo.name} (${driveDocuments.length} chunks)`)
@@ -167,11 +167,11 @@ export class GoogleDriveDocumentLoader {
         mimeType: file.mimeType,
         modifiedTime: file.modifiedTime,
         size: file.size,
-        webViewLink: file.webViewLink
+        webViewLink: file.webViewLink,
       }))
 
     } catch (error) {
-      logger.error(`❌ Error obteniendo archivos de Google Drive:`, error)
+      logger.error("❌ Error obteniendo archivos de Google Drive:", error)
       throw error
     }
   }
@@ -212,7 +212,7 @@ export class GoogleDriveDocumentLoader {
     try {
       const allFiles = await this.driveClient.listFilesInFolder(folderId, {
         includeSubfolders: true,
-        maxResults: 1000
+        maxResults: 1000,
       })
 
       const validFiles = allFiles.filter(file => isValidFileType(file.name))
@@ -233,16 +233,16 @@ export class GoogleDriveDocumentLoader {
         totalFiles: allFiles.length,
         validFiles: validFiles.length,
         fileTypes,
-        totalSize
+        totalSize,
       }
 
     } catch (error) {
-      logger.error(`❌ Error obteniendo estadísticas:`, error)
+      logger.error("❌ Error obteniendo estadísticas:", error)
       return {
         totalFiles: 0,
         validFiles: 0,
         fileTypes: {},
-        totalSize: 0
+        totalSize: 0,
       }
     }
   }
@@ -275,7 +275,7 @@ export class GoogleDriveDocumentLoader {
       }
 
     } catch (error) {
-      logger.error(`❌ Error limpiando archivos temporales:`, error)
+      logger.error("❌ Error limpiando archivos temporales:", error)
     }
   }
 }

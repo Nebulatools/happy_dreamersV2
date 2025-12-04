@@ -3,7 +3,7 @@
 
 "use client"
 
-import { useState, useEffect, useMemo, type DragEvent } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -33,19 +33,19 @@ import {
   Sun, 
   Utensils, 
   Target, 
-  CheckCircle,
+  AlertCircle,
   Moon as Nap,
-  Calendar,
   Info,
   Edit,
   Save,
   X,
   Plus,
+  Minus,
   Trash2,
-  GripVertical,
   Activity as ActivityIcon,
 } from "lucide-react"
 import { ChildPlan } from "@/types/models"
+import { PlanEventEditModal, PlanEventData, PlanEventType } from "./PlanEventEditModal"
 
 interface EditablePlanDisplayProps {
   plan: ChildPlan
@@ -60,7 +60,7 @@ const EMPTY_SLEEP_ROUTINE: SleepRoutine = {
   numberOfNaps: 0,
   napDuration: "",
   wakeWindows: "",
-  notes: ""
+  notes: "",
 }
 
 type TemplateEventType = "nap" | "meal" | "activity" | "bedtime" | "wake"
@@ -119,11 +119,16 @@ type NewEventState = {
 }
 
 export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayProps) {
-  const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editedPlan, setEditedPlan] = useState<ChildPlan>(plan)
   const [hasChanges, setHasChanges] = useState(false)
   const [showEventModal, setShowEventModal] = useState(false)
+  const [showEditEventModal, setShowEditEventModal] = useState(false)
+  const [editingEvent, setEditingEvent] = useState<PlanEventData | null>(null)
+  const [showActivePlanWarning, setShowActivePlanWarning] = useState(() => {
+    if (typeof window === "undefined") return true
+    return localStorage.getItem("hideActivePlanWarning") !== "true"
+  })
   const defaultTemplate = EVENT_TEMPLATES[0]
   const [newEvent, setNewEvent] = useState<NewEventState>(() => buildEventFromTemplate(defaultTemplate))
   const [timelineOrder, setTimelineOrder] = useState<string[]>([])
@@ -142,7 +147,6 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     const initialOrder = deriveOrder(plan.schedule?.timelineOrder, events.map(event => event.id))
     setEditedPlan(clonedPlan)
     setTimelineOrder(initialOrder)
-    setIsEditing(false)
     setHasChanges(false)
   }, [plan])
 
@@ -159,16 +163,16 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
 
   // Función para formatear hora con validación
   const formatTime = (time: string) => {
-    if (!time || typeof time !== 'string') return 'N/A'
+    if (!time || typeof time !== "string") return "N/A"
     
-    const parts = time.split(':')
+    const parts = time.split(":")
     if (parts.length !== 2) return time
     
     const [hour, minute] = parts
     const hourNum = parseInt(hour)
     if (isNaN(hourNum)) return time
     
-    const period = hourNum >= 12 ? 'PM' : 'AM'
+    const period = hourNum >= 12 ? "PM" : "AM"
     const displayHour = hourNum > 12 ? hourNum - 12 : hourNum === 0 ? 12 : hourNum
     return `${displayHour}:${minute} ${period}`
   }
@@ -181,12 +185,12 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
 
   // Normaliza hora a HH:MM y valida
   const normalizeTime = (t?: string | null) => {
-    if (!t || typeof t !== 'string') return null
+    if (!t || typeof t !== "string") return null
     const m = t.match(/^(\d{1,2}):(\d{2})$/)
     if (!m) return null
     const hh = Math.max(0, Math.min(23, parseInt(m[1], 10)))
     const mm = Math.max(0, Math.min(59, parseInt(m[2], 10)))
-    return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`
+    return `${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`
   }
 
   const hasLegacySleepRoutineData = (routine?: ChildPlan["sleepRoutine"] | null) => {
@@ -206,7 +210,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     return {
       ...EMPTY_SLEEP_ROUTINE,
       ...source,
-      numberOfNaps: typeof source.numberOfNaps === "number" ? source.numberOfNaps : 0
+      numberOfNaps: typeof source.numberOfNaps === "number" ? source.numberOfNaps : 0,
     }
   }
 
@@ -271,14 +275,14 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
   }
 
   const generateEventId = (prefix: string) => {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
       return `${prefix}-${crypto.randomUUID()}`
     }
     return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
   }
 
   const ensureMealId = (meal: any, fallback: string, persist = true) => {
-    if (!meal) return fallback || generateEventId('meal')
+    if (!meal) return fallback || generateEventId("meal")
     if (meal.id) return meal.id
     if (meal._id) {
       if (persist) {
@@ -288,14 +292,14 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
       return `meal-${meal._id}`
     }
     if (!persist) {
-      return fallback || generateEventId('meal')
+      return fallback || generateEventId("meal")
     }
-    meal.id = generateEventId('meal')
+    meal.id = generateEventId("meal")
     return meal.id
   }
 
   const ensureNapId = (nap: any, fallback: string, persist = true) => {
-    if (!nap) return fallback || generateEventId('nap')
+    if (!nap) return fallback || generateEventId("nap")
     if (nap.id) return nap.id
     if (nap._id) {
       if (persist) {
@@ -305,14 +309,14 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
       return `nap-${nap._id}`
     }
     if (!persist) {
-      return fallback || generateEventId('nap')
+      return fallback || generateEventId("nap")
     }
-    nap.id = generateEventId('nap')
+    nap.id = generateEventId("nap")
     return nap.id
   }
 
   const ensureActivityId = (activity: any, fallback: string, persist = true) => {
-    if (!activity) return fallback || generateEventId('activity')
+    if (!activity) return fallback || generateEventId("activity")
     if (activity.id) return activity.id
     if (activity._id) {
       if (persist) {
@@ -322,9 +326,9 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
       return `activity-${activity._id}`
     }
     if (!persist) {
-      return fallback || generateEventId('activity')
+      return fallback || generateEventId("activity")
     }
-    activity.id = generateEventId('activity')
+    activity.id = generateEventId("activity")
     return activity.id
   }
 
@@ -344,7 +348,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
 
   const clonePlan = (planData: ChildPlan): ChildPlan => {
     try {
-      if (typeof structuredClone === 'function') {
+      if (typeof structuredClone === "function") {
         return structuredClone(planData)
       }
     } catch {
@@ -359,8 +363,8 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
       ...prev,
       schedule: {
         ...prev.schedule,
-        timelineOrder: newOrder
-      }
+        timelineOrder: newOrder,
+      },
     }))
     setHasChanges(true)
   }
@@ -387,7 +391,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     if (!targetId || targetId === END_DROP_ID) {
       currentOrder.push(sourceId)
     } else {
-      let toIndex = currentOrder.indexOf(targetId)
+      const toIndex = currentOrder.indexOf(targetId)
       if (toIndex === -1) {
         currentOrder.push(sourceId)
       } else {
@@ -397,8 +401,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     persistTimelineOrder(currentOrder)
   }
 
-  const handleDragStart = (e: DragEvent<HTMLDivElement>, id: string) => {
-    if (!isEditing) return
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, id: string) => {
     const target = e.target as HTMLElement
     if (target?.closest("input, textarea, select, button, [data-prevent-drag]")) {
       e.preventDefault()
@@ -414,8 +417,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     }
   }
 
-  const handleDragOver = (e: DragEvent<HTMLDivElement>, id?: string) => {
-    if (!isEditing) return
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, id?: string) => {
     e.preventDefault()
     if (id) {
       setDragOverId(id)
@@ -423,8 +425,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     e.dataTransfer.dropEffect = "move"
   }
 
-  const handleDrop = (e: DragEvent<HTMLDivElement>, targetId: string | null) => {
-    if (!isEditing) return
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetId: string | null) => {
     e.preventDefault()
     const dataId = draggingId || e.dataTransfer.getData("text/plain")
     reorderTimeline(dataId, targetId)
@@ -440,7 +441,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
   type TimelineEvent = {
     id: string
     time: string
-    type: 'bedtime' | 'wake' | 'meal' | 'activity' | 'nap'
+    type: "bedtime" | "wake" | "meal" | "activity" | "nap"
     title: string
     description: string
     duration?: number
@@ -457,29 +458,29 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     const wakeT = normalizeTime(schedule?.wakeTime)
     if (wakeT) {
       events.push({
-        id: 'wakeTime',
+        id: "wakeTime",
         time: wakeT,
-        type: 'wake',
-        title: 'Despertar',
-        description: 'Hora de levantarse',
-        icon: <Sun className="h-4 w-4" />
+        type: "wake",
+        title: "Despertar",
+        description: "Hora de levantarse",
+        icon: <Sun className="h-4 w-4" />,
       })
     }
 
     ;(schedule?.meals || []).forEach((meal: any, index: number) => {
       const mt = normalizeTime(meal?.time as any)
       if (!mt) return
-      const type = typeof meal?.type === 'string' ? meal.type : 'comida'
+      const type = typeof meal?.type === "string" ? meal.type : "comida"
       const fallbackId = `meal-${meal?._id || `${index}-${mt}`}`
       const id = ensureMealId(meal, fallbackId, persistIds)
       events.push({
         id,
         time: mt,
-        type: 'meal',
-        title: type && type.length ? type.charAt(0).toUpperCase() + type.slice(1) : 'Comida',
-        description: meal?.description || '',
+        type: "meal",
+        title: type && type.length ? type.charAt(0).toUpperCase() + type.slice(1) : "Comida",
+        description: meal?.description || "",
         icon: getMealIcon(type),
-        mealIndex: index
+        mealIndex: index,
       })
     })
 
@@ -487,18 +488,18 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
       schedule.naps.forEach((nap: any, index: number) => {
         const napTime = normalizeTime(nap?.time || nap?.start)
         if (!napTime) return
-        const dur = typeof nap?.duration === 'number' ? nap.duration : undefined
+        const dur = typeof nap?.duration === "number" ? nap.duration : undefined
         const fallbackId = `nap-${nap?._id || `${index}-${napTime}`}`
         const id = ensureNapId(nap, fallbackId, persistIds)
         events.push({
           id,
           time: napTime,
-          type: 'nap',
-          title: 'Siesta',
-          description: nap?.description || (dur ? `Siesta de ${dur} minutos` : 'Siesta'),
+          type: "nap",
+          title: "Siesta",
+          description: nap?.description || (dur ? `Siesta de ${dur} minutos` : "Siesta"),
           duration: dur,
           icon: <Nap className="h-4 w-4" />,
-          napIndex: index
+          napIndex: index,
         })
       })
     }
@@ -509,16 +510,16 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
         if (!activityTime) return
         const fallbackId = `activity-${activity?._id || `${index}-${activityTime}`}`
         const id = ensureActivityId(activity, fallbackId, persistIds)
-        const dur = typeof activity?.duration === 'number' ? activity.duration : undefined
+        const dur = typeof activity?.duration === "number" ? activity.duration : undefined
         events.push({
           id,
           time: activityTime,
-          type: 'activity',
-          title: activity?.activity || 'Actividad',
-          description: activity?.description || '',
+          type: "activity",
+          title: activity?.activity || "Actividad",
+          description: activity?.description || "",
           duration: dur,
           icon: <ActivityIcon className="h-4 w-4" />,
-          activityIndex: index
+          activityIndex: index,
         })
       })
     }
@@ -526,20 +527,20 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     const bedT = normalizeTime(schedule?.bedtime)
     if (bedT) {
       events.push({
-        id: 'bedtime',
+        id: "bedtime",
         time: bedT,
-        type: 'bedtime',
-        title: 'Hora de dormir',
-        description: 'Ir a la cama',
-        icon: <Moon className="h-4 w-4" />
+        type: "bedtime",
+        title: "Hora de dormir",
+        description: "Ir a la cama",
+        icon: <Moon className="h-4 w-4" />,
       })
     }
 
     return events
-      .filter(e => typeof e.time === 'string')
+      .filter(e => typeof e.time === "string")
       .sort((a, b) => {
-        const [ah, am] = a.time.split(':').map(Number)
-        const [bh, bm] = b.time.split(':').map(Number)
+        const [ah, am] = a.time.split(":").map(Number)
+        const [bh, bm] = b.time.split(":").map(Number)
         return ah * 60 + am - (bh * 60 + bm)
       })
   }
@@ -581,8 +582,8 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
           ...prev,
           schedule: {
             ...prev.schedule,
-            timelineOrder: newOrder
-          }
+            timelineOrder: newOrder,
+          },
         }
       })
       return newOrder
@@ -593,7 +594,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
   const handleScheduleChange = (field: string, value: string) => {
     const updatedPlan = { ...editedPlan }
     
-    if (field === 'wakeTime' || field === 'bedtime') {
+    if (field === "wakeTime" || field === "bedtime") {
       updatedPlan.schedule[field] = value
     }
     
@@ -601,11 +602,11 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     setHasChanges(true)
   }
 
-  const clearScheduleField = (field: 'wakeTime' | 'bedtime') => {
+  const clearScheduleField = (field: "wakeTime" | "bedtime") => {
     const updatedPlan = { ...editedPlan }
     if (updatedPlan.schedule[field]) {
       updatedPlan.schedule[field] = ""
-      const targetId = field === 'wakeTime' ? 'wakeTime' : 'bedtime'
+      const targetId = field === "wakeTime" ? "wakeTime" : "bedtime"
       const newOrder = getSanitizedOrder().filter(id => id !== targetId)
       updatedPlan.schedule.timelineOrder = newOrder
       setTimelineOrder(newOrder)
@@ -615,7 +616,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
   }
 
   // Manejar cambios en las comidas
-  const handleMealChange = (index: number, field: 'time' | 'description', value: string) => {
+  const handleMealChange = (index: number, field: "time" | "description", value: string) => {
     const updatedPlan = { ...editedPlan }
     updatedPlan.schedule.meals[index][field] = value
     setEditedPlan(updatedPlan)
@@ -640,15 +641,15 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
   }
 
   // Manejar cambios en las siestas
-  const handleNapChange = (index: number, field: 'time' | 'duration' | 'description', value: string | number) => {
+  const handleNapChange = (index: number, field: "time" | "duration" | "description", value: string | number) => {
     const updatedPlan = { ...editedPlan }
     if (!updatedPlan.schedule.naps) {
       updatedPlan.schedule.naps = []
     }
     
-    if (field === 'duration') {
+    if (field === "duration") {
       updatedPlan.schedule.naps[index][field] = Number(value)
-    } else if (field === 'time' || field === 'description') {
+    } else if (field === "time" || field === "description") {
       updatedPlan.schedule.naps[index][field] = String(value)
     }
     
@@ -658,7 +659,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
 
   const handleActivityChange = (
     index: number,
-    field: 'time' | 'duration' | 'description' | 'activity',
+    field: "time" | "duration" | "description" | "activity",
     value: string | number
   ) => {
     const updatedPlan = { ...editedPlan }
@@ -668,13 +669,13 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     const target = updatedPlan.schedule.activities[index]
     if (!target) return
     
-    if (field === 'duration') {
+    if (field === "duration") {
       target.duration = Number(value)
-    } else if (field === 'time') {
+    } else if (field === "time") {
       target.time = String(value)
-    } else if (field === 'description') {
+    } else if (field === "description") {
       target.description = String(value)
-    } else if (field === 'activity') {
+    } else if (field === "activity") {
       target.activity = String(value)
     }
     
@@ -682,7 +683,135 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     setHasChanges(true)
   }
 
-  const handleOpenEventModal = (type: TemplateEventType = 'nap') => {
+  // Abrir modal de edicion para un evento existente
+  const handleOpenEditModal = (event: TimelineEvent) => {
+    const eventData: PlanEventData = {
+      id: event.id,
+      type: event.type as PlanEventType,
+      time: event.time,
+      title: event.title,
+      description: event.description,
+      duration: event.duration,
+      mealIndex: event.mealIndex,
+      napIndex: event.napIndex,
+      activityIndex: event.activityIndex,
+    }
+    setEditingEvent(eventData)
+    setShowEditEventModal(true)
+  }
+
+  // Guardar cambios del modal de edicion
+  const handleSaveEditedEvent = (updatedEvent: PlanEventData) => {
+    const updatedPlan = { ...editedPlan }
+    const oldEvent = editingEvent
+    if (!oldEvent) return
+
+    // Si el tipo cambio, necesitamos eliminar el evento viejo y crear uno nuevo
+    if (oldEvent.type !== updatedEvent.type) {
+      // Eliminar evento anterior
+      if (oldEvent.type === "wake") {
+        updatedPlan.schedule.wakeTime = ""
+      } else if (oldEvent.type === "bedtime") {
+        updatedPlan.schedule.bedtime = ""
+      } else if (oldEvent.type === "meal" && oldEvent.mealIndex !== undefined) {
+        updatedPlan.schedule.meals?.splice(oldEvent.mealIndex, 1)
+      } else if (oldEvent.type === "nap" && oldEvent.napIndex !== undefined) {
+        updatedPlan.schedule.naps?.splice(oldEvent.napIndex, 1)
+      } else if (oldEvent.type === "activity" && oldEvent.activityIndex !== undefined) {
+        updatedPlan.schedule.activities?.splice(oldEvent.activityIndex, 1)
+      }
+
+      // Crear nuevo evento segun el nuevo tipo
+      if (updatedEvent.type === "wake") {
+        updatedPlan.schedule.wakeTime = updatedEvent.time
+      } else if (updatedEvent.type === "bedtime") {
+        updatedPlan.schedule.bedtime = updatedEvent.time
+      } else if (updatedEvent.type === "meal") {
+        if (!updatedPlan.schedule.meals) updatedPlan.schedule.meals = []
+        const newMeal = {
+          time: updatedEvent.time,
+          type: updatedEvent.title || "Comida",
+          description: updatedEvent.description || "",
+        }
+        ensureMealId(newMeal, `meal-${updatedPlan.schedule.meals.length}-${newMeal.time}`)
+        updatedPlan.schedule.meals.push(newMeal)
+      } else if (updatedEvent.type === "nap") {
+        if (!updatedPlan.schedule.naps) updatedPlan.schedule.naps = []
+        const newNap = {
+          time: updatedEvent.time,
+          duration: updatedEvent.duration || 60,
+          description: updatedEvent.description || "",
+        }
+        ensureNapId(newNap, `nap-${updatedPlan.schedule.naps.length}-${newNap.time}`)
+        updatedPlan.schedule.naps.push(newNap)
+      } else if (updatedEvent.type === "activity") {
+        if (!updatedPlan.schedule.activities) updatedPlan.schedule.activities = []
+        const newActivity = {
+          time: updatedEvent.time,
+          activity: updatedEvent.title || "Actividad",
+          duration: updatedEvent.duration || 30,
+          description: updatedEvent.description || "",
+        }
+        ensureActivityId(newActivity, `activity-${updatedPlan.schedule.activities.length}-${newActivity.time}`)
+        updatedPlan.schedule.activities.push(newActivity)
+      }
+    } else {
+      // Mismo tipo, solo actualizar campos
+      if (updatedEvent.type === "wake") {
+        updatedPlan.schedule.wakeTime = updatedEvent.time
+      } else if (updatedEvent.type === "bedtime") {
+        updatedPlan.schedule.bedtime = updatedEvent.time
+      } else if (updatedEvent.type === "meal" && updatedEvent.mealIndex !== undefined) {
+        const meal = updatedPlan.schedule.meals?.[updatedEvent.mealIndex]
+        if (meal) {
+          meal.time = updatedEvent.time
+          meal.type = updatedEvent.title || meal.type
+          meal.description = updatedEvent.description || ""
+        }
+      } else if (updatedEvent.type === "nap" && updatedEvent.napIndex !== undefined) {
+        const nap = updatedPlan.schedule.naps?.[updatedEvent.napIndex]
+        if (nap) {
+          nap.time = updatedEvent.time
+          nap.duration = updatedEvent.duration || 60
+          nap.description = updatedEvent.description || ""
+        }
+      } else if (updatedEvent.type === "activity" && updatedEvent.activityIndex !== undefined) {
+        const activity = updatedPlan.schedule.activities?.[updatedEvent.activityIndex]
+        if (activity) {
+          activity.time = updatedEvent.time
+          activity.activity = updatedEvent.title || activity.activity
+          activity.duration = updatedEvent.duration || 30
+          activity.description = updatedEvent.description || ""
+        }
+      }
+    }
+
+    // Recalcular orden del timeline
+    const recalculatedOrder = createTimeline(updatedPlan).map(e => e.id)
+    updatedPlan.schedule.timelineOrder = recalculatedOrder
+    setEditedPlan(updatedPlan)
+    setTimelineOrder(recalculatedOrder)
+    setHasChanges(true)
+    setShowEditEventModal(false)
+    setEditingEvent(null)
+  }
+
+  // Eliminar evento del timeline
+  const handleDeleteEvent = (event: TimelineEvent) => {
+    if (event.type === "wake") {
+      clearScheduleField("wakeTime")
+    } else if (event.type === "bedtime") {
+      clearScheduleField("bedtime")
+    } else if (event.type === "meal" && event.mealIndex !== undefined) {
+      removeMeal(event.mealIndex)
+    } else if (event.type === "nap" && event.napIndex !== undefined) {
+      removeNap(event.napIndex)
+    } else if (event.type === "activity" && event.activityIndex !== undefined) {
+      removeActivity(event.activityIndex)
+    }
+  }
+
+  const handleOpenEventModal = (type: TemplateEventType = "nap") => {
     const template = getTemplateByType(type)[0]
     setNewEvent(prev => buildEventFromTemplate(template, prev))
     setShowEventModal(true)
@@ -690,63 +819,63 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
 
   const confirmAddEvent = () => {
     if (!newEvent.time) {
-      toast.error('Selecciona una hora válida para el evento')
+      toast.error("Selecciona una hora válida para el evento")
       return
     }
 
     const updatedPlan = { ...editedPlan }
 
     switch (newEvent.type) {
-      case 'nap': {
-        if (!updatedPlan.schedule.naps) {
-          updatedPlan.schedule.naps = []
-        }
-        const napToAdd = {
-          time: newEvent.time,
-          duration: newEvent.duration || 60,
-          description: newEvent.description || ''
-        }
-        ensureNapId(napToAdd, `nap-${updatedPlan.schedule.naps.length}-${napToAdd.time}`)
-        updatedPlan.schedule.naps.push(napToAdd)
-        break
+    case "nap": {
+      if (!updatedPlan.schedule.naps) {
+        updatedPlan.schedule.naps = []
       }
-      case 'meal': {
-        if (!updatedPlan.schedule.meals) {
-          updatedPlan.schedule.meals = []
-        }
-        const mealToAdd = {
-          time: newEvent.time,
-          type: newEvent.label || 'Comida',
-          description: newEvent.description || ''
-        }
-        ensureMealId(mealToAdd, `meal-${updatedPlan.schedule.meals.length}-${mealToAdd.time}`)
-        updatedPlan.schedule.meals.push(mealToAdd)
-        break
+      const napToAdd = {
+        time: newEvent.time,
+        duration: newEvent.duration || 60,
+        description: newEvent.description || "",
       }
-      case 'activity': {
-        if (!updatedPlan.schedule.activities) {
-          updatedPlan.schedule.activities = []
-        }
-        const activityToAdd = {
-          time: newEvent.time,
-          activity: newEvent.label || 'Actividad',
-          duration: newEvent.duration || 30,
-          description: newEvent.description || ''
-        }
-        ensureActivityId(activityToAdd, `activity-${updatedPlan.schedule.activities.length}-${activityToAdd.time}`)
-        updatedPlan.schedule.activities.push(activityToAdd)
-        break
+      ensureNapId(napToAdd, `nap-${updatedPlan.schedule.naps.length}-${napToAdd.time}`)
+      updatedPlan.schedule.naps.push(napToAdd)
+      break
+    }
+    case "meal": {
+      if (!updatedPlan.schedule.meals) {
+        updatedPlan.schedule.meals = []
       }
-      case 'bedtime': {
-        updatedPlan.schedule.bedtime = newEvent.time
-        break
+      const mealToAdd = {
+        time: newEvent.time,
+        type: newEvent.label || "Comida",
+        description: newEvent.description || "",
       }
-      case 'wake': {
-        updatedPlan.schedule.wakeTime = newEvent.time
-        break
+      ensureMealId(mealToAdd, `meal-${updatedPlan.schedule.meals.length}-${mealToAdd.time}`)
+      updatedPlan.schedule.meals.push(mealToAdd)
+      break
+    }
+    case "activity": {
+      if (!updatedPlan.schedule.activities) {
+        updatedPlan.schedule.activities = []
       }
-      default:
-        break
+      const activityToAdd = {
+        time: newEvent.time,
+        activity: newEvent.label || "Actividad",
+        duration: newEvent.duration || 30,
+        description: newEvent.description || "",
+      }
+      ensureActivityId(activityToAdd, `activity-${updatedPlan.schedule.activities.length}-${activityToAdd.time}`)
+      updatedPlan.schedule.activities.push(activityToAdd)
+      break
+    }
+    case "bedtime": {
+      updatedPlan.schedule.bedtime = newEvent.time
+      break
+    }
+    case "wake": {
+      updatedPlan.schedule.wakeTime = newEvent.time
+      break
+    }
+    default:
+      break
     }
 
     const recalculatedOrder = createTimeline(updatedPlan).map(event => event.id)
@@ -803,7 +932,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
         const { notes: _removedNotes, ...rest } = currentRoutine
         return {
           ...prev,
-          sleepRoutine: hasLegacySleepRoutineData(rest) ? rest : undefined
+          sleepRoutine: hasLegacySleepRoutineData(rest) ? rest : undefined,
         }
       }
 
@@ -812,8 +941,8 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
         sleepRoutine: {
           ...EMPTY_SLEEP_ROUTINE,
           ...(currentRoutine || {}),
-          notes: value
-        }
+          notes: value,
+        },
       }
     })
     setHasChanges(true)
@@ -822,7 +951,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
   const handleClearSleepRoutine = () => {
     setEditedPlan(prev => ({
       ...prev,
-      sleepRoutine: undefined
+      sleepRoutine: undefined,
     }))
     setHasChanges(true)
   }
@@ -881,17 +1010,17 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     
     try {
       // Depuración: Verificar que el ID existe
-      console.log('Guardando plan con ID:', plan._id)
-      console.log('Plan completo:', plan)
+      console.log("Guardando plan con ID:", plan._id)
+      console.log("Plan completo:", plan)
       
       if (!plan._id) {
-        throw new Error('El plan no tiene un ID válido')
+        throw new Error("El plan no tiene un ID válido")
       }
       
       const response = await fetch(`/api/consultas/plans/${plan._id}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           schedule: editedPlan.schedule,
@@ -903,13 +1032,13 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
           userId: plan.userId,
           planNumber: plan.planNumber,
           planVersion: plan.planVersion,
-          planType: plan.planType
-        })
+          planType: plan.planType,
+        }),
       })
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Error al guardar los cambios')
+        throw new Error(error.error || "Error al guardar los cambios")
       }
 
       const updatedPlan = await response.json()
@@ -920,13 +1049,12 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
       }
       
       setEditedPlan(updatedPlan.plan)
-      setIsEditing(false)
       setHasChanges(false)
       
-      toast.success('Plan actualizado correctamente')
+      toast.success("Plan actualizado correctamente")
     } catch (error: any) {
-      console.error('Error guardando cambios:', error)
-      toast.error(error.message || 'Error al guardar los cambios')
+      console.error("Error guardando cambios:", error)
+      toast.error(error.message || "Error al guardar los cambios")
     } finally {
       setIsSaving(false)
     }
@@ -948,80 +1076,56 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     const order = deriveOrder(plan.schedule?.timelineOrder, events.map(event => event.id))
     setEditedPlan(resetPlan)
     setTimelineOrder(order)
-    setIsEditing(false)
     setHasChanges(false)
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header del plan con botón de editar */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  {editedPlan.title}
-                </CardTitle>
-                <Badge variant={editedPlan.planType === "initial" ? "default" : "secondary"}>
-                  {editedPlan.planType === "initial" ? "Plan Inicial" : "Actualización"}
-                </Badge>
-                {editedPlan.status === "active" && (
-                  <Badge variant="outline" className="text-green-600 border-green-600">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Activo
-                  </Badge>
-                )}
-              </div>
-              <CardDescription>
-                Creado el {new Date(editedPlan.createdAt).toLocaleDateString('es-ES', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-                {editedPlan.basedOn === "transcript_analysis" && (
-                  <span className="ml-2">• Basado en análisis de transcript</span>
-                )}
-              </CardDescription>
-            </div>
-            
-            {/* Botones de acción */}
-            <div className="flex gap-2">
-              {!isEditing ? (
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditing(true)}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar
-                </Button>
-              ) : (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={handleCancel}
-                    disabled={isSaving}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Cancelar
-                  </Button>
-                  {hasChanges && (
-                    <Button
-                      onClick={handleSave}
-                      disabled={isSaving}
-                    >
-                      <Save className="h-4 w-4 mr-2" />
-                      {isSaving ? 'Guardando...' : 'Guardar cambios'}
-                    </Button>
-                  )}
-                </>
-              )}
-            </div>
+    <div className="space-y-4">
+      {/* Barra de acciones y advertencia */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {/* Advertencia si el plan está activo - compacta y dismissable */}
+        {editedPlan.status === "active" && showActivePlanWarning && (
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-1.5 flex items-center gap-2 flex-1 min-w-0">
+            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+            <p className="text-sm text-amber-800 dark:text-amber-200 truncate">
+              <span className="font-medium">Plan activo</span> - cambios visibles para usuarios
+            </p>
+            <button
+              onClick={() => {
+                setShowActivePlanWarning(false)
+                localStorage.setItem("hideActivePlanWarning", "true")
+              }}
+              className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 p-0.5 flex-shrink-0"
+              title="Ocultar aviso"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
-        </CardHeader>
-      </Card>
+        )}
+        
+        {/* Botones de acción - solo aparecen cuando hay cambios */}
+        {hasChanges && (
+          <div className="flex gap-2 ml-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCancel}
+              disabled={isSaving}
+            >
+              <X className="h-4 w-4 mr-1" />
+              Descartar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              <Save className="h-4 w-4 mr-1" />
+              {isSaving ? "Guardando..." : "Guardar"}
+            </Button>
+          </div>
+        )}
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Timeline principal - Rutina Diaria */}
@@ -1038,245 +1142,77 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {orderedTimeline.map((event, index) => {
-                  const isDraggingEvent = draggingId === event.id
-                  const showDropIndicator = Boolean(
-                    isEditing && draggingId && dragOverId === event.id && draggingId !== event.id
-                  )
-                  return (
-                    <div key={event.id} className="space-y-2">
-                      {showDropIndicator && (
-                        <div className="h-3 rounded-md border-2 border-dashed border-indigo-300 bg-indigo-50/80 transition-all" />
+                {orderedTimeline.map((event, index) => (
+                  <div key={event.id} className="flex items-start gap-4">
+                    {/* Timeline visual */}
+                    <div className="flex flex-col items-center">
+                      <div className={`
+                        p-2 rounded-full border-2 
+                        ${event.type === "bedtime" ? "bg-purple-100 border-purple-500 text-purple-600" :
+                          event.type === "wake" ? "bg-yellow-100 border-yellow-500 text-yellow-600" :
+                          event.type === "meal" ? "bg-orange-100 border-orange-500 text-orange-600" :
+                          event.type === "activity" ? "bg-blue-100 border-blue-500 text-blue-600" :
+                          "bg-indigo-100 border-indigo-500 text-indigo-600"}
+                      `}>
+                        {event.icon}
+                      </div>
+                      {index < orderedTimeline.length - 1 && (
+                        <div className="w-px h-8 bg-border mt-2" />
                       )}
-                      <div
-                        className={`
-                          flex items-start gap-4 rounded-md transition-colors border border-transparent
-                          ${isEditing ? 'cursor-grab active:cursor-grabbing' : ''}
-                          ${isDraggingEvent ? 'ring-2 ring-indigo-300 bg-indigo-50/60 shadow-sm' : ''}
-                          ${!isDraggingEvent && dragOverId === event.id ? 'bg-muted/40 border-indigo-100' : ''}
-                        `}
-                        draggable={isEditing}
-                        onDragStart={(e) => handleDragStart(e, event.id)}
-                        onDragOver={(e) => handleDragOver(e, event.id)}
-                        onDragEnter={() => isEditing && setDragOverId(event.id)}
-                        onDragEnd={handleDragEnd}
-                        onDrop={(e) => handleDrop(e, event.id)}
-                      >
-                        {/* Timeline visual */}
+                    </div>
+
+                    {/* Contenido del evento */}
+                    <div className="flex-1 pb-4">
+                      <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
-                          <div className="flex flex-col items-center">
-                            <div className={`
-                            p-2 rounded-full border-2 
-                            ${event.type === 'bedtime' ? 'bg-purple-100 border-purple-500 text-purple-600' :
-                              event.type === 'wake' ? 'bg-yellow-100 border-yellow-500 text-yellow-600' :
-                              event.type === 'meal' ? 'bg-orange-100 border-orange-500 text-orange-600' :
-                              event.type === 'activity' ? 'bg-blue-100 border-blue-500 text-blue-600' :
-                              'bg-indigo-100 border-indigo-500 text-indigo-600'
-                            }
-                          `}>
-                              {event.icon}
-                            </div>
-                            {index < orderedTimeline.length - 1 && (
-                              <div className="w-px h-8 bg-border mt-2" />
-                            )}
-                          </div>
-                          {isEditing && (
-                            <div
-                              className="rounded-md border border-dashed border-transparent/0 p-1 text-muted-foreground pointer-events-none select-none"
-                            >
-                              <GripVertical className="h-4 w-4" />
-                            </div>
+                          <span className="font-semibold text-lg">
+                            {formatTime(event.time)}
+                          </span>
+                          <Badge variant="outline">
+                            {event.title}
+                          </Badge>
+                          {event.duration && (
+                            <Badge variant="secondary">
+                              {event.duration} min
+                            </Badge>
                           )}
                         </div>
-
-                        {/* Contenido del evento */}
-                        <div className="flex-1 pb-4">
-                          {isEditing ? (
-                            <div className="space-y-2">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <Input
-                                  type="time"
-                                  value={
-                                    event.type === 'wake' ? editedPlan.schedule.wakeTime :
-                                    event.type === 'bedtime' ? editedPlan.schedule.bedtime :
-                                    event.type === 'meal' && event.mealIndex !== undefined ? 
-                                      editedPlan.schedule.meals[event.mealIndex].time :
-                                    event.type === 'nap' && event.napIndex !== undefined && editedPlan.schedule.naps ? 
-                                      editedPlan.schedule.naps[event.napIndex].time :
-                                    event.type === 'activity' && event.activityIndex !== undefined && editedPlan.schedule.activities ?
-                                      editedPlan.schedule.activities[event.activityIndex].time : event.time
-                                  }
-                                  onChange={(e) => {
-                                    if (event.type === 'wake') {
-                                      handleScheduleChange('wakeTime', e.target.value)
-                                    } else if (event.type === 'bedtime') {
-                                      handleScheduleChange('bedtime', e.target.value)
-                                    } else if (event.type === 'meal' && event.mealIndex !== undefined) {
-                                      handleMealChange(event.mealIndex, 'time', e.target.value)
-                                    } else if (event.type === 'nap' && event.napIndex !== undefined) {
-                                      handleNapChange(event.napIndex, 'time', e.target.value)
-                                    } else if (event.type === 'activity' && event.activityIndex !== undefined) {
-                                      handleActivityChange(event.activityIndex, 'time', e.target.value)
-                                    }
-                                  }}
-                                  className="w-32"
-                                />
-                                <Badge variant="outline">
-                                  {event.title}
-                                </Badge>
-                                {event.type === 'wake' && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => clearScheduleField('wakeTime')}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                )}
-                                {event.type === 'bedtime' && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => clearScheduleField('bedtime')}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                )}
-                                {event.type === 'meal' && event.mealIndex !== undefined && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => removeMeal(event.mealIndex!)}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                )}
-                                {event.type === 'nap' && event.napIndex !== undefined && (
-                                  <>
-                                    <Input
-                                      type="number"
-                                      value={editedPlan.schedule.naps?.[event.napIndex]?.duration || 60}
-                                      onChange={(e) => handleNapChange(event.napIndex!, 'duration', e.target.value)}
-                                      className="w-20"
-                                      min="1"
-                                      max="180"
-                                    />
-                                    <span className="text-sm text-muted-foreground">min</span>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => removeNap(event.napIndex!)}
-                                    >
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                  </>
-                                )}
-                                {event.type === 'activity' && event.activityIndex !== undefined && (
-                                  <>
-                                    <Input
-                                      value={editedPlan.schedule.activities?.[event.activityIndex]?.activity || ''}
-                                      onChange={(e) => handleActivityChange(event.activityIndex!, 'activity', e.target.value)}
-                                      placeholder="Nombre de la actividad"
-                                      className="w-40"
-                                    />
-                                    <Input
-                                      type="number"
-                                      value={editedPlan.schedule.activities?.[event.activityIndex]?.duration || 30}
-                                      onChange={(e) => handleActivityChange(event.activityIndex!, 'duration', e.target.value)}
-                                      className="w-20"
-                                      min="5"
-                                      max="240"
-                                    />
-                                    <span className="text-sm text-muted-foreground">min</span>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => removeActivity(event.activityIndex!)}
-                                    >
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                  </>
-                                )}
-                              </div>
-                              {(event.type === 'meal' && event.mealIndex !== undefined) || 
-                               (event.type === 'nap' && event.napIndex !== undefined) ||
-                               (event.type === 'activity' && event.activityIndex !== undefined) ? (
-                                <Input
-                                  value={
-                                    event.type === 'meal' && event.mealIndex !== undefined ? 
-                                      editedPlan.schedule.meals[event.mealIndex].description :
-                                    event.type === 'nap' && event.napIndex !== undefined && editedPlan.schedule.naps ? 
-                                      editedPlan.schedule.naps[event.napIndex].description || '' :
-                                    event.type === 'activity' && event.activityIndex !== undefined && editedPlan.schedule.activities ?
-                                      editedPlan.schedule.activities[event.activityIndex].description || '' : ''
-                                  }
-                                  onChange={(e) => {
-                                    if (event.type === 'meal' && event.mealIndex !== undefined) {
-                                      handleMealChange(event.mealIndex, 'description', e.target.value)
-                                    } else if (event.type === 'nap' && event.napIndex !== undefined) {
-                                      handleNapChange(event.napIndex, 'description', e.target.value)
-                                    } else if (event.type === 'activity' && event.activityIndex !== undefined) {
-                                      handleActivityChange(event.activityIndex, 'description', e.target.value)
-                                    }
-                                  }}
-                                  placeholder="Descripción"
-                                  className="text-sm"
-                                />
-                              ) : (
-                                <p className="text-sm text-muted-foreground">{event.description}</p>
-                              )}
-                            </div>
-                          ) : (
-                            <>
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-semibold text-lg">
-                                  {formatTime(event.time)}
-                                </span>
-                                <Badge variant="outline">
-                                  {event.title}
-                                </Badge>
-                                {event.duration && (
-                                  <Badge variant="secondary">
-                                    {event.duration} min
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-muted-foreground">
-                                {event.description}
-                              </p>
-                            </>
-                          )}
+                        {/* Botones de editar y eliminar - siempre visibles */}
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenEditModal(event)}
+                            title="Editar evento"
+                          >
+                            <Edit className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteEvent(event)}
+                            title="Eliminar evento"
+                          >
+                            <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                          </Button>
                         </div>
                       </div>
+                      <p className="text-muted-foreground">
+                        {event.description}
+                      </p>
                     </div>
-                  )
-                })}
-
-                {isEditing && orderedTimeline.length > 0 && (
-                  <div
-                    className={`mt-4 h-12 rounded-lg border-2 border-dashed flex items-center justify-center text-xs font-medium transition-colors ${
-                      dragOverId === END_DROP_ID
-                        ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
-                        : 'border-muted-foreground/40 text-muted-foreground hover:border-indigo-200 hover:bg-muted/40'
-                    }`}
-                    onDragOver={(e) => handleDragOver(e, END_DROP_ID)}
-                    onDrop={(e) => handleDrop(e, END_DROP_ID)}
-                    onDragEnter={() => setDragOverId(END_DROP_ID)}
-                    onDragLeave={() => dragOverId === END_DROP_ID && setDragOverId(null)}
-                  >
-                    Suelta aquí para mover este evento al final
                   </div>
-                )}
-                {isEditing && (
-                  <Button
-                    variant="outline"
-                    onClick={() => handleOpenEventModal()}
-                    className="w-full"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Agregar evento
-                  </Button>
-                )}
+                ))}
+
+                {/* Boton para agregar evento - siempre visible */}
+                <Button
+                  variant="outline"
+                  onClick={() => handleOpenEventModal()}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar evento
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -1296,73 +1232,27 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {isEditing ? (
-                <div className="space-y-3">
-                  <Label htmlFor="sleep-routine-notes">Descripción recomendada</Label>
-                  <Textarea
-                    id="sleep-routine-notes"
-                    value={sleepRoutineNotes}
-                    onChange={(e) => handleSleepRoutineNotesChange(e.target.value)}
-                    placeholder="Ej: • Dormir entre 7:30 y 8:00 pm\n• 2 siestas de 60-90 minutos\n• Ventanas de vigilia de 2-3 horas"
-                    rows={6}
-                    className="min-h-[140px]"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Este texto se mostrará tal cual al usuario en su dashboard. Puedes usar saltos de línea o bullets.
-                  </p>
+              <div className="space-y-3">
+                <Label htmlFor="sleep-routine-notes">Descripcion recomendada</Label>
+                <Textarea
+                  id="sleep-routine-notes"
+                  value={sleepRoutineNotes}
+                  onChange={(e) => handleSleepRoutineNotesChange(e.target.value)}
+                  placeholder="Ej: Dormir entre 7:30 y 8:00 pm, 2 siestas de 60-90 minutos, Ventanas de vigilia de 2-3 horas"
+                  rows={4}
+                  className="min-h-[100px]"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Este texto se mostrara tal cual al usuario en su dashboard.
+                </p>
+                {sleepRoutineNotes && (
                   <div className="flex justify-end">
                     <Button variant="ghost" size="sm" onClick={handleClearSleepRoutine}>
-                      Limpiar sección
+                      Limpiar seccion
                     </Button>
                   </div>
-                </div>
-              ) : hasSleepRoutineNotes ? (
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {sleepRoutineNotes}
-                </p>
-              ) : displaySleepRoutine ? (
-                <div className="space-y-3">
-                  <div className="flex items-start gap-2">
-                    <Moon className="h-4 w-4 text-indigo-600 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Hora de dormir</p>
-                      <p className="text-sm text-muted-foreground">{formatTime(displaySleepRoutine.suggestedBedtime)}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Sun className="h-4 w-4 text-amber-500 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Hora de despertar</p>
-                      <p className="text-sm text-muted-foreground">{formatTime(displaySleepRoutine.suggestedWakeTime)}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Nap className="h-4 w-4 text-indigo-500 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Número de siestas</p>
-                      <p className="text-sm text-muted-foreground">{displaySleepRoutine.numberOfNaps || "No especificado"}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Clock className="h-4 w-4 text-blue-500 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Duración de siestas</p>
-                      <p className="text-sm text-muted-foreground">{displaySleepRoutine.napDuration || "No especificado"}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <ActivityIcon className="h-4 w-4 text-purple-500 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Ventanas de vigilia</p>
-                      <p className="text-sm text-muted-foreground">{displaySleepRoutine.wakeWindows || "No especificado"}</p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No has definido una rutina específica. Completa esta sección para que el usuario la vea en su dashboard.
-                </p>
-              )}
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -1377,47 +1267,36 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
             <CardContent>
               <div className="space-y-3">
                 {editedPlan.objectives.map((objective: any, index: number) => {
-                  const text = typeof objective === 'string'
+                  const text = typeof objective === "string"
                     ? objective
-                    : objective && typeof objective === 'object'
+                    : objective && typeof objective === "object"
                       ? (objective.description || JSON.stringify(objective))
-                      : String(objective ?? '')
+                      : String(objective ?? "")
                   return (
                     <div key={index} className="flex items-start gap-2">
-                      {isEditing ? (
-                        <>
-                          <Textarea
-                            value={text}
-                            onChange={(e) => handleObjectiveChange(index, e.target.value)}
-                            className="flex-1 min-h-[60px]"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeObjective(index)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                          <p className="text-sm">{text}</p>
-                        </>
-                      )}
+                      <Textarea
+                        value={text}
+                        onChange={(e) => handleObjectiveChange(index, e.target.value)}
+                        className="flex-1 min-h-[60px]"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeObjective(index)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                   )
                 })}
-                {isEditing && (
-                  <Button
-                    variant="outline"
-                    onClick={addObjective}
-                    className="w-full"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Agregar Objetivo
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  onClick={addObjective}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Objetivo
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -1433,44 +1312,36 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
             <CardContent>
               <div className="space-y-3">
                 {editedPlan.recommendations.map((recommendation: any, index: number) => {
-                  const text = typeof recommendation === 'string'
+                  const text = typeof recommendation === "string"
                     ? recommendation
-                    : recommendation && typeof recommendation === 'object'
+                    : recommendation && typeof recommendation === "object"
                       ? (recommendation.description || JSON.stringify(recommendation))
-                      : String(recommendation ?? '')
+                      : String(recommendation ?? "")
                   return (
-                    <div key={index} className={isEditing ? "flex items-start gap-2" : "p-3 bg-muted rounded-lg"}>
-                      {isEditing ? (
-                        <>
-                          <Textarea
-                            value={text}
-                            onChange={(e) => handleRecommendationChange(index, e.target.value)}
-                            className="flex-1 min-h-[60px]"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeRecommendation(index)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </>
-                      ) : (
-                        <p className="text-sm">{text}</p>
-                      )}
+                    <div key={index} className="flex items-start gap-2">
+                      <Textarea
+                        value={text}
+                        onChange={(e) => handleRecommendationChange(index, e.target.value)}
+                        className="flex-1 min-h-[60px]"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeRecommendation(index)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                   )
                 })}
-                {isEditing && (
-                  <Button
-                    variant="outline"
-                    onClick={addRecommendation}
-                    className="w-full"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Agregar Recomendación
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  onClick={addRecommendation}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Recomendacion
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -1529,9 +1400,9 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                   <span>Tipo:</span>
                   <span>
                     {editedPlan.planType === "initial" ? "Inicial" : 
-                     editedPlan.planType === "event_based" ? "Progresión basada en eventos" :
-                     editedPlan.planType === "transcript_refinement" ? "Refinamiento por transcript" : 
-                     "Actualización"}
+                      editedPlan.planType === "event_based" ? "Progresión basada en eventos" :
+                        editedPlan.planType === "transcript_refinement" ? "Refinamiento por transcript" : 
+                          "Actualización"}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -1540,7 +1411,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                     {editedPlan.basedOn === "survey_stats_rag" 
                       ? "Survey + Stats + RAG" 
                       : editedPlan.basedOn === "events_stats_rag"
-                        ? `Plan ${editedPlan.basedOnPlan?.planVersion || 'anterior'} + ${editedPlan.eventAnalysis?.eventsAnalyzed || 'X'} eventos + RAG`
+                        ? `Plan ${editedPlan.basedOnPlan?.planVersion || "anterior"} + ${editedPlan.eventAnalysis?.eventsAnalyzed || "X"} eventos + RAG`
                         : editedPlan.basedOn === "transcript_analysis"
                           ? "Análisis de transcript"
                           : editedPlan.basedOn}
@@ -1551,10 +1422,10 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                   <>
                     <Separator className="my-2" />
                     <div className="text-xs">
-                      Usado: base v{editedPlan.basedOnPlan?.planVersion || editedPlan.eventAnalysis?.basePlanVersion || 'N/A'} • eventos {editedPlan.eventsDateRange?.totalEventsAnalyzed ?? editedPlan.eventAnalysis?.eventsAnalyzed ?? 'N/A'} • {
-                        editedPlan.eventsDateRange?.fromDate ? new Date(editedPlan.eventsDateRange.fromDate as any).toLocaleDateString() : 'N/A'
+                      Usado: base v{editedPlan.basedOnPlan?.planVersion || editedPlan.eventAnalysis?.basePlanVersion || "N/A"} • eventos {editedPlan.eventsDateRange?.totalEventsAnalyzed ?? editedPlan.eventAnalysis?.eventsAnalyzed ?? "N/A"} • {
+                        editedPlan.eventsDateRange?.fromDate ? new Date(editedPlan.eventsDateRange.fromDate as any).toLocaleDateString() : "N/A"
                       } → {
-                        editedPlan.eventsDateRange?.toDate ? new Date(editedPlan.eventsDateRange.toDate as any).toLocaleDateString() : 'N/A'
+                        editedPlan.eventsDateRange?.toDate ? new Date(editedPlan.eventsDateRange.toDate as any).toLocaleDateString() : "N/A"
                       } • RAG {(editedPlan.eventAnalysis?.ragSources && editedPlan.eventAnalysis.ragSources.length) || 0}
                     </div>
                   </>
@@ -1580,18 +1451,17 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
 
       {/* Modal para agregar evento */}
       <Dialog open={showEventModal} onOpenChange={setShowEventModal}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Agregar evento a la rutina</DialogTitle>
-            <DialogDescription>
-              Define el tipo de evento, la hora y detalles para integrarlo automáticamente.
-            </DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              Agregar evento a la rutina
+            </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">
-                Tipo
-              </Label>
+          <div className="space-y-4">
+            {/* Tipo de evento */}
+            <div>
+              <Label>Tipo de evento</Label>
               <Select
                 value={newEvent.type}
                 onValueChange={(value) => {
@@ -1600,12 +1470,12 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                   setNewEvent((prev) => buildEventFromTemplate(defaults, { ...prev, type: nextType }))
                 }}
               >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Selecciona un tipo" />
+                <SelectTrigger className="min-h-[44px]">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="nap">Siesta</SelectItem>
-                  <SelectItem value="meal">Comida o snack</SelectItem>
+                  <SelectItem value="meal">Comida</SelectItem>
                   <SelectItem value="activity">Actividad</SelectItem>
                   <SelectItem value="wake">Hora de despertar</SelectItem>
                   <SelectItem value="bedtime">Hora de dormir</SelectItem>
@@ -1613,100 +1483,153 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
               </Select>
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Evento</Label>
-              <Select
-                value={newEvent.templateId}
-                onValueChange={(value) => {
-                  const template = EVENT_TEMPLATES.find(t => t.id === value)
-                  if (!template) return
-                  setNewEvent((prev) => buildEventFromTemplate(template, prev))
-                }}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Selecciona un evento" />
-                </SelectTrigger>
-                <SelectContent>
-                  {templatesForCurrentType.length === 0 ? (
-                    <SelectItem value="no-options" disabled>
-                      No hay plantillas disponibles
-                    </SelectItem>
-                  ) : (
-                    templatesForCurrentType.map(template => (
-                      <SelectItem key={template.id} value={template.id}>
-                        {template.label}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="event-time" className="text-right">
-                Hora
-              </Label>
+            {/* Hora */}
+            <div>
+              <Label>Hora</Label>
               <Input
-                id="event-time"
                 type="time"
                 value={newEvent.time}
                 onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
-                className="col-span-3"
               />
             </div>
-            {['nap', 'activity'].includes(newEvent.type) && (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="event-duration" className="text-right">
-                  Duración
-                </Label>
-                <div className="col-span-3 flex items-center gap-2">
+
+            {/* Nombre/Tipo - solo para meal y activity */}
+            {newEvent.type === "meal" && (
+              <div>
+                <Label>Tipo de comida</Label>
+                <Input
+                  value={newEvent.label}
+                  onChange={(e) => setNewEvent({ ...newEvent, label: e.target.value })}
+                  placeholder="Ej: Desayuno, Comida, Cena, Snack..."
+                />
+              </div>
+            )}
+
+            {newEvent.type === "activity" && (
+              <div>
+                <Label>Nombre de la actividad</Label>
+                <Input
+                  value={newEvent.label}
+                  onChange={(e) => setNewEvent({ ...newEvent, label: e.target.value })}
+                  placeholder="Ej: Juego activo, Lectura, Rutina de relajacion..."
+                />
+              </div>
+            )}
+
+            {/* Duracion con botones +/- - solo para nap y activity */}
+            {newEvent.type === "nap" && (
+              <div>
+                <Label>Duracion (min)</Label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setNewEvent({ ...newEvent, duration: Math.max(5, (newEvent.duration || 60) - 5) })}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
                   <Input
-                    id="event-duration"
                     type="number"
+                    value={newEvent.duration || 60}
+                    onChange={(e) => setNewEvent({ ...newEvent, duration: parseInt(e.target.value) || 60 })}
+                    className="text-center"
                     min="5"
-                    max="240"
-                    step="5"
-                    value={newEvent.duration}
-                    onChange={(e) => setNewEvent({ ...newEvent, duration: parseInt(e.target.value) || 30 })}
-                    className="flex-1"
+                    max="180"
                   />
-                  <span className="text-sm text-muted-foreground">minutos</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setNewEvent({ ...newEvent, duration: Math.min(180, (newEvent.duration || 60) + 5) })}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             )}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="event-description" className="text-right">
-                Descripción
-              </Label>
-              <Textarea
-                id="event-description"
-                value={newEvent.description}
-                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                placeholder={
-                  newEvent.type === 'meal'
-                    ? 'Ej: 6 oz de leche y fruta'
-                    : newEvent.type === 'activity'
-                      ? 'Ej: Juego sensorial o actividad guiada'
-                      : newEvent.type === 'wake'
-                        ? 'Ej: Despertar natural entre 6:30-7:00 am'
-                        : newEvent.type === 'bedtime'
-                          ? 'Ej: Dormir a las 8:00 pm después de lectura'
-                          : 'Ej: Siesta tranquila en habitación oscura'
-                }
-                className="col-span-3"
-              />
+
+            {newEvent.type === "activity" && (
+              <div>
+                <Label>Duracion (min)</Label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setNewEvent({ ...newEvent, duration: Math.max(5, (newEvent.duration || 30) - 15) })}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    type="number"
+                    value={newEvent.duration || 30}
+                    onChange={(e) => setNewEvent({ ...newEvent, duration: parseInt(e.target.value) || 30 })}
+                    className="text-center"
+                    min="5"
+                    max="240"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setNewEvent({ ...newEvent, duration: Math.min(240, (newEvent.duration || 30) + 15) })}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Descripcion - para nap, meal, activity */}
+            {(newEvent.type === "nap" || newEvent.type === "meal" || newEvent.type === "activity") && (
+              <div>
+                <Label>Descripcion (opcional)</Label>
+                <Textarea
+                  value={newEvent.description}
+                  onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                  placeholder={
+                    newEvent.type === "nap"
+                      ? "Ej: Siesta en habitacion oscura, despues del almuerzo..."
+                      : newEvent.type === "meal"
+                        ? "Ej: Leche con fruta, comida completa..."
+                        : "Ej: Actividad motriz, lectura tranquila..."
+                  }
+                  rows={2}
+                  maxLength={200}
+                />
+              </div>
+            )}
+
+            {/* Botones */}
+            <div className="flex gap-2 pt-2">
+              <Button 
+                onClick={confirmAddEvent}
+                className="flex-1"
+              >
+                Agregar evento
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => setShowEventModal(false)}
+              >
+                Cancelar
+              </Button>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEventModal(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={confirmAddEvent}>
-              Agregar evento
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal para editar evento existente */}
+      <PlanEventEditModal
+        open={showEditEventModal}
+        onClose={() => {
+          setShowEditEventModal(false)
+          setEditingEvent(null)
+        }}
+        event={editingEvent}
+        onSave={handleSaveEditedEvent}
+      />
     </div>
   )
 }

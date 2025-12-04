@@ -81,7 +81,7 @@ export default function ConfiguracionPage() {
     title: "Configuración",
     showChildSelector: false,
     showSearch: false,
-    showNotifications: true
+    showNotifications: true,
   })
 
   // Update profileData when userData changes
@@ -311,7 +311,7 @@ export default function ConfiguracionPage() {
                 const languageNames = {
                   es: "Español",
                   en: "English", 
-                  pt: "Português"
+                  pt: "Português",
                 }
                 toast({
                   title: "Función en desarrollo",

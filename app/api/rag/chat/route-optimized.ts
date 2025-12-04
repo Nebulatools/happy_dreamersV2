@@ -12,7 +12,7 @@ import { z } from "zod"
 import { createLogger } from "@/lib/logger"
 import { loadAIModules } from "@/lib/ai-loader"
 
-const logger = createLogger('RAGChatAPI-Optimized')
+const logger = createLogger("RAGChatAPI-Optimized")
 
 // Cache para módulos AI cargados
 let aiModules: any = null
@@ -25,20 +25,20 @@ async function initializeAIModules() {
     return aiModules
   }
   
-  logger.info('Inicializando módulos AI...')
+  logger.info("Inicializando módulos AI...")
   const startTime = Date.now()
   
   try {
     // Cargar solo los módulos necesarios
-    aiModules = await loadAIModules(['openai', 'langchain', 'vectorstore'])
+    aiModules = await loadAIModules(["openai", "langchain", "vectorstore"])
     
     const loadTime = Date.now() - startTime
     logger.info(`Módulos AI cargados en ${loadTime}ms`)
     
     return aiModules
   } catch (error) {
-    logger.error('Error inicializando módulos AI', error)
-    throw new Error('No se pudieron cargar los módulos AI necesarios')
+    logger.error("Error inicializando módulos AI", error)
+    throw new Error("No se pudieron cargar los módulos AI necesarios")
   }
 }
 
@@ -109,10 +109,10 @@ export async function POST(req: NextRequest) {
       }),
       func: async ({ childId, userId, dataType }) => {
         try {
-          logger.debug('childDataTool invocado', { childId, userId, dataType })
+          logger.debug("childDataTool invocado", { childId, userId, dataType })
           
           if (!childId || childId === "null" || childId === "") {
-            logger.warn('childId inválido o no proporcionado')
+            logger.warn("childId inválido o no proporcionado")
             return "Por favor selecciona un niño específico para obtener sus estadísticas"
           }
           
@@ -122,20 +122,20 @@ export async function POST(req: NextRequest) {
           })
           
           if (!childDoc) {
-            logger.warn('Niño no encontrado en la base de datos', { childId })
+            logger.warn("Niño no encontrado en la base de datos", { childId })
             return "No se encontró información del niño"
           }
           
-          logger.info('Niño encontrado', { name: `${childDoc.firstName} ${childDoc.lastName}` })
+          logger.info("Niño encontrado", { name: `${childDoc.firstName} ${childDoc.lastName}` })
           
           const events = childDoc.events || []
-          logger.debug('Eventos encontrados', { count: events.length })
+          logger.debug("Eventos encontrados", { count: events.length })
           
           // Procesar estadísticas
           return processChildStatistics(childDoc, events)
           
         } catch (error) {
-          logger.error('Error en childDataTool', error)
+          logger.error("Error en childDataTool", error)
           return "Error al acceder a las estadísticas del niño"
         }
       },
@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
           const results = await vectorStore.search(query, k)
           return results
         } catch (error) {
-          logger.error('Error en búsqueda RAG', error)
+          logger.error("Error en búsqueda RAG", error)
           return "No se pudo buscar en la base de conocimientos"
         }
       },
@@ -175,11 +175,11 @@ export async function POST(req: NextRequest) {
       Responde solo con: RAG, CHILD_DATA o MIXED`
 
       const { text: agentType } = await generateText({
-        model: openai('gpt-3.5-turbo'),
+        model: openai("gpt-3.5-turbo"),
         prompt: routingPrompt,
       })
       
-      logger.info('Router de agente', { question, agentType })
+      logger.info("Router de agente", { question, agentType })
       
       return { ...state, agentType: agentType.trim() }
     }
@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
       const messages = [
         new SystemMessage(getSleepCoachSystemPrompt()),
         ...conversationHistory.map((msg: any) => 
-          msg.role === 'user' 
+          msg.role === "user" 
             ? new HumanMessage(msg.content)
             : new AIMessage(msg.content)
         ),
@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
       
       return { 
         ...state, 
-        finalAnswer: result.messages[result.messages.length - 1].content 
+        finalAnswer: result.messages[result.messages.length - 1].content, 
       }
     }
 
@@ -233,7 +233,7 @@ export async function POST(req: NextRequest) {
       const messages = [
         new SystemMessage(getSleepCoachSystemPrompt()),
         ...conversationHistory.map((msg: any) => 
-          msg.role === 'user' 
+          msg.role === "user" 
             ? new HumanMessage(msg.content)
             : new AIMessage(msg.content)
         ),
@@ -244,7 +244,7 @@ export async function POST(req: NextRequest) {
       
       return { 
         ...state, 
-        finalAnswer: result.messages[result.messages.length - 1].content 
+        finalAnswer: result.messages[result.messages.length - 1].content, 
       }
     }
 
@@ -265,7 +265,7 @@ export async function POST(req: NextRequest) {
       const messages = [
         new SystemMessage(getSleepCoachSystemPrompt()),
         ...conversationHistory.map((msg: any) => 
-          msg.role === 'user' 
+          msg.role === "user" 
             ? new HumanMessage(msg.content)
             : new AIMessage(msg.content)
         ),
@@ -276,7 +276,7 @@ export async function POST(req: NextRequest) {
       
       return { 
         ...state, 
-        finalAnswer: result.messages[result.messages.length - 1].content 
+        finalAnswer: result.messages[result.messages.length - 1].content, 
       }
     }
 
@@ -318,9 +318,9 @@ export async function POST(req: NextRequest) {
 
     // Calcular métricas de rendimiento
     const responseTime = Date.now() - result.performance.startTime
-    logger.info('Respuesta generada', { 
+    logger.info("Respuesta generada", { 
       agent: result.agentType, 
-      responseTime: `${responseTime}ms` 
+      responseTime: `${responseTime}ms`, 
     })
 
     return NextResponse.json({
@@ -334,12 +334,12 @@ export async function POST(req: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Error en el endpoint de chat', error)
+    logger.error("Error en el endpoint de chat", error)
     return NextResponse.json(
       { 
         success: false,
         error: "Error procesando la consulta",
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        details: process.env.NODE_ENV === "development" ? error.message : undefined,
       },
       { status: 500 }
     )
@@ -364,14 +364,14 @@ function processChildStatistics(childDoc: any, events: any[]) {
   })
   
   // Calcular estadísticas básicas
-  const sleepEvents = events7Days.filter(e => e.eventType === 'sleep')
+  const sleepEvents = events7Days.filter(e => e.eventType === "sleep")
   const avgSleepDuration = sleepEvents.length > 0
     ? sleepEvents.reduce((acc, e) => {
-        if (e.endTime && e.startTime) {
-          return acc + differenceInMinutes(parseISO(e.endTime), parseISO(e.startTime))
-        }
-        return acc
-      }, 0) / sleepEvents.length / 60
+      if (e.endTime && e.startTime) {
+        return acc + differenceInMinutes(parseISO(e.endTime), parseISO(e.startTime))
+      }
+      return acc
+    }, 0) / sleepEvents.length / 60
     : 0
   
   return {

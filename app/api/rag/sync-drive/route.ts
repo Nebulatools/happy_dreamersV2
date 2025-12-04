@@ -23,11 +23,11 @@ export async function POST(request: NextRequest) {
         success: connectionOk,
         message: connectionOk 
           ? "Conexión con Google Drive exitosa" 
-          : "Error de conexión con Google Drive"
+          : "Error de conexión con Google Drive",
       })
     }
     
-    logger.info(`🔄 Iniciando ${fullSync ? 'sincronización completa' : 'sincronización incremental'} con Google Drive`)
+    logger.info(`🔄 Iniciando ${fullSync ? "sincronización completa" : "sincronización incremental"} con Google Drive`)
     
     // Ejecutar sincronización
     const syncService = getGoogleDriveSyncService()
@@ -45,8 +45,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         started: true,
-        syncType: fullSync ? 'completa' : 'incremental',
-        message: 'Sincronización iniciada en segundo plano'
+        syncType: fullSync ? "completa" : "incremental",
+        message: "Sincronización iniciada en segundo plano",
       })
     }
 
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     logger.info("✅ Sincronización completada", { 
       filesProcessed: result.stats.filesProcessed,
       chunksAdded: result.stats.chunksAdded,
-      errorsCount: result.stats.errorsCount
+      errorsCount: result.stats.errorsCount,
     })
     
     return NextResponse.json({
@@ -63,8 +63,8 @@ export async function POST(request: NextRequest) {
       message: result.message,
       stats: result.stats,
       duration: `${result.duration}ms`,
-      syncType: fullSync ? 'completa' : 'incremental',
-      errors: result.errors
+      syncType: fullSync ? "completa" : "incremental",
+      errors: result.errors,
     })
     
   } catch (error) {
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: false,
       message: "Error en la sincronización",
-      error: error instanceof Error ? error.message : "Error desconocido"
+      error: error instanceof Error ? error.message : "Error desconocido",
     }, { status: 500 })
   }
 }
@@ -91,23 +91,23 @@ export async function GET(request: NextRequest) {
         isEnabled: status.isEnabled,
         isConfigured: status.isConfigured,
         lastSyncAt: status.lastSync,
-        lastSyncStatus: status.connectionOk ? 'success' : (status.isConfigured ? 'error' : 'not_configured'),
-        totalDocuments: status.totalDocuments
+        lastSyncStatus: status.connectionOk ? "success" : (status.isConfigured ? "error" : "not_configured"),
+        totalDocuments: status.totalDocuments,
       },
       scheduler: {
         isRunning: status.schedulerRunning,
-        interval: process.env.GOOGLE_DRIVE_SYNC_INTERVAL || '*/30 * * * *',
+        interval: process.env.GOOGLE_DRIVE_SYNC_INTERVAL || "*/30 * * * *",
         nextRun: null,
         lastRun: status.lastSync,
         runsCount: 0,
-        errorsCount: status.errors.length
+        errorsCount: status.errors.length,
       },
       configuration: {
         folderId: process.env.GOOGLE_DRIVE_FOLDER_ID || null,
         clientEmail: process.env.GOOGLE_DRIVE_CLIENT_EMAIL || null,
-        projectId: process.env.GOOGLE_DRIVE_PROJECT_ID || null
+        projectId: process.env.GOOGLE_DRIVE_PROJECT_ID || null,
       },
-      errors: status.errors
+      errors: status.errors,
     })
     
   } catch (error) {
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: false,
       message: "Error consultando estado",
-      error: error instanceof Error ? error.message : "Error desconocido"
+      error: error instanceof Error ? error.message : "Error desconocido",
     }, { status: 500 })
   }
 }
@@ -133,31 +133,31 @@ export async function PUT(request: NextRequest) {
     }
 
     switch (action) {
-      case 'start':
-        scheduler.start()
-        break
-      case 'stop':
-        scheduler.stop()
-        break
-      case 'restart':
-        scheduler.restart()
-        break
-      case 'interval':
-        if (typeof minutes !== 'number') {
-          return NextResponse.json({ success: false, error: 'Se requiere minutes (número)' }, { status: 400 })
-        }
-        scheduler.setInterval(minutes)
-        break
-      default:
-        return NextResponse.json({ success: false, error: 'Acción inválida' }, { status: 400 })
+    case "start":
+      scheduler.start()
+      break
+    case "stop":
+      scheduler.stop()
+      break
+    case "restart":
+      scheduler.restart()
+      break
+    case "interval":
+      if (typeof minutes !== "number") {
+        return NextResponse.json({ success: false, error: "Se requiere minutes (número)" }, { status: 400 })
+      }
+      scheduler.setInterval(minutes)
+      break
+    default:
+      return NextResponse.json({ success: false, error: "Acción inválida" }, { status: 400 })
     }
 
     const status = scheduler.getStatus()
-    return NextResponse.json({ success: true, message: 'Scheduler actualizado', scheduler: status })
+    return NextResponse.json({ success: true, message: "Scheduler actualizado", scheduler: status })
 
   } catch (error) {
-    logger.error('❌ Error en PUT /sync-drive:', error)
-    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Error desconocido' }, { status: 500 })
+    logger.error("❌ Error en PUT /sync-drive:", error)
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "Error desconocido" }, { status: 500 })
   }
 }
 
@@ -165,8 +165,8 @@ export async function OPTIONS() {
   return NextResponse.json({}, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    }
+      "Access-Control-Allow-Methods": "GET,POST,PUT,OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
   })
 }

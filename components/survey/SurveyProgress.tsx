@@ -26,7 +26,7 @@ export function SurveyProgress({
   totalSteps, 
   completedSteps,
   stepsWithErrors,
-  onStepClick 
+  onStepClick, 
 }: SurveyProgressProps) {
   const progress = (currentStep / totalSteps) * 100
 
@@ -58,10 +58,10 @@ export function SurveyProgress({
                     "bg-gradient-to-r from-[#628BE6] to-[#67C5FF]": isCurrent || isPast,
                     "bg-gray-300": !isCurrent && !isPast,
                     "ring-4 ring-white": isCurrent,
-                    "cursor-pointer": onStepClick
+                    "cursor-pointer": onStepClick,
                   }
                 )}
-                title={`${step.name} ${hasError ? '(Campos requeridos)' : ''}`}
+                title={`${step.name} ${hasError ? "(Campos requeridos)" : ""}`}
               >
                 {isCompleted && !hasError && (
                   <Check className="w-3 h-3 text-white" />
@@ -94,7 +94,7 @@ export function SurveyProgress({
                   "bg-green-100 text-green-700": isCompleted && !hasError && !isCurrent,
                   "bg-red-100 text-red-700": hasError && !isCurrent,
                   "bg-gray-100 text-gray-600": !isCompleted && !hasError && !isCurrent,
-                  "hover:shadow-md cursor-pointer": onStepClick
+                  "hover:shadow-md cursor-pointer": onStepClick,
                 }
               )}
             >
@@ -118,7 +118,7 @@ export function SurveyProgress({
         </p>
         {stepsWithErrors.size > 0 && (
           <p className="text-sm text-red-600 mt-1">
-            {stepsWithErrors.size} {stepsWithErrors.size === 1 ? 'paso tiene' : 'pasos tienen'} campos obligatorios sin completar
+            {stepsWithErrors.size} {stepsWithErrors.size === 1 ? "paso tiene" : "pasos tienen"} campos obligatorios sin completar
           </p>
         )}
       </div>

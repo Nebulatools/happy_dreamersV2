@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react"
 import { differenceInMinutes, parseISO, subDays } from "date-fns"
 import { processSleepStatistics } from "@/lib/sleep-calculations"
-import { createLogger } from "@/lib/logger"
-
-const logger = createLogger('useSleepData')
 
 export interface SleepEvent {
   _id: string
@@ -40,7 +37,7 @@ export interface SleepData {
   recentEvents: any[] // todos los eventos (no solo sleep) dentro del rango
 }
 
-export function useSleepData(childId: string | null, dateRange: string = "7-days") {
+export function useSleepData(childId: string | null, dateRange: string = "7-days", periodsToFetch: number = 1) {
   const [data, setData] = useState<SleepData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -56,30 +53,32 @@ export function useSleepData(childId: string | null, dateRange: string = "7-days
       try {
         setLoading(true)
         const response = await fetch(`/api/children/events?childId=${childId}`)
-        
+
         if (!response.ok) {
           throw new Error('Error al cargar datos de sueño')
         }
-        
+
         const result = await response.json()
         const allEvents = result.events || []
-        
+
         // Calcular días a filtrar basado en dateRange
+        // periodsToFetch permite traer mas periodos historicos para navegacion
         const now = new Date()
-        let daysToSubtract = 7 // default
-        
+        let baseDays = 7 // default
+
         if (dateRange === "30-days") {
-          daysToSubtract = 30
+          baseDays = 30
         } else if (dateRange === "90-days") {
-          daysToSubtract = 90
+          baseDays = 90
         } else if (dateRange === "7-days") {
-          daysToSubtract = 7
+          baseDays = 7
         }
-        
+
+        // Multiplicar por periodsToFetch para traer datos historicos
+        const daysToSubtract = baseDays * Math.max(1, periodsToFetch)
+
         const filterDate = subDays(now, daysToSubtract)
-        
-        logger.debug('Filtrando eventos', { desde: filterDate.toLocaleDateString(), dias: daysToSubtract })
-        
+
         const sleepEvents = allEvents.filter((e: any) => {
           // Solo procesar eventos que tengan startTime definido
           if (!e.startTime) return false
@@ -95,8 +94,6 @@ export function useSleepData(childId: string | null, dateRange: string = "7-days
           return date >= filterDate
         })
         
-        logger.debug('Eventos procesados', { total: allEvents.length, filtrados: sleepEvents.length })
-        
         // Calcular métricas
         const processedData = processSleepData(sleepEvents, allEvents, recentEvents, dateRange)
         setData(processedData)
@@ -108,7 +105,7 @@ export function useSleepData(childId: string | null, dateRange: string = "7-days
     }
 
     fetchData()
-  }, [childId, dateRange])
+  }, [childId, dateRange, periodsToFetch])
 
   return { data, loading, error }
 }
@@ -204,7 +201,6 @@ function calculateAwakePeriods(events: any[], dateRange: string = "7-days"): Awa
     return eventDate >= filterDate && eventDate <= now
   })
   
-  logger.debug('Eventos en el rango para períodos despierto', { count: rangeEvents.length, days: daysToProcess })
   
   // Agrupar eventos por día para procesamiento más preciso
   const eventsByDay = new Map<string, any[]>()

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -9,16 +9,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Moon, Plus, Minus } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { toLocalISOString } from '@/lib/date-utils'
-import { useDevTime } from '@/context/dev-time-context'
-import { EventData } from './types'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { format } from 'date-fns'
-import { useUser } from '@/context/UserContext'
+import { Moon, Plus, Minus } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { dateToTimestamp } from "@/lib/datetime"
+import { useDevTime } from "@/context/dev-time-context"
+import { EventData } from "./types"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { format } from "date-fns"
+import { useUser } from "@/context/UserContext"
 
 interface NightWakingModalProps {
   open: boolean
@@ -26,7 +26,7 @@ interface NightWakingModalProps {
   onConfirm: (awakeDelay: number, emotionalState: string, notes: string) => void
   childName: string
   childId: string
-  mode?: 'create' | 'edit'
+  mode?: "create" | "edit"
   initialData?: {
     awakeDelay?: number
     emotionalState?: string
@@ -46,37 +46,37 @@ export function NightWakingModal({
   onConfirm,
   childName,
   childId,
-  mode = 'create',
-  initialData
+  mode = "create",
+  initialData,
 }: NightWakingModalProps) {
   const { getCurrentTime } = useDevTime()
   const { userData } = useUser()
   const [selectedDelay, setSelectedDelay] = useState<number>(initialData?.awakeDelay || 15) // Default 15 min
-  const [emotionalState, setEmotionalState] = useState<string>(initialData?.emotionalState || 'tranquilo')
-  const [notes, setNotes] = useState<string>(initialData?.notes || '')
+  const [emotionalState, setEmotionalState] = useState<string>(initialData?.emotionalState || "tranquilo")
+  const [notes, setNotes] = useState<string>(initialData?.notes || "")
   const [eventDate, setEventDate] = useState<string>(() => {
-    if (mode === 'edit' && initialData?.startTime) {
-      return format(new Date(initialData.startTime), 'yyyy-MM-dd')
+    if (mode === "edit" && initialData?.startTime) {
+      return format(new Date(initialData.startTime), "yyyy-MM-dd")
     }
-    return format(getCurrentTime(), 'yyyy-MM-dd')
+    return format(getCurrentTime(), "yyyy-MM-dd")
   })
   const [eventTime, setEventTime] = useState<string>(() => {
-    if (mode === 'edit' && initialData?.startTime) {
-      return format(new Date(initialData.startTime), 'HH:mm')
+    if (mode === "edit" && initialData?.startTime) {
+      return format(new Date(initialData.startTime), "HH:mm")
     }
-    return format(getCurrentTime(), 'HH:mm')
+    return format(getCurrentTime(), "HH:mm")
   })
   const [isProcessing, setIsProcessing] = useState(false)
 
   // Inicializar con datos cuando se abre en modo edición
   useEffect(() => {
-    if (open && mode === 'edit' && initialData) {
+    if (open && mode === "edit" && initialData) {
       setSelectedDelay(initialData.awakeDelay || 15)
-      setEmotionalState(initialData.emotionalState || 'tranquilo')
-      setNotes(initialData.notes || '')
+      setEmotionalState(initialData.emotionalState || "tranquilo")
+      setNotes(initialData.notes || "")
       if (initialData.startTime) {
-        setEventDate(format(new Date(initialData.startTime), 'yyyy-MM-dd'))
-        setEventTime(format(new Date(initialData.startTime), 'HH:mm'))
+        setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
+        setEventTime(format(new Date(initialData.startTime), "HH:mm"))
       }
     }
   }, [open, mode, initialData])
@@ -103,9 +103,9 @@ export function NightWakingModal({
 
   // Estados emocionales disponibles para despertares nocturnos
   const emotionalStates = [
-    { value: 'tranquilo', label: 'Tranquilo', description: 'Se calmó fácilmente' },
-    { value: 'inquieto', label: 'Inquieto', description: 'Costó calmarlo' },
-    { value: 'alterado', label: 'Alterado', description: 'Muy difícil de calmar' }
+    { value: "tranquilo", label: "Tranquilo", description: "Se calmó fácilmente" },
+    { value: "inquieto", label: "Inquieto", description: "Costó calmarlo" },
+    { value: "alterado", label: "Alterado", description: "Muy difícil de calmar" },
   ]
 
   const handleConfirm = async () => {
@@ -120,30 +120,30 @@ export function NightWakingModal({
       // Crear evento night_waking completo
       const eventData: Partial<EventData> = {
         childId,
-        eventType: 'night_waking',
-        startTime: toLocalISOString(startTime, userData.timezone),
-        endTime: toLocalISOString(endTime, userData.timezone),
+        eventType: "night_waking",
+        startTime: dateToTimestamp(startTime, userData.timezone),
+        endTime: dateToTimestamp(endTime, userData.timezone),
         awakeDelay: selectedDelay,
         emotionalState,
         notes,
-        duration: 0 // Será calculado por el backend (endTime - startTime - awakeDelay)
+        duration: 0, // Será calculado por el backend (endTime - startTime - awakeDelay)
       }
       
-      const response = await fetch('/api/children/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData)
+      const response = await fetch("/api/children/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(eventData),
       })
       
       if (!response.ok) {
-        throw new Error('Error al registrar despertar nocturno')
+        throw new Error("Error al registrar despertar nocturno")
       }
       
       // Llamar al callback original para actualizar la UI
       await onConfirm(selectedDelay, emotionalState, notes)
       
     } catch (error) {
-      console.error('Error creando despertar nocturno:', error)
+      console.error("Error creando despertar nocturno:", error)
       // Si hay error, aún así llamar al callback para que maneje el error
       await onConfirm(selectedDelay, emotionalState, notes)
     }
@@ -151,8 +151,8 @@ export function NightWakingModal({
     setIsProcessing(false)
     // Reset para próxima vez
     setSelectedDelay(15)
-    setEmotionalState('tranquilo')
-    setNotes('')
+    setEmotionalState("tranquilo")
+    setNotes("")
   }
 
   const handleSkip = async () => {
@@ -168,39 +168,39 @@ export function NightWakingModal({
       // Crear evento night_waking con valores por defecto
       const eventData: Partial<EventData> = {
         childId,
-        eventType: 'night_waking',
-        startTime: toLocalISOString(startTime, userData.timezone),
-        endTime: toLocalISOString(endTime, userData.timezone),
+        eventType: "night_waking",
+        startTime: dateToTimestamp(startTime, userData.timezone),
+        endTime: dateToTimestamp(endTime, userData.timezone),
         awakeDelay: defaultDelay,
-        emotionalState: 'tranquilo',
-        notes: '',
-        duration: 0
+        emotionalState: "tranquilo",
+        notes: "",
+        duration: 0,
       }
       
-      const response = await fetch('/api/children/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData)
+      const response = await fetch("/api/children/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(eventData),
       })
       
       if (!response.ok) {
-        throw new Error('Error al registrar despertar nocturno')
+        throw new Error("Error al registrar despertar nocturno")
       }
       
       // Llamar al callback
-      await onConfirm(defaultDelay, 'tranquilo', '')
+      await onConfirm(defaultDelay, "tranquilo", "")
       
     } catch (error) {
-      console.error('Error creando despertar nocturno:', error)
+      console.error("Error creando despertar nocturno:", error)
       // Si hay error, aún así llamar al callback
-      await onConfirm(5, 'tranquilo', '')
+      await onConfirm(5, "tranquilo", "")
     }
     
     setIsProcessing(false)
     // Reset
     setSelectedDelay(15)
-    setEmotionalState('tranquilo')
-    setNotes('')
+    setEmotionalState("tranquilo")
+    setNotes("")
   }
 
   return (
@@ -216,17 +216,17 @@ export function NightWakingModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Moon className="w-5 h-5 text-indigo-500" />
-            {mode === 'edit' ? 'Editar Despertar Nocturno' : 'Despertar Nocturno'}
+            {mode === "edit" ? "Editar Despertar Nocturno" : "Despertar Nocturno"}
           </DialogTitle>
           <DialogDescription>
-            {mode === 'edit'
+            {mode === "edit"
               ? `Modifica los detalles del despertar nocturno de ${childName}`
               : `¿Cuánto tiempo estuvo despierto ${childName}?`}
           </DialogDescription>
         </DialogHeader>
 
         {/* Fecha y hora - Solo visible en modo edición */}
-        {mode === 'edit' && (
+        {mode === "edit" && (
           <div className="grid grid-cols-2 gap-2 pb-4 border-b">
             <div className="space-y-2">
               <Label htmlFor="waking-date">
@@ -383,8 +383,8 @@ export function NightWakingModal({
             className="flex-1 bg-indigo-500 hover:bg-indigo-600"
           >
             {isProcessing 
-              ? (mode === 'edit' ? 'Guardando...' : 'Registrando...') 
-              : (mode === 'edit' ? 'Guardar Cambios' : 'Confirmar')}
+              ? (mode === "edit" ? "Guardando..." : "Registrando...") 
+              : (mode === "edit" ? "Guardar Cambios" : "Confirmar")}
           </Button>
         </div>
 

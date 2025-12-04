@@ -107,7 +107,7 @@ const RenderWakingLines = ({ formattedGraphicalItems, data, yAxisMap, xAxisMap }
 
   // Buscar el item que corresponde a la serie de sueño nocturno
   const nightBars =
-    formattedGraphicalItems.find((item: any) => (item?.item?.props?.dataKey ?? item?.props?.dataKey) === 'nightHours')
+    formattedGraphicalItems.find((item: any) => (item?.item?.props?.dataKey ?? item?.props?.dataKey) === "nightHours")
     ?? formattedGraphicalItems[0]
 
   const barData = nightBars?.props?.data || nightBars?.item?.props?.data
@@ -123,7 +123,7 @@ const RenderWakingLines = ({ formattedGraphicalItems, data, yAxisMap, xAxisMap }
     if (dayData.nightHours === 0) return // No hay sueño nocturno, no mostrar líneas
 
     // Obtener las coordenadas de la barra desde dayPoint
-    if (!dayPoint || typeof dayPoint.x !== 'number' || typeof dayPoint.y !== 'number') {
+    if (!dayPoint || typeof dayPoint.x !== "number" || typeof dayPoint.y !== "number") {
       return
     }
 
@@ -225,7 +225,7 @@ export function UserWeeklySleepChart({ data, className }: UserWeeklySleepChartPr
               top: 15,
               right: window.innerWidth < 640 ? 5 : window.innerWidth < 768 ? 10 : 30,
               left: window.innerWidth < 640 ? 0 : window.innerWidth < 768 ? 5 : 20,
-              bottom: window.innerWidth < 640 ? 50 : 60
+              bottom: window.innerWidth < 640 ? 50 : 60,
             }}
             barCategoryGap={window.innerWidth < 640 ? "5%" : window.innerWidth < 768 ? "10%" : "20%"}
           >
@@ -272,7 +272,7 @@ export function UserWeeklySleepChart({ data, className }: UserWeeklySleepChartPr
               domain={[0, maxHours]}
               tick={{
                 fontSize: window.innerWidth < 640 ? 9 : window.innerWidth < 768 ? 10 : 12,
-                fill: "#6B7280"
+                fill: "#6B7280",
               }}
               tickFormatter={(value) => `${value}h`}
               width={window.innerWidth < 640 ? 30 : window.innerWidth < 768 ? 35 : 50}
@@ -287,7 +287,7 @@ export function UserWeeklySleepChart({ data, className }: UserWeeklySleepChartPr
               wrapperStyle={{
                 fontSize: window.innerWidth < 640 ? 9 : window.innerWidth < 768 ? 10 : 12,
                 paddingTop: window.innerWidth < 640 ? 10 : 20,
-                paddingBottom: window.innerWidth < 640 ? 5 : 0
+                paddingBottom: window.innerWidth < 640 ? 5 : 0,
               }}
               iconSize={window.innerWidth < 640 ? 8 : 10}
               payload={[

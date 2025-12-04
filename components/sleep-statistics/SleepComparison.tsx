@@ -67,15 +67,15 @@ export default function SleepComparison({ childId, dateRange = "7-days" }: Sleep
     const isPositive = reverse ? change < 0 : change > 0
     const isNegative = reverse ? change > 0 : change < 0
     
-    if (Math.abs(change) < 0.1) return 'text-gray-600'
-    if (isPositive) return 'text-green-600'
-    if (isNegative) return 'text-red-600'
-    return 'text-gray-600'
+    if (Math.abs(change) < 0.1) return "text-gray-600"
+    if (isPositive) return "text-green-600"
+    if (isNegative) return "text-red-600"
+    return "text-gray-600"
   }
 
-  const formatChange = (change: number, unit: string = 'h') => {
-    const sign = change > 0 ? '+' : ''
-    if (unit === 'min') {
+  const formatChange = (change: number, unit: string = "h") => {
+    const sign = change > 0 ? "+" : ""
+    if (unit === "min") {
       return `${sign}${Math.round(change)} ${unit}`
     }
     return `${sign}${change.toFixed(1)} ${unit}`
@@ -83,10 +83,10 @@ export default function SleepComparison({ childId, dateRange = "7-days" }: Sleep
 
   const getPeriodLabel = () => {
     switch (dateRange) {
-      case '7-days': return 'período anterior (7 días)'
-      case '30-days': return 'período anterior (30 días)'
-      case '90-days': return 'período anterior (3 meses)'
-      default: return 'período anterior'
+    case "7-days": return "período anterior (7 días)"
+    case "30-days": return "período anterior (30 días)"
+    case "90-days": return "período anterior (3 meses)"
+    default: return "período anterior"
     }
   }
 
@@ -145,7 +145,7 @@ export default function SleepComparison({ childId, dateRange = "7-days" }: Sleep
                 <div className="flex items-center justify-center space-x-1">
                   {getTrendIcon(data.wakeups.change, true)}
                   <span className={getTrendColor(data.wakeups.change, true)}>
-                    {formatChange(data.wakeups.change, '')}
+                    {formatChange(data.wakeups.change, "")}
                   </span>
                 </div>
               </td>
@@ -163,7 +163,7 @@ export default function SleepComparison({ childId, dateRange = "7-days" }: Sleep
                 <div className="flex items-center justify-center space-x-1">
                   {getTrendIcon(data.consistency.change, true)}
                   <span className={getTrendColor(data.consistency.change, true)}>
-                    {formatChange(data.consistency.change, 'min')}
+                    {formatChange(data.consistency.change, "min")}
                   </span>
                 </div>
               </td>

@@ -15,7 +15,7 @@ export function calculateAge(birthDate: string | Date): number | string {
   
   // Si se llama con un string, devolver el formato "X años"
   if (typeof birthDate === "string") {
-    return `${years} año${years !== 1 ? 's' : ''}`
+    return `${years} año${years !== 1 ? "s" : ""}`
   }
   
   return years
@@ -53,34 +53,87 @@ export function calculateAgeFormatted(birthDate: string | Date): string {
 }
 
 /**
- * Convierte una fecha local a ISO string manteniendo la zona horaria local
- * Evita el problema de que toISOString() convierte a UTC y puede cambiar el día
- * CRÍTICO: Siempre usa el offset de timezone ACTUAL del sistema, no del Date objeto
- * Esto asegura consistencia cuando se usa con DevTimeContext
+ * Convierte una fecha local a ISO string manteniendo la zona horaria especificada
+ * CORREGIDO: Calcula el offset usando la diferencia real entre UTC y la timezone,
+ * no usando getTimezoneOffset() que siempre retorna el offset del navegador local.
  * @param date - Fecha a convertir
- * @returns String ISO en zona horaria local
+ * @param timeZone - Zona horaria (ej: "America/Monterrey")
+ * @returns String ISO con offset de timezone correcto
  */
 export function toLocalISOString(date: Date, timeZone?: string): string {
-  // Obtener los componentes en la zona horaria indicada (o local por defecto)
-  const parts = getTimePartsInTimeZone(date, timeZone)
+  if (!timeZone) {
+    // Sin timezone especificada, usar formato local simple
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    const hours = String(date.getHours()).padStart(2, "0")
+    const minutes = String(date.getMinutes()).padStart(2, "0")
+    const seconds = String(date.getSeconds()).padStart(2, "0")
+    const milliseconds = String(date.getMilliseconds()).padStart(3, "0")
 
-  const year = parts.date.getUTCFullYear()
-  const month = String(parts.date.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(parts.date.getUTCDate()).padStart(2, '0')
-  const hours = String(parts.hours).padStart(2, '0')
-  const minutes = String(parts.minutes).padStart(2, '0')
-  const seconds = String(parts.seconds).padStart(2, '0')
-  const milliseconds = String(parts.date.getUTCMilliseconds()).padStart(3, '0')
+    // Usar offset del navegador local solo cuando no hay timezone especificada
+    const offsetMinutesTotal = -date.getTimezoneOffset()
+    const offsetSign = offsetMinutesTotal >= 0 ? "+" : "-"
+    const offsetHours = Math.floor(Math.abs(offsetMinutesTotal) / 60)
+    const offsetMins = Math.abs(offsetMinutesTotal) % 60
+    const offsetString = `${offsetSign}${String(offsetHours).padStart(2, "0")}:${String(offsetMins).padStart(2, "0")}`
 
-  // Calcular offset real de la zona horaria respecto a UTC usando la fecha zonificada
-  const offsetMinutesTotal = -parts.date.getTimezoneOffset()
-  const offsetSign = offsetMinutesTotal >= 0 ? '+' : '-'
-  const offsetHours = Math.floor(Math.abs(offsetMinutesTotal) / 60)
-  const offsetMinutes = Math.abs(offsetMinutesTotal) % 60
-  const offsetString = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${offsetString}`
+  }
 
-  const isoString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${offsetString}`
-  return isoString
+  // Con timezone especificada, usar Intl.DateTimeFormat para obtener componentes correctos
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  })
+
+  const parts = formatter.formatToParts(date).reduce<Record<string, string>>((acc, part) => {
+    if (part.type !== "literal") acc[part.type] = part.value
+    return acc
+  }, {})
+
+  // Corregir hora "24" a "00" (algunos navegadores retornan 24 para medianoche)
+  const hour = parts.hour === "24" ? "00" : parts.hour
+
+  // Calcular offset usando la diferencia real entre UTC y la timezone
+  // Método: comparar la hora en UTC con la hora en la timezone
+  const utcStr = date.toISOString() // "2025-11-27T21:24:19.283Z"
+  const [utcDatePart] = utcStr.split("T")
+  const [utcYear, utcMonth, utcDay] = utcDatePart.split("-")
+  const [utcHour, utcMinute, utcSecond] = date.toISOString().split("T")[1].split(":")
+
+  // Diferencia en horas y minutos entre UTC y la timezone
+  const tzHours = parseInt(hour, 10)
+  const tzMinutes = parseInt(parts.minute, 10)
+  const utcHours = parseInt(utcHour.substring(0, 2), 10)
+  const utcMinutes = parseInt(utcMinute, 10)
+
+  // Convertir a minutos desde medianoche
+  const tzTotalMinutes = tzHours * 60 + tzMinutes
+  const utcTotalMinutes = utcHours * 60 + utcMinutes
+
+  // Diferencia (puede ser negativa)
+  let offsetMinutes = tzTotalMinutes - utcTotalMinutes
+
+  // Ajustar por cambio de día
+  if (offsetMinutes > 12 * 60) {
+    offsetMinutes -= 24 * 60
+  } else if (offsetMinutes < -12 * 60) {
+    offsetMinutes += 24 * 60
+  }
+
+  const offsetSign = offsetMinutes >= 0 ? "+" : "-"
+  const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60)
+  const offsetMins = Math.abs(offsetMinutes) % 60
+  const offsetString = `${offsetSign}${String(offsetHours).padStart(2, "0")}:${String(offsetMins).padStart(2, "0")}`
+
+  return `${parts.year}-${parts.month}-${parts.day}T${hour}:${parts.minute}:${parts.second}.000${offsetString}`
 }
 
 /**

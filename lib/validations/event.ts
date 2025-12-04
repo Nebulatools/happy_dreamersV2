@@ -83,7 +83,7 @@ export const isValidEventDuration = (hours: number, eventType: string): boolean 
     sleep: 14,      // Sueño nocturno máximo 14 horas
     nap: 4,         // Siesta máximo 4 horas
     wake: 24,       // Despertar puede durar todo el día
-    night_waking: 3 // Despertar nocturno máximo 3 horas
+    night_waking: 3, // Despertar nocturno máximo 3 horas
   }
   
   const maxDuration = maxDurations[eventType] || 24

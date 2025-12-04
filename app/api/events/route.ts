@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth"
 import clientPromise from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { createLogger } from "@/lib/logger"
+import { getStartOfDay, getEndOfDay, parseTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
 
 const logger = createLogger("API:events:route")
 
@@ -39,15 +40,38 @@ export async function GET(req: Request) {
 
     // Si se especifica un ID de niño
     if (childId) {
-      query.childId = childId
+      query.childId = new ObjectId(childId)
     }
 
     // Si se especifica un rango de fechas
+    // CORREGIDO: Obtener timezone del usuario y comparar correctamente
+    // Los eventos se guardan como ISO strings con offset
     if (startDate && endDate) {
-      query.startTime = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      }
+      const userTimezone = session.user.timezone || DEFAULT_TIMEZONE
+
+      // Convertir a ISO strings con offset para comparacion consistente
+      // startDate viene como "YYYY-MM-DD", lo convertimos al inicio del dia
+      // endDate viene como "YYYY-MM-DD", lo convertimos al fin del dia
+      const startISO = getStartOfDay(new Date(startDate + "T00:00:00"), userTimezone)
+      const endISO = getEndOfDay(new Date(endDate + "T23:59:59"), userTimezone)
+
+      // Comparacion de strings ISO con offset
+      // Nota: startTime puede ser string ISO o Date dependiendo de cuando se creo
+      // Usamos $or para manejar ambos casos
+      query.$or = [
+        // Caso 1: startTime es string ISO
+        {
+          startTime: { $type: "string", $gte: startISO, $lte: endISO },
+        },
+        // Caso 2: startTime es Date (eventos legacy)
+        {
+          startTime: {
+            $type: "date",
+            $gte: parseTimestamp(startISO),
+            $lte: parseTimestamp(endISO),
+          },
+        },
+      ]
     }
 
     // Obtener los eventos
@@ -80,10 +104,11 @@ export async function POST(req: Request) {
     const client = await clientPromise
     const db = client.db()
 
-    // Crear el evento
+    // Crear el evento - IMPORTANTE: convertir childId y parentId a ObjectId
     const result = await db.collection("events").insertOne({
       ...data,
-      parentId: session.user.id,
+      childId: new ObjectId(data.childId),
+      parentId: new ObjectId(session.user.id),
       createdAt: new Date(),
     })
 
@@ -127,7 +152,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ message: "Evento no encontrado" }, { status: 404 })
     }
 
-    if (event.parentId !== session.user.id && session.user.role !== "admin") {
+    if (event.parentId.toString() !== session.user.id && session.user.role !== "admin") {
       return NextResponse.json({ message: "No autorizado" }, { status: 403 })
     }
 
@@ -177,7 +202,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ message: "Evento no encontrado" }, { status: 404 })
     }
 
-    if (event.parentId !== session.user.id && session.user.role !== "admin") {
+    if (event.parentId.toString() !== session.user.id && session.user.role !== "admin") {
       return NextResponse.json({ message: "No autorizado" }, { status: 403 })
     }
 

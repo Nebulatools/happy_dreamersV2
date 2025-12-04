@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     // Verificar que el usuario tenga acceso al niño
     const child = await db.collection("children").findOne({
-      _id: new ObjectId(childId)
+      _id: new ObjectId(childId),
     })
     
     if (!child) {
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     // Buscar configuración de notificaciones existente
     let settings = await db.collection("notificationsettings").findOne({
       childId: new ObjectId(childId),
-      userId: new ObjectId(session.user.id)
+      userId: new ObjectId(session.user.id),
     })
 
     // Si no existe, crear configuración por defecto
@@ -70,13 +70,13 @@ export async function GET(request: NextRequest) {
         pushEnabled: true,
         emailEnabled: false,
         inAppEnabled: true,
-        quietHours: { enabled: false, start: "22:00", end: "07:00" }
+        quietHours: { enabled: false, start: "22:00", end: "07:00" },
       }
     }
 
     return NextResponse.json({
       success: true,
-      settings
+      settings,
     })
 
   } catch (error) {
@@ -111,7 +111,7 @@ export async function PUT(request: NextRequest) {
 
     // Verificar acceso al niño
     const child = await db.collection("children").findOne({
-      _id: new ObjectId(childId)
+      _id: new ObjectId(childId),
     })
     
     if (!child) {
@@ -140,11 +140,11 @@ export async function PUT(request: NextRequest) {
           ...settingsData,
           childId: new ObjectId(childId),
           userId: new ObjectId(session.user.id),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
         $setOnInsert: {
-          createdAt: new Date()
-        }
+          createdAt: new Date(),
+        },
       },
       { upsert: true }
     )
@@ -152,7 +152,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Configuración actualizada exitosamente",
-      updated: result.modifiedCount > 0 || result.upsertedCount > 0
+      updated: result.modifiedCount > 0 || result.upsertedCount > 0,
     })
 
   } catch (error) {
@@ -193,20 +193,20 @@ export async function POST(request: NextRequest) {
           token: token,
           platform: platform,
           updatedAt: new Date(),
-          active: true
+          active: true,
         },
         $setOnInsert: {
           userId: new ObjectId(session.user.id),
           childId: new ObjectId(childId),
-          createdAt: new Date()
-        }
+          createdAt: new Date(),
+        },
       },
       { upsert: true }
     )
 
     return NextResponse.json({
       success: true,
-      message: "Token registrado exitosamente"
+      message: "Token registrado exitosamente",
     })
 
   } catch (error) {

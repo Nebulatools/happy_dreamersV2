@@ -1,22 +1,24 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
-import { Clock, ChevronUp, ChevronDown, RotateCcw, Play, Pause } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import React, { useState, useEffect } from "react"
+import { Clock, ChevronUp, ChevronDown, RotateCcw, Play, Pause } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import { getTimePartsInTimezone } from "@/lib/datetime"
 
 // Solo mostrar en desarrollo
-const isDevelopment = process.env.NODE_ENV === 'development'
+const isDevelopment = process.env.NODE_ENV === "development"
 
 interface TimeAdjusterProps {
   onTimeChange?: (date: Date) => void
+  timezone?: string  // Timezone del usuario para visualizacion correcta
 }
 
 /**
  * Componente de desarrollo para simular diferentes horas del día
  * Solo visible en modo desarrollo
  */
-export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
+export function TimeAdjuster({ onTimeChange, timezone }: TimeAdjusterProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [simulatedTime, setSimulatedTime] = useState<Date | null>(null)
   const [isRunning, setIsRunning] = useState(false)
@@ -27,8 +29,8 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
   if (!isDevelopment) return null
   
   // Validación defensiva para evitar errores
-  if (!onTimeChange || typeof onTimeChange !== 'function') {
-    console.warn('TimeAdjuster: onTimeChange prop is not a function')
+  if (!onTimeChange || typeof onTimeChange !== "function") {
+    console.warn("TimeAdjuster: onTimeChange prop is not a function")
     return null
   }
   
@@ -42,8 +44,8 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
         onTimeChange?.(newTime)
         
         // Guardar en localStorage para persistencia
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem('devSimulatedTime', newTime.toISOString())
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("devSimulatedTime", newTime.toISOString())
         }
         
         return newTime
@@ -56,8 +58,8 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
   // Inicializar en el cliente
   useEffect(() => {
     setIsClient(true)
-    if (typeof window !== 'undefined') {
-      const saved = window.localStorage.getItem('devSimulatedTime')
+    if (typeof window !== "undefined") {
+      const saved = window.localStorage.getItem("devSimulatedTime")
       if (saved) {
         const date = new Date(saved)
         setSimulatedTime(date)
@@ -75,8 +77,8 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
     setSimulatedTime(newTime)
     onTimeChange?.(newTime)
     
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('devSimulatedTime', newTime.toISOString())
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("devSimulatedTime", newTime.toISOString())
     }
   }
   
@@ -87,8 +89,8 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
     setSimulatedTime(newTime)
     onTimeChange?.(newTime)
     
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('devSimulatedTime', newTime.toISOString())
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("devSimulatedTime", newTime.toISOString())
     }
   }
   
@@ -99,8 +101,8 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
     setSimulatedTime(newTime)
     onTimeChange?.(newTime)
     
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('devSimulatedTime', newTime.toISOString())
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("devSimulatedTime", newTime.toISOString())
     }
   }
   
@@ -110,8 +112,8 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
     onTimeChange?.(now)
     setIsRunning(false)
     
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem('devSimulatedTime')
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("devSimulatedTime")
     }
   }
   
@@ -138,16 +140,18 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
             {isClient && simulatedTime ? (
               <>
                 <span className="text-sm font-mono">
-                  {simulatedTime.toLocaleTimeString('es-ES', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    second: '2-digit'
+                  {simulatedTime.toLocaleTimeString("es-ES", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    timeZone: timezone || undefined,
                   })}
                 </span>
                 <span className="text-xs text-gray-400">
-                  {simulatedTime.toLocaleDateString('es-ES', { 
-                    day: '2-digit',
-                    month: 'short'
+                  {simulatedTime.toLocaleDateString("es-ES", {
+                    day: "2-digit",
+                    month: "short",
+                    timeZone: timezone || undefined,
                   })}
                 </span>
               </>
@@ -204,7 +208,11 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
                     -
                   </Button>
                   <div className="flex-1 text-center font-mono">
-                    {simulatedTime ? simulatedTime.getHours().toString().padStart(2, '0') : '--'}
+                    {simulatedTime
+                      ? (timezone
+                        ? getTimePartsInTimezone(simulatedTime, timezone).hours.toString().padStart(2, "0")
+                        : simulatedTime.getHours().toString().padStart(2, "0"))
+                      : "--"}
                   </div>
                   <Button
                     size="sm"
@@ -229,7 +237,11 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
                     -
                   </Button>
                   <div className="flex-1 text-center font-mono">
-                    {simulatedTime ? simulatedTime.getMinutes().toString().padStart(2, '0') : '--'}
+                    {simulatedTime
+                      ? (timezone
+                        ? getTimePartsInTimezone(simulatedTime, timezone).minutes.toString().padStart(2, "0")
+                        : simulatedTime.getMinutes().toString().padStart(2, "0"))
+                      : "--"}
                   </div>
                   <Button
                     size="sm"
@@ -300,8 +312,8 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
             
             {/* Estado actual */}
             <div className="pt-2 border-t border-gray-700 text-xs text-gray-400">
-              <div>Modo: {getModeForTime(simulatedTime)}</div>
-              <div>Real: {new Date().toLocaleTimeString('es-ES')}</div>
+              <div>Modo: {getModeForTime(simulatedTime, timezone)}</div>
+              <div>Real: {new Date().toLocaleTimeString("es-ES")}</div>
             </div>
           </div>
         )}
@@ -311,8 +323,10 @@ export function TimeAdjuster({ onTimeChange }: TimeAdjusterProps) {
 }
 
 // Helper para determinar el modo según la hora
-function getModeForTime(date: Date): string {
-  const hour = date.getHours()
+function getModeForTime(date: Date, timezone?: string): string {
+  const hour = timezone
+    ? getTimePartsInTimezone(date, timezone).hours
+    : date.getHours()
   
   if (hour >= 6 && hour < 10) return "🌅 Despertar matutino"
   if (hour >= 10 && hour < 13) return "☀️ Mañana activa"

@@ -8,9 +8,9 @@ import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { differenceInMinutes } from "date-fns"
 import { resolveChildAccess, ChildAccessError } from "@/lib/api/child-access"
-import { getTimePartsInTimeZone, startOfDayUTCForTZ } from "@/lib/timezone"
+import { getTimePartsInTimezone, getStartOfDayAsDate, DEFAULT_TIMEZONE } from "@/lib/datetime"
 
-export type SleepStatus = 'awake' | 'sleeping' | 'napping' | 'night_waking'
+export type SleepStatus = "awake" | "sleeping" | "napping" | "night_waking"
 
 interface SleepStateResponse {
   status: SleepStatus
@@ -42,39 +42,35 @@ export async function GET(
       throw error
     }
 
-    // Obtener timezone del usuario
-    const userDoc = await db.collection("users").findOne(
-      { _id: new ObjectId(session.user.id) },
-      { projection: { timezone: 1 } }
-    )
-    const userTimeZone = userDoc?.timezone || "America/Monterrey"
+    // Obtener timezone del usuario desde la session (ya no hace query adicional)
+    const userTimeZone = session.user.timezone || DEFAULT_TIMEZONE
 
     // Obtener el plan activo para contexto temporal
     const activePlan = await db.collection("child_plans").findOne(
       { 
         childId: new ObjectId(childId),
-        status: "active"
+        status: "active",
       },
       { 
         projection: { 
-          schedule: 1 
-        } 
+          schedule: 1, 
+        }, 
       }
     )
 
     const schedule = activePlan?.schedule || {
       bedtime: "20:00",
-      wakeTime: "07:00"
+      wakeTime: "07:00",
     }
 
-    // Obtener los eventos del niño desde la colección 'events' (fuente de verdad)
-    const startOfToday = startOfDayUTCForTZ(new Date(), userTimeZone)
+    // Obtener los eventos del nino desde la coleccion 'events' (fuente de verdad)
+    const startOfToday = getStartOfDayAsDate(new Date(), userTimeZone)
 
     // Obtener los últimos eventos del día desde la colección 'events'
     const recentEvents = await db.collection("events")
       .find({
         childId: new ObjectId(childId),
-        createdAt: { $gte: startOfToday.toISOString() }
+        createdAt: { $gte: startOfToday.toISOString() },
       })
       .sort({ createdAt: -1 })
       .limit(10)
@@ -82,19 +78,19 @@ export async function GET(
 
     // Buscar el último evento sin endTime (evento abierto)
     const openSleepEvent = recentEvents.find(e => 
-      (e.eventType === 'sleep' || e.eventType === 'nap') && !e.endTime
+      (e.eventType === "sleep" || e.eventType === "nap") && !e.endTime
     )
     
     // Buscar despertar nocturno abierto
     const openNightWaking = recentEvents.find(e => 
-      e.eventType === 'night_waking' && !e.endTime
+      e.eventType === "night_waking" && !e.endTime
     )
 
     // Buscar el último evento de cualquier tipo
     const lastEvent = recentEvents[0]
 
     // Determinar el estado actual
-    let currentStatus: SleepStatus = 'awake'
+    let currentStatus: SleepStatus = "awake"
     let lastEventTime = null
     let lastEventType = null
     let lastEventId = null
@@ -106,7 +102,7 @@ export async function GET(
       const eventTime = new Date(openNightWaking.startTime || openNightWaking.createdAt)
       duration = differenceInMinutes(now, eventTime)
       
-      currentStatus = 'night_waking'
+      currentStatus = "night_waking"
       lastEventTime = openNightWaking.startTime || openNightWaking.createdAt
       lastEventType = openNightWaking.eventType
       lastEventId = openNightWaking._id.toString()
@@ -119,24 +115,24 @@ export async function GET(
       
       // SOLUCIÓN: Si el evento es 'sleep', SIEMPRE es 'sleeping'
       // Si el evento es 'nap', SIEMPRE es 'napping'
-      const parts = getTimePartsInTimeZone(now, userTimeZone)
+      const parts = getTimePartsInTimezone(now, userTimeZone)
       const currentHour = parts.hours
-      const bedtimeHour = parseInt(schedule.bedtime.split(':')[0])
-      const wakeTimeHour = parseInt(schedule.wakeTime.split(':')[0])
+      const bedtimeHour = parseInt(schedule.bedtime.split(":")[0])
+      const wakeTimeHour = parseInt(schedule.wakeTime.split(":")[0])
       
       // Es horario nocturno si estamos después de bedtime o antes de wakeTime
       const isNightTime = currentHour >= bedtimeHour || currentHour < wakeTimeHour
       
-      console.log('[DEBUG current-sleep-state]', {
+      console.log("[DEBUG current-sleep-state]", {
         eventType: openSleepEvent.eventType,
         currentHour,
         bedtimeHour,
         wakeTimeHour,
-        isNightTime
+        isNightTime,
       })
       
       // CORRECCIÓN: Usar directamente el eventType
-      currentStatus = openSleepEvent.eventType === 'nap' ? 'napping' : 'sleeping'
+      currentStatus = openSleepEvent.eventType === "nap" ? "napping" : "sleeping"
 
       lastEventTime = openSleepEvent.startTime || openSleepEvent.createdAt
       lastEventType = openSleepEvent.eventType
@@ -148,10 +144,10 @@ export async function GET(
       const eventTime = new Date(lastEvent.endTime || lastEvent.createdAt)
       duration = differenceInMinutes(now, eventTime)
       
-      if (lastEvent.eventType === 'night_waking' && !lastEvent.endTime) {
-        currentStatus = 'night_waking'
-      } else if (lastEvent.eventType === 'wake' || lastEvent.endTime) {
-        currentStatus = 'awake'
+      if (lastEvent.eventType === "night_waking" && !lastEvent.endTime) {
+        currentStatus = "night_waking"
+      } else if (lastEvent.eventType === "wake" || lastEvent.endTime) {
+        currentStatus = "awake"
       }
 
       lastEventTime = lastEvent.endTime || lastEvent.createdAt
@@ -164,7 +160,7 @@ export async function GET(
       lastEventTime,
       lastEventType,
       lastEventId,
-      duration
+      duration,
     }
 
     return NextResponse.json(response)

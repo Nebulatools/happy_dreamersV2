@@ -3,16 +3,16 @@
 
 "use client"
 
-import React from 'react'
+import React from "react"
 import { 
   SidebarOpen, 
   ArrowDown,
   Monitor,
-  Smartphone
+  Smartphone,
 } from "lucide-react"
-import { cn } from '@/lib/utils'
+import { cn } from "@/lib/utils"
 
-export type LayoutMode = 'lateral' | 'bottom'
+export type LayoutMode = "lateral" | "bottom"
 
 interface LayoutToggleProps {
   currentLayout: LayoutMode
@@ -23,7 +23,7 @@ interface LayoutToggleProps {
 export function LayoutToggle({ 
   currentLayout, 
   onLayoutChange, 
-  className 
+  className, 
 }: LayoutToggleProps) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
@@ -34,10 +34,10 @@ export function LayoutToggle({
       <div className="flex bg-gray-100 rounded-lg p-1">
         {/* Botón Layout Lateral */}
         <button
-          onClick={() => onLayoutChange('lateral')}
+          onClick={() => onLayoutChange("lateral")}
           className={cn(
             "layout-toggle-button px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md transition-all duration-200",
-            currentLayout === 'lateral' 
+            currentLayout === "lateral" 
               ? "layout-toggle-active shadow-sm" 
               : "hover:bg-white"
           )}
@@ -49,10 +49,10 @@ export function LayoutToggle({
         
         {/* Botón Layout Inferior */}
         <button
-          onClick={() => onLayoutChange('bottom')}
+          onClick={() => onLayoutChange("bottom")}
           className={cn(
             "layout-toggle-button px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md transition-all duration-200",
-            currentLayout === 'bottom' 
+            currentLayout === "bottom" 
               ? "layout-toggle-active shadow-sm" 
               : "hover:bg-white"
           )}
@@ -78,14 +78,14 @@ export function LayoutToggle({
 }
 
 // Hook para manejar la preferencia de layout
-export function useLayoutPreference(defaultLayout: LayoutMode = 'lateral') {
+export function useLayoutPreference(defaultLayout: LayoutMode = "lateral") {
   const [layout, setLayout] = React.useState<LayoutMode>(defaultLayout)
 
   // Cargar preferencia guardada
   React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('calendar-layout-preference')
-      if (saved === 'lateral' || saved === 'bottom') {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("calendar-layout-preference")
+      if (saved === "lateral" || saved === "bottom") {
         setLayout(saved)
       }
     }
@@ -94,8 +94,8 @@ export function useLayoutPreference(defaultLayout: LayoutMode = 'lateral') {
   // Guardar preferencia cuando cambia
   const handleLayoutChange = React.useCallback((newLayout: LayoutMode) => {
     setLayout(newLayout)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('calendar-layout-preference', newLayout)
+    if (typeof window !== "undefined") {
+      localStorage.setItem("calendar-layout-preference", newLayout)
     }
   }, [])
 
@@ -104,46 +104,46 @@ export function useLayoutPreference(defaultLayout: LayoutMode = 'lateral') {
 
 // Componente de indicador de layout recomendado
 export function LayoutRecommendation({ 
-  className 
+  className, 
 }: { 
   className?: string 
 }) {
-  const [screenSize, setScreenSize] = React.useState<'mobile' | 'tablet' | 'desktop'>('desktop')
+  const [screenSize, setScreenSize] = React.useState<"mobile" | "tablet" | "desktop">("desktop")
 
   React.useEffect(() => {
     const updateScreenSize = () => {
       const width = window.innerWidth
       if (width < 768) {
-        setScreenSize('mobile')
+        setScreenSize("mobile")
       } else if (width < 1024) {
-        setScreenSize('tablet')
+        setScreenSize("tablet")
       } else {
-        setScreenSize('desktop')
+        setScreenSize("desktop")
       }
     }
 
     updateScreenSize()
-    window.addEventListener('resize', updateScreenSize)
-    return () => window.removeEventListener('resize', updateScreenSize)
+    window.addEventListener("resize", updateScreenSize)
+    return () => window.removeEventListener("resize", updateScreenSize)
   }, [])
 
   const getRecommendation = () => {
     switch (screenSize) {
-      case 'mobile':
-        return {
-          layout: 'bottom' as LayoutMode,
-          reason: 'Mejor para pantallas pequeñas'
-        }
-      case 'tablet':
-        return {
-          layout: 'bottom' as LayoutMode,
-          reason: 'Aprovecha mejor el espacio vertical'
-        }
-      case 'desktop':
-        return {
-          layout: 'lateral' as LayoutMode,
-          reason: 'Aprovecha el espacio horizontal'
-        }
+    case "mobile":
+      return {
+        layout: "bottom" as LayoutMode,
+        reason: "Mejor para pantallas pequeñas",
+      }
+    case "tablet":
+      return {
+        layout: "bottom" as LayoutMode,
+        reason: "Aprovecha mejor el espacio vertical",
+      }
+    case "desktop":
+      return {
+        layout: "lateral" as LayoutMode,
+        reason: "Aprovecha el espacio horizontal",
+      }
     }
   }
 
@@ -156,7 +156,7 @@ export function LayoutRecommendation({
     )}>
       <div className="flex items-center gap-1">
         <span className="font-medium">Recomendado:</span>
-        <span>{recommendation.layout === 'lateral' ? 'Lateral' : 'Inferior'}</span>
+        <span>{recommendation.layout === "lateral" ? "Lateral" : "Inferior"}</span>
       </div>
       <div className="mt-1 opacity-75">{recommendation.reason}</div>
     </div>

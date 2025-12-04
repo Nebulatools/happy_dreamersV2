@@ -1,7 +1,7 @@
-import { getGoogleDriveSyncService } from './sync-service'
-import { createLogger } from '@/lib/logger'
+import { getGoogleDriveSyncService } from "./sync-service"
+import { createLogger } from "@/lib/logger"
 
-const logger = createLogger('GoogleDriveScheduler')
+const logger = createLogger("GoogleDriveScheduler")
 
 export interface SchedulerStatus {
   isRunning: boolean
@@ -40,15 +40,15 @@ export class GoogleDriveScheduler {
    * Parsea el intervalo de sincronización desde variables de entorno
    */
   private parseInterval() {
-    const cronPattern = process.env.GOOGLE_DRIVE_SYNC_INTERVAL || '*/30 * * * *'
+    const cronPattern = process.env.GOOGLE_DRIVE_SYNC_INTERVAL || "*/30 * * * *"
     
     try {
       // Convertir patrón cron simple a milisegundos
       // Soporta: */N * * * * (cada N minutos)
-      const parts = cronPattern.split(' ')
+      const parts = cronPattern.split(" ")
       
-      if (parts.length >= 5 && parts[0].startsWith('*/')) {
-        const minutes = parseInt(parts[0].replace('*/', ''))
+      if (parts.length >= 5 && parts[0].startsWith("*/")) {
+        const minutes = parseInt(parts[0].replace("*/", ""))
         if (!isNaN(minutes) && minutes > 0) {
           this.intervalMs = minutes * 60 * 1000
           logger.info(`📅 Intervalo de sincronización configurado: cada ${minutes} minutos`)
@@ -57,9 +57,9 @@ export class GoogleDriveScheduler {
       }
 
       // Fallback para otros patrones comunes
-      if (cronPattern === '0 */2 * * *') { // Cada 2 horas
+      if (cronPattern === "0 */2 * * *") { // Cada 2 horas
         this.intervalMs = 2 * 60 * 60 * 1000
-      } else if (cronPattern === '0 0 * * *') { // Una vez al día
+      } else if (cronPattern === "0 0 * * *") { // Una vez al día
         this.intervalMs = 24 * 60 * 60 * 1000
       } else {
         // Default: 30 minutos
@@ -70,7 +70,7 @@ export class GoogleDriveScheduler {
       logger.info(`📅 Intervalo de sincronización: ${this.intervalMs / 1000 / 60} minutos`)
 
     } catch (error) {
-      logger.error('❌ Error parseando intervalo de sincronización:', error)
+      logger.error("❌ Error parseando intervalo de sincronización:", error)
       this.intervalMs = 30 * 60 * 1000 // Fallback a 30 minutos
     }
   }
@@ -80,12 +80,12 @@ export class GoogleDriveScheduler {
    */
   start(): void {
     if (this.isRunning) {
-      logger.warn('⚠️  Scheduler ya está ejecutándose')
+      logger.warn("⚠️  Scheduler ya está ejecutándose")
       return
     }
 
     if (!this.syncService.isEnabled()) {
-      logger.warn('⚠️  Google Drive sync no está habilitado, no se puede iniciar scheduler')
+      logger.warn("⚠️  Google Drive sync no está habilitado, no se puede iniciar scheduler")
       return
     }
 
@@ -100,7 +100,7 @@ export class GoogleDriveScheduler {
    */
   stop(): void {
     if (!this.isRunning) {
-      logger.warn('⚠️  Scheduler no está ejecutándose')
+      logger.warn("⚠️  Scheduler no está ejecutándose")
       return
     }
 
@@ -113,14 +113,14 @@ export class GoogleDriveScheduler {
 
     this.nextRunTime = null
     
-    logger.info('🔴 Scheduler de Google Drive detenido')
+    logger.info("🔴 Scheduler de Google Drive detenido")
   }
 
   /**
    * Reinicia el scheduler
    */
   restart(): void {
-    logger.info('🔄 Reiniciando scheduler de Google Drive')
+    logger.info("🔄 Reiniciando scheduler de Google Drive")
     this.stop()
     
     // Recargar configuración
@@ -172,7 +172,7 @@ export class GoogleDriveScheduler {
 
     } catch (error) {
       this.errorsCount++
-      logger.error('❌ Error en sincronización automática:', error)
+      logger.error("❌ Error en sincronización automática:", error)
     }
   }
 
@@ -181,7 +181,7 @@ export class GoogleDriveScheduler {
    */
   async runManualSync(fullSync: boolean = false): Promise<any> {
     try {
-      logger.info(`🎯 Ejecutando sincronización manual ${fullSync ? 'completa' : 'incremental'}`)
+      logger.info(`🎯 Ejecutando sincronización manual ${fullSync ? "completa" : "incremental"}`)
 
       const result = await this.syncService.syncWithDrive(fullSync)
 
@@ -194,7 +194,7 @@ export class GoogleDriveScheduler {
       return result
 
     } catch (error) {
-      logger.error('❌ Error en sincronización manual:', error)
+      logger.error("❌ Error en sincronización manual:", error)
       return {
         success: false,
         message: `Error en sincronización: ${(error as Error).message}`,
@@ -203,10 +203,10 @@ export class GoogleDriveScheduler {
           filesProcessed: 0,
           filesSkipped: 0,
           chunksAdded: 0,
-          errorsCount: 1
+          errorsCount: 1,
         },
         errors: [(error as Error).message],
-        duration: 0
+        duration: 0,
       }
     }
   }
@@ -221,7 +221,7 @@ export class GoogleDriveScheduler {
       nextRun: this.nextRunTime?.toISOString() || null,
       lastRun: this.lastRunTime?.toISOString() || null,
       runsCount: this.runsCount,
-      errorsCount: this.errorsCount
+      errorsCount: this.errorsCount,
     }
   }
 
@@ -230,11 +230,11 @@ export class GoogleDriveScheduler {
    */
   setInterval(minutes: number): void {
     if (minutes < 5) {
-      throw new Error('El intervalo mínimo es 5 minutos')
+      throw new Error("El intervalo mínimo es 5 minutos")
     }
 
     if (minutes > 1440) { // 24 horas
-      throw new Error('El intervalo máximo es 24 horas (1440 minutos)')
+      throw new Error("El intervalo máximo es 24 horas (1440 minutos)")
     }
 
     this.intervalMs = minutes * 60 * 1000
@@ -259,11 +259,11 @@ export class GoogleDriveScheduler {
     errorRuns: number
     successRate: string
     uptime: string
-  } {
+    } {
     const successfulRuns = this.runsCount - this.errorsCount
     const successRate = this.runsCount > 0 
       ? `${((successfulRuns / this.runsCount) * 100).toFixed(1)}%`
-      : '0%'
+      : "0%"
 
     const uptimeMs = this.lastRunTime 
       ? Date.now() - this.lastRunTime.getTime()
@@ -280,7 +280,7 @@ export class GoogleDriveScheduler {
       successfulRuns,
       errorRuns: this.errorsCount,
       successRate,
-      uptime
+      uptime,
     }
   }
 
@@ -309,7 +309,7 @@ export class GoogleDriveScheduler {
    */
   destroy(): void {
     this.stop()
-    logger.info('🧹 Scheduler de Google Drive destruido')
+    logger.info("🧹 Scheduler de Google Drive destruido")
   }
 }
 
@@ -327,13 +327,13 @@ export function getGoogleDriveScheduler(): GoogleDriveScheduler {
 }
 
 // Cleanup en proceso de salida
-process.on('SIGTERM', () => {
+process.on("SIGTERM", () => {
   if (schedulerInstance) {
     schedulerInstance.destroy()
   }
 })
 
-process.on('SIGINT', () => {
+process.on("SIGINT", () => {
   if (schedulerInstance) {
     schedulerInstance.destroy()
   }

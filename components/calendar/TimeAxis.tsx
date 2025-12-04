@@ -1,7 +1,7 @@
 // ⏰ Componente del eje de tiempo - Optimizado y memoizado
 "use client"
 
-import React from 'react'
+import React from "react"
 
 interface TimeAxisProps {
   hourHeight?: number;
@@ -10,7 +10,7 @@ interface TimeAxisProps {
 
 export const TimeAxis = React.memo(({ 
   hourHeight = 30, 
-  className = "" 
+  className = "", 
 }: TimeAxisProps) => {
   const HOURS = Array.from({ length: 24 }, (_, i) => i)
   
@@ -27,10 +27,10 @@ export const TimeAxis = React.memo(({
             className="absolute right-1 text-xs font-medium text-gray-600"
             style={{ 
               top: `${hour * hourHeight}px`,
-              transform: 'translateY(-50%)'
+              transform: "translateY(-50%)",
             }}
           >
-            {hour.toString().padStart(2, '0')}:00
+            {hour.toString().padStart(2, "0")}:00
           </div>
         ))}
       </div>
@@ -38,4 +38,4 @@ export const TimeAxis = React.memo(({
   )
 })
 
-TimeAxis.displayName = 'TimeAxis'
+TimeAxis.displayName = "TimeAxis"

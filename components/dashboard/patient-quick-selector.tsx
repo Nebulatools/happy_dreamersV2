@@ -60,7 +60,7 @@ const extractChildrenFromPayload = (payload: any): Child[] => {
 
 export function PatientQuickSelector({ 
   className,
-  onSelectionChange 
+  onSelectionChange, 
 }: PatientQuickSelectorProps) {
   const [open, setOpen] = useState(false)
   const [users, setUsers] = useState<User[]>([])
@@ -79,7 +79,7 @@ export function PatientQuickSelector({
     setActiveUserName,
     activeChildId,
     setActiveChildId,
-    clearSelection
+    clearSelection,
   } = useActiveChild()
 
   // Cargar usuarios al iniciar
@@ -168,7 +168,7 @@ export function PatientQuickSelector({
       
       setUserChildren(prev => ({
         ...prev,
-        [userId]: children
+        [userId]: children,
       }))
       
       return children
@@ -202,7 +202,7 @@ export function PatientQuickSelector({
       const matchesUser = matches(user.name) || matches(user.email)
       const children = userChildren[user._id] || globalChildrenMap[user._id] || []
       const matchesChild = children.some(child => 
-        `${child.firstName || ''} ${child.lastName || ''}`.toLowerCase().includes(search)
+        `${child.firstName || ""} ${child.lastName || ""}`.toLowerCase().includes(search)
       )
       return matchesUser || matchesChild
     })
@@ -217,7 +217,7 @@ export function PatientQuickSelector({
     mergedEntries.forEach(([parentId, kids]) => {
       kids?.forEach(child => {
         if (!child?._id || seen.has(child._id)) return
-        const fullName = `${child.firstName || ''} ${child.lastName || ''}`.trim().toLowerCase()
+        const fullName = `${child.firstName || ""} ${child.lastName || ""}`.trim().toLowerCase()
         if (fullName.includes(search)) {
           results.push({ child, parentId })
         }
@@ -245,7 +245,7 @@ export function PatientQuickSelector({
     setActiveChildId(null) // Limpiar selección de niño
     setSearchValue("")
     
-    logger.info('ActiveChildId limpiado a null')
+    logger.info("ActiveChildId limpiado a null")
     
     // ✅ NOTIFICAR INMEDIATAMENTE que se limpió la selección
     onSelectionChange?.(user._id, null)
@@ -346,7 +346,7 @@ export function PatientQuickSelector({
               Cargando...
             </span>
           ) : activeUserId && activeChild ? (
-            <span className="flex items-center" style={{ color: '#68A1C8' }}>
+            <span className="flex items-center" style={{ color: "#68A1C8" }}>
               <ChildAvatar 
                 name={`${activeChild.firstName} ${activeChild.lastName}`}
                 className="mr-2 h-5 w-5"
@@ -356,19 +356,19 @@ export function PatientQuickSelector({
                   {activeChild.firstName} - {activeUserName}
                 </span>
                 {activeChild.birthDate && (
-                  <span className="text-xs" style={{ color: '#68A1C8', opacity: 0.8 }}>
+                  <span className="text-xs" style={{ color: "#68A1C8", opacity: 0.8 }}>
                     {getChildAge(activeChild.birthDate)}
                   </span>
                 )}
               </div>
             </span>
           ) : activeUserId && !activeChild ? (
-            <span className="flex items-center" style={{ color: '#68A1C8' }}>
+            <span className="flex items-center" style={{ color: "#68A1C8" }}>
               <User className="mr-2 h-4 w-4" />
               <span className="truncate">{activeUserName} - Seleccionar niño</span>
             </span>
           ) : (
-            <span className="flex items-center" style={{ color: '#68A1C8' }}>
+            <span className="flex items-center" style={{ color: "#68A1C8" }}>
               <User className="mr-2 h-4 w-4" />
               Seleccionar paciente
             </span>

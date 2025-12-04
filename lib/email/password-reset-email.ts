@@ -155,7 +155,7 @@ export async function sendPasswordResetEmail(params: PasswordResetEmailParams): 
     if (!sent) {
       return {
         success: false,
-        error: "No se pudo enviar el email de recuperación"
+        error: "No se pudo enviar el email de recuperación",
       }
     }
 
@@ -165,7 +165,7 @@ export async function sendPasswordResetEmail(params: PasswordResetEmailParams): 
     logger.error("Error enviando email de recuperación:", error)
     return {
       success: false,
-      error: "Error interno al enviar email"
+      error: "Error interno al enviar email",
     }
   }
 }

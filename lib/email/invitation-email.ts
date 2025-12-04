@@ -174,17 +174,17 @@ function getInvitationEmailHTML(invitation: PendingInvitation): string {
         <span class="info-label">Relación:</span>
         <span class="info-value">${invitation.relationshipDescription}</span>
       </div>
-      ` : ''}
+      ` : ""}
     </div>
 
     <h3 style="color: #4A90E2; margin-top: 25px;">¿Qué podrás hacer?</h3>
     <ul style="color: #555;">
-      ${invitation.permissions.canViewEvents ? '<li>Ver eventos y patrones de sueño</li>' : ''}
-      ${invitation.permissions.canCreateEvents ? '<li>Registrar nuevos eventos de sueño</li>' : ''}
-      ${invitation.permissions.canEditEvents ? '<li>Editar eventos existentes</li>' : ''}
-      ${invitation.permissions.canViewReports ? '<li>Ver reportes y estadísticas</li>' : ''}
-      ${invitation.permissions.canViewPlan ? '<li>Consultar el plan de sueño personalizado</li>' : ''}
-      ${invitation.permissions.canEditProfile ? '<li>Actualizar información del perfil</li>' : ''}
+      ${invitation.permissions.canViewEvents ? "<li>Ver eventos y patrones de sueño</li>" : ""}
+      ${invitation.permissions.canCreateEvents ? "<li>Registrar nuevos eventos de sueño</li>" : ""}
+      ${invitation.permissions.canEditEvents ? "<li>Editar eventos existentes</li>" : ""}
+      ${invitation.permissions.canViewReports ? "<li>Ver reportes y estadísticas</li>" : ""}
+      ${invitation.permissions.canViewPlan ? "<li>Consultar el plan de sueño personalizado</li>" : ""}
+      ${invitation.permissions.canEditProfile ? "<li>Actualizar información del perfil</li>" : ""}
     </ul>
 
     <div class="button-container">
@@ -214,14 +214,14 @@ function getInvitationEmailHTML(invitation: PendingInvitation): string {
 // Obtener descripción del rol
 function getRoleDescription(role: string): string {
   switch (role) {
-    case "viewer":
-      return "Solo lectura"
-    case "caregiver":
-      return "Cuidador"
-    case "editor":
-      return "Editor completo"
-    default:
-      return role
+  case "viewer":
+    return "Solo lectura"
+  case "caregiver":
+    return "Cuidador"
+  case "editor":
+    return "Editor completo"
+  default:
+    return role
   }
 }
 
@@ -239,7 +239,7 @@ Detalles de la invitación:
 - Niño/a: ${invitation.childName}
 - Invitado por: ${invitation.invitedByName}
 - Tipo de acceso: ${roleDescription}
-${invitation.relationshipDescription ? `- Relación: ${invitation.relationshipDescription}` : ''}
+${invitation.relationshipDescription ? `- Relación: ${invitation.relationshipDescription}` : ""}
 
 Para aceptar la invitación, haz clic en el siguiente enlace:
 ${acceptUrl}
@@ -273,7 +273,7 @@ export async function sendInvitationEmail(
     if (!sent) {
       return {
         success: false,
-        error: "No se pudo enviar el email"
+        error: "No se pudo enviar el email",
       }
     }
     
@@ -284,7 +284,7 @@ export async function sendInvitationEmail(
     logger.error("Error enviando email de invitación:", error)
     return {
       success: false,
-      error: "Error interno al enviar email"
+      error: "Error interno al enviar email",
     }
   }
 }

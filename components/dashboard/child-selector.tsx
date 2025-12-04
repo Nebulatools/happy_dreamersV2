@@ -34,7 +34,7 @@ export function ChildSelector() {
     setActiveChildId, 
     activeUserId,
     activeUserName,
-    isInitialized 
+    isInitialized, 
   } = useActiveChild()
   const [loading, setLoading] = useState(true)
   
@@ -78,7 +78,7 @@ export function ChildSelector() {
       const childrenData = extractChildrenFromResponse(responseData)
       
       if (childrenData.length === 0 && responseData && !Array.isArray(responseData)) {
-        logger.warn('No se pudieron extraer niños de la respuesta:', responseData)
+        logger.warn("No se pudieron extraer niños de la respuesta:", responseData)
       }
       
       logger.info(`Loaded ${childrenData.length} children`)
@@ -87,12 +87,12 @@ export function ChildSelector() {
       // Si no hay niños, no intentar seleccionar ninguno
       if (childrenData.length === 0) {
         setActiveChildId(null)
-        localStorage.removeItem('activeChildId')
+        localStorage.removeItem("activeChildId")
       }
       // SOLO cambiar si el niño guardado NO existe en la lista
       // NO cambiar automáticamente a ningún niño por defecto
       else if (activeChildId && !childrenData.some((child: Child) => child._id === activeChildId)) {
-        const savedId = localStorage.getItem('activeChildId')
+        const savedId = localStorage.getItem("activeChildId")
         if (savedId && childrenData.some((child: Child) => child._id === savedId)) {
           // Existe en localStorage y en la lista, usarlo
           setActiveChildId(savedId)
@@ -103,7 +103,7 @@ export function ChildSelector() {
       }
       // Si NO hay activeChildId pero HAY algo guardado, restaurarlo
       else if (!activeChildId && childrenData.length > 0) {
-        const savedId = localStorage.getItem('activeChildId')
+        const savedId = localStorage.getItem("activeChildId")
         if (savedId && childrenData.some((child: Child) => child._id === savedId)) {
           setActiveChildId(savedId)
         } else {
@@ -125,7 +125,7 @@ export function ChildSelector() {
       setLoading(false)
       setChildren([])
       setActiveChildId(null)
-      localStorage.removeItem('activeChildId')
+      localStorage.removeItem("activeChildId")
     }
   }
 
@@ -161,10 +161,10 @@ export function ChildSelector() {
       fetchChildren(activeUserId)
     }
     
-    window.addEventListener('childrenUpdated', handleChildrenUpdate)
+    window.addEventListener("childrenUpdated", handleChildrenUpdate)
     
     return () => {
-      window.removeEventListener('childrenUpdated', handleChildrenUpdate)
+      window.removeEventListener("childrenUpdated", handleChildrenUpdate)
     }
   }, [activeUserId])
 
@@ -213,7 +213,7 @@ export function ChildSelector() {
     setActiveChildId(value)
     setDisplayValue(value)
     // FORZAR guardado inmediato
-    localStorage.setItem('activeChildId', value)
+    localStorage.setItem("activeChildId", value)
   }
   
   // Sincronizar displayValue con activeChildId cuando cambie
@@ -225,8 +225,8 @@ export function ChildSelector() {
   
   // Al inicializar, restaurar desde localStorage DIRECTAMENTE
   useEffect(() => {
-    const saved = localStorage.getItem('activeChildId')
-    if (saved && saved !== 'null') {
+    const saved = localStorage.getItem("activeChildId")
+    if (saved && saved !== "null") {
       setDisplayValue(saved)
       if (activeChildId !== saved) {
         setActiveChildId(saved)

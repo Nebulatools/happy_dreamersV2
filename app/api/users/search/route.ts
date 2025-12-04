@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     const users = await db.collection("users")
       .find({
         email: { $regex: escaped, $options: "i" },
-        ...(session.user.id ? { _id: { $ne: new ObjectId(session.user.id) } } : {})
+        ...(session.user.id ? { _id: { $ne: new ObjectId(session.user.id) } } : {}),
       })
       .project({ _id: 1, name: 1, email: 1, image: 1 })
       .limit(10)

@@ -1,12 +1,12 @@
 "use client"
 
-import React from 'react'
-import { EventRegistrationModeProvider, useEventRegistrationMode } from '@/context/event-registration-mode-context'
-import { EventRegistration } from './EventRegistration'
-import { ManualEventForm } from './manual/ManualEventForm'
-import { Button } from '@/components/ui/button'
-import { Zap, Settings } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import React from "react"
+import { EventRegistrationModeProvider, useEventRegistrationMode } from "@/context/event-registration-mode-context"
+import { EventRegistration } from "./EventRegistration"
+import { ManualEventForm } from "./manual/ManualEventForm"
+import { Button } from "@/components/ui/button"
+import { Zap, Settings } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface EventRegistrationDualModeProps {
   childId: string
@@ -26,12 +26,12 @@ function EventRegistrationContent({ childId, childName, onEventRegistered }: Eve
       <div className="flex items-center justify-center">
         <div className="bg-gray-100 rounded-lg p-1 flex gap-1">
           <Button
-            variant={mode === 'simple' ? 'default' : 'ghost'}
+            variant={mode === "simple" ? "default" : "ghost"}
             size="sm"
-            onClick={() => mode === 'manual' && toggleMode()}
+            onClick={() => mode === "manual" && toggleMode()}
             className={cn(
               "flex items-center gap-2",
-              mode === 'simple' && "bg-blue-500 text-white hover:bg-blue-600"
+              mode === "simple" && "bg-blue-500 text-white hover:bg-blue-600"
             )}
           >
             <Zap className="w-4 h-4" />
@@ -39,12 +39,12 @@ function EventRegistrationContent({ childId, childName, onEventRegistered }: Eve
           </Button>
           
           <Button
-            variant={mode === 'manual' ? 'default' : 'ghost'}
+            variant={mode === "manual" ? "default" : "ghost"}
             size="sm"
-            onClick={() => mode === 'simple' && toggleMode()}
+            onClick={() => mode === "simple" && toggleMode()}
             className={cn(
               "flex items-center gap-2",
-              mode === 'manual' && "bg-gray-700 text-white hover:bg-gray-800"
+              mode === "manual" && "bg-gray-700 text-white hover:bg-gray-800"
             )}
           >
             <Settings className="w-4 h-4" />
@@ -56,11 +56,11 @@ function EventRegistrationContent({ childId, childName, onEventRegistered }: Eve
       {/* Indicador del modo actual */}
       <div className={cn(
         "text-center text-sm px-3 py-2 rounded-lg",
-        mode === 'simple' 
+        mode === "simple" 
           ? "bg-blue-50 text-blue-800"
           : "bg-gray-50 text-gray-800"
       )}>
-        {mode === 'simple' ? (
+        {mode === "simple" ? (
           <>
             <strong>Modo Simple</strong> - Registro rápido con botones grandes
           </>
@@ -72,7 +72,7 @@ function EventRegistrationContent({ childId, childName, onEventRegistered }: Eve
       </div>
       
       {/* Contenido según modo */}
-      {mode === 'simple' ? (
+      {mode === "simple" ? (
         <EventRegistration
           childId={childId}
           childName={childName}

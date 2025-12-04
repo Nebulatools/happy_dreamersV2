@@ -19,7 +19,7 @@ import {
   Baby,
   Mic,
   Lightbulb,
-  Trash2
+  Trash2,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -61,7 +61,7 @@ export function ConsultationHistory({
   selectedUserId, 
   selectedChildId,
   visible = true,
-  selectedChildName
+  selectedChildName,
 }: ConsultationHistoryProps) {
   const { toast } = useToast()
   
@@ -86,13 +86,13 @@ export function ConsultationHistory({
       const response = await fetch(`/api/consultas/history?childId=${selectedChildId}`)
       
       if (!response.ok) {
-        throw new Error('Error al cargar el historial')
+        throw new Error("Error al cargar el historial")
       }
       
       const data = await response.json()
       setConsultations(data.consultations || [])
     } catch (error) {
-      logger.error('Error:', error);
+      logger.error("Error:", error)
       toast({
         title: "Error",
         description: "No se pudo cargar el historial de consultas.",
@@ -105,40 +105,40 @@ export function ConsultationHistory({
 
   const deleteConsultation = async (id: string) => {
     if (!id) return
-    const confirmed = typeof window !== 'undefined' ? window.confirm('¿Eliminar esta consulta de forma permanente?') : true
+    const confirmed = typeof window !== "undefined" ? window.confirm("¿Eliminar esta consulta de forma permanente?") : true
     if (!confirmed) return
     try {
-      const resp = await fetch(`/api/consultas/history?id=${id}`, { method: 'DELETE' })
+      const resp = await fetch(`/api/consultas/history?id=${id}`, { method: "DELETE" })
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({} as any))
-        throw new Error(err.error || 'No se pudo eliminar la consulta')
+        throw new Error(err.error || "No se pudo eliminar la consulta")
       }
       await loadConsultationHistory()
-      toast({ title: 'Consulta eliminada', description: 'Se eliminó del historial.' })
+      toast({ title: "Consulta eliminada", description: "Se eliminó del historial." })
     } catch (e: any) {
-      toast({ title: 'Error', description: e?.message || 'No se pudo eliminar', variant: 'destructive' })
+      toast({ title: "Error", description: e?.message || "No se pudo eliminar", variant: "destructive" })
     }
   }
 
   // Formatear fecha
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     })
   }
 
   // Truncar texto y manejar objetos anidados de forma segura
   const truncateText = (text: string | any, maxLength: number = 150) => {
     // Convertir a string si no lo es
-    let textStr = ''
+    let textStr = ""
     
-    if (typeof text === 'string') {
+    if (typeof text === "string") {
       textStr = text
-    } else if (text && typeof text === 'object') {
+    } else if (text && typeof text === "object") {
       try {
         // Si es un objeto, extraer el contenido de forma más inteligente
         if (text.mainConcerns && text.recommendations) {
@@ -158,32 +158,32 @@ export function ConsultationHistory({
         }
       } catch (error) {
         // Si falla JSON.stringify, usar una representación segura
-        textStr = '[Objeto complejo]'
+        textStr = "[Objeto complejo]"
       }
     } else {
-      textStr = String(text || '')
+      textStr = String(text || "")
     }
     
     if (textStr.length <= maxLength) return textStr
-    return textStr.substring(0, maxLength) + '...'
+    return textStr.substring(0, maxLength) + "..."
   }
 
   // Descargar consulta específica
   const downloadConsultation = (consultation: ConsultationRecord) => {
     // Convertir campos a texto legible
-    const analysisText = typeof consultation.analysis === 'string' 
+    const analysisText = typeof consultation.analysis === "string" 
       ? consultation.analysis 
       : JSON.stringify(consultation.analysis, null, 2)
     
-    const recommendationsText = typeof consultation.recommendations === 'string' 
+    const recommendationsText = typeof consultation.recommendations === "string" 
       ? consultation.recommendations 
       : JSON.stringify(consultation.recommendations, null, 2)
       
     const report = `
 CONSULTA PEDIÁTRICA
 Fecha: ${formatDate(consultation.createdAt)}
-${consultation.userName ? `Usuario: ${consultation.userName}` : ''}
-${consultation.childName ? `Niño: ${consultation.childName}` : ''}
+${consultation.userName ? `Usuario: ${consultation.userName}` : ""}
+${consultation.childName ? `Niño: ${consultation.childName}` : ""}
 
 TRANSCRIPT:
 ${consultation.transcript}
@@ -199,11 +199,11 @@ ID de Consulta: ${consultation._id}
 Generado por Happy Dreamers AI Assistant
     `.trim()
 
-    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' })
+    const blob = new Blob([report], { type: "text/plain;charset=utf-8" })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
+    const a = document.createElement("a")
     a.href = url
-    a.download = `consulta-${consultation.childName || 'historica'}-${consultation.createdAt.slice(0, 10)}.txt`
+    a.download = `consulta-${consultation.childName || "historica"}-${consultation.createdAt.slice(0, 10)}.txt`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -237,7 +237,7 @@ Generado por Happy Dreamers AI Assistant
               onClick={loadConsultationHistory}
               disabled={loading}
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
           )}
         </div>
@@ -310,7 +310,7 @@ Generado por Happy Dreamers AI Assistant
                                 Consulta del {formatDate(consultation.createdAt)}
                               </DialogTitle>
                               <DialogDescription>
-                                Consulta completa para {consultation.childName || 'el niño'}
+                                Consulta completa para {consultation.childName || "el niño"}
                               </DialogDescription>
                             </DialogHeader>
                             
@@ -339,7 +339,7 @@ Generado por Happy Dreamers AI Assistant
                                   </h4>
                                   <div className="p-3 bg-blue-50 rounded-lg text-sm">
                                     <pre className="whitespace-pre-wrap font-sans">
-                                      {typeof consultation.analysis === 'string' 
+                                      {typeof consultation.analysis === "string" 
                                         ? consultation.analysis 
                                         : JSON.stringify(consultation.analysis, null, 2)
                                       }
@@ -357,7 +357,7 @@ Generado por Happy Dreamers AI Assistant
                                   </h4>
                                   <div className="p-3 bg-green-50 rounded-lg text-sm">
                                     <pre className="whitespace-pre-wrap font-sans">
-                                      {typeof consultation.recommendations === 'string' 
+                                      {typeof consultation.recommendations === "string" 
                                         ? consultation.recommendations 
                                         : JSON.stringify(consultation.recommendations, null, 2)
                                       }

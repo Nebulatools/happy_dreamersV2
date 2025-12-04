@@ -15,7 +15,7 @@ interface PlanHintsCardProps {
 
 export default function PlanHintsCard({ childId, childBirthDate, dateRange = "7-days" }: PlanHintsCardProps) {
   const { data: session } = useSession()
-  if (session?.user?.role === 'admin') return null
+  if (session?.user?.role === "admin") return null
   const { data: sleepData } = useSleepData(childId, dateRange)
 
   const ageInMonths = getAgeInMonths(childBirthDate || null)

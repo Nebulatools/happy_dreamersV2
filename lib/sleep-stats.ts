@@ -1,4 +1,4 @@
-import { differenceInMinutes, parseISO } from 'date-fns'
+import { differenceInMinutes, parseISO } from "date-fns"
 
 export function getNightSleepDurationsHours(events: any[]): number[] {
   if (!events || events.length === 0) return []
@@ -10,7 +10,7 @@ export function getNightSleepDurationsHours(events: any[]): number[] {
 
   for (let i = 0; i < sorted.length; i++) {
     const e = sorted[i]
-    if (!['sleep', 'bedtime', 'dormir'].includes(e.eventType)) continue
+    if (!["sleep", "bedtime", "dormir"].includes(e.eventType)) continue
     const start = parseISO(e.startTime)
     const hour = start.getHours()
     // Nocturno solo
@@ -23,8 +23,8 @@ export function getNightSleepDurationsHours(events: any[]): number[] {
       const t = parseISO(n.startTime)
       const diff = t.getTime() - start.getTime()
       if (diff > 18 * 60 * 60 * 1000) break
-      if (n.eventType === 'wake') { wake = t; break }
-      if (['sleep', 'bedtime', 'dormir'].includes(n.eventType)) {
+      if (n.eventType === "wake") { wake = t; break }
+      if (["sleep", "bedtime", "dormir"].includes(n.eventType)) {
         const nh = t.getHours()
         if (nh >= 18 || nh <= 6) break
       }
@@ -32,7 +32,7 @@ export function getNightSleepDurationsHours(events: any[]): number[] {
 
     let minutes: number | null = null
     if (wake) {
-      const rawDelay = typeof e.sleepDelay === 'number' ? e.sleepDelay : 0
+      const rawDelay = typeof e.sleepDelay === "number" ? e.sleepDelay : 0
       const delay = Math.min(Math.max(rawDelay, 0), 180)
       const actualStart = new Date(start.getTime() + delay * 60 * 1000)
       minutes = differenceInMinutes(wake, actualStart)
@@ -41,7 +41,7 @@ export function getNightSleepDurationsHours(events: any[]): number[] {
 
     if (!wake) {
       // fallback reciente: asumir 8h menos delay
-      const rawDelay = typeof e.sleepDelay === 'number' ? e.sleepDelay : 0
+      const rawDelay = typeof e.sleepDelay === "number" ? e.sleepDelay : 0
       const delay = Math.min(Math.max(rawDelay, 0), 180)
       minutes = 8 * 60 - delay
     }
@@ -55,7 +55,7 @@ export function getNightSleepDurationsHours(events: any[]): number[] {
 
 export function getNocturnalBedtimes(events: any[]): Date[] {
   return (events || [])
-    .filter(e => e.startTime && ['sleep', 'bedtime', 'dormir'].includes(e.eventType))
+    .filter(e => e.startTime && ["sleep", "bedtime", "dormir"].includes(e.eventType))
     .map(e => parseISO(e.startTime))
     .filter(d => d.getHours() >= 18 || d.getHours() <= 6)
 }
@@ -68,15 +68,15 @@ export function getInferredWakeTimes(events: any[]): Date[] {
   const wakes: Date[] = []
   for (let i = 0; i < sorted.length; i++) {
     const e = sorted[i]
-    if (!['sleep', 'bedtime', 'dormir'].includes(e.eventType)) continue
+    if (!["sleep", "bedtime", "dormir"].includes(e.eventType)) continue
     if (e.endTime) {
       wakes.push(parseISO(e.endTime))
       continue
     }
     for (let j = i + 1; j < sorted.length; j++) {
       const n = sorted[j]
-      if (n.eventType === 'wake') { wakes.push(parseISO(n.startTime)); break }
-      if (['sleep', 'bedtime', 'dormir'].includes(n.eventType)) break
+      if (n.eventType === "wake") { wakes.push(parseISO(n.startTime)); break }
+      if (["sleep", "bedtime", "dormir"].includes(n.eventType)) break
     }
   }
   return wakes

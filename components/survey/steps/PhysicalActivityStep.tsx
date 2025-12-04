@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { Activity, Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import type { SurveyStepProps } from '../types/survey.types'
+import type { SurveyStepProps } from "../types/survey.types"
 
 export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStepProps) {
   const [activityName, setActivityName] = useState("")
@@ -17,7 +17,7 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
   const updateField = (field: string, value: any) => {
     onChange({
       ...data,
-      [field]: value
+      [field]: value,
     })
   }
 
@@ -69,11 +69,11 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
         <RadioGroup
           value={data.vePantallas === true ? "si" : data.vePantallas === false ? "no" : ""}
           onValueChange={(value) => {
-            const watchesScreens = value === 'si'
+            const watchesScreens = value === "si"
             onChange({
               ...data,
               vePantallas: watchesScreens,
-              pantallasDetalle: watchesScreens ? data.pantallasDetalle || "" : ""
+              pantallasDetalle: watchesScreens ? data.pantallasDetalle || "" : "",
             })
           }}
         >
@@ -96,7 +96,7 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
             <Textarea
               id="pantallas-detalle"
               value={data.pantallasDetalle || ""}
-              onChange={(e) => updateField('pantallasDetalle', e.target.value)}
+              onChange={(e) => updateField("pantallasDetalle", e.target.value)}
               placeholder="Ej: De 3pm a 5pm, 2 horas al día..."
               rows={2}
               className="mt-1"
@@ -111,11 +111,11 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
         <RadioGroup
           value={data.practicaActividad === true ? "si" : data.practicaActividad === false ? "no" : ""}
           onValueChange={(value) => {
-            const practices = value === 'si'
+            const practices = value === "si"
             onChange({
               ...data,
               practicaActividad: practices,
-              actividadesLista: practices ? data.actividadesLista || [] : []
+              actividadesLista: practices ? data.actividadesLista || [] : [],
             })
           }}
         >
@@ -142,7 +142,7 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
                 value={activityName}
                 onChange={(e) => setActivityName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === "Enter") {
                     e.preventDefault()
                     addActivity()
                   }
@@ -156,7 +156,7 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
                 value={activityDuration}
                 onChange={(e) => setActivityDuration(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === "Enter") {
                     e.preventDefault()
                     addActivity()
                   }
@@ -182,7 +182,7 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
                       type="button"
                       onClick={() => {
                         const newList = normalizedActivities.filter((_: any, i: number) => i !== index)
-                        updateField('actividadesLista', newList)
+                        updateField("actividadesLista", newList)
                       }}
                       className="ml-1 hover:bg-white/20 rounded-full p-0.5"
                       aria-label="Eliminar actividad"
@@ -205,7 +205,7 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
         <Textarea
           id="actividades-despierto"
           value={data.actividadesDespierto || ""}
-          onChange={(e) => updateField('actividadesDespierto', e.target.value)}
+          onChange={(e) => updateField("actividadesDespierto", e.target.value)}
           placeholder="Describe las actividades que realiza..."
           rows={3}
         />
@@ -217,11 +217,11 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
         <RadioGroup
           value={data.signosIrritabilidad === true ? "si" : data.signosIrritabilidad === false ? "no" : ""}
           onValueChange={(value) => {
-            const hasIrritability = value === 'si'
+            const hasIrritability = value === "si"
             onChange({
               ...data,
               signosIrritabilidad: hasIrritability,
-              irritabilidadDetalle: hasIrritability ? data.irritabilidadDetalle || "" : ""
+              irritabilidadDetalle: hasIrritability ? data.irritabilidadDetalle || "" : "",
             })
           }}
         >
@@ -244,7 +244,7 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
             <Textarea
               id="irritabilidad-detalle"
               value={data.irritabilidadDetalle || ""}
-              onChange={(e) => updateField('irritabilidadDetalle', e.target.value)}
+              onChange={(e) => updateField("irritabilidadDetalle", e.target.value)}
               placeholder="Ej: Se pone irritable alrededor de las 6pm, llora con facilidad..."
               rows={3}
               className="mt-1"

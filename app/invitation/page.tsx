@@ -77,9 +77,9 @@ function InvitationContent() {
       const response = await fetch("/api/invitation/accept", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ token })
+        body: JSON.stringify({ token }),
       })
 
       if (!response.ok) {
@@ -102,14 +102,14 @@ function InvitationContent() {
   // Obtener descripción del rol
   const getRoleDescription = (role: string) => {
     switch (role) {
-      case "viewer":
-        return "Solo lectura"
-      case "caregiver":
-        return "Cuidador"
-      case "editor":
-        return "Editor completo"
-      default:
-        return role
+    case "viewer":
+      return "Solo lectura"
+    case "caregiver":
+      return "Cuidador"
+    case "editor":
+      return "Editor completo"
+    default:
+      return role
     }
   }
 

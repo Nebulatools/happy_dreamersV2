@@ -111,9 +111,9 @@ function classifySleep(startTime: Date, endTime: Date) {
   const duration = differenceInMinutes(endTime, startTime) / 60
   
   if (startHour >= 19 || startHour <= 7 || duration > 6) {
-    return 'night'
+    return "night"
   }
-  return 'nap'
+  return "nap"
 }
 
 // Reemplazado por aggregateDailySleep() de lib/sleep-calculations.ts para coherencia global
@@ -134,7 +134,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
     actualDaysWithData: 0,
     nightsWithSleep: 0,
     daysWithNaps: 0,
-    dailyTotals: []
+    dailyTotals: [],
   })
   const [planSchedule, setPlanSchedule] = useState<{ bedtime?: string; wakeTime?: string } | null>(null)
 
@@ -150,7 +150,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
       if (!childId) return
       try {
         const response = await fetch(`/api/children/${childId}/active-plan`)
-        if (!response.ok) throw new Error('Error al cargar plan')
+        if (!response.ok) throw new Error("Error al cargar plan")
         const payload = await response.json()
         if (!isMounted) return
         const schedule = payload?.schedule ?? null
@@ -178,7 +178,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
   // Procesar eventos cuando sleepData cambie (promedios por día consistentes)
   React.useEffect(() => {
     if (sleepData?.events) {
-      const agg = aggregateDailySleep(sleepData.events as any[], dateRange, { denominator: 'dataDays' })
+      const agg = aggregateDailySleep(sleepData.events as any[], dateRange, { denominator: "dataDays" })
       setBreakdown({
         nightSleepHours: agg.avgNightHoursPerDay,
         napHours: agg.avgNapHoursPerDay,
@@ -195,8 +195,8 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
           dateKey: day.dateKey,
           nightHours: day.nightMinutes / 60,
           napHours: day.napMinutes / 60,
-          totalHours: day.totalMinutes / 60
-        }))
+          totalHours: day.totalMinutes / 60,
+        })),
       })
     }
   }, [sleepData, dateRange])
@@ -206,7 +206,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
       return {
         bedtime: null,
         wakeTime: null,
-        nightHours: null
+        nightHours: null,
       }
     }
     const bedtime = planSchedule?.bedtime ?? null
@@ -214,7 +214,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
     return {
       bedtime,
       wakeTime,
-      nightHours: calculateNightHoursFromPlan(bedtime, wakeTime)
+      nightHours: calculateNightHoursFromPlan(bedtime, wakeTime),
     }
   }, [planSchedule, hasActivePlan])
 
@@ -229,7 +229,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
       const wakes: Date[] = []
       for (let i = 0; i < sorted.length; i++) {
         const e = sorted[i]
-        if (!['sleep','bedtime'].includes(e.eventType)) continue
+        if (!["sleep","bedtime"].includes(e.eventType)) continue
         const start = parseISO(e.startTime)
         const hour = start.getHours()
         const nocturnal = (hour >= 18 || hour <= 6)
@@ -237,16 +237,16 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
         if (e.endTime) { wakes.push(parseISO(e.endTime)); continue }
         for (let j = i + 1; j < sorted.length; j++) {
           const n = sorted[j]
-          if (n.eventType === 'wake' && n.startTime) { wakes.push(parseISO(n.startTime)); break }
-          if (['sleep','bedtime'].includes(n.eventType)) break
+          if (n.eventType === "wake" && n.startTime) { wakes.push(parseISO(n.startTime)); break }
+          if (["sleep","bedtime"].includes(n.eventType)) break
         }
       }
       const morning = wakes.filter(d => { const h = d.getHours(); return h >= 3 && h <= 12 })
       if (!morning.length) return sleepData?.avgWakeTime || "--:--" // Fallback 2: valor inferido general
       const total = morning.reduce((sum, d) => sum + d.getHours() * 60 + d.getMinutes(), 0)
       const avg = Math.round(total / morning.length)
-      const hh = String(Math.floor(avg / 60)).padStart(2,'0')
-      const mm = String(avg % 60).padStart(2,'0')
+      const hh = String(Math.floor(avg / 60)).padStart(2,"0")
+      const mm = String(avg % 60).padStart(2,"0")
       return `${hh}:${mm}`
     } catch {
       return sleepData?.avgWakeTime || "--:--"
@@ -260,7 +260,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
     return {
       wake: formatTimeDiffVsPlan(morningWakeAvg, planTargets.wakeTime),
       night: formatHoursDiffVsPlan(breakdown.nightSleepHours, planTargets.nightHours),
-      bedtime: formatTimeDiffVsPlan(sleepData?.avgBedtime, planTargets.bedtime)
+      bedtime: formatTimeDiffVsPlan(sleepData?.avgBedtime, planTargets.bedtime),
     }
   }, [morningWakeAvg, planTargets, breakdown.nightSleepHours, sleepData?.avgBedtime, hasActivePlan])
 
@@ -376,25 +376,55 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
       title: "Sueño nocturno",
       icon: Moon,
       iconColor: "text-indigo-600",
-      summary: ranges.night
+      summary: ranges.night,
     },
     {
       key: "nap" as const,
       title: "Siestas",
       icon: Sun,
       iconColor: "text-orange-500",
-      summary: ranges.nap
+      summary: ranges.nap,
     },
     {
       key: "total" as const,
       title: "Sueño total",
       icon: Activity,
       iconColor: "text-blue-600",
-      summary: ranges.total
-    }
+      summary: ranges.total,
+    },
   ]), [ranges])
 
   const samplesWithData = ranges.total?.samples ?? ranges.night?.samples ?? ranges.nap?.samples ?? 0
+
+  // Calcular detalles de despertares nocturnos: dias con despertares y rango
+  // IMPORTANTE: Este useMemo debe estar ANTES de cualquier return temprano
+  const nightWakingsDetails = React.useMemo(() => {
+    if (!sleepData?.events || sleepData.events.length === 0) {
+      return { daysWithWakeups: 0, totalDays: breakdown.daysInPeriod, minPerNight: 0, maxPerNight: 0 }
+    }
+
+    // Agrupar despertares nocturnos por fecha
+    const wakeupsByDate: Record<string, number> = {}
+    sleepData.events.forEach((event: any) => {
+      if (event.eventType === "night_waking" && event.startTime) {
+        const dateKey = event.startTime.substring(0, 10) // YYYY-MM-DD
+        wakeupsByDate[dateKey] = (wakeupsByDate[dateKey] || 0) + 1
+      }
+    })
+
+    const dates = Object.keys(wakeupsByDate)
+    const daysWithWakeups = dates.length
+    const counts = Object.values(wakeupsByDate)
+    const minPerNight = counts.length > 0 ? Math.min(...counts) : 0
+    const maxPerNight = counts.length > 0 ? Math.max(...counts) : 0
+
+    return {
+      daysWithWakeups,
+      totalDays: breakdown.daysInPeriod,
+      minPerNight,
+      maxPerNight,
+    }
+  }, [sleepData?.events, breakdown.daysInPeriod])
 
   if (loading) {
     return (
@@ -497,9 +527,22 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
                 <p className="text-2xl font-bold text-gray-900">{sleepData.totalWakeups}</p>
               </div>
             </div>
-            <Badge variant={wakeupsStatus.variant} className="text-xs">
-              {wakeupsStatus.label}
-            </Badge>
+            <div className="flex items-center justify-between mb-1">
+              <Badge variant={wakeupsStatus.variant} className="text-xs">
+                {wakeupsStatus.label}
+              </Badge>
+            </div>
+            <div className="text-xs text-gray-600 space-y-0.5">
+              <p>{nightWakingsDetails.daysWithWakeups} de {nightWakingsDetails.totalDays} dias</p>
+              {nightWakingsDetails.daysWithWakeups > 0 && (
+                <p className="text-gray-500">
+                  {nightWakingsDetails.minPerNight === nightWakingsDetails.maxPerNight
+                    ? `${nightWakingsDetails.minPerNight} por noche`
+                    : `${nightWakingsDetails.minPerNight}-${nightWakingsDetails.maxPerNight} por noche`
+                  }
+                </p>
+              )}
+            </div>
           </div>
         </motion.div>
 
@@ -536,13 +579,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
                         <>
                           <div className="grid grid-cols-3 gap-3 text-sm">
                             <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wide">Promedio</p>
-                              <p className="text-base font-semibold text-gray-900">
-                                {formatDuration(summary.avg)}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wide">Mínimo</p>
+                              <p className="text-xs text-gray-500 uppercase tracking-wide">Minimo</p>
                               <p className="text-base font-semibold text-gray-900">
                                 {formatDuration(summary.min.value)}
                               </p>
@@ -551,7 +588,13 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
                               </p>
                             </div>
                             <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wide">Máximo</p>
+                              <p className="text-xs text-gray-500 uppercase tracking-wide">Promedio</p>
+                              <p className="text-base font-semibold text-gray-900">
+                                {formatDuration(summary.avg)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wide">Maximo</p>
                               <p className="text-base font-semibold text-gray-900">
                                 {formatDuration(summary.max.value)}
                               </p>

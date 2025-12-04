@@ -114,7 +114,7 @@ export default function EventPage() {
   // Usar los tipos de eventos definidos en event-types.ts
   const availableEventTypes = eventTypes.map(type => ({
     id: type.id,
-    label: type.label
+    label: type.label,
   }))
 
   const emotionalStates = [

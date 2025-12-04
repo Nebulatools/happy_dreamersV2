@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -9,23 +9,23 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Baby, Plus, Minus } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { FeedingModalData, FeedingType } from './types'
-import { format } from 'date-fns'
-import { useDevTime } from '@/context/dev-time-context'
+import { Baby, Plus, Minus } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { FeedingModalData, FeedingType } from "./types"
+import { format } from "date-fns"
+import { useDevTime } from "@/context/dev-time-context"
 
 interface FeedingModalProps {
   open: boolean
   onClose: () => void
   onConfirm: (data: FeedingModalData) => void
   childName: string
-  mode?: 'create' | 'edit'
+  mode?: "create" | "edit"
   initialData?: {
     feedingType?: FeedingType
     feedingAmount?: number
     feedingDuration?: number
-    babyState?: 'awake' | 'asleep'
+    babyState?: "awake" | "asleep"
     feedingNotes?: string
     startTime?: string
     eventId?: string
@@ -41,51 +41,51 @@ export function FeedingModal({
   onClose,
   onConfirm,
   childName,
-  mode = 'create',
-  initialData
+  mode = "create",
+  initialData,
 }: FeedingModalProps) {
   const { getCurrentTime } = useDevTime()
-  const [feedingType, setFeedingType] = useState<FeedingType>(initialData?.feedingType || 'breast')
+  const [feedingType, setFeedingType] = useState<FeedingType>(initialData?.feedingType || "breast")
   const [feedingAmount, setFeedingAmount] = useState<number>(() => {
-    if (typeof initialData?.feedingAmount === 'number') return initialData.feedingAmount
-    const t = initialData?.feedingType || 'breast'
-    if (t === 'breast') return 15
-    if (t === 'bottle') return 4
+    if (typeof initialData?.feedingAmount === "number") return initialData.feedingAmount
+    const t = initialData?.feedingType || "breast"
+    if (t === "breast") return 15
+    if (t === "bottle") return 4
     return 50
   })
   const [feedingDuration, setFeedingDuration] = useState<number>(initialData?.feedingDuration || 15) // Default 15 min
-  const [babyState, setBabyState] = useState<'awake' | 'asleep'>(initialData?.babyState || 'awake')
-  const [feedingNotes, setFeedingNotes] = useState<string>(initialData?.feedingNotes || '')
-  const [bottleUnit, setBottleUnit] = useState<'oz' | 'ml'>('oz') // Unidad para biberón
+  const [babyState, setBabyState] = useState<"awake" | "asleep">(initialData?.babyState || "awake")
+  const [feedingNotes, setFeedingNotes] = useState<string>(initialData?.feedingNotes || "")
+  const [bottleUnit, setBottleUnit] = useState<"oz" | "ml">("oz") // Unidad para biberón
   const [eventDate, setEventDate] = useState<string>(() => {
-    if (mode === 'edit' && initialData?.startTime) {
-      return format(new Date(initialData.startTime), 'yyyy-MM-dd')
+    if (mode === "edit" && initialData?.startTime) {
+      return format(new Date(initialData.startTime), "yyyy-MM-dd")
     }
-    return format(getCurrentTime(), 'yyyy-MM-dd')
+    return format(getCurrentTime(), "yyyy-MM-dd")
   })
   const [eventTime, setEventTime] = useState<string>(() => {
-    if (mode === 'edit' && initialData?.startTime) {
-      return format(new Date(initialData.startTime), 'HH:mm')
+    if (mode === "edit" && initialData?.startTime) {
+      return format(new Date(initialData.startTime), "HH:mm")
     }
-    return format(getCurrentTime(), 'HH:mm')
+    return format(getCurrentTime(), "HH:mm")
   })
   const [isProcessing, setIsProcessing] = useState(false)
 
   // Inicializar con datos cuando se abre en modo edición
   useEffect(() => {
-    if (open && mode === 'edit' && initialData) {
-      setFeedingType(initialData.feedingType || 'breast')
-      if (typeof initialData.feedingAmount === 'number') {
+    if (open && mode === "edit" && initialData) {
+      setFeedingType(initialData.feedingType || "breast")
+      if (typeof initialData.feedingAmount === "number") {
         setFeedingAmount(initialData.feedingAmount)
       } else {
-        setFeedingAmount(initialData.feedingType === 'breast' ? 15 : initialData.feedingType === 'bottle' ? 4 : 50)
+        setFeedingAmount(initialData.feedingType === "breast" ? 15 : initialData.feedingType === "bottle" ? 4 : 50)
       }
       setFeedingDuration(initialData.feedingDuration || 15)
-      setBabyState(initialData.babyState || 'awake')
-      setFeedingNotes(initialData.feedingNotes || '')
+      setBabyState(initialData.babyState || "awake")
+      setFeedingNotes(initialData.feedingNotes || "")
       if (initialData.startTime) {
-        setEventDate(format(new Date(initialData.startTime), 'yyyy-MM-dd'))
-        setEventTime(format(new Date(initialData.startTime), 'HH:mm'))
+        setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
+        setEventTime(format(new Date(initialData.startTime), "HH:mm"))
       }
     }
   }, [open, mode, initialData])
@@ -93,51 +93,51 @@ export function FeedingModal({
   // Tipos de alimentación disponibles
   const feedingTypes = [
     { 
-      value: 'breast' as FeedingType, 
-      label: 'Pecho', 
-      icon: '🤱',
-      description: 'Lactancia materna',
-      unit: 'minutos'
+      value: "breast" as FeedingType, 
+      label: "Pecho", 
+      icon: "🤱",
+      description: "Lactancia materna",
+      unit: "minutos",
     },
     { 
-      value: 'bottle' as FeedingType, 
-      label: 'Biberón', 
-      icon: '🍼',
-      description: 'Leche o fórmula',
-      unit: 'oz'
+      value: "bottle" as FeedingType, 
+      label: "Biberón", 
+      icon: "🍼",
+      description: "Leche o fórmula",
+      unit: "oz",
     },
     { 
-      value: 'solids' as FeedingType, 
-      label: 'Sólidos', 
-      icon: '🥄',
-      description: 'Comida sólida',
-      unit: 'gr'
-    }
+      value: "solids" as FeedingType, 
+      label: "Sólidos", 
+      icon: "🥄",
+      description: "Comida sólida",
+      unit: "gr",
+    },
   ]
 
   // Estados del bebé durante la alimentación
   const babyStates = [
-    { value: 'awake' as const, label: 'Despierto', description: 'Alimentación normal' },
-    { value: 'asleep' as const, label: 'Dormido', description: 'Toma nocturna' }
+    { value: "awake" as const, label: "Despierto", description: "Alimentación normal" },
+    { value: "asleep" as const, label: "Dormido", description: "Toma nocturna" },
   ]
 
   // Configuración según tipo de alimentación
   const getAmountConfig = () => {
     switch (feedingType) {
-      case 'breast': {
-        // Dinámico: 1–10 paso 1; >10 paso 5
-        const step = feedingAmount <= 10 ? 1 : 5
-        return { min: 1, max: 120, step, unit: 'min', label: 'Duración (min)' }
-      }
-      case 'bottle':
-        // Selector de unidad: oz o ml
-        const unit = bottleUnit
-        const max = unit === 'oz' ? 16 : 500
-        const step = unit === 'oz' ? 1 : 10
-        return { min: 1, max, step, unit, label: `Cantidad (${unit})` }
-      case 'solids':
-        // Para sólidos: solo input de texto para describir el alimento
-        return { min: 0, max: 0, step: 0, unit: '', label: 'Descripción del alimento' }
+    case "breast": {
+      // Dinámico: 1–10 paso 1; >10 paso 5
+      const step = feedingAmount <= 10 ? 1 : 5
+      return { min: 1, max: 120, step, unit: "min", label: "Duración (min)" }
+    }
+    case "bottle":
+      // Selector de unidad: oz o ml
+      const unit = bottleUnit
+      const max = unit === "oz" ? 16 : 500
+      const step = unit === "oz" ? 1 : 10
+      return { min: 1, max, step, unit, label: `Cantidad (${unit})` }
+    case "solids":
+      // Para sólidos: solo input de texto para describir el alimento
+      return { min: 0, max: 0, step: 0, unit: "", label: "Descripción del alimento" }
     }
   }
 
@@ -147,7 +147,7 @@ export function FeedingModal({
   const adjustAmount = (increment: number) => {
     setFeedingAmount(prev => {
       // Recalcular step dinámico para pecho
-      const dynamicStep = feedingType === 'breast' ? (prev <= 10 ? 1 : 5) : amountConfig.step
+      const dynamicStep = feedingType === "breast" ? (prev <= 10 ? 1 : 5) : amountConfig.step
       const inc = increment === amountConfig.step ? dynamicStep : increment
       const newValue = prev + inc
       return Math.max(amountConfig.min, Math.min(amountConfig.max, newValue))
@@ -164,7 +164,7 @@ export function FeedingModal({
 
   // Formatear el texto de cantidad
   const formatAmountText = (amount: number): string => {
-    if (feedingType === 'breast') {
+    if (feedingType === "breast") {
       return `${amount} minutos`
     }
     return `${amount} ${amountConfig.unit}`
@@ -180,50 +180,50 @@ export function FeedingModal({
     setIsProcessing(true)
     
     // Normalización: pecho en minutos (feedingDuration), sólidos siempre despierto
-    const normalizedBabyState = feedingType === 'solids' ? 'awake' : babyState
+    const normalizedBabyState = feedingType === "solids" ? "awake" : babyState
     const data: FeedingModalData = {
       feedingType,
       feedingAmount: feedingAmount,
-      feedingDuration: feedingType === 'breast' ? feedingAmount : feedingDuration,
+      feedingDuration: feedingType === "breast" ? feedingAmount : feedingDuration,
       babyState: normalizedBabyState,
-      feedingNotes
+      feedingNotes,
     }
     
     await onConfirm(data)
     setIsProcessing(false)
     
     // Reset para próxima vez
-    setFeedingType('breast')
+    setFeedingType("breast")
     setFeedingAmount(15)
     setFeedingDuration(15)
-    setBabyState('awake')
-    setFeedingNotes('')
+    setBabyState("awake")
+    setFeedingNotes("")
   }
 
   const handleCancel = () => {
     onClose()
     // Reset
-    if (mode === 'edit' && initialData) {
+    if (mode === "edit" && initialData) {
       // En modo edición, restaurar valores iniciales
-      setFeedingType(initialData.feedingType || 'breast')
+      setFeedingType(initialData.feedingType || "breast")
       setFeedingAmount(initialData.feedingAmount || 80)
       setFeedingDuration(initialData.feedingDuration || 15)
-      setBabyState(initialData.babyState || 'awake')
-      setFeedingNotes(initialData.feedingNotes || '')
+      setBabyState(initialData.babyState || "awake")
+      setFeedingNotes(initialData.feedingNotes || "")
       if (initialData.startTime) {
-        setEventDate(format(new Date(initialData.startTime), 'yyyy-MM-dd'))
-        setEventTime(format(new Date(initialData.startTime), 'HH:mm'))
+        setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
+        setEventTime(format(new Date(initialData.startTime), "HH:mm"))
       }
     } else {
       // En modo creación, limpiar todo
-      setFeedingType('breast')
+      setFeedingType("breast")
       setFeedingAmount(15)
       setFeedingDuration(15)
-      setBabyState('awake')
-      setFeedingNotes('')
+      setBabyState("awake")
+      setFeedingNotes("")
       const now = getCurrentTime()
-      setEventDate(format(now, 'yyyy-MM-dd'))
-      setEventTime(format(now, 'HH:mm'))
+      setEventDate(format(now, "yyyy-MM-dd"))
+      setEventTime(format(now, "HH:mm"))
     }
   }
 
@@ -240,17 +240,17 @@ export function FeedingModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Baby className="w-5 h-5 text-green-500" />
-            {mode === 'edit' ? 'Editar Alimentación' : 'Registro de Alimentación'}
+            {mode === "edit" ? "Editar Alimentación" : "Registro de Alimentación"}
           </DialogTitle>
           <DialogDescription>
-            {mode === 'edit' 
+            {mode === "edit" 
               ? `Modifica los detalles de la alimentación de ${childName}`
               : `Registra la alimentación de ${childName}`}
           </DialogDescription>
         </DialogHeader>
 
         {/* Fecha y hora - Solo visible en modo edición */}
-        {mode === 'edit' && (
+        {mode === "edit" && (
           <div className="grid grid-cols-2 gap-2 pb-4 border-b">
             <div className="space-y-1">
               <label className="text-sm font-medium text-gray-700">Fecha</label>
@@ -286,11 +286,11 @@ export function FeedingModal({
                 onClick={() => {
                   setFeedingType(type.value)
                   // Ajustar cantidad por defecto según tipo
-                  if (type.value === 'breast') setFeedingAmount(15)
-                  else if (type.value === 'bottle') setFeedingAmount(4)
+                  if (type.value === "breast") setFeedingAmount(15)
+                  else if (type.value === "bottle") setFeedingAmount(4)
                   else setFeedingAmount(50)
                   // Sólidos: siempre despierto
-                  if (type.value === 'solids') setBabyState('awake')
+                  if (type.value === "solids") setBabyState("awake")
                 }}
                 disabled={isProcessing}
                 className={cn(
@@ -318,7 +318,7 @@ export function FeedingModal({
         {/* Sección 2: Campos según tipo de alimentación */}
         <div className="space-y-4 border-t pt-4">
           {/* PECHO: Solo Duración (min) */}
-          {feedingType === 'breast' && (
+          {feedingType === "breast" && (
             <>
               <div className="text-sm font-medium text-gray-700">
                 Duración (min)
@@ -369,7 +369,7 @@ export function FeedingModal({
           )}
 
           {/* BIBERÓN: Cantidad con selector oz/ml */}
-          {feedingType === 'bottle' && (
+          {feedingType === "bottle" && (
             <>
               <div className="flex items-center justify-between">
                 <div className="text-sm font-medium text-gray-700">
@@ -379,12 +379,12 @@ export function FeedingModal({
                   <button
                     type="button"
                     onClick={() => {
-                      setBottleUnit('oz')
+                      setBottleUnit("oz")
                       setFeedingAmount(4) // Reset al cambiar unidad
                     }}
                     className={cn(
                       "px-3 py-1 text-xs font-medium rounded-md transition-colors",
-                      bottleUnit === 'oz'
+                      bottleUnit === "oz"
                         ? "bg-green-500 text-white"
                         : "bg-gray-200 text-gray-600 hover:bg-gray-300"
                     )}
@@ -394,12 +394,12 @@ export function FeedingModal({
                   <button
                     type="button"
                     onClick={() => {
-                      setBottleUnit('ml')
+                      setBottleUnit("ml")
                       setFeedingAmount(120) // Reset al cambiar unidad
                     }}
                     className={cn(
                       "px-3 py-1 text-xs font-medium rounded-md transition-colors",
-                      bottleUnit === 'ml'
+                      bottleUnit === "ml"
                         ? "bg-green-500 text-white"
                         : "bg-gray-200 text-gray-600 hover:bg-gray-300"
                     )}
@@ -454,7 +454,7 @@ export function FeedingModal({
           )}
 
           {/* SÓLIDOS: Solo input de texto para descripción */}
-          {feedingType === 'solids' && (
+          {feedingType === "solids" && (
             <>
               <div className="text-sm font-medium text-gray-700">
                 Descripción del alimento (opcional)
@@ -473,7 +473,7 @@ export function FeedingModal({
         </div>
 
         {/* Sección 3: Estado del Bebé (solo para pecho y biberón) */}
-        {feedingType !== 'solids' && (
+        {feedingType !== "solids" && (
           <div className="space-y-3 border-t pt-4">
             <div className="text-sm font-medium text-gray-700">
               Estado de {childName}
@@ -508,7 +508,7 @@ export function FeedingModal({
         )}
 
         {/* Sección 4: Notas adicionales (solo para pecho y biberón) */}
-        {feedingType !== 'solids' && (
+        {feedingType !== "solids" && (
           <div className="space-y-2 border-t pt-4">
             <div className="text-sm font-medium text-gray-700">
               Notas adicionales (opcional)
@@ -544,8 +544,8 @@ export function FeedingModal({
             className="flex-1 bg-green-500 hover:bg-green-600"
           >
             {isProcessing 
-              ? (mode === 'edit' ? 'Guardando...' : 'Registrando...') 
-              : (mode === 'edit' ? 'Guardar Cambios' : 'Confirmar')}
+              ? (mode === "edit" ? "Guardando..." : "Registrando...") 
+              : (mode === "edit" ? "Guardar Cambios" : "Confirmar")}
           </Button>
         </div>
 

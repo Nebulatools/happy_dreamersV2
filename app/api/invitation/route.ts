@@ -38,8 +38,8 @@ export async function GET(request: NextRequest) {
         role: invitation.role,
         permissions: invitation.permissions,
         relationshipDescription: invitation.relationshipDescription,
-        expiresAt: invitation.expiresAt
-      }
+        expiresAt: invitation.expiresAt,
+      },
     })
 
   } catch (error) {

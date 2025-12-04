@@ -1,9 +1,9 @@
 // Hook para manejar validación en tiempo real y feedback visual
 // Proporciona funciones útiles para mostrar errores y validar campos
 
-import { useState, useCallback, useEffect } from 'react'
-import type { ValidationErrors } from '../types/survey.types'
-import { getFirstErrorField, hasStepErrors } from '../validation/validators'
+import { useState, useCallback, useEffect } from "react"
+import type { ValidationErrors } from "../types/survey.types"
+import { getFirstErrorField, hasStepErrors } from "../validation/validators"
 
 interface ValidationState {
   showErrors: boolean
@@ -13,7 +13,7 @@ interface ValidationState {
 export function useSurveyValidation() {
   const [validationState, setValidationState] = useState<ValidationState>({
     showErrors: false,
-    focusedField: null
+    focusedField: null,
   })
 
   // Mostrar errores de validación
@@ -34,7 +34,7 @@ export function useSurveyValidation() {
     setValidationState(prev => ({ ...prev, focusedField: firstErrorField }))
 
     // Intentar mapear el path (mama.telefono) al id usado en inputs (mama-telefono)
-    const idCandidates = [firstErrorField, firstErrorField.replace(/\./g, '-')]
+    const idCandidates = [firstErrorField, firstErrorField.replace(/\./g, "-")]
 
     setTimeout(() => {
       let element: HTMLElement | null = null
@@ -44,30 +44,30 @@ export function useSurveyValidation() {
       }
 
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        element.scrollIntoView({ behavior: "smooth", block: "center" })
         ;(element as HTMLElement).focus?.()
       } else {
         // Notificar a pasos con UI tabulada (p.ej., FamilyInfoStep) para cambiar a la pestaña correcta
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('survey:focus-field', { detail: { fieldPath: firstErrorField } }))
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("survey:focus-field", { detail: { fieldPath: firstErrorField } }))
         }
       }
     }, 100)
   }, [])
 
   // Obtener clase CSS para campo con error
-  const getFieldClassName = useCallback((fieldName: string, hasError: boolean, baseClass = '') => {
+  const getFieldClassName = useCallback((fieldName: string, hasError: boolean, baseClass = "") => {
     const classes = [baseClass]
     
     if (validationState.showErrors && hasError) {
-      classes.push('border-red-500 focus:border-red-500')
+      classes.push("border-red-500 focus:border-red-500")
     }
     
     if (validationState.focusedField === fieldName) {
-      classes.push('ring-2 ring-red-500')
+      classes.push("ring-2 ring-red-500")
     }
     
-    return classes.filter(Boolean).join(' ')
+    return classes.filter(Boolean).join(" ")
   }, [validationState])
 
   // Verificar si debe mostrar error para un campo
@@ -81,6 +81,6 @@ export function useSurveyValidation() {
     hideValidationErrors,
     focusErrorField,
     getFieldClassName,
-    shouldShowError
+    shouldShowError,
   }
 }

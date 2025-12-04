@@ -16,16 +16,26 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { UserAvatar } from "@/components/ui/user-avatar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
 import { useRouter, usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { ChildSelector } from "@/components/dashboard/child-selector"
 import { usePageHeader } from "@/context/page-header-context"
 import { ChildAgeFromContext } from "@/components/ui/child-age-badge"
 import { Icons } from "@/components/icons"
-import { Video, FileText } from "lucide-react"
+import { Video, FileText, Search, User, Baby, Loader2 } from "lucide-react"
+import { useActiveChild } from "@/context/active-child-context"
+import { useToast } from "@/hooks/use-toast"
 
 import { createLogger } from "@/lib/logger"
 
@@ -58,6 +68,101 @@ export function Header() {
     return "Perfil"
   }, [sessionUser?.role, accountType])
 
+  // Estados para el buscador funcional (solo admin)
+  const isAdmin = sessionUser?.role === "admin"
+  const { toast } = useToast()
+  const { setActiveUserId, setActiveUserName, setActiveChildId } = useActiveChild()
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchValue, setSearchValue] = useState("")
+  const [searchUsers, setSearchUsers] = useState<Array<{ _id: string; name: string; email: string }>>([])
+  const [searchChildren, setSearchChildren] = useState<Record<string, Array<{ _id: string; firstName: string; lastName: string; parentId: string }>>>({})
+  const [searchLoading, setSearchLoading] = useState(false)
+
+  // Cargar usuarios para busqueda (solo admin)
+  useEffect(() => {
+    if (!isAdmin || !session?.user?.id) return
+
+    const fetchUsers = async () => {
+      try {
+        setSearchLoading(true)
+        const [usersRes, childrenRes] = await Promise.all([
+          fetch("/api/admin/users"),
+          fetch("/api/children"),
+        ])
+
+        if (usersRes.ok) {
+          const data = await usersRes.json()
+          const filtered = data.filter((u: any) => u.role !== "admin")
+          setSearchUsers(filtered)
+        }
+
+        if (childrenRes.ok) {
+          const data = await childrenRes.json()
+          const children = Array.isArray(data) ? data : data.children || []
+          const grouped = children.reduce((acc: Record<string, any[]>, child: any) => {
+            if (!child?.parentId) return acc
+            if (!acc[child.parentId]) acc[child.parentId] = []
+            acc[child.parentId].push(child)
+            return acc
+          }, {})
+          setSearchChildren(grouped)
+        }
+      } catch (error) {
+        logger.error("Error loading search data:", error)
+      } finally {
+        setSearchLoading(false)
+      }
+    }
+
+    fetchUsers()
+  }, [isAdmin, session?.user?.id])
+
+  // Filtrar usuarios por busqueda
+  const filteredSearchUsers = useMemo(() => {
+    const search = searchValue.trim().toLowerCase()
+    if (!search) return searchUsers.slice(0, 10)
+
+    return searchUsers.filter(user => {
+      const matchesUser = user.name?.toLowerCase().includes(search) || user.email?.toLowerCase().includes(search)
+      const children = searchChildren[user._id] || []
+      const matchesChild = children.some(child =>
+        `${child.firstName || ""} ${child.lastName || ""}`.toLowerCase().includes(search)
+      )
+      return matchesUser || matchesChild
+    }).slice(0, 10)
+  }, [searchUsers, searchChildren, searchValue])
+
+  // Extraer apellido del nombre completo
+  const getLastName = useCallback((name: string) => {
+    const parts = name.trim().split(" ")
+    return parts.length > 1 ? parts[parts.length - 1] : name
+  }, [])
+
+  // Manejar seleccion desde el buscador
+  const handleSearchSelect = useCallback((user: { _id: string; name: string }) => {
+    setActiveUserId(user._id)
+    setActiveUserName(user.name)
+    setActiveChildId(null)
+    setSearchOpen(false)
+    setSearchValue("")
+
+    const children = searchChildren[user._id] || []
+    if (children.length === 1) {
+      setActiveChildId(children[0]._id)
+      toast({
+        title: "Paciente seleccionado",
+        description: `${children[0].firstName} ${children[0].lastName} - ${user.name}`,
+      })
+    } else {
+      toast({
+        title: "Usuario seleccionado",
+        description: `${user.name} - Selecciona un niño`,
+      })
+    }
+
+    router.push("/dashboard")
+  }, [searchChildren, setActiveUserId, setActiveUserName, setActiveChildId, toast, router])
+
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -71,32 +176,32 @@ export function Header() {
       if (!session?.user?.email) return
 
       try {
-        const response = await fetch('/api/notifications/count')
+        const response = await fetch("/api/notifications/count")
         if (response.ok) {
           const data = await response.json()
           setNotificationCount(data.count || 0)
         }
       } catch (error) {
-        logger.error('Error fetching notification count:', error)
+        logger.error("Error fetching notification count:", error)
       }
     }
 
     fetchNotificationCount()
 
     // Para admins, actualizar más frecuentemente para capturar nuevos transcripts de Zoom
-    const refreshInterval = session?.user?.role === 'admin' ? 30000 : 60000 // 30s para admins, 60s para otros
+    const refreshInterval = session?.user?.role === "admin" ? 30000 : 60000 // 30s para admins, 60s para otros
     const interval = setInterval(fetchNotificationCount, refreshInterval)
 
     const handleNotificationsUpdated = () => {
       fetchNotificationCount()
     }
 
-    window.addEventListener('notificationsUpdated', handleNotificationsUpdated)
+    window.addEventListener("notificationsUpdated", handleNotificationsUpdated)
     
     return () => {
       isMountedComponent = false
       clearInterval(interval)
-      window.removeEventListener('notificationsUpdated', handleNotificationsUpdated)
+      window.removeEventListener("notificationsUpdated", handleNotificationsUpdated)
     }
   }, [session])
 
@@ -105,8 +210,8 @@ export function Header() {
     setNotificationsLoading(true)
 
     try {
-      const response = await fetch('/api/notifications/history?limit=10')
-      if (!response.ok) throw new Error('Error cargando notificaciones')
+      const response = await fetch("/api/notifications/history?limit=10")
+      if (!response.ok) throw new Error("Error cargando notificaciones")
 
       const data = await response.json()
       const list = data.notifications || []
@@ -114,30 +219,30 @@ export function Header() {
 
       const toMark = list
         .filter((item: any) =>
-          item?.status === 'delivered' &&
-          ['invitation', 'invitation_response'].includes(item?.type)
+          item?.status === "delivered" &&
+          ["invitation", "invitation_response"].includes(item?.type)
         )
         .map((item: any) => item?._id)
         .filter(Boolean)
 
       if (toMark.length > 0) {
         await Promise.all(toMark.map((id: string) =>
-          fetch('/api/notifications/history', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ notificationId: id, action: 'read' })
+          fetch("/api/notifications/history", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ notificationId: id, action: "read" }),
           })
         ))
 
-        window.dispatchEvent(new CustomEvent('notificationsUpdated'))
+        window.dispatchEvent(new CustomEvent("notificationsUpdated"))
         setNotifications((current) => current.map((item: any) =>
           toMark.includes(item._id)
-            ? { ...item, status: 'read', readAt: new Date().toISOString() }
+            ? { ...item, status: "read", readAt: new Date().toISOString() }
             : item
         ))
       }
     } catch (error) {
-      logger.error('Error loading notifications list:', error)
+      logger.error("Error loading notifications list:", error)
     } finally {
       setNotificationsLoading(false)
     }
@@ -148,7 +253,7 @@ export function Header() {
       fetchNotificationsList()
 
       // Para admins, auto-refrescar la lista de notificaciones mientras está abierta
-      if (session?.user?.role === 'admin') {
+      if (session?.user?.role === "admin") {
         const refreshInterval = setInterval(fetchNotificationsList, 15000) // Cada 15 segundos
         return () => clearInterval(refreshInterval)
       }
@@ -210,7 +315,7 @@ export function Header() {
       "/dashboard/survey": "Encuesta de Sueño",
       "/dashboard/profile": "Perfil",
       "/dashboard/reports": "Reportes",
-      "/dashboard/reports/professional": "Reportes Profesionales"
+      "/dashboard/reports/professional": "Reportes Profesionales",
     }
 
     if (directMatch[normalized]) {
@@ -284,7 +389,7 @@ export function Header() {
             <div className="divide-y">
               {notifications.map((notification) => {
                 const createdAt = notification?.createdAt ? new Date(notification.createdAt) : null
-                const isZoomTranscript = notification.type === 'zoom_transcript'
+                const isZoomTranscript = notification.type === "zoom_transcript"
 
                 return (
                   <div
@@ -299,7 +404,7 @@ export function Header() {
                           }
                         }
                         setNotificationsOpen(false)
-                        router.push('/dashboard/consultas')
+                        router.push("/dashboard/consultas")
                       }
                     }}
                   >
@@ -313,7 +418,7 @@ export function Header() {
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-medium text-[#1F2937]">
-                          {notification.title || 'Nueva notificación'}
+                          {notification.title || "Nueva notificación"}
                         </p>
                         {notification.message && (
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
@@ -326,7 +431,7 @@ export function Header() {
                           </p>
                         )}
                       </div>
-                      {notification.status !== 'read' && (
+                      {notification.status !== "read" && (
                         <span className="inline-flex h-2 w-2 rounded-full bg-[#68A1C8] mt-2" />
                       )}
                     </div>
@@ -377,7 +482,7 @@ export function Header() {
   )
 
   return (
-    <header className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: '#A0D8D0' }}>
+    <header className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: "#A0D8D0" }}>
       <div
         className="px-3 md:px-6 pb-3 md:pb-4"
         style={{ paddingTop: safeAreaPaddingTop }}
@@ -411,25 +516,65 @@ export function Header() {
             </div>
           </div>
 
-          {config.showSearch !== false && (
-            <div className="hidden lg:flex items-center bg-[#DEF1F1] rounded-[30px] px-4 py-2 h-12 min-w-[220px] max-w-[360px] cursor-text hover:bg-[#c8e3e3] transition-colors">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-[#68A1C8] flex-shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Buscar..."
-                className="ml-2.5 bg-transparent text-[#1F2937] text-base font-medium placeholder:text-[#68A1C8] placeholder:opacity-70 border-none outline-none flex-1"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
+          {config.showSearch !== false && isAdmin && (
+            <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+              <PopoverTrigger asChild>
+                <div className="hidden lg:flex items-center bg-[#DEF1F1] rounded-[30px] px-4 py-2 h-12 min-w-[220px] max-w-[360px] cursor-pointer hover:bg-[#c8e3e3] transition-colors">
+                  <Search className="h-5 w-5 text-[#68A1C8] flex-shrink-0" />
+                  <span className="ml-2.5 text-[#68A1C8] text-base font-medium opacity-70">
+                    Buscar cliente o usuario...
+                  </span>
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-[400px] p-0" align="start">
+                <Command shouldFilter={false}>
+                  <CommandInput
+                    placeholder="Buscar cliente o usuario..."
+                    value={searchValue}
+                    onValueChange={setSearchValue}
+                  />
+                  <CommandList>
+                    {searchLoading ? (
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        <span className="text-sm text-muted-foreground">Cargando...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <CommandEmpty>No se encontraron usuarios.</CommandEmpty>
+                        <CommandGroup heading="Usuarios">
+                          {filteredSearchUsers.map((user) => {
+                            const children = searchChildren[user._id] || []
+                            return (
+                              <CommandItem
+                                key={user._id}
+                                value={user.name}
+                                onSelect={() => handleSearchSelect(user)}
+                                className="flex items-center gap-3 py-2"
+                              >
+                                <User className="h-4 w-4 text-slate-500" />
+                                <div className="flex-1">
+                                  <div className="font-medium text-sm">{user.name}</div>
+                                  <div className="text-xs text-muted-foreground">{user.email}</div>
+                                  {children.length > 0 && (
+                                    <div className="flex items-center gap-1 mt-1">
+                                      <Baby className="h-3 w-3 text-slate-400" />
+                                      <span className="text-xs text-slate-500">
+                                        {children.map(c => c.firstName).join(", ")}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </CommandItem>
+                            )
+                          })}
+                        </CommandGroup>
+                      </>
+                    )}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           )}
         </div>
       </div>

@@ -7,31 +7,31 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { Users } from "lucide-react"
-import type { SurveyStepProps } from '../types/survey.types'
+import type { SurveyStepProps } from "../types/survey.types"
 
 export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: SurveyStepProps) {
   const accountType: string = context?.accountType || data?.primaryCaregiver || ""
   const userPrefill = context?.userPrefill || {}
 
-  const [activeTab, setActiveTab] = useState<'papa' | 'mama'>(() =>
-    accountType === 'mother' ? 'mama' : 'papa'
+  const [activeTab, setActiveTab] = useState<"papa" | "mama">(() =>
+    accountType === "mother" ? "mama" : "papa"
   )
 
-  const updateParentFields = (parent: 'papa' | 'mama', fields: Record<string, any>) => {
+  const updateParentFields = (parent: "papa" | "mama", fields: Record<string, any>) => {
     const currentPrimary = data?.primaryCaregiver || accountType || ""
-    const resolvedPrimary = currentPrimary || (parent === 'mama' ? 'mother' : 'father')
+    const resolvedPrimary = currentPrimary || (parent === "mama" ? "mother" : "father")
 
     onChange({
       ...data,
       [parent]: {
         ...data[parent],
-        ...fields
+        ...fields,
       },
-      primaryCaregiver: resolvedPrimary
+      primaryCaregiver: resolvedPrimary,
     })
   }
 
-  const updateField = (parent: 'papa' | 'mama', field: string, value: any) => {
+  const updateField = (parent: "papa" | "mama", field: string, value: any) => {
     updateParentFields(parent, { [field]: value })
   }
 
@@ -44,19 +44,19 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
   useEffect(() => {
     if (hasInjectedPrefill) return
 
-    const targetParent: 'papa' | 'mama' | null = accountType === 'mother'
-      ? 'mama'
-      : accountType === 'father'
-        ? 'papa'
+    const targetParent: "papa" | "mama" | null = accountType === "mother"
+      ? "mama"
+      : accountType === "father"
+        ? "papa"
         : null
 
     if (!targetParent) return
 
     const parentData = (data as any)?.[targetParent] || {}
 
-    const namePrefill = typeof userPrefill?.name === 'string' ? userPrefill.name.trim() : ""
-    const phonePrefill = typeof userPrefill?.phone === 'string' ? userPrefill.phone.trim() : ""
-    const emailPrefill = typeof userPrefill?.email === 'string' ? userPrefill.email.trim() : ""
+    const namePrefill = typeof userPrefill?.name === "string" ? userPrefill.name.trim() : ""
+    const phonePrefill = typeof userPrefill?.phone === "string" ? userPrefill.phone.trim() : ""
+    const emailPrefill = typeof userPrefill?.email === "string" ? userPrefill.email.trim() : ""
 
     const updates: Record<string, string> = {}
     if (!parentData?.nombre && namePrefill) updates.nombre = namePrefill
@@ -72,9 +72,9 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
       ...data,
       [targetParent]: {
         ...parentData,
-        ...updates
+        ...updates,
       },
-      primaryCaregiver: accountType || data?.primaryCaregiver || ""
+      primaryCaregiver: accountType || data?.primaryCaregiver || "",
     })
 
     setHasInjectedPrefill(true)
@@ -95,26 +95,26 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
     const handler = (e: any) => {
       const fieldPath: string | undefined = e?.detail?.fieldPath
       if (!fieldPath) return
-      if (fieldPath.startsWith('mama.')) {
-        setActiveTab('mama')
-      } else if (fieldPath.startsWith('papa.')) {
-        setActiveTab('papa')
+      if (fieldPath.startsWith("mama.")) {
+        setActiveTab("mama")
+      } else if (fieldPath.startsWith("papa.")) {
+        setActiveTab("papa")
       }
 
       // Intentar enfocar el campo una vez cambie la pestaña
       setTimeout(() => {
-        const mappedId = fieldPath.replace(/\./g, '-')
+        const mappedId = fieldPath.replace(/\./g, "-")
         const el = document.getElementById(mappedId) as HTMLElement | null
         if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          el.scrollIntoView({ behavior: "smooth", block: "center" })
           el.focus?.()
         }
       }, 120)
     }
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('survey:focus-field', handler)
-      return () => window.removeEventListener('survey:focus-field', handler)
+    if (typeof window !== "undefined") {
+      window.addEventListener("survey:focus-field", handler)
+      return () => window.removeEventListener("survey:focus-field", handler)
     }
   }, [])
 
@@ -129,22 +129,22 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
       <div className="flex gap-2 border-b">
         <button
           type="button"
-          onClick={() => setActiveTab('papa')}
+          onClick={() => setActiveTab("papa")}
           className={`px-4 py-2 font-medium transition-colors ${
-            activeTab === 'papa'
-              ? 'border-b-2 border-blue-500 text-blue-600'
-              : 'text-gray-600 hover:text-gray-800'
+            activeTab === "papa"
+              ? "border-b-2 border-blue-500 text-blue-600"
+              : "text-gray-600 hover:text-gray-800"
           }`}
         >
           Sobre Papá
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('mama')}
+          onClick={() => setActiveTab("mama")}
           className={`px-4 py-2 font-medium transition-colors ${
-            activeTab === 'mama'
-              ? 'border-b-2 border-blue-500 text-blue-600'
-              : 'text-gray-600 hover:text-gray-800'
+            activeTab === "mama"
+              ? "border-b-2 border-blue-500 text-blue-600"
+              : "text-gray-600 hover:text-gray-800"
           }`}
         >
           Sobre Mamá
@@ -152,7 +152,7 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
       </div>
 
       {/* Contenido según tab activa */}
-      {activeTab === 'papa' ? (
+      {activeTab === "papa" ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* 1. Nombre */}
@@ -163,12 +163,12 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
               <Input 
                 id="papa-nombre"
                 value={data.papa?.nombre || ""}
-                onChange={(e) => updateField('papa', 'nombre', e.target.value)}
+                onChange={(e) => updateField("papa", "nombre", e.target.value)}
                 placeholder="Nombre del padre"
-                className={hasError('papa', 'nombre') ? 'border-red-500' : ''}
+                className={hasError("papa", "nombre") ? "border-red-500" : ""}
               />
-              {hasError('papa', 'nombre') && (
-                <p className="text-red-500 text-sm mt-1">{getError('papa', 'nombre')}</p>
+              {hasError("papa", "nombre") && (
+                <p className="text-red-500 text-sm mt-1">{getError("papa", "nombre")}</p>
               )}
             </div>
             
@@ -181,12 +181,12 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
                 id="papa-edad"
                 type="number"
                 value={data.papa?.edad || ""}
-                onChange={(e) => updateField('papa', 'edad', e.target.value)}
+                onChange={(e) => updateField("papa", "edad", e.target.value)}
                 placeholder="Edad"
-                className={hasError('papa', 'edad') ? 'border-red-500' : ''}
+                className={hasError("papa", "edad") ? "border-red-500" : ""}
               />
-              {hasError('papa', 'edad') && (
-                <p className="text-red-500 text-sm mt-1">{getError('papa', 'edad')}</p>
+              {hasError("papa", "edad") && (
+                <p className="text-red-500 text-sm mt-1">{getError("papa", "edad")}</p>
               )}
             </div>
             
@@ -198,12 +198,12 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
               <Input 
                 id="papa-ocupacion"
                 value={data.papa?.ocupacion || ""}
-                onChange={(e) => updateField('papa', 'ocupacion', e.target.value)}
+                onChange={(e) => updateField("papa", "ocupacion", e.target.value)}
                 placeholder="Ocupación del padre"
-                className={hasError('papa', 'ocupacion') ? 'border-red-500' : ''}
+                className={hasError("papa", "ocupacion") ? "border-red-500" : ""}
               />
-              {hasError('papa', 'ocupacion') && (
-                <p className="text-red-500 text-sm mt-1">{getError('papa', 'ocupacion')}</p>
+              {hasError("papa", "ocupacion") && (
+                <p className="text-red-500 text-sm mt-1">{getError("papa", "ocupacion")}</p>
               )}
             </div>
             
@@ -215,12 +215,12 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
               <Input 
                 id="papa-direccion"
                 value={data.papa?.direccion || ""}
-                onChange={(e) => updateField('papa', 'direccion', e.target.value)}
+                onChange={(e) => updateField("papa", "direccion", e.target.value)}
                 placeholder="Dirección completa"
-                className={hasError('papa', 'direccion') ? 'border-red-500' : ''}
+                className={hasError("papa", "direccion") ? "border-red-500" : ""}
               />
-              {hasError('papa', 'direccion') && (
-                <p className="text-red-500 text-sm mt-1">{getError('papa', 'direccion')}</p>
+              {hasError("papa", "direccion") && (
+                <p className="text-red-500 text-sm mt-1">{getError("papa", "direccion")}</p>
               )}
             </div>
             
@@ -232,7 +232,7 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
               <Input 
                 id="papa-ciudad"
                 value={data.papa?.ciudad || ""}
-                onChange={(e) => updateField('papa', 'ciudad', e.target.value)}
+                onChange={(e) => updateField("papa", "ciudad", e.target.value)}
                 placeholder="Ciudad"
               />
             </div>
@@ -245,7 +245,7 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
               <Input 
                 id="papa-telefono"
                 value={data.papa?.telefono || ""}
-                onChange={(e) => updateField('papa', 'telefono', e.target.value)}
+                onChange={(e) => updateField("papa", "telefono", e.target.value)}
                 placeholder="Número de teléfono"
               />
             </div>
@@ -259,12 +259,12 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
                 id="papa-email"
                 type="email"
                 value={data.papa?.email || ""}
-                onChange={(e) => updateField('papa', 'email', e.target.value)}
+                onChange={(e) => updateField("papa", "email", e.target.value)}
                 placeholder="Correo electrónico"
-                className={hasError('papa', 'email') ? 'border-red-500' : ''}
+                className={hasError("papa", "email") ? "border-red-500" : ""}
               />
-              {hasError('papa', 'email') && (
-                <p className="text-red-500 text-sm mt-1">{getError('papa', 'email')}</p>
+              {hasError("papa", "email") && (
+                <p className="text-red-500 text-sm mt-1">{getError("papa", "email")}</p>
               )}
             </div>
           </div>
@@ -274,7 +274,7 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
             <Label>8. ¿Papá trabaja fuera de casa?</Label>
             <RadioGroup
               value={data.papa?.trabajaFueraCasa === true ? "si" : data.papa?.trabajaFueraCasa === false ? "no" : ""}
-              onValueChange={(value) => updateField('papa', 'trabajaFueraCasa', value === 'si')}
+              onValueChange={(value) => updateField("papa", "trabajaFueraCasa", value === "si")}
             >
               <div className="flex gap-4 mt-2">
                 <div className="flex items-center space-x-2">
@@ -295,14 +295,14 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
             <RadioGroup
               value={data.papa?.tieneAlergias === true ? "si" : data.papa?.tieneAlergias === false ? "no" : ""}
               onValueChange={(value) => {
-                const hasAllergies = value === 'si'
+                const hasAllergies = value === "si"
                 onChange({
                   ...data,
                   papa: {
                     ...data.papa,
                     tieneAlergias: hasAllergies,
-                    alergias: hasAllergies ? data.papa?.alergias || "" : ""
-                  }
+                    alergias: hasAllergies ? data.papa?.alergias || "" : "",
+                  },
                 })
               }}
             >
@@ -325,12 +325,12 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
                 <Input
                   id="papa-alergias-detalle"
                   value={data.papa?.alergias || ""}
-                  onChange={(e) => updateField('papa', 'alergias', e.target.value)}
+                  onChange={(e) => updateField("papa", "alergias", e.target.value)}
                   placeholder="Ej: Alergia al polvo, lácteos..."
-                  className={hasError('papa', 'alergias') ? 'border-red-500 mt-1' : 'mt-1'}
+                  className={hasError("papa", "alergias") ? "border-red-500 mt-1" : "mt-1"}
                 />
-                {hasError('papa', 'alergias') && (
-                  <p className="text-red-500 text-sm mt-1">{getError('papa', 'alergias')}</p>
+                {hasError("papa", "alergias") && (
+                  <p className="text-red-500 text-sm mt-1">{getError("papa", "alergias")}</p>
                 )}
               </div>
             )}
@@ -347,12 +347,12 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
               <Input 
                 id="mama-nombre"
                 value={data.mama?.nombre || ""}
-                onChange={(e) => updateField('mama', 'nombre', e.target.value)}
+                onChange={(e) => updateField("mama", "nombre", e.target.value)}
                 placeholder="Nombre de la madre"
-                className={hasError('mama', 'nombre') ? 'border-red-500' : ''}
+                className={hasError("mama", "nombre") ? "border-red-500" : ""}
               />
-              {hasError('mama', 'nombre') && (
-                <p className="text-red-500 text-sm mt-1">{getError('mama', 'nombre')}</p>
+              {hasError("mama", "nombre") && (
+                <p className="text-red-500 text-sm mt-1">{getError("mama", "nombre")}</p>
               )}
             </div>
             
@@ -365,7 +365,7 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
                 id="mama-edad"
                 type="number"
                 value={data.mama?.edad || ""}
-                onChange={(e) => updateField('mama', 'edad', e.target.value)}
+                onChange={(e) => updateField("mama", "edad", e.target.value)}
                 placeholder="Edad (opcional)"
               />
             </div>
@@ -378,12 +378,12 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
               <Input 
                 id="mama-ocupacion"
                 value={data.mama?.ocupacion || ""}
-                onChange={(e) => updateField('mama', 'ocupacion', e.target.value)}
+                onChange={(e) => updateField("mama", "ocupacion", e.target.value)}
                 placeholder="Ocupación de la madre"
-                className={hasError('mama', 'ocupacion') ? 'border-red-500' : ''}
+                className={hasError("mama", "ocupacion") ? "border-red-500" : ""}
               />
-              {hasError('mama', 'ocupacion') && (
-                <p className="text-red-500 text-sm mt-1">{getError('mama', 'ocupacion')}</p>
+              {hasError("mama", "ocupacion") && (
+                <p className="text-red-500 text-sm mt-1">{getError("mama", "ocupacion")}</p>
               )}
             </div>
           </div>
@@ -394,8 +394,8 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
             <RadioGroup
               value={data.mama?.mismaDireccionPapa === true ? "si" : data.mama?.mismaDireccionPapa === false ? "no" : ""}
               onValueChange={(value) => {
-                const sameAddress = value === 'si'
-                updateParentFields('mama', {
+                const sameAddress = value === "si"
+                updateParentFields("mama", {
                   mismaDireccionPapa: sameAddress,
                   direccion: sameAddress ? "" : data.mama?.direccion || "",
                   ciudad: sameAddress ? "" : data.mama?.ciudad || "",
@@ -423,12 +423,12 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
               <Input 
                 id="mama-direccion"
                 value={data.mama?.direccion || ""}
-                onChange={(e) => updateField('mama', 'direccion', e.target.value)}
+                onChange={(e) => updateField("mama", "direccion", e.target.value)}
                 placeholder="Dirección completa"
-                className={hasError('mama', 'direccion') ? 'border-red-500' : ''}
+                className={hasError("mama", "direccion") ? "border-red-500" : ""}
               />
-              {hasError('mama', 'direccion') && (
-                <p className="text-red-500 text-sm mt-1">{getError('mama', 'direccion')}</p>
+              {hasError("mama", "direccion") && (
+                <p className="text-red-500 text-sm mt-1">{getError("mama", "direccion")}</p>
               )}
             </div>
           )}
@@ -443,12 +443,12 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
                 <Input 
                   id="mama-ciudad"
                   value={data.mama?.ciudad || ""}
-                  onChange={(e) => updateField('mama', 'ciudad', e.target.value)}
+                  onChange={(e) => updateField("mama", "ciudad", e.target.value)}
                   placeholder="Ciudad"
-                  className={hasError('mama', 'ciudad') ? 'border-red-500' : ''}
+                  className={hasError("mama", "ciudad") ? "border-red-500" : ""}
                 />
-                {hasError('mama', 'ciudad') && (
-                  <p className="text-red-500 text-sm mt-1">{getError('mama', 'ciudad')}</p>
+                {hasError("mama", "ciudad") && (
+                  <p className="text-red-500 text-sm mt-1">{getError("mama", "ciudad")}</p>
                 )}
               </div>
             )}
@@ -461,12 +461,12 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
               <Input 
                 id="mama-telefono"
                 value={data.mama?.telefono || ""}
-                onChange={(e) => updateField('mama', 'telefono', e.target.value)}
+                onChange={(e) => updateField("mama", "telefono", e.target.value)}
                 placeholder="Número de teléfono"
-                className={hasError('mama', 'telefono') ? 'border-red-500' : ''}
+                className={hasError("mama", "telefono") ? "border-red-500" : ""}
               />
-              {hasError('mama', 'telefono') && (
-                <p className="text-red-500 text-sm mt-1">{getError('mama', 'telefono')}</p>
+              {hasError("mama", "telefono") && (
+                <p className="text-red-500 text-sm mt-1">{getError("mama", "telefono")}</p>
               )}
             </div>
             
@@ -479,12 +479,12 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
                 id="mama-email"
                 type="email"
                 value={data.mama?.email || ""}
-                onChange={(e) => updateField('mama', 'email', e.target.value)}
+                onChange={(e) => updateField("mama", "email", e.target.value)}
                 placeholder="Correo electrónico"
-                className={hasError('mama', 'email') ? 'border-red-500' : ''}
+                className={hasError("mama", "email") ? "border-red-500" : ""}
               />
-              {hasError('mama', 'email') && (
-                <p className="text-red-500 text-sm mt-1">{getError('mama', 'email')}</p>
+              {hasError("mama", "email") && (
+                <p className="text-red-500 text-sm mt-1">{getError("mama", "email")}</p>
               )}
             </div>
           </div>
@@ -494,7 +494,7 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
             <Label>8. ¿Mamá trabaja fuera de casa?</Label>
             <RadioGroup
               value={data.mama?.trabajaFueraCasa === true ? "si" : data.mama?.trabajaFueraCasa === false ? "no" : ""}
-              onValueChange={(value) => updateField('mama', 'trabajaFueraCasa', value === 'si')}
+              onValueChange={(value) => updateField("mama", "trabajaFueraCasa", value === "si")}
             >
               <div className="flex gap-4 mt-2">
                 <div className="flex items-center space-x-2">
@@ -514,7 +514,7 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
             <Label>9. ¿Puedes dormir en la noche cuando tu hijo(a) duerme?</Label>
             <RadioGroup
               value={data.mama?.puedeDormir === true ? "si" : data.mama?.puedeDormir === false ? "no" : ""}
-              onValueChange={(value) => updateField('mama', 'puedeDormir', value === 'si')}
+              onValueChange={(value) => updateField("mama", "puedeDormir", value === "si")}
             >
               <div className="flex gap-4 mt-2">
                 <div className="flex items-center space-x-2">
@@ -537,7 +537,7 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
             <Textarea
               id="mama-apetito"
               value={data.mama?.apetito || ""}
-              onChange={(e) => updateField('mama', 'apetito', e.target.value)}
+              onChange={(e) => updateField("mama", "apetito", e.target.value)}
               placeholder="Describe tu apetito..."
               rows={2}
             />
@@ -549,14 +549,14 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
             <RadioGroup
               value={data.mama?.pensamientosNegativos === true ? "si" : data.mama?.pensamientosNegativos === false ? "no" : ""}
               onValueChange={(value) => {
-                const hasNegativeThoughts = value === 'si'
+                const hasNegativeThoughts = value === "si"
                 onChange({
                   ...data,
                   mama: {
                     ...data.mama,
                     pensamientosNegativos: hasNegativeThoughts,
-                    pensamientosNegativosDetalle: hasNegativeThoughts ? data.mama?.pensamientosNegativosDetalle || "" : ""
-                  }
+                    pensamientosNegativosDetalle: hasNegativeThoughts ? data.mama?.pensamientosNegativosDetalle || "" : "",
+                  },
                 })
               }}
             >
@@ -579,7 +579,7 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
                 <Textarea
                   id="mama-pensamientos-detalle"
                   value={data.mama?.pensamientosNegativosDetalle || ""}
-                  onChange={(e) => updateField('mama', 'pensamientosNegativosDetalle', e.target.value)}
+                  onChange={(e) => updateField("mama", "pensamientosNegativosDetalle", e.target.value)}
                   placeholder="Describe los pensamientos negativos que te generan miedo..."
                   rows={3}
                   className="mt-1"
@@ -594,14 +594,14 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
             <RadioGroup
               value={data.mama?.tieneAlergias === true ? "si" : data.mama?.tieneAlergias === false ? "no" : ""}
               onValueChange={(value) => {
-                const hasAllergies = value === 'si'
+                const hasAllergies = value === "si"
                 onChange({
                   ...data,
                   mama: {
                     ...data.mama,
                     tieneAlergias: hasAllergies,
-                    alergias: hasAllergies ? data.mama?.alergias || "" : ""
-                  }
+                    alergias: hasAllergies ? data.mama?.alergias || "" : "",
+                  },
                 })
               }}
             >
@@ -624,12 +624,12 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
                 <Input
                   id="mama-alergias-detalle"
                   value={data.mama?.alergias || ""}
-                  onChange={(e) => updateField('mama', 'alergias', e.target.value)}
+                  onChange={(e) => updateField("mama", "alergias", e.target.value)}
                   placeholder="Ej: Polen, mariscos..."
-                  className={hasError('mama', 'alergias') ? 'border-red-500 mt-1' : 'mt-1'}
+                  className={hasError("mama", "alergias") ? "border-red-500 mt-1" : "mt-1"}
                 />
-                {hasError('mama', 'alergias') && (
-                  <p className="text-red-500 text-sm mt-1">{getError('mama', 'alergias')}</p>
+                {hasError("mama", "alergias") && (
+                  <p className="text-red-500 text-sm mt-1">{getError("mama", "alergias")}</p>
                 )}
               </div>
             )}

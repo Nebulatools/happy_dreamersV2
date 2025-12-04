@@ -32,7 +32,7 @@ interface ChildPlan {
 export default function PlanesPage() {
   const { activeChildId } = useActiveChild()
   const { data: session } = useSession()
-  const isAdmin = session?.user?.role === 'admin'
+  const isAdmin = session?.user?.role === "admin"
   const { activeUserId, activeUserName } = useActiveChild()
   const [loading, setLoading] = useState(true)
   const [plans, setPlans] = useState<ChildPlan[]>([])
@@ -83,7 +83,7 @@ export default function PlanesPage() {
         const data = await response.json()
         const children = Array.isArray(data) ? data : (data?.children || data?.data?.children || [])
         const child = children.find((c: any) => c._id === activeChildId)
-        if (child) setChildName(`${child.firstName || ''} ${child.lastName || ''}`.trim())
+        if (child) setChildName(`${child.firstName || ""} ${child.lastName || ""}`.trim())
       } catch {}
     }
     loadChildName()
@@ -200,10 +200,10 @@ export default function PlanesPage() {
                 <div className="flex items-center gap-2">
                   {activePlan.createdAt && (
                     <p className="text-xs text-muted-foreground">
-                      Creado: {new Date(activePlan.createdAt).toLocaleDateString('es-ES', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric'
+                      Creado: {new Date(activePlan.createdAt).toLocaleDateString("es-ES", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
                       })}
                     </p>
                   )}
@@ -257,10 +257,10 @@ export default function PlanesPage() {
                     <div className="flex items-center gap-3">
                       {plan.createdAt && (
                         <p className="text-sm text-muted-foreground">
-                          {new Date(plan.createdAt).toLocaleDateString('es-ES', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric'
+                          {new Date(plan.createdAt).toLocaleDateString("es-ES", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
                           })}
                         </p>
                       )}

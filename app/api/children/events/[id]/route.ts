@@ -131,7 +131,7 @@ export async function DELETE(
 
     const childIdParam = req.nextUrl.searchParams.get("childId")
 
-    const eventsCol = db.collection('events')
+    const eventsCol = db.collection("events")
     let eventDoc: any = null
     try {
       eventDoc = await eventsCol.findOne({ _id: new ObjectId(eventId) })
@@ -146,8 +146,8 @@ export async function DELETE(
     const targetChildId = childIdParam || eventDoc?.childId?.toString?.()
 
     if (!targetChildId) {
-      logger.error('No se pudo determinar childId para el evento')
-      return NextResponse.json({ error: 'No se pudo determinar el niño asociado al evento' }, { status: 400 })
+      logger.error("No se pudo determinar childId para el evento")
+      return NextResponse.json({ error: "No se pudo determinar el niño asociado al evento" }, { status: 400 })
     }
 
     let accessContext
@@ -178,23 +178,23 @@ export async function DELETE(
     }
 
     if (deletedFromEvents === 0) {
-      logger.warn('Evento no encontrado en colección events, intentando en children.events')
+      logger.warn("Evento no encontrado en colección events, intentando en children.events")
     }
 
     // También eliminar de la colección embebida para compatibilidad
-    const childrenResult = await db.collection('children').updateOne(
+    const childrenResult = await db.collection("children").updateOne(
       { 
         _id: new ObjectId(targetChildId),
-        parentId: new ObjectId(accessContext.ownerId)
+        parentId: new ObjectId(accessContext.ownerId),
       },
       { $pull: { events: { _id: eventId } } as any }
     )
 
     if (deletedFromEvents === 0 && childrenResult.modifiedCount === 0) {
-      return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+      return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 })
     }
 
-    return NextResponse.json({ message: 'Evento eliminado exitosamente' }, { status: 200 })
+    return NextResponse.json({ message: "Evento eliminado exitosamente" }, { status: 200 })
   } catch (error: any) {
     logger.error("Error al eliminar evento:", error.message, error.stack)
     return NextResponse.json(

@@ -12,7 +12,7 @@ export async function GET(req: Request) {
     }
 
     // Verificar que sea admin
-    if (session.user.role !== 'admin') {
+    if (session.user.role !== "admin") {
       return NextResponse.json({ message: "Acceso denegado" }, { status: 403 })
     }
 
@@ -24,19 +24,19 @@ export async function GET(req: Request) {
     const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
 
     // 1. Obtener todos los niños
-    const allChildren = await db.collection('children').find({}).toArray()
+    const allChildren = await db.collection("children").find({}).toArray()
 
     // 2. Obtener todos los cuestionarios para obtener el contacto principal
-    const allSurveys = await db.collection('surveys').find({}).toArray()
+    const allSurveys = await db.collection("surveys").find({}).toArray()
 
     // Crear mapa de childId -> contacto principal (apellido)
     const surveyMap = new Map()
     allSurveys.forEach(survey => {
       const childId = survey.childId?.toString()
-      const contactoPrincipal = survey.responses?.contactoPrincipal || 'mama'
-      const apellido = contactoPrincipal === 'mama'
-        ? survey.responses?.apellidoMama || ''
-        : survey.responses?.apellidoPapa || ''
+      const contactoPrincipal = survey.responses?.contactoPrincipal || "mama"
+      const apellido = contactoPrincipal === "mama"
+        ? survey.responses?.apellidoMama || ""
+        : survey.responses?.apellidoPapa || ""
 
       if (childId) {
         surveyMap.set(childId, apellido)
@@ -44,8 +44,8 @@ export async function GET(req: Request) {
     })
 
     // 3. Obtener todos los planes activos (últimos 30 días)
-    const activePlans = await db.collection('consultas').find({
-      createdAt: { $gte: thirtyDaysAgo }
+    const activePlans = await db.collection("consultas").find({
+      createdAt: { $gte: thirtyDaysAgo },
     }).toArray()
 
     // Crear un Set de childIds que tienen planes activos
@@ -54,10 +54,10 @@ export async function GET(req: Request) {
     )
 
     // 4. Obtener eventos recientes (últimos 7 días) - solo necesitamos childIds
-    const recentEvents = await db.collection('events').find({
-      startTime: { $gte: sevenDaysAgo }
+    const recentEvents = await db.collection("events").find({
+      startTime: { $gte: sevenDaysAgo },
     }, {
-      projection: { childId: 1 }
+      projection: { childId: 1 },
     }).toArray()
 
     // Crear un Set de childIds con actividad reciente
@@ -77,7 +77,7 @@ export async function GET(req: Request) {
         activeToday++
       }
 
-      const apellidoContacto = surveyMap.get(childIdStr) || child.lastName || ''
+      const apellidoContacto = surveyMap.get(childIdStr) || child.lastName || ""
 
       return {
         childId: childIdStr,
@@ -86,7 +86,7 @@ export async function GET(req: Request) {
         parentId: child.parentId?.toString(),
         isActive,
         hasPlan,
-        hasRecentActivity: hasActivity
+        hasRecentActivity: hasActivity,
       }
     })
 
@@ -104,11 +104,11 @@ export async function GET(req: Request) {
       totalChildren: allChildren.length,
       activeToday,
       childMetrics,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
 
   } catch (error) {
-    console.error('Error fetching admin dashboard metrics:', error)
+    console.error("Error fetching admin dashboard metrics:", error)
     return NextResponse.json(
       { message: "Error al obtener métricas", error: String(error) },
       { status: 500 }

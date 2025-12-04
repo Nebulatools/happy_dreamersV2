@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     childStats: false,
     ragContext: false,
     consultationHistory: false,
-    aiAnalysis: false
+    aiAnalysis: false,
   }
   
   try {
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       childId,
       transcriptLength: transcript.length,
       adminId: session.user.id,
-      requestTimestamp: new Date().toISOString()
+      requestTimestamp: new Date().toISOString(),
     })
 
     processingSteps.transcript = true
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
       statsFromDate: childData.statsFromDate?.toISOString(),
       lastConsultationDate: childData.lastConsultationDate?.toISOString(),
       calculationMethod: "unified_with_dashboard",
-      processingTime: Date.now() - stepStartTime
+      processingTime: Date.now() - stepStartTime,
     })
 
     // 2. Generar análisis INTEGRAL del transcript (conversación completa)
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     logger.info("Análisis con IA completado", {
       analysisLength: analysis.analysis?.length || 0,
       recommendationsLength: analysis.recommendations?.length || 0,
-      processingTime: Date.now() - aiStartTime
+      processingTime: Date.now() - aiStartTime,
     })
 
     // 5. Guardar el reporte en la base de datos
@@ -112,18 +112,18 @@ export async function POST(req: NextRequest) {
       sourcesUsed: {
         transcript: processingSteps.transcript,
         childStatistics: processingSteps.childStats,
-        aiAnalysis: processingSteps.aiAnalysis
+        aiAnalysis: processingSteps.aiAnalysis,
       },
       dataQuality: {
         transcriptLength: transcript.length,
         statsEventsCount: childData.stats.totalEvents,
         analysisMode: "comprehensive_conversation",
-        allSourcesUsed: Object.values(processingSteps).every(step => step)
+        allSourcesUsed: Object.values(processingSteps).every(step => step),
       },
       performance: {
         totalTime: totalProcessingTime,
-        avgTimePerStep: totalProcessingTime / Object.keys(processingSteps).length
-      }
+        avgTimePerStep: totalProcessingTime / Object.keys(processingSteps).length,
+      },
     })
 
     return NextResponse.json({
@@ -142,9 +142,9 @@ export async function POST(req: NextRequest) {
         dataQuality: {
           allSourcesUsed: Object.values(processingSteps).every(step => step),
           statsFromDate: childData.statsFromDate?.toISOString(),
-          statsMethod: "unified_with_dashboard"
-        }
-      }
+          statsMethod: "unified_with_dashboard",
+        },
+      },
     })
 
   } catch (error) {
@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
       stack: error instanceof Error ? error.stack : undefined,
       processingSteps,
       totalProcessingTime,
-      failedAt: Object.entries(processingSteps).find(([_, completed]) => !completed)?.[0] || "unknown"
+      failedAt: Object.entries(processingSteps).find(([_, completed]) => !completed)?.[0] || "unknown",
     })
     
     return NextResponse.json({ 
@@ -179,7 +179,7 @@ async function getChildWithStats(userId: string, childId: string) {
     if (child && child.parentId && child.parentId.toString && child.parentId.toString() !== userId) {
       logger.warn("Advertencia: child.parentId difiere del userId solicitado", {
         childParentId: child.parentId.toString(),
-        requestedUserId: userId
+        requestedUserId: userId,
       })
     }
 
@@ -201,13 +201,13 @@ async function getChildWithStats(userId: string, childId: string) {
       statsStartDate = new Date(lastConsultation.createdAt)
       logger.info("📊 Usando estadísticas desde última consulta", {
         lastConsultationDate: lastConsultation.createdAt,
-        statsFromDate: statsStartDate.toISOString()
+        statsFromDate: statsStartDate.toISOString(),
       })
     } else {
       // Si no hay consulta previa, usar últimos 30 días como fallback
       statsStartDate = subDays(now, 30)
       logger.info("📊 Primera consulta - usando estadísticas de últimos 30 días", {
-        statsFromDate: statsStartDate.toISOString()
+        statsFromDate: statsStartDate.toISOString(),
       })
     }
 
@@ -221,8 +221,8 @@ async function getChildWithStats(userId: string, childId: string) {
       eventTypes: [...new Set(events.map(e => e.eventType))],
       dateRange: {
         oldest: events[events.length - 1]?.startTime,
-        newest: events[0]?.startTime
-      }
+        newest: events[0]?.startTime,
+      },
     })
 
     // 🔧 USAR LÓGICA UNIFICADA DE SLEEP-CALCULATIONS
@@ -238,7 +238,7 @@ async function getChildWithStats(userId: string, childId: string) {
       totalEvents: stats.totalEvents,
       recentEvents: stats.recentEvents,
       dominantMood: stats.dominantMood,
-      method: "processSleepStatistics_unified"
+      method: "processSleepStatistics_unified",
     })
 
     return {
@@ -416,7 +416,7 @@ Enfócate en los RESULTADOS FINALES de la conversación, no solo en recomendacio
       logger.error("Error parseando respuesta de IA:", parseError)
       return {
         analysis: responseContent,
-        recommendations: "Ver análisis para recomendaciones específicas."
+        recommendations: "Ver análisis para recomendaciones específicas.",
       }
     }
   } catch (error) {

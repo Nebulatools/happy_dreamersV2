@@ -25,7 +25,7 @@ export async function PUT(request: NextRequest) {
     const { currentPassword, newPassword } = body
 
     // Validate input data
-    if (!currentPassword || typeof currentPassword !== 'string') {
+    if (!currentPassword || typeof currentPassword !== "string") {
       logger.warn("Missing current password in change request")
       return NextResponse.json(
         { error: "La contraseña actual es requerida" },
@@ -33,7 +33,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    if (!newPassword || typeof newPassword !== 'string') {
+    if (!newPassword || typeof newPassword !== "string") {
       logger.warn("Missing new password in change request")
       return NextResponse.json(
         { error: "La nueva contraseña es requerida" },
@@ -54,7 +54,7 @@ export async function PUT(request: NextRequest) {
     const { db } = await connectToDatabase()
     
     const user = await db.collection("users").findOne({
-      email: session.user.email
+      email: session.user.email,
     })
     
     if (!user || !user.password) {
@@ -85,8 +85,8 @@ export async function PUT(request: NextRequest) {
       { 
         $set: { 
           password: hashedNewPassword,
-          updatedAt: new Date()
-        } 
+          updatedAt: new Date(),
+        }, 
       }
     )
     
@@ -99,12 +99,12 @@ export async function PUT(request: NextRequest) {
     }
 
     logger.info("Password changed successfully", { 
-      userEmail: session.user.email
+      userEmail: session.user.email,
     })
 
     return NextResponse.json({
       success: true,
-      message: "Contraseña actualizada correctamente"
+      message: "Contraseña actualizada correctamente",
     })
 
   } catch (error) {

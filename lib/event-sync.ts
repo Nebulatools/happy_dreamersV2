@@ -1,11 +1,11 @@
 // Sistema de sincronización entre children.events[] y collection("events")
 // Mantiene ambos sistemas en sync para operaciones y análisis
 
-import { connectToDatabase } from './mongodb'
-import { ObjectId } from 'mongodb'
-import { createLogger } from './logger'
+import { connectToDatabase } from "./mongodb"
+import { ObjectId } from "mongodb"
+import { createLogger } from "./logger"
 
-const logger = createLogger('event-sync')
+const logger = createLogger("event-sync")
 
 export interface EventSyncData {
   _id: string
@@ -48,25 +48,33 @@ export async function syncEventToAnalyticsCollection(eventData: EventSyncData): 
     const { db } = await connectToDatabase()
     
     // Verificar si ya existe el evento en la colección analytics
-    const existingEvent = await db.collection("events").findOne({ _id: eventData._id })
+    const existingEvent = await db.collection("events").findOne({ _id: new ObjectId(eventData._id) })
     
+    // Convertir IDs a ObjectId para consistencia
+    const normalizedData = {
+      ...eventData,
+      _id: new ObjectId(eventData._id),
+      childId: new ObjectId(eventData.childId),
+      parentId: new ObjectId(eventData.parentId),
+    }
+
     if (existingEvent) {
       // Actualizar evento existente
       await db.collection("events").updateOne(
-        { _id: eventData._id },
-        { 
+        { _id: normalizedData._id },
+        {
           $set: {
-            ...eventData,
-            updatedAt: new Date().toISOString()
-          }
+            ...normalizedData,
+            updatedAt: new Date().toISOString(),
+          },
         }
       )
       logger.info(`Evento ${eventData._id} actualizado en colección analytics`)
     } else {
       // Crear nuevo evento
       await db.collection("events").insertOne({
-        ...eventData,
-        createdAt: eventData.createdAt || new Date().toISOString()
+        ...normalizedData,
+        createdAt: eventData.createdAt || new Date().toISOString(),
       })
       logger.info(`Evento ${eventData._id} sincronizado a colección analytics`)
     }
@@ -84,8 +92,8 @@ export async function syncEventToAnalyticsCollection(eventData: EventSyncData): 
 export async function removeEventFromAnalyticsCollection(eventId: string): Promise<void> {
   try {
     const { db } = await connectToDatabase()
-    
-    await db.collection("events").deleteOne({ _id: eventId })
+
+    await db.collection("events").deleteOne({ _id: new ObjectId(eventId) })
     logger.info(`Evento ${eventId} eliminado de colección analytics`)
     
   } catch (error) {
@@ -103,7 +111,7 @@ export async function syncChildEventsToAnalytics(childId: string): Promise<void>
     
     // Obtener el niño con todos sus eventos
     const child = await db.collection("children").findOne({ 
-      _id: new ObjectId(childId) 
+      _id: new ObjectId(childId), 
     })
     
     if (!child || !child.events) {
@@ -139,7 +147,7 @@ export async function syncChildEventsToAnalytics(childId: string): Promise<void>
         activityDuration: event.activityDuration,
         activityImpact: event.activityImpact,
         activityNotes: event.activityNotes,
-        createdAt: event.createdAt || new Date().toISOString()
+        createdAt: event.createdAt || new Date().toISOString(),
       }
       
       await syncEventToAnalyticsCollection(eventSyncData)
@@ -168,10 +176,10 @@ export async function syncAllChildrenEvents(): Promise<void> {
       await syncChildEventsToAnalytics(child._id.toString())
     }
     
-    logger.info('Sincronización masiva completada')
+    logger.info("Sincronización masiva completada")
     
   } catch (error) {
-    logger.error('Error en sincronización masiva:', error)
+    logger.error("Error en sincronización masiva:", error)
     throw error
   }
 }

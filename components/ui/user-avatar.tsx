@@ -34,7 +34,7 @@ export function UserAvatar({ name, image, className, fallbackClassName }: UserAv
       "bg-[#0F6CBD]",
       "bg-[#2C6FCF]",
       "bg-[#1C4E80]",
-      "bg-[#3F74DA]"
+      "bg-[#3F74DA]",
     ]
     
     // Usar la suma de los códigos de caracteres para seleccionar un color

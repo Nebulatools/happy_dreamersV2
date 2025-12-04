@@ -1,7 +1,7 @@
 // Configuración de Mongoose para Happy Dreamers
 // Conexión singleton compatible con MongoDB nativo existente
 
-import mongoose from 'mongoose'
+import mongoose from "mongoose"
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("Mongoose")
@@ -22,7 +22,7 @@ declare global {
   var mongoose: MongooseCache | undefined
 }
 
-let cached: MongooseCache = global.mongoose || {
+const cached: MongooseCache = global.mongoose || {
   conn: null,
   promise: null,
 }
@@ -63,15 +63,15 @@ async function dbConnect(): Promise<typeof mongoose> {
         logger.info("Mongoose connected successfully")
         
         // Event listeners para monitoreo
-        mongoose.connection.on('error', (error) => {
+        mongoose.connection.on("error", (error) => {
           logger.error("Mongoose connection error:", error)
         })
 
-        mongoose.connection.on('disconnected', () => {
+        mongoose.connection.on("disconnected", () => {
           logger.warn("Mongoose disconnected")
         })
 
-        mongoose.connection.on('reconnected', () => {
+        mongoose.connection.on("reconnected", () => {
           logger.info("Mongoose reconnected")
         })
 
@@ -99,10 +99,10 @@ export async function mongooseHealthCheck(): Promise<{
     await dbConnect()
     
     const readyStates = {
-      0: 'disconnected',
-      1: 'connected',
-      2: 'connecting',
-      3: 'disconnecting'
+      0: "disconnected",
+      1: "connected",
+      2: "connecting",
+      3: "disconnecting",
     }
 
     const readyState = mongoose.connection.readyState
@@ -112,14 +112,14 @@ export async function mongooseHealthCheck(): Promise<{
     return { 
       healthy, 
       readyState, 
-      readyStateText 
+      readyStateText, 
     }
   } catch (error: any) {
     return { 
       healthy: false, 
       readyState: 0, 
-      readyStateText: 'error',
-      error: error.message 
+      readyStateText: "error",
+      error: error.message, 
     }
   }
 }

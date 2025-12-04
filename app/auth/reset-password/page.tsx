@@ -76,7 +76,7 @@ function ResetPasswordForm() {
       const res = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password })
+        body: JSON.stringify({ token, password }),
       })
 
       const data = await res.json()
@@ -102,8 +102,8 @@ function ResetPasswordForm() {
 
   if (validatingToken) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)' }}>
-        <div className="backdrop-blur-sm shadow-2xl border border-white/20" style={{ backgroundColor: '#EFFFFF', width: '451px', minHeight: '200px', borderRadius: '20px', padding: '32px' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)" }}>
+        <div className="backdrop-blur-sm shadow-2xl border border-white/20" style={{ backgroundColor: "#EFFFFF", width: "451px", minHeight: "200px", borderRadius: "20px", padding: "32px" }}>
           <div className="flex items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-[#68A1C8]" />
             <span className="ml-2 text-[#374151] century-gothic">Validating token...</span>
@@ -115,7 +115,7 @@ function ResetPasswordForm() {
 
   if (!tokenValid) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)" }}>
         {/* Logo */}
         <div className="flex flex-col items-center justify-center mr-16">
           <img
@@ -129,12 +129,12 @@ function ResetPasswordForm() {
         {/* Error Card */}
         <div className="flex items-center justify-center">
           <div className="w-[451px]">
-            <div className="backdrop-blur-sm shadow-2xl border border-white/20" style={{ backgroundColor: '#EFFFFF', width: '451px', minHeight: '400px', borderRadius: '20px', padding: '32px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div className="backdrop-blur-sm shadow-2xl border border-white/20" style={{ backgroundColor: "#EFFFFF", width: "451px", minHeight: "400px", borderRadius: "20px", padding: "32px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
               <div className="text-center">
                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <XCircle className="w-8 h-8 text-red-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-[#374151] mb-2 ludicrous-title" style={{ fontSize: '32px' }}>
+                <h2 className="text-2xl font-bold text-[#374151] mb-2 ludicrous-title" style={{ fontSize: "32px" }}>
                   Invalid Token
                 </h2>
                 <p className="text-[#718096] century-gothic mb-6">
@@ -146,12 +146,12 @@ function ResetPasswordForm() {
                     onClick={() => router.push("/auth/forgot-password")}
                     className="w-full text-white border-0 rounded-xl py-3 font-normal text-[13px]"
                     style={{ 
-                      fontFamily: 'Century Gothic, sans-serif',
-                      background: '#68A1C8',
-                      backgroundColor: '#68A1C8'
+                      fontFamily: "Century Gothic, sans-serif",
+                      background: "#68A1C8",
+                      backgroundColor: "#68A1C8",
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a91b8'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#68A1C8'}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#5a91b8"}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#68A1C8"}
                   >
                     Request New Link
                   </Button>
@@ -171,7 +171,7 @@ function ResetPasswordForm() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)" }}>
         {/* Logo */}
         <div className="flex flex-col items-center justify-center mr-16">
           <img
@@ -185,12 +185,12 @@ function ResetPasswordForm() {
         {/* Success Card */}
         <div className="flex items-center justify-center">
           <div className="w-[451px]">
-            <div className="backdrop-blur-sm shadow-2xl border border-white/20" style={{ backgroundColor: '#EFFFFF', width: '451px', minHeight: '400px', borderRadius: '20px', padding: '32px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div className="backdrop-blur-sm shadow-2xl border border-white/20" style={{ backgroundColor: "#EFFFFF", width: "451px", minHeight: "400px", borderRadius: "20px", padding: "32px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
               <div className="text-center">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle className="w-8 h-8 text-green-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-[#374151] mb-2 ludicrous-title" style={{ fontSize: '32px' }}>
+                <h2 className="text-2xl font-bold text-[#374151] mb-2 ludicrous-title" style={{ fontSize: "32px" }}>
                   Password Updated!
                 </h2>
                 <p className="text-[#718096] century-gothic mb-6">
@@ -204,12 +204,12 @@ function ResetPasswordForm() {
                   onClick={() => router.push("/auth/login")}
                   className="w-full text-white border-0 rounded-xl py-3 font-normal text-[13px]"
                   style={{ 
-                    fontFamily: 'Century Gothic, sans-serif',
-                    background: '#68A1C8',
-                    backgroundColor: '#68A1C8'
+                    fontFamily: "Century Gothic, sans-serif",
+                    background: "#68A1C8",
+                    backgroundColor: "#68A1C8",
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a91b8'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#68A1C8'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#5a91b8"}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#68A1C8"}
                 >
                   Go to Login Now
                 </Button>
@@ -222,7 +222,7 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)' }}>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)" }}>
       {/* Logo */}
       <div className="flex flex-col items-center justify-center mr-16">
         <img
@@ -236,13 +236,13 @@ function ResetPasswordForm() {
       {/* Reset Form */}
       <div className="flex items-center justify-center">
         <div className="w-[451px]">
-          <div className="backdrop-blur-sm shadow-2xl border border-white/20" style={{ backgroundColor: '#EFFFFF', width: '451px', minHeight: '550px', borderRadius: '20px', padding: '32px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div className="backdrop-blur-sm shadow-2xl border border-white/20" style={{ backgroundColor: "#EFFFFF", width: "451px", minHeight: "550px", borderRadius: "20px", padding: "32px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
             {/* Header */}
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-[#DEF1F1] rounded-full flex items-center justify-center mx-auto mb-4">
                 <Lock className="w-8 h-8 text-[#68A1C8]" />
               </div>
-              <h1 className="mb-2 ludicrous-title" style={{ fontSize: '48px' }}>
+              <h1 className="mb-2 ludicrous-title" style={{ fontSize: "48px" }}>
                 New Password
               </h1>
               <p className="text-[#718096] text-sm century-gothic">
@@ -273,7 +273,7 @@ function ResetPasswordForm() {
                     placeholder="Minimum 8 characters"
                     required
                     disabled={loading}
-                    style={{ fontFamily: 'Century Gothic, sans-serif', backgroundColor: '#DEF1F1' }}
+                    style={{ fontFamily: "Century Gothic, sans-serif", backgroundColor: "#DEF1F1" }}
                     className="w-full border-0 rounded-lg px-10 py-3 text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
                   />
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
@@ -300,7 +300,7 @@ function ResetPasswordForm() {
                     placeholder="Repeat your password"
                     required
                     disabled={loading}
-                    style={{ fontFamily: 'Century Gothic, sans-serif', backgroundColor: '#DEF1F1' }}
+                    style={{ fontFamily: "Century Gothic, sans-serif", backgroundColor: "#DEF1F1" }}
                     className="w-full border-0 rounded-lg px-10 py-3 text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4299E1] text-[#2D3748]"
                   />
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
@@ -320,12 +320,12 @@ function ResetPasswordForm() {
                 disabled={loading}
                 className="w-full text-white border-0 rounded-xl py-3 font-normal text-[13px]"
                 style={{ 
-                  fontFamily: 'Century Gothic, sans-serif',
-                  background: '#68A1C8',
-                  backgroundColor: '#68A1C8'
+                  fontFamily: "Century Gothic, sans-serif",
+                  background: "#68A1C8",
+                  backgroundColor: "#68A1C8",
                 }}
-                onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = '#5a91b8')}
-                onMouseLeave={(e) => !loading && (e.currentTarget.style.backgroundColor = '#68A1C8')}
+                onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = "#5a91b8")}
+                onMouseLeave={(e) => !loading && (e.currentTarget.style.backgroundColor = "#68A1C8")}
               >
                 {loading ? (
                   <>
@@ -353,7 +353,7 @@ function ResetPasswordForm() {
 export default function ResetPasswordPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)" }}>
         <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     }>

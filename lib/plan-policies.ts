@@ -1,4 +1,4 @@
-import { subDays, parseISO } from 'date-fns'
+import { subDays, parseISO } from "date-fns"
 
 export interface PlanPolicy {
   napTransition: {
@@ -18,7 +18,7 @@ export interface PlanPolicy {
 
 export function getAgeInMonths(birthDate?: string | Date | null): number | null {
   if (!birthDate) return null
-  const d = typeof birthDate === 'string' ? new Date(birthDate) : birthDate
+  const d = typeof birthDate === "string" ? new Date(birthDate) : birthDate
   if (isNaN(d.getTime())) return null
   const diffMs = Date.now() - d.getTime()
   const months = diffMs / (1000 * 60 * 60 * 24 * 30.44)
@@ -31,7 +31,7 @@ export function derivePlanPolicy(params: { ageInMonths: number | null; events?: 
   // Detectar uso reciente de night_feeding (últimos 7 días)
   const weekAgo = subDays(new Date(), 7)
   const hasRecentNightFeeding = events.some((e: any) => {
-    if (e.eventType !== 'night_feeding' || !e.startTime) return false
+    if (e.eventType !== "night_feeding" || !e.startTime) return false
     const dt = parseISO(e.startTime)
     return dt >= weekAgo
   })
@@ -41,11 +41,11 @@ export function derivePlanPolicy(params: { ageInMonths: number | null; events?: 
 
   const napRecommendedStep = isTransitionWindow ? 10 : 30 // minutos por ajuste
   const napNote = isTransitionWindow
-    ? 'En la transición de 2→1 siestas (15–18 meses), hacer cambios graduales de 10–15 min cada 3–4 días.'
-    : 'En general, puedes ajustar bloques de 30 min de una sola vez si el niño lo tolera.'
+    ? "En la transición de 2→1 siestas (15–18 meses), hacer cambios graduales de 10–15 min cada 3–4 días."
+    : "En general, puedes ajustar bloques de 30 min de una sola vez si el niño lo tolera."
 
   const nightWeaningActive = !!hasRecentNightFeeding
-  const nightWeaningNote = 'Para destete nocturno: mover la toma gradualmente más temprano y aumentar la cantidad de manera paulatina.'
+  const nightWeaningNote = "Para destete nocturno: mover la toma gradualmente más temprano y aumentar la cantidad de manera paulatina."
 
   const policy: PlanPolicy = {
     napTransition: {

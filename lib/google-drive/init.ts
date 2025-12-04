@@ -1,9 +1,9 @@
-import { getGoogleDriveScheduler } from './scheduler'
-import { getGoogleDriveSyncService } from './sync-service'
-import { isGoogleDriveEnabled } from './drive-client'
-import { createLogger } from '@/lib/logger'
+import { getGoogleDriveScheduler } from "./scheduler"
+import { getGoogleDriveSyncService } from "./sync-service"
+import { isGoogleDriveEnabled } from "./drive-client"
+import { createLogger } from "@/lib/logger"
 
-const logger = createLogger('GoogleDriveInit')
+const logger = createLogger("GoogleDriveInit")
 
 /**
  * Inicializa el sistema de Google Drive
@@ -18,42 +18,42 @@ export async function initializeGoogleDrive(): Promise<{
   schedulerStarted: boolean
 }> {
   try {
-    logger.info('🚀 Inicializando sistema de Google Drive...')
+    logger.info("🚀 Inicializando sistema de Google Drive...")
 
     // Verificar si está habilitado
     const isEnabled = isGoogleDriveEnabled()
     
     if (!isEnabled) {
-      logger.info('ℹ️  Google Drive sync está deshabilitado o no configurado')
+      logger.info("ℹ️  Google Drive sync está deshabilitado o no configurado")
       return {
         success: true,
-        message: 'Google Drive sync no está habilitado',
+        message: "Google Drive sync no está habilitado",
         isEnabled: false,
-        schedulerStarted: false
+        schedulerStarted: false,
       }
     }
 
-    logger.info('✅ Google Drive sync está habilitado')
+    logger.info("✅ Google Drive sync está habilitado")
 
     // Obtener servicios
     const syncService = getGoogleDriveSyncService()
     const scheduler = getGoogleDriveScheduler()
 
     // Verificar conexión
-    logger.info('🔗 Verificando conexión con Google Drive...')
+    logger.info("🔗 Verificando conexión con Google Drive...")
     const connectionOk = await syncService.testConnection()
 
     if (!connectionOk) {
-      logger.error('❌ Error de conexión con Google Drive')
+      logger.error("❌ Error de conexión con Google Drive")
       return {
         success: false,
-        message: 'Error de conexión con Google Drive. Verifica las credenciales.',
+        message: "Error de conexión con Google Drive. Verifica las credenciales.",
         isEnabled: true,
-        schedulerStarted: false
+        schedulerStarted: false,
       }
     }
 
-    logger.info('✅ Conexión con Google Drive verificada')
+    logger.info("✅ Conexión con Google Drive verificada")
 
     // El scheduler ya se auto-inicia en su constructor si está habilitado
     const schedulerStatus = scheduler.getStatus()
@@ -62,7 +62,7 @@ export async function initializeGoogleDrive(): Promise<{
     if (schedulerStarted) {
       logger.info(`⏰ Scheduler iniciado - próxima ejecución: ${schedulerStatus.nextRun}`)
     } else {
-      logger.warn('⚠️  Scheduler no se pudo iniciar')
+      logger.warn("⚠️  Scheduler no se pudo iniciar")
     }
 
     // Obtener estadísticas iniciales
@@ -73,16 +73,16 @@ export async function initializeGoogleDrive(): Promise<{
       success: true,
       message: `Google Drive inicializado correctamente. ${stats.driveDocuments} documentos sincronizados.`,
       isEnabled: true,
-      schedulerStarted
+      schedulerStarted,
     }
 
   } catch (error) {
-    logger.error('❌ Error inicializando Google Drive:', error)
+    logger.error("❌ Error inicializando Google Drive:", error)
     return {
       success: false,
       message: `Error inicializando Google Drive: ${(error as Error).message}`,
       isEnabled: isGoogleDriveEnabled(),
-      schedulerStarted: false
+      schedulerStarted: false,
     }
   }
 }
@@ -115,21 +115,21 @@ export async function checkGoogleDriveStatus(): Promise<{
         lastSync: null,
         totalDocuments: 0,
         driveDocuments: 0,
-        errors: ['Google Drive sync no está habilitado o configurado']
+        errors: ["Google Drive sync no está habilitado o configurado"],
       }
     }
 
     // Verificar variables de entorno requeridas
     const requiredEnvVars = [
-      'GOOGLE_DRIVE_CLIENT_EMAIL',
-      'GOOGLE_DRIVE_PRIVATE_KEY',
-      'GOOGLE_DRIVE_PROJECT_ID',
-      'GOOGLE_DRIVE_FOLDER_ID'
+      "GOOGLE_DRIVE_CLIENT_EMAIL",
+      "GOOGLE_DRIVE_PRIVATE_KEY",
+      "GOOGLE_DRIVE_PROJECT_ID",
+      "GOOGLE_DRIVE_FOLDER_ID",
     ]
 
     const missingVars = requiredEnvVars.filter(varName => !process.env[varName])
     if (missingVars.length > 0) {
-      errors.push(`Variables de entorno faltantes: ${missingVars.join(', ')}`)
+      errors.push(`Variables de entorno faltantes: ${missingVars.join(", ")}`)
     }
 
     const isConfigured = missingVars.length === 0
@@ -142,7 +142,7 @@ export async function checkGoogleDriveStatus(): Promise<{
         connectionOk = await syncService.testConnection()
         
         if (!connectionOk) {
-          errors.push('Error de conexión con Google Drive API')
+          errors.push("Error de conexión con Google Drive API")
         }
       } catch (error) {
         errors.push(`Error probando conexión: ${(error as Error).message}`)
@@ -165,7 +165,7 @@ export async function checkGoogleDriveStatus(): Promise<{
     let stats = {
       lastSync: null,
       totalDocuments: 0,
-      driveDocuments: 0
+      driveDocuments: 0,
     }
 
     if (isConfigured && connectionOk) {
@@ -177,7 +177,7 @@ export async function checkGoogleDriveStatus(): Promise<{
         stats = {
           lastSync: syncStatus.lastSyncAt || null,
           totalDocuments: syncStats.totalDocuments,
-          driveDocuments: syncStats.driveDocuments
+          driveDocuments: syncStats.driveDocuments,
         }
       } catch (error) {
         errors.push(`Error obteniendo estadísticas: ${(error as Error).message}`)
@@ -192,7 +192,7 @@ export async function checkGoogleDriveStatus(): Promise<{
       lastSync: stats.lastSync,
       totalDocuments: stats.totalDocuments,
       driveDocuments: stats.driveDocuments,
-      errors
+      errors,
     }
 
   } catch (error) {
@@ -206,7 +206,7 @@ export async function checkGoogleDriveStatus(): Promise<{
       lastSync: null,
       totalDocuments: 0,
       driveDocuments: 0,
-      errors
+      errors,
     }
   }
 }
@@ -225,7 +225,7 @@ export async function getGoogleDriveDiagnostics(): Promise<{
     hasPrivateKey: boolean
   }
   connection: {
-    status: 'ok' | 'error' | 'not_tested'
+    status: "ok" | "error" | "not_tested"
     message: string
   }
   scheduler: {
@@ -250,35 +250,35 @@ export async function getGoogleDriveDiagnostics(): Promise<{
   const projectId = process.env.GOOGLE_DRIVE_PROJECT_ID || null
   const clientEmail = process.env.GOOGLE_DRIVE_CLIENT_EMAIL || null
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || null
-  const syncInterval = process.env.GOOGLE_DRIVE_SYNC_INTERVAL || '*/30 * * * *'
+  const syncInterval = process.env.GOOGLE_DRIVE_SYNC_INTERVAL || "*/30 * * * *"
   const hasPrivateKey = !!(process.env.GOOGLE_DRIVE_PRIVATE_KEY?.length)
-  const enabled = process.env.GOOGLE_DRIVE_SYNC_ENABLED === 'true'
+  const enabled = process.env.GOOGLE_DRIVE_SYNC_ENABLED === "true"
 
   // Recommendations de configuración
   if (!enabled) {
-    recommendations.push('Habilitar Google Drive sync con GOOGLE_DRIVE_SYNC_ENABLED=true')
+    recommendations.push("Habilitar Google Drive sync con GOOGLE_DRIVE_SYNC_ENABLED=true")
   }
   
   if (!projectId) {
-    recommendations.push('Configurar GOOGLE_DRIVE_PROJECT_ID con tu Project ID de Google Cloud')
+    recommendations.push("Configurar GOOGLE_DRIVE_PROJECT_ID con tu Project ID de Google Cloud")
   }
   
   if (!clientEmail) {
-    recommendations.push('Configurar GOOGLE_DRIVE_CLIENT_EMAIL con el email de tu service account')
+    recommendations.push("Configurar GOOGLE_DRIVE_CLIENT_EMAIL con el email de tu service account")
   }
   
   if (!hasPrivateKey) {
-    recommendations.push('Configurar GOOGLE_DRIVE_PRIVATE_KEY con la clave privada de tu service account')
+    recommendations.push("Configurar GOOGLE_DRIVE_PRIVATE_KEY con la clave privada de tu service account")
   }
   
   if (!folderId) {
-    recommendations.push('Configurar GOOGLE_DRIVE_FOLDER_ID con el ID de tu carpeta de Google Drive')
+    recommendations.push("Configurar GOOGLE_DRIVE_FOLDER_ID con el ID de tu carpeta de Google Drive")
   }
 
   // Test de conexión
   let connection = {
-    status: 'not_tested' as const,
-    message: 'No se pudo probar la conexión'
+    status: "not_tested" as const,
+    message: "No se pudo probar la conexión",
   }
 
   if (enabled && projectId && clientEmail && hasPrivateKey && folderId) {
@@ -287,19 +287,19 @@ export async function getGoogleDriveDiagnostics(): Promise<{
       const connectionOk = await syncService.testConnection()
       
       connection = {
-        status: connectionOk ? 'ok' : 'error',
+        status: connectionOk ? "ok" : "error",
         message: connectionOk 
-          ? 'Conexión exitosa con Google Drive' 
-          : 'Error de conexión con Google Drive'
+          ? "Conexión exitosa con Google Drive" 
+          : "Error de conexión con Google Drive",
       }
 
       if (!connectionOk) {
-        recommendations.push('Verificar credenciales de Google Drive y permisos de la carpeta')
+        recommendations.push("Verificar credenciales de Google Drive y permisos de la carpeta")
       }
     } catch (error) {
       connection = {
-        status: 'error',
-        message: `Error probando conexión: ${(error as Error).message}`
+        status: "error",
+        message: `Error probando conexión: ${(error as Error).message}`,
       }
     }
   }
@@ -307,11 +307,11 @@ export async function getGoogleDriveDiagnostics(): Promise<{
   // Estado del scheduler
   let scheduler = {
     running: false,
-    interval: '30 minutos',
+    interval: "30 minutos",
     nextRun: null as string | null,
     lastRun: null as string | null,
     totalRuns: 0,
-    errorRuns: 0
+    errorRuns: 0,
   }
 
   if (enabled) {
@@ -326,11 +326,11 @@ export async function getGoogleDriveDiagnostics(): Promise<{
         nextRun: status.nextRun,
         lastRun: status.lastRun,
         totalRuns: stats.totalRuns,
-        errorRuns: stats.errorRuns
+        errorRuns: stats.errorRuns,
       }
 
       if (!status.isRunning && enabled) {
-        recommendations.push('El scheduler no está funcionando, revisar configuración y logs')
+        recommendations.push("El scheduler no está funcionando, revisar configuración y logs")
       }
     } catch (error) {
       recommendations.push(`Error verificando scheduler: ${(error as Error).message}`)
@@ -342,10 +342,10 @@ export async function getGoogleDriveDiagnostics(): Promise<{
     totalDocuments: 0,
     driveDocuments: 0,
     lastSyncAt: null as string | null,
-    lastSyncStatus: 'never'
+    lastSyncStatus: "never",
   }
 
-  if (connection.status === 'ok') {
+  if (connection.status === "ok") {
     try {
       const syncService = getGoogleDriveSyncService()
       const stats = await syncService.getStats()
@@ -355,11 +355,11 @@ export async function getGoogleDriveDiagnostics(): Promise<{
         totalDocuments: stats.totalDocuments,
         driveDocuments: stats.driveDocuments,
         lastSyncAt: status.lastSyncAt || null,
-        lastSyncStatus: status.lastSyncStatus || 'never'
+        lastSyncStatus: status.lastSyncStatus || "never",
       }
 
-      if (data.driveDocuments === 0 && data.lastSyncStatus === 'never') {
-        recommendations.push('Ejecutar una sincronización inicial para cargar documentos')
+      if (data.driveDocuments === 0 && data.lastSyncStatus === "never") {
+        recommendations.push("Ejecutar una sincronización inicial para cargar documentos")
       }
     } catch (error) {
       recommendations.push(`Error obteniendo datos: ${(error as Error).message}`)
@@ -374,17 +374,17 @@ export async function getGoogleDriveDiagnostics(): Promise<{
       clientEmail,
       folderId,
       syncInterval,
-      hasPrivateKey
+      hasPrivateKey,
     },
     connection,
     scheduler,
     data,
-    recommendations
+    recommendations,
   }
 }
 
 // Auto-inicializar si no estamos en modo de desarrollo extremo
-if (process.env.NODE_ENV !== 'test' && process.env.SKIP_GOOGLE_DRIVE_INIT !== 'true') {
+if (process.env.NODE_ENV !== "test" && process.env.SKIP_GOOGLE_DRIVE_INIT !== "true") {
   // Inicializar después de un pequeño delay para que las variables de entorno estén cargadas
   setTimeout(() => {
     initializeGoogleDrive().then(result => {
@@ -394,7 +394,7 @@ if (process.env.NODE_ENV !== 'test' && process.env.SKIP_GOOGLE_DRIVE_INIT !== 't
         logger.warn(`⚠️  ${result.message}`)
       }
     }).catch(error => {
-      logger.error('❌ Error en auto-inicialización:', error)
+      logger.error("❌ Error en auto-inicialización:", error)
     })
   }, 2000)
 }

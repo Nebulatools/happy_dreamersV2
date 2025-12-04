@@ -1,11 +1,11 @@
 // 📅 Calendario Principal - Integración completa
 "use client"
 
-import React from 'react'
-import { Card } from '@/components/ui/card'
-import { CalendarWeekView } from './CalendarWeekView'
-import { CalendarDayView } from './CalendarDayView'
-import { handleCalendarClick } from './CalendarClickHandler'
+import React from "react"
+import { Card } from "@/components/ui/card"
+import { CalendarWeekView } from "./CalendarWeekView"
+import { CalendarDayView } from "./CalendarDayView"
+import { handleCalendarClick } from "./CalendarClickHandler"
 
 // Configuración base
 const HOUR_HEIGHT = 30
@@ -45,7 +45,7 @@ export function CalendarMain({
   onDateChange,
   onViewChange,
   onDayNavigateBack,
-  onDayNavigateForward
+  onDayNavigateForward,
 }: CalendarMainProps) {
   
   // Usar directamente las props del padre en lugar del estado interno

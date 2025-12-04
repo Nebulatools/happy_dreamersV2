@@ -10,15 +10,16 @@ import { MongoDBAdapter } from "@auth/mongodb-adapter"
 import type { Adapter } from "next-auth/adapters"
 // import { tempStorage } from "./temp-storage" // DESACTIVADO - Ya no usamos almacenamiento temporal local
 
-// Extender el tipo User para incluir id y role
+// Extender el tipo User para incluir id, role y timezone
 declare module "next-auth" {
   interface User {
     id: string
     role: string
     phone?: string
     accountType?: "father" | "mother" | "caregiver" | ""
+    timezone?: string
   }
-  
+
   interface Session {
     user: {
       id: string
@@ -28,6 +29,7 @@ declare module "next-auth" {
       role: string
       phone?: string
       accountType?: "father" | "mother" | "caregiver" | ""
+      timezone: string
     }
   }
 }
@@ -38,6 +40,7 @@ declare module "next-auth/jwt" {
     role?: string
     phone?: string
     accountType?: "father" | "mother" | "caregiver" | ""
+    timezone?: string
   }
 }
 
@@ -95,6 +98,7 @@ export const authOptions: NextAuthOptions = {
             role: user.role,
             phone: user.phone || "",
             accountType: user.accountType || "",
+            timezone: user.timezone || "America/Monterrey",
           }
         } catch (error) {
           console.error("Error al verificar credenciales:", error)
@@ -108,8 +112,9 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id
         token.role = user.role
-        ;(token as any).phone = user.phone || ""
-        ;(token as any).accountType = user.accountType || ""
+        token.phone = user.phone || ""
+        token.accountType = user.accountType || ""
+        token.timezone = user.timezone || "America/Monterrey"
       }
       return token
     },
@@ -117,8 +122,9 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id = token.id as string
         session.user.role = token.role as string
-        session.user.phone = (token as any).phone || ""
-        session.user.accountType = (token as any).accountType || ""
+        session.user.phone = token.phone || ""
+        session.user.accountType = token.accountType || ""
+        session.user.timezone = token.timezone || "America/Monterrey"
       }
       return session
     },

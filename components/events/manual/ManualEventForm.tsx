@@ -1,17 +1,19 @@
 "use client"
 
-import React, { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { useToast } from '@/hooks/use-toast'
-import { EventType, EventData, EmotionalState, FeedingType } from '../types'
-import { Calendar, Clock, Save, X } from 'lucide-react'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
+import React, { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { useToast } from "@/hooks/use-toast"
+import { EventType, EventData, EmotionalState, FeedingType } from "../types"
+import { Calendar, Clock, Save, X } from "lucide-react"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
+import { useUser } from "@/context/UserContext"
+import { dateToTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
 
 interface ManualEventFormProps {
   childId: string
@@ -26,28 +28,30 @@ interface ManualEventFormProps {
  */
 export function ManualEventForm({ childId, childName, onEventRegistered, onCancel }: ManualEventFormProps) {
   const { toast } = useToast()
+  const { userData } = useUser()
+  const timezone = userData.timezone || DEFAULT_TIMEZONE
   const [isSubmitting, setIsSubmitting] = useState(false)
   
   // Estado del formulario
-  const [eventType, setEventType] = useState<EventType>('sleep')
-  const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'))
-  const [startTime, setStartTime] = useState(format(new Date(), 'HH:mm'))
-  const [endDate, setEndDate] = useState('')
-  const [endTime, setEndTime] = useState('')
-  const [sleepDelay, setSleepDelay] = useState('')
-  const [emotionalState, setEmotionalState] = useState<EmotionalState>('tranquilo')
-  const [notes, setNotes] = useState('')
+  const [eventType, setEventType] = useState<EventType>("sleep")
+  const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"))
+  const [startTime, setStartTime] = useState(format(new Date(), "HH:mm"))
+  const [endDate, setEndDate] = useState("")
+  const [endTime, setEndTime] = useState("")
+  const [sleepDelay, setSleepDelay] = useState("")
+  const [emotionalState, setEmotionalState] = useState<EmotionalState>("tranquilo")
+  const [notes, setNotes] = useState("")
   
   // Campos específicos de alimentación
-  const [feedingType, setFeedingType] = useState<FeedingType>('bottle')
-  const [feedingAmount, setFeedingAmount] = useState('')
-  const [feedingDuration, setFeedingDuration] = useState('')
-  const [babyState, setBabyState] = useState<'awake' | 'asleep'>('awake')
+  const [feedingType, setFeedingType] = useState<FeedingType>("bottle")
+  const [feedingAmount, setFeedingAmount] = useState("")
+  const [feedingDuration, setFeedingDuration] = useState("")
+  const [babyState, setBabyState] = useState<"awake" | "asleep">("awake")
   
   // Determinar campos visibles según tipo de evento
-  const showSleepFields = ['sleep', 'nap'].includes(eventType)
-  const showFeedingFields = eventType === 'feeding'
-  const showEndTime = ['sleep', 'nap'].includes(eventType)
+  const showSleepFields = ["sleep", "nap"].includes(eventType)
+  const showFeedingFields = eventType === "feeding"
+  const showEndTime = ["sleep", "nap"].includes(eventType)
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -60,20 +64,21 @@ export function ManualEventForm({ childId, childName, onEventRegistered, onCance
       
       // Validar que la fecha fin sea posterior a la fecha inicio
       if (endDateTime && endDateTime <= startDateTime) {
-        throw new Error('La hora de fin debe ser posterior a la hora de inicio')
+        throw new Error("La hora de fin debe ser posterior a la hora de inicio")
       }
       
       // Construir datos del evento
+      // IMPORTANTE: Usar dateToTimestamp para incluir offset de timezone
       const eventData: Partial<EventData> = {
         childId,
         eventType,
-        startTime: startDateTime.toISOString(),
-        notes: notes || undefined
+        startTime: dateToTimestamp(startDateTime, timezone),
+        notes: notes || undefined,
       }
-      
-      // Agregar campos según tipo de evento
+
+      // Agregar campos segun tipo de evento
       if (showEndTime && endDateTime) {
-        eventData.endTime = endDateTime.toISOString()
+        eventData.endTime = dateToTimestamp(endDateTime, timezone)
       }
       
       if (showSleepFields) {
@@ -83,35 +88,35 @@ export function ManualEventForm({ childId, childName, onEventRegistered, onCance
       
       if (showFeedingFields) {
         eventData.feedingType = feedingType
-        if (feedingType === 'bottle') {
+        if (feedingType === "bottle") {
           const oz = feedingAmount ? parseFloat(feedingAmount) : NaN
           eventData.feedingAmount = isNaN(oz) ? undefined : Math.round(oz * 29.5735)
           eventData.feedingDuration = feedingDuration ? parseInt(feedingDuration) : undefined
-        } else if (feedingType === 'solids') {
+        } else if (feedingType === "solids") {
           eventData.feedingAmount = feedingAmount ? parseInt(feedingAmount) : undefined
           eventData.feedingDuration = feedingDuration ? parseInt(feedingDuration) : undefined
-        } else if (feedingType === 'breast') {
+        } else if (feedingType === "breast") {
           // Pecho: minutos
           eventData.feedingDuration = feedingAmount ? parseInt(feedingAmount) : undefined
         }
-        eventData.babyState = feedingType === 'solids' ? 'awake' : babyState
+        eventData.babyState = feedingType === "solids" ? "awake" : babyState
       }
       
       // Enviar al backend
-      const response = await fetch('/api/children/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData)
+      const response = await fetch("/api/children/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(eventData),
       })
       
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.message || 'Error al registrar evento')
+        throw new Error(error.message || "Error al registrar evento")
       }
       
       toast({
         title: "Evento registrado",
-        description: `Evento de ${getEventTypeLabel(eventType)} registrado manualmente`
+        description: `Evento de ${getEventTypeLabel(eventType)} registrado manualmente`,
       })
       
       // Limpiar formulario
@@ -121,11 +126,11 @@ export function ManualEventForm({ childId, childName, onEventRegistered, onCance
       onEventRegistered?.()
       
     } catch (error) {
-      console.error('Error:', error)
+      console.error("Error:", error)
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "No se pudo registrar el evento",
-        variant: "destructive"
+        variant: "destructive",
       })
     } finally {
       setIsSubmitting(false)
@@ -133,29 +138,29 @@ export function ManualEventForm({ childId, childName, onEventRegistered, onCance
   }
   
   const resetForm = () => {
-    setEventType('sleep')
-    setStartDate(format(new Date(), 'yyyy-MM-dd'))
-    setStartTime(format(new Date(), 'HH:mm'))
-    setEndDate('')
-    setEndTime('')
-    setSleepDelay('')
-    setEmotionalState('tranquilo')
-    setNotes('')
-    setFeedingType('bottle')
-    setFeedingAmount('')
-    setFeedingDuration('')
-    setBabyState('awake')
+    setEventType("sleep")
+    setStartDate(format(new Date(), "yyyy-MM-dd"))
+    setStartTime(format(new Date(), "HH:mm"))
+    setEndDate("")
+    setEndTime("")
+    setSleepDelay("")
+    setEmotionalState("tranquilo")
+    setNotes("")
+    setFeedingType("bottle")
+    setFeedingAmount("")
+    setFeedingDuration("")
+    setBabyState("awake")
   }
   
   const getEventTypeLabel = (type: EventType) => {
     const labels: Record<EventType, string> = {
-      sleep: 'Sueño nocturno',
-      nap: 'Siesta',
-      wake: 'Despertar',
-      feeding: 'Alimentación',
-      diaper: 'Cambio de pañal',
-      medicine: 'Medicamento',
-      activity: 'Actividad'
+      sleep: "Sueño nocturno",
+      nap: "Siesta",
+      wake: "Despertar",
+      feeding: "Alimentación",
+      diaper: "Cambio de pañal",
+      medicine: "Medicamento",
+      activity: "Actividad",
     }
     return labels[type] || type
   }
@@ -295,7 +300,7 @@ export function ManualEventForm({ childId, childName, onEventRegistered, onCance
               <RadioGroup value={feedingType} onValueChange={(val) => {
                 const ft = val as FeedingType
                 setFeedingType(ft)
-                if (ft === 'solids') setBabyState('awake')
+                if (ft === "solids") setBabyState("awake")
               }}>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="breast" id="breast" />
@@ -315,18 +320,18 @@ export function ManualEventForm({ childId, childName, onEventRegistered, onCance
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="feedingAmount">
-                  Cantidad {feedingType === 'bottle' ? '(oz)' : feedingType === 'solids' ? '(gr)' : '(min)'}
+                  Cantidad {feedingType === "bottle" ? "(oz)" : feedingType === "solids" ? "(gr)" : "(min)"}
                 </Label>
                 <Input
                   id="feedingAmount"
                   type="number"
                   min="1"
-                  max={feedingType === 'bottle' ? 16 : 500}
+                  max={feedingType === "bottle" ? 16 : 500}
                   value={feedingAmount}
                   onChange={(e) => setFeedingAmount(e.target.value)}
                 />
               </div>
-              {feedingType !== 'breast' && (
+              {feedingType !== "breast" && (
                 <div>
                   <Label htmlFor="feedingDuration">Duración (min)</Label>
                   <Input
@@ -343,14 +348,14 @@ export function ManualEventForm({ childId, childName, onEventRegistered, onCance
             
             <div>
               <Label>Estado del bebé</Label>
-              <RadioGroup value={babyState} onValueChange={(val) => setBabyState(val as 'awake' | 'asleep')}>
+              <RadioGroup value={babyState} onValueChange={(val) => setBabyState(val as "awake" | "asleep")}>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="awake" id="awake" />
                   <Label htmlFor="awake">Despierto</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="asleep" id="asleep" disabled={feedingType === 'solids'} />
-                  <Label htmlFor="asleep">Dormido {feedingType === 'solids' ? '(no disponible para sólidos)' : ''}</Label>
+                  <RadioGroupItem value="asleep" id="asleep" disabled={feedingType === "solids"} />
+                  <Label htmlFor="asleep">Dormido {feedingType === "solids" ? "(no disponible para sólidos)" : ""}</Label>
                 </div>
               </RadioGroup>
             </div>
@@ -379,7 +384,7 @@ export function ManualEventForm({ childId, childName, onEventRegistered, onCance
             className="flex-1"
           >
             <Save className="w-4 h-4 mr-2" />
-            {isSubmitting ? 'Guardando...' : 'Guardar evento'}
+            {isSubmitting ? "Guardando..." : "Guardar evento"}
           </Button>
           
           <Button 

@@ -1,6 +1,6 @@
 import React from "react"
 import { useSleepData } from "@/hooks/use-sleep-data"
-import { AlertCircle, TrendingDown, TrendingUp, Minus, Clock } from "lucide-react"
+import { AlertCircle, TrendingDown, TrendingUp, Minus, Clock, ChevronLeft, ChevronRight } from "lucide-react"
 import { parseISO, format, differenceInMinutes, subDays, startOfDay, isSameDay, getHours, getMinutes } from "date-fns"
 import { es } from "date-fns/locale"
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from "recharts"
@@ -30,11 +30,11 @@ function decimalToTimeString(decimal: number): string {
   const hours = Math.floor(adjustedDecimal)
   const minutes = Math.round((adjustedDecimal - hours) * 60)
   
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`
 }
 
 // Función para procesar evolución de despertares por fecha con detalles individuales y tiempo
-function processNightWakeupsEvolution(events: any[], dateRange: string) {
+function processNightWakeupsEvolution(events: any[], dateRange: string, periodOffset: number = 0) {
   const now = new Date()
   let daysToSubtract = 7
 
@@ -44,15 +44,18 @@ function processNightWakeupsEvolution(events: any[], dateRange: string) {
     daysToSubtract = 90
   }
 
+  // Calcular offset de dias basado en el periodo seleccionado
+  const totalDaysOffset = Math.abs(periodOffset) * daysToSubtract
+
   // Crear array de fechas para el período
   const dates = []
   for (let i = daysToSubtract - 1; i >= 0; i--) {
-    dates.push(subDays(now, i))
+    dates.push(subDays(now, i + totalDaysOffset))
   }
 
   // Procesar eventos de despertares nocturnos
   const nightWakingEvents = events.filter(event => 
-    event.eventType === 'night_waking' && event.startTime
+    event.eventType === "night_waking" && event.startTime
   )
 
   // Crear datos para el scatter plot
@@ -68,13 +71,16 @@ function processNightWakeupsEvolution(events: any[], dateRange: string) {
     const wakeups = dayEvents.map((event, wakeupIndex) => {
       const eventDate = parseISO(event.startTime)
       let duration = 0
-      
-      if (event.endTime) {
+
+      // Prioridad: usar el campo duration ya calculado por la API
+      if (event.duration && event.duration > 0) {
+        duration = event.duration
+      } else if (event.endTime) {
         duration = differenceInMinutes(parseISO(event.endTime), eventDate)
+      } else if (event.awakeDelay) {
+        duration = event.awakeDelay
       } else if (event.nightWakingDelay) {
         duration = event.nightWakingDelay
-      } else if (event.sleepDelay) {
-        duration = event.sleepDelay
       } else {
         duration = 15 // Duración estimada si no hay datos
       }
@@ -86,16 +92,16 @@ function processNightWakeupsEvolution(events: any[], dateRange: string) {
         x: dateIndex, // Índice del día
         y: timeDecimal, // Hora como decimal
         duration: Math.max(duration, 5), // Mínimo 5 minutos
-        time: format(eventDate, 'HH:mm', { locale: es }),
-        date: format(date, 'd MMM', { locale: es }),
+        time: format(eventDate, "HH:mm", { locale: es }),
+        date: format(date, "d MMM", { locale: es }),
         dateValue: date,
-        wakeupNumber: wakeupIndex + 1
+        wakeupNumber: wakeupIndex + 1,
       })
       
       return {
         duration: Math.max(duration, 5),
-        time: format(eventDate, 'HH:mm', { locale: es }),
-        timeDecimal
+        time: format(eventDate, "HH:mm", { locale: es }),
+        timeDecimal,
       }
     })
 
@@ -107,8 +113,8 @@ function processNightWakeupsEvolution(events: any[], dateRange: string) {
       count,
       duration: totalDuration,
       wakeups,
-      label: format(date, 'd MMM', { locale: es }),
-      dateIndex
+      label: format(date, "d MMM", { locale: es }),
+      dateIndex,
     })
   })
 
@@ -159,17 +165,35 @@ const CustomDot = (props: any) => {
   )
 }
 
-export default function NightWakeupsEvolutionChart({ 
-  childId, 
-  dateRange = "7-days" 
+export default function NightWakeupsEvolutionChart({
+  childId,
+  dateRange = "7-days",
 }: NightWakeupsEvolutionChartProps) {
-  const { data: sleepData, loading, error } = useSleepData(childId, dateRange)
+  // Traer 5 periodos de datos para permitir navegacion historica
+  const { data: sleepData, loading, error } = useSleepData(childId, dateRange, 5)
+
+  // Estado para navegacion entre periodos de tiempo
+  const [periodOffset, setPeriodOffset] = React.useState(0)
+
+  // Navegacion entre periodos de tiempo
+  const handlePeriodNavigation = (direction: "prev" | "next") => {
+    if (direction === "prev") {
+      setPeriodOffset(prev => prev - 1)
+    } else {
+      setPeriodOffset(prev => Math.min(0, prev + 1))
+    }
+  }
+
+  // Resetear offset cuando cambia el rango de fechas
+  React.useEffect(() => {
+    setPeriodOffset(0)
+  }, [dateRange])
 
   // Calcular evolución de datos
   const { scatterData, dailySummary, dates } = React.useMemo(() => {
     if (!sleepData?.events) return { scatterData: [], dailySummary: [], dates: [] }
-    return processNightWakeupsEvolution(sleepData.events, dateRange)
-  }, [sleepData, dateRange])
+    return processNightWakeupsEvolution(sleepData.events, dateRange, periodOffset)
+  }, [sleepData, dateRange, periodOffset])
 
   // Calcular tendencia
   const trend = React.useMemo(() => {
@@ -184,12 +208,12 @@ export default function NightWakeupsEvolutionChart({
     const difference = secondHalfAvg - firstHalfAvg
     
     if (Math.abs(difference) < 0.1) {
-      return { type: 'stable', icon: Minus, color: 'text-gray-600', text: 'Estable' }
+      return { type: "stable", icon: Minus, color: "text-gray-600", text: "Estable" }
     } else if (difference < 0) {
       // Si mejora (menos despertares), mostrar flecha verde hacia arriba
-      return { type: 'improving', icon: TrendingUp, color: 'text-green-600', text: 'Mejorando' }
+      return { type: "improving", icon: TrendingUp, color: "text-green-600", text: "Mejorando" }
     } else {
-      return { type: 'worsening', icon: TrendingUp, color: 'text-red-600', text: 'Empeorando' }
+      return { type: "worsening", icon: TrendingUp, color: "text-red-600", text: "Empeorando" }
     }
   }, [dailySummary])
 
@@ -246,29 +270,41 @@ export default function NightWakeupsEvolutionChart({
   // Crear etiquetas para el eje X con los días
   const xAxisTicks = dates.map((date, index) => ({
     value: index,
-    label: format(date, dateRange === "7-days" ? 'EEE d' : 'd', { locale: es })
+    label: format(date, dateRange === "7-days" ? "EEE d" : "d", { locale: es }),
   }))
   
   // Crear etiquetas para el eje Y (horas nocturnas) - Formato consistente
   const yAxisTicks = [
-    { value: 21, label: '21:00' },
-    { value: 22, label: '22:00' },
-    { value: 23, label: '23:00' },
-    { value: 24, label: '00:00' },
-    { value: 25, label: '01:00' },
-    { value: 26, label: '02:00' },
-    { value: 27, label: '03:00' },
-    { value: 28, label: '04:00' },
-    { value: 29, label: '05:00' },
-    { value: 30, label: '06:00' },
+    { value: 21, label: "21:00" },
+    { value: 22, label: "22:00" },
+    { value: 23, label: "23:00" },
+    { value: 24, label: "00:00" },
+    { value: 25, label: "01:00" },
+    { value: 26, label: "02:00" },
+    { value: 27, label: "03:00" },
+    { value: 28, label: "04:00" },
+    { value: 29, label: "05:00" },
+    { value: 30, label: "06:00" },
   ]
   
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-[#2F2F2F]">
-          Evolución de despertares nocturnos
-        </h3>
+        <div className="min-w-0">
+          <h3 className="text-lg font-bold text-[#2F2F2F]">
+            Evolución de despertares nocturnos
+          </h3>
+          {dates.length > 0 && (
+            <p className="text-sm text-gray-600">
+              {periodOffset === 0 ? "Últimos" : ""} {dates.length} días
+              {periodOffset < 0 && (
+                <span className="ml-1">
+                  ({format(dates[0], "d MMM", { locale: es })} - {format(dates[dates.length - 1], "d MMM", { locale: es })})
+                </span>
+              )}
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {trend && (
             <div className={`flex items-center gap-1 ${trend.color}`}>
@@ -277,6 +313,35 @@ export default function NightWakeupsEvolutionChart({
             </div>
           )}
           <AlertCircle className="w-5 h-5 text-[#FF6B6B]" />
+          {/* Navegación de periodos */}
+          <div className="flex items-center gap-1 ml-2">
+            <button
+              type="button"
+              aria-label="Ver días anteriores"
+              onClick={() => handlePeriodNavigation("prev")}
+              disabled={periodOffset <= -4}
+              className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all ${
+                periodOffset > -4
+                  ? "border-gray-200 bg-white text-gray-700 hover:bg-gray-100 hover:border-gray-300"
+                  : "border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed"
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Ver días siguientes"
+              onClick={() => handlePeriodNavigation("next")}
+              disabled={periodOffset >= 0}
+              className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all ${
+                periodOffset < 0
+                  ? "border-gray-200 bg-white text-gray-700 hover:bg-gray-100 hover:border-gray-300"
+                  : "border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed"
+              }`}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
       
@@ -304,15 +369,15 @@ export default function NightWakeupsEvolutionChart({
           <div
             className="absolute hidden sm:block"
             style={{
-              left: '-60px',
-              top: '45%',
-              transform: 'rotate(-90deg) translateY(-50%)',
-              transformOrigin: 'center',
-              fontSize: '13px',
+              left: "-60px",
+              top: "45%",
+              transform: "rotate(-90deg) translateY(-50%)",
+              transformOrigin: "center",
+              fontSize: "13px",
               fontWeight: 600,
-              color: '#4b5563',
-              whiteSpace: 'nowrap',
-              zIndex: 10
+              color: "#4b5563",
+              whiteSpace: "nowrap",
+              zIndex: 10,
             }}
           >
             Hora del despertar
@@ -322,7 +387,7 @@ export default function NightWakeupsEvolutionChart({
             className="relative ml-[68px] sm:ml-[85px] mr-[120px] sm:mr-[160px] h-7 mb-1 grid"
             style={{
               gridTemplateColumns: `repeat(${dailySummary.length}, 1fr)`,
-              alignItems: 'center'
+              alignItems: "center",
             }}
           >
             {dailySummary.map((day) => (
@@ -353,11 +418,11 @@ export default function NightWakeupsEvolutionChart({
                 dataKey="x"
                 domain={[0, dates.length - 1]}
                 ticks={xAxisTicks.map(t => t.value)}
-                tickFormatter={(value) => xAxisTicks[value]?.label || ''}
+                tickFormatter={(value) => xAxisTicks[value]?.label || ""}
                 stroke="#6b7280"
                 fontSize={12}
                 tick={{ fontSize: 12 }}
-                label={{ value: '', position: 'insideBottom', offset: -5 }}
+                label={{ value: "", position: "insideBottom", offset: -5 }}
                 padding={{ left: 0, right: 0 }}
                 interval={0}
               />
@@ -371,7 +436,7 @@ export default function NightWakeupsEvolutionChart({
                 ticks={yAxisTicks.map(t => t.value)}
                 tickFormatter={(value) => {
                   const tick = yAxisTicks.find(t => t.value === value)
-                  return tick ? tick.label : ''
+                  return tick ? tick.label : ""
                 }}
                 stroke="#6b7280"
                 fontSize={12}
@@ -390,7 +455,7 @@ export default function NightWakeupsEvolutionChart({
                   fontSize: 11, 
                   fill: "#7c3aed",
                   fontWeight: 600,
-                  offset: 10
+                  offset: 10,
                 }}
               />
               <ReferenceLine 
@@ -405,7 +470,7 @@ export default function NightWakeupsEvolutionChart({
                   fontSize: 11, 
                   fill: "#ea580c",
                   fontWeight: 600,
-                  offset: 10
+                  offset: 10,
                 }}
               />
               
@@ -429,7 +494,7 @@ export default function NightWakeupsEvolutionChart({
           <span>Período analizado:</span>
           <span className="font-medium text-[#2F2F2F]">
             {dateRange === "7-days" ? "7 días" : 
-             dateRange === "30-days" ? "30 días" : "90 días"}
+              dateRange === "30-days" ? "30 días" : "90 días"}
           </span>
         </div>
         
@@ -477,7 +542,7 @@ export default function NightWakeupsEvolutionChart({
           <span>Hora más frecuente:</span>
           <span className="font-medium text-[#9B66FF]">
             {(() => {
-              if (scatterData.length === 0) return 'N/A'
+              if (scatterData.length === 0) return "N/A"
               const hourCounts: { [key: string]: number } = {}
               scatterData.forEach(point => {
                 const hour = Math.floor(point.y)

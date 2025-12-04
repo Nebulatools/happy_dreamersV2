@@ -176,8 +176,8 @@ export async function ingestZoomMeetingTranscripts(opts: {
           fileId: transcriptFile.id,
           fileType: transcriptFile.file_type,
           fileExtension: transcriptFile.file_extension,
-        }
-      }
+        },
+      },
     })
 
     await db.collection("consultation_sessions").updateOne(sessionQuery, {

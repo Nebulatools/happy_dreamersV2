@@ -68,7 +68,7 @@ interface CaregiverWithUser extends UserChildAccess {
 export function CaregiverManagement({ 
   childId, 
   childName,
-  isOwner 
+  isOwner, 
 }: CaregiverManagementProps) {
   const [caregivers, setCaregivers] = useState<CaregiverWithUser[]>([])
   const [invitations, setInvitations] = useState<PendingInvitation[]>([])
@@ -80,14 +80,14 @@ export function CaregiverManagement({
   const [searchEmail, setSearchEmail] = useState<string>("")
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; caregiver: CaregiverWithUser | null }>({
     open: false,
-    caregiver: null
+    caregiver: null,
   })
   const [cancelInvitationDialog, setCancelInvitationDialog] = useState<{ 
     open: boolean; 
     invitation: PendingInvitation | null 
   }>({
     open: false,
-    invitation: null
+    invitation: null,
   })
 
   // Estado para el formulario de agregar cuidador
@@ -96,11 +96,11 @@ export function CaregiverManagement({
     permissions: {
       viewer: false,
       caregiver: true,
-      editor: false
+      editor: false,
     },
     relationshipType: "familiar",
     relationshipDescription: "",
-    expiresAt: ""
+    expiresAt: "",
   })
 
   // Cargar lista de cuidadores
@@ -187,13 +187,13 @@ export function CaregiverManagement({
       const response = await fetch(`/api/children/${childId}/access/link`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           userId: selectedUserId,
           role: "caregiver",
-          relationshipType: "familiar"
-        })
+          relationshipType: "familiar",
+        }),
       })
 
       if (!response.ok) {
@@ -234,16 +234,16 @@ export function CaregiverManagement({
       const response = await fetch(`/api/children/${childId}/access`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email: formData.email,
           role: formData.permissions.editor ? "editor" : 
-                formData.permissions.caregiver ? "caregiver" : "viewer",
+            formData.permissions.caregiver ? "caregiver" : "viewer",
           relationshipType: formData.relationshipType,
           relationshipDescription: formData.relationshipDescription,
-          expiresAt: formData.expiresAt || null
-        })
+          expiresAt: formData.expiresAt || null,
+        }),
       })
 
       if (!response.ok) {
@@ -267,11 +267,11 @@ export function CaregiverManagement({
         permissions: {
           viewer: false,
           caregiver: true,
-          editor: false
+          editor: false,
         },
         relationshipType: "familiar",
         relationshipDescription: "",
-        expiresAt: ""
+        expiresAt: "",
       })
       loadAllData()
     } catch (error: any) {
@@ -287,7 +287,7 @@ export function CaregiverManagement({
       const response = await fetch(
         `/api/children/${childId}/access?userId=${deleteDialog.caregiver.userId}`,
         {
-          method: "DELETE"
+          method: "DELETE",
         }
       )
 
@@ -311,7 +311,7 @@ export function CaregiverManagement({
       const response = await fetch(
         `/api/children/${childId}/invitations?invitationId=${cancelInvitationDialog.invitation._id}`,
         {
-          method: "DELETE"
+          method: "DELETE",
         }
       )
 
@@ -330,28 +330,28 @@ export function CaregiverManagement({
   // Obtener color del badge según el rol
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
-      case "viewer":
-        return "secondary"
-      case "caregiver":
-        return "default"
-      case "editor":
-        return "destructive"
-      default:
-        return "outline"
+    case "viewer":
+      return "secondary"
+    case "caregiver":
+      return "default"
+    case "editor":
+      return "destructive"
+    default:
+      return "outline"
     }
   }
 
   // Obtener descripción del rol
   const getRoleDescription = (role: string) => {
     switch (role) {
-      case "viewer":
-        return "Solo lectura"
-      case "caregiver":
-        return "Puede registrar eventos"
-      case "editor":
-        return "Acceso completo"
-      default:
-        return role
+    case "viewer":
+      return "Solo lectura"
+    case "caregiver":
+      return "Puede registrar eventos"
+    case "editor":
+      return "Acceso completo"
+    default:
+      return role
     }
   }
 
@@ -395,142 +395,142 @@ export function CaregiverManagement({
                   Invitar por Email
                 </Button>
               </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Agregar Nuevo Cuidador</DialogTitle>
-                <DialogDescription>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Agregar Nuevo Cuidador</DialogTitle>
+                  <DialogDescription>
                   Otorga acceso a otro usuario para ver o editar el perfil de {childName}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email del cuidador</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="ejemplo@correo.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
-                </div>
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email del cuidador</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="ejemplo@correo.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label>Permisos</Label>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="viewer"
-                        checked={formData.permissions.viewer}
-                        onCheckedChange={(checked) => 
-                          setFormData({
-                            ...formData,
-                            permissions: {
-                              viewer: !!checked,
-                              caregiver: false,
-                              editor: false
-                            }
-                          })
-                        }
-                      />
-                      <Label 
-                        htmlFor="viewer" 
-                        className="text-sm font-normal cursor-pointer"
-                      >
+                  <div className="space-y-2">
+                    <Label>Permisos</Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="viewer"
+                          checked={formData.permissions.viewer}
+                          onCheckedChange={(checked) => 
+                            setFormData({
+                              ...formData,
+                              permissions: {
+                                viewer: !!checked,
+                                caregiver: false,
+                                editor: false,
+                              },
+                            })
+                          }
+                        />
+                        <Label 
+                          htmlFor="viewer" 
+                          className="text-sm font-normal cursor-pointer"
+                        >
                         Solo lectura
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="caregiver"
-                        checked={formData.permissions.caregiver}
-                        onCheckedChange={(checked) => 
-                          setFormData({
-                            ...formData,
-                            permissions: {
-                              viewer: false,
-                              caregiver: !!checked,
-                              editor: false
-                            }
-                          })
-                        }
-                      />
-                      <Label 
-                        htmlFor="caregiver" 
-                        className="text-sm font-normal cursor-pointer"
-                      >
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="caregiver"
+                          checked={formData.permissions.caregiver}
+                          onCheckedChange={(checked) => 
+                            setFormData({
+                              ...formData,
+                              permissions: {
+                                viewer: false,
+                                caregiver: !!checked,
+                                editor: false,
+                              },
+                            })
+                          }
+                        />
+                        <Label 
+                          htmlFor="caregiver" 
+                          className="text-sm font-normal cursor-pointer"
+                        >
                         Crear eventos
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="editor"
-                        checked={formData.permissions.editor}
-                        onCheckedChange={(checked) => 
-                          setFormData({
-                            ...formData,
-                            permissions: {
-                              viewer: false,
-                              caregiver: false,
-                              editor: !!checked
-                            }
-                          })
-                        }
-                      />
-                      <Label 
-                        htmlFor="editor" 
-                        className="text-sm font-normal cursor-pointer"
-                      >
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="editor"
+                          checked={formData.permissions.editor}
+                          onCheckedChange={(checked) => 
+                            setFormData({
+                              ...formData,
+                              permissions: {
+                                viewer: false,
+                                caregiver: false,
+                                editor: !!checked,
+                              },
+                            })
+                          }
+                        />
+                        <Label 
+                          htmlFor="editor" 
+                          className="text-sm font-normal cursor-pointer"
+                        >
                         Acceso completo
-                      </Label>
+                        </Label>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="relationship">Tipo de relación</Label>
-                  <Select
-                    value={formData.relationshipType}
-                    onValueChange={(value) => setFormData({ ...formData, relationshipType: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="familiar">Familiar</SelectItem>
-                      <SelectItem value="otro">Otro</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="relationship">Tipo de relación</Label>
+                    <Select
+                      value={formData.relationshipType}
+                      onValueChange={(value) => setFormData({ ...formData, relationshipType: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="familiar">Familiar</SelectItem>
+                        <SelectItem value="otro">Otro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="description">Descripción (opcional)</Label>
-                  <Input
-                    id="description"
-                    placeholder="Ej: Tía María, Niñera de fin de semana"
-                    value={formData.relationshipDescription}
-                    onChange={(e) => setFormData({ ...formData, relationshipDescription: e.target.value })}
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Descripción (opcional)</Label>
+                    <Input
+                      id="description"
+                      placeholder="Ej: Tía María, Niñera de fin de semana"
+                      value={formData.relationshipDescription}
+                      onChange={(e) => setFormData({ ...formData, relationshipDescription: e.target.value })}
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="expires">Acceso temporal hasta (opcional)</Label>
-                  <Input
-                    id="expires"
-                    type="date"
-                    value={formData.expiresAt}
-                    onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="expires">Acceso temporal hasta (opcional)</Label>
+                    <Input
+                      id="expires"
+                      type="date"
+                      value={formData.expiresAt}
+                      onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
+                    />
+                  </div>
                 </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
                   Cancelar
-                </Button>
-                <Button onClick={handleAddCaregiver}>
+                  </Button>
+                  <Button onClick={handleAddCaregiver}>
                   Agregar Cuidador
-                </Button>
-              </DialogFooter>
-            </DialogContent>
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
             </Dialog>
             
             <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
@@ -719,7 +719,7 @@ export function CaregiverManagement({
                           <div className="text-sm text-muted-foreground truncate max-w-[60vw] sm:max-w-none">
                             Invitado hace {formatDistanceToNow(new Date(invitation.createdAt), { 
                               addSuffix: true,
-                              locale: es 
+                              locale: es, 
                             })}
                           </div>
                           {invitation.relationshipDescription && (

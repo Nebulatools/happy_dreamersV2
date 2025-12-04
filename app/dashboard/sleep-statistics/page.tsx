@@ -65,7 +65,7 @@ export default function SleepStatisticsPage() {
     actions: headerActions,
     showSearch: false,
     showChildSelector: true,
-    showNotifications: true
+    showNotifications: true,
   })
 
   return (

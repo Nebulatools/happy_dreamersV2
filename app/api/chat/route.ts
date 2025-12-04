@@ -5,6 +5,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { connectToDatabase } from "@/lib/mongodb"
+import { ObjectId } from "mongodb"
 import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
 
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
     // Si se proporciona un ID de niño, obtener información relevante
     let childInfo = ""
     if (childId) {
-      const child = await db.collection("children").findOne({ _id: childId })
+      const child = await db.collection("children").findOne({ _id: new ObjectId(childId) })
       if (child) {
         childInfo = `Información del niño:
           - Nombre: ${child.firstName} ${child.lastName}
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
         `
 
         // Obtener las respuestas de la encuesta
-        const surveyAnswers = await db.collection("survey_answers").find({ childId }).toArray()
+        const surveyAnswers = await db.collection("survey_answers").find({ childId: new ObjectId(childId) }).toArray()
         if (surveyAnswers.length > 0) {
           childInfo += "\nRespuestas de la encuesta:\n"
           surveyAnswers.forEach((survey) => {
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
         }
 
         // Obtener los últimos eventos
-        const recentEvents = await db.collection("events").find({ childId }).sort({ startTime: -1 }).limit(5).toArray()
+        const recentEvents = await db.collection("events").find({ childId: new ObjectId(childId) }).sort({ startTime: -1 }).limit(5).toArray()
         if (recentEvents.length > 0) {
           childInfo += "\nEventos recientes:\n"
           recentEvents.forEach((event) => {

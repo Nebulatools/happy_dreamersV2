@@ -3,7 +3,7 @@
 
 "use client"
 
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useRef } from "react"
 import { createLogger } from "@/lib/logger"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -41,7 +41,7 @@ import {
   SleepSessionBlock,
   CalendarMain,
   SimpleSleepBarChart,
-  UserWeeklySleepChart
+  UserWeeklySleepChart,
 } from "@/components/calendar"
 import type { DailySleepPoint, NightWakingPoint } from "@/components/calendar/SimpleSleepBarChart"
 import type { DailyUserSleepData } from "@/components/calendar/UserWeeklySleepChart"
@@ -92,7 +92,12 @@ import {
 } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
-import { startOfDayUTCForTZ } from "@/lib/timezone"
+import {
+  getStartOfDayAsDate,
+  formatTime,
+  parseTimestamp,
+  DEFAULT_TIMEZONE,
+} from "@/lib/datetime"
 
 const logger = createLogger("CalendarPage")
 
@@ -152,7 +157,9 @@ const computeWeeklySleepSummary = (events: Event[], referenceDate: Date, timeZon
   const wakingPoints: NightWakingPoint[] = []
 
   days.forEach((day) => {
-    const dayStart = startOfDayUTCForTZ(day, timeZone)
+    // NOTA: `day` ya viene de eachDayOfInterval que genera fechas UTC
+    // No debemos re-aplicar getStartOfDayAsDate porque causaría doble conversión
+    const dayStart = startOfDay(day)
     const dayEnd = addDays(dayStart, 1)
     let nightMinutes = 0
     let napMinutes = 0
@@ -227,10 +234,20 @@ const computeWeeklySleepSummary = (events: Event[], referenceDate: Date, timeZon
       })
 
     const isoDate = dayStart.toISOString()
-    const label = WEEKDAY_LABELS[day.getDay()]
-    const displayDate = capitalizeSentence(
-      format(day, "EEEE d 'de' MMMM", { locale: es })
-    )
+    // IMPORTANTE: Usar Intl.DateTimeFormat con timezone para evitar desplazamiento de días
+    const dayFormatter = new Intl.DateTimeFormat("es-MX", {
+      timeZone: timeZone,
+      weekday: "short",
+    })
+    const fullFormatter = new Intl.DateTimeFormat("es-MX", {
+      timeZone: timeZone,
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    })
+    const rawLabel = dayFormatter.format(day)
+    const label = rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1)
+    const displayDate = capitalizeSentence(fullFormatter.format(day))
 
     const dayPoint: DailySleepPoint = {
       label,
@@ -286,10 +303,14 @@ const formatHoursLabel = (hours: number) => {
 // Función para calcular datos del gráfico de usuario
 // Muestra las horas de sueño desde la noche del día anterior hasta el despertar del día actual
 const computeUserWeeklySleepData = (events: Event[], endDate: Date, timeZone: string) => {
-  // Calcular 7 días hacia atrás desde endDate
+  // Usar endDate como referencia para permitir navegación
+  // endDate es el último día visible en el rango de 7 días
+  const referenceDate = startOfDay(endDate)
+
+  // Calcular 7 días hacia atrás desde la fecha de referencia
   const days: Date[] = []
   for (let i = 6; i >= 0; i--) {
-    days.push(subDays(endDate, i))
+    days.push(subDays(referenceDate, i))
   }
 
   const userSleepData = days.map((day) => {
@@ -298,7 +319,7 @@ const computeUserWeeklySleepData = (events: Event[], endDate: Date, timeZone: st
     // - Siestas: eventos "nap" que ocurren durante este día
     // - Despertares: eventos "night_waking" que ocurren durante el sueño nocturno
 
-    const dayStart = startOfDayUTCForTZ(day, timeZone)
+    const dayStart = startOfDay(day)
     const dayEnd = addDays(dayStart, 1)
 
     let nightMinutes = 0
@@ -374,6 +395,7 @@ const computeUserWeeklySleepData = (events: Event[], endDate: Date, timeZone: st
       })
       .filter(pos => pos > 0) // Eliminar posiciones inválidas
 
+    // Ahora que usamos fechas locales del navegador, format() funciona correctamente
     const label = format(day, "EEE", { locale: es }).charAt(0).toUpperCase() + format(day, "EEE", { locale: es }).slice(1)
     const dateNumber = format(day, "d")
     const displayDate = format(day, "EEEE d 'de' MMMM", { locale: es })
@@ -402,8 +424,10 @@ export default function CalendarPage() {
   const { activeChildId, activeUserId } = useActiveChild()
   const { refreshTrigger, subscribe } = useEventsCache(activeChildId)
   const invalidateEvents = useEventsInvalidation()
-  // Inicializar con la fecha actual
-  const [date, setDate] = useState<Date>(new Date())
+  // Inicializar con la fecha actual en la timezone del usuario
+  const [date, setDate] = useState<Date>(() => {
+    return getStartOfDayAsDate(new Date(), userTimeZone)
+  })
   const [activePlan, setActivePlan] = useState<any>(null)
   
   // Estado para vista del calendario con localStorage
@@ -433,7 +457,7 @@ export default function CalendarPage() {
       setCalendarTab("calendar")
     }
   }, [isAdminView, calendarTab])
-  
+
   // Función para cambiar la vista y guardar en localStorage
   const handleViewChange = (newView: "month" | "week" | "day") => {
     setView(newView)
@@ -471,10 +495,12 @@ export default function CalendarPage() {
   const navigateNext = () => {
     // Para usuarios no admin, verificar si pueden navegar hacia adelante
     if (!isAdminView) {
-      const today = startOfDayUTCForTZ(new Date(), userTimeZone)
+      const today = startOfDay(new Date())
       const nextDate = addDays(date, 1)
+      const nextDateStart = startOfDay(nextDate)
 
-      if (startOfDay(nextDate) > today) {
+      // Permitir navegar hasta hoy, pero no más allá
+      if (nextDateStart > today) {
         return
       }
 
@@ -494,13 +520,9 @@ export default function CalendarPage() {
   const getClampedUserDate = () => {
     if (isAdminView) return date
 
-    const today = startOfDayUTCForTZ(new Date(), userTimeZone)
-    const minAllowed = subDays(today, 6)
-    const normalized = startOfDayUTCForTZ(date, userTimeZone)
-
-    if (normalized > today) return today
-    if (normalized < minAllowed) return minAllowed
-    return normalized
+    // Ya inicializamos `date` correctamente con getStartOfDayAsDate
+    // No necesitamos recalcular "hoy" cada vez
+    return date
   }
 
   // Función para obtener el título del período según la vista
@@ -546,7 +568,7 @@ export default function CalendarPage() {
           logger.info("Navegación día: Cambiando de semana hacia atrás", {
             currentWeek: format(currentWeekStart, "dd/MM"),
             newWeek: format(newWeekStart, "dd/MM"),
-            eventsCount: filteredEvents.length
+            eventsCount: filteredEvents.length,
           })
         }
       }
@@ -573,7 +595,7 @@ export default function CalendarPage() {
           logger.info("Navegación día: Cambiando de semana hacia adelante", {
             currentWeek: format(currentWeekStart, "dd/MM"),
             newWeek: format(newWeekStart, "dd/MM"),
-            eventsCount: filteredEvents.length
+            eventsCount: filteredEvents.length,
           })
         }
       }
@@ -581,7 +603,7 @@ export default function CalendarPage() {
   }
 
   const filterToLastSevenDays = (eventsData: Event[]) => {
-    const todayStart = startOfDayUTCForTZ(new Date(), userTimeZone)
+    const todayStart = getStartOfDayAsDate(new Date(), userTimeZone)
     const cutoff = subDays(todayStart, 6)
     return eventsData.filter((event: Event) => {
       if (!event.startTime) return false
@@ -591,34 +613,60 @@ export default function CalendarPage() {
   }
 
   // Función auxiliar para filtrar eventos por vista
+  // Considera tanto startTime como endTime para incluir eventos que cruzan límites de fecha
   const filterEventsByView = (eventsData: Event[], currentView: string, currentDate: Date) => {
     let filteredEvents = eventsData
 
     if (currentView === "month") {
       filteredEvents = eventsData.filter((event: Event) => {
-        const eventDate = new Date(event.startTime)
-        return eventDate.getMonth() === currentDate.getMonth() &&
-               eventDate.getFullYear() === currentDate.getFullYear()
+        const eventStart = new Date(event.startTime)
+        const eventEnd = event.endTime ? new Date(event.endTime) : null
+        const monthStart = startOfMonth(currentDate)
+        const monthEnd = endOfMonth(currentDate)
+
+        // Incluir si: empieza en el mes, termina en el mes, o cruza el mes
+        const startsInMonth = eventStart >= monthStart && eventStart <= monthEnd
+        const endsInMonth = eventEnd && eventEnd >= monthStart && eventEnd <= monthEnd
+        const crossesMonth = eventStart < monthStart && eventEnd && eventEnd > monthEnd
+
+        return startsInMonth || endsInMonth || crossesMonth
       })
     } else if (currentView === "week") {
-      // CAMBIO: Usar el mismo rango de 7 días que CalendarWeekView (centrando la fecha seleccionada)
-      const weekStart = addDays(currentDate, -3) // 3 días antes del centro
-      const weekEnd = endOfDay(addDays(currentDate, 3)) // 3 días después del centro
+      // IMPORTANTE: La vista semanal muestra 7 días centrados en currentDate
+      // días visibles: date-3, date-2, date-1, date, date+1, date+2, date+3
+      // El filtro debe coincidir con estos días para que todos los eventos sean visibles
+      const centerDate = getStartOfDayAsDate(currentDate, userTimeZone)
+      const weekStart = subDays(centerDate, 3)
+      const weekEnd = endOfDay(addDays(centerDate, 3))
+
       filteredEvents = eventsData.filter((event: Event) => {
-        const eventDate = new Date(event.startTime)
-        return eventDate >= weekStart && eventDate <= weekEnd
+        const eventStart = new Date(event.startTime)
+        const eventEnd = event.endTime ? new Date(event.endTime) : null
+
+        // Incluir si: empieza en el rango, termina en el rango, cruza el rango, o sleep en progreso
+        const startsInRange = eventStart >= weekStart && eventStart <= weekEnd
+        const endsInRange = eventEnd && eventEnd >= weekStart && eventEnd <= weekEnd
+        const crossesRange = eventStart < weekStart && eventEnd && eventEnd > weekEnd
+        const sleepInProgress = !eventEnd && event.eventType === "sleep" && eventStart < weekEnd
+
+        return startsInRange || endsInRange || crossesRange || sleepInProgress
       })
     } else if (currentView === "day") {
       const dayStart = startOfDay(currentDate)
       const dayEnd = endOfDay(currentDate)
-      filteredEvents = eventsData.filter((event: Event) => {
-        const eventDate = new Date(event.startTime)
-        return eventDate >= dayStart && eventDate <= dayEnd
-      })
-    }
 
-    if (!isAdminView) {
-      filteredEvents = filterToLastSevenDays(filteredEvents)
+      filteredEvents = eventsData.filter((event: Event) => {
+        const eventStart = new Date(event.startTime)
+        const eventEnd = event.endTime ? new Date(event.endTime) : null
+
+        // Incluir si: empieza en el día, termina en el día, cruza el día, o sleep en progreso
+        const startsInDay = eventStart >= dayStart && eventStart <= dayEnd
+        const endsInDay = eventEnd && eventEnd >= dayStart && eventEnd <= dayEnd
+        const crossesDay = eventStart < dayStart && eventEnd && eventEnd > dayEnd
+        const sleepInProgress = !eventEnd && event.eventType === "sleep" && eventStart < dayEnd
+
+        return startsInDay || endsInDay || crossesDay || sleepInProgress
+      })
     }
 
     return filteredEvents
@@ -648,6 +696,9 @@ export default function CalendarPage() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
+  // Ref para el contenedor del calendario (para auto-scroll)
+  const calendarContainerRef = useRef<HTMLDivElement>(null)
+
   // Configurar el header dinámico - simplificado con solo botón de agregar
   const headerActions = useMemo(() => {
     if (!isAdminView) return null
@@ -673,7 +724,7 @@ export default function CalendarPage() {
     actions: headerActions,
     showSearch: false,
     showChildSelector: true,
-    showNotifications: true
+    showNotifications: true,
   })
 
   // Suscribirse a invalidaciones de cache
@@ -696,7 +747,25 @@ export default function CalendarPage() {
       filterEventsFromCache()
     }
   }, [date, view])
-  
+
+  // Auto-scroll a las 6AM cuando se carga el calendario o cambia la vista
+  useEffect(() => {
+    // Solo aplicar en vistas de día y semana (tienen timeline de 24 horas)
+    if ((view === "day" || view === "week") && calendarContainerRef.current && !isLoading) {
+      const HOUR_HEIGHT = 30 // px por hora
+      const scrollToHour = 6 // 6:00 AM
+      const scrollPosition = scrollToHour * HOUR_HEIGHT // 180px
+
+      // Usar setTimeout para asegurar que el contenido esté renderizado
+      setTimeout(() => {
+        calendarContainerRef.current?.scrollTo({
+          top: scrollPosition,
+          behavior: "instant", // Sin animación para carga inicial
+        })
+      }, 100) // Timeout ligeramente mayor para asegurar renderizado completo
+    }
+  }, [view, activeChildId, isLoading])
+
   // Función para obtener el plan activo del niño
   const fetchActivePlan = async () => {
     try {
@@ -706,9 +775,9 @@ export default function CalendarPage() {
       const userIdForQuery = activeUserId || session?.user?.id
 
       if (!userIdForQuery) {
-        logger.error('No se pudo determinar el usuario para consultar planes', {
+        logger.error("No se pudo determinar el usuario para consultar planes", {
           activeUserId,
-          sessionUserId: session?.user?.id
+          sessionUserId: session?.user?.id,
         })
         return
       }
@@ -716,7 +785,7 @@ export default function CalendarPage() {
       const response = await fetch(`/api/consultas/plans?childId=${activeChildId}&userId=${userIdForQuery}`)
       
       if (!response.ok) {
-        logger.error('Error al obtener planes:', response.status)
+        logger.error("Error al obtener planes:", response.status)
         setActivePlan(null)
         return
       }
@@ -726,27 +795,27 @@ export default function CalendarPage() {
       if (data.success && data.plans && data.plans.length > 0) {
         // Buscar el plan activo (el de mayor planNumber con status 'active')
         const activePlanFound = data.plans
-          .filter((plan: any) => plan.status === 'active')
+          .filter((plan: any) => plan.status === "active")
           .sort((a: any, b: any) => b.planNumber - a.planNumber)[0]
         
         if (activePlanFound) {
           setActivePlan(activePlanFound)
-          logger.info('Plan activo obtenido:', {
+          logger.info("Plan activo obtenido:", {
             planNumber: activePlanFound.planNumber,
             bedtime: activePlanFound.schedule?.bedtime,
-            wakeTime: activePlanFound.schedule?.wakeTime
+            wakeTime: activePlanFound.schedule?.wakeTime,
           })
         } else {
           // Sin plan activo: no mostrar líneas ideales
           setActivePlan(null)
-          logger.info('No hay plan activo, omitiendo líneas ideales')
+          logger.info("No hay plan activo, omitiendo líneas ideales")
         }
       } else {
         // No hay planes para este niño
         setActivePlan(null)
       }
     } catch (error) {
-      logger.error('Error al obtener plan activo:', error)
+      logger.error("Error al obtener plan activo:", error)
       setActivePlan(null)
     }
   }
@@ -767,7 +836,7 @@ export default function CalendarPage() {
 
   const fetchEvents = async (forceRefresh = false) => {
     if (!activeChildId || !session) {
-      logger.warn('No se puede cargar eventos: faltan identificadores requeridos', {
+      logger.warn("No se puede cargar eventos: faltan identificadores requeridos", {
         activeChildId,
         hasSession: !!session,
       })
@@ -785,12 +854,12 @@ export default function CalendarPage() {
 
     setIsLoading(true)
     try {
-      logger.debug('Cargando eventos para niño activo', { activeChildId })
+      logger.debug("Cargando eventos para niño activo", { activeChildId })
       const response = await fetch(`/api/children/events?childId=${activeChildId}`)
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => null)
-        logger.error('Error HTTP al cargar eventos', {
+        logger.error("Error HTTP al cargar eventos", {
           status: response.status,
           statusText: response.statusText,
           error: errorData,
@@ -801,11 +870,11 @@ export default function CalendarPage() {
       const data = await response.json()
       const eventsData = data.events || []
       
-      logger.info('Eventos cargados exitosamente', { count: eventsData.length })
+      logger.info("Eventos cargados exitosamente", { count: eventsData.length })
       
       // Log para debugging: verificar orden de eventos recibidos
-      if (process.env.NODE_ENV === 'development') {
-        logger.debug('Detalles de eventos cargados (solo desarrollo)', {
+      if (process.env.NODE_ENV === "development") {
+        logger.debug("Detalles de eventos cargados (solo desarrollo)", {
           events: eventsData.map((e: Event) => ({
             id: e._id,
             time: e.startTime,
@@ -850,7 +919,7 @@ export default function CalendarPage() {
       endTime: event.endTime,
       notes: event.notes,
       emotionalState: event.emotionalState,
-      sleepDelay: event.sleepDelay
+      sleepDelay: event.sleepDelay,
     }))
 
     if (sleepEvents.length === 0) {
@@ -869,7 +938,7 @@ export default function CalendarPage() {
     // Usar la función unificada de cálculo de estadísticas
     const stats = processSleepStatistics(sleepEvents)
 
-    logger.info(`Resumen de estadísticas unificadas:`, {
+    logger.info("Resumen de estadísticas unificadas:", {
       avgSleepDuration: stats.avgSleepDuration.toFixed(2),
       avgNapDuration: stats.avgNapDuration.toFixed(2),
       totalSleepHours: stats.totalSleepHours.toFixed(2),
@@ -877,7 +946,7 @@ export default function CalendarPage() {
       totalWakeups: stats.totalWakeups,
       avgBedtime: stats.avgBedtime,
       avgWakeTime: stats.avgWakeTime,
-      view
+      view,
     })
 
     // Mapear las estadísticas al formato esperado por el calendario
@@ -926,8 +995,8 @@ export default function CalendarPage() {
   const userWeeklySleepData = useMemo(() => {
     if (isAdminView) return []
     const sourceEvents = allEventsCache.length > 0 ? allEventsCache : events
-    const scopedEvents = filterToLastSevenDays(sourceEvents)
-    return computeUserWeeklySleepData(scopedEvents, getClampedUserDate(), userTimeZone)
+    // Usar sourceEvents que incluye el cache de eventos
+    return computeUserWeeklySleepData(sourceEvents, getClampedUserDate(), userTimeZone)
   }, [isAdminView, allEventsCache, events, date, userTimeZone])
 
   const monthEventsForStats = useMemo(() => {
@@ -965,8 +1034,8 @@ export default function CalendarPage() {
     
     const dayEvents = events.filter(event => {
       // Validar que el evento tenga startTime y no sea vacío
-      if (!event.startTime || event.startTime === '') {
-        logger.warn('Evento sin startTime válido, omitiendo', { eventId: event._id })
+      if (!event.startTime || event.startTime === "") {
+        logger.warn("Evento sin startTime válido, omitiendo", { eventId: event._id })
         return false
       }
       
@@ -987,7 +1056,7 @@ export default function CalendarPage() {
       // 3. Cruza este día (empezó antes y termina después o no ha terminado)
       if (eventStart < dayStart) {
         // Si no tiene fin, incluir si es un evento de sueño activo
-        if (!eventEnd && event.eventType === 'sleep') {
+        if (!eventEnd && event.eventType === "sleep") {
           return true
         }
         // Si tiene fin, incluir si el fin es después del inicio del día
@@ -1029,11 +1098,11 @@ export default function CalendarPage() {
 
   const selectedSimpleDayMetrics = selectedSimpleDayPoint
     ? {
-        total: formatHoursLabel(selectedSimpleDayPoint.totalHours),
-        night: formatHoursLabel(selectedSimpleDayPoint.nightHours),
-        nap: formatHoursLabel(selectedSimpleDayPoint.napHours),
-        wakings: selectedSimpleDayPoint.wakingsCount,
-      }
+      total: formatHoursLabel(selectedSimpleDayPoint.totalHours),
+      night: formatHoursLabel(selectedSimpleDayPoint.nightHours),
+      nap: formatHoursLabel(selectedSimpleDayPoint.napHours),
+      wakings: selectedSimpleDayPoint.wakingsCount,
+    }
     : null
 
   const userWeekLabel = useMemo(() => {
@@ -1054,9 +1123,10 @@ export default function CalendarPage() {
     if (isAdminView) return true // Admins siempre pueden navegar
 
     const today = startOfDay(new Date())
-    const currentEndDate = startOfDay(date)
+    const currentDate = startOfDay(date)
 
-    return currentEndDate < today
+    // Puede avanzar si la fecha actual es menor que hoy
+    return currentDate < today
   }, [isAdminView, date])
 
   const canNavigateBackward = useMemo(() => {
@@ -1113,16 +1183,15 @@ export default function CalendarPage() {
     }
   }
 
-  const formatEventTime = (event: Event) => {
-    const start = new Date(event.startTime)
+  const formatEventTimeDisplay = (event: Event) => {
+    // Usar formatTime del modulo centralizado para timezone correcta
     if (event.eventType === "wake" || event.eventType === "sleep") {
-      return format(start, "HH:mm")
+      return formatTime(event.startTime, userTimeZone)
     }
     if (event.endTime) {
-      const end = new Date(event.endTime)
-      return `${format(start, "HH:mm")}-${format(end, "HH:mm")}`
+      return `${formatTime(event.startTime, userTimeZone)}-${formatTime(event.endTime, userTimeZone)}`
     }
-    return format(start, "HH:mm")
+    return formatTime(event.startTime, userTimeZone)
   }
 
   const getEventTypeName = (type: string) => {
@@ -1233,7 +1302,7 @@ export default function CalendarPage() {
     
     // Buscar eventos sleep
     dayEvents.forEach(event => {
-      if (event.eventType === 'sleep' && !processedEventIds.has(event._id)) {
+      if (event.eventType === "sleep" && !processedEventIds.has(event._id)) {
         processedEventIds.add(event._id)
         
         // Determinar los tiempos de inicio y fin para esta sesión
@@ -1266,7 +1335,7 @@ export default function CalendarPage() {
         
         // Buscar despertares nocturnos dentro del rango de sueño
         const nightWakings = dayEvents.filter(e => 
-          e.eventType === 'night_waking' && 
+          e.eventType === "night_waking" && 
           e.startTime > event.startTime &&
           (!event.endTime || e.startTime < event.endTime)
         )
@@ -1277,7 +1346,7 @@ export default function CalendarPage() {
         // Si hay endTime, buscar evento wake correspondiente y marcarlo como procesado
         if (event.endTime) {
           const wakeEvent = dayEvents.find(e => 
-            e.eventType === 'wake' && 
+            e.eventType === "wake" && 
             Math.abs(new Date(e.startTime).getTime() - new Date(event.endTime!).getTime()) < 60000 // Dentro de 1 minuto
           )
           if (wakeEvent) {
@@ -1287,7 +1356,7 @@ export default function CalendarPage() {
         
         // Crear sesión de sueño con metadata sobre continuación
         sessions.push({
-          type: 'sleep-session',
+          type: "sleep-session",
           startTime: sessionStartTime,
           endTime: sessionEndTime,
           originalStartTime: event.startTime, // Tiempo original completo
@@ -1295,7 +1364,7 @@ export default function CalendarPage() {
           nightWakings: nightWakings,
           originalEvent: event,
           isContinuationFromPrevious,
-          continuesNextDay
+          continuesNextDay,
         })
       }
     })
@@ -1310,13 +1379,14 @@ export default function CalendarPage() {
   const renderMonthLineView = () => {
     return (
       <div className="h-full flex flex-col">
-        <MonthLineChart 
+        <MonthLineChart
           events={monthEventsForStats}
           currentDate={date}
           onEventClick={handleEventClick}
           className="h-full"
           idealBedtime={activePlan?.schedule?.bedtime}
           idealWakeTime={activePlan?.schedule?.wakeTime}
+          timezone={userTimeZone}
         />
       </div>
     )
@@ -1372,7 +1442,7 @@ export default function CalendarPage() {
                         getEventTypeColor(event.eventType),
                         "flex items-center gap-0.5 cursor-pointer hover:opacity-80 z-10 relative px-1 py-px rounded"
                       )}
-                      style={{ fontSize: '9px', lineHeight: '1.1' }}
+                      style={{ fontSize: "9px", lineHeight: "1.1" }}
                       onClick={(e) => {
                         e.stopPropagation()
                         handleEventClick(event)
@@ -1380,7 +1450,7 @@ export default function CalendarPage() {
                     >
                       {getEventTypeIcon(event.eventType)}
                       <span className="truncate" style={{ fontSize: "10px" }}>
-                        {format(new Date(event.startTime), "HH:mm")}
+                        {formatTime(event.startTime, userTimeZone)}
                       </span>
                     </div>
                   ))}
@@ -1492,138 +1562,59 @@ export default function CalendarPage() {
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-3 lg:gap-4">
+              {/* Navegación de periodo a la derecha */}
+              {calendarTab === "calendar" && (
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-sleep" />
-                  <span className="text-sm text-gray-600">Dormir</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={navigatePrevious}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm font-medium text-gray-700 min-w-[180px] text-center">
+                    {getPeriodTitle()}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={navigateNext}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-nap" />
-                  <span className="text-sm text-gray-600">Siesta</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-wake" />
-                  <span className="text-sm text-gray-600">Despertar</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-night-wake" />
-                  <span className="text-sm text-gray-600">Nocturno</span>
-                </div>
-              </div>
+              )}
             </div>
-          </div>
-
-          {/* Resumen de estadísticas con navegación integrada */}
-          <div className="px-6">
-            <Card className="p-3 md:p-4 bg-gray-50 border-gray-200">
-              <div className="flex flex-col gap-3">
-                {/* Header: Navegación + Título + Métricas */}
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                  {/* Navegación y título a la izquierda */}
-                  <div className="flex items-center gap-3">
-                    {/* Navegación de fechas */}
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={navigatePrevious}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={navigateNext}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    
-                    {/* Título del período */}
-                    <div className="flex flex-col">
-                      <span className="text-xs text-gray-500">Período seleccionado</span>
-                      <h3 className="text-sm font-semibold text-gray-700">
-                        {getPeriodTitle()}
-                      </h3>
-                    </div>
-                  </div>
-                  
-                  {/* Métricas a la derecha */}
-                  <div className="flex items-center gap-3 md:gap-6 flex-wrap">
-                    {/* Sueño nocturno */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-sleep/20 flex items-center justify-center">
-                        <Moon className="w-4 h-4 text-sleep" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs text-gray-500">
-                          Promedio sueño
-                        </span>
-                        <span className="text-sm font-bold text-gray-900">
-                          {monthlyStats.nightSleepHours.toFixed(1)}h
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Siestas */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-nap/20 flex items-center justify-center">
-                        <Cloud className="w-4 h-4 text-nap" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs text-gray-500">
-                          Promedio siesta
-                        </span>
-                        <span className="text-sm font-bold text-gray-900">
-                          {monthlyStats.napHours.toFixed(1)}h
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Despertares */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-night-wake/20 flex items-center justify-center">
-                        <AlertCircle className="w-4 h-4 text-night-wake" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs text-gray-500">Despertares</span>
-                        <span className="text-sm font-bold text-gray-900">
-                          {monthlyStats.nightWakings}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
           </div>
 
           {calendarTab === "calendar" ? (
             <div className="px-6 pb-6">
-              <Card className={`p-4 ${view === 'month' ? 'h-[600px]' : view === 'day' ? 'h-[calc(100vh-320px)]' : ''}`} style={{ minHeight: '500px' }}>
-                {isLoading ? (
-                  <div className="flex justify-center items-center h-96">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4A90E2] mx-auto mb-4" />
-                      <p className="text-gray-600">Cargando calendario...</p>
+              <Card ref={calendarContainerRef} className="p-4 h-[calc(100vh-150px)] overflow-auto" style={{ minHeight: "450px", maxHeight: "calc(100vh - 120px)" }}>
+                <div className="h-full">
+                  {isLoading ? (
+                    <div className="flex justify-center items-center h-96">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4A90E2] mx-auto mb-4" />
+                        <p className="text-gray-600">Cargando calendario...</p>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <CalendarMain
-                    events={events}
-                    onEventClick={handleEventClick}
-                    onCreateEvent={(clickTime) => {
-                      setSelectedDateForEvent(clickTime.date)
-                    }}
-                    monthView={renderMonthView()}
-                    initialDate={date}
-                    initialView={view}
-                    onDayNavigateBack={navigateOneDayBack}
-                    onDayNavigateForward={navigateOneDayForward}
-                  />
-                )}
+                  ) : (
+                    <CalendarMain
+                      events={events}
+                      onEventClick={handleEventClick}
+                      onCreateEvent={(clickTime) => {
+                        setSelectedDateForEvent(clickTime.date)
+                      }}
+                      monthView={renderMonthView()}
+                      initialDate={date}
+                      initialView={view}
+                      onDayNavigateBack={navigateOneDayBack}
+                      onDayNavigateForward={navigateOneDayForward}
+                    />
+                  )}
+                </div>
               </Card>
             </div>
           ) : (
@@ -1638,19 +1629,19 @@ export default function CalendarPage() {
                     {[{
                       label: "Sueño nocturno",
                       value: `${monthlyStats.nightSleepHours.toFixed(1)}h`,
-                      tone: "text-[#4A90E2]"
+                      tone: "text-[#4A90E2]",
                     }, {
                       label: "Siestas",
                       value: `${monthlyStats.napHours.toFixed(1)}h`,
-                      tone: "text-[#F5A524]"
+                      tone: "text-[#F5A524]",
                     }, {
                       label: "Despertares",
                       value: `${monthlyStats.nightWakings}`,
-                      tone: "text-[#D97706]"
+                      tone: "text-[#D97706]",
                     }, {
                       label: "Hora de despertar",
                       value: monthlyStats.avgWakeTime || "--:--",
-                      tone: "text-[#16A34A]"
+                      tone: "text-[#16A34A]",
                     }].map((item) => (
                       <div key={item.label} className="rounded-xl border border-gray-100 bg-gradient-to-br from-white to-gray-50 p-4">
                         <p className="text-xs uppercase tracking-wider text-gray-500">{item.label}</p>
@@ -1817,8 +1808,8 @@ export default function CalendarPage() {
                   <Clock className="w-4 h-4 text-gray-500" />
                   <span className="font-medium">Hora:</span>
                   <span>
-                    {format(new Date(selectedEvent.startTime), "HH:mm")}
-                    {selectedEvent.endTime && ` - ${format(new Date(selectedEvent.endTime), "HH:mm")}`}
+                    {formatTime(selectedEvent.startTime, userTimeZone)}
+                    {selectedEvent.endTime && ` - ${formatTime(selectedEvent.endTime, userTimeZone)}`}
                   </span>
                 </div>
                 
@@ -1834,7 +1825,7 @@ export default function CalendarPage() {
                         const hours = differenceInHours(end, start)
                         const minutes = differenceInMinutes(end, start) % 60
                         if (hours > 0) {
-                          return `${hours}h ${minutes > 0 ? `${minutes}min` : ''}`
+                          return `${hours}h ${minutes > 0 ? `${minutes}min` : ""}`
                         }
                         return `${minutes}min`
                       })()}
@@ -1865,7 +1856,7 @@ export default function CalendarPage() {
               )}
               
               {/* Información adicional para eventos de sueño */}
-              {selectedEvent.eventType === 'sleep' && (
+              {selectedEvent.eventType === "sleep" && (
                 <div className="border-t pt-3 space-y-2">
                   <div className="text-sm font-medium text-gray-600">Información del sueño</div>
                   {selectedEvent.endTime ? (
@@ -1876,9 +1867,9 @@ export default function CalendarPage() {
                         const hours = differenceInHours(end, start)
                         const minutes = differenceInMinutes(end, start) % 60
                         if (hours > 0) {
-                          return `${hours} hora${hours > 1 ? 's' : ''} ${minutes > 0 ? `y ${minutes} minuto${minutes > 1 ? 's' : ''}` : ''}`
+                          return `${hours} hora${hours > 1 ? "s" : ""} ${minutes > 0 ? `y ${minutes} minuto${minutes > 1 ? "s" : ""}` : ""}`
                         }
-                        return `${minutes} minuto${minutes > 1 ? 's' : ''}`
+                        return `${minutes} minuto${minutes > 1 ? "s" : ""}`
                       })()}
                     </div>
                   ) : (

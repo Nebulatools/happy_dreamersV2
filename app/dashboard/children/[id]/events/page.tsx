@@ -52,7 +52,7 @@ interface Event {
   feedingSubtype?: string;
   feedingDuration?: number;
   feedingAmount?: number;
-  babyState?: 'awake' | 'asleep';
+  babyState?: "awake" | "asleep";
   feedingNotes?: string;
   // Actividades extra
   activityDuration?: number;
@@ -179,6 +179,8 @@ export default function ChildEventsPage() {
       play: "Juego",
       activity: "Actividad física",
       extra_activities: "Actividades Extra",
+      feeding: "Alimentación",
+      medication: "Medicamento",
       bath: "Baño",
       other: "Otro",
       wake: "Despertar",
@@ -201,10 +203,10 @@ export default function ChildEventsPage() {
     return states[state] || state
   }
 
-  const getBabyStateLabel = (state?: 'awake' | 'asleep') => {
-    if (state === 'awake') return 'Despierto'
-    if (state === 'asleep') return 'Dormido'
-    return ''
+  const getBabyStateLabel = (state?: "awake" | "asleep") => {
+    if (state === "awake") return "Despierto"
+    if (state === "asleep") return "Dormido"
+    return ""
   }
 
   const formatMinutesReadable = (minutes?: number | null) => {
@@ -226,8 +228,10 @@ export default function ChildEventsPage() {
       play: "bg-yellow-200 text-yellow-800",
       activity: "bg-orange-200 text-orange-800",
       extra_activities: "bg-indigo-200 text-indigo-800",
+      feeding: "bg-sky-200 text-sky-800",
+      medication: "bg-purple-200 text-purple-800",
       bath: "bg-cyan-200 text-cyan-800",
-      other: "bg-purple-200 text-purple-800",
+      other: "bg-gray-200 text-gray-800",
       wake: "bg-amber-200 text-amber-800",
       night_waking: "bg-red-200 text-red-800",
     }
@@ -421,7 +425,7 @@ export default function ChildEventsPage() {
       toast({
         title: "Error",
         description: error?.message || "No se pudieron eliminar los eventos seleccionados.",
-        variant: "destructive"
+        variant: "destructive",
       })
     } finally {
       setIsSaving(false)
@@ -573,108 +577,108 @@ export default function ChildEventsPage() {
                 </thead>
                 <tbody>
                   {paginatedEvents.map((event) => {
-                      // Validar y crear fechas seguras
-                      const createSafeDate = (dateString?: string) => {
-                        if (!dateString) return null
-                        const date = new Date(dateString)
-                        return isNaN(date.getTime()) ? null : date
-                      }
+                    // Validar y crear fechas seguras
+                    const createSafeDate = (dateString?: string) => {
+                      if (!dateString) return null
+                      const date = new Date(dateString)
+                      return isNaN(date.getTime()) ? null : date
+                    }
                       
-                      const startDate = createSafeDate(event.startTime) || createSafeDate(event.createdAt) || new Date()
-                      const endDate = createSafeDate(event.endTime)
-                      const duration = startDate && endDate 
-                        ? Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60)) 
-                        : null
-                      const derivedDuration = (() => {
-                        if (typeof duration === 'number') return duration
-                        if (typeof event.duration === 'number') return event.duration
-                        if (event.eventType === 'extra_activities' && typeof event.activityDuration === 'number') return event.activityDuration
-                        if (event.eventType === 'feeding' && typeof event.feedingDuration === 'number') return event.feedingDuration
-                        return null
-                      })()
+                    const startDate = createSafeDate(event.startTime) || createSafeDate(event.createdAt) || new Date()
+                    const endDate = createSafeDate(event.endTime)
+                    const duration = startDate && endDate 
+                      ? Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60)) 
+                      : null
+                    const derivedDuration = (() => {
+                      if (typeof duration === "number") return duration
+                      if (typeof event.duration === "number") return event.duration
+                      if (event.eventType === "extra_activities" && typeof event.activityDuration === "number") return event.activityDuration
+                      if (event.eventType === "feeding" && typeof event.feedingDuration === "number") return event.feedingDuration
+                      return null
+                    })()
                       
-                      return (
-                        <tr
-                          key={event._id || `${event.childId}-${event.startTime}-${event.eventType}`}
-                          className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
-                          onClick={() => handleEventClick(event)}
-                        >
-                          <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              checked={selectedIds.has(event._id)}
-                              onChange={() => toggleSelect(event._id)}
-                              aria-label={`Seleccionar evento ${event._id}`}
-                            />
-                          </td>
-                          <td className="py-3 px-4 text-sm">
-                            {format(startDate, "dd/MM/yyyy", { locale: es })}
-                          </td>
-                          <td className="py-3 px-4 text-sm">
-                            {event.startTime ? (
-                              <>
-                                {format(startDate, "HH:mm")}
-                                {endDate && ` - ${format(endDate, "HH:mm")}`}
-                              </>
-                            ) : (
-                              "-"
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-sm hidden sm:table-cell">
-                            {formatMinutesReadable(derivedDuration)}
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getEventColor(event.eventType)}`}>
-                              {getEventTypeName(event.eventType)}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-sm hidden md:table-cell">
-                            {event.eventType === "feeding"
-                              ? (getBabyStateLabel(event.babyState) || "-")
-                              : event.eventType === "extra_activities"
-                                ? "-"
-                                : getEmotionalStateName(event.emotionalState)}
-                          </td>
-                          <td className="py-3 px-4 text-sm hidden lg:table-cell">
-                            <span className="truncate block max-w-xs" title={event.notes || event.description || ""}>
-                              {event.notes || event.description 
-                                ? (event.notes || event.description || "").substring(0, 50) + ((event.notes || event.description || "").length > 50 ? "..." : "")
-                                : "-"
-                              }
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex justify-center gap-1">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleEventClick(event)
-                                  setIsEditing(true)
-                                }}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  // Acción de eliminación - logging removido por seguridad
-                                  setSelectedEvent(event)
-                                  setShowDeleteModal(true)
-                                }}
-                              >
-                                <Trash className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })}
+                    return (
+                      <tr
+                        key={event._id || `${event.childId}-${event.startTime}-${event.eventType}`}
+                        className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => handleEventClick(event)}
+                      >
+                        <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(event._id)}
+                            onChange={() => toggleSelect(event._id)}
+                            aria-label={`Seleccionar evento ${event._id}`}
+                          />
+                        </td>
+                        <td className="py-3 px-4 text-sm">
+                          {format(startDate, "dd/MM/yyyy", { locale: es })}
+                        </td>
+                        <td className="py-3 px-4 text-sm">
+                          {event.startTime ? (
+                            <>
+                              {format(startDate, "HH:mm")}
+                              {endDate && ` - ${format(endDate, "HH:mm")}`}
+                            </>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-sm hidden sm:table-cell">
+                          {formatMinutesReadable(derivedDuration)}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getEventColor(event.eventType)}`}>
+                            {getEventTypeName(event.eventType)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-sm hidden md:table-cell">
+                          {event.eventType === "feeding"
+                            ? (getBabyStateLabel(event.babyState) || "-")
+                            : event.eventType === "extra_activities"
+                              ? "-"
+                              : getEmotionalStateName(event.emotionalState)}
+                        </td>
+                        <td className="py-3 px-4 text-sm hidden lg:table-cell">
+                          <span className="truncate block max-w-xs" title={event.notes || event.description || ""}>
+                            {event.notes || event.description 
+                              ? (event.notes || event.description || "").substring(0, 50) + ((event.notes || event.description || "").length > 50 ? "..." : "")
+                              : "-"
+                            }
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex justify-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleEventClick(event)
+                                setIsEditing(true)
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                // Acción de eliminación - logging removido por seguridad
+                                setSelectedEvent(event)
+                                setShowDeleteModal(true)
+                              }}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -726,20 +730,20 @@ export default function ChildEventsPage() {
                     <div className="flex items-center">
                       <span className="font-medium mr-2">Estado:</span>
                       <span>
-                        {selectedEvent.eventType === 'feeding'
-                          ? (getBabyStateLabel(selectedEvent.babyState) || 'Sin estado')
-                          : selectedEvent.eventType === 'extra_activities'
-                            ? 'No aplica'
+                        {selectedEvent.eventType === "feeding"
+                          ? (getBabyStateLabel(selectedEvent.babyState) || "Sin estado")
+                          : selectedEvent.eventType === "extra_activities"
+                            ? "No aplica"
                             : getEmotionalStateName(selectedEvent.emotionalState)}
                       </span>
                     </div>
-                    {selectedEvent.eventType === 'extra_activities' && selectedEvent.activityDuration && (
+                    {selectedEvent.eventType === "extra_activities" && selectedEvent.activityDuration && (
                       <div className="flex items-center">
                         <span className="font-medium mr-2">Duración:</span>
                         <span>{formatMinutesReadable(selectedEvent.activityDuration)}</span>
                       </div>
                     )}
-                    {selectedEvent.eventType === 'feeding' && selectedEvent.feedingDuration && (
+                    {selectedEvent.eventType === "feeding" && selectedEvent.feedingDuration && (
                       <div className="flex items-center">
                         <span className="font-medium mr-2">Duración:</span>
                         <span>{formatMinutesReadable(selectedEvent.feedingDuration)}</span>
@@ -885,8 +889,8 @@ export default function ChildEventsPage() {
       <ManualEventModal
         open={eventModalOpen}
         onClose={() => setEventModalOpen(false)}
-        childId={activeChildId || childIdFromUrl || ''}
-        childName={child ? `${child.firstName} ${child.lastName || ''}`.trim() : 'Niño'}
+        childId={activeChildId || childIdFromUrl || ""}
+        childName={child ? `${child.firstName} ${child.lastName || ""}`.trim() : "Niño"}
         onEventRegistered={() => {
           invalidateEvents() // Invalidar cache global
           setEventModalOpen(false)

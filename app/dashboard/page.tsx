@@ -84,11 +84,11 @@ export default function DashboardPage() {
   useEffect(() => {
     setIsMounted(true)
     // Forzar la aplicación de estilos después del montaje
-    const greetingElement = document.querySelector('.greeting-title')
+    const greetingElement = document.querySelector(".greeting-title")
     if (greetingElement) {
-      (greetingElement as HTMLElement).style.fontFamily = 'Ludicrous, sans-serif'
-      ;(greetingElement as HTMLElement).style.color = '#68A1C8'
-      ;(greetingElement as HTMLElement).style.fontWeight = 'normal'
+      (greetingElement as HTMLElement).style.fontFamily = "Ludicrous, sans-serif"
+      ;(greetingElement as HTMLElement).style.color = "#68A1C8"
+      ;(greetingElement as HTMLElement).style.fontWeight = "normal"
     }
   }, [session])
 
@@ -123,13 +123,12 @@ export default function DashboardPage() {
 
   const loadChildData = async () => {
     if (!activeChildId || !session || isAdmin) {
-      console.log('No se puede cargar datos: activeChildId =', activeChildId, ', session =', !!session)
       return
     }
-    
+
     try {
       setIsLoading(true)
-      
+
       // Cargar datos del niño
       const childResponse = await fetch(`/api/children/${activeChildId}`)
       if (childResponse.ok) {
@@ -143,34 +142,28 @@ export default function DashboardPage() {
             setChild(null)
             setEvents([])
             setActiveChildId(null)
-            localStorage.removeItem('activeChildId')
+            localStorage.removeItem("activeChildId")
             return
           }
         } catch {}
       }
-      
+
       // Cargar eventos del niño solo si hay un niño activo
       if (activeChildId) {
-        console.log('🔍 Cargando eventos para:', activeChildId)
         const eventsResponse = await fetch(`/api/children/events?childId=${activeChildId}`)
-        
+
         if (eventsResponse.ok) {
           const eventsData = await eventsResponse.json()
-          console.log('✅ Eventos cargados exitosamente:', eventsData.events?.length || 0, 'eventos')
           setEvents(eventsData.events || [])
         } else {
           // Manejar estados esperables sin ruido: 404 (sin eventos/niño no accesible), 403
           if (eventsResponse.status === 404 || eventsResponse.status === 403) {
             setEvents([])
           } else {
-            console.error('❌ Error cargando eventos:', eventsResponse.status, eventsResponse.statusText)
-            const errorData = await eventsResponse.json().catch(() => null)
-            console.error('Error details:', errorData)
+            logger.error("Error cargando eventos", { status: eventsResponse.status })
           }
         }
       } else {
-        // Si no hay niño activo, limpiar los eventos
-        console.log('ℹ️ No hay niño activo, limpiando eventos')
         setEvents([])
       }
     } catch (error) {
@@ -195,7 +188,7 @@ export default function DashboardPage() {
       setPlanLoading(true)
       setPlanError(null)
       const response = await fetch(`/api/consultas/plans?childId=${activeChildId}&userId=${session.user.id}`, {
-        cache: "no-store"
+        cache: "no-store",
       })
 
       if (!response.ok) {
@@ -269,29 +262,29 @@ export default function DashboardPage() {
     try {
       setIsAddingNote(true)
       
-      const response = await fetch('/api/children/events', {
-        method: 'POST',
+      const response = await fetch("/api/children/events", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           childId: activeChildId,
-          eventType: 'note',
-          emotionalState: 'neutral',
+          eventType: "note",
+          emotionalState: "neutral",
           startTime: new Date().toISOString(),
           notes: noteText.trim(),
         }),
       })
       
       if (response.ok) {
-        setNoteText('')
+        setNoteText("")
         loadChildData() // Recargar datos para mostrar la nueva nota
         toast({
           title: "Nota agregada",
           description: "La nota se ha guardado correctamente.",
         })
       } else {
-        throw new Error('Error al guardar la nota')
+        throw new Error("Error al guardar la nota")
       }
     } catch (error) {
       toast({
@@ -309,7 +302,7 @@ export default function DashboardPage() {
     try {
       const childQuery = activeChildId ? `?childId=${activeChildId}` : ""
       const response = await fetch(`/api/children/events/${eventId}${childQuery}`, {
-        method: 'DELETE',
+        method: "DELETE",
       })
       
       if (response.ok) {
@@ -319,7 +312,7 @@ export default function DashboardPage() {
           description: "La nota se ha eliminado correctamente.",
         })
       } else {
-        throw new Error('Error al eliminar la nota')
+        throw new Error("Error al eliminar la nota")
       }
     } catch (error) {
       toast({
@@ -338,25 +331,25 @@ export default function DashboardPage() {
     let groupBy: string
     
     switch (selectedPeriod) {
-      case "7d":
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-        dateFormat = "d MMM"
-        groupBy = "day"
-        break
-      case "30d":
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-        dateFormat = "d MMM"
-        groupBy = "day"
-        break
-      case "3m":
-        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
-        dateFormat = "MMM"
-        groupBy = "week"
-        break
-      default:
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-        dateFormat = "d MMM"
-        groupBy = "day"
+    case "7d":
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      dateFormat = "d MMM"
+      groupBy = "day"
+      break
+    case "30d":
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+      dateFormat = "d MMM"
+      groupBy = "day"
+      break
+    case "3m":
+      startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
+      dateFormat = "MMM"
+      groupBy = "week"
+      break
+    default:
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      dateFormat = "d MMM"
+      groupBy = "day"
     }
     
     // Filtrar eventos del período
@@ -392,7 +385,7 @@ export default function DashboardPage() {
         groupedData.set(groupKey, {
           date: eventDate,
           totalMinutes: 0,
-          events: []
+          events: [],
         })
       }
       
@@ -412,7 +405,7 @@ export default function DashboardPage() {
       return {
         label: format(data.date, dateFormat, { locale: es }),
         hours: avgHoursPerDay,
-        date: data.date
+        date: data.date,
       }
     }).sort((a, b) => a.date.getTime() - b.date.getTime())
   }
@@ -422,19 +415,7 @@ export default function DashboardPage() {
     .slice(-5)
     .reverse()
 
-  if (!activeChildId) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <Activity className="h-16 w-16 text-muted-foreground" />
-        <h2 className="text-2xl font-bold">Selecciona un niño</h2>
-        <p className="text-muted-foreground text-center">
-          Elige un niño desde el selector para ver su dashboard de sueño.
-        </p>
-      </div>
-    )
-  }
-
-  // Si es admin, mostrar las estadísticas completas
+  // Si es admin, mostrar las estadísticas completas (independiente de selección)
   if (isAdmin) {
     return (
       <Suspense fallback={
@@ -447,8 +428,21 @@ export default function DashboardPage() {
     )
   }
 
+  // Para usuarios normales: verificar que haya un niño seleccionado
+  if (!activeChildId) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <Activity className="h-16 w-16 text-muted-foreground" />
+        <h2 className="text-2xl font-bold">Selecciona un niño</h2>
+        <p className="text-muted-foreground text-center">
+          Elige un niño desde el selector para ver su dashboard de sueño.
+        </p>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen px-4 pt-3 pb-4 md:px-6 md:pt-3 md:pb-6" style={{ backgroundColor: '#DEF1F1' }}>
+    <div className="min-h-screen px-4 pt-3 pb-4 md:px-6 md:pt-3 md:pb-6" style={{ backgroundColor: "#DEF1F1" }}>
       <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
         {/* Saludo personalizado */}
         <div className="space-y-2">
@@ -458,7 +452,7 @@ export default function DashboardPage() {
               fontFamily: "Ludicrous, sans-serif",
               color: "#68A1C8",
               fontWeight: "normal",
-              fontSize: "48px"
+              fontSize: "48px",
             }}
             suppressHydrationWarning
           >
@@ -512,253 +506,253 @@ export default function DashboardPage() {
 
         {/* Grid de contenido principal (ocultar widgets avanzados para padre) */}
         {false && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-          {/* Tendencia de Sueño (oculto para padre) */}
-          <Card className="bg-white shadow-sm border-0 col-span-1 lg:col-span-2">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-[#2F2F2F]">Tendencia de Sueño</CardTitle>
-                <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
-                    onClick={() => setSelectedPeriod("7d")}
-                    className={selectedPeriod === "7d" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3" : "h-7 md:h-8 text-xs md:text-sm px-2 md:px-3"}
-                    variant={selectedPeriod === "7d" ? "default" : "ghost"}
-                  >
-                    <span className="hidden sm:inline">7 días</span>
-                    <span className="sm:hidden">7d</span>
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={() => setSelectedPeriod("30d")}
-                    className={selectedPeriod === "30d" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3" : "text-[#666666] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3"}
-                    variant={selectedPeriod === "30d" ? "default" : "ghost"}
-                  >
-                    <span className="hidden sm:inline">30 días</span>
-                    <span className="sm:hidden">30d</span>
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={() => setSelectedPeriod("3m")}
-                    className={selectedPeriod === "3m" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3" : "text-[#666666] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3"}
-                    variant={selectedPeriod === "3m" ? "default" : "ghost"}
-                  >
-                    <span className="hidden sm:inline">3 meses</span>
-                    <span className="sm:hidden">3m</span>
-                  </Button>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+            {/* Tendencia de Sueño (oculto para padre) */}
+            <Card className="bg-white shadow-sm border-0 col-span-1 lg:col-span-2">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-[#2F2F2F]">Tendencia de Sueño</CardTitle>
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      onClick={() => setSelectedPeriod("7d")}
+                      className={selectedPeriod === "7d" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3" : "h-7 md:h-8 text-xs md:text-sm px-2 md:px-3"}
+                      variant={selectedPeriod === "7d" ? "default" : "ghost"}
+                    >
+                      <span className="hidden sm:inline">7 días</span>
+                      <span className="sm:hidden">7d</span>
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => setSelectedPeriod("30d")}
+                      className={selectedPeriod === "30d" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3" : "text-[#666666] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3"}
+                      variant={selectedPeriod === "30d" ? "default" : "ghost"}
+                    >
+                      <span className="hidden sm:inline">30 días</span>
+                      <span className="sm:hidden">30d</span>
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => setSelectedPeriod("3m")}
+                      className={selectedPeriod === "3m" ? "bg-[#F0F7FF] text-[#4A90E2] hover:bg-[#E8F4FF] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3" : "text-[#666666] h-7 md:h-8 text-xs md:text-sm px-2 md:px-3"}
+                      variant={selectedPeriod === "3m" ? "default" : "ghost"}
+                    >
+                      <span className="hidden sm:inline">3 meses</span>
+                      <span className="sm:hidden">3m</span>
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-3 md:p-6">
-              <div className="h-48 md:h-64 bg-[#F8FAFC] rounded-xl p-2 md:p-4 overflow-x-auto touch-pan-x">
-                {(() => {
-                  const chartData = getSleepChartData()
-                  const maxHours = Math.max(...chartData.map(d => d.hours), 1)
+              </CardHeader>
+              <CardContent className="p-3 md:p-6">
+                <div className="h-48 md:h-64 bg-[#F8FAFC] rounded-xl p-2 md:p-4 overflow-x-auto touch-pan-x">
+                  {(() => {
+                    const chartData = getSleepChartData()
+                    const maxHours = Math.max(...chartData.map(d => d.hours), 1)
                   
-                  if (chartData.length === 0) {
+                    if (chartData.length === 0) {
+                      return (
+                        <div className="flex items-center justify-center h-full">
+                          <div className="text-center space-y-2">
+                            <TrendingUp className="h-12 w-12 text-[#E3E6EA] mx-auto" />
+                            <p className="text-[#666666] text-sm">No hay datos de sueño para este período</p>
+                          </div>
+                        </div>
+                      )
+                    }
+                  
                     return (
-                      <div className="flex items-center justify-center h-full">
-                        <div className="text-center space-y-2">
-                          <TrendingUp className="h-12 w-12 text-[#E3E6EA] mx-auto" />
-                          <p className="text-[#666666] text-sm">No hay datos de sueño para este período</p>
+                      <div className="h-full flex flex-col">
+                        <div className="flex-1 flex items-end gap-1 md:gap-2 min-w-max px-2">
+                          {chartData.map((data, index) => (
+                            <div key={`chart-${data.label}-${index}`} className="flex flex-col items-center min-w-[40px] md:min-w-[60px]">
+                              <div 
+                                className="bg-[#4A90E2] rounded-t-md w-full transition-all duration-300 hover:bg-[#357ABD] active:bg-[#2968A6] flex items-end justify-center relative cursor-pointer"
+                                style={{ 
+                                  height: `${Math.max((data.hours / maxHours) * 80, 8)}%`,
+                                  minHeight: data.hours > 0 ? "12px" : "4px",
+                                }}
+                                title={`${data.hours} horas`}
+                              >
+                                {data.hours > 0 && (
+                                  <span className="text-white text-[10px] md:text-xs font-medium mb-1">
+                                    {data.hours}h
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] md:text-xs text-[#666666] mt-1 md:mt-2 text-center">
+                                {data.label}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-4 flex justify-between text-xs text-[#666666]">
+                          <span>0h</span>
+                          <span className="text-[#4A90E2] font-medium">
+                          Período: {selectedPeriod === "7d" ? "7 días" : selectedPeriod === "30d" ? "30 días" : "3 meses"}
+                          </span>
+                          <span>{Math.ceil(maxHours)}h</span>
                         </div>
                       </div>
                     )
-                  }
-                  
-                  return (
-                    <div className="h-full flex flex-col">
-                      <div className="flex-1 flex items-end gap-1 md:gap-2 min-w-max px-2">
-                        {chartData.map((data, index) => (
-                          <div key={`chart-${data.label}-${index}`} className="flex flex-col items-center min-w-[40px] md:min-w-[60px]">
-                            <div 
-                              className="bg-[#4A90E2] rounded-t-md w-full transition-all duration-300 hover:bg-[#357ABD] active:bg-[#2968A6] flex items-end justify-center relative cursor-pointer"
-                              style={{ 
-                                height: `${Math.max((data.hours / maxHours) * 80, 8)}%`,
-                                minHeight: data.hours > 0 ? '12px' : '4px'
-                              }}
-                              title={`${data.hours} horas`}
-                            >
-                              {data.hours > 0 && (
-                                <span className="text-white text-[10px] md:text-xs font-medium mb-1">
-                                  {data.hours}h
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-[10px] md:text-xs text-[#666666] mt-1 md:mt-2 text-center">
-                              {data.label}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-4 flex justify-between text-xs text-[#666666]">
-                        <span>0h</span>
-                        <span className="text-[#4A90E2] font-medium">
-                          Período: {selectedPeriod === "7d" ? "7 días" : selectedPeriod === "30d" ? "30 días" : "3 meses"}
-                        </span>
-                        <span>{Math.ceil(maxHours)}h</span>
-                      </div>
-                    </div>
-                  )
-                })()}
-              </div>
-            </CardContent>
-          </Card>
+                  })()}
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Estado de Ánimo (oculto para padre) */}
-          <Card className="bg-white shadow-sm border-0">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-[#2F2F2F]">Estado de Ánimo</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentMoods.length > 0 ? recentMoods.map((event) => {
-                  if (!event.startTime) return null
-                  const eventDate = parseISO(event.startTime)
-                  const isToday = isSameDay(eventDate, new Date())
-                  const daysDiff = Math.floor((Date.now() - eventDate.getTime()) / (1000 * 60 * 60 * 24))
+            {/* Estado de Ánimo (oculto para padre) */}
+            <Card className="bg-white shadow-sm border-0">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-[#2F2F2F]">Estado de Ánimo</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentMoods.length > 0 ? recentMoods.map((event) => {
+                    if (!event.startTime) return null
+                    const eventDate = parseISO(event.startTime)
+                    const isToday = isSameDay(eventDate, new Date())
+                    const daysDiff = Math.floor((Date.now() - eventDate.getTime()) / (1000 * 60 * 60 * 24))
                   
-                  // Determinar el texto de fecha
-                  let dateText
-                  if (isToday) {
-                    dateText = "Hoy"
-                  } else if (daysDiff === 1) {
-                    dateText = "Ayer"
-                  } else if (daysDiff <= 6) {
-                    dateText = format(eventDate, "EEEE", { locale: es })
-                  } else {
-                    dateText = format(eventDate, "d MMM", { locale: es })
-                  }
-                  
-                  // Determinar color del badge según el estado
-                  const getBadgeColor = (mood: string) => {
-                    const normalizedMood = mood.toLowerCase()
-                    if (normalizedMood.includes('happy') || normalizedMood.includes('feliz') || normalizedMood.includes('calm') || normalizedMood.includes('tranquilo')) {
-                      return "bg-green-50 text-green-700"
-                    } else if (normalizedMood.includes('tired') || normalizedMood.includes('cansado') || normalizedMood.includes('restless') || normalizedMood.includes('inquieto')) {
-                      return "bg-yellow-50 text-yellow-700"
-                    } else if (normalizedMood.includes('stressed') || normalizedMood.includes('estresado') || normalizedMood.includes('anxious') || normalizedMood.includes('ansioso')) {
-                      return "bg-red-50 text-red-700"
+                    // Determinar el texto de fecha
+                    let dateText
+                    if (isToday) {
+                      dateText = "Hoy"
+                    } else if (daysDiff === 1) {
+                      dateText = "Ayer"
+                    } else if (daysDiff <= 6) {
+                      dateText = format(eventDate, "EEEE", { locale: es })
+                    } else {
+                      dateText = format(eventDate, "d MMM", { locale: es })
                     }
-                    return "bg-blue-50 text-blue-700" // neutral
-                  }
                   
-                  return (
-                    <div key={event._id} className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <p className="text-sm text-[#3A3A3A] font-medium">
-                          {dateText}
-                        </p>
+                    // Determinar color del badge según el estado
+                    const getBadgeColor = (mood: string) => {
+                      const normalizedMood = mood.toLowerCase()
+                      if (normalizedMood.includes("happy") || normalizedMood.includes("feliz") || normalizedMood.includes("calm") || normalizedMood.includes("tranquilo")) {
+                        return "bg-green-50 text-green-700"
+                      } else if (normalizedMood.includes("tired") || normalizedMood.includes("cansado") || normalizedMood.includes("restless") || normalizedMood.includes("inquieto")) {
+                        return "bg-yellow-50 text-yellow-700"
+                      } else if (normalizedMood.includes("stressed") || normalizedMood.includes("estresado") || normalizedMood.includes("anxious") || normalizedMood.includes("ansioso")) {
+                        return "bg-red-50 text-red-700"
+                      }
+                      return "bg-blue-50 text-blue-700" // neutral
+                    }
+                  
+                    return (
+                      <div key={event._id} className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <p className="text-sm text-[#3A3A3A] font-medium">
+                            {dateText}
+                          </p>
+                        </div>
+                        <Badge className={`${getBadgeColor(event.emotionalState)} text-xs`}>
+                          {event.emotionalState}
+                        </Badge>
                       </div>
-                      <Badge className={`${getBadgeColor(event.emotionalState)} text-xs`}>
-                        {event.emotionalState}
-                      </Badge>
-                    </div>
-                  )
-                }) : (
-                  <p className="text-[#666666] text-sm text-center py-8">
+                    )
+                  }) : (
+                    <p className="text-[#666666] text-sm text-center py-8">
                     No hay datos de estado de ánimo recientes
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
         
         {/* Segunda fila del grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Calendario de Sueño (oculto para padre) */}
           {false && (
-          <Card className="bg-white shadow-sm border-0">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-[#2F2F2F]">Calendario de Sueño</CardTitle>
-                <div className="flex gap-1">
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    className="h-8 w-8 p-0 hover:bg-gray-200 text-gray-700 hover:text-gray-900"
-                    onClick={() => {
-                      const newDate = new Date(currentDate)
-                      newDate.setDate(newDate.getDate() - 7)
-                      setCurrentDate(newDate)
-                    }}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    className="h-8 w-8 p-0 hover:bg-gray-200 text-gray-700 hover:text-gray-900"
-                    onClick={() => {
-                      const newDate = new Date(currentDate)
-                      newDate.setDate(newDate.getDate() + 7)
-                      setCurrentDate(newDate)
-                    }}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
+            <Card className="bg-white shadow-sm border-0">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-[#2F2F2F]">Calendario de Sueño</CardTitle>
+                  <div className="flex gap-1">
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="h-8 w-8 p-0 hover:bg-gray-200 text-gray-700 hover:text-gray-900"
+                      onClick={() => {
+                        const newDate = new Date(currentDate)
+                        newDate.setDate(newDate.getDate() - 7)
+                        setCurrentDate(newDate)
+                      }}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="h-8 w-8 p-0 hover:bg-gray-200 text-gray-700 hover:text-gray-900"
+                      onClick={() => {
+                        const newDate = new Date(currentDate)
+                        newDate.setDate(newDate.getDate() + 7)
+                        setCurrentDate(newDate)
+                      }}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              <p className="text-[#3A3A3A] font-medium">
-                {format(currentDate, "MMMM yyyy", { locale: es })}
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Días de la semana */}
-                <div className="grid grid-cols-7 gap-2 text-xs text-center text-[#666666] font-medium">
-                  {["L", "M", "X", "J", "V", "S", "D"].map(day => (
-                    <div key={day}>{day}</div>
-                  ))}
-                </div>
+                <p className="text-[#3A3A3A] font-medium">
+                  {format(currentDate, "MMMM yyyy", { locale: es })}
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Días de la semana */}
+                  <div className="grid grid-cols-7 gap-2 text-xs text-center text-[#666666] font-medium">
+                    {["L", "M", "X", "J", "V", "S", "D"].map(day => (
+                      <div key={day}>{day}</div>
+                    ))}
+                  </div>
                 
-                {/* Días del calendario */}
-                <div className="grid grid-cols-7 gap-2">
-                  {getWeekDays().map(date => {
-                    const quality = getDayQuality(date)
-                    const isToday = isSameDay(date, new Date())
+                  {/* Días del calendario */}
+                  <div className="grid grid-cols-7 gap-2">
+                    {getWeekDays().map(date => {
+                      const quality = getDayQuality(date)
+                      const isToday = isSameDay(date, new Date())
                     
-                    return (
-                      <div key={date.toISOString()} className="aspect-square flex items-center justify-center">
-                        {quality ? (
-                          <div className={`
+                      return (
+                        <div key={date.toISOString()} className="aspect-square flex items-center justify-center">
+                          {quality ? (
+                            <div className={`
                             w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium
                             ${quality === "good" ? "bg-green-600 text-white" : ""}
                             ${quality === "average" ? "bg-yellow-500 text-white" : ""}
                             ${quality === "poor" ? "bg-red-500 text-white" : ""}
                           `}>
-                            {format(date, "d")}
-                          </div>
-                        ) : (
-                          <div className={`text-xs ${isToday ? "font-bold text-[#3A3A3A]" : "text-[#9CA3AF]"}`}>
-                            {format(date, "d")}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
+                              {format(date, "d")}
+                            </div>
+                          ) : (
+                            <div className={`text-xs ${isToday ? "font-bold text-[#3A3A3A]" : "text-[#9CA3AF]"}`}>
+                              {format(date, "d")}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
 
-                {/* Leyenda */}
-                <div className="flex justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-600 rounded-full"></div>
-                    <span className="text-[#666666]">Buena calidad</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                    <span className="text-[#666666]">Regular</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span className="text-[#666666]">Mala</span>
+                  {/* Leyenda */}
+                  <div className="flex justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-green-600 rounded-full"></div>
+                      <span className="text-[#666666]">Buena calidad</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                      <span className="text-[#666666]">Regular</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                      <span className="text-[#666666]">Mala</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
           )}
 
           {/* Bitácora */}
@@ -772,28 +766,28 @@ export default function DashboardPage() {
                   const notesEvents = events.filter(e => e.notes).slice(0, 3)
                   return notesEvents.length > 0 ? (
                     notesEvents.map((event, index) => (
-                    <div key={`note-${event._id}-${index}`} className="bg-[#EDE5FF] rounded-2xl rounded-tl-sm p-3 relative group">
-                      <button
-                        onClick={() => handleDeleteNote(event._id)}
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded-full"
-                        title="Eliminar nota"
-                      >
-                        <X className="h-4 w-4 text-red-500" />
-                      </button>
-                      <p className="text-sm text-[#3A3A3A] leading-relaxed pr-6">
-                        {event.notes}
-                      </p>
-                      <p className="text-xs text-[#666666] mt-2">
-                        {event.startTime ? format(parseISO(event.startTime), "d MMM, HH:mm", { locale: es }) : 'Sin hora'}
-                      </p>
+                      <div key={`note-${event._id}-${index}`} className="bg-[#EDE5FF] rounded-2xl rounded-tl-sm p-3 relative group">
+                        <button
+                          onClick={() => handleDeleteNote(event._id)}
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded-full"
+                          title="Eliminar nota"
+                        >
+                          <X className="h-4 w-4 text-red-500" />
+                        </button>
+                        <p className="text-sm text-[#3A3A3A] leading-relaxed pr-6">
+                          {event.notes}
+                        </p>
+                        <p className="text-xs text-[#666666] mt-2">
+                          {event.startTime ? format(parseISO(event.startTime), "d MMM, HH:mm", { locale: es }) : "Sin hora"}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div key="no-notes" className="text-center py-8 text-gray-500">
+                      <p className="text-sm">No hay notas recientes</p>
+                      <p className="text-xs mt-2">Registra eventos para ver las notas aquí</p>
                     </div>
-                  ))
-                ) : (
-                  <div key="no-notes" className="text-center py-8 text-gray-500">
-                    <p className="text-sm">No hay notas recientes</p>
-                    <p className="text-xs mt-2">Registra eventos para ver las notas aquí</p>
-                  </div>
-                )})()}
+                  )})()}
               </div>
 
               {/* Input para nueva nota */}
@@ -801,7 +795,7 @@ export default function DashboardPage() {
                 <input
                   value={noteText}
                   onChange={(e) => setNoteText(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddNote()}
+                  onKeyPress={(e) => e.key === "Enter" && handleAddNote()}
                   placeholder="Añadir una nota..."
                   disabled={isAddingNote}
                   className="flex-1 px-4 py-3 bg-white border border-[#E5E5E5] rounded-xl text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4A90E2] focus:border-transparent disabled:opacity-50"

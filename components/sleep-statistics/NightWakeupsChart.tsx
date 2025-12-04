@@ -10,21 +10,21 @@ const logger = createLogger("NightWakeupsChart")
 function processNightWakeups(events: any[]) {
   // Inicializar datos por día de la semana (Lunes=1, Domingo=0)
   const weekData = [
-    { day: 'L', dayIndex: 1, count: 0, duration: 0 }, // Lunes
-    { day: 'M', dayIndex: 2, count: 0, duration: 0 }, // Martes
-    { day: 'X', dayIndex: 3, count: 0, duration: 0 }, // Miércoles
-    { day: 'J', dayIndex: 4, count: 0, duration: 0 }, // Jueves
-    { day: 'V', dayIndex: 5, count: 0, duration: 0 }, // Viernes
-    { day: 'S', dayIndex: 6, count: 0, duration: 0 }, // Sábado
-    { day: 'D', dayIndex: 0, count: 0, duration: 0 }, // Domingo
+    { day: "L", dayIndex: 1, count: 0, duration: 0 }, // Lunes
+    { day: "M", dayIndex: 2, count: 0, duration: 0 }, // Martes
+    { day: "X", dayIndex: 3, count: 0, duration: 0 }, // Miércoles
+    { day: "J", dayIndex: 4, count: 0, duration: 0 }, // Jueves
+    { day: "V", dayIndex: 5, count: 0, duration: 0 }, // Viernes
+    { day: "S", dayIndex: 6, count: 0, duration: 0 }, // Sábado
+    { day: "D", dayIndex: 0, count: 0, duration: 0 }, // Domingo
   ]
   
   if (!events || events.length === 0) return weekData
   
   // Filtrar solo eventos de tipo night_waking
-  const nightWakingEvents = events.filter(event => event.eventType === 'night_waking')
+  const nightWakingEvents = events.filter(event => event.eventType === "night_waking")
   
-  logger.debug('Procesando eventos night_waking', { count: nightWakingEvents.length })
+  logger.debug("Procesando eventos night_waking", { count: nightWakingEvents.length })
   
   // Procesar cada despertar nocturno
   nightWakingEvents.forEach(event => {
@@ -57,7 +57,7 @@ function processNightWakeups(events: any[]) {
         dayData.duration += 30 // Duración promedio más realista si no hay datos
       }
       
-      logger.debug('Despertar nocturno registrado', { day: dayData.day })
+      logger.debug("Despertar nocturno registrado", { day: dayData.day })
     }
   })
   
@@ -81,7 +81,7 @@ export default function NightWakeupsChart({ childId, dateRange = "7-days" }: Nig
   const avgWakeupDuration = React.useMemo(() => {
     if (!sleepData?.events || sleepData.events.length === 0) return 0
     
-    const nightWakingEvents = sleepData.events.filter((e: any) => e.eventType === 'night_waking')
+    const nightWakingEvents = sleepData.events.filter((e: any) => e.eventType === "night_waking")
     if (nightWakingEvents.length === 0) return 0
     
     let totalDuration = 0
@@ -110,13 +110,13 @@ export default function NightWakeupsChart({ childId, dateRange = "7-days" }: Nig
   // Simular distribución por día de la semana (ya que los datos reales están centralizados)
   const wakeupsData = React.useMemo(() => {
     const daysData = [
-      { day: 'L', dayIndex: 1, count: 0, duration: 0 },
-      { day: 'M', dayIndex: 2, count: 0, duration: 0 },
-      { day: 'X', dayIndex: 3, count: 0, duration: 0 },
-      { day: 'J', dayIndex: 4, count: 0, duration: 0 },
-      { day: 'V', dayIndex: 5, count: 0, duration: 0 },
-      { day: 'S', dayIndex: 6, count: 0, duration: 0 },
-      { day: 'D', dayIndex: 0, count: 0, duration: 0 },
+      { day: "L", dayIndex: 1, count: 0, duration: 0 },
+      { day: "M", dayIndex: 2, count: 0, duration: 0 },
+      { day: "X", dayIndex: 3, count: 0, duration: 0 },
+      { day: "J", dayIndex: 4, count: 0, duration: 0 },
+      { day: "V", dayIndex: 5, count: 0, duration: 0 },
+      { day: "S", dayIndex: 6, count: 0, duration: 0 },
+      { day: "D", dayIndex: 0, count: 0, duration: 0 },
     ]
     
     if (sleepData?.events) {
@@ -163,10 +163,10 @@ export default function NightWakeupsChart({ childId, dateRange = "7-days" }: Nig
   const maxDuration = Math.max(...wakeupsData.map(d => d.duration), 60)
   
   const getWakeupLevel = (avg: number) => {
-    if (avg < 1) return { label: 'Excelente', color: 'text-green-600' }
-    if (avg <= 2) return { label: 'Normal', color: 'text-blue-600' }
-    if (avg <= 3) return { label: 'Frecuente', color: 'text-yellow-600' }
-    return { label: 'Muy frecuente', color: 'text-red-600' }
+    if (avg < 1) return { label: "Excelente", color: "text-green-600" }
+    if (avg <= 2) return { label: "Normal", color: "text-blue-600" }
+    if (avg <= 3) return { label: "Frecuente", color: "text-yellow-600" }
+    return { label: "Muy frecuente", color: "text-red-600" }
   }
 
   // Removido: level ya no se usa, se calcula dinámicamente en las estadísticas
@@ -187,19 +187,19 @@ export default function NightWakeupsChart({ childId, dateRange = "7-days" }: Nig
           const height = maxDuration > 0 ? (dayData.duration / maxDuration) * 180 : 0
           return (
             <div key={dayData.day} className="flex flex-col items-center">
-              <div className="w-8 bg-gray-100 rounded-t-sm relative" style={{ height: '180px' }}>
+              <div className="w-8 bg-gray-100 rounded-t-sm relative" style={{ height: "180px" }}>
                 <div 
                   className={`w-full rounded-t-sm absolute bottom-0 transition-all duration-1000 ${
                     dayData.count > 0 
-                      ? 'bg-gradient-to-t from-[#FF6B6B] to-[#FF8E8E]' 
-                      : 'bg-gray-200'
+                      ? "bg-gradient-to-t from-[#FF6B6B] to-[#FF8E8E]" 
+                      : "bg-gray-200"
                   }`}
                   style={{ height: `${height}px` }}
                 />
               </div>
               <p className="mt-2 text-xs font-medium text-gray-600">{dayData.day}</p>
               <p className="text-xs text-gray-400">
-                {dayData.count > 0 ? dayData.count : '0'}
+                {dayData.count > 0 ? dayData.count : "0"}
               </p>
             </div>
           )

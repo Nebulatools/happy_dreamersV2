@@ -72,16 +72,16 @@ export function getEmailService(): EmailService {
   const emailProvider = process.env.EMAIL_PROVIDER || "console"
 
   switch (emailProvider) {
-    case "sendgrid":
-      logger.warn("SendGrid no implementado, usando console")
-      return new ConsoleEmailService()
-    case "aws":
-      logger.warn("AWS SES no implementado, usando console")
-      return new ConsoleEmailService()
-    case "smtp":
-    case "gmail":
-      return new SmtpEmailService()
-    default:
-      return new ConsoleEmailService()
+  case "sendgrid":
+    logger.warn("SendGrid no implementado, usando console")
+    return new ConsoleEmailService()
+  case "aws":
+    logger.warn("AWS SES no implementado, usando console")
+    return new ConsoleEmailService()
+  case "smtp":
+  case "gmail":
+    return new SmtpEmailService()
+  default:
+    return new ConsoleEmailService()
   }
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useMemo } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -22,6 +22,8 @@ import {
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { CalendarDays, Loader2 } from "lucide-react"
+import { detectContinuousSleepEvents, formatMinutesAsHours as formatDuration } from "@/lib/utils/continuous-sleep-detector"
+import { ContinuousSleepOverlay } from "@/components/dashboard/ContinuousSleepOverlay"
 
 type RangeOption = "7-days" | "30-days" | "90-days"
 
@@ -55,7 +57,23 @@ function formatMinutesAsHours(minutes: number): string {
   const mins = minutes % 60
   if (hrs === 0) return `${mins}m`
   if (mins === 0) return `${hrs}h`
-  return `${hrs}h ${mins}m`
+  // Redondear a media hora para display compacto
+  if (mins >= 30) return `${hrs}.5h`
+  return `${hrs}h`
+}
+
+// Obtener despertares nocturnos ordenados cronológicamente
+function getNightWakings(segments: EventSegment[]): EventSegment[] {
+  return segments
+    .filter(s => s.type === 'night_waking' || s.type === 'despertar_nocturno')
+    .sort((a, b) => a.start.getTime() - b.start.getTime())
+}
+
+// Obtener siestas de un día
+function getNaps(segments: EventSegment[]): EventSegment[] {
+  return segments.filter(s =>
+    s.type === 'nap' || s.type === 'siesta'
+  )
 }
 
 function buildDailySummary(
@@ -215,6 +233,11 @@ export default function SleepMetricsCombinedChart({
     [eventsInRange, windowStart, windowEnd]
   )
 
+  // Detectar eventos continuos que cruzan medianoche
+  const continuousEvents = useMemo(() => {
+    return detectContinuousSleepEvents(eventsInRange)
+  }, [eventsInRange])
+
   const midpointForWeek = React.useMemo(
     () => subDays(windowEnd, Math.floor(daysToShow / 2)),
     [windowEnd, daysToShow]
@@ -281,6 +304,7 @@ export default function SleepMetricsCombinedChart({
             dailySummary={dailySummary}
             rangeLabel={getRangeLabel(range)}
             daysToShow={daysToShow}
+            continuousEvents={continuousEvents}
           />
         ) : range === "7-days" ? (
           <div className="overflow-x-auto pb-4">
@@ -298,6 +322,7 @@ export default function SleepMetricsCombinedChart({
             dailySummary={dailySummary}
             rangeLabel={getRangeLabel(range)}
             daysToShow={daysToShow}
+            continuousEvents={continuousEvents}
           />
         )}
       </CardContent>
@@ -311,6 +336,7 @@ interface RollingCalendarGridProps {
   dailySummary: Map<string, DailySummary>
   rangeLabel: string
   daysToShow: number
+  continuousEvents: ReturnType<typeof detectContinuousSleepEvents>
 }
 
 function RollingCalendarGrid({
@@ -319,6 +345,7 @@ function RollingCalendarGrid({
   dailySummary,
   rangeLabel,
   daysToShow,
+  continuousEvents,
 }: RollingCalendarGridProps) {
   const isSevenDayMode = daysToShow <= 7
   const gridStart = isSevenDayMode
@@ -329,6 +356,15 @@ function RollingCalendarGrid({
     : endOfWeek(endDate, { weekStartsOn: 0 })
   const days = eachDayOfInterval({ start: gridStart, end: gridEnd })
   const weeks = chunkBy(days, 7)
+
+  // Crear Set de días que tienen eventos continuos para ocultar segmentos individuales
+  const daysWithContinuousEvents = React.useMemo(() => {
+    const daySet = new Set<string>()
+    continuousEvents.forEach(event => {
+      event.daysSpanned.forEach(day => daySet.add(day))
+    })
+    return daySet
+  }, [continuousEvents])
 
   return (
     <div className="space-y-3">
@@ -342,69 +378,134 @@ function RollingCalendarGrid({
           <div className="grid grid-cols-7 gap-2 text-center text-[11px] font-medium text-gray-500">
             {(isSevenDayMode
               ? Array.from({ length: 7 }, (_, idx) =>
-                  format(addDays(gridStart, idx), "EEE", { locale: es })
-                )
+                format(addDays(gridStart, idx), "EEE", { locale: es })
+              )
               : WEEKDAY_LABELS
             ).map((label, idx) => (
               <span key={`${label}-${idx}`}>{label}</span>
             ))}
           </div>
 
-          <div className="space-y-2">
-            {weeks.map((week, idx) => (
-              <div key={idx} className="grid grid-cols-7 gap-2">
-                {week.map((day) => {
-                  const key = format(day, "yyyy-MM-dd")
-                  const summary = dailySummary.get(key)
-                  const isOutsideRange = day < startDate || day > endDate
-                  const monthBreak = day.getDate() === 1
-                  const classes = summary
-                    ? getIntensityClasses(summary.totalMinutes)
-                    : "bg-white border border-gray-200"
+          {/* Wrapper con position relative para overlay */}
+          <div className="relative">
+            <div className="space-y-2">
+              {weeks.map((week, idx) => (
+                <div key={idx} className="grid grid-cols-7 gap-2">
+                  {week.map((day) => {
+                    const key = format(day, "yyyy-MM-dd")
+                    const summary = dailySummary.get(key)
+                    const isOutsideRange = day < startDate || day > endDate
+                    const monthBreak = day.getDate() === 1
+                    const classes = summary
+                      ? getIntensityClasses(summary.totalMinutes)
+                      : "bg-white border border-gray-200"
 
-                  return (
-                    <div
-                      key={key}
-                      className={cn(
-                        "min-h-[130px] rounded-xl border p-2 text-left transition-colors",
-                        classes,
-                        isOutsideRange && "opacity-40"
-                      )}
-                    >
-                      <div className="flex items-center justify-between text-xs font-semibold">
-                        <span>{day.getDate()}</span>
-                        {monthBreak || day.getDate() === 1 ? (
-                          <span className="text-[10px] uppercase tracking-wide">
-                            {format(day, "MMM", { locale: es })}
-                          </span>
-                        ) : (
-                          <span />
+                    const nightWakings = summary ? getNightWakings(summary.segments) : []
+                    const naps = summary ? getNaps(summary.segments) : []
+
+                    return (
+                      <div
+                        key={key}
+                        className={cn(
+                          "min-h-[130px] rounded-xl border p-2 text-left transition-colors flex flex-col relative",
+                          classes,
+                          isOutsideRange && "opacity-40"
                         )}
-                      </div>
-
-                      <div className="mt-2 space-y-1">
-                        {summary?.segments.slice(0, 3).map((segment) => (
-                          <div
-                            key={segment.id}
-                            className="rounded-md bg-white/70 px-2 py-1 text-[11px] text-gray-700 shadow-sm"
-                          >
-                            <span className="font-medium mr-1">{getSegmentEmoji(segment.type)}</span>
-                            {format(segment.start, "HH:mm")} - {format(segment.end, "HH:mm")}
+                      >
+                        {/* Horarios de despertares nocturnos */}
+                        {nightWakings.length > 0 && (
+                          <div className="absolute top-2 right-2 group/wake">
+                            <div className="bg-night-wake text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center cursor-default">
+                              {nightWakings.length}
+                            </div>
+                            <div className="absolute bottom-full right-0 mb-1 opacity-0 group-hover/wake:opacity-100 transition-opacity pointer-events-none z-50">
+                              <div className="bg-gray-900 text-white text-[10px] rounded px-2 py-1 space-y-1">
+                                {nightWakings.map((wake) => (
+                                  <div key={wake.id} className="whitespace-nowrap">
+                                    {format(wake.start, "HH:mm")}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           </div>
-                        ))}
-                        {summary && summary.segments.length > 3 && (
-                          <div className="text-[10px] text-gray-600">+{summary.segments.length - 3} eventos</div>
                         )}
-                      </div>
 
-                      <div className="mt-3 text-[11px] font-semibold">
-                        Sueño total: {summary ? formatMinutesAsHours(summary.totalMinutes) : "0h"}
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span>{day.getDate()}</span>
+                          {monthBreak || day.getDate() === 1 ? (
+                            <span className="text-[10px] uppercase tracking-wide">
+                              {format(day, "MMM", { locale: es })}
+                            </span>
+                          ) : (
+                            <span />
+                          )}
+                        </div>
+
+                        <div className="mt-2 space-y-1">
+                          {summary?.segments
+                            .filter((segment) => {
+                              // Ocultar siestas (se muestran como circulos)
+                              if (segment.type === 'nap' || segment.type === 'siesta') {
+                                return false
+                              }
+                              // Ocultar despertares nocturnos (se muestran como badge)
+                              if (segment.type === 'night_waking' || segment.type === 'despertar_nocturno') {
+                                return false
+                              }
+                              // Ocultar segmentos de sueño si son parte de un evento continuo
+                              if (daysWithContinuousEvents.has(key) && isSleepBlock(segment.type)) {
+                                return false
+                              }
+                              return true
+                            })
+                            .slice(0, 3)
+                            .map((segment) => (
+                              <div
+                                key={segment.id}
+                                className="rounded-md bg-white/70 px-2 py-1 text-[11px] text-gray-700 shadow-sm"
+                              >
+                                <span className="font-medium mr-1">{getSegmentEmoji(segment.type)}</span>
+                                {format(segment.start, "HH:mm")} - {format(segment.end, "HH:mm")}
+                              </div>
+                            ))}
+                        </div>
+
+                        {/* Indicadores de siestas */}
+                        {naps.length > 0 && (
+                          <div className="flex items-center gap-1 mt-2">
+                            {naps.slice(0, 4).map((nap) => (
+                              <div key={nap.id} className="relative group/nap">
+                                <div className="w-4 h-4 rounded-full bg-nap cursor-default hover:ring-2 hover:ring-orange-300 transition-all" />
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover/nap:opacity-100 transition-opacity pointer-events-none z-50">
+                                  <div className="bg-gray-900 text-white text-[10px] rounded px-2 py-1 whitespace-nowrap">
+                                    {formatMinutesAsHours(differenceInMinutes(nap.end, nap.start))}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                            {naps.length > 4 && (
+                              <span className="text-[10px] text-gray-500">+{naps.length - 4}</span>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="mt-auto text-[11px] font-semibold">
+                          Sueño total: {summary ? formatMinutesAsHours(summary.totalMinutes) : "0h"}
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
-              </div>
-            ))}
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+
+            {/* Overlay de eventos continuos */}
+            {continuousEvents.length > 0 && (
+              <ContinuousSleepOverlay
+                continuousEvents={continuousEvents}
+                visibleDays={days}
+              />
+            )}
           </div>
         </div>
       </div>

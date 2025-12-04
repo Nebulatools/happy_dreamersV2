@@ -1,15 +1,15 @@
 // 🔍 Vista Diaria - Un solo día con eventos
 "use client"
 
-import React from 'react'
-import { format } from 'date-fns'
-import { Cloud, ChevronLeft, ChevronRight } from 'lucide-react'
-import { TimeAxis } from './TimeAxis'
-import { BackgroundAreas } from './BackgroundAreas'
-import { GridLines } from './GridLines'
-import { EventGlobe } from './EventGlobe'
-import { SleepSessionBlock } from './SleepSessionBlock'
-import { processSleepSessions, type Event as SleepEvent } from '@/lib/utils/sleep-sessions'
+import React from "react"
+import { format } from "date-fns"
+import { Cloud, ChevronLeft, ChevronRight } from "lucide-react"
+import { TimeAxis } from "./TimeAxis"
+import { BackgroundAreas } from "./BackgroundAreas"
+import { GridLines } from "./GridLines"
+import { EventGlobe } from "./EventGlobe"
+import { SleepSessionBlock } from "./SleepSessionBlock"
+import { processSleepSessions, type Event as SleepEvent } from "@/lib/utils/sleep-sessions"
 
 interface Event {
   _id: string;
@@ -40,7 +40,7 @@ export function CalendarDayView({
   onCalendarClick,
   className = "",
   onDayNavigateBack,
-  onDayNavigateForward
+  onDayNavigateForward,
 }: CalendarDayViewProps) {
   
   return (

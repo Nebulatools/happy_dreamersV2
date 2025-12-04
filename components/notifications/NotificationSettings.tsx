@@ -75,7 +75,7 @@ export function NotificationSettings({ childId, childName }: NotificationSetting
     pushEnabled: true,
     emailEnabled: false,
     inAppEnabled: true,
-    quietHours: { enabled: false, start: "22:00", end: "07:00" }
+    quietHours: { enabled: false, start: "22:00", end: "07:00" },
   })
   const [pushPermission, setPushPermission] = useState<NotificationPermission>("default")
 
@@ -144,8 +144,8 @@ export function NotificationSettings({ childId, childName }: NotificationSetting
         body: JSON.stringify({
           childId,
           token: "demo-token-" + Date.now(), // Token temporal
-          platform: "web"
-        })
+          platform: "web",
+        }),
       })
       
       if (!response.ok) throw new Error("Error registrando token")
@@ -164,8 +164,8 @@ export function NotificationSettings({ childId, childName }: NotificationSetting
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           childId,
-          ...config
-        })
+          ...config,
+        }),
       })
       if (!response.ok) {
         // Si no existe el endpoint, no mostrar error al usuario
@@ -189,8 +189,8 @@ export function NotificationSettings({ childId, childName }: NotificationSetting
       ...prev,
       [event]: {
         ...prev[event],
-        [field]: value
-      }
+        [field]: value,
+      },
     }))
   }
 
@@ -486,7 +486,7 @@ export function NotificationSettings({ childId, childName }: NotificationSetting
                   onCheckedChange={(checked) => 
                     setConfig(prev => ({
                       ...prev,
-                      quietHours: { ...prev.quietHours, enabled: checked }
+                      quietHours: { ...prev.quietHours, enabled: checked },
                     }))
                   }
                   disabled={!config.globalEnabled}
@@ -504,7 +504,7 @@ export function NotificationSettings({ childId, childName }: NotificationSetting
                       onChange={(e) => 
                         setConfig(prev => ({
                           ...prev,
-                          quietHours: { ...prev.quietHours, start: e.target.value }
+                          quietHours: { ...prev.quietHours, start: e.target.value },
                         }))
                       }
                       className="w-28 sm:w-32"
@@ -518,7 +518,7 @@ export function NotificationSettings({ childId, childName }: NotificationSetting
                       onChange={(e) => 
                         setConfig(prev => ({
                           ...prev,
-                          quietHours: { ...prev.quietHours, end: e.target.value }
+                          quietHours: { ...prev.quietHours, end: e.target.value },
                         }))
                       }
                       className="w-28 sm:w-32"

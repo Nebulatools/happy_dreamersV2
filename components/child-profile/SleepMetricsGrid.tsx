@@ -61,7 +61,7 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
     const bedQ75Min = isFinite(quantile(bedtimeMinutes, 0.75)) ? quantile(bedtimeMinutes, 0.75) : null
 
     const fmtDur = (h: number | null) => {
-      if (h === null || !isFinite(h)) return sleepData.avgSleepDuration.toFixed(1) + 'h'
+      if (h === null || !isFinite(h)) return sleepData.avgSleepDuration.toFixed(1) + "h"
       const hh = Math.floor(h)
       const mm = Math.round((h - hh) * 60)
       return mm > 0 ? `${hh}h ${mm}m` : `${hh}h`
@@ -70,16 +70,16 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
     return [
       {
         title: "Hora de despertar (rango típico)",
-        value: wakeMedMin !== null ? `${toHHMM(wakeMedMin)}${(wakeQ25Min!==null&&wakeQ75Min!==null)?` (p25–p75 ${toHHMM(wakeQ25Min)}–${toHHMM(wakeQ75Min)})`:''}` : sleepData.avgWakeTime,
+        value: wakeMedMin !== null ? `${toHHMM(wakeMedMin)}${(wakeQ25Min!==null&&wakeQ75Min!==null)?` (p25–p75 ${toHHMM(wakeQ25Min)}–${toHHMM(wakeQ75Min)})`:""}` : sleepData.avgWakeTime,
         icon: <Clock className="w-4 h-4" />,
         status: getWakeTimeStatus(wakeMedMin !== null ? toHHMM(wakeMedMin) : sleepData.avgWakeTime),
-        change: `Hora promedio de despertar matutino`,
+        change: "Hora promedio de despertar matutino",
         iconBg: "bg-gradient-to-br from-orange-100 to-yellow-100",
         priority: true, // Marca esta métrica como prioritaria
       },
       {
         title: "Sueño nocturno (rango típico)",
-        value: `${fmtDur(sleepMed)}${(sleepQ25!==null&&sleepQ75!==null)?` (p25–p75 ${fmtDur(sleepQ25)}–${fmtDur(sleepQ75)})`:''}`,
+        value: `${fmtDur(sleepMed)}${(sleepQ25!==null&&sleepQ75!==null)?` (p25–p75 ${fmtDur(sleepQ25)}–${fmtDur(sleepQ75)})`:""}`,
         icon: <Moon className="w-4 h-4" />,
         status: getSleepDurationStatus(sleepMed || sleepData.avgSleepDuration),
         change: `${(sleepMed || sleepData.avgSleepDuration).toFixed(1)}h (mediana)`,
@@ -87,7 +87,7 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
       },
       {
         title: "Hora de acostarse (rango típico)",
-        value: bedMedMin !== null ? `${toHHMM(bedMedMin)}${(bedQ25Min!==null&&bedQ75Min!==null)?` (p25–p75 ${toHHMM(bedQ25Min)}–${toHHMM(bedQ75Min)})`:''}` : sleepData.avgBedtime,
+        value: bedMedMin !== null ? `${toHHMM(bedMedMin)}${(bedQ25Min!==null&&bedQ75Min!==null)?` (p25–p75 ${toHHMM(bedQ25Min)}–${toHHMM(bedQ75Min)})`:""}` : sleepData.avgBedtime,
         icon: <Moon className="w-5 h-4" />,
         status: getBedtimeConsistencyStatus(sleepData.bedtimeVariation),
         change: `±${Math.round(sleepData.bedtimeVariation)} min (variación)`,
@@ -113,8 +113,8 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
   }
 
   function formatDurationChange(hours: number): string {
-    if (hours === 0) return 'Sin cambios'
-    const sign = hours > 0 ? '+' : ''
+    if (hours === 0) return "Sin cambios"
+    const sign = hours > 0 ? "+" : ""
     const h = Math.floor(Math.abs(hours))
     const m = Math.round((Math.abs(hours) - h) * 60)
     const formatted = m > 0 ? `${h}h ${m}m` : `${h}h`
@@ -248,69 +248,69 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
 
       {/* Desktop/Tablet: grid */}
       <div className="hidden sm:grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6">
-      {loading ? (
-        <div className="col-span-full flex justify-center items-center h-32">
-          <p className="text-gray-500">Cargando métricas...</p>
-        </div>
-      ) : error ? (
-        <div className="col-span-full flex justify-center items-center h-32">
-          <p className="text-red-500">{error}</p>
-        </div>
-      ) : sleepMetrics.length === 0 ? (
-        <div className="col-span-full flex justify-center items-center h-32">
-          <p className="text-gray-500">No hay suficientes datos para mostrar métricas</p>
-        </div>
-      ) : (
-        sleepMetrics.map((metric, index) => (
-        <div 
-          key={index}
-          className="bg-white rounded-lg md:rounded-2xl border border-gray-100 shadow-sm md:shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02] cursor-pointer"
-        >
-          {/* Badge de métrica prioritaria */}
-          {metric.priority && (
-            <div className="bg-gradient-to-r from-orange-50 to-yellow-50 px-4 py-2 border-b border-orange-100">
-              <div className="flex items-center justify-center">
-                <div className="bg-gradient-to-r from-orange-400 to-yellow-500 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
-                  🌅 Métrica Prioritaria
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Contenido principal */}
-          <div className="p-3 md:p-6">
-            <div className="flex items-start justify-between mb-3 md:mb-6">
-              {/* Información de la métrica */}
-              <div className="flex-1">
-                <p className="text-xs md:text-sm text-gray-600 mb-1 md:mb-2 leading-tight">
-                  {metric.title}
-                </p>
-                <p className="text-lg md:text-4xl font-bold md:font-extrabold text-[#2F2F2F] leading-none">
-                  {metric.value}
-                </p>
-              </div>
-
-              {/* Ícono de la métrica */}
-              <div className={`w-10 h-10 rounded-xl ${metric.iconBg} flex items-center justify-center ml-4`}>
-                <div className="text-gray-700">
-                  {metric.icon}
-                </div>
-              </div>
-            </div>
-
-            {/* Estado y cambio */}
-            <div className="space-y-2">
-              <Badge variant={metric.status.variant} className="text-xs font-medium">
-                {metric.status.label}
-              </Badge>
-              <p className="text-xs text-gray-600">
-                {metric.change}
-              </p>
-            </div>
+        {loading ? (
+          <div className="col-span-full flex justify-center items-center h-32">
+            <p className="text-gray-500">Cargando métricas...</p>
           </div>
-        </div>
-      ))
-      )}
+        ) : error ? (
+          <div className="col-span-full flex justify-center items-center h-32">
+            <p className="text-red-500">{error}</p>
+          </div>
+        ) : sleepMetrics.length === 0 ? (
+          <div className="col-span-full flex justify-center items-center h-32">
+            <p className="text-gray-500">No hay suficientes datos para mostrar métricas</p>
+          </div>
+        ) : (
+          sleepMetrics.map((metric, index) => (
+            <div 
+              key={index}
+              className="bg-white rounded-lg md:rounded-2xl border border-gray-100 shadow-sm md:shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02] cursor-pointer"
+            >
+              {/* Badge de métrica prioritaria */}
+              {metric.priority && (
+                <div className="bg-gradient-to-r from-orange-50 to-yellow-50 px-4 py-2 border-b border-orange-100">
+                  <div className="flex items-center justify-center">
+                    <div className="bg-gradient-to-r from-orange-400 to-yellow-500 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                  🌅 Métrica Prioritaria
+                    </div>
+                  </div>
+                </div>
+              )}
+          
+              {/* Contenido principal */}
+              <div className="p-3 md:p-6">
+                <div className="flex items-start justify-between mb-3 md:mb-6">
+                  {/* Información de la métrica */}
+                  <div className="flex-1">
+                    <p className="text-xs md:text-sm text-gray-600 mb-1 md:mb-2 leading-tight">
+                      {metric.title}
+                    </p>
+                    <p className="text-lg md:text-4xl font-bold md:font-extrabold text-[#2F2F2F] leading-none">
+                      {metric.value}
+                    </p>
+                  </div>
+
+                  {/* Ícono de la métrica */}
+                  <div className={`w-10 h-10 rounded-xl ${metric.iconBg} flex items-center justify-center ml-4`}>
+                    <div className="text-gray-700">
+                      {metric.icon}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Estado y cambio */}
+                <div className="space-y-2">
+                  <Badge variant={metric.status.variant} className="text-xs font-medium">
+                    {metric.status.label}
+                  </Badge>
+                  <p className="text-xs text-gray-600">
+                    {metric.change}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   )

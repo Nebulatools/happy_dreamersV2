@@ -1,10 +1,10 @@
 // Tipos TypeScript para el sistema de eventos
 
-export type EventType = 'sleep' | 'wake' | 'nap' | 'night_waking' | 'feeding' | 'night_feeding' | 'medication' | 'extra_activities'
+export type EventType = "sleep" | "wake" | "nap" | "night_waking" | "feeding" | "night_feeding" | "medication" | "extra_activities"
 
-export type EmotionalState = 'tranquilo' | 'inquieto' | 'irritable' | 'neutral'
+export type EmotionalState = "tranquilo" | "inquieto" | "irritable" | "neutral"
 
-export type FeedingType = 'breast' | 'bottle' | 'solids'
+export type FeedingType = "breast" | "bottle" | "solids"
 
 export interface EventData {
   _id?: string
@@ -21,7 +21,7 @@ export interface EventData {
   feedingSubtype?: FeedingType  // Subtipo explícito para analítica (pecho, biberón, sólidos)
   feedingAmount?: number  // cantidad en ml (líquidos) o gr (sólidos)
   feedingDuration?: number  // duración en minutos
-  babyState?: 'awake' | 'asleep'  // para tomas nocturnas
+  babyState?: "awake" | "asleep"  // para tomas nocturnas
   feedingNotes?: string  // notas específicas de alimentación
   // Campos específicos para medicamentos
   medicationName?: string  // nombre del medicamento
@@ -31,7 +31,7 @@ export interface EventData {
   // Campos específicos para actividades extra
   activityDescription?: string  // descripción de la actividad
   activityDuration?: number  // duración en minutos
-  activityImpact?: 'positive' | 'neutral' | 'negative'  // impacto en el sueño
+  activityImpact?: "positive" | "neutral" | "negative"  // impacto en el sueño
   activityNotes?: string  // notas adicionales de la actividad
   description?: string  // campo legacy para compatibilidad
   createdAt?: string
@@ -43,7 +43,7 @@ export interface FeedingModalData {
   feedingType: FeedingType
   feedingAmount: number
   feedingDuration: number
-  babyState: 'awake' | 'asleep'
+  babyState: "awake" | "asleep"
   feedingNotes: string
 }
 

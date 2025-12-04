@@ -69,7 +69,7 @@ export class NotificationScheduler {
 
       // Obtener la hora actual
       const now = new Date()
-      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+      const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`
 
       // Buscar todos los niños con planes de sueño activos
       const children = await Child.find({
@@ -84,7 +84,7 @@ export class NotificationScheduler {
         // Obtener configuraciones de notificación para este niño
         const notificationSettings = await NotificationSettings.find({
           childId: child._id,
-          globalEnabled: true
+          globalEnabled: true,
         })
 
         for (const settings of notificationSettings) {
@@ -119,7 +119,7 @@ export class NotificationScheduler {
     if (!bedtime) return
 
     const notificationTime = this.calculateNotificationTime(bedtime, settings.bedtime.timing)
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+    const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`
 
     if (notificationTime === currentTime) {
       // Verificar si ya se envió una notificación similar hoy
@@ -138,7 +138,7 @@ export class NotificationScheduler {
           scheduledFor: now,
           childName: child.name,
           settings,
-          plannedEventTime: bedtime
+          plannedEventTime: bedtime,
         })
       }
     }
@@ -155,7 +155,7 @@ export class NotificationScheduler {
 
     // Los planes pueden tener múltiples siestas
     const naptimes = sleepPlan.naptimes || []
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+    const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`
 
     for (const naptime of naptimes) {
       const notificationTime = this.calculateNotificationTime(naptime, settings.naptime.timing)
@@ -176,7 +176,7 @@ export class NotificationScheduler {
             scheduledFor: now,
             childName: child.name,
             settings,
-            plannedEventTime: naptime
+            plannedEventTime: naptime,
           })
         }
       }
@@ -197,7 +197,7 @@ export class NotificationScheduler {
 
     // La rutina generalmente inicia 30-60 minutos antes de dormir
     const routineTime = this.calculateNotificationTime(bedtime, settings.routineStart.timing + 30)
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+    const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`
 
     if (routineTime === currentTime) {
       const existingNotification = await this.checkExistingNotification(
@@ -215,7 +215,7 @@ export class NotificationScheduler {
           scheduledFor: now,
           childName: child.name,
           settings,
-          plannedEventTime: bedtime
+          plannedEventTime: bedtime,
         })
       }
     }
@@ -227,14 +227,14 @@ export class NotificationScheduler {
     const totalMinutes = hours * 60 + minutes - minutesBefore
     
     let adjustedHours = Math.floor(totalMinutes / 60)
-    let adjustedMinutes = totalMinutes % 60
+    const adjustedMinutes = totalMinutes % 60
 
     // Manejar caso de día anterior
     if (adjustedHours < 0) {
       adjustedHours += 24
     }
 
-    return `${adjustedHours.toString().padStart(2, '0')}:${adjustedMinutes.toString().padStart(2, '0')}`
+    return `${adjustedHours.toString().padStart(2, "0")}:${adjustedMinutes.toString().padStart(2, "0")}`
   }
 
   // Verificar si ya existe una notificación similar hoy
@@ -256,8 +256,8 @@ export class NotificationScheduler {
       type,
       scheduledFor: {
         $gte: startOfDay,
-        $lte: endOfDay
-      }
+        $lte: endOfDay,
+      },
     })
 
     return !!existing
@@ -283,7 +283,7 @@ export class NotificationScheduler {
       [NotificationType.BEDTIME]: "Hora de dormir",
       [NotificationType.NAPTIME]: "Hora de siesta",
       [NotificationType.WAKE_WINDOW]: "Ventana de vigilia",
-      [NotificationType.ROUTINE_START]: "Iniciar rutina de sueño"
+      [NotificationType.ROUTINE_START]: "Iniciar rutina de sueño",
     }
 
     // Crear registro de notificación para cada canal habilitado
@@ -304,7 +304,7 @@ export class NotificationScheduler {
         scheduledFor,
         plannedEventType: type,
         plannedEventTime,
-        attempts: 0
+        attempts: 0,
       })
     }
   }
@@ -326,17 +326,17 @@ export class NotificationScheduler {
   // Enviar notificación según el canal
   private async sendNotification(notification: any) {
     switch (notification.channel) {
-      case NotificationChannel.PUSH:
-        await this.sendPushNotification(notification)
-        break
-      case NotificationChannel.IN_APP:
-        await this.sendInAppNotification(notification)
-        break
-      case NotificationChannel.EMAIL:
-        await this.sendEmailNotification(notification)
-        break
-      default:
-        throw new Error(`Canal no soportado: ${notification.channel}`)
+    case NotificationChannel.PUSH:
+      await this.sendPushNotification(notification)
+      break
+    case NotificationChannel.IN_APP:
+      await this.sendInAppNotification(notification)
+      break
+    case NotificationChannel.EMAIL:
+      await this.sendEmailNotification(notification)
+      break
+    default:
+      throw new Error(`Canal no soportado: ${notification.channel}`)
     }
   }
 
@@ -374,7 +374,7 @@ export class NotificationScheduler {
     return {
       bedtime: "20:00",
       naptimes: ["10:00", "14:00"],
-      routineStart: "19:30"
+      routineStart: "19:30",
     }
   }
 }

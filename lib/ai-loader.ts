@@ -3,7 +3,7 @@
 
 import { createLogger } from "@/lib/logger"
 
-const logger = createLogger('AILoader')
+const logger = createLogger("AILoader")
 
 // Cache para módulos ya cargados
 const moduleCache = new Map<string, any>()
@@ -12,17 +12,17 @@ const moduleCache = new Map<string, any>()
  * Carga dinámica de OpenAI SDK
  */
 export async function loadOpenAI() {
-  const cacheKey = 'openai'
+  const cacheKey = "openai"
   
   if (moduleCache.has(cacheKey)) {
     return moduleCache.get(cacheKey)
   }
   
   try {
-    logger.info('Cargando OpenAI SDK dinámicamente...')
+    logger.info("Cargando OpenAI SDK dinámicamente...")
     const [aiSdk, openaiModule] = await Promise.all([
-      import('ai'),
-      import('@ai-sdk/openai'),
+      import("ai"),
+      import("@ai-sdk/openai"),
     ])
     
     const result = {
@@ -31,11 +31,11 @@ export async function loadOpenAI() {
     }
     
     moduleCache.set(cacheKey, result)
-    logger.info('OpenAI SDK cargado exitosamente')
+    logger.info("OpenAI SDK cargado exitosamente")
     return result
   } catch (error) {
-    logger.error('Error cargando OpenAI SDK', error)
-    throw new Error('No se pudo cargar OpenAI SDK')
+    logger.error("Error cargando OpenAI SDK", error)
+    throw new Error("No se pudo cargar OpenAI SDK")
   }
 }
 
@@ -43,24 +43,24 @@ export async function loadOpenAI() {
  * Carga dinámica de LangChain
  */
 export async function loadLangChain() {
-  const cacheKey = 'langchain'
+  const cacheKey = "langchain"
   
   if (moduleCache.has(cacheKey)) {
     return moduleCache.get(cacheKey)
   }
   
   try {
-    logger.info('Cargando LangChain dinámicamente...')
+    logger.info("Cargando LangChain dinámicamente...")
     const [
       langchainOpenai,
       langchainCore,
       langchainGraph,
       langchainPrebuilt,
     ] = await Promise.all([
-      import('@langchain/openai'),
-      import('@langchain/core/tools'),
-      import('@langchain/langgraph'),
-      import('@langchain/langgraph/prebuilt'),
+      import("@langchain/openai"),
+      import("@langchain/core/tools"),
+      import("@langchain/langgraph"),
+      import("@langchain/langgraph/prebuilt"),
     ])
     
     const result = {
@@ -74,11 +74,11 @@ export async function loadLangChain() {
     }
     
     moduleCache.set(cacheKey, result)
-    logger.info('LangChain cargado exitosamente')
+    logger.info("LangChain cargado exitosamente")
     return result
   } catch (error) {
-    logger.error('Error cargando LangChain', error)
-    throw new Error('No se pudo cargar LangChain')
+    logger.error("Error cargando LangChain", error)
+    throw new Error("No se pudo cargar LangChain")
   }
 }
 
@@ -86,14 +86,14 @@ export async function loadLangChain() {
  * Carga dinámica de LangChain Messages
  */
 export async function loadLangChainMessages() {
-  const cacheKey = 'langchain-messages'
+  const cacheKey = "langchain-messages"
   
   if (moduleCache.has(cacheKey)) {
     return moduleCache.get(cacheKey)
   }
   
   try {
-    const messagesModule = await import('@langchain/core/messages')
+    const messagesModule = await import("@langchain/core/messages")
     
     const result = {
       BaseMessage: messagesModule.BaseMessage,
@@ -105,8 +105,8 @@ export async function loadLangChainMessages() {
     moduleCache.set(cacheKey, result)
     return result
   } catch (error) {
-    logger.error('Error cargando LangChain Messages', error)
-    throw new Error('No se pudo cargar LangChain Messages')
+    logger.error("Error cargando LangChain Messages", error)
+    throw new Error("No se pudo cargar LangChain Messages")
   }
 }
 
@@ -114,26 +114,26 @@ export async function loadLangChainMessages() {
  * Carga dinámica de Google Generative AI
  */
 export async function loadGoogleAI() {
-  const cacheKey = 'google-ai'
+  const cacheKey = "google-ai"
   
   if (moduleCache.has(cacheKey)) {
     return moduleCache.get(cacheKey)
   }
   
   try {
-    logger.info('Cargando Google Generative AI dinámicamente...')
-    const googleAI = await import('@google/generative-ai')
+    logger.info("Cargando Google Generative AI dinámicamente...")
+    const googleAI = await import("@google/generative-ai")
     
     const result = {
       GoogleGenerativeAI: googleAI.GoogleGenerativeAI,
     }
     
     moduleCache.set(cacheKey, result)
-    logger.info('Google Generative AI cargado exitosamente')
+    logger.info("Google Generative AI cargado exitosamente")
     return result
   } catch (error) {
-    logger.error('Error cargando Google Generative AI', error)
-    throw new Error('No se pudo cargar Google Generative AI')
+    logger.error("Error cargando Google Generative AI", error)
+    throw new Error("No se pudo cargar Google Generative AI")
   }
 }
 
@@ -141,22 +141,22 @@ export async function loadGoogleAI() {
  * Carga dinámica del vector store de MongoDB
  */
 export async function loadVectorStore() {
-  const cacheKey = 'vector-store'
+  const cacheKey = "vector-store"
   
   if (moduleCache.has(cacheKey)) {
     return moduleCache.get(cacheKey)
   }
   
   try {
-    logger.info('Cargando Vector Store dinámicamente...')
-    const vectorStore = await import('@/lib/rag/vector-store-mongodb')
+    logger.info("Cargando Vector Store dinámicamente...")
+    const vectorStore = await import("@/lib/rag/vector-store-mongodb")
     
     moduleCache.set(cacheKey, vectorStore)
-    logger.info('Vector Store cargado exitosamente')
+    logger.info("Vector Store cargado exitosamente")
     return vectorStore
   } catch (error) {
-    logger.error('Error cargando Vector Store', error)
-    throw new Error('No se pudo cargar Vector Store')
+    logger.error("Error cargando Vector Store", error)
+    throw new Error("No se pudo cargar Vector Store")
   }
 }
 
@@ -180,23 +180,23 @@ export function getCacheStatus() {
 }
 
 // Wrapper para cargar todos los módulos AI necesarios
-export async function loadAIModules(modules: string[] = ['openai', 'langchain']) {
+export async function loadAIModules(modules: string[] = ["openai", "langchain"]) {
   const loadPromises = []
   
-  if (modules.includes('openai')) {
+  if (modules.includes("openai")) {
     loadPromises.push(loadOpenAI())
   }
   
-  if (modules.includes('langchain')) {
+  if (modules.includes("langchain")) {
     loadPromises.push(loadLangChain())
     loadPromises.push(loadLangChainMessages())
   }
   
-  if (modules.includes('google')) {
+  if (modules.includes("google")) {
     loadPromises.push(loadGoogleAI())
   }
   
-  if (modules.includes('vectorstore')) {
+  if (modules.includes("vectorstore")) {
     loadPromises.push(loadVectorStore())
   }
   

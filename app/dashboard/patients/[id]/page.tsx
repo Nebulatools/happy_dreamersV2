@@ -15,7 +15,7 @@ import { es } from "date-fns/locale"
 
 function calculateAge(birthDate: string): string {
   const years = differenceInYears(new Date(), parseISO(birthDate))
-  return `${years} año${years !== 1 ? 's' : ''}`
+  return `${years} año${years !== 1 ? "s" : ""}`
 }
 
 interface Patient {
@@ -46,12 +46,12 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
         setLoading(true)
         const response = await fetch(`/api/children/${params.id}`)
         if (!response.ok) {
-          throw new Error('Error al cargar datos del paciente')
+          throw new Error("Error al cargar datos del paciente")
         }
         const data = await response.json()
         setPatient(data.child)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error desconocido')
+        setError(err instanceof Error ? err.message : "Error desconocido")
         toast({
           title: "Error",
           description: "No se pudo cargar la información del paciente",

@@ -19,7 +19,7 @@ import {
   Calendar, 
   ChartBar,
   Loader2,
-  Check
+  Check,
 } from "lucide-react"
 
 interface PDFExportButtonProps {
@@ -43,7 +43,7 @@ export function PDFExportButton({
   size = "default",
   className,
   onExportComplete,
-  disabled = false
+  disabled = false,
 }: PDFExportButtonProps) {
   const [isExporting, setIsExporting] = useState(false)
   const [exportSuccess, setExportSuccess] = useState(false)
@@ -61,7 +61,7 @@ export function PDFExportButton({
 
     try {
       const requestBody: any = {
-        reportType: exportType
+        reportType: exportType,
       }
 
       // Configurar parámetros según el tipo
@@ -71,16 +71,16 @@ export function PDFExportButton({
         requestBody.childId = childId
         requestBody.dateRange = dateRange || {
           from: new Date(new Date().setMonth(new Date().getMonth() - 1)),
-          to: new Date()
+          to: new Date(),
         }
       }
 
       const response = await fetch("/api/reports/export/pdf", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
       })
 
       if (!response.ok) {
@@ -108,7 +108,7 @@ export function PDFExportButton({
 
       setExportSuccess(true)
       toast.success("Reporte exportado exitosamente", {
-        description: `Descargado como ${filename}`
+        description: `Descargado como ${filename}`,
       })
 
       // Callback opcional

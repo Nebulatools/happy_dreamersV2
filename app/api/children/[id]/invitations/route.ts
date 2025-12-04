@@ -38,7 +38,7 @@ export async function GET(
     return NextResponse.json({
       success: true,
       invitations: result.invitations,
-      message: "Invitaciones obtenidas exitosamente"
+      message: "Invitaciones obtenidas exitosamente",
     })
 
   } catch (error) {
@@ -88,7 +88,7 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: "Invitación cancelada exitosamente"
+      message: "Invitación cancelada exitosamente",
     })
 
   } catch (error) {

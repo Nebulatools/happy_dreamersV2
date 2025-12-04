@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { Baby } from "lucide-react"
-import type { SurveyStepProps } from '../types/survey.types'
+import type { SurveyStepProps } from "../types/survey.types"
 import { calculateAgeInMonths } from "@/lib/date-utils"
 import { calculateWeightPercentile } from "@/lib/growth/weight-percentile"
 
@@ -41,7 +41,7 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
     profileBirthDateRaw,
     data.nombreHijo,
     data.fechaNacimiento,
-    onChange
+    onChange,
   ])
 
   const displayName = data.nombreHijo || [profileFirstName, profileLastName].filter(Boolean).join(" ").trim()
@@ -58,7 +58,7 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
   const updateFields = (updates: Record<string, any>) => {
     onChange({
       ...data,
-      ...updates
+      ...updates,
     })
   }
 
@@ -88,7 +88,7 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
     onChange({
       ...data,
       condicionesEmbarazo: nextCondiciones,
-      ...extraUpdates
+      ...extraUpdates,
     })
   }
 
@@ -99,26 +99,26 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
     } else {
       onChange({ 
         ...data, 
-        problemasHijo: problemas.filter((p: string) => p !== problema) 
+        problemasHijo: problemas.filter((p: string) => p !== problema), 
       })
     }
   }
 
   const computePercentilFromWeight = useCallback((rawValue?: string): string => {
-    if (!rawValue) return ''
-    const normalizedValue = rawValue.replace(',', '.')
+    if (!rawValue) return ""
+    const normalizedValue = rawValue.replace(",", ".")
     const pesoNum = parseFloat(normalizedValue)
     if (!pesoNum || !Number.isFinite(pesoNum) || pesoNum <= 0) {
-      return ''
+      return ""
     }
 
     const fallbackBirthDate =
       birthDateObject ||
       (childProfile?.birthDate
         ? (() => {
-            const parsed = new Date(childProfile.birthDate as any)
-            return Number.isNaN(parsed.getTime()) ? null : parsed
-          })()
+          const parsed = new Date(childProfile.birthDate as any)
+          return Number.isNaN(parsed.getTime()) ? null : parsed
+        })()
         : null)
 
     const derivedAgeInMonths = (() => {
@@ -138,19 +138,19 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
     })()
 
     if (derivedAgeInMonths === null || derivedAgeInMonths < 0) {
-      return ''
+      return ""
     }
 
     const resolvedGender = (data.genero || childProfile?.gender || "") as string
     const percentile = calculateWeightPercentile(pesoNum, derivedAgeInMonths, resolvedGender)
-    return percentile !== null ? percentile.toString() : ''
+    return percentile !== null ? percentile.toString() : ""
   }, [birthDateObject, childProfile?.birthDate, childProfile?.gender, childProfile?.ageInMonths, data.genero])
 
   useEffect(() => {
     if (!data.pesoHijo) return
     const latest = computePercentilFromWeight(data.pesoHijo)
-    if ((data.percentilPeso || '') !== latest) {
-      updateField('percentilPeso', latest)
+    if ((data.percentilPeso || "") !== latest) {
+      updateField("percentilPeso", latest)
     }
   }, [data.pesoHijo, data.percentilPeso, computePercentilFromWeight])
 
@@ -185,12 +185,12 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
               <Input
                 id="nombre-hijo"
                 value={data.nombreHijo || ""}
-                onChange={(e) => updateField('nombreHijo', e.target.value)}
+                onChange={(e) => updateField("nombreHijo", e.target.value)}
                 placeholder="Nombre del niño"
-                className={hasError('nombreHijo') ? 'border-red-500' : ''}
+                className={hasError("nombreHijo") ? "border-red-500" : ""}
               />
-              {hasError('nombreHijo') && (
-                <p className="text-red-500 text-sm mt-1">{getError('nombreHijo')}</p>
+              {hasError("nombreHijo") && (
+                <p className="text-red-500 text-sm mt-1">{getError("nombreHijo")}</p>
               )}
             </div>
           )}
@@ -204,11 +204,11 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
                 id="fecha-nacimiento"
                 type="date"
                 value={data.fechaNacimiento || ""}
-                onChange={(e) => updateField('fechaNacimiento', e.target.value)}
-                className={hasError('fechaNacimiento') ? 'border-red-500' : ''}
+                onChange={(e) => updateField("fechaNacimiento", e.target.value)}
+                className={hasError("fechaNacimiento") ? "border-red-500" : ""}
               />
-              {hasError('fechaNacimiento') && (
-                <p className="text-red-500 text-sm mt-1">{getError('fechaNacimiento')}</p>
+              {hasError("fechaNacimiento") && (
+                <p className="text-red-500 text-sm mt-1">{getError("fechaNacimiento")}</p>
               )}
             </div>
           )}
@@ -235,10 +235,10 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
                 updateFields(updates)
               }}
               placeholder="Ej: 15.5"
-              className={hasError('pesoHijo') ? 'border-red-500' : ''}
+              className={hasError("pesoHijo") ? "border-red-500" : ""}
             />
-            {hasError('pesoHijo') && (
-              <p className="text-red-500 text-sm mt-1">{getError('pesoHijo')}</p>
+            {hasError("pesoHijo") && (
+              <p className="text-red-500 text-sm mt-1">{getError("pesoHijo")}</p>
             )}
           </div>
 
@@ -271,7 +271,7 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
           <Label>1. ¿Su embarazo fue planeado?</Label>
           <RadioGroup
             value={data.embarazoPlaneado === true ? "si" : data.embarazoPlaneado === false ? "no" : ""}
-            onValueChange={(value) => updateField('embarazoPlaneado', value === 'si')}
+            onValueChange={(value) => updateField("embarazoPlaneado", value === "si")}
           >
             <div className="flex gap-4 mt-2">
               <div className="flex items-center space-x-2">
@@ -292,11 +292,11 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
           <RadioGroup
             value={data.problemasEmbarazo === true ? "si" : data.problemasEmbarazo === false ? "no" : ""}
             onValueChange={(value) => {
-              const hadProblems = value === 'si'
+              const hadProblems = value === "si"
               onChange({
                 ...data,
                 problemasEmbarazo: hadProblems,
-                problemasEmbarazoDetalle: hadProblems ? data.problemasEmbarazoDetalle || "" : ""
+                problemasEmbarazoDetalle: hadProblems ? data.problemasEmbarazoDetalle || "" : "",
               })
             }}
           >
@@ -319,7 +319,7 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
               <Textarea
                 id="problemas-embarazo-detalle"
                 value={data.problemasEmbarazoDetalle || ""}
-                onChange={(e) => updateField('problemasEmbarazoDetalle', e.target.value)}
+                onChange={(e) => updateField("problemasEmbarazoDetalle", e.target.value)}
                 placeholder="Describe los problemas que tuviste durante el embarazo..."
                 rows={3}
                 className="mt-1"
@@ -335,36 +335,36 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="cond-anemia"
-                checked={data.condicionesEmbarazo?.includes('anemia') || false}
-                onCheckedChange={(checked) => updateCondicion('anemia', checked === true)}
+                checked={data.condicionesEmbarazo?.includes("anemia") || false}
+                onCheckedChange={(checked) => updateCondicion("anemia", checked === true)}
               />
               <Label htmlFor="cond-anemia">Anemia</Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="cond-infecciones"
-                checked={data.condicionesEmbarazo?.includes('infecciones') || false}
-                onCheckedChange={(checked) => updateCondicion('infecciones', checked === true)}
+                checked={data.condicionesEmbarazo?.includes("infecciones") || false}
+                onCheckedChange={(checked) => updateCondicion("infecciones", checked === true)}
               />
               <Label htmlFor="cond-infecciones">Infecciones</Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="cond-otro"
-                checked={data.condicionesEmbarazo?.includes('otro') || false}
+                checked={data.condicionesEmbarazo?.includes("otro") || false}
                 onCheckedChange={(checked) => {
                   const isChecked = checked === true
-                  updateCondicion('otro', isChecked, isChecked ? {} : { condicionesEmbarazoOtro: '' })
+                  updateCondicion("otro", isChecked, isChecked ? {} : { condicionesEmbarazoOtro: "" })
                 }}
               />
               <Label htmlFor="cond-otro">Otro</Label>
             </div>
-            {data.condicionesEmbarazo?.includes('otro') && (
+            {data.condicionesEmbarazo?.includes("otro") && (
               <div className="ml-6 mt-2">
                 <Input
                   id="cond-otro-detalle"
                   value={data.condicionesEmbarazoOtro || ""}
-                  onChange={(e) => updateField('condicionesEmbarazoOtro', e.target.value)}
+                  onChange={(e) => updateField("condicionesEmbarazoOtro", e.target.value)}
                   placeholder="Especifica la condición..."
                   className="max-w-md"
                 />
@@ -373,8 +373,8 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="cond-ninguna"
-                checked={data.condicionesEmbarazo?.includes('ninguna') || false}
-                onCheckedChange={(checked) => updateCondicion('ninguna', checked === true)}
+                checked={data.condicionesEmbarazo?.includes("ninguna") || false}
+                onCheckedChange={(checked) => updateCondicion("ninguna", checked === true)}
               />
               <Label htmlFor="cond-ninguna">Ninguna</Label>
             </div>
@@ -386,7 +386,7 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
           <Label>4. Tu parto fue:</Label>
           <RadioGroup
             value={data.tipoParto || ""}
-            onValueChange={(value) => updateField('tipoParto', value)}
+            onValueChange={(value) => updateField("tipoParto", value)}
           >
             <div className="space-y-2 mt-2">
               <div className="flex items-center space-x-2">
@@ -411,11 +411,11 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
           <RadioGroup
             value={data.complicacionesParto === true ? "si" : data.complicacionesParto === false ? "no" : ""}
             onValueChange={(value) => {
-              const hadComplications = value === 'si'
+              const hadComplications = value === "si"
               onChange({
                 ...data,
                 complicacionesParto: hadComplications,
-                complicacionesPartoDescripcion: hadComplications ? data.complicacionesPartoDescripcion || "" : ""
+                complicacionesPartoDescripcion: hadComplications ? data.complicacionesPartoDescripcion || "" : "",
               })
             }}
           >
@@ -438,10 +438,10 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
               <Textarea
                 id="complicaciones-parto-descripcion"
                 value={data.complicacionesPartoDescripcion || ""}
-                onChange={(e) => updateField('complicacionesPartoDescripcion', e.target.value)}
+                onChange={(e) => updateField("complicacionesPartoDescripcion", e.target.value)}
                 placeholder="Ej: Parto instrumentado, sufrimiento fetal, cesárea de emergencia..."
                 rows={3}
-                className={hasError('complicacionesPartoDescripcion') ? 'border-red-500 mt-1' : 'mt-1'}
+                className={hasError("complicacionesPartoDescripcion") ? "border-red-500 mt-1" : "mt-1"}
               />
             </div>
           )}
@@ -453,11 +453,11 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
           <RadioGroup
             value={data.nacioTermino === true ? "si" : data.nacioTermino === false ? "no" : ""}
             onValueChange={(value) => {
-              const wasFullTerm = value === 'si'
+              const wasFullTerm = value === "si"
               onChange({
                 ...data,
                 nacioTermino: wasFullTerm,
-                semanasNacimiento: wasFullTerm ? '' : data.semanasNacimiento || ""
+                semanasNacimiento: wasFullTerm ? "" : data.semanasNacimiento || "",
               })
             }}
           >
@@ -480,7 +480,7 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
               <select
                 id="semanas-nacimiento"
                 value={data.semanasNacimiento || ""}
-                onChange={(e) => updateField('semanasNacimiento', e.target.value)}
+                onChange={(e) => updateField("semanasNacimiento", e.target.value)}
                 className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#8B4789] focus:outline-none focus:ring-1 focus:ring-[#8B4789]"
               >
                 <option value="">Seleccionar semana</option>
@@ -508,11 +508,11 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
           <RadioGroup
             value={data.problemasNacer === true ? "si" : data.problemasNacer === false ? "no" : ""}
             onValueChange={(value) => {
-              const hadIssue = value === 'si'
+              const hadIssue = value === "si"
               onChange({
                 ...data,
                 problemasNacer: hadIssue,
-                problemasNacerDetalle: hadIssue ? data.problemasNacerDetalle || "" : ""
+                problemasNacerDetalle: hadIssue ? data.problemasNacerDetalle || "" : "",
               })
             }}
           >
@@ -535,13 +535,13 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
               <Textarea
                 id="problemas-nacer-detalle"
                 value={data.problemasNacerDetalle || ""}
-                onChange={(e) => updateField('problemasNacerDetalle', e.target.value)}
+                onChange={(e) => updateField("problemasNacerDetalle", e.target.value)}
                 placeholder="Ej: Bajo peso al nacer, dificultad respiratoria..."
                 rows={3}
-                className={hasError('problemasNacerDetalle') ? 'border-red-500 mt-1' : 'mt-1'}
+                className={hasError("problemasNacerDetalle") ? "border-red-500 mt-1" : "mt-1"}
               />
-              {hasError('problemasNacerDetalle') && (
-                <p className="text-red-500 text-sm mt-1">{getError('problemasNacerDetalle')}</p>
+              {hasError("problemasNacerDetalle") && (
+                <p className="text-red-500 text-sm mt-1">{getError("problemasNacerDetalle")}</p>
               )}
             </div>
           )}
@@ -555,7 +555,7 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
           <Input
             id="pediatra"
             value={data.pediatra || ""}
-            onChange={(e) => updateField('pediatra', e.target.value)}
+            onChange={(e) => updateField("pediatra", e.target.value)}
             placeholder="Nombre del pediatra"
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 ml-4">
@@ -566,7 +566,7 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
               <Input
                 id="pediatra-telefono"
                 value={data.pediatraTelefono || ""}
-                onChange={(e) => updateField('pediatraTelefono', e.target.value)}
+                onChange={(e) => updateField("pediatraTelefono", e.target.value)}
                 placeholder="Ej: 5512345678"
                 className="mt-1"
               />
@@ -579,7 +579,7 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
                 id="pediatra-email"
                 type="email"
                 value={data.pediatraEmail || ""}
-                onChange={(e) => updateField('pediatraEmail', e.target.value)}
+                onChange={(e) => updateField("pediatraEmail", e.target.value)}
                 placeholder="Ej: pediatra@ejemplo.com"
                 className="mt-1"
               />
@@ -592,7 +592,7 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
           <Label>9. ¿Ha descartado tu pediatra algún problema médico que contribuya a los problemas de dormir de tu hijo(a)?</Label>
           <RadioGroup
             value={data.pediatraDescarto === true ? "si" : data.pediatraDescarto === false ? "no" : ""}
-            onValueChange={(value) => updateField('pediatraDescarto', value === 'si')}
+            onValueChange={(value) => updateField("pediatraDescarto", value === "si")}
           >
             <div className="flex gap-4 mt-2">
               <div className="flex items-center space-x-2">
@@ -613,11 +613,11 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
           <RadioGroup
             value={data.pediatraConfirma === true ? "si" : data.pediatraConfirma === false ? "no" : ""}
             onValueChange={(value) => {
-              const confirms = value === 'si'
+              const confirms = value === "si"
               onChange({
                 ...data,
                 pediatraConfirma: confirms,
-                pediatraConfirmaDetalle: confirms ? "" : data.pediatraConfirmaDetalle || ""
+                pediatraConfirmaDetalle: confirms ? "" : data.pediatraConfirmaDetalle || "",
               })
             }}
           >
@@ -640,7 +640,7 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
               <Textarea
                 id="pediatra-confirma-detalle"
                 value={data.pediatraConfirmaDetalle || ""}
-                onChange={(e) => updateField('pediatraConfirmaDetalle', e.target.value)}
+                onChange={(e) => updateField("pediatraConfirmaDetalle", e.target.value)}
                 placeholder="Describe por qué el pediatra considera que no puede dormir toda la noche..."
                 rows={3}
                 className="mt-1"
@@ -655,11 +655,11 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
           <RadioGroup
             value={data.tratamientoMedico === true ? "si" : data.tratamientoMedico === false ? "no" : ""}
             onValueChange={(value) => {
-              const hasTreatment = value === 'si'
+              const hasTreatment = value === "si"
               onChange({
                 ...data,
                 tratamientoMedico: hasTreatment,
-                tratamientoMedicoDetalle: hasTreatment ? data.tratamientoMedicoDetalle || "" : ""
+                tratamientoMedicoDetalle: hasTreatment ? data.tratamientoMedicoDetalle || "" : "",
               })
             }}
           >
@@ -682,7 +682,7 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
               <Textarea
                 id="tratamiento-medico-detalle"
                 value={data.tratamientoMedicoDetalle || ""}
-                onChange={(e) => updateField('tratamientoMedicoDetalle', e.target.value)}
+                onChange={(e) => updateField("tratamientoMedicoDetalle", e.target.value)}
                 placeholder="Especifica el nombre del medicamento, dosis y frecuencia..."
                 rows={3}
                 className="mt-1"

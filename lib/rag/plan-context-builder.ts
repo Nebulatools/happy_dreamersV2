@@ -19,9 +19,9 @@ export async function getActivePlan(childId: string, userId: string): Promise<Ch
       .findOne({
         childId: new ObjectId(childId),
         userId: new ObjectId(userId),
-        status: "active"
+        status: "active",
       }, {
-        sort: { planNumber: -1, createdAt: -1 } // Preferir refinamientos (más recientes)
+        sort: { planNumber: -1, createdAt: -1 }, // Preferir refinamientos (más recientes)
       })
 
     if (!plan) {
@@ -49,7 +49,7 @@ export function buildPlanContext(plan: ChildPlan): string {
   // Información básica del plan
   context += `Plan Número: ${plan.planNumber}\n`
   context += `Título: ${plan.title}\n`
-  context += `Tipo: ${plan.planType === 'initial' ? 'Plan Inicial' : 'Plan Basado en Análisis'}\n\n`
+  context += `Tipo: ${plan.planType === "initial" ? "Plan Inicial" : "Plan Basado en Análisis"}\n\n`
 
   // Objetivos del plan
   if (plan.objectives && plan.objectives.length > 0) {
@@ -76,7 +76,7 @@ export function buildPlanContext(plan: ChildPlan): string {
     if (plan.schedule.naps && plan.schedule.naps.length > 0) {
       context += "• Siestas programadas:\n"
       plan.schedule.naps.forEach((nap, index) => {
-        context += `  - ${nap.time} (${nap.duration} minutos)${nap.description ? ` - ${nap.description}` : ''}\n`
+        context += `  - ${nap.time} (${nap.duration} minutos)${nap.description ? ` - ${nap.description}` : ""}\n`
       })
     }
 
@@ -84,7 +84,7 @@ export function buildPlanContext(plan: ChildPlan): string {
     if (plan.schedule.meals && plan.schedule.meals.length > 0) {
       context += "• Horarios de comidas:\n"
       plan.schedule.meals.forEach((meal) => {
-        context += `  - ${meal.time}: ${meal.type}${meal.description ? ` - ${meal.description}` : ''}\n`
+        context += `  - ${meal.time}: ${meal.type}${meal.description ? ` - ${meal.description}` : ""}\n`
       })
     }
 
@@ -92,7 +92,7 @@ export function buildPlanContext(plan: ChildPlan): string {
     if (plan.schedule.activities && plan.schedule.activities.length > 0) {
       context += "• Actividades programadas:\n"
       plan.schedule.activities.forEach((activity) => {
-        context += `  - ${activity.time}: ${activity.activity} (${activity.duration} min)${activity.description ? ` - ${activity.description}` : ''}\n`
+        context += `  - ${activity.time}: ${activity.activity} (${activity.duration} min)${activity.description ? ` - ${activity.description}` : ""}\n`
       })
     }
     context += "\n"
@@ -140,7 +140,7 @@ export function getPlanSummary(plan: ChildPlan): string {
   const wakeTime = plan.schedule?.wakeTime || "No definida"
   const napCount = plan.schedule?.naps?.length || 0
   
-  return `Plan ${plan.planNumber}: Dormir ${bedtime} - Despertar ${wakeTime}${napCount > 0 ? ` - ${napCount} siesta(s)` : ''}`
+  return `Plan ${plan.planNumber}: Dormir ${bedtime} - Despertar ${wakeTime}${napCount > 0 ? ` - ${napCount} siesta(s)` : ""}`
 }
 
 /**
@@ -184,7 +184,7 @@ export async function getAllPlansContext(childId: string, userId: string): Promi
     const plans = await db.collection("child_plans")
       .find({
         childId: new ObjectId(childId),
-        userId: new ObjectId(userId)
+        userId: new ObjectId(userId),
       })
       .sort({ planNumber: -1 }) // Más reciente primero
       .limit(3) // Máximo 3 planes para eficiencia
@@ -204,7 +204,7 @@ export async function getAllPlansContext(childId: string, userId: string): Promi
       const status = isActive ? "(ACTIVO)" : "(ANTERIOR)"
       
       context += `\n📋 PLAN ${plan.planNumber} ${status}:\n`
-      context += `• Tipo: ${plan.planType === 'initial' ? 'Plan Inicial' : 'Plan Basado en Análisis'}\n`
+      context += `• Tipo: ${plan.planType === "initial" ? "Plan Inicial" : "Plan Basado en Análisis"}\n`
       
       if (plan.schedule) {
         if (plan.schedule.bedtime) {
@@ -220,7 +220,7 @@ export async function getAllPlansContext(childId: string, userId: string): Promi
       
       // Solo mostrar 2 recomendaciones principales para eficiencia
       if (plan.recommendations && plan.recommendations.length > 0) {
-        context += `• Recomendaciones principales:\n`
+        context += "• Recomendaciones principales:\n"
         plan.recommendations.slice(0, 2).forEach(rec => {
           context += `  - ${rec}\n`
         })

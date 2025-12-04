@@ -230,7 +230,7 @@ export class MongoDBVectorStoreManager {
         extractedWith: doc.extractedWith,
         size: doc.size,
         chunksCount: doc.chunksCount || 1,
-        displayName: doc.displayName || (doc.source?.startsWith('drive:') ? doc.source.replace(/^drive:/, '') : doc.source),
+        displayName: doc.displayName || (doc.source?.startsWith("drive:") ? doc.source.replace(/^drive:/, "") : doc.source),
         webViewLink: doc.driveWebViewLink || null,
         createdAt: doc.createdAt,
       }))

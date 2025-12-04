@@ -1,16 +1,16 @@
 "use client"
 
-import React, { useState } from 'react'
-import { Baby, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
-import { EventData, FeedingModalData } from './types'
-import { toLocalISOString } from '@/lib/date-utils'
-import { cn } from '@/lib/utils'
-import { useDevTime } from '@/context/dev-time-context'
-import { FeedingModal } from './FeedingModal'
-import { useSleepState } from '@/hooks/use-sleep-state'
-import { useUser } from '@/context/UserContext'
+import React, { useState } from "react"
+import { Baby, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
+import { EventData, FeedingModalData } from "./types"
+import { dateToTimestamp } from "@/lib/datetime"
+import { cn } from "@/lib/utils"
+import { useDevTime } from "@/context/dev-time-context"
+import { FeedingModal } from "./FeedingModal"
+import { useSleepState } from "@/hooks/use-sleep-state"
+import { useUser } from "@/context/UserContext"
 
 interface FeedingButtonProps {
   childId: string
@@ -34,7 +34,7 @@ interface FeedingButtonProps {
 export function FeedingButton({ 
   childId, 
   childName,
-  onEventRegistered 
+  onEventRegistered, 
 }: FeedingButtonProps) {
   const { toast } = useToast()
   const [isProcessing, setIsProcessing] = useState(false)
@@ -46,9 +46,9 @@ export function FeedingButton({
   // Configuración del botón
   const getButtonConfig = () => {
     return {
-      text: 'ALIMENTACIÓN',
+      text: "ALIMENTACIÓN",
       icon: Baby,
-      color: 'from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600'
+      color: "from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600",
     }
   }
   
@@ -63,17 +63,17 @@ export function FeedingButton({
       const now = getCurrentTime()
       
       // Detectar si el bebé está dormido actualmente
-      const isBabySleeping = sleepState.status === 'sleeping' || sleepState.status === 'napping'
-      const isLiquid = feedingData.feedingType === 'breast' || feedingData.feedingType === 'bottle'
-      const normalizedBabyState = feedingData.feedingType === 'solids' ? 'awake' : feedingData.babyState
-      const durationToSend = feedingData.feedingDuration || (feedingData.feedingType === 'breast' ? feedingData.feedingAmount : 15)
-      const amountToSend = feedingData.feedingType === 'breast' ? undefined : (feedingData.feedingAmount || (feedingData.feedingType === 'solids' ? 50 : undefined))
+      const isBabySleeping = sleepState.status === "sleeping" || sleepState.status === "napping"
+      const isLiquid = feedingData.feedingType === "breast" || feedingData.feedingType === "bottle"
+      const normalizedBabyState = feedingData.feedingType === "solids" ? "awake" : feedingData.babyState
+      const durationToSend = feedingData.feedingDuration || (feedingData.feedingType === "breast" ? feedingData.feedingAmount : 15)
+      const amountToSend = feedingData.feedingType === "breast" ? undefined : (feedingData.feedingAmount || (feedingData.feedingType === "solids" ? 50 : undefined))
       
       // Crear evento de alimentación con todos los datos del modal
       const eventData: Partial<EventData> = {
         childId,
-        eventType: 'feeding',
-        startTime: toLocalISOString(now, userData.timezone),
+        eventType: "feeding",
+        startTime: dateToTimestamp(now, userData.timezone),
         feedingType: feedingData.feedingType,
         feedingSubtype: feedingData.feedingType,
         // Duración: en pecho son minutos del control principal, en otros casos usamos la duración capturada
@@ -82,69 +82,69 @@ export function FeedingButton({
         babyState: normalizedBabyState,
         feedingNotes: feedingData.feedingNotes,
         notes: feedingData.feedingNotes,
-        emotionalState: 'neutral' // Por defecto neutral para alimentación
+        emotionalState: "neutral", // Por defecto neutral para alimentación
       }
 
-      const response = await fetch('/api/children/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData)
+      const response = await fetch("/api/children/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(eventData),
       })
       
       if (!response.ok) {
-        throw new Error('Error al registrar evento de alimentación')
+        throw new Error("Error al registrar evento de alimentación")
       }
       
       // Si el bebé está dormido, crear también un evento de night_feeding
       if (isBabySleeping && isLiquid) {
         const nightFeedingData: Partial<EventData> = {
           childId,
-          eventType: 'night_feeding',
-          startTime: toLocalISOString(now, userData.timezone),
+          eventType: "night_feeding",
+          startTime: dateToTimestamp(now, userData.timezone),
           feedingType: feedingData.feedingType,
           feedingSubtype: feedingData.feedingType,
           feedingDuration: durationToSend,
           feedingAmount: amountToSend,
           babyState: normalizedBabyState,
-          notes: `Alimentación nocturna - ${feedingData.feedingType === 'breast' ? 'Pecho' : feedingData.feedingType === 'bottle' ? 'Biberón' : 'Sólidos'}`,
-          emotionalState: 'neutral'
+          notes: `Alimentación nocturna - ${feedingData.feedingType === "breast" ? "Pecho" : feedingData.feedingType === "bottle" ? "Biberón" : "Sólidos"}`,
+          emotionalState: "neutral",
         }
 
-        const nightFeedingResponse = await fetch('/api/children/events', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(nightFeedingData)
+        const nightFeedingResponse = await fetch("/api/children/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(nightFeedingData),
         })
 
         if (!nightFeedingResponse.ok) {
-          console.error('Error al registrar evento de alimentación nocturna')
+          console.error("Error al registrar evento de alimentación nocturna")
         }
       }
 
       // Preparar mensaje personalizado según tipo
       const getTypeText = (type: string) => {
         switch (type) {
-          case 'breast': return 'pecho'
-          case 'bottle': return 'biberón'
-          case 'solids': return 'sólidos'
-          default: return 'alimentación'
+        case "breast": return "pecho"
+        case "bottle": return "biberón"
+        case "solids": return "sólidos"
+        default: return "alimentación"
         }
       }
 
       const getAmountText = (type: string, amount: number) => {
-        if (type === 'breast') {
+        if (type === "breast") {
           return `${amount} minutos`
-        } else if (type === 'bottle') {
+        } else if (type === "bottle") {
           return `${amount} oz/ml`
         } else {
-          return 'descripción agregada'
+          return "descripción agregada"
         }
       }
 
       // Mostrar confirmación personalizada
       toast({
         title: isBabySleeping ? "Alimentación nocturna registrada" : "Alimentación registrada",
-        description: `${childName}: ${getTypeText(feedingData.feedingType)} - ${getAmountText(feedingData.feedingType, feedingData.feedingAmount)}${isBabySleeping ? ' (durante el sueño)' : ''}`
+        description: `${childName}: ${getTypeText(feedingData.feedingType)} - ${getAmountText(feedingData.feedingType, feedingData.feedingAmount)}${isBabySleeping ? " (durante el sueño)" : ""}`,
       })
       
       // Cerrar modal y limpiar
@@ -154,11 +154,11 @@ export function FeedingButton({
       onEventRegistered?.()
       
     } catch (error) {
-      console.error('Error registrando alimentación:', error)
+      console.error("Error registrando alimentación:", error)
       toast({
         title: "Error",
         description: "No se pudo registrar la alimentación",
-        variant: "destructive"
+        variant: "destructive",
       })
     } finally {
       setIsProcessing(false)

@@ -19,7 +19,7 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
   // Importante: los hooks (useMemo) deben ejecutarse en cada render, no después de returns condicionales
   const agg = React.useMemo(() => {
     const events = data?.events ? (data.events as any[]) : []
-    return aggregateDailySleep(events, dateRange, { denominator: 'dataDays' })
+    return aggregateDailySleep(events, dateRange, { denominator: "dataDays" })
   }, [data, dateRange])
 
   if (loading) {
@@ -87,9 +87,9 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
       <div className="mb-8">
         <h4 className="text-sm font-semibold text-gray-700 mb-3">
           Timeline del día
-          {data.awakePeriods.length > 0 && data.awakePeriods[0].durationFormatted.includes('promedio') && (
+          {data.awakePeriods.length > 0 && data.awakePeriods[0].durationFormatted.includes("promedio") && (
             <span className="ml-2 text-xs font-normal text-gray-500">
-              (Mostrando promedios de {dateRange.replace('-', ' ')})
+              (Mostrando promedios de {dateRange.replace("-", " ")})
             </span>
           )}
         </h4>
@@ -111,13 +111,13 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
               let durationPercent: number
               
               // Si es promedio, usar horarios típicos para cada período
-              if (period.durationFormatted.includes('promedio')) {
+              if (period.durationFormatted.includes("promedio")) {
                 // Definir horarios típicos para cada período del día
                 const typicalStartHours: Record<string, number> = {
-                  'mañana': 7,    // 7:00 AM
-                  'mediodía': 11, // 11:00 AM  
-                  'tarde': 15,    // 3:00 PM
-                  'noche': 19     // 7:00 PM
+                  "mañana": 7,    // 7:00 AM
+                  "mediodía": 11, // 11:00 AM  
+                  "tarde": 15,    // 3:00 PM
+                  "noche": 19,     // 7:00 PM
                 }
                 
                 const startHour = typicalStartHours[period.period] || 7
@@ -139,7 +139,7 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
                     left: `${startPercent}%`,
                     width: `${durationPercent}%`,
                     backgroundColor: getWindowColor(period.duration),
-                    opacity: period.durationFormatted.includes('promedio') ? 0.5 : 0.7
+                    opacity: period.durationFormatted.includes("promedio") ? 0.5 : 0.7,
                   }}
                   title={`${period.period}: ${period.durationFormatted}`}
                 />
@@ -187,7 +187,7 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
               const total = data.awakePeriods.length
               const inRange = data.awakePeriods.filter(p => p.duration >= 120 && p.duration <= 240).length
               const pct = Math.round((inRange / total) * 100)
-              const statusColor = pct >= 70 ? 'text-green-700' : pct >= 50 ? 'text-yellow-700' : 'text-red-700'
+              const statusColor = pct >= 70 ? "text-green-700" : pct >= 50 ? "text-yellow-700" : "text-red-700"
               return (
                 <div className="flex items-center gap-2 text-sm text-gray-700">
                   <span>
@@ -223,7 +223,7 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
                   <div className={`px-2 py-1 rounded-md text-xs font-medium ${getWindowColorClass(period.duration)}`}>
                     {period.period}
                   </div>
-                  {!period.durationFormatted.includes('promedio') ? (
+                  {!period.durationFormatted.includes("promedio") ? (
                     <div className="text-sm text-gray-600">
                       {format(parseISO(period.startTime), "HH:mm", { locale: es })} - 
                       {format(parseISO(period.endTime), "HH:mm", { locale: es })}
@@ -242,12 +242,12 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
                       className="h-full transition-all duration-500"
                       style={{
                         width: `${Math.min((period.duration / 300) * 100, 100)}%`,
-                        backgroundColor: getWindowColor(period.duration)
+                        backgroundColor: getWindowColor(period.duration),
                       }}
                     />
                   </div>
-                  <span className={`text-xs ${period.duration >= 120 && period.duration <= 240 ? 'text-green-700' : 'text-gray-500'}`}>
-                    {period.duration >= 120 && period.duration <= 240 ? 'Dentro 2–4h' : 'Fuera 2–4h'}
+                  <span className={`text-xs ${period.duration >= 120 && period.duration <= 240 ? "text-green-700" : "text-gray-500"}`}>
+                    {period.duration >= 120 && period.duration <= 240 ? "Dentro 2–4h" : "Fuera 2–4h"}
                   </span>
                   
                   <span className="text-sm font-semibold text-gray-700 min-w-[60px] text-right">
@@ -279,14 +279,14 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
           const total = durations.length || 1
           return (
             <div className="mt-4">
-              <h5 className="text-xs font-semibold text-gray-700 mb-2">Histograma de ventanas ({dateRange.replace('-days',' días')})</h5>
+              <h5 className="text-xs font-semibold text-gray-700 mb-2">Histograma de ventanas ({dateRange.replace("-days"," días")})</h5>
               <div className="h-36">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={histData} margin={{ top: 0, right: 8, bottom: 0, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
                     <XAxis dataKey="range" tick={{ fontSize: 10 }} />
                     <YAxis allowDecimals={false} tick={{ fontSize: 10 }} width={22} />
-                    <ReTooltip formatter={(value: any, name: any, props: any) => [`${value} (${Math.round((value/total)*100)}%)`, 'ventanas']} />
+                    <ReTooltip formatter={(value: any, name: any, props: any) => [`${value} (${Math.round((value/total)*100)}%)`, "ventanas"]} />
                     <Bar dataKey="count" fill="#94A3B8" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -298,9 +298,9 @@ export default function SleepDistributionChart({ childId, dateRange = "7-days" }
         {/* Leyenda de colores */}
         {data.awakePeriods.length > 0 && (
           <div className="mt-4 pt-3 border-t border-gray-100">
-            {data.awakePeriods[0].durationFormatted.includes('promedio') && (
+            {data.awakePeriods[0].durationFormatted.includes("promedio") && (
               <p className="text-xs text-blue-600 mb-2">
-                ℹ️ Mostrando promedios basados en los últimos {dateRange.replace('-days', ' días')}
+                ℹ️ Mostrando promedios basados en los últimos {dateRange.replace("-days", " días")}
               </p>
             )}
             <p className="text-xs text-gray-500 mb-2">Escala de duración:</p>

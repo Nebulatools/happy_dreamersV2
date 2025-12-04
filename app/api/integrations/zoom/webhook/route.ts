@@ -8,7 +8,7 @@ import { ingestZoomMeetingTranscripts } from "@/lib/integrations/zoom"
 import crypto from "crypto"
 
 // Ensure Node.js runtime (crypto required on Vercel)
-export const runtime = 'nodejs'
+export const runtime = "nodejs"
 
 const logger = createLogger("API:integrations:zoom:webhook")
 

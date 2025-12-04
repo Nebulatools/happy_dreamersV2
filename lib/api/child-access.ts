@@ -11,7 +11,7 @@ const OWNER_PERMISSIONS: UserChildAccess["permissions"] = {
   canEditEvents: true,
   canViewReports: true,
   canEditProfile: true,
-  canViewPlan: true
+  canViewPlan: true,
 }
 
 export class ChildAccessError extends Error {
@@ -53,7 +53,7 @@ export async function resolveChildAccess(
 
   if (isAdmin) {
     const child = await db.collection<Child>("children").findOne({
-      _id: new ObjectId(childId)
+      _id: new ObjectId(childId),
     })
 
     if (!child) {
@@ -66,7 +66,7 @@ export async function resolveChildAccess(
       permissions: OWNER_PERMISSIONS,
       ownerId,
       isOwner: false,
-      isAdminOverride: true
+      isAdminOverride: true,
     }
   }
 
@@ -78,7 +78,7 @@ export async function resolveChildAccess(
   }
 
   const child = accessResult.child || await db.collection<Child>("children").findOne({
-    _id: new ObjectId(childId)
+    _id: new ObjectId(childId),
   })
 
   if (!child) {
@@ -99,7 +99,7 @@ export async function resolveChildAccess(
     child,
     permissions,
     ownerId,
-    isOwner: !!accessResult.isOwner
+    isOwner: !!accessResult.isOwner,
   }
 }
 

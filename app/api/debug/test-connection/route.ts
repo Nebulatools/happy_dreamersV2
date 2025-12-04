@@ -14,7 +14,7 @@ export async function GET() {
       MONGODB_DB: process.env.MONGODB_DB ? "✅ Definida" : "❌ NO definida",
       NEXTAUTH_URL: process.env.NEXTAUTH_URL ? "✅ Definida" : "❌ NO definida",
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? "✅ Definida" : "❌ NO definida",
-      NODE_ENV: process.env.NODE_ENV || "undefined"
+      NODE_ENV: process.env.NODE_ENV || "undefined",
     }
 
     console.log("🔍 Variables de entorno:", envCheck)
@@ -28,7 +28,7 @@ export async function GET() {
     console.log("✅ Ping exitoso")
 
     // Contar usuarios
-    const usersCollection = db.collection('users')
+    const usersCollection = db.collection("users")
     const userCount = await usersCollection.countDocuments()
     console.log(`📊 Usuarios encontrados: ${userCount}`)
 
@@ -49,10 +49,10 @@ export async function GET() {
           connected: true,
           userCount,
           testUserExists: !!testUser,
-          users: usersList
+          users: usersList,
         },
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     })
 
   } catch (error) {
@@ -67,12 +67,12 @@ export async function GET() {
           MONGODB_DB: process.env.MONGODB_DB ? "Definida" : "NO definida",
           NEXTAUTH_URL: process.env.NEXTAUTH_URL ? "Definida" : "NO definida",
           NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? "Definida" : "NO definida",
-          NODE_ENV: process.env.NODE_ENV || "undefined"
+          NODE_ENV: process.env.NODE_ENV || "undefined",
         },
         errorType: error.constructor.name,
         stack: error.stack,
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     }, { status: 500 })
   }
 }

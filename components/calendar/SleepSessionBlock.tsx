@@ -3,10 +3,10 @@
 
 "use client"
 
-import React from 'react'
+import React from "react"
 import { Moon, Sun, AlertCircle } from "lucide-react"
-import { format, differenceInMinutes, parseISO } from 'date-fns'
-import { cn } from '@/lib/utils'
+import { format, differenceInMinutes, parseISO } from "date-fns"
+import { cn } from "@/lib/utils"
 
 interface Event {
   _id: string
@@ -33,8 +33,8 @@ interface SleepSessionBlockProps {
   continuesNextDay?: boolean           // Si continúa al día siguiente
 }
 
-export function SleepSessionBlock({ 
-  startTime, 
+export function SleepSessionBlock({
+  startTime,
   endTime,
   originalStartTime,
   originalEndTime,
@@ -44,7 +44,7 @@ export function SleepSessionBlock({
   onClick,
   onNightWakingClick,
   isContinuationFromPrevious = false,
-  continuesNextDay = false
+  continuesNextDay = false,
 }: SleepSessionBlockProps) {
   
   // Calcular posición vertical según la hora de inicio
@@ -63,13 +63,15 @@ export function SleepSessionBlock({
       const pixelsPerMinute = hourHeight / 60
       return Math.round(totalMinutes * pixelsPerMinute)
     } catch (error) {
-      console.error('Error parsing startTime in calculateStartPosition:', error)
+      console.error("Error parsing startTime in calculateStartPosition:", error)
       return 0
     }
   }
   
   // Calcular altura del bloque
   const calculateBlockHeight = () => {
+    const marginBottom = 4 // Margen para que no se salga del borde
+
     // Si continúa al día siguiente, extender hasta el final del día
     if (continuesNextDay) {
       try {
@@ -79,9 +81,9 @@ export function SleepSessionBlock({
         const startMinute = startDate.getMinutes()
         const minutesUntilMidnight = (24 * 60) - (startHour * 60 + startMinute)
         const pixelsPerMinute = hourHeight / 60
-        return Math.max(20, minutesUntilMidnight * pixelsPerMinute)
+        return Math.max(20, minutesUntilMidnight * pixelsPerMinute - marginBottom)
       } catch (error) {
-        console.error('Error calculating height for continuesNextDay:', error)
+        console.error("Error calculating height for continuesNextDay:", error)
         return 20
       }
     }
@@ -95,10 +97,10 @@ export function SleepSessionBlock({
         const startMinute = startDate.getMinutes()
         const minutesUntilMidnight = (24 * 60) - (startHour * 60 + startMinute)
         const pixelsPerMinute = hourHeight / 60
-        // Altura máxima: hasta medianoche
-        return Math.min(minutesUntilMidnight * pixelsPerMinute, 300)
+        // Altura máxima: hasta medianoche con margen
+        return Math.min(minutesUntilMidnight * pixelsPerMinute - marginBottom, 300)
       } catch (error) {
-        console.error('Error calculating height for in progress sleep:', error)
+        console.error("Error calculating height for in progress sleep:", error)
         return 100
       }
     }
@@ -107,21 +109,23 @@ export function SleepSessionBlock({
     try {
       const useStartTime = isContinuationFromPrevious && originalStartTime ? originalStartTime : startTime
       const useEndTime = continuesNextDay && originalEndTime ? originalEndTime : endTime
-      
+
       const start = parseISO(useStartTime)
       const end = parseISO(useEndTime)
       const durationMinutes = differenceInMinutes(end, start)
       const pixelsPerMinute = hourHeight / 60
-      
+
       // Para eventos que cruzan días, ajustar la altura a solo la parte visible del día
       if (isContinuationFromPrevious || continuesNextDay) {
         const dayStart = isContinuationFromPrevious ? 0 : start.getHours() * 60 + start.getMinutes()
         // Si continúa al día siguiente, cortar exactamente a medianoche (00:00)
         const dayEnd = continuesNextDay ? 24 * 60 : end.getHours() * 60 + end.getMinutes()
         const visibleMinutes = dayEnd - dayStart
-        return Math.max(20, visibleMinutes * pixelsPerMinute)
+        // Aplicar margen si continua al dia siguiente
+        const margin = continuesNextDay ? marginBottom : 0
+        return Math.max(20, visibleMinutes * pixelsPerMinute - margin)
       }
-      
+
       return Math.max(20, durationMinutes * pixelsPerMinute) // Mínimo 20px
     } catch {
       return 100 // Altura por defecto si hay error
@@ -132,9 +136,9 @@ export function SleepSessionBlock({
   const formatTime = (timeString: string) => {
     try {
       const date = parseISO(timeString)
-      return format(date, 'HH:mm')
+      return format(date, "HH:mm")
     } catch {
-      return '--:--'
+      return "--:--"
     }
   }
   
@@ -157,29 +161,29 @@ export function SleepSessionBlock({
         if (relativePosition < 0 || relativePosition > height) return null
         
         return (
-        <div
-          key={waking._id}
-          className="absolute left-2 right-2 bg-red-600/90 hover:bg-red-700 text-white rounded px-2 py-1 z-20 cursor-pointer transition-colors shadow-md border border-red-400/50"
-          style={{ 
-            top: `${relativePosition}px`,
-            height: '20px'
-          }}
-          onClick={(e) => {
-            e.stopPropagation() // Evitar que el click se propague al contenedor padre
-            if (onNightWakingClick) {
-              onNightWakingClick(waking)
-            }
-          }}
-          title="Click para editar despertar nocturno"
-        >
-          <div className="flex items-center gap-1 pointer-events-none">
-            <span className="text-xs">👶</span>
-            <span style={{ fontSize: '9px' }}>{formatTime(waking.startTime)}</span>
+          <div
+            key={waking._id}
+            className="absolute left-2 right-2 bg-red-600/90 hover:bg-red-700 text-white rounded px-2 py-1 z-20 cursor-pointer transition-colors shadow-md border border-red-400/50"
+            style={{ 
+              top: `${relativePosition}px`,
+              height: "20px",
+            }}
+            onClick={(e) => {
+              e.stopPropagation() // Evitar que el click se propague al contenedor padre
+              if (onNightWakingClick) {
+                onNightWakingClick(waking)
+              }
+            }}
+            title="Click para editar despertar nocturno"
+          >
+            <div className="flex items-center gap-1 pointer-events-none">
+              <span className="text-xs">👶</span>
+              <span style={{ fontSize: "9px" }}>{formatTime(waking.startTime)}</span>
+            </div>
           </div>
-        </div>
         )
       } catch (error) {
-        console.error('Error parsing waking startTime:', error)
+        console.error("Error parsing waking startTime:", error)
         return null
       }
     })
@@ -193,14 +197,16 @@ export function SleepSessionBlock({
         style={{ top: `${position}px` }}
         onClick={onClick}
       >
-        {/* Parte superior sólida */}
-        <div 
-          className="bg-blue-500/50 rounded-t-lg border border-blue-400/40 flex items-center justify-center shadow-sm"
-          style={{ height: '24px' }}
+        {/* Parte superior sólida - Emoji izq + hora centrada grande */}
+        <div
+          className="bg-blue-500/50 rounded-t-lg border border-blue-400/40 flex items-center px-2 shadow-sm"
+          style={{ height: "28px" }}
         >
-          <div className="flex items-center gap-1 text-white font-medium">
+          <div className="flex-shrink-0">
             <span className="text-sm">🌙</span>
-            <span style={{ fontSize: '9px' }}>{formatTime(startTime)}</span>
+          </div>
+          <div className="flex-1 text-center">
+            <span className="text-white font-bold" style={{ fontSize: "13px" }}>{formatTime(startTime)}</span>
           </div>
         </div>
         
@@ -209,8 +215,8 @@ export function SleepSessionBlock({
           className="relative"
           style={{ 
             height: `${height - 24}px`,
-            background: 'linear-gradient(to bottom, rgba(59, 130, 246, 0.35), rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.08), transparent)',
-            animation: 'pulse 3s ease-in-out infinite'
+            background: "linear-gradient(to bottom, rgba(59, 130, 246, 0.35), rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.08), transparent)",
+            animation: "pulse 3s ease-in-out infinite",
           }}
         >
           {/* Indicador visual de "continúa..." */}
@@ -239,56 +245,67 @@ export function SleepSessionBlock({
         !isContinuationFromPrevious && continuesNextDay && "rounded-t-lg",
         className
       )}
-      style={{ 
+      style={{
         top: `${position}px`,
         height: `${height}px`,
-        background: 'linear-gradient(to bottom, rgba(59, 130, 246, 0.18), rgba(139, 92, 246, 0.15), rgba(251, 191, 36, 0.12))'
+        background: "linear-gradient(to bottom, rgba(59, 130, 246, 0.18), rgba(139, 92, 246, 0.15), rgba(251, 191, 36, 0.12))",
       }}
       onClick={onClick}
     >
       {/* Indicador de continuación desde día anterior */}
       {isContinuationFromPrevious && (
         <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-blue-500/40 to-transparent flex items-center justify-center">
-          <div className="text-blue-700 font-medium flex items-center gap-0.5" style={{ fontSize: '9px' }}>
+          <div className="text-blue-700 font-medium flex items-center gap-0.5" style={{ fontSize: "9px" }}>
             <span>↑</span>
             <span>Desde ayer</span>
           </div>
         </div>
       )}
       
-      {/* Indicador de inicio (solo si no es continuación) */}
+      {/* Indicador de inicio (solo si no es continuación) - Emoji izq + hora centrada grande */}
       {!isContinuationFromPrevious && (
-        <div className="absolute top-2 left-2 flex items-center gap-1">
-          <span className="text-sm">🌙</span>
-          <span style={{ fontSize: '9px' }} className="font-medium text-blue-700">
-            {formatTime(originalStartTime || startTime)}
-          </span>
+        <div className="absolute top-1 left-2 right-2 flex items-center">
+          <div className="flex-shrink-0">
+            <span className="text-sm">🌙</span>
+          </div>
+          <div className="flex-1 text-center">
+            <span className="font-bold text-blue-700" style={{ fontSize: "13px" }}>
+              {formatTime(originalStartTime || startTime)}
+            </span>
+          </div>
         </div>
       )}
       
       {/* Indicador de fin con duración total (solo si no continúa al día siguiente) */}
       {!continuesNextDay && endTime && (
-        <div className="absolute bottom-2 right-2 flex flex-col items-end gap-0.5">
-          <div className="flex items-center gap-1">
+        <div className="absolute bottom-1 left-2 right-2 flex items-center">
+          <div className="flex-shrink-0">
             <span className="text-sm">☀️</span>
-            <span style={{ fontSize: '9px' }} className="font-medium text-yellow-700">
+          </div>
+          <div className="flex-1 text-center">
+            <span className="font-bold text-yellow-700" style={{ fontSize: "13px" }}>
               {formatTime(originalEndTime || endTime)}
             </span>
           </div>
-          {/* Duración total - solo mostrar aquí, no en el centro */}
-          <div className="bg-white/70 backdrop-blur-sm rounded px-1 py-0.5">
-            <span style={{ fontSize: '8px' }} className="font-medium text-gray-600">
-              Total: {(() => {
+        </div>
+      )}
+
+      {/* Duración total centrada (solo si tiene inicio y fin completos) */}
+      {!isContinuationFromPrevious && !continuesNextDay && endTime && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+          <div className="bg-white/80 backdrop-blur-sm rounded-lg px-2 py-1 shadow-sm">
+            <span className="font-bold text-gray-700" style={{ fontSize: "12px" }}>
+              {(() => {
                 try {
-                  // Usar tiempos originales si es continuación, si no usar los normales
                   const start = parseISO(originalStartTime || startTime)
                   const end = parseISO(originalEndTime || endTime)
                   const minutes = differenceInMinutes(end, start)
                   const hours = Math.floor(minutes / 60)
                   const mins = minutes % 60
+                  if (mins === 0) return `${hours}h`
                   return `${hours}h ${mins}m`
                 } catch {
-                  return '--'
+                  return "--"
                 }
               })()}
             </span>
@@ -296,13 +313,10 @@ export function SleepSessionBlock({
         </div>
       )}
       
-      {/* Indicador de continuación al día siguiente */}
+      {/* Indicador de continuacion al dia siguiente - minimalista */}
       {continuesNextDay && (
-        <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-yellow-500/40 to-transparent flex items-center justify-center">
-          <div className="text-yellow-700 font-medium flex items-center gap-0.5" style={{ fontSize: '9px' }}>
-            <span>Continúa</span>
-            <span>↓</span>
-          </div>
+        <div className="absolute bottom-0 left-0 right-0 h-3 flex items-center justify-center">
+          <span className="text-yellow-600" style={{ fontSize: "10px" }}>↓</span>
         </div>
       )}
       

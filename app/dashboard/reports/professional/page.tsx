@@ -18,7 +18,7 @@ import {
   ArrowLeft,
   Share2,
   Download,
-  CheckCircle
+  CheckCircle,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -89,8 +89,8 @@ export default function ProfessionalReportPage() {
           metadata: {
             reportId: data.consulta._id,
             createdAt: data.consulta.createdAt,
-            adminName: data.consulta.adminName || "Sistema"
-          }
+            adminName: data.consulta.adminName || "Sistema",
+          },
         })
         
         // Verificar si ya existe un reporte profesional para esta consulta
@@ -125,8 +125,8 @@ export default function ProfessionalReportPage() {
             reportId: professionalReport._id,
             editedData: data.editedData,
             privacy: data.privacy,
-            editReason: "Actualización profesional del reporte"
-          })
+            editReason: "Actualización profesional del reporte",
+          }),
         })
       } else {
         // Crear nuevo reporte profesional
@@ -139,8 +139,8 @@ export default function ProfessionalReportPage() {
             userId: reportData.childContext?.userId,
             originalData: reportData,
             editedData: data.editedData,
-            privacy: data.privacy
-          })
+            privacy: data.privacy,
+          }),
         })
       }
 
@@ -153,7 +153,7 @@ export default function ProfessionalReportPage() {
       setProfessionalReport(result.report)
       
       toast.success("Reporte guardado exitosamente", {
-        description: `Versión ${result.report.version} creada`
+        description: `Versión ${result.report.version} creada`,
       })
       
       return result.report
@@ -171,8 +171,8 @@ export default function ProfessionalReportPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           reportId,
-          action: "approve"
-        })
+          action: "approve",
+        }),
       })
 
       if (!response.ok) {
@@ -183,7 +183,7 @@ export default function ProfessionalReportPage() {
       setProfessionalReport(result.report)
       
       toast.success("Reporte aprobado", {
-        description: "El reporte está listo para compartir con los padres"
+        description: "El reporte está listo para compartir con los padres",
       })
     } catch (error) {
       console.error("Error:", error)
@@ -200,8 +200,8 @@ export default function ProfessionalReportPage() {
         body: JSON.stringify({
           reportId,
           action: "sign",
-          signatureData
-        })
+          signatureData,
+        }),
       })
 
       if (!response.ok) {
@@ -212,7 +212,7 @@ export default function ProfessionalReportPage() {
       setProfessionalReport(result.report)
       
       toast.success("Reporte firmado digitalmente", {
-        description: "El reporte ha sido validado con su firma profesional"
+        description: "El reporte ha sido validado con su firma profesional",
       })
     } catch (error) {
       console.error("Error:", error)

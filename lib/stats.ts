@@ -24,6 +24,6 @@ export function toHHMM(minutes: number): string {
   if (m < 0) m += 24 * 60
   const h = Math.floor(m / 60)
   const mm = Math.round(m % 60)
-  return `${h.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`
+  return `${h.toString().padStart(2, "0")}:${mm.toString().padStart(2, "0")}`
 }
 

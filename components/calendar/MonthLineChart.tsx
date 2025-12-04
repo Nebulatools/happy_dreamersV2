@@ -3,7 +3,7 @@
 
 "use client"
 
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState } from "react"
 import { 
   LineChart, 
   Line, 
@@ -16,10 +16,11 @@ import {
   Dot,
   ReferenceLine,
   Label,
-} from 'recharts'
-import { format, getDaysInMonth, startOfMonth, addDays, startOfDay, endOfDay } from 'date-fns'
-import { es } from 'date-fns/locale'
-import { cn } from '@/lib/utils'
+} from "recharts"
+import { format, getDaysInMonth, startOfMonth, addDays } from "date-fns"
+import { es } from "date-fns/locale"
+import { cn } from "@/lib/utils"
+import { getStartOfDayAsDate, getEndOfDayAsDate, parseTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
 
 interface Event {
   _id: string
@@ -30,6 +31,7 @@ interface Event {
   endTime?: string
   notes?: string
   duration?: number
+  sleepDelay?: number
 }
 
 interface MonthLineChartProps {
@@ -39,30 +41,41 @@ interface MonthLineChartProps {
   className?: string
   idealBedtime?: string  // Hora ideal de dormir del plan (ej: "20:00")
   idealWakeTime?: string // Hora ideal de despertar del plan (ej: "07:00")
+  timezone?: string      // Timezone del usuario (ej: "America/Monterrey")
 }
 
 // Colores consistentes con el sistema existente
-const EVENT_COLORS = {
-  sleep: '#9B7EDE',      // Morado para dormir
-  nap: '#FFB951',        // Naranja para siesta
-  wake: '#65C466',       // Verde para despertar
-  night_waking: '#FF6B6B' // Rojo para despertar nocturno
+const EVENT_COLORS: Record<string, string> = {
+  sleep: "#9B7EDE",      // Morado para dormir
+  nap: "#FFB951",        // Naranja para siesta
+  nap1: "#FFB951",       // Siesta 1
+  nap2: "#FFA726",       // Siesta 2 (naranja mas oscuro)
+  nap3: "#FF9800",       // Siesta 3
+  wake: "#65C466",       // Verde para despertar
+  night_waking: "#FF6B6B", // Rojo para despertar nocturno
 }
 
-const EVENT_LABELS = {
-  sleep: 'Dormir',
-  nap: 'Siesta',
-  wake: 'Despertar',
-  night_waking: 'Despertar nocturno'
+const EVENT_LABELS: Record<string, string> = {
+  sleep: "Dormir",
+  nap: "Siesta",
+  nap1: "Siesta 1",
+  nap2: "Siesta 2",
+  nap3: "Siesta 3",
+  wake: "Despertar",
+  night_waking: "Despertar nocturno",
 }
 
-export function MonthLineChart({ 
-  events, 
-  currentDate, 
+// Maximo de siestas a mostrar individualmente
+const MAX_INDIVIDUAL_NAPS = 3
+
+export function MonthLineChart({
+  events,
+  currentDate,
   onEventClick,
   className,
   idealBedtime,
-  idealWakeTime
+  idealWakeTime,
+  timezone = DEFAULT_TIMEZONE,
 }: MonthLineChartProps) {
   
   // Si no hay eventos, mostrar mensaje informativo
@@ -87,55 +100,93 @@ export function MonthLineChart({
     const daysInMonth = getDaysInMonth(currentDate)
     const monthStart = startOfMonth(currentDate)
     const data = []
-    
+
     // Crear un punto de datos para cada día del mes
     for (let day = 1; day <= daysInMonth; day++) {
       const currentDay = addDays(monthStart, day - 1)
-      const dayStr = format(currentDay, 'yyyy-MM-dd')
-      
+      const dayStr = format(currentDay, "yyyy-MM-dd")
+
       const dayData: any = {
         day: day,
-        dayLabel: format(currentDay, 'd', { locale: es }),
-        fullDate: dayStr
+        dayLabel: format(currentDay, "d", { locale: es }),
+        fullDate: dayStr,
       }
-      
+
       // Procesar eventos del día por tipo
-      // CORRECCION: Usar comparacion de objetos Date en lugar de strings
+      // CORRECCION: Usar comparacion de objetos Date con timezone en lugar de strings
       // para manejar correctamente las zonas horarias
-      const dayStartDate = startOfDay(currentDay)
-      const dayEndDate = endOfDay(currentDay)
+      const dayStartDate = getStartOfDayAsDate(currentDay, timezone)
+      const dayEndDate = getEndOfDayAsDate(currentDay, timezone)
 
       const dayEvents = events.filter(event => {
         if (!event.startTime) return false
-        const eventDate = new Date(event.startTime)
+        const eventDate = parseTimestamp(event.startTime)
         return eventDate >= dayStartDate && eventDate <= dayEndDate
       })
-      
-      // Agrupar eventos por tipo y obtener la hora promedio
-      const eventsByType: Record<string, number[]> = {}
-      
+
+      // Tambien buscar eventos de sleep que TERMINAN en este dia (para despertar)
+      const wakeFromSleep = events.filter(event => {
+        if (event.eventType === "sleep" && event.endTime) {
+          const endDate = parseTimestamp(event.endTime)
+          return endDate >= dayStartDate && endDate <= dayEndDate
+        }
+        return false
+      })
+
+      // Agrupar eventos por tipo
+      const eventsByType: Record<string, { hours: number; event: Event }[]> = {}
+
       dayEvents.forEach(event => {
         const eventDate = new Date(event.startTime)
         const hours = eventDate.getHours() + eventDate.getMinutes() / 60
-        
+
         if (!eventsByType[event.eventType]) {
           eventsByType[event.eventType] = []
         }
-        eventsByType[event.eventType].push(hours)
+        eventsByType[event.eventType].push({ hours, event })
       })
-      
-      // Calcular hora promedio para cada tipo de evento
+
+      // Agregar despertares basados en endTime de eventos sleep
+      wakeFromSleep.forEach(event => {
+        if (event.endTime) {
+          const wakeDate = new Date(event.endTime)
+          const hours = wakeDate.getHours() + wakeDate.getMinutes() / 60
+
+          if (!eventsByType["wake"]) {
+            eventsByType["wake"] = []
+          }
+          eventsByType["wake"].push({ hours, event })
+        }
+      })
+
+      // Procesar cada tipo de evento
       Object.keys(eventsByType).forEach(eventType => {
-        const hours = eventsByType[eventType]
-        const avgHour = hours.reduce((sum, h) => sum + h, 0) / hours.length
-        dayData[eventType] = parseFloat(avgHour.toFixed(2))
-        // Guardar los eventos originales para el tooltip
-        dayData[`${eventType}_events`] = dayEvents.filter(e => e.eventType === eventType)
+        const eventData = eventsByType[eventType]
+
+        if (eventType === "nap" && eventData.length > 0) {
+          // Para siestas: mostrar cada una individualmente (hasta MAX_INDIVIDUAL_NAPS)
+          // Ordenar por hora
+          eventData.sort((a, b) => a.hours - b.hours)
+
+          eventData.slice(0, MAX_INDIVIDUAL_NAPS).forEach((item, index) => {
+            const napKey = `nap${index + 1}`
+            dayData[napKey] = parseFloat(item.hours.toFixed(2))
+            dayData[`${napKey}_events`] = [item.event]
+          })
+
+          // Guardar todas las siestas en nap_events para referencia
+          dayData["nap_events"] = eventData.map(d => d.event)
+        } else {
+          // Para otros tipos: calcular promedio si hay multiples
+          const avgHour = eventData.reduce((sum, d) => sum + d.hours, 0) / eventData.length
+          dayData[eventType] = parseFloat(avgHour.toFixed(2))
+          dayData[`${eventType}_events`] = eventData.map(d => d.event)
+        }
       })
-      
+
       data.push(dayData)
     }
-    
+
     return data
   }, [events, currentDate])
   
@@ -152,7 +203,7 @@ export function MonthLineChart({
           {/* Información existente de otros eventos */}
           {payload.map((entry: any, index: number) => {
             const eventType = entry.dataKey
-            if (eventType === 'night_waking') return null // Skip, se maneja aparte
+            if (eventType === "night_waking") return null // Skip, se maneja aparte
             
             const events = entry.payload[`${eventType}_events`] || []
             const hours = Math.floor(entry.value)
@@ -160,16 +211,20 @@ export function MonthLineChart({
             
             if (entry.value === undefined) return null
             
+            // Para siestas individuales, mostrar "Hora:" en lugar de "Promedio:"
+            const isIndividualNap = eventType.startsWith("nap")
+            const timeLabel = isIndividualNap ? "Hora:" : "Promedio:"
+
             return (
               <div key={eventType} className="mb-1">
-                <p 
+                <p
                   className="text-sm font-medium"
                   style={{ color: entry.color }}
                 >
-                  {EVENT_LABELS[eventType as keyof typeof EVENT_LABELS] || eventType}
+                  {EVENT_LABELS[eventType] || eventType}
                 </p>
                 <p className="text-xs text-gray-600">
-                  Promedio: {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}
+                  {timeLabel} {hours.toString().padStart(2, "0")}:{minutes.toString().padStart(2, "0")}
                 </p>
                 {events.length > 1 && (
                   <p className="text-xs text-gray-500">
@@ -187,11 +242,11 @@ export function MonthLineChart({
                 Despertares nocturnos
               </p>
               <p className="text-xs text-gray-600 mb-1">
-                {nightWakingEventsForDay.length} evento{nightWakingEventsForDay.length > 1 ? 's' : ''}
+                {nightWakingEventsForDay.length} evento{nightWakingEventsForDay.length > 1 ? "s" : ""}
               </p>
               {nightWakingEventsForDay.map((event: Event, index: number) => (
                 <p key={event._id} className="text-xs text-gray-500">
-                  {format(new Date(event.startTime), 'HH:mm')} - Duración: {event.sleepDelay || 5} min
+                  {format(new Date(event.startTime), "HH:mm")} - Duración: {event.sleepDelay || 5} min
                 </p>
               ))}
             </div>
@@ -230,20 +285,48 @@ export function MonthLineChart({
   // Formatear las etiquetas del eje Y (horas)
   const formatYAxisTick = (value: number) => {
     const hours = Math.floor(value)
-    return `${hours.toString().padStart(2, '0')}:00`
+    return `${hours.toString().padStart(2, "0")}:00`
   }
   
-  // Determinar qué tipos de eventos mostrar
+  // Determinar qué tipos de eventos mostrar (incluyendo siestas individuales)
   const eventTypes = useMemo(() => {
     const types = new Set<string>()
-    events.forEach(event => types.add(event.eventType))
+    const napCounts: Record<string, number> = {} // Contar siestas por dia
+    let hasWakeData = false // Flag para verificar si hay datos de despertar
+
+    events.forEach(event => {
+      if (event.eventType === "nap") {
+        // Para siestas, contar cuantas hay por dia
+        const dayStr = event.startTime.substring(0, 10)
+        napCounts[dayStr] = (napCounts[dayStr] || 0) + 1
+      } else {
+        types.add(event.eventType)
+      }
+
+      // Verificar si hay eventos sleep con endTime (generan datos de wake)
+      if (event.eventType === "sleep" && event.endTime) {
+        hasWakeData = true
+      }
+    })
+
+    // Agregar 'wake' si hay datos de despertar
+    if (hasWakeData) {
+      types.add("wake")
+    }
+
+    // Determinar cuantas lineas de siesta necesitamos
+    const maxNaps = Math.min(MAX_INDIVIDUAL_NAPS, Math.max(0, ...Object.values(napCounts)))
+    for (let i = 1; i <= maxNaps; i++) {
+      types.add(`nap${i}`)
+    }
+
     return Array.from(types)
   }, [events])
   
   // Convertir hora del plan a número para el eje Y
   const convertTimeToHours = (timeString?: string) => {
-    if (!timeString || !timeString.includes(':')) return null
-    const [hours, minutes] = timeString.split(':').map(Number)
+    if (!timeString || !timeString.includes(":")) return null
+    const [hours, minutes] = timeString.split(":").map(Number)
     if (Number.isNaN(hours) || Number.isNaN(minutes)) return null
     return hours + (minutes / 60)
   }
@@ -256,7 +339,7 @@ export function MonthLineChart({
   const NightWakingDot = (props: any) => {
     const { cx, cy, payload, dataKey } = props
     
-    if (dataKey !== 'night_waking') return null
+    if (dataKey !== "night_waking") return null
     
     const events = payload[`${dataKey}_events`] || []
     if (!events || events.length === 0) return null
@@ -315,21 +398,23 @@ export function MonthLineChart({
             label={{
               value: "Hora del día",
               angle: -90,
-              position: 'insideLeft',
-              style: { textAnchor: "middle", fontSize: 12, fill: "#4b5563", fontWeight: 600 }
+              position: "insideLeft",
+              style: { textAnchor: "middle", fontSize: 12, fill: "#4b5563", fontWeight: 600 },
             }}
           />
           
           <Tooltip content={<CustomTooltip />} />
           
-          <Legend 
-            wrapperStyle={{ fontSize: '12px' }}
-            formatter={(value) => EVENT_LABELS[value as keyof typeof EVENT_LABELS] || value}
+          <Legend
+            wrapperStyle={{ fontSize: "12px" }}
+            formatter={(value) => EVENT_LABELS[value] || value}
             payload={[
-              ...(eventTypes.includes('sleep') ? [{ value: 'sleep', type: 'line', color: EVENT_COLORS.sleep }] : []),
-              ...(eventTypes.includes('wake') ? [{ value: 'wake', type: 'line', color: EVENT_COLORS.wake }] : []),
-              ...(eventTypes.includes('nap') ? [{ value: 'nap', type: 'line', color: EVENT_COLORS.nap }] : []),
-              ...(eventTypes.includes('night_waking') ? [{ value: 'night_waking', type: 'circle', color: EVENT_COLORS.night_waking }] : [])
+              ...(eventTypes.includes("sleep") ? [{ value: "sleep", type: "line" as const, color: EVENT_COLORS.sleep }] : []),
+              ...(eventTypes.includes("wake") ? [{ value: "wake", type: "line" as const, color: EVENT_COLORS.wake }] : []),
+              ...(eventTypes.includes("nap1") ? [{ value: "nap1", type: "line" as const, color: EVENT_COLORS.nap1 }] : []),
+              ...(eventTypes.includes("nap2") ? [{ value: "nap2", type: "line" as const, color: EVENT_COLORS.nap2 }] : []),
+              ...(eventTypes.includes("nap3") ? [{ value: "nap3", type: "line" as const, color: EVENT_COLORS.nap3 }] : []),
+              ...(eventTypes.includes("night_waking") ? [{ value: "night_waking", type: "circle" as const, color: EVENT_COLORS.night_waking }] : []),
             ]}
           />
           
@@ -344,9 +429,9 @@ export function MonthLineChart({
               label={{ 
                 value: `Dormir ideal: ${idealBedtime}`, 
                 fontSize: 11, 
-                fill: '#805AD5',  // Morado más oscuro para el texto
-                fontWeight: 'bold',
-                position: 'insideTopRight'
+                fill: "#805AD5",  // Morado más oscuro para el texto
+                fontWeight: "bold",
+                position: "insideTopRight",
               }}
             />
           )}
@@ -360,15 +445,15 @@ export function MonthLineChart({
               label={{ 
                 value: `Despertar ideal: ${idealWakeTime}`, 
                 fontSize: 11, 
-                fill: '#38A169',  // Verde más oscuro para el texto
-                fontWeight: 'bold',
-                position: 'insideTopRight'
+                fill: "#38A169",  // Verde más oscuro para el texto
+                fontWeight: "bold",
+                position: "insideTopRight",
               }}
             />
           )}
           
           {/* Líneas para cada tipo de evento */}
-          {eventTypes.includes('sleep') && (
+          {eventTypes.includes("sleep") && (
             <Line
               type="monotone"
               dataKey="sleep"
@@ -380,7 +465,7 @@ export function MonthLineChart({
             />
           )}
           
-          {eventTypes.includes('wake') && (
+          {eventTypes.includes("wake") && (
             <Line
               type="monotone"
               dataKey="wake"
@@ -392,20 +477,43 @@ export function MonthLineChart({
             />
           )}
           
-          {eventTypes.includes('nap') && (
+          {/* Lineas individuales para cada siesta */}
+          {eventTypes.includes("nap1") && (
             <Line
               type="monotone"
-              dataKey="nap"
-              stroke={EVENT_COLORS.nap}
+              dataKey="nap1"
+              stroke={EVENT_COLORS.nap1}
               strokeWidth={2}
               dot={<CustomDot />}
               connectNulls
-              name="nap"
+              name="nap1"
+            />
+          )}
+          {eventTypes.includes("nap2") && (
+            <Line
+              type="monotone"
+              dataKey="nap2"
+              stroke={EVENT_COLORS.nap2}
+              strokeWidth={2}
+              dot={<CustomDot />}
+              connectNulls
+              name="nap2"
+            />
+          )}
+          {eventTypes.includes("nap3") && (
+            <Line
+              type="monotone"
+              dataKey="nap3"
+              stroke={EVENT_COLORS.nap3}
+              strokeWidth={2}
+              dot={<CustomDot />}
+              connectNulls
+              name="nap3"
             />
           )}
           
           {/* Puntos individuales para night_waking sin líneas conectoras */}
-          {eventTypes.includes('night_waking') && (
+          {eventTypes.includes("night_waking") && (
             <Line
               type="monotone"
               dataKey="night_waking"

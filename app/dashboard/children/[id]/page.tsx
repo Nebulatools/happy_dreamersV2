@@ -88,7 +88,7 @@ export default function ChildProfilePage() {
           // El API ahora devuelve isOwner directamente
           setIsOwner(childData.isOwner || false)
         } else {
-          let errorData = "";
+          let errorData = ""
           try {
             errorData = await response.text()
           } catch (e) {
@@ -97,7 +97,7 @@ export default function ChildProfilePage() {
           console.error("API Error Response:", {
             status: response.status,
             statusText: response.statusText,
-            errorData: errorData
+            errorData: errorData,
           })
           logger.error(`Error fetching child data - Status: ${response.status}`, errorData || response.statusText)
           router.push("/dashboard/children")
@@ -328,10 +328,10 @@ export default function ChildProfilePage() {
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h4 className="text-lg font-semibold text-gray-800 mb-3">Estado de la Encuesta</h4>
                   <div className="flex items-center space-x-3">
-                    <div className={`w-2 h-2 ${child.surveyData?.completed ? 'bg-green-500' : 'bg-amber-500'} rounded-full`}></div>
+                    <div className={`w-2 h-2 ${child.surveyData?.completed ? "bg-green-500" : "bg-amber-500"} rounded-full`}></div>
                     <span className="text-gray-600">
                       {child.surveyData?.completed 
-                        ? `Encuesta completada${child.surveyData.lastUpdated ? ` el ${new Date(child.surveyData.lastUpdated).toLocaleDateString('es-ES')}` : ''}`
+                        ? `Encuesta completada${child.surveyData.lastUpdated ? ` el ${new Date(child.surveyData.lastUpdated).toLocaleDateString("es-ES")}` : ""}`
                         : "Encuesta pendiente de completar"
                       }
                     </span>

@@ -1,9 +1,9 @@
 // 🔄 Componente de navegación de calendario
 "use client"
 
-import React from 'react'
-import { format, isSameMonth, startOfWeek, endOfWeek } from 'date-fns'
-import { es } from 'date-fns/locale'
+import React from "react"
+import { format, isSameMonth, startOfWeek, endOfWeek } from "date-fns"
+import { es } from "date-fns/locale"
 
 type ViewMode = "month" | "week" | "day"
 
@@ -18,7 +18,7 @@ export function CalendarNavigation({
   date,
   view,
   onDateChange,
-  onViewChange
+  onViewChange,
 }: CalendarNavigationProps) {
   
   // Título según la vista - simplificado para mostrar solo cuando sea necesario

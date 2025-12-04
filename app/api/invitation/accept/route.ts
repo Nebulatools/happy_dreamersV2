@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       childId: result.childId,
-      message: "Invitación aceptada exitosamente"
+      message: "Invitación aceptada exitosamente",
     })
 
   } catch (error) {

@@ -1,9 +1,10 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react"
 import { useSession } from "next-auth/react"
 import { useToast } from "@/hooks/use-toast"
 import { createLogger } from "@/lib/logger"
+import { detectBrowserTimezone, DEFAULT_TIMEZONE } from "@/lib/datetime"
 
 const logger = createLogger("UserContext")
 
@@ -35,32 +36,68 @@ export function UserProvider({ children }: { children: ReactNode }) {
     phone: "",
     role: "user",
     accountType: "",
-    timezone: "America/Monterrey",
+    timezone: DEFAULT_TIMEZONE,
   })
   const [isLoading, setIsLoading] = useState(false)
+  const hasCheckedTimezone = useRef(false)
+
+  // Detectar y guardar timezone automaticamente si el usuario no tiene una
+  const autoDetectAndSaveTimezone = async (currentTimezone: string | undefined) => {
+    // Solo ejecutar una vez por sesion
+    if (hasCheckedTimezone.current) return
+    hasCheckedTimezone.current = true
+
+    // Si el usuario ya tiene timezone configurada, no hacer nada
+    if (currentTimezone && currentTimezone !== DEFAULT_TIMEZONE) {
+      return
+    }
+
+    // Detectar timezone del navegador
+    const detectedTimezone = detectBrowserTimezone()
+    logger.info("Timezone detectada:", detectedTimezone)
+
+    // Si la detectada es diferente al default, guardarla automaticamente
+    if (detectedTimezone !== DEFAULT_TIMEZONE && detectedTimezone !== currentTimezone) {
+      try {
+        const response = await fetch("/api/user/profile", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ timezone: detectedTimezone }),
+        })
+
+        if (response.ok) {
+          setUserData(prev => ({ ...prev, timezone: detectedTimezone }))
+        }
+      } catch (error) {
+        logger.error("Error guardando timezone:", error)
+      }
+    }
+  }
 
   useEffect(() => {
     if (session?.user) {
+      const sessionTimezone = session.user.timezone || DEFAULT_TIMEZONE
       const sessionData = {
         name: session.user.name || "",
         email: session.user.email || "",
-        phone: (session.user as any).phone || "",
+        phone: session.user.phone || "",
         role: session.user.role || "user",
-        accountType: (session.user as any).accountType || "",
-        timezone: (session.user as any).timezone || "America/Monterrey",
+        accountType: session.user.accountType || "",
+        timezone: sessionTimezone,
       }
-      
-      logger.info("Loading user data from session", sessionData)
+
       setUserData(sessionData)
-      
+
       // Load fresh data from API
       refreshUserData()
+
+      // Detectar timezone automaticamente si es necesario
+      autoDetectAndSaveTimezone(sessionTimezone)
     }
   }, [session])
 
   const refreshUserData = async () => {
     try {
-      logger.info("Refreshing user data from API...")
       const response = await fetch("/api/user/profile", {
         method: "GET",
         headers: {
@@ -70,12 +107,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const result = await response.json()
-        logger.info("API response received", result)
-        
-      if (result.success && result.data) {
-        logger.info("Updating user data from API", result.data)
-        setUserData(result.data)
-      }
+        if (result.success && result.data) {
+          setUserData(result.data)
+        }
       }
     } catch (error) {
       logger.error("Error refreshing user data", error)
@@ -85,8 +119,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const updateProfile = async (data: Partial<UserData>): Promise<boolean> => {
     setIsLoading(true)
     try {
-      logger.info("Updating profile", data)
-
       const response = await fetch("/api/user/profile", {
         method: "PUT",
         headers: {
@@ -96,7 +128,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       })
 
       const result = await response.json()
-      logger.info("Profile update API response", result)
 
       if (!response.ok) {
         throw new Error(result.error || "Error al actualizar el perfil")
@@ -106,7 +137,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUserData(prev => ({ ...prev, ...data }))
 
       // Update session
-      logger.info("Updating session after profile save")
       await updateSession({
         ...session,
         user: {
@@ -141,8 +171,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
     setIsLoading(true)
     try {
-      logger.info("Changing password")
-
       const response = await fetch("/api/user/change-password", {
         method: "PUT",
         headers: {
@@ -155,7 +183,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       })
 
       const result = await response.json()
-      logger.info("Password change API response", result)
 
       if (!response.ok) {
         throw new Error(result.error || "Error al cambiar la contraseña")

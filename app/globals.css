@@ -351,17 +351,17 @@
   .bg-feeding {
     background-color: hsl(var(--color-feeding));
   }
-  
+
   .bg-medication {
-    background-color: #a855f7;
+    background-color: hsl(var(--color-medication));
   }
-  
+
   .bg-activity {
-    background-color: #06b6d4;
+    background-color: hsl(var(--color-extra-activity));
   }
-  
+
   .bg-extra-activities {
-    background-color: #06b6d4;
+    background-color: hsl(var(--color-extra-activity));
   }
   
   
@@ -385,17 +385,17 @@
   .bg-feeding\/10 {
     background-color: hsl(var(--color-feeding) / 0.1);
   }
-  
+
   .bg-medication\/10 {
-    background-color: rgba(168, 85, 247, 0.1);
+    background-color: hsl(var(--color-medication) / 0.1);
   }
-  
+
   .bg-activity\/10 {
-    background-color: rgba(6, 182, 212, 0.1);
+    background-color: hsl(var(--color-extra-activity) / 0.1);
   }
-  
+
   .bg-extra-activities\/10 {
-    background-color: rgba(6, 182, 212, 0.1);
+    background-color: hsl(var(--color-extra-activity) / 0.1);
   }
   
   /* Event type border colors */

@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     // Validar email
     if (!email) {
       return NextResponse.json({
-        message: "El email es requerido"
+        message: "El email es requerido",
       }, { status: 400 })
     }
 
@@ -30,12 +30,12 @@ export async function POST(req: Request) {
     if (!user) {
       // Por seguridad, no revelamos si el email existe o no
       return NextResponse.json({
-        message: "Si el email existe, recibirás un enlace de recuperación"
+        message: "Si el email existe, recibirás un enlace de recuperación",
       }, { status: 200 })
     }
 
     // Generar token de reset
-    const resetToken = crypto.randomBytes(32).toString('hex')
+    const resetToken = crypto.randomBytes(32).toString("hex")
     const resetTokenExpiry = new Date()
     resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1) // 1 hora de expiración
 
@@ -46,8 +46,8 @@ export async function POST(req: Request) {
         $set: {
           resetPasswordToken: resetToken,
           resetPasswordExpiry: resetTokenExpiry,
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       }
     )
 
@@ -58,13 +58,13 @@ export async function POST(req: Request) {
     const emailResult = await sendPasswordResetEmail({
       email: user.email,
       resetUrl,
-      expiresInMinutes: 60
+      expiresInMinutes: 60,
     })
 
     if (!emailResult.success) {
       logger.error("Error enviando email de reset:", emailResult.error)
       return NextResponse.json({
-        message: "Error enviando el email de recuperación"
+        message: "Error enviando el email de recuperación",
       }, { status: 500 })
     }
 
@@ -88,13 +88,13 @@ export async function POST(req: Request) {
       message: "Si el email existe, recibirás un enlace de recuperación",
       success: true,
       // En desarrollo, incluir el link para facilitar las pruebas
-      ...(process.env.NODE_ENV === "development" && { resetUrl })
+      ...(process.env.NODE_ENV === "development" && { resetUrl }),
     }, { status: 200 })
 
   } catch (error) {
     logger.error("Error en forgot-password:", error)
     return NextResponse.json({
-      message: "Error interno del servidor"
+      message: "Error interno del servidor",
     }, { status: 500 })
   }
 }

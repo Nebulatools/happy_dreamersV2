@@ -15,7 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Eye, EyeOff, Mail, Lock, ArrowLeft } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, ArrowLeft } from "lucide-react"
 
 const loginSchema = z.object({
   email: z.string().email({
@@ -79,7 +79,7 @@ export default function LoginPage() {
     <div
       className="min-h-screen flex flex-col md:flex-row items-stretch md:items-center justify-center overflow-y-auto py-6 px-4"
       style={{
-        background: 'linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)'
+        background: "linear-gradient(135deg, #68A1C8 50%, #3993D1 100%)",
       }}
     >
       {/* Logo (oculto en móvil, visible en md+) */}
@@ -132,7 +132,7 @@ export default function LoginPage() {
                             {...field}
                             type="email"
                             placeholder="Enter your email"
-                            style={{ fontFamily: 'Century Gothic, sans-serif', backgroundColor: '#DEF1F1' }}
+                            style={{ fontFamily: "Century Gothic, sans-serif", backgroundColor: "#DEF1F1" }}
                             autoComplete="off"
                             data-form-type="other"
                             data-lpignore="true"
@@ -152,21 +152,16 @@ export default function LoginPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="flex items-center justify-between mb-2">
-                        <FormLabel className="block text-sm font-medium text-[#374151] century-gothic">
-                          Password
-                        </FormLabel>
-                        <Link href="/auth/forgot-password" className="text-sm text-[#4299E1] hover:underline century-gothic">
-                          Forgot password?
-                        </Link>
-                      </div>
+                      <FormLabel className="block text-sm font-medium text-[#374151] mb-2 century-gothic">
+                        Password
+                      </FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
                             {...field}
                             type={showPassword ? "text" : "password"}
                             placeholder="Enter your password"
-                            style={{ fontFamily: 'Century Gothic, sans-serif', backgroundColor: '#DEF1F1' }}
+                            style={{ fontFamily: "Century Gothic, sans-serif", backgroundColor: "#DEF1F1" }}
                             autoComplete="new-password"
                             data-form-type="other"
                             data-lpignore="true"
@@ -183,6 +178,11 @@ export default function LoginPage() {
                         </div>
                       </FormControl>
                       <FormMessage />
+                      <div className="text-right mt-1">
+                        <Link href="/auth/forgot-password" className="text-sm text-[#4299E1] hover:underline century-gothic">
+                          Forgot password?
+                        </Link>
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -206,12 +206,12 @@ export default function LoginPage() {
                     disabled={isLoading}
                     className="w-full text-white border-0 rounded-xl py-3 font-normal text-[13px]"
                     style={{ 
-                      fontFamily: 'Century Gothic, sans-serif',
-                      background: '#68A1C8',
-                      backgroundColor: '#68A1C8'
+                      fontFamily: "Century Gothic, sans-serif",
+                      background: "#68A1C8",
+                      backgroundColor: "#68A1C8",
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a91b8'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#68A1C8'}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#5a91b8"}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#68A1C8"}
                   >
                     {isLoading ? "Signing in..." : "Sign In"}
                   </Button>
@@ -220,7 +220,7 @@ export default function LoginPage() {
                     type="button"
                     variant="outline"
                     className="w-full bg-[#A0D8D0] hover:bg-[#A0D8D0] text-[#EBFFFC] border-0 rounded-xl py-3 font-normal text-[13px]"
-                    style={{ fontFamily: 'Century Gothic, sans-serif' }}
+                    style={{ fontFamily: "Century Gothic, sans-serif" }}
                   >
                     Sign in with Google
                   </Button>
@@ -231,7 +231,7 @@ export default function LoginPage() {
             {/* Footer */}
             <div className="text-center mt-6">
               <p className="text-sm text-[#718096] century-gothic">
-                Don't have an account?{' '}
+                Don't have an account?{" "}
                 <Link href="/auth/register" className="text-[#4299E1] hover:underline font-medium">
                   Sign up
                 </Link>

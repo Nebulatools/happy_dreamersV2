@@ -19,11 +19,11 @@ function classifySleep(startTime: Date, endTime: Date) {
   
   // Sueño nocturno: después de 7pm (19:00) o antes de 7am O duración > 6 horas
   if (startHour >= 19 || startHour <= 7 || duration > 6) {
-    return 'night'
+    return "night"
   }
   
   // Siesta: durante el día y < 6 horas
-  return 'nap'
+  return "nap"
 }
 
 // Función para procesar eventos y calcular totales
@@ -41,13 +41,13 @@ function processSleepBreakdown(events: any[]) {
       napPercentage: 0,
       totalHours: 0,
       nightSleepCount: 0,
-      napCount: 0
+      napCount: 0,
     }
   }
   
   // Filtrar eventos de sueño
   const sleepEvents = events.filter(event => 
-    event.eventType === 'sleep' && event.startTime && event.endTime
+    event.eventType === "sleep" && event.startTime && event.endTime
   )
   
   // Procesar cada evento
@@ -58,7 +58,7 @@ function processSleepBreakdown(events: any[]) {
     
     const sleepType = classifySleep(startTime, endTime)
     
-    if (sleepType === 'night') {
+    if (sleepType === "night") {
       nightSleepMinutes += duration
       nightSleepCount++
     } else {
@@ -79,7 +79,7 @@ function processSleepBreakdown(events: any[]) {
     napPercentage: totalMinutes > 0 ? (napMinutes / totalMinutes) * 100 : 0,
     totalHours,
     nightSleepCount,
-    napCount
+    napCount,
   }
 }
 
@@ -92,7 +92,7 @@ export default function SleepBreakdownCard({ childId, dateRange = "7-days" }: Sl
     napPercentage: 0,
     totalHours: 0,
     nightSleepCount: 0,
-    napCount: 0
+    napCount: 0,
   })
   
   // Obtener eventos y calcular desglose
@@ -100,13 +100,13 @@ export default function SleepBreakdownCard({ childId, dateRange = "7-days" }: Sl
     async function fetchAndProcessEvents() {
       try {
         const response = await fetch(`/api/children/events?childId=${childId}`)
-        if (!response.ok) throw new Error('Error al cargar eventos')
+        if (!response.ok) throw new Error("Error al cargar eventos")
         
         const { events } = await response.json()
         const processedBreakdown = processSleepBreakdown(events)
         setBreakdown(processedBreakdown)
       } catch (err) {
-        console.error('Error procesando desglose de sueño:', err)
+        console.error("Error procesando desglose de sueño:", err)
       }
     }
     
@@ -127,17 +127,17 @@ export default function SleepBreakdownCard({ childId, dateRange = "7-days" }: Sl
     if (breakdown.nightSleepPercentage < 70) {
       return {
         text: "⚠️ Poco sueño nocturno",
-        color: "text-orange-600"
+        color: "text-orange-600",
       }
     } else if (breakdown.nightSleepPercentage > 85) {
       return {
         text: "✅ Buen balance de sueño",
-        color: "text-green-600"
+        color: "text-green-600",
       }
     } else {
       return {
         text: "Balance de sueño normal",
-        color: "text-gray-600"
+        color: "text-gray-600",
       }
     }
   }
