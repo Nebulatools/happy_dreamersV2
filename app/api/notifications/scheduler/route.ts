@@ -3,11 +3,10 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import dbConnect from "@/lib/mongodb"
-import NotificationSettings from "@/models/notification-settings"
-import NotificationLog from "@/models/notification-log"
+import NotificationSettings, { NotificationType } from "@/models/notification-settings"
+import NotificationLog, { NotificationStatus, NotificationChannel } from "@/models/notification-log"
 import Child from "@/models/Child"
 import { Types } from "mongoose"
-import { NotificationType, NotificationStatus, NotificationChannel } from "@/models/notification-log"
 
 // Verificar autorización para cron jobs
 function verifyCronAuth(request: NextRequest): boolean {
