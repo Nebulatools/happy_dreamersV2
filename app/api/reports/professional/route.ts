@@ -2,10 +2,10 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { authOptions } from "@/lib/auth"
 import dbConnect from "@/lib/mongodb"
 import ProfessionalReport from "@/models/professional-report"
-import User from "@/models/User"
+import { User } from "@/models/User"
 import Child from "@/models/Child"
 import { Types } from "mongoose"
 
