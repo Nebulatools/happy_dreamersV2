@@ -274,7 +274,17 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
             <Label>8. ¿Papá trabaja fuera de casa?</Label>
             <RadioGroup
               value={data.papa?.trabajaFueraCasa === true ? "si" : data.papa?.trabajaFueraCasa === false ? "no" : ""}
-              onValueChange={(value) => updateField("papa", "trabajaFueraCasa", value === "si")}
+              onValueChange={(value) => {
+                const worksOutside = value === "si"
+                onChange({
+                  ...data,
+                  papa: {
+                    ...data.papa,
+                    trabajaFueraCasa: worksOutside,
+                    horaRegresoTrabajo: worksOutside ? data.papa?.horaRegresoTrabajo || "" : "",
+                  },
+                })
+              }}
             >
               <div className="flex gap-4 mt-2">
                 <div className="flex items-center space-x-2">
@@ -287,6 +297,28 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
                 </div>
               </div>
             </RadioGroup>
+            {data.papa?.trabajaFueraCasa && (
+              <div className="mt-3 max-w-xs">
+                <Label htmlFor="papa-hora-regreso" className="text-sm text-gray-600">
+                  ¿A qué hora regresa de trabajar?
+                </Label>
+                <Input
+                  id="papa-hora-regreso"
+                  value={data.papa?.horaRegresoTrabajo || ""}
+                  onChange={(e) =>
+                    onChange({
+                      ...data,
+                      papa: {
+                        ...data.papa,
+                        horaRegresoTrabajo: e.target.value,
+                      },
+                    })
+                  }
+                  placeholder="Ej: 6:00 pm"
+                  className="mt-1"
+                />
+              </div>
+            )}
           </div>
           
           {/* 9. ¿Tiene o ha tenido alguna alergia? */}

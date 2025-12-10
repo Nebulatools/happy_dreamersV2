@@ -60,6 +60,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
   const [userProfile, setUserProfile] = useState<any>(null)
   const [childData, setChildData] = useState<any>(null)
   const restoredLocalRef = useRef(false)
+  const topRef = useRef<HTMLDivElement | null>(null)
 
   const resolvedAccountType = useMemo(() => {
     return userProfile?.accountType || session?.user?.accountType || ""
@@ -181,6 +182,15 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
     }
     
     setCurrentStep(newStep)
+
+    // Llevar al usuario al inicio del formulario al cambiar de pestaña
+    if (typeof window !== "undefined") {
+      if (topRef.current) {
+        topRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" })
+      }
+    }
   }
 
   // Cargar perfil del usuario y datos del niño
@@ -553,7 +563,10 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 lg:px-0">
+    <div
+      className="w-full max-w-4xl mx-auto px-3 sm:px-4 lg:px-0"
+      ref={topRef}
+    >
       <SurveyProgress
         currentStep={currentStep}
         totalSteps={6}

@@ -152,7 +152,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
           value={data.hijoUtiliza || ""}
           onValueChange={(value) => updateField("hijoUtiliza", value)}
         >
-          <div className="flex gap-4 mt-2">
+          <div className="flex gap-4 mt-2 flex-wrap">
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="vaso" id="utiliza-vaso" />
               <Label htmlFor="utiliza-vaso">Vaso</Label>
@@ -160,6 +160,10 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="biberon" id="utiliza-biberon" />
               <Label htmlFor="utiliza-biberon">Biberón</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="ambas" id="utiliza-ambas" />
+              <Label htmlFor="utiliza-ambas">Ambas</Label>
             </div>
           </div>
         </RadioGroup>
@@ -185,15 +189,15 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="leche-materna" id="alimenta-materna" />
-              <Label htmlFor="alimenta-materna">Leche materna exclusiva</Label>
+              <Label htmlFor="alimenta-materna">Leche materna</Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="materna-formula" id="alimenta-mixta" />
               <Label htmlFor="alimenta-mixta">Leche materna y fórmula</Label>
             </div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="solidos" id="alimenta-solidos" />
-              <Label htmlFor="alimenta-solidos">Sólidos</Label>
+              <RadioGroupItem value="leche-entera-vaca" id="alimenta-vaca" />
+              <Label htmlFor="alimenta-vaca">Leche entera de vaca</Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="otro" id="alimenta-otro" />
@@ -417,10 +421,27 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="prob-inquieto"
               checked={data.problemasHijo?.includes("inquieto") || false}
-              onCheckedChange={(checked) => updateProblemaHijo("inquieto", checked === true)}
+              onCheckedChange={(checked) => {
+                const isChecked = checked === true
+                updateProblemaHijo("inquieto", checked, isChecked ? {} : { descripcionInquieto: "" })
+              }}
             />
             <Label htmlFor="prob-inquieto">Es muy inquieto para dormir</Label>
           </div>
+          {data.problemasHijo?.includes("inquieto") && (
+            <div className="ml-6 mt-2">
+              <Label htmlFor="descripcion-inquieto" className="text-sm text-gray-600">
+                Describe cómo es inquieto (si patalea, gira mucho, etc.)
+              </Label>
+              <Input
+                id="descripcion-inquieto"
+                value={data.descripcionInquieto || ""}
+                onChange={(e) => updateField("descripcionInquieto", e.target.value)}
+                placeholder="Ej: Se mueve mucho, patalea, gira constantemente..."
+                className="max-w-md mt-1"
+              />
+            </div>
+          )}
           
           <div className="flex items-center space-x-2">
             <Checkbox
@@ -435,19 +456,53 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Checkbox
               id="prob-reflujo"
               checked={data.problemasHijo?.includes("reflujo") || false}
-              onCheckedChange={(checked) => updateProblemaHijo("reflujo", checked === true)}
+              onCheckedChange={(checked) => {
+                const isChecked = checked === true
+                updateProblemaHijo("reflujo", checked, isChecked ? {} : { reflujoColicosDetalle: "" })
+              }}
             />
             <Label htmlFor="prob-reflujo">Tiene o ha tenido reflujo y/o cólicos</Label>
           </div>
+          {data.problemasHijo?.includes("reflujo") && (
+            <div className="ml-6 mt-2">
+              <Label htmlFor="reflujo-detalle" className="text-sm text-gray-600">
+                Describe el reflujo y/o cólicos que presenta
+              </Label>
+              <Input
+                id="reflujo-detalle"
+                value={data.reflujoColicosDetalle || ""}
+                onChange={(e) => updateField("reflujoColicosDetalle", e.target.value)}
+                placeholder="Ej: Desde qué edad, síntomas, frecuencia..."
+                className="max-w-md mt-1"
+              />
+            </div>
+          )}
           
           <div className="flex items-center space-x-2">
             <Checkbox
               id="prob-pesadillas"
               checked={data.problemasHijo?.includes("pesadillas") || false}
-              onCheckedChange={(checked) => updateProblemaHijo("pesadillas", checked === true)}
+              onCheckedChange={(checked) => {
+                const isChecked = checked === true
+                updateProblemaHijo("pesadillas", checked, isChecked ? {} : { pesadillasDetalle: "" })
+              }}
             />
             <Label htmlFor="prob-pesadillas">Tiene o ha tenido pesadillas</Label>
           </div>
+          {data.problemasHijo?.includes("pesadillas") && (
+            <div className="ml-6 mt-2">
+              <Label htmlFor="pesadillas-detalle" className="text-sm text-gray-600">
+                ¿Son al principio o al final de la noche? ¿Se calma fácilmente?
+              </Label>
+              <Input
+                id="pesadillas-detalle"
+                value={data.pesadillasDetalle || ""}
+                onChange={(e) => updateField("pesadillasDetalle", e.target.value)}
+                placeholder="Ej: Al inicio de la noche y se calma rápido..."
+                className="max-w-md mt-1"
+              />
+            </div>
+          )}
         </div>
       </div>
 

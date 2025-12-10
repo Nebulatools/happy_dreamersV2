@@ -49,6 +49,7 @@ export interface SurveyData {
       telefono?: string
       email: string
       trabajaFueraCasa: boolean
+      horaRegresoTrabajo?: string
       tieneAlergias: boolean
       alergias?: string
     }
@@ -170,13 +171,20 @@ export interface SurveyData {
     edadCaminar?: number // Legacy
 
     // Alimentación
-    usoVaso?: "Vaso" | "Biberón"
-    alimentacion?: "Fórmula" | "Leche materna exclusiva" | "Leche materna y fórmula" | "Ninguna" | string
+    usoVaso?: "Vaso" | "Biberón" | "Ambas" | string
+    alimentacion?:
+      | "Fórmula"
+      | "Leche materna"
+      | "Leche materna exclusiva"
+      | "Leche materna y fórmula"
+      | "Leche entera de vaca"
+      | "Ninguna"
+      | string
     alimentacionOtro?: string // Otro tipo de alimentación (condicional)
     comeSolidos?: boolean
 
     // Características y hábitos
-    hijoUtiliza?: string[] // Características del hijo (chupón, dedo, etc.)
+    hijoUtiliza?: string[] | string // Características del hijo (vaso, biberón, ambas, etc.)
     caracteristicas?: string[] // Legacy
     nombreObjetoSeguridad?: string // Nombre del objeto de seguridad
     planDejarDedo?: string // Plan para dejar de chuparse el dedo
@@ -186,6 +194,9 @@ export interface SurveyData {
     problemasHijo?: string[] // Problemas o situaciones del hijo
     situacionesHijo?: string[] // Situaciones específicas
     problemasMedicosDetalle?: string // Detalle de problemas médicos o del desarrollo
+    descripcionInquieto?: string // Detalle cuando es muy inquieto para dormir
+    reflujoColicosDetalle?: string // Detalle cuando tiene reflujo y/o cólicos
+    pesadillasDetalle?: string // Detalle sobre las pesadillas
     alergiaAlimenticiaDetalle?: string // Detalles de alergia alimenticia (condicional)
     alergiaAmbientalDetalle?: string // Detalles de alergia ambiental (condicional)
     infeccionesOidoDetalle?: string // Detalles de infecciones de oído (condicional)
@@ -231,6 +242,7 @@ export interface SurveyData {
     horaAcostarBebe?: string // Hora de acostar al bebé
     tiempoDormir?: string // Tiempo que le toma conciliar el sueño
     duermeSolo?: boolean // ¿Se queda dormido solo?
+    comoLograDormir?: string // Cómo lo logran dormir cuando no se duerme solo
     seQuedaDormirSolo?: boolean // Legacy
     teQuedasHastaDuerma?: boolean // ¿Te quedas hasta que duerma?
     seQuedaHastaConciliar?: boolean // Legacy

@@ -215,7 +215,14 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         <Label>8. ¿Su hijo/a se queda dormido de forma independiente?</Label>
         <RadioGroup
           value={data.duermeSolo === true ? "si" : data.duermeSolo === false ? "no" : ""}
-          onValueChange={(value) => updateField("duermeSolo", value === "si")}
+          onValueChange={(value) => {
+            const duermeSolo = value === "si"
+            onChange({
+              ...data,
+              duermeSolo,
+              comoLograDormir: duermeSolo ? "" : data.comoLograDormir || "",
+            })
+          }}
         >
           <div className="flex gap-4 mt-2">
             <div className="flex items-center space-x-2">
@@ -228,6 +235,21 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
             </div>
           </div>
         </RadioGroup>
+        {data.duermeSolo === false && (
+          <div className="mt-3">
+            <Label htmlFor="como-logra-dormir" className="text-sm text-gray-600">
+              ¿Cómo logras que se duerma?
+            </Label>
+            <Textarea
+              id="como-logra-dormir"
+              value={data.comoLograDormir || ""}
+              onChange={(e) => updateField("comoLograDormir", e.target.value)}
+              placeholder="Ej: En brazos, dándole pecho, paseándolo, etc."
+              rows={2}
+              className="mt-1"
+            />
+          </div>
+        )}
       </div>
 
       {/* 9. Oscuridad del cuarto */}
@@ -681,23 +703,63 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 27. Duración total siestas */}
+      {/* 27. Cómo lo duermen en las siestas */}
       <div>
         <Label htmlFor="duracion-total-siestas">
-          27. ¿Cuál es la duración total de las siestas?
+          27. ¿Cómo lo duermen en las siestas?
         </Label>
         <Input
           id="duracion-total-siestas"
           value={data.duracionTotalSiestas || ""}
           onChange={(e) => updateField("duracionTotalSiestas", e.target.value)}
-          placeholder="Ej: 3 horas en total"
+          placeholder="Ej: En brazos, paseándolo, en coche, pecho, etc."
         />
       </div>
 
-      {/* 28. ¿Dónde toma siestas? */}
+      {/* 28. Sueño y lugar cuando viajan */}
+      <div>
+        <Label htmlFor="duerme-mejor-viaja">
+          28. Cuando viajas, ¿sientes que tu hijo duerme mejor, peor o igual? ¿Dónde duerme en los viajes?
+        </Label>
+        <div className="mt-2 space-y-2">
+          <RadioGroup
+            value={data.duermeMejorViaja || ""}
+            onValueChange={(value) => updateField("duermeMejorViaja", value)}
+          >
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Mejor" id="duerme-viaje-mejor" />
+                <Label htmlFor="duerme-viaje-mejor">Mejor</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Peor" id="duerme-viaje-peor" />
+                <Label htmlFor="duerme-viaje-peor">Peor</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Igual" id="duerme-viaje-igual" />
+                <Label htmlFor="duerme-viaje-igual">Igual</Label>
+              </div>
+            </div>
+          </RadioGroup>
+          <Input
+            id="donde-duerme-viajes"
+            value={data.dondeDuermeViaja || data.dondeViermesViaja || ""}
+            onChange={(e) =>
+              onChange({
+                ...data,
+                dondeDuermeViaja: e.target.value,
+                dondeViermesViaja: e.target.value,
+              })
+            }
+            placeholder="Ej: En cuna portátil, cama de hotel, con los padres, etc."
+          />
+        </div>
+      </div>
+
+      {/* 29. ¿Dónde toma siestas? */}
       <div>
         <Label htmlFor="donde-siestas">
-          28. ¿Dónde toma las siestas?
+          29. ¿Dónde toma las siestas?
         </Label>
         <Input
           id="donde-siestas"
@@ -707,10 +769,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 29. Principal preocupación */}
+      {/* 30. Principal preocupación */}
       <div>
         <Label htmlFor="principal-preocupacion">
-          29. ¿Cuál es tu principal preocupación con respecto al sueño de tu hijo(a)?
+          30. ¿Cuál es tu principal preocupación con respecto al sueño de tu hijo(a)?
         </Label>
         <Textarea
           id="principal-preocupacion"
@@ -721,10 +783,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 30. ¿Desde cuándo problema? */}
+      {/* 31. ¿Desde cuándo problema? */}
       <div>
         <Label htmlFor="desde-cuando-problema">
-          30. ¿Desde cuándo existe este problema?
+          31. ¿Desde cuándo existe este problema?
         </Label>
         <Input
           id="desde-cuando-problema"
@@ -734,10 +796,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 31. Objetivo de los padres */}
+      {/* 32. Objetivo de los padres */}
       <div>
         <Label htmlFor="objetivo-padres">
-          31. ¿Cuál es el objetivo que como papás les gustaría ver en los hábitos de sueño de su hijo(a)? Por favor, sean específicos. Por ejemplo, ¿Qué objetivos tienen en cuanto a horarios y lugar dónde les gustaría que duerma durante la noche? <span className="text-red-500">*</span>
+          32. ¿Cuál es el objetivo que como papás les gustaría ver en los hábitos de sueño de su hijo(a)? Por favor, sean específicos. Por ejemplo, ¿Qué objetivos tienen en cuanto a horarios y lugar dónde les gustaría que duerma durante la noche? <span className="text-red-500">*</span>
         </Label>
         <Textarea
           id="objetivo-padres"
@@ -752,10 +814,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         )}
       </div>
 
-      {/* 32. Información adicional */}
+      {/* 33. Información adicional */}
       <div>
         <Label htmlFor="info-adicional">
-          32. ¿Existe alguna otra información que consideren relevante que deba saber?
+          33. ¿Existe alguna otra información que consideren relevante que deba saber?
         </Label>
         <Textarea
           id="info-adicional"

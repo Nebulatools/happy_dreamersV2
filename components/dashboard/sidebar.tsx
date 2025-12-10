@@ -14,7 +14,24 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/co
 import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useActiveChild } from "@/context/active-child-context"
-import { LayoutDashboard, Calendar, BarChart3, Users, Settings, Menu, MessageSquare, List, Stethoscope, ClipboardList, HelpCircle, Mail, FileText, Cloud } from "lucide-react"
+import {
+  LayoutDashboard,
+  Calendar,
+  BarChart3,
+  Users,
+  Settings,
+  Menu,
+  MessageSquare,
+  List,
+  Stethoscope,
+  ClipboardList,
+  HelpCircle,
+  Mail,
+  FileText,
+  Cloud,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
 import { useEventsInvalidation } from "@/hooks/use-events-cache"
 import { useToast } from "@/hooks/use-toast"
 import { createLogger } from "@/lib/logger"
@@ -41,6 +58,7 @@ export function Sidebar({ className }: { className?: string }) {
   const [open, setOpen] = useState(false)
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [children, setChildren] = useState([])
+  const [collapsed, setCollapsed] = useState(false)
   const { activeChildId } = useActiveChild()
   const invalidateEvents = useEventsInvalidation()
 
@@ -161,6 +179,24 @@ export function Sidebar({ className }: { className?: string }) {
     }
   }
 
+  // Restaurar estado de colapso desde localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const stored = window.localStorage.getItem("sidebarCollapsed")
+    const initialCollapsed = stored === "true"
+    setCollapsed(initialCollapsed)
+  }, [])
+
+  // Sincronizar ancho mediante variable CSS global
+  useEffect(() => {
+    if (typeof document === "undefined") return
+    const width = collapsed ? "72px" : "256px"
+    document.documentElement.style.setProperty("--sidebar-width", width)
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("sidebarCollapsed", collapsed ? "true" : "false")
+    }
+  }, [collapsed])
+
   return (
     <>
       <Sheet open={open} onOpenChange={setOpen}>
@@ -178,48 +214,75 @@ export function Sidebar({ className }: { className?: string }) {
           <MobileSidebar items={filteredItems} setOpen={setOpen} onItemClick={handleItemClick} />
         </SheetContent>
       </Sheet>
-      <div className="hidden md:block w-[256px] min-h-screen fixed left-0 top-0 bottom-0 border-r border-white/10" style={{ backgroundColor: "#68A1C8" }}>
+      <div
+        className="w-[256px] min-h-screen fixed left-0 top-0 bottom-0 border-r border-white/10 z-30 transition-[width] duration-200"
+        style={{ backgroundColor: "#68A1C8", width: "var(--sidebar-width, 256px)" }}
+      >
         <div className="flex flex-col h-full">
-          {/* Logo Section */}
-          <div className="px-6 pt-6 pb-6">
-            <div className="flex items-center justify-center">
+          {/* Logo + toggle */}
+          <div className="px-4 pt-4 pb-4 flex items-center justify-between gap-2">
+            <div className="flex-1 flex items-center justify-center">
               <img
                 src="/LOGO.svg"
                 alt="Happy Dreamers Logo"
-                style={{ 
-                  width: "163.61px",
-                  height: "105px",
+                style={{
+                  width: collapsed ? "40px" : "163.61px",
+                  height: collapsed ? "40px" : "105px",
                   objectFit: "contain",
                 }}
                 draggable={false}
               />
             </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className="ml-2 h-8 w-8 rounded-full border-white/40 bg-white/10 hover:bg-white/20"
+              onClick={() => setCollapsed((prev) => !prev)}
+            >
+              {collapsed ? (
+                <ChevronRight className="h-4 w-4 text-[#DEF1F1]" />
+              ) : (
+                <ChevronLeft className="h-4 w-4 text-[#DEF1F1]" />
+              )}
+              <span className="sr-only">Alternar tamaño del menú</span>
+            </Button>
           </div>
-          
+
           {/* Navigation */}
-          <ScrollArea className="flex-1 px-4">
+          <ScrollArea className="flex-1 px-2">
             <div className="pb-4">
-              <SidebarNav items={filteredItems} className="" onItemClick={handleItemClick} />
+              <SidebarNav
+                items={filteredItems}
+                className=""
+                onItemClick={handleItemClick}
+                collapsed={collapsed}
+              />
             </div>
           </ScrollArea>
-          
+
           {/* Botones de Ayuda y Contacto al final */}
-          <div className="p-4 mt-auto border-t border-white/10">
-            <button 
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 hover:bg-white/10 w-full mb-1"
+          <div className="p-3 mt-auto border-t border-white/10">
+            <button
+              className={cn(
+                "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200 hover:bg-white/10 w-full mb-1",
+                collapsed ? "justify-center" : "justify-start",
+              )}
               style={{ color: "#DEF1F1", fontFamily: "Century Gothic, sans-serif" }}
               onClick={() => router.push("/dashboard/ayuda")}
             >
               <HelpCircle className="h-5 w-5" />
-              Ayuda
+              {!collapsed && "Ayuda"}
             </button>
-            <button 
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 hover:bg-white/10 w-full"
+            <button
+              className={cn(
+                "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200 hover:bg-white/10 w-full",
+                collapsed ? "justify-center" : "justify-start",
+              )}
               style={{ color: "#DEF1F1", fontFamily: "Century Gothic, sans-serif" }}
               onClick={() => router.push("/dashboard/contacto")}
             >
               <Mail className="h-5 w-5" />
-              Contacto
+              {!collapsed && "Contacto"}
             </button>
           </div>
         </div>
@@ -240,7 +303,12 @@ export function Sidebar({ className }: { className?: string }) {
   )
 }
 
-function SidebarNav({ items, className, onItemClick }: SidebarNavProps) {
+function SidebarNav({
+  items,
+  className,
+  onItemClick,
+  collapsed,
+}: SidebarNavProps & { collapsed?: boolean }) {
   const pathname = usePathname()
 
   return (
@@ -254,12 +322,13 @@ function SidebarNav({ items, className, onItemClick }: SidebarNavProps) {
               disabled={item.disabled}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 text-left w-full",
+                collapsed ? "justify-center px-3" : "",
                 item.disabled ? "opacity-50 cursor-not-allowed" : ""
               )}
               style={{ color: "#DEF1F1", fontFamily: "Century Gothic, sans-serif" }}
             >
               {item.icon}
-              {item.title}
+              {!collapsed && item.title}
             </button>
           )
         }
@@ -270,6 +339,7 @@ function SidebarNav({ items, className, onItemClick }: SidebarNavProps) {
             href={item.disabled ? "#" : item.href}
             className={cn(
               "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
+              collapsed ? "justify-center px-3" : "",
               pathname === item.href && !item.disabled 
                 ? "" 
                 : "hover:bg-white/10",
@@ -284,7 +354,7 @@ function SidebarNav({ items, className, onItemClick }: SidebarNavProps) {
             tabIndex={item.disabled ? -1 : undefined}
           >
             {item.icon}
-            {item.title}
+            {!collapsed && item.title}
           </Link>
         )
       })}
