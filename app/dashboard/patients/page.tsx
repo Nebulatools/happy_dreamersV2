@@ -4,11 +4,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Users, Search } from "lucide-react"
+import { Loader2, Search, ChevronRight, FileText } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { createLogger } from "@/lib/logger"
 import {
@@ -32,6 +34,11 @@ interface Child {
   firstName: string
   lastName: string
   parentId: string
+  surveyData?: {
+    completed?: boolean
+    completedAt?: string
+    isPartial?: boolean
+  }
 }
 
 const extractChildrenFromPayload = (payload: any): Child[] => {
@@ -298,14 +305,47 @@ export default function PatientsPage() {
                           {userChildren[user._id] ? (
                             userChildren[user._id].length > 0 ? (
                               <div className="space-y-2">
-                                {userChildren[user._id].map(child => (
-                                  <div 
-                                    key={child._id} 
-                                    className="p-3 border rounded-md flex items-center"
-                                  >
-                                    <span>{child.firstName} {child.lastName}</span>
-                                  </div>
-                                ))}
+                                {userChildren[user._id].map(child => {
+                                  // Determinar si la encuesta esta completada
+                                  const surveyCompleted = child.surveyData?.completed === true ||
+                                    (!!child.surveyData?.completedAt && child.surveyData?.isPartial !== true)
+
+                                  return (
+                                    <Link
+                                      key={child._id}
+                                      href={`/dashboard/patients/child/${child._id}`}
+                                      className="block"
+                                    >
+                                      <div className="p-3 border rounded-md flex items-center justify-between hover:bg-accent/50 hover:border-primary/30 transition-colors cursor-pointer group">
+                                        <div className="flex items-center gap-3">
+                                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-medium">
+                                            {child.firstName?.charAt(0)?.toUpperCase() || "?"}
+                                          </div>
+                                          <span className="font-medium">{child.firstName} {child.lastName}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          {surveyCompleted ? (
+                                            <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                                              <FileText className="h-3 w-3 mr-1" />
+                                              Encuesta completada
+                                            </Badge>
+                                          ) : child.surveyData ? (
+                                            <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+                                              <FileText className="h-3 w-3 mr-1" />
+                                              Encuesta en progreso
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant="outline" className="text-muted-foreground">
+                                              <FileText className="h-3 w-3 mr-1" />
+                                              Sin encuesta
+                                            </Badge>
+                                          )}
+                                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                                        </div>
+                                      </div>
+                                    </Link>
+                                  )
+                                })}
                               </div>
                             ) : (
                               <p className="text-sm text-muted-foreground">Este usuario no tiene niños registrados.</p>

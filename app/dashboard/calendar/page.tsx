@@ -303,15 +303,14 @@ const formatHoursLabel = (hours: number) => {
 // Función para calcular datos del gráfico de usuario
 // Muestra las horas de sueño desde la noche del día anterior hasta el despertar del día actual
 const computeUserWeeklySleepData = (events: Event[], endDate: Date, timeZone: string) => {
-  // SOLUCIÓN SIMPLE: Usar la fecha/hora actual del navegador directamente
-  // El navegador ya está en la timezone correcta del usuario
-  // Usar startOfDay de date-fns que trabaja con la hora local del navegador
-  const today = startOfDay(new Date()) // Hoy a medianoche en timezone local del navegador
+  // Usar endDate como referencia para permitir navegación
+  // endDate es el último día visible en el rango de 7 días
+  const referenceDate = startOfDay(endDate)
 
-  // Calcular 7 días hacia atrás desde hoy (no desde endDate que puede estar en UTC)
+  // Calcular 7 días hacia atrás desde la fecha de referencia
   const days: Date[] = []
   for (let i = 6; i >= 0; i--) {
-    days.push(subDays(today, i))
+    days.push(subDays(referenceDate, i))
   }
 
   const userSleepData = days.map((day) => {
@@ -496,10 +495,12 @@ export default function CalendarPage() {
   const navigateNext = () => {
     // Para usuarios no admin, verificar si pueden navegar hacia adelante
     if (!isAdminView) {
-      const today = getStartOfDayAsDate(new Date(), userTimeZone)
+      const today = startOfDay(new Date())
       const nextDate = addDays(date, 1)
+      const nextDateStart = startOfDay(nextDate)
 
-      if (startOfDay(nextDate) > today) {
+      // Permitir navegar hasta hoy, pero no más allá
+      if (nextDateStart > today) {
         return
       }
 
@@ -1122,11 +1123,10 @@ export default function CalendarPage() {
     if (isAdminView) return true // Admins siempre pueden navegar
 
     const today = startOfDay(new Date())
-    // Para vista semanal: check si el fin de semana es menor a hoy
-    const weekEnd = endOfWeek(date, { weekStartsOn: 0 })
-    const weekEndDay = startOfDay(weekEnd)
+    const currentDate = startOfDay(date)
 
-    return weekEndDay < today
+    // Puede avanzar si la fecha actual es menor que hoy
+    return currentDate < today
   }, [isAdminView, date])
 
   const canNavigateBackward = useMemo(() => {

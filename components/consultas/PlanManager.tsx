@@ -40,7 +40,6 @@ export function PlanManager({
   const [selectedPlanIndex, setSelectedPlanIndex] = useState<number | null>(null)
   const [historyReports, setHistoryReports] = useState<any[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
-  const [showDebug, setShowDebug] = useState(false)
   // Mostrar solo el plan más reciente por defecto; permitir "ver todos"
   const [showAllPlans, setShowAllPlans] = useState(false)
 
@@ -522,51 +521,7 @@ export function PlanManager({
               </div>
             )}
           </div>
-          {/* Debug panel (solo admin) */}
-          {(!loadingValidations) && (
-            <div className="mt-2">
-              <button
-                type="button"
-                className="text-xs text-muted-foreground underline"
-                onClick={() => setShowDebug(v => !v)}
-              >
-                {showDebug ? "Ocultar" : "Mostrar"} debug de validación
-              </button>
-              {showDebug && (
-                <div className="mt-2 space-y-2">
-                  <pre className="text-xs bg-muted/40 p-2 rounded border max-h-40 overflow-auto">
-                    {JSON.stringify({
-                      initial: planValidations.initial,
-                      event_based: planValidations.event_based,
-                      transcript_refinement: planValidations.transcript_refinement,
-                    }, null, 2)}
-                  </pre>
 
-                  {/* Mostrar detalles de eventos si existen */}
-                  {planValidations.event_based?.additionalInfo?.eventDetails?.length > 0 && (
-                    <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded border border-blue-200 dark:border-blue-800">
-                      <p className="text-xs font-semibold mb-2 text-blue-900 dark:text-blue-100">
-                        📋 Eventos encontrados ({planValidations.event_based.additionalInfo.eventDetails.length}):
-                      </p>
-                      <div className="space-y-1 max-h-48 overflow-auto">
-                        {planValidations.event_based.additionalInfo.eventDetails.map((event: any, idx: number) => (
-                          <div key={idx} className="text-xs bg-white dark:bg-gray-900 p-2 rounded border">
-                            <div className="flex justify-between gap-2">
-                              <span className="font-mono text-blue-600 dark:text-blue-400">{event.eventType}</span>
-                              <span className="text-gray-600 dark:text-gray-400">{event.formattedDate}</span>
-                            </div>
-                            <div className="text-gray-500 dark:text-gray-500 text-[10px] mt-1">
-                              ID: {event._id}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
         </CardHeader>
 
         {/* Lista de planes existentes */}
