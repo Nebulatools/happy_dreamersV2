@@ -215,7 +215,7 @@ export function EventEditRouter({
       <SleepDelayModal
         open={open}
         onClose={onClose}
-        onConfirm={async (delay, emotionalState, notes) => {
+        onConfirm={async (delay, emotionalState, notes, _options) => {
           await updateEvent({
             sleepDelay: delay,
             emotionalState,

@@ -32,6 +32,7 @@ interface Event {
   notes?: string
   duration?: number
   sleepDelay?: number
+  didNotSleep?: boolean
 }
 
 interface MonthLineChartProps {
@@ -215,6 +216,10 @@ export function MonthLineChart({
             const isIndividualNap = eventType.startsWith("nap")
             const timeLabel = isIndividualNap ? "Hora:" : "Promedio:"
 
+            // Si alguno de los eventos de este tipo es una siesta marcada como "no se pudo dormir",
+            // lo mencionamos explícitamente en el tooltip.
+            const hasFailedNap = isIndividualNap && events.some((e: Event) => e.didNotSleep)
+
             return (
               <div key={eventType} className="mb-1">
                 <p
@@ -226,6 +231,11 @@ export function MonthLineChart({
                 <p className="text-xs text-gray-600">
                   {timeLabel} {hours.toString().padStart(2, "0")}:{minutes.toString().padStart(2, "0")}
                 </p>
+                {hasFailedNap && (
+                  <p className="text-[11px] text-rose-500">
+                    Intento de siesta sin lograr dormir
+                  </p>
+                )}
                 {events.length > 1 && (
                   <p className="text-xs text-gray-500">
                     ({events.length} eventos)

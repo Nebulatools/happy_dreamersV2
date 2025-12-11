@@ -20,7 +20,7 @@ import { useDevTime } from "@/context/dev-time-context"
 interface SleepDelayModalProps {
   open: boolean
   onClose: () => void
-  onConfirm: (delay: number, emotionalState: string, notes: string) => void
+  onConfirm: (delay: number, emotionalState: string, notes: string, options?: { didNotSleep?: boolean }) => void
   childName: string
   eventType: "sleep" | "nap"
   mode?: "create" | "edit"
@@ -63,6 +63,7 @@ export function SleepDelayModal({
     return format(getCurrentTime(), "HH:mm")
   })
   const [isProcessing, setIsProcessing] = useState(false)
+  const [didNotSleep, setDidNotSleep] = useState(false)
 
   // Inicializar con datos cuando se abre en modo edición
   useEffect(() => {
@@ -74,6 +75,7 @@ export function SleepDelayModal({
         setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
         setEventTime(format(new Date(initialData.startTime), "HH:mm"))
       }
+      setDidNotSleep(false)
     }
   }, [open, mode, initialData])
 
@@ -82,6 +84,7 @@ export function SleepDelayModal({
   
   // Incrementar/decrementar en pasos de 5 minutos
   const adjustDelay = (increment: number) => {
+    setDidNotSleep(false)
     setSelectedDelay(prev => {
       const newValue = prev + increment
       // Limitar entre 0 y 120 minutos (2 horas)
@@ -106,12 +109,13 @@ export function SleepDelayModal({
 
   const handleConfirm = async () => {
     setIsProcessing(true)
-    await onConfirm(selectedDelay, emotionalState, notes)
+    await onConfirm(selectedDelay, emotionalState, notes, { didNotSleep })
     setIsProcessing(false)
     // Reset para próxima vez
     setSelectedDelay(15)
     setEmotionalState("tranquilo")
     setNotes("")
+    setDidNotSleep(false)
   }
 
   const handleSkip = () => {
@@ -121,6 +125,7 @@ export function SleepDelayModal({
     setSelectedDelay(15)
     setEmotionalState("tranquilo")
     setNotes("")
+    setDidNotSleep(false)
   }
 
   return (
@@ -198,7 +203,7 @@ export function SleepDelayModal({
             
             <div className="bg-blue-50 border-2 border-blue-200 rounded-xl px-6 py-3 min-w-[180px] text-center">
               <div className="text-2xl font-bold text-blue-600">
-                {formatDelayText(selectedDelay)}
+                {didNotSleep ? "No se pudo dormir" : formatDelayText(selectedDelay)}
               </div>
             </div>
             
@@ -221,7 +226,10 @@ export function SleepDelayModal({
               <button
                 key={minutes}
                 type="button"
-                onClick={() => setSelectedDelay(minutes)}
+                onClick={() => {
+                  setDidNotSleep(false)
+                  setSelectedDelay(minutes)
+                }}
                 disabled={isProcessing}
                 className={cn(
                   "px-3 py-1 rounded-full text-xs font-medium transition-colors",
@@ -234,12 +242,36 @@ export function SleepDelayModal({
               </button>
             ))}
           </div>
+
+          {/* Opción especial para siestas donde no se logró dormir */}
+          {eventType === "nap" && mode === "create" && (
+            <div className="mt-2 flex justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setDidNotSleep(true)
+                  setSelectedDelay(0)
+                }}
+                disabled={isProcessing}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                  didNotSleep
+                    ? "bg-rose-100 border-rose-400 text-rose-700"
+                    : "bg-white border-gray-200 text-gray-700 hover:bg-rose-50 hover:border-rose-300"
+                )}
+              >
+                No se pudo dormir
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Sección 2: Estado Emocional */}
         <div className="space-y-3 border-t pt-4">
           <div className="text-sm font-medium text-gray-700">
-            ¿Cómo estaba {childName} al dormirse?
+            {eventType === "nap" && didNotSleep
+              ? `¿Cómo estaba ${childName} al intentar tomar la siesta?`
+              : `¿Cómo estaba ${childName} al dormirse?`}
           </div>
           <div className="grid grid-cols-3 gap-2">
             {emotionalStates.map(state => (

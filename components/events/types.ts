@@ -16,6 +16,7 @@ export interface EventData {
   notes?: string
   sleepDelay?: number  // minutos para dormirse
   awakeDelay?: number  // minutos que estuvo despierto (para night_waking)
+  didNotSleep?: boolean // marcamos intentos donde no se pudo dormir (ej. siesta fallida)
   // Campos específicos para alimentación
   feedingType?: FeedingType
   feedingSubtype?: FeedingType  // Subtipo explícito para analítica (pecho, biberón, sólidos)

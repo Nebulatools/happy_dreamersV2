@@ -20,6 +20,7 @@ export interface SleepEvent {
   notes?: string
   emotionalState?: string
   sleepDelay?: number // Tiempo en minutos para dormirse
+   didNotSleep?: boolean // Marca intentos donde no se logró dormir (ej. siesta fallida)
 }
 
 export interface ProcessedSleepStats {
@@ -30,6 +31,7 @@ export interface ProcessedSleepStats {
   avgWakeTime: string // HH:MM
   bedtimeVariation: number // en minutos
   bedtimeToSleepDifference: string // Diferencia entre acostarse y dormir
+  avgNapSleepDelay: string // Tiempo promedio para dormirse en siestas
   totalWakeups: number
   avgWakeupsPerNight: number
   avgNightWakingDuration: number // promedio en minutos de despertares nocturnos
@@ -163,7 +165,7 @@ export function aggregateDailySleep(
   })
 
   // 2) Siestas: start→end en el día del start
-  const napEvents = relevant.filter(e => e.eventType === "nap" && e.endTime)
+  const napEvents = relevant.filter(e => e.eventType === "nap" && e.endTime && !e.didNotSleep)
   let napsCount = 0
   napEvents.forEach(e => {
     const start = parseISO(e.startTime)
@@ -489,6 +491,11 @@ function calculateAverageSleepDelay(sleepEvents: SleepEvent[]): string {
   const delays: number[] = []
   
   sleepEvents.forEach(event => {
+    // Ignorar eventos marcados explícitamente como "no se pudo dormir"
+    if (event.didNotSleep) {
+      return
+    }
+
     // Si tiene sleepDelay (nuevo formato), usarlo directamente
     if (event.sleepDelay !== undefined && event.sleepDelay >= 0) {
       delays.push(event.sleepDelay)
@@ -619,6 +626,7 @@ export function processSleepStatistics(
       avgWakeTime: "--:--",
       bedtimeVariation: 0,
       bedtimeToSleepDifference: "--",
+      avgNapSleepDelay: "--",
       totalWakeups: 0,
       avgWakeupsPerNight: 0,
       avgNightWakingDuration: 0,
@@ -664,13 +672,14 @@ export function processSleepStatistics(
   const avgSleepDuration = calculateInferredSleepDuration(relevantEvents)
 
   // Duración promedio de siestas
-  const avgNapDuration = naps.length > 0
-    ? naps.reduce((sum, event) => {
+  const napsWithDuration = naps.filter(e => e.endTime && !e.didNotSleep)
+  const avgNapDuration = napsWithDuration.length > 0
+    ? napsWithDuration.reduce((sum, event) => {
       if (event.endTime) {
         return sum + differenceInMinutes(parseISO(event.endTime), parseISO(event.startTime)) / 60
       }
       return sum
-    }, 0) / naps.length
+    }, 0) / napsWithDuration.length
     : 0
 
   // Hora promedio de acostarse (eventos bedtime y sleep nocturnos)
@@ -708,6 +717,16 @@ export function processSleepStatistics(
 
   // Calcular diferencia promedio entre acostarse y dormirse
   const bedtimeToSleepDifference = calculateAverageSleepDelay(nocturnalSleepEvents)
+
+  // Tiempo promedio para dormirse en siestas (solo siestas con sleepDelay válido)
+  const napSleepEvents = naps.filter(e =>
+    !e.didNotSleep &&
+    e.sleepDelay !== undefined &&
+    e.sleepDelay >= 0
+  )
+  const avgNapSleepDelay = napSleepEvents.length > 0
+    ? calculateAverageSleepDelay(napSleepEvents)
+    : "--"
 
   // Total de horas de sueño por día
   const totalSleepHours = (avgSleepDuration + avgNapDuration)
@@ -748,5 +767,6 @@ export function processSleepStatistics(
     avgWakeTimeMinutes,
     dominantMood,
     emotionalStates,
+    avgNapSleepDelay,
   }
 }

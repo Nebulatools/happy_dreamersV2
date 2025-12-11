@@ -79,7 +79,9 @@ export function ManualEventModal({
   const [notes, setNotes] = useState("")
   
   // Campos específicos de sueño (sleep, nap, night_waking)
-  const [sleepDelay, setSleepDelay] = useState(0)
+  // sleepDelayValue se guarda como string para poder manejar la opción especial "no se pudo dormir" en siestas
+  // y luego convertirla a minutos numéricos al construir el payload.
+  const [sleepDelayValue, setSleepDelayValue] = useState<string>("0")
   const [awakeDelay, setAwakeDelay] = useState(0)
   const [emotionalState, setEmotionalState] = useState<"tranquilo" | "inquieto" | "alterado">("tranquilo")
   
@@ -104,6 +106,7 @@ export function ManualEventModal({
   // Determinar si el evento actual tiene hora de fin
   const currentEventType = getEventType(eventType)
   const hasEndTime = currentEventType?.hasEndTime ?? false
+  const isNapNoSleep = eventType === "nap" && sleepDelayValue === "no-sleep"
   
   const handleSubmit = async () => {
     setIsSubmitting(true)
@@ -181,8 +184,16 @@ export function ManualEventModal({
       
       // Campos específicos según tipo de evento
       if (eventType === "sleep" || eventType === "nap") {
-        eventData.sleepDelay = sleepDelay
+        const parsedDelay = parseInt(sleepDelayValue || "0", 10)
+        const safeDelay = Number.isNaN(parsedDelay) ? 0 : parsedDelay
+
+        eventData.sleepDelay = isNapNoSleep ? 0 : safeDelay
         eventData.emotionalState = emotionalState
+
+        // Marcar explícitamente cuando la siesta fue un intento sin que se durmiera
+        if (isNapNoSleep) {
+          eventData.didNotSleep = true
+        }
       }
       
       if (eventType === "night_waking") {
@@ -256,7 +267,7 @@ export function ManualEventModal({
     setNotes("")
     
     // Reset campos de sueño
-    setSleepDelay(0)
+    setSleepDelayValue("0")
     setAwakeDelay(0)
     setEmotionalState("tranquilo")
     
@@ -282,6 +293,8 @@ export function ManualEventModal({
   useEffect(() => {
     if (!open) return
     setStartTime(getDefaultStartTimeForType(eventType))
+    // Cuando cambiamos de tipo de evento, resetear el selector de delay
+    setSleepDelayValue("0")
   }, [eventType, open])
 
   // Ajustar disponibilidad de hora de fin por tipo de evento
@@ -415,7 +428,10 @@ export function ManualEventModal({
             <>
               <div>
                 <Label>¿Cuánto tardó en dormirse?</Label>
-                <Select value={sleepDelay.toString()} onValueChange={(val) => setSleepDelay(parseInt(val))}>
+                <Select
+                  value={sleepDelayValue}
+                  onValueChange={(val) => setSleepDelayValue(val)}
+                >
                   <SelectTrigger className="min-h-[44px]">
                     <SelectValue />
                   </SelectTrigger>
@@ -428,6 +444,9 @@ export function ManualEventModal({
                     <SelectItem value="30">30 minutos</SelectItem>
                     <SelectItem value="45">45 minutos</SelectItem>
                     <SelectItem value="60">Más de 1 hora</SelectItem>
+                    {eventType === "nap" && (
+                      <SelectItem value="no-sleep">No se pudo dormir</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

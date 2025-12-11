@@ -305,6 +305,7 @@ export async function POST(req: NextRequest) {
       durationReadable: "", // Se calculará si hay duration
       sleepDelay: data.sleepDelay || null,
       awakeDelay: data.awakeDelay || null, // Para eventos night_waking
+      didNotSleep: data.didNotSleep || false,
       createdAt: new Date().toISOString(),
     }
 
@@ -384,6 +385,7 @@ export async function POST(req: NextRequest) {
         notes: event.notes,
         sleepDelay: event.sleepDelay,
         awakeDelay: event.awakeDelay,
+        didNotSleep: event.didNotSleep,
         feedingType: event.feedingType,
         feedingSubtype: event.feedingSubtype,
         feedingAmount: event.feedingAmount,
@@ -424,6 +426,7 @@ export async function POST(req: NextRequest) {
         notes: event.notes,
         sleepDelay: event.sleepDelay,
         awakeDelay: event.awakeDelay,
+        didNotSleep: event.didNotSleep,
         feedingType: event.feedingType,
         feedingSubtype: event.feedingSubtype,
         feedingAmount: event.feedingAmount,
@@ -711,6 +714,7 @@ export async function PATCH(req: NextRequest) {
     if (data.emotionalState) updateFields["events.$.emotionalState"] = data.emotionalState
     if (data.sleepDelay !== undefined) updateFields["events.$.sleepDelay"] = data.sleepDelay
     if (data.awakeDelay !== undefined) updateFields["events.$.awakeDelay"] = data.awakeDelay
+    if (data.didNotSleep !== undefined) updateFields["events.$.didNotSleep"] = data.didNotSleep
     
     // Campos específicos de alimentación
     if (data.feedingType) updateFields["events.$.feedingType"] = data.feedingType
@@ -774,6 +778,9 @@ export async function PATCH(req: NextRequest) {
             duration: data.duration,
             ...(data.notes !== undefined && { notes: data.notes }),
             ...(data.emotionalState && { emotionalState: data.emotionalState }),
+            ...(data.sleepDelay !== undefined && { sleepDelay: data.sleepDelay }),
+            ...(data.awakeDelay !== undefined && { awakeDelay: data.awakeDelay }),
+            ...(data.didNotSleep !== undefined && { didNotSleep: data.didNotSleep }),
           },
         }
       )

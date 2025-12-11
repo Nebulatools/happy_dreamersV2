@@ -112,6 +112,7 @@ interface Event {
   notes?: string;
   duration?: number;
   sleepDelay?: number; // Added missing sleepDelay property
+  didNotSleep?: boolean;
 }
 
 interface Child {
@@ -128,6 +129,8 @@ interface MonthlyStats {
   napChange: number;
   wakingsChange: number;
   avgWakeTime: string;
+  avgNightSleepDelay: string;
+  avgNapSleepDelay: string;
 }
 
 const WEEKDAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
@@ -681,6 +684,8 @@ export default function CalendarPage() {
     napChange: 0,
     wakingsChange: 0,
     avgWakeTime: "--:--",
+    avgNightSleepDelay: "--",
+    avgNapSleepDelay: "--",
   })
   const [eventModalOpen, setEventModalOpen] = useState(false)
   const [quickSelectorOpen, setQuickSelectorOpen] = useState(false)
@@ -931,6 +936,8 @@ export default function CalendarPage() {
         napChange: 0,
         wakingsChange: 0,
         avgWakeTime: "--:--",
+        avgNightSleepDelay: "--",
+        avgNapSleepDelay: "--",
       })
       return
     }
@@ -958,6 +965,8 @@ export default function CalendarPage() {
       napChange: 0,
       wakingsChange: 0,
       avgWakeTime: stats.avgWakeTime || "--:--",
+      avgNightSleepDelay: stats.bedtimeToSleepDifference || "--",
+      avgNapSleepDelay: stats.avgNapSleepDelay || "--",
     })
   }
 
@@ -971,6 +980,8 @@ export default function CalendarPage() {
         napChange: 0,
         wakingsChange: 0,
         avgWakeTime: "--:--",
+        avgNightSleepDelay: "--",
+        avgNapSleepDelay: "--",
       })
       return
     }
@@ -1626,26 +1637,51 @@ export default function CalendarPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                    {[{
-                      label: "Sueño nocturno",
-                      value: `${monthlyStats.nightSleepHours.toFixed(1)}h`,
-                      tone: "text-[#4A90E2]",
-                    }, {
-                      label: "Siestas",
-                      value: `${monthlyStats.napHours.toFixed(1)}h`,
-                      tone: "text-[#F5A524]",
-                    }, {
-                      label: "Despertares",
-                      value: `${monthlyStats.nightWakings}`,
-                      tone: "text-[#D97706]",
-                    }, {
-                      label: "Hora de despertar",
-                      value: monthlyStats.avgWakeTime || "--:--",
-                      tone: "text-[#16A34A]",
-                    }].map((item) => (
-                      <div key={item.label} className="rounded-xl border border-gray-100 bg-gradient-to-br from-white to-gray-50 p-4">
-                        <p className="text-xs uppercase tracking-wider text-gray-500">{item.label}</p>
-                        <p className={`text-2xl font-semibold mt-2 ${item.tone}`}>{item.value}</p>
+                    {[
+                      {
+                        label: "Sueño nocturno",
+                        value: `${monthlyStats.nightSleepHours.toFixed(1)}h`,
+                        tone: "text-[#4A90E2]",
+                        subtitle: monthlyStats.avgNightSleepDelay && monthlyStats.avgNightSleepDelay !== "--"
+                          ? `Tiempo para dormir: ${monthlyStats.avgNightSleepDelay}`
+                          : null,
+                      },
+                      {
+                        label: "Siestas",
+                        value: `${monthlyStats.napHours.toFixed(1)}h`,
+                        tone: "text-[#F5A524]",
+                        subtitle: monthlyStats.avgNapSleepDelay && monthlyStats.avgNapSleepDelay !== "--"
+                          ? `Tiempo para siesta: ${monthlyStats.avgNapSleepDelay}`
+                          : null,
+                      },
+                      {
+                        label: "Despertares",
+                        value: `${monthlyStats.nightWakings}`,
+                        tone: "text-[#D97706]",
+                        subtitle: null,
+                      },
+                      {
+                        label: "Hora de despertar",
+                        value: monthlyStats.avgWakeTime || "--:--",
+                        tone: "text-[#16A34A]",
+                        subtitle: null,
+                      },
+                    ].map((item) => (
+                      <div
+                        key={item.label}
+                        className="rounded-xl border border-gray-100 bg-gradient-to-br from-white to-gray-50 p-4"
+                      >
+                        <p className="text-xs uppercase tracking-wider text-gray-500">
+                          {item.label}
+                        </p>
+                        <p className={`text-2xl font-semibold mt-2 ${item.tone}`}>
+                          {item.value}
+                        </p>
+                        {item.subtitle && (
+                          <p className="mt-1 text-[11px] text-gray-500">
+                            {item.subtitle}
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>

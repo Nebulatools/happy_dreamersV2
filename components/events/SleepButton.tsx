@@ -47,6 +47,7 @@ export function SleepButton({
     sleepDelay?: number
     emotionalState?: string
     notes?: string
+    didNotSleep?: boolean
   } | null>(null)
 
   // Estado separado para despertares nocturnos - NO reemplaza sleepPending
@@ -323,7 +324,12 @@ export function SleepButton({
     }
   }
 
-  const handleSleepConfirm = async (delay: number, emotionalStateValue: string, notesValue: string) => {
+  const handleSleepConfirm = async (
+    delay: number,
+    emotionalStateValue: string,
+    notesValue: string,
+    options?: { didNotSleep?: boolean }
+  ) => {
     if (!sleepModalConfig) return
     setIsProcessing(true)
     const startTime = sleepModalConfig.start
@@ -338,6 +344,46 @@ export function SleepButton({
           title: "Volvio a dormir",
           description: "El despertar nocturno fue registrado.",
         })
+      } else if (options?.didNotSleep && sleepModalConfig.eventType === "nap") {
+        // Caso especial: intento de siesta donde no se pudo dormir.
+        // Registramos el intento como evento inmediato, pero NO cambiamos el estado del botón a "durmiendo".
+        try {
+          const startIso = dateToTimestamp(startTime, userData.timezone)
+
+          const response = await fetch("/api/children/events", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              childId,
+              eventType: "nap",
+              startTime: startIso,
+              endTime: startIso, // mismo inicio y fin: intento sin duración real
+              emotionalState: emotionalStateValue || "tranquilo",
+              notes: notesValue,
+              sleepDelay: delay || 0,
+              didNotSleep: true,
+            } satisfies Partial<EventData>),
+          })
+          const respJson = await response.json().catch(() => null)
+          if (!response.ok) {
+            throw new Error(respJson?.error || "Error al registrar intento de siesta")
+          }
+
+          toast({
+            title: "Intento de siesta registrado",
+            description: "Marcado como 'no se pudo dormir'.",
+          })
+
+          await refetch()
+          onEventRegistered?.()
+        } catch (error) {
+          console.error("Error:", error)
+          toast({
+            title: "Error",
+            description: "No se pudo registrar el intento de siesta",
+            variant: "destructive",
+          })
+        }
       } else {
         // Caso normal: inicio de nuevo sueño o siesta
         setSleepPending({
@@ -346,6 +392,7 @@ export function SleepButton({
           sleepDelay: delay,
           emotionalState: emotionalStateValue,
           notes: notesValue,
+          ...(options?.didNotSleep ? { didNotSleep: true } : {}),
         })
 
         setOptimisticStatus(sleepModalConfig.eventType === "nap" ? "napping" : "sleeping")
@@ -400,6 +447,7 @@ export function SleepButton({
     const emotion = emotionalStateValue || sleepPending?.emotionalState || "tranquilo"
     const mergedNotes = combineNotes(sleepPending?.notes, notesValue)
     const sleepDelay = sleepPending?.sleepDelay
+    const didNotSleep = sleepPending?.didNotSleep
     const eventType = sleepPending?.type ?? (sleepState.status === "napping" ? "nap" : "sleep")
     // IMPORTANTE: usar sleepPending.start que tiene la hora original del inicio del sueno
     const startTime = sleepPending?.start
@@ -418,6 +466,7 @@ export function SleepButton({
           emotionalState: emotion,
           notes: mergedNotes,
           ...(sleepDelay !== undefined ? { sleepDelay } : {}),
+          ...(didNotSleep ? { didNotSleep: true } : {}),
         } satisfies Partial<EventData>),
       })
       const respJson = await response.json().catch(() => null)
