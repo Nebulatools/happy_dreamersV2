@@ -181,6 +181,7 @@ export interface SurveyData {
       | "Ninguna"
       | string
     alimentacionOtro?: string // Otro tipo de alimentación (condicional)
+    alimentacionIntroduccion?: string // Cuándo se introdujo la fórmula/leche
     comeSolidos?: boolean
 
     // Características y hábitos

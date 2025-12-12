@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { CheckedState } from "@radix-ui/react-checkbox"
 import { Heart } from "lucide-react"
 import type { SurveyStepProps } from "../types/survey.types"
@@ -120,13 +121,35 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             <Label htmlFor="pararse-meses">
               4. ¿Cuándo fue su hijo/a capaz de pararse? (Meses)
             </Label>
-            <Input
-              id="pararse-meses"
-              type="number"
-              value={data.pararseMeses || ""}
-              onChange={(e) => updateField("pararseMeses", e.target.value)}
-              placeholder="Edad en meses"
-            />
+            <Select
+              value={
+                data.pararseMeses === "aun-no-lo-hace"
+                  ? "aun-no-lo-hace"
+                  : data.pararseMeses
+                    ? String(data.pararseMeses)
+                    : ""
+              }
+              onValueChange={(value) => {
+                if (value === "aun-no-lo-hace") {
+                  updateField("pararseMeses", "aun-no-lo-hace")
+                } else {
+                  const numericValue = Number(value)
+                  updateField("pararseMeses", Number.isNaN(numericValue) ? "" : numericValue)
+                }
+              }}
+            >
+              <SelectTrigger id="pararse-meses">
+                <SelectValue placeholder="Selecciona los meses o 'Aún no lo hace'" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 36 }, (_, index) => index + 1).map((month) => (
+                  <SelectItem key={month} value={String(month)}>
+                    {month} {month === 1 ? "mes" : "meses"}
+                  </SelectItem>
+                ))}
+                <SelectItem value="aun-no-lo-hace">Aún no lo hace</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* 5. Caminar */}
@@ -210,6 +233,20 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
                   value={data.alimentacionOtro || ""}
                   onChange={(e) => updateField("alimentacionOtro", e.target.value)}
                   placeholder="Especifica el tipo de alimentación..."
+                  className="max-w-md"
+                />
+              </div>
+            )}
+            {(data.alimentacion === "formula" || data.alimentacion === "materna-formula") && (
+              <div className="ml-6 mt-2 space-y-1">
+                <Label htmlFor="alimentacion-introduccion" className="text-sm text-gray-600">
+                  ¿Cuándo la introdujeron?
+                </Label>
+                <Input
+                  id="alimentacion-introduccion"
+                  value={data.alimentacionIntroduccion || ""}
+                  onChange={(e) => updateField("alimentacionIntroduccion", e.target.value)}
+                  placeholder="Ej. a los 4 meses"
                   className="max-w-md"
                 />
               </div>

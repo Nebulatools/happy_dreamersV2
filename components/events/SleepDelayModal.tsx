@@ -84,7 +84,6 @@ export function SleepDelayModal({
   
   // Incrementar/decrementar en pasos de 5 minutos
   const adjustDelay = (increment: number) => {
-    setDidNotSleep(false)
     setSelectedDelay(prev => {
       const newValue = prev + increment
       // Limitar entre 0 y 120 minutos (2 horas)
@@ -137,7 +136,14 @@ export function SleepDelayModal({
         }
       }}
     >
-      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+      <DialogContent
+        className={cn(
+          "max-w-md max-h-[80vh] overflow-y-auto",
+          eventType === "nap" && didNotSleep
+            ? "border-2 border-rose-300 shadow-[0_0_0_3px_rgba(248,113,113,0.45)]"
+            : ""
+        )}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-blue-500" />
@@ -148,7 +154,9 @@ export function SleepDelayModal({
           <DialogDescription>
             {mode === "edit"
               ? `Modifica los detalles del sueño de ${childName}`
-              : `¿Cuánto tiempo tardó ${childName} en dormirse?`}
+              : eventType === "nap" && didNotSleep
+                ? `¿Cuánto tiempo intentaron dormir a ${childName}?`
+                : `¿Cuánto tiempo tardó ${childName} en dormirse?`}
           </DialogDescription>
         </DialogHeader>
 
@@ -185,7 +193,9 @@ export function SleepDelayModal({
         {/* Sección 1: Selector de Tiempo con Flechas */}
         <div className="space-y-4 mt-4">
           <div className="text-sm font-medium text-gray-700">
-            ¿Cuánto tiempo tardó en dormirse?
+            {eventType === "nap" && didNotSleep
+              ? "¿Cuánto tiempo intentaron dormirlo?"
+              : "¿Cuánto tiempo tardó en dormirse?"}
           </div>
           
           {/* Control principal con flechas */}
@@ -203,7 +213,7 @@ export function SleepDelayModal({
             
             <div className="bg-blue-50 border-2 border-blue-200 rounded-xl px-6 py-3 min-w-[180px] text-center">
               <div className="text-2xl font-bold text-blue-600">
-                {didNotSleep ? "No se pudo dormir" : formatDelayText(selectedDelay)}
+                {formatDelayText(selectedDelay)}
               </div>
             </div>
             
@@ -227,7 +237,6 @@ export function SleepDelayModal({
                 key={minutes}
                 type="button"
                 onClick={() => {
-                  setDidNotSleep(false)
                   setSelectedDelay(minutes)
                 }}
                 disabled={isProcessing}
@@ -245,12 +254,11 @@ export function SleepDelayModal({
 
           {/* Opción especial para siestas donde no se logró dormir */}
           {eventType === "nap" && mode === "create" && (
-            <div className="mt-2 flex justify-center">
+            <div className="mt-3 pt-3 border-t flex justify-center">
               <button
                 type="button"
                 onClick={() => {
-                  setDidNotSleep(true)
-                  setSelectedDelay(0)
+                  setDidNotSleep((prev) => !prev)
                 }}
                 disabled={isProcessing}
                 className={cn(

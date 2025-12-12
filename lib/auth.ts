@@ -67,7 +67,7 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        const emailLower = credentials.email.toLowerCase()
+        const emailLower = credentials.email.trim().toLowerCase()
         console.log("\n🔐 Intentando login para:", emailLower)
 
         // SISTEMA DE TOKENS LOCALES DESACTIVADO
@@ -78,7 +78,7 @@ export const authOptions: NextAuthOptions = {
         try {
           const { db } = await connectToDatabase()
           const user = await db.collection("users").findOne({
-            email: credentials.email,
+            email: emailLower,
           })
 
           if (!user || !user.password) {
