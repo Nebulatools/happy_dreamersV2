@@ -55,17 +55,12 @@ canGenerate = events.length > 0
 
 ### Plan de Refinamiento (Plan N.1)
 **Condiciones**:
-1. Debe existir al menos Plan 1 (no se puede refinar Plan 0)
-2. No debe existir ya un refinamiento para el plan actual
-3. Debe haber un transcript DESPUÉS del último plan
+1. Debe existir al menos un plan base (puede ser el Plan 0 o cualquier Plan N)
+2. No debe existir ya un refinamiento para el plan actual (solo un `.1` por número)
+3. Debe haber un transcript DESPUÉS del plan base que se va a refinar
 
 ```typescript
-// No se puede refinar Plan 0
-if (latestPlan.planNumber === 0) {
-  canGenerate = false
-}
-
-// Verificar que no exista refinamiento
+// Verificar que no exista refinamiento para el plan actual (incluye Plan 0)
 existingRefinement = plans.find(p =>
   p.planNumber === currentPlanNumber &&
   p.planVersion.includes('.1')
@@ -140,11 +135,13 @@ canGenerate = !!transcript
 7. ✅ Registrar más eventos → OK
 8. ✅ Botón Plan 2 se habilita → OK (usa Plan 1.1 como base)
 
-### Escenario 3: No se puede refinar Plan 0
+### Escenario 3: Refinamiento desde Plan 0 (Plan 0.1)
 1. ✅ Crear Plan 0 → OK
 2. ✅ Crear transcript de consulta → OK
-3. ❌ Botón Plan 0.1 NO se habilita → Correcto
-4. ℹ️ Mensaje: "No se puede refinar el Plan 0. Primero genere el Plan 1"
+3. ✅ Botón Plan 0.1 se habilita → OK
+4. ✅ Crear Plan 0.1 (refinamiento) → OK
+5. ✅ Registrar eventos posteriores → OK
+6. ✅ Botón Plan 1 se habilita → OK (usa Plan 0.1 como base cronológica)
 
 ## 🐛 Bug Corregido
 

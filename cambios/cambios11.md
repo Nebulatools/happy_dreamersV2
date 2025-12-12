@@ -157,7 +157,7 @@ Esto implica:
 
 ---
 
-## 6. Cambios conceptuales necesarios (sin implementar aún)
+## 6. Problemática y cambios deseados (diseño, antes de implementar)
 
 ### 6.1 Permitir refinar Plan 0 en cálculo de versión
 
@@ -246,16 +246,53 @@ Este punto es más de diseño funcional que de código, y conviene definirlo con
 
 ---
 
-## 7. Complejidad estimada del cambio
+## 7. Cambios implementados en esta sesión (12 Dic 2025)
 
-- **Baja–Media** a nivel técnico:
-  - Ajustar lógica de versión (`calculateNextPlanVersion`).  
-  - Ajustar validaciones de `PUT` y `POST` para `transcript_refinement`.  
-  - Actualizar textos/documentación.  
-  - Revisar visualización de versiones `"0.1"` en componentes de planes.
-- **Sin migraciones de base de datos**:
-  - Los modelos ya soportan `planVersion` como string (`"0"`, `"1"`, `"1.1"`, etc.).  
-  - Agregar `"0.1"` no rompe el modelo.
+### 7.1 Backend – lógica de versiones y validaciones
 
-Lo dejamos pendiente para una siguiente iteración: este archivo sirve como guía de diseño para cuando decidamos implementar soporte de transcripts desde el Plan 0.
+- Se actualizó `calculateNextPlanVersion(...)` en `app/api/consultas/plans/route.ts` para:
+  - Permitir refinamientos con `planType: "transcript_refinement"` incluso cuando el último plan es el 0.
+  - Generar:
+    - Desde Plan 0 → `planNumber: 0`, `planVersion: "0.1"`.
+    - Desde Plan N ≥ 1 → `planNumber: N`, `planVersion: "N.1"` (sin cambios).
+- Se ajustó la validación de `PUT /api/consultas/plans` para `planType: "transcript_refinement"`:
+  - Ya **no** bloquea cuando `existingPlans[0].planNumber === 0`.
+  - Sigue validando:
+    - Que exista al menos un plan base.
+    - Que no exista ya un `.1` para ese `planNumber`.
+    - Que haya transcript disponible después de la fecha del plan base (`hasAvailableTranscript(childId, lastPlanDate)`).
+- El `POST /api/consultas/plans` reutiliza esta lógica:
+  - Si solo existe Plan 0 + transcript nuevo:
+    - Usa Plan 0 como `basePlan`.
+    - Crea borrador con `planNumber: 0`, `planVersion: "0.1"`, usando `generateTranscriptRefinementPlan(...)`.
 
+### 7.2 Motor de generación de planes
+
+- No se modificó la función `generateTranscriptRefinementPlan(...)` más allá de permitir que `basePlan.planNumber` sea 0:
+  - El flujo de refinamiento por transcript es el mismo que ya se usaba para Plan 1.1, 2.1, etc.
+  - Se respetan los campos existentes: `basedOnPlan`, `transcriptAnalysis.basePlanVersion`, etc.
+
+### 7.3 Documentación y alineación conceptual
+
+- Actualizado `docs/PLAN_GENERATION_FLOW.md`:
+  - Se elimina la regla de “no se puede refinar Plan 0”.
+  - Se documenta explícitamente el flujo con Plan 0.1 como refinamiento válido.
+- Actualizado `docs/RESUMEN_FLUJO_GENERACION_PLANES.md`:
+  - Se mencionan refinamientos `0.1, 1.1, 2.1…` en lugar de empezar en 1.1.
+  - Se aclara que el refinamiento por consulta aplica a cualquier `planNumber`, incluyendo 0.
+- Este propio archivo (`cambios11.md`) queda como:
+  - Secciones 1–6 → **Problemática / diseño original**.
+  - Sección 7 → **Cambios efectivamente implementados**.
+
+### 7.4 Complejidad e impacto
+
+- **Complejidad técnica**: Baja–Media.
+  - Cambios localizados en un endpoint (`app/api/consultas/plans/route.ts`) y en documentación.
+- **Base de datos**:
+  - Sin migraciones: `planVersion` ya es string (soporta `"0.1"` sin cambios).
+- **UI**:
+  - La lógica de habilitar botones ya se basa en `PUT /api/consultas/plans`, por lo que:
+    - Cuando exista solo Plan 0 + transcript nuevo → el botón “Plan 0.1 (Refinamiento por transcript)” podrá habilitarse.
+  - Pueden quedar textos específicos pendientes de ajustar a este nuevo flujo.
+
+Estado a 12 Dic 2025: la lógica para permitir refinamientos desde Plan 0 (Plan 0.1) ya está implementada en `app/api/consultas/plans/route.ts` y la documentación principal (`docs/PLAN_GENERATION_FLOW.md`, `docs/RESUMEN_FLUJO_GENERACION_PLANES.md`) fue actualizada según este diseño. Queda revisar/ajustar textos específicos de UI si hiciera falta.

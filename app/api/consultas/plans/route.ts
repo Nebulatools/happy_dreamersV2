@@ -59,14 +59,9 @@ function calculateNextPlanVersion(existingPlans: any[], planType: "initial" | "e
   }
   
   if (planType === "transcript_refinement") {
-    // Para refinamientos: solo si ya hay planes 1, 2, 3... (no se puede refinar Plan 0)
+    // Para refinamientos: requiere al menos un plan base (incluye Plan 0)
     if (!latestPlan) {
       throw new Error("No se puede crear un plan de refinamiento sin un plan base")
-    }
-    
-    // Solo se puede refinar planes 1, 2, 3... NO el Plan 0
-    if (latestPlan.planNumber === 0) {
-      throw new Error("No se puede refinar el Plan 0. Primero debe generar el Plan 1")
     }
     
     const basePlanNumber = latestPlan.planNumber
@@ -619,10 +614,6 @@ export async function PUT(req: NextRequest) {
       if (existingPlans.length === 0) {
         canGenerate = false
         reason = "Debe existir al menos un plan base antes de crear un refinamiento"
-      } else if (existingPlans[0].planNumber === 0) {
-        // No se puede refinar Plan 0, primero debe haber Plan 1
-        canGenerate = false
-        reason = "No se puede refinar el Plan 0. Primero genere el Plan 1"
       } else {
         // Verificar si ya existe un plan de refinamiento para el plan actual
         const currentPlanNumber = existingPlans[0].planNumber

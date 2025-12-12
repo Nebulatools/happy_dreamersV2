@@ -5,12 +5,12 @@ Este documento explica, en lenguaje claro, cómo se generan los planes (Plan 0, 
 ## 1) ¿Qué es un plan y por qué hay tres tipos?
 - Plan 0 (Inicial): primer plan del niño. Se basa en su historia completa, su encuesta y conocimiento pediátrico (RAG).
 - Plan 1, 2, 3… (Progresión por eventos): actualizaciones basadas en lo que pasó desde el plan anterior (eventos nuevos).
-- Plan 1.1, 2.1… (Refinamiento por consulta): ajustes puntuales después de una consulta (transcript) sin saltar a un número nuevo.
+- Plan 0.1, 1.1, 2.1… (Refinamiento por consulta): ajustes puntuales después de una consulta (transcript) sin saltar a un número nuevo.
 
 Versión del plan:
 - Plan 0 → versión “0”.
 - Plan 1, 2, 3… → versión “1”, “2”, “3”…
-- Refinamiento → “N.1” (ej. “1.1”).
+- Refinamiento → “N.1” (ej. “0.1”, “1.1”).
 
 Estado en base de datos: los planes se guardan como “borrador” al crearse. Al crear un Plan 2, por ejemplo, los planes con número menor se marcan como “superseded” (reemplazados). Los refinamientos (1.1) no reemplazan al 1.
 
@@ -80,7 +80,7 @@ Cómo se genera:
 ## 7) ¿Qué valida el sistema antes de generar?
 - Plan 0: sólo si el niño no tiene planes previos.
 - Plan por eventos: debe haber eventos nuevos posteriores al último plan.
-- Refinamiento por consulta: no se puede refinar el Plan 0; debe haber un transcript nuevo y que no exista ya el “.1”.
+- Refinamiento por consulta: debe existir al menos un plan base (incluye el Plan 0), debe haber un transcript nuevo posterior a ese plan y no debe existir ya el “.1” para ese `planNumber`.
 
 ## 8) ¿Qué se le manda exactamente a la IA?
 - Datos del niño (edad en meses, nombre).
