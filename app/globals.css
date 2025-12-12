@@ -289,6 +289,13 @@
     @apply bg-bg-card rounded-3xl hd-card-shadow border border-border/50;
     @apply p-6;
   }
+
+  /* Layout del dashboard: margen a la derecha de la sidebar solo en desktop */
+  @media (min-width: 768px) {
+    .dashboard-content {
+      margin-left: var(--sidebar-width, 256px);
+    }
+  }
 }
 
 @layer utilities {

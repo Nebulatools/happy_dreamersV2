@@ -215,7 +215,7 @@ export function Sidebar({ className }: { className?: string }) {
         </SheetContent>
       </Sheet>
       <div
-        className="w-[256px] min-h-screen fixed left-0 top-0 bottom-0 border-r border-white/10 z-30 transition-[width] duration-200"
+        className="hidden md:block w-[256px] min-h-screen fixed left-0 top-0 bottom-0 border-r border-white/10 z-30 transition-[width] duration-200"
         style={{ backgroundColor: "#68A1C8", width: "var(--sidebar-width, 256px)" }}
       >
         <div className="flex flex-col h-full">

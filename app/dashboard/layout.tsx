@@ -37,11 +37,8 @@ export default async function DashboardLayout({
             <div className="min-h-screen w-full" style={{ backgroundColor: "#DEF1F1" }}>
               <Sidebar />
               <div
-                className="flex flex-col"
-                style={{
-                  backgroundColor: "#DEF1F1",
-                  marginLeft: "var(--sidebar-width, 256px)",
-                }}
+                className="flex flex-col dashboard-content"
+                style={{ backgroundColor: "#DEF1F1" }}
               >
                 <Header />
                 <main className="flex flex-1 flex-col gap-4 px-3 pt-2 pb-20 md:px-4 md:pt-3 lg:gap-8 lg:px-6 lg:pt-4 lg:pb-6" style={{ backgroundColor: "#DEF1F1" }}>
