@@ -39,7 +39,7 @@ const stepKeyMap: Record<number, keyof SurveyData> = {
   1: "informacionFamiliar",
   2: "dinamicaFamiliar",
   3: "historial",
-  4: "desarrollo",
+  4: "desarrolloSalud",
   5: "actividadFisica",
   6: "rutinaHabitos",
 }
@@ -300,7 +300,7 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
           fechaNacimiento: childData?.birthDate ? String(childData.birthDate).split("T")[0] : "",
           genero: childData?.gender || "",
         },
-        desarrollo: {},
+        desarrolloSalud: {},
         actividadFisica: {},
         rutinaHabitos: {},
       }
@@ -329,9 +329,9 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
             primaryCaregiver: savedData.formData.informacionFamiliar?.primaryCaregiver ?? prefilledData.informacionFamiliar?.primaryCaregiver,
           },
         }
-        if (savedData.formData.actividadFisica?.situacionesHijo && !savedData.formData.desarrollo?.situacionesHijo) {
-          mergedData.desarrollo = {
-            ...mergedData.desarrollo,
+        if (savedData.formData.actividadFisica?.situacionesHijo && !savedData.formData.desarrolloSalud?.situacionesHijo) {
+          mergedData.desarrolloSalud = {
+            ...mergedData.desarrolloSalud,
             situacionesHijo: savedData.formData.actividadFisica.situacionesHijo,
           }
         }
