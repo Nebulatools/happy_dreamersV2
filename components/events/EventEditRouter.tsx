@@ -275,6 +275,26 @@ export function EventEditRouter({
         childId={event.childId}
         childName={childName}
         onEventRegistered={onUpdate}
+        mode="edit"
+        initialData={{
+          _id: event._id,
+          type: event.type,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          notes: event.notes,
+          emotionalState: event.emotionalState,
+          sleepDelay: event.sleepDelay,
+          awakeDelay: event.awakeDelay,
+          feedingType: event.feedingType,
+          feedingAmount: event.feedingAmount,
+          feedingDuration: event.feedingDuration,
+          babyState: event.babyState,
+          medicationName: event.medicationName,
+          medicationDose: event.medicationDose,
+          activityDescription: event.activityDescription,
+          activityDuration: event.activityDuration,
+          activityImpact: event.activityImpact,
+        }}
       />
     )
   }

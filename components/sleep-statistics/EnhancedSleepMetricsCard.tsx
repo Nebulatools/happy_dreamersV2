@@ -467,14 +467,18 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
               </div>
               <div className="flex-1">
                 <p className="text-xs text-gray-600 font-medium">Hora de Despertar</p>
-                <p className="text-2xl font-bold text-gray-900">{morningWakeAvg}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {hasActivePlan && planTargets.wakeTime
+                    ? planTargets.wakeTime
+                    : morningWakeAvg || "--:--"}
+                </p>
               </div>
             </div>
-            <Badge variant={getWakeTimeStatus(morningWakeAvg).variant} className="text-xs">
-              {getWakeTimeStatus(morningWakeAvg).label}
+            <Badge variant={hasActivePlan && planTargets.wakeTime ? "default" : getWakeTimeStatus(morningWakeAvg).variant} className="text-xs">
+              {hasActivePlan && planTargets.wakeTime ? "Hora ideal del plan" : getWakeTimeStatus(morningWakeAvg).label}
             </Badge>
-            {hasActivePlan && (
-              <p className="text-xs text-gray-600 mt-2">{planComparisons.wake}</p>
+            {hasActivePlan && morningWakeAvg && (
+              <p className="text-xs text-gray-600 mt-2">Real: {morningWakeAvg} · {planComparisons.wake}</p>
             )}
           </div>
 
@@ -523,8 +527,14 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
                 <AlertCircle className="w-6 h-6 text-white" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-gray-600 font-medium">Despertares Nocturnos</p>
-                <p className="text-2xl font-bold text-gray-900">{sleepData.totalWakeups}</p>
+                <p className="text-xs text-gray-600 font-medium">Despertares por Noche</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {nightWakingsDetails.daysWithWakeups > 0
+                    ? nightWakingsDetails.minPerNight === nightWakingsDetails.maxPerNight
+                      ? nightWakingsDetails.minPerNight
+                      : `${nightWakingsDetails.minPerNight}-${nightWakingsDetails.maxPerNight}`
+                    : "0"}
+                </p>
               </div>
             </div>
             <div className="flex items-center justify-between mb-1">
@@ -577,7 +587,7 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
                       </div>
                       {summary ? (
                         <>
-                          <div className="grid grid-cols-3 gap-3 text-sm">
+                          <div className="grid grid-cols-2 gap-3 text-sm">
                             <div>
                               <p className="text-xs text-gray-500 uppercase tracking-wide">Minimo</p>
                               <p className="text-base font-semibold text-gray-900">
@@ -585,12 +595,6 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
                               </p>
                               <p className="text-[11px] text-gray-400">
                                 {formatDateLabel(summary.min.date)}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wide">Promedio</p>
-                              <p className="text-base font-semibold text-gray-900">
-                                {formatDuration(summary.avg)}
                               </p>
                             </div>
                             <div>

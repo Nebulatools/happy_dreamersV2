@@ -29,20 +29,43 @@ interface ManualEventModalProps {
   // Opcionales: forzar tipo de evento inicial y/o bloquear selector
   defaultEventType?: string
   lockEventType?: boolean
+  // Props para modo edición
+  mode?: "create" | "edit"
+  initialData?: {
+    _id?: string
+    type: string
+    startTime: string
+    endTime?: string
+    notes?: string
+    emotionalState?: string
+    sleepDelay?: number
+    awakeDelay?: number
+    feedingType?: string
+    feedingAmount?: number
+    feedingDuration?: number
+    babyState?: string
+    medicationName?: string
+    medicationDose?: string
+    activityDescription?: string
+    activityDuration?: number
+    activityImpact?: string
+  }
 }
 
 /**
  * Modal simple para registro manual de eventos con fecha/hora específica
  * Basado en registroeventos.md - solo los eventos principales
  */
-export function ManualEventModal({ 
-  open, 
-  onClose, 
-  childId, 
-  childName, 
+export function ManualEventModal({
+  open,
+  onClose,
+  childId,
+  childName,
   onEventRegistered,
   defaultEventType,
   lockEventType,
+  mode = "create",
+  initialData,
 }: ManualEventModalProps) {
   const { toast } = useToast()
   const { userData } = useUser()
@@ -71,6 +94,69 @@ export function ManualEventModal({
       setStartTime(getDefaultStartTimeForType(defaultEventType))
     }
   }, [open, defaultEventType])
+
+  // Cargar datos en modo edición
+  useEffect(() => {
+    if (open && mode === "edit" && initialData) {
+      // Campos generales
+      setEventType(initialData.type)
+      setStartDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
+      setStartTime(format(new Date(initialData.startTime), "HH:mm"))
+
+      if (initialData.endTime) {
+        setEndDate(format(new Date(initialData.endTime), "yyyy-MM-dd"))
+        setEndTime(format(new Date(initialData.endTime), "HH:mm"))
+        setIncludeEndTime(true)
+      }
+
+      setNotes(initialData.notes || "")
+
+      // Campos específicos de sueño
+      if (initialData.sleepDelay !== undefined) {
+        setSleepDelayValue(initialData.sleepDelay.toString())
+      }
+      if (initialData.awakeDelay !== undefined) {
+        setAwakeDelay(initialData.awakeDelay)
+      }
+      if (initialData.emotionalState) {
+        setEmotionalState(initialData.emotionalState as "tranquilo" | "inquieto" | "alterado")
+      }
+
+      // Campos específicos de alimentación
+      if (initialData.feedingType) {
+        setFeedingType(initialData.feedingType as "breast" | "bottle" | "solids")
+      }
+      if (initialData.feedingAmount !== undefined) {
+        setFeedingAmount(initialData.feedingAmount)
+      }
+      if (initialData.feedingDuration !== undefined) {
+        setFeedingDuration(initialData.feedingDuration)
+      }
+      if (initialData.babyState) {
+        setBabyState(initialData.babyState as "awake" | "asleep")
+      }
+
+      // Campos específicos de medicamentos
+      if (initialData.medicationName) {
+        setMedicationName(initialData.medicationName)
+      }
+      if (initialData.medicationDose) {
+        setMedicationDose(initialData.medicationDose)
+      }
+
+      // Campos específicos de actividades
+      if (initialData.activityDescription) {
+        setActivityDescription(initialData.activityDescription)
+      }
+      if (initialData.activityDuration !== undefined) {
+        setActivityDuration(initialData.activityDuration)
+      }
+      if (initialData.activityImpact) {
+        setActivityImpact(initialData.activityImpact as "positive" | "neutral" | "negative")
+      }
+    }
+  }, [open, mode, initialData])
+
   const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"))
   const [startTime, setStartTime] = useState(getDefaultStartTimeForType(initialEventType))
   const [endDate, setEndDate] = useState(format(new Date(), "yyyy-MM-dd"))
@@ -224,20 +310,26 @@ export function ManualEventModal({
       }
       
       // Enviar al backend
-      const response = await fetch("/api/children/events", {
-        method: "POST",
+      const isEditing = mode === "edit" && initialData?._id
+      const endpoint = isEditing
+        ? `/api/children/events/${initialData._id}`
+        : "/api/children/events"
+      const method = isEditing ? "PUT" : "POST"
+
+      const response = await fetch(endpoint, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(eventData),
       })
-      
+
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || errorData.details || "Error al registrar evento")
+        throw new Error(errorData.error || errorData.details || `Error al ${isEditing ? "actualizar" : "registrar"} evento`)
       }
-      
+
       toast({
-        title: "Evento registrado",
-        description: `${currentEventType?.label || "Evento"} registrado exitosamente para ${childName}`,
+        title: isEditing ? "Evento actualizado" : "Evento registrado",
+        description: `${currentEventType?.label || "Evento"} ${isEditing ? "actualizado" : "registrado"} exitosamente para ${childName}`,
       })
       
       // Limpiar y cerrar

@@ -1,7 +1,7 @@
 // 🎯 Componente de globo de evento - Versión completa funcional
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import { Moon, Sun, AlertCircle, Clock } from "lucide-react"
 
 interface Event {
@@ -47,9 +47,10 @@ interface EventGlobeProps {
 }
 
 export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalColumns = 1 }: EventGlobeProps) {
+  const [showTooltip, setShowTooltip] = useState(false)
   const timeData = extractTimeFromISO(event.startTime)
   const endTimeData = event.endTime ? extractTimeFromISO(event.endTime) : null
-  
+
   if (!timeData) return null
   
   const { hours, minutes } = timeData
@@ -192,9 +193,37 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
     }
   }
 
+  // Calcular duración del evento en minutos
+  const calculateDuration = () => {
+    if (!endTimeData) return 0
+    const startMinutes = timeData.hours * 60 + timeData.minutes
+    const endMinutes = endTimeData.hours * 60 + endTimeData.minutes
+    return endMinutes > startMinutes ? endMinutes - startMinutes : 0
+  }
+
+  // Contenido del tooltip
+  const getTooltipContent = () => {
+    const duration = calculateDuration()
+    const durationText = duration > 0
+      ? ` (${Math.floor(duration / 60)}h ${duration % 60}m)`
+      : ""
+
+    return (
+      <div className="text-xs space-y-1">
+        <div className="font-medium">{getName()}</div>
+        <div>
+          {timeData.formatted}
+          {endTimeData && ` - ${endTimeData.formatted}`}
+          {durationText}
+        </div>
+        {event.notes && <div className="text-gray-300 italic">"{event.notes}"</div>}
+      </div>
+    )
+  }
+
   return (
     <div
-      className={`absolute shadow-md px-2 py-1 text-xs font-medium flex items-center justify-center cursor-pointer hover:shadow-lg transition-shadow z-10 ${getColor()} ${isTruncated ? "rounded-t-lg" : "rounded-lg"}`}
+      className={`group relative absolute shadow-md px-2 py-1 text-xs font-medium flex items-center justify-center cursor-pointer hover:shadow-lg transition-shadow z-10 ${getColor()} ${isTruncated ? "rounded-t-lg" : "rounded-lg"}`}
       style={{
         top: `${position}px`,
         height: `${height}px`,
@@ -206,9 +235,20 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
         e.stopPropagation()
         onClick?.(event)
       }}
-      title={`${getName()} - ${timeData.formatted}${endTimeData ? `-${endTimeData.formatted}` : ""}`}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
     >
       {renderContent()}
+
+      {/* Tooltip - Hover en desktop */}
+      {showTooltip && (
+        <div className="absolute left-full top-0 ml-2 bg-gray-900 text-white p-2 rounded shadow-lg transition-opacity duration-200 z-50 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none">
+          {getTooltipContent()}
+          {/* Flecha del tooltip */}
+          <div className="absolute right-full top-2 border-4 border-transparent border-r-gray-900" />
+        </div>
+      )}
+
       {/* Indicador de continuacion al dia siguiente */}
       {isTruncated && (
         <div className="absolute bottom-0 left-0 right-0 h-3 flex items-center justify-center bg-black/20 rounded-b-none">

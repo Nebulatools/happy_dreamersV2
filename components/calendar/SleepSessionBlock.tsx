@@ -3,7 +3,7 @@
 
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import { Moon, Sun, AlertCircle } from "lucide-react"
 import { format, differenceInMinutes, parseISO } from "date-fns"
 import { cn } from "@/lib/utils"
@@ -46,7 +46,8 @@ export function SleepSessionBlock({
   isContinuationFromPrevious = false,
   continuesNextDay = false,
 }: SleepSessionBlockProps) {
-  
+  const [showTooltip, setShowTooltip] = useState(false)
+
   // Calcular posición vertical según la hora de inicio
   const calculateStartPosition = () => {
     // Para continuaciones del día anterior, empezar desde medianoche (00:00)
@@ -234,12 +235,49 @@ export function SleepSessionBlock({
       </div>
     )
   }
-  
+
+  // Función para obtener duración total en texto formateado
+  const getTotalDuration = () => {
+    if (!endTime) return ""
+    try {
+      const start = parseISO(originalStartTime || startTime)
+      const end = parseISO(originalEndTime || endTime)
+      const minutes = differenceInMinutes(end, start)
+      const hours = Math.floor(minutes / 60)
+      const mins = minutes % 60
+      if (mins === 0) return `${hours}h`
+      return `${hours}h ${mins}m`
+    } catch {
+      return ""
+    }
+  }
+
+  // Contenido del tooltip
+  const getTooltipContent = () => {
+    const duration = getTotalDuration()
+
+    return (
+      <div className="text-xs space-y-1">
+        <div className="font-medium">Sesión de sueño</div>
+        <div>
+          {formatTime(originalStartTime || startTime)}
+          {endTime && ` - ${formatTime(originalEndTime || endTime)}`}
+          {duration && ` (${duration})`}
+        </div>
+        {nightWakings.length > 0 && (
+          <div className="text-gray-300">
+            {nightWakings.length} {nightWakings.length === 1 ? "despertar" : "despertares"}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   // SUEÑO COMPLETADO - Con gradiente completo
   return (
     <div
       className={cn(
-        "absolute left-2 right-2 cursor-pointer border border-white/10 backdrop-blur-sm",
+        "group relative absolute left-2 right-2 cursor-pointer border border-white/10 backdrop-blur-sm",
         !isContinuationFromPrevious && !continuesNextDay && "rounded-lg",
         isContinuationFromPrevious && !continuesNextDay && "rounded-b-lg",
         !isContinuationFromPrevious && continuesNextDay && "rounded-t-lg",
@@ -251,7 +289,18 @@ export function SleepSessionBlock({
         background: "linear-gradient(to bottom, rgba(59, 130, 246, 0.18), rgba(139, 92, 246, 0.15), rgba(251, 191, 36, 0.12))",
       }}
       onClick={onClick}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
     >
+      {/* Tooltip - Hover en desktop */}
+      {showTooltip && (
+        <div className="absolute left-full top-4 ml-2 bg-gray-900 text-white p-2 rounded shadow-lg transition-opacity duration-200 z-50 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none">
+          {getTooltipContent()}
+          {/* Flecha del tooltip */}
+          <div className="absolute right-full top-2 border-4 border-transparent border-r-gray-900" />
+        </div>
+      )}
+
       {/* Indicador de continuación desde día anterior */}
       {isContinuationFromPrevious && (
         <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-blue-500/40 to-transparent flex items-center justify-center">
