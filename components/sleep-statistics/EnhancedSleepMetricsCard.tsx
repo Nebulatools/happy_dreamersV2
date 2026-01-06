@@ -460,97 +460,184 @@ export default function EnhancedSleepMetricsCard({ childId, dateRange = "7-days"
           className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
         >
           {/* Hora de Despertar */}
-          <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl p-4 border border-orange-200">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-yellow-500 rounded-lg flex items-center justify-center shadow">
-                <Clock className="w-6 h-6 text-white" />
+          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-yellow-100 rounded-xl flex items-center justify-center">
+                <Sun className="w-6 h-6 text-orange-600" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-gray-600 font-medium">Hora de Despertar</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {hasActivePlan && planTargets.wakeTime
-                    ? planTargets.wakeTime
-                    : morningWakeAvg || "--:--"}
-                </p>
+                <p className="text-sm font-semibold text-gray-900">Hora de Despertar</p>
               </div>
             </div>
-            <Badge variant={hasActivePlan && planTargets.wakeTime ? "default" : getWakeTimeStatus(morningWakeAvg).variant} className="text-xs">
-              {hasActivePlan && planTargets.wakeTime ? "Hora ideal del plan" : getWakeTimeStatus(morningWakeAvg).label}
-            </Badge>
-            {hasActivePlan && morningWakeAvg && (
-              <p className="text-xs text-gray-600 mt-2">Real: {morningWakeAvg} · {planComparisons.wake}</p>
+
+            {/* Valor principal - hora real */}
+            <div className="mb-4">
+              <p className="text-4xl font-bold text-gray-900">
+                {morningWakeAvg || "--:--"}
+              </p>
+            </div>
+
+            {/* Comparación con plan */}
+            {hasActivePlan && planTargets.wakeTime && (
+              <div className="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                <p className="text-xs text-blue-900 font-medium mb-2">Hora ideal del plan</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-lg font-bold text-blue-900">{planTargets.wakeTime}</p>
+                  {morningWakeAvg && morningWakeAvg !== "--:--" && (
+                    <Badge
+                      variant={planComparisons.wake.startsWith('-') ? 'good' : 'poor'}
+                      className="text-xs font-semibold"
+                    >
+                      {planComparisons.wake}
+                    </Badge>
+                  )}
+                </div>
+              </div>
             )}
+
+            {/* Estado */}
+            <div className="flex items-center justify-between">
+              <Badge variant={wakeTimeStatus.variant} className="text-xs">
+                {wakeTimeStatus.label}
+              </Badge>
+            </div>
           </div>
 
           {/* Sueño nocturno (promedio diario) */}
-          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-200">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-lg flex items-center justify-center shadow">
-                <Moon className="w-6 h-6 text-white" />
+          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-xl flex items-center justify-center">
+                <Moon className="w-6 h-6 text-blue-600" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-gray-600 font-medium">Sueño nocturno</p>
-                <p className="text-2xl font-bold text-gray-900">{formatDuration(breakdown.nightSleepHours)}</p>
+                <p className="text-sm font-semibold text-gray-900">Sueño nocturno</p>
               </div>
             </div>
-            {hasActivePlan && (
-              <p className="text-xs text-gray-600">{planComparisons.night}</p>
+
+            {/* Valor principal - duración real */}
+            <div className="mb-4">
+              <p className="text-4xl font-bold text-gray-900">
+                {formatDuration(breakdown.nightSleepHours)}
+              </p>
+            </div>
+
+            {/* Comparación con plan */}
+            {hasActivePlan && planTargets.nightHours && (
+              <div className="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                <p className="text-xs text-blue-900 font-medium mb-2">Duración ideal del plan</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-lg font-bold text-blue-900">{formatDuration(planTargets.nightHours)}</p>
+                  {breakdown.nightSleepHours > 0 && (
+                    <Badge
+                      variant={planComparisons.night.startsWith('-') ? 'poor' : 'good'}
+                      className="text-xs font-semibold"
+                    >
+                      {planComparisons.night}
+                    </Badge>
+                  )}
+                </div>
+              </div>
             )}
+
+            {/* Estado */}
+            <div className="flex items-center justify-between">
+              <Badge variant="consistent" className="text-xs">
+                Promedio nocturno
+              </Badge>
+            </div>
           </div>
 
           {/* Hora de Acostarse */}
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-500 rounded-lg flex items-center justify-center shadow">
-                <Moon className="w-6 h-6 text-white" />
+          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl flex items-center justify-center">
+                <Moon className="w-6 h-6 text-purple-600" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-gray-600 font-medium">Hora de Acostarse</p>
-                <p className="text-2xl font-bold text-gray-900">{sleepData.avgBedtime}</p>
+                <p className="text-sm font-semibold text-gray-900">Hora de Acostarse</p>
               </div>
             </div>
+
+            {/* Valor principal - hora real */}
+            <div className="mb-4">
+              <p className="text-4xl font-bold text-gray-900">
+                {sleepData.avgBedtime}
+              </p>
+            </div>
+
+            {/* Comparación con plan */}
+            {hasActivePlan && planTargets.bedtime && (
+              <div className="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                <p className="text-xs text-blue-900 font-medium mb-2">Hora ideal del plan</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-lg font-bold text-blue-900">{planTargets.bedtime}</p>
+                  {sleepData.avgBedtime && sleepData.avgBedtime !== "--:--" && (
+                    <Badge
+                      variant={planComparisons.bedtime.startsWith('-') ? 'good' : 'poor'}
+                      className="text-xs font-semibold"
+                    >
+                      {planComparisons.bedtime}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Estado y variación */}
             <div className="flex items-center justify-between">
               <Badge variant={bedtimeStatus.variant} className="text-xs">
                 {bedtimeStatus.label}
               </Badge>
-              <span className="text-xs text-gray-500">±{Math.round(sleepData.bedtimeVariation)} min</span>
+              <span className="text-xs text-gray-500 font-medium">±{Math.round(sleepData.bedtimeVariation)} min</span>
             </div>
-            {hasActivePlan && (
-              <p className="text-xs text-gray-600 mt-2">{planComparisons.bedtime}</p>
-            )}
           </div>
 
           {/* Despertares Nocturnos */}
-          <div className="bg-gradient-to-r from-yellow-50 to-amber-50 rounded-xl p-4 border border-yellow-200">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-lg flex items-center justify-center shadow">
-                <AlertCircle className="w-6 h-6 text-white" />
+          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-yellow-100 to-amber-100 rounded-xl flex items-center justify-center">
+                <AlertCircle className="w-6 h-6 text-amber-600" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-gray-600 font-medium">Despertares por Noche</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {nightWakingsDetails.daysWithWakeups > 0
-                    ? nightWakingsDetails.minPerNight === nightWakingsDetails.maxPerNight
-                      ? nightWakingsDetails.minPerNight
-                      : `${nightWakingsDetails.minPerNight}-${nightWakingsDetails.maxPerNight}`
-                    : "0"}
-                </p>
+                <p className="text-sm font-semibold text-gray-900">Despertares por Noche</p>
               </div>
             </div>
-            <div className="flex items-center justify-between mb-1">
+
+            {/* Valor principal - número de despertares */}
+            <div className="mb-4">
+              <p className="text-4xl font-bold text-gray-900">
+                {nightWakingsDetails.daysWithWakeups > 0
+                  ? nightWakingsDetails.minPerNight === nightWakingsDetails.maxPerNight
+                    ? nightWakingsDetails.minPerNight
+                    : `${nightWakingsDetails.minPerNight}-${nightWakingsDetails.maxPerNight}`
+                  : "0"}
+              </p>
+            </div>
+
+            {/* Información adicional del período */}
+            {nightWakingsDetails.daysWithWakeups > 0 && (
+              <div className="mb-4 p-3 bg-amber-50 rounded-xl border border-amber-100">
+                <p className="text-xs text-amber-900 font-medium mb-1">Frecuencia en el período</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-amber-900">
+                    {nightWakingsDetails.daysWithWakeups} de {nightWakingsDetails.totalDays} noches
+                  </p>
+                  <span className="text-xs text-amber-700">
+                    {Math.round((nightWakingsDetails.daysWithWakeups / nightWakingsDetails.totalDays) * 100)}%
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Estado */}
+            <div className="flex items-center justify-between">
               <Badge variant={wakeupsStatus.variant} className="text-xs">
                 {wakeupsStatus.label}
               </Badge>
-            </div>
-            <div className="text-xs text-gray-600 space-y-0.5">
-              <p>{nightWakingsDetails.daysWithWakeups} de {nightWakingsDetails.totalDays} dias</p>
-              {nightWakingsDetails.daysWithWakeups > 0 && (
-                <p className="text-gray-500">
-                  {nightWakingsDetails.minPerNight === nightWakingsDetails.maxPerNight
-                    ? `${nightWakingsDetails.minPerNight} por noche`
-                    : `${nightWakingsDetails.minPerNight}-${nightWakingsDetails.maxPerNight} por noche`
-                  }
-                </p>
+              {nightWakingsDetails.daysWithWakeups === 0 && (
+                <span className="text-xs text-gray-500 font-medium">
+                  0 de {nightWakingsDetails.totalDays} noches
+                </span>
               )}
             </div>
           </div>

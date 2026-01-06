@@ -476,7 +476,7 @@ export default function DashboardPage() {
           <PlanSummaryCard plan={activePlan} isLoading={planLoading} error={planError} />
         )}
 
-        {/* Resumen visual de métricas clave (gráfica compuesta) */}
+        {/* Métricas clave de sueño */}
         {activeChildId ? (
           <Suspense fallback={
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
@@ -487,11 +487,10 @@ export default function DashboardPage() {
               ))}
             </div>
           }>
-            <SleepMetricsCombinedChart 
-              childId={activeChildId} 
-              dateRange="7-days" 
-              showExtendedRange={isAdmin}
-              cardMode7Days={!isAdmin}
+            <SleepMetricsGrid
+              childId={activeChildId}
+              dateRange="7-days"
+              activePlan={activePlan}
             />
           </Suspense>
         ) : (
@@ -500,6 +499,22 @@ export default function DashboardPage() {
               <p className="text-gray-500">Por favor selecciona un niño desde el menú superior para ver las métricas</p>
             </div>
           </div>
+        )}
+
+        {/* Resumen visual de calendario */}
+        {activeChildId && (
+          <Suspense fallback={
+            <div className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
+              <div className="h-64 bg-gray-200 rounded"></div>
+            </div>
+          }>
+            <SleepMetricsCombinedChart
+              childId={activeChildId}
+              dateRange="7-days"
+              showExtendedRange={isAdmin}
+              cardMode7Days={!isAdmin}
+            />
+          </Suspense>
         )}
 
         {/* Registro de eventos ya se muestra al inicio para padres */}

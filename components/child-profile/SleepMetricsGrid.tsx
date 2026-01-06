@@ -1,11 +1,12 @@
 import React from "react"
-import { Clock, Moon, AlertCircle } from "lucide-react"
+import { Clock, Moon, AlertCircle, Sun } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { differenceInMinutes, parseISO, subDays } from "date-fns"
 import { quantile, median, toHHMM } from "@/lib/stats"
 import { getNightSleepDurationsHours, getNocturnalBedtimes, getInferredWakeTimes, toNocturnalMinutesWithWrap } from "@/lib/sleep-stats"
 import { useEventsCache } from "@/hooks/use-events-cache"
 import { useSleepData } from "@/hooks/use-sleep-data"
+import type { ChildPlan } from "@/types/models"
 
 interface SleepMetric {
   title: string
@@ -17,15 +18,20 @@ interface SleepMetric {
   }
   change: string
   iconBg: string
-  priority?: boolean // Marca si la métrica es prioritaria
+  priority?: boolean
+  // Nuevos campos para comparación con plan
+  planValue?: string
+  planDiff?: string
+  variationRange?: string
 }
 
 interface SleepMetricsGridProps {
   childId: string
   dateRange?: string
+  activePlan?: ChildPlan | null // Plan activo del niño
 }
 
-export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: SleepMetricsGridProps) {
+export default function SleepMetricsGrid({ childId, dateRange = "7-days", activePlan }: SleepMetricsGridProps) {
   const { refreshTrigger, subscribe } = useEventsCache(childId)
   const { data: sleepData, loading, error } = useSleepData(childId, dateRange)
 
@@ -34,6 +40,35 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
     const unsubscribe = subscribe()
     return unsubscribe
   }, [subscribe])
+
+  // Funciones helper para comparación con plan
+  const calculateTimeDifference = (realMinutes: number, planTime: string): string => {
+    const [planHours, planMinutes] = planTime.split(':').map(Number)
+    const planMinutesTotal = planHours * 60 + planMinutes
+    const diff = realMinutes - planMinutesTotal
+
+    const absDiff = Math.abs(diff)
+    const hours = Math.floor(absDiff / 60)
+    const mins = absDiff % 60
+
+    const sign = diff > 0 ? '+' : '-'
+    if (hours === 0) {
+      return `${sign}${mins}m`
+    }
+    return mins > 0 ? `${sign}${hours}h ${mins}m` : `${sign}${hours}h`
+  }
+
+  const calculateDurationDifference = (realHours: number, planHours: number): string => {
+    const diff = realHours - planHours
+    const absDiff = Math.abs(diff)
+    const hours = Math.floor(absDiff)
+    const mins = Math.round((absDiff - hours) * 60)
+
+    const sign = diff > 0 ? '+' : '-'
+    if (hours === 0 && mins === 0) return '0m'
+    if (hours === 0) return `${sign}${mins}m`
+    return mins > 0 ? `${sign}${hours}h ${mins}m` : `${sign}${hours}h`
+  }
 
   const sleepMetrics = React.useMemo(() => {
     if (!sleepData) return []
@@ -67,31 +102,56 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
       return mm > 0 ? `${hh}h ${mm}m` : `${hh}h`
     }
 
+    // Obtener valores del plan si existe
+    const planWakeTime = activePlan?.schedule?.wakeTime || activePlan?.sleepRoutine?.suggestedWakeTime
+    const planBedtime = activePlan?.schedule?.bedtime || activePlan?.sleepRoutine?.suggestedBedtime
+    // Para duración de sueño, calculamos desde bedtime y wakeTime del plan
+    const planSleepDuration = (planBedtime && planWakeTime) ? (() => {
+      const [bedHours, bedMinutes] = planBedtime.split(':').map(Number)
+      const [wakeHours, wakeMinutes] = planWakeTime.split(':').map(Number)
+      let bedMinutesTotal = bedHours * 60 + bedMinutes
+      let wakeMinutesTotal = wakeHours * 60 + wakeMinutes
+      // Si bedtime es después de medianoche (ej: 23:00) y wakeTime es antes (ej: 07:00)
+      if (bedMinutesTotal > wakeMinutesTotal) {
+        wakeMinutesTotal += 24 * 60
+      }
+      return (wakeMinutesTotal - bedMinutesTotal) / 60 // en horas
+    })() : null
+
     return [
       {
-        title: "Hora de despertar (rango típico)",
-        value: wakeMedMin !== null ? `${toHHMM(wakeMedMin)}${(wakeQ25Min!==null&&wakeQ75Min!==null)?` (p25–p75 ${toHHMM(wakeQ25Min)}–${toHHMM(wakeQ75Min)})`:""}` : sleepData.avgWakeTime,
-        icon: <Clock className="w-4 h-4" />,
+        title: "Hora de Despertar",
+        value: wakeMedMin !== null ? toHHMM(wakeMedMin) : sleepData.avgWakeTime,
+        icon: <Sun className="w-5 h-5" />,
         status: getWakeTimeStatus(wakeMedMin !== null ? toHHMM(wakeMedMin) : sleepData.avgWakeTime),
         change: "Hora promedio de despertar matutino",
         iconBg: "bg-gradient-to-br from-orange-100 to-yellow-100",
-        priority: true, // Marca esta métrica como prioritaria
+        priority: true,
+        planValue: planWakeTime,
+        planDiff: (planWakeTime && wakeMedMin !== null) ? calculateTimeDifference(wakeMedMin, planWakeTime) : undefined,
+        variationRange: (wakeQ25Min !== null && wakeQ75Min !== null) ? `±${Math.round((wakeQ75Min - wakeQ25Min) / 2)} min` : undefined,
       },
       {
-        title: "Sueño nocturno (rango típico)",
-        value: `${fmtDur(sleepMed)}${(sleepQ25!==null&&sleepQ75!==null)?` (p25–p75 ${fmtDur(sleepQ25)}–${fmtDur(sleepQ75)})`:""}`,
-        icon: <Moon className="w-4 h-4" />,
+        title: "Sueño nocturno",
+        value: fmtDur(sleepMed),
+        icon: <Moon className="w-5 h-5" />,
         status: getSleepDurationStatus(sleepMed || sleepData.avgSleepDuration),
-        change: `${(sleepMed || sleepData.avgSleepDuration).toFixed(1)}h (mediana)`,
-        iconBg: "bg-[#B7F1C0]",
+        change: "Duración promedio del sueño",
+        iconBg: "bg-gradient-to-br from-blue-100 to-cyan-100",
+        planValue: planSleepDuration ? fmtDur(planSleepDuration) : undefined,
+        planDiff: (planSleepDuration && sleepMed !== null) ? calculateDurationDifference(sleepMed, planSleepDuration) : undefined,
+        variationRange: (sleepQ25 !== null && sleepQ75 !== null) ? `±${fmtDur((sleepQ75 - sleepQ25) / 2)}` : undefined,
       },
       {
-        title: "Hora de acostarse (rango típico)",
-        value: bedMedMin !== null ? `${toHHMM(bedMedMin)}${(bedQ25Min!==null&&bedQ75Min!==null)?` (p25–p75 ${toHHMM(bedQ25Min)}–${toHHMM(bedQ75Min)})`:""}` : sleepData.avgBedtime,
-        icon: <Moon className="w-5 h-4" />,
+        title: "Hora de Acostarse",
+        value: bedMedMin !== null ? toHHMM(bedMedMin) : sleepData.avgBedtime,
+        icon: <Moon className="w-5 h-5" />,
         status: getBedtimeConsistencyStatus(sleepData.bedtimeVariation),
-        change: `±${Math.round(sleepData.bedtimeVariation)} min (variación)`,
-        iconBg: "bg-[#D4C1FF]",
+        change: "Hora promedio de ir a la cama",
+        iconBg: "bg-gradient-to-br from-purple-100 to-pink-100",
+        planValue: planBedtime,
+        planDiff: (planBedtime && bedMedMin !== null) ? calculateTimeDifference(bedMedMin, planBedtime) : undefined,
+        variationRange: `±${Math.round(sleepData.bedtimeVariation)} min`,
       },
       {
         title: "Despertares nocturnos (promedio)",
@@ -102,7 +162,7 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
         iconBg: "bg-[#FFE442]",
       },
     ]
-  }, [sleepData])
+  }, [sleepData, activePlan])
 
 
   // Funciones de formato y estado
@@ -204,40 +264,55 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
             {sleepMetrics.map((metric, index) => (
               <div
                 key={index}
-                className="min-w-[260px] snap-start bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+                className="min-w-[280px] snap-start bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
               >
-                {metric.priority && (
-                  <div className="bg-gradient-to-r from-orange-50 to-yellow-50 px-3 py-2 border-b border-orange-100">
-                    <div className="flex items-center justify-center">
-                      <div className="bg-gradient-to-r from-orange-400 to-yellow-500 text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full">
-                        🌅 Métrica Prioritaria
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div className="p-3">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-600 mb-1 leading-tight">
-                        {metric.title}
-                      </p>
-                      <p className="text-lg font-bold text-[#2F2F2F] leading-snug break-words">
-                        {metric.value}
-                      </p>
-                    </div>
-                    <div className={`w-9 h-9 rounded-lg ${metric.iconBg} flex items-center justify-center ml-3 flex-shrink-0`}>
+                <div className="p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`w-12 h-12 rounded-xl ${metric.iconBg} flex items-center justify-center flex-shrink-0`}>
                       <div className="text-gray-700">
                         {metric.icon}
                       </div>
                     </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {metric.title}
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Badge variant={metric.status.variant} className="text-[10px] font-medium">
+
+                  {/* Valor principal */}
+                  <div className="mb-3">
+                    <p className="text-3xl font-bold text-gray-900">
+                      {metric.value}
+                    </p>
+                  </div>
+
+                  {/* Comparación con plan */}
+                  {metric.planValue && (
+                    <div className="mb-3 p-2 bg-blue-50 rounded-lg border border-blue-100">
+                      <p className="text-xs text-blue-900 font-medium mb-1">Hora ideal del plan</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-blue-900">{metric.planValue}</p>
+                        {metric.planDiff && (
+                          <Badge
+                            variant={metric.planDiff.startsWith('-') ? 'good' : 'poor'}
+                            className="text-xs"
+                          >
+                            {metric.planDiff} vs plan
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Variación y estado */}
+                  <div className="flex items-center justify-between">
+                    <Badge variant={metric.status.variant} className="text-xs">
                       {metric.status.label}
                     </Badge>
-                    <p className="text-[11px] text-gray-600">
-                      {metric.change}
-                    </p>
+                    {metric.variationRange && (
+                      <span className="text-xs text-gray-500">{metric.variationRange}</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -262,50 +337,59 @@ export default function SleepMetricsGrid({ childId, dateRange = "7-days" }: Slee
           </div>
         ) : (
           sleepMetrics.map((metric, index) => (
-            <div 
+            <div
               key={index}
-              className="bg-white rounded-lg md:rounded-2xl border border-gray-100 shadow-sm md:shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02] cursor-pointer"
+              className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
             >
-              {/* Badge de métrica prioritaria */}
-              {metric.priority && (
-                <div className="bg-gradient-to-r from-orange-50 to-yellow-50 px-4 py-2 border-b border-orange-100">
-                  <div className="flex items-center justify-center">
-                    <div className="bg-gradient-to-r from-orange-400 to-yellow-500 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
-                  🌅 Métrica Prioritaria
-                    </div>
-                  </div>
-                </div>
-              )}
-          
               {/* Contenido principal */}
-              <div className="p-3 md:p-6">
-                <div className="flex items-start justify-between mb-3 md:mb-6">
-                  {/* Información de la métrica */}
-                  <div className="flex-1">
-                    <p className="text-xs md:text-sm text-gray-600 mb-1 md:mb-2 leading-tight">
-                      {metric.title}
-                    </p>
-                    <p className="text-lg md:text-4xl font-bold md:font-extrabold text-[#2F2F2F] leading-none">
-                      {metric.value}
-                    </p>
-                  </div>
-
-                  {/* Ícono de la métrica */}
-                  <div className={`w-10 h-10 rounded-xl ${metric.iconBg} flex items-center justify-center ml-4`}>
+              <div className="p-4 md:p-6">
+                {/* Header con ícono y título */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`w-12 h-12 md:w-14 md:h-14 rounded-xl ${metric.iconBg} flex items-center justify-center flex-shrink-0`}>
                     <div className="text-gray-700">
                       {metric.icon}
                     </div>
                   </div>
+                  <div className="flex-1">
+                    <p className="text-sm md:text-base font-semibold text-gray-900">
+                      {metric.title}
+                    </p>
+                  </div>
                 </div>
 
-                {/* Estado y cambio */}
-                <div className="space-y-2">
-                  <Badge variant={metric.status.variant} className="text-xs font-medium">
+                {/* Valor principal - grande y prominente */}
+                <div className="mb-4">
+                  <p className="text-3xl md:text-5xl font-bold text-gray-900">
+                    {metric.value}
+                  </p>
+                </div>
+
+                {/* Comparación con plan - si existe */}
+                {metric.planValue && (
+                  <div className="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                    <p className="text-xs md:text-sm text-blue-900 font-medium mb-2">Hora ideal del plan</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-base md:text-lg font-bold text-blue-900">{metric.planValue}</p>
+                      {metric.planDiff && (
+                        <Badge
+                          variant={metric.planDiff.startsWith('-') ? 'good' : 'poor'}
+                          className="text-xs md:text-sm font-semibold"
+                        >
+                          {metric.planDiff} vs plan
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Estado y variación */}
+                <div className="flex items-center justify-between">
+                  <Badge variant={metric.status.variant} className="text-xs md:text-sm font-medium">
                     {metric.status.label}
                   </Badge>
-                  <p className="text-xs text-gray-600">
-                    {metric.change}
-                  </p>
+                  {metric.variationRange && (
+                    <span className="text-xs md:text-sm text-gray-500 font-medium">{metric.variationRange}</span>
+                  )}
                 </div>
               </div>
             </div>
