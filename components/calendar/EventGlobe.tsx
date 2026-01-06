@@ -213,13 +213,13 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
 
     return (
       <div className="text-xs space-y-1">
-        <div className="font-medium">{getName()}</div>
-        <div>
+        <div className="font-semibold text-gray-900">{getName()}</div>
+        <div className="text-gray-700">
           {timeData.formatted}
           {endTimeData && ` - ${endTimeData.formatted}`}
           {durationText}
         </div>
-        {event.notes && <div className="text-gray-300 italic">"{event.notes}"</div>}
+        {event.notes && <div className="text-gray-600 italic text-[11px]">"{event.notes}"</div>}
       </div>
     )
   }
@@ -268,7 +268,7 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
       {/* Tooltip - Renderizado en document.body usando Portal para escapar del contexto de apilamiento */}
       {showTooltip && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed bg-gray-900 text-white p-2 rounded shadow-lg whitespace-nowrap pointer-events-none"
+          className="fixed bg-white/95 backdrop-blur-sm border border-blue-200/60 text-gray-800 px-3 py-2 rounded-lg shadow-lg whitespace-nowrap pointer-events-none"
           style={{
             left: `${tooltipPosition.x}px`,
             top: `${tooltipPosition.y}px`,
@@ -277,7 +277,8 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
         >
           {getTooltipContent()}
           {/* Flecha del tooltip */}
-          <div className="absolute right-full top-2 border-4 border-transparent border-r-gray-900" />
+          <div className="absolute right-full top-2 border-4 border-transparent border-r-white/95"
+               style={{ filter: 'drop-shadow(-1px 0 0 rgba(191, 219, 254, 0.6))' }} />
         </div>,
         document.body
       )}

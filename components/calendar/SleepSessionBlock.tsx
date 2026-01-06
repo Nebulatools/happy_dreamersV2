@@ -261,14 +261,14 @@ export function SleepSessionBlock({
 
     return (
       <div className="text-xs space-y-1">
-        <div className="font-medium">Sesión de sueño</div>
-        <div>
+        <div className="font-semibold text-gray-900">Sesión de sueño</div>
+        <div className="text-gray-700">
           {formatTime(originalStartTime || startTime)}
           {endTime && ` - ${formatTime(originalEndTime || endTime)}`}
           {duration && ` (${duration})`}
         </div>
         {nightWakings.length > 0 && (
-          <div className="text-gray-300">
+          <div className="text-blue-600 font-medium text-[11px]">
             {nightWakings.length} {nightWakings.length === 1 ? "despertar" : "despertares"}
           </div>
         )}
@@ -385,7 +385,7 @@ export function SleepSessionBlock({
       {/* Tooltip - Renderizado en document.body usando Portal para escapar del contexto de apilamiento */}
       {showTooltip && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed bg-gray-900 text-white p-2 rounded shadow-lg whitespace-nowrap pointer-events-none"
+          className="fixed bg-white/95 backdrop-blur-sm border border-blue-200/60 text-gray-800 px-3 py-2 rounded-lg shadow-lg whitespace-nowrap pointer-events-none"
           style={{
             left: `${tooltipPosition.x}px`,
             top: `${tooltipPosition.y}px`,
@@ -394,7 +394,8 @@ export function SleepSessionBlock({
         >
           {getTooltipContent()}
           {/* Flecha del tooltip */}
-          <div className="absolute right-full top-2 border-4 border-transparent border-r-gray-900" />
+          <div className="absolute right-full top-2 border-4 border-transparent border-r-white/95"
+               style={{ filter: 'drop-shadow(-1px 0 0 rgba(191, 219, 254, 0.6))' }} />
         </div>,
         document.body
       )}
