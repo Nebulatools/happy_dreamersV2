@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { connectToDatabase } from "@/lib/mongodb"
 
 export async function GET(req: Request) {
   try {
@@ -16,8 +16,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: "Acceso denegado" }, { status: 403 })
     }
 
-    const client = await clientPromise
-    const db = client.db()
+    const { db } = await connectToDatabase()
 
     const today = new Date()
     const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)

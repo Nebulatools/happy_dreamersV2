@@ -767,8 +767,188 @@ Co-Authored-By: Claude Sonnet 4.5"
 
 ---
 
+## 🐛 Nuevo Bug Encontrado - Tooltips en Calendario (Pruebas Adicionales)
+
+### Descripción del Problema
+
+Durante las pruebas adicionales de los tooltips implementados en Fix #3, se descubrió que aunque los tooltips aparecen correctamente en algunos casos, **están siendo tapados por otros eventos del calendario** cuando hay eventos adyacentes.
+
+**Escenario problemático**:
+- Cuando un evento está entre dos eventos (por ejemplo, evento del medio día entre eventos de la mañana y tarde)
+- El tooltip aparece detrás del evento adyacente
+- El usuario no puede ver la información completa del tooltip
+
+**Evidencia**:
+- Screenshot del usuario muestra tooltip de "Siesta 12:00-14:00" siendo tapado parcialmente por evento de "1h 30m" a la izquierda
+- Inspección con DevTools mostró que tooltips tienen `z-index: 40` en lugar de `z-index: 9999`
+
+### Causa Raíz
+
+El problema tiene dos componentes:
+
+1. **Contexto de apilamiento (Stacking Context)**:
+   - Los tooltips usan `position: absolute` con `z-index: 50` (implementación original)
+   - Como están dentro de elementos padre con `position: absolute`, el z-index es relativo al contenedor
+   - Otros eventos hermanos con el mismo z-index o posterior en el DOM los tapan
+
+2. **Hot Module Replacement no aplicó cambios**:
+   - Se implementó solución con `position: fixed` y `z-index: 9999`
+   - Next.js dev server no recargó los cambios estructurales (nuevos hooks, refs)
+   - Hard refresh (cmd+shift+r) no fue suficiente
+   - Requiere **reinicio completo del servidor de desarrollo**
+
+### Solución Implementada (Pendiente de Verificación)
+
+**Archivos modificados**:
+- `components/calendar/EventGlobe.tsx`
+- `components/calendar/SleepSessionBlock.tsx`
+
+**Cambios realizados**:
+
+1. **Agregar estado y ref para posicionamiento dinámico**:
+   ```typescript
+   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
+   const eventRef = React.useRef<HTMLDivElement>(null)
+   // (blockRef para SleepSessionBlock)
+   ```
+
+2. **Calcular posición del tooltip con getBoundingClientRect()**:
+   ```typescript
+   const handleMouseEnter = () => {
+     if (eventRef.current) {
+       const rect = eventRef.current.getBoundingClientRect()
+       setTooltipPosition({
+         x: rect.right + 8, // 8px margen desde borde derecho
+         y: rect.top // (+ 16 para SleepSessionBlock)
+       })
+     }
+     setShowTooltip(true)
+   }
+   ```
+
+3. **Cambiar tooltip a position: fixed con coordenadas absolutas**:
+   ```typescript
+   {showTooltip && (
+     <div
+       className="fixed bg-gray-900 text-white p-2 rounded shadow-lg whitespace-nowrap pointer-events-none"
+       style={{
+         left: `${tooltipPosition.x}px`,
+         top: `${tooltipPosition.y}px`,
+         zIndex: 9999  // Valor muy alto, fuera del contexto del calendario
+       }}
+     >
+       {getTooltipContent()}
+       {/* Flecha del tooltip */}
+       <div className="absolute right-full top-2 border-4 border-transparent border-r-gray-900" />
+     </div>
+   )}
+   ```
+
+**Por qué esta solución funciona**:
+- `position: fixed` posiciona el elemento relativo a la **ventana del navegador**, no al contenedor padre
+- Esto saca completamente el tooltip del contexto de apilamiento del calendario
+- `getBoundingClientRect()` obtiene las coordenadas exactas del evento en la pantalla
+- El tooltip se renderiza como elemento "flotante" independiente con máxima prioridad (z-index: 9999)
+
+### Estado Actual
+
+**✅ Implementación completada**:
+- Código modificado en ambos componentes
+- Build exitoso (`npm run build` compiló sin errores)
+- Cambios commiteados al repositorio
+
+**⏳ Pendiente de verificación**:
+- Requiere **reiniciar servidor de desarrollo** (`npm run dev`)
+- Probar tooltips después del reinicio
+- Verificar que tooltips aparecen por encima de todos los eventos
+- Confirmar que z-index es 9999 (no 40)
+
+### Pasos para Verificar el Fix
+
+1. **Detener servidor de desarrollo**:
+   ```bash
+   # En terminal donde corre npm run dev
+   Ctrl + C
+   ```
+
+2. **Reiniciar servidor**:
+   ```bash
+   npm run dev
+   ```
+
+3. **Esperar compilación completa**:
+   - Verificar que termine sin errores
+   - Esperar mensaje "compiled successfully"
+
+4. **Recargar navegador**:
+   - Hard refresh: `Cmd + Shift + R` (Mac) o `Ctrl + Shift + R` (Windows)
+   - Navegar a calendario con eventos
+
+5. **Probar tooltips**:
+   - Hacer hover sobre eventos entre otros eventos
+   - Verificar que tooltip aparece completamente visible
+   - Confirmar que no es tapado por eventos adyacentes
+
+6. **Validar con DevTools** (opcional):
+   ```javascript
+   // En consola del navegador
+   const tooltip = document.querySelector('.fixed.bg-gray-900')
+   if (tooltip) {
+     console.log('Z-index:', window.getComputedStyle(tooltip).zIndex)
+     console.log('Position:', window.getComputedStyle(tooltip).position)
+   }
+   // Debe mostrar: z-index: 9999, position: fixed
+   ```
+
+### Debugging Notes
+
+**Si los tooltips siguen sin aparecer después del reinicio**:
+
+1. **Verificar que el código se compiló**:
+   - Revisar terminal del dev server
+   - Buscar errores de compilación
+   - Verificar que los archivos modificados están incluidos
+
+2. **Limpiar cache de Next.js**:
+   ```bash
+   rm -rf .next
+   npm run dev
+   ```
+
+3. **Verificar imports de React**:
+   - Asegurar que `React.useRef` está disponible
+   - Verificar que no hay conflictos de nombres
+
+4. **Inspeccionar DOM en tiempo real**:
+   - Hacer hover sobre evento
+   - Inspeccionar elemento con DevTools
+   - Buscar elemento con className "fixed bg-gray-900"
+   - Verificar si se está renderizando pero invisible
+
+**Si el z-index sigue siendo 40**:
+
+1. **Verificar que style inline se aplica**:
+   - El `style={{ zIndex: 9999 }}` debería tener mayor especificidad que clases
+   - Revisar si hay `!important` en alguna clase de Tailwind
+
+2. **Buscar conflictos de CSS**:
+   - Verificar si hay estilos globales sobrescribiendo
+   - Revisar `globals.css` o archivos de componentes
+
+3. **Usar inline style con !important** (último recurso):
+   ```typescript
+   style={{
+     left: `${tooltipPosition.x}px`,
+     top: `${tooltipPosition.y}px`,
+     zIndex: '9999 !important'  // Como string con !important
+   }}
+   ```
+
+---
+
 **Fin de Documentación de Sesión**
 
-*Última actualización: 2026-01-05*
+*Última actualización: 2026-01-05 (22:00 - Bug adicional de tooltips documentado)*
 *Branch: dev*
-*Commit: e179492 (betatesting fixes) + siguiente commit (dashboard metrics fix)*
+*Commits: e179492 (betatesting fixes) + dashboard metrics fix + tooltip z-index fix (pendiente merge)*
+*Estado: 7 fixes verificados ✅ | 1 fix pendiente de verificación ⏳*
