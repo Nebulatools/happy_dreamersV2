@@ -2,6 +2,7 @@
 "use client"
 
 import React, { useState } from "react"
+import { createPortal } from "react-dom"
 import { Moon, Sun, AlertCircle, Clock } from "lucide-react"
 
 interface Event {
@@ -48,6 +49,8 @@ interface EventGlobeProps {
 
 export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalColumns = 1 }: EventGlobeProps) {
   const [showTooltip, setShowTooltip] = useState(false)
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
+  const eventRef = React.useRef<HTMLDivElement>(null)
   const timeData = extractTimeFromISO(event.startTime)
   const endTimeData = event.endTime ? extractTimeFromISO(event.endTime) : null
 
@@ -221,40 +224,63 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
     )
   }
 
-  return (
-    <div
-      className={`group relative absolute shadow-md px-2 py-1 text-xs font-medium flex items-center justify-center cursor-pointer hover:shadow-lg transition-shadow z-10 ${getColor()} ${isTruncated ? "rounded-t-lg" : "rounded-lg"}`}
-      style={{
-        top: `${position}px`,
-        height: `${height}px`,
-        minHeight: "20px",
-        left: actualLeft,
-        width: actualWidth,
-      }}
-      onClick={(e) => {
-        e.stopPropagation()
-        onClick?.(event)
-      }}
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
-    >
-      {renderContent()}
+  // Calcular posición del tooltip cuando aparece
+  const handleMouseEnter = () => {
+    if (eventRef.current) {
+      const rect = eventRef.current.getBoundingClientRect()
+      setTooltipPosition({
+        x: rect.right + 8, // 8px de margen desde el borde derecho
+        y: rect.top
+      })
+    }
+    setShowTooltip(true)
+  }
 
-      {/* Tooltip - Hover en desktop */}
-      {showTooltip && (
-        <div className="absolute left-full top-0 ml-2 bg-gray-900 text-white p-2 rounded shadow-lg transition-opacity duration-200 z-50 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none">
+  return (
+    <>
+      <div
+        ref={eventRef}
+        className={`group relative absolute shadow-md px-2 py-1 text-xs font-medium flex items-center justify-center cursor-pointer hover:shadow-lg transition-shadow z-10 ${getColor()} ${isTruncated ? "rounded-t-lg" : "rounded-lg"}`}
+        style={{
+          top: `${position}px`,
+          height: `${height}px`,
+          minHeight: "20px",
+          left: actualLeft,
+          width: actualWidth,
+        }}
+        onClick={(e) => {
+          e.stopPropagation()
+          onClick?.(event)
+        }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={() => setShowTooltip(false)}
+      >
+        {renderContent()}
+
+        {/* Indicador de continuacion al dia siguiente */}
+        {isTruncated && (
+          <div className="absolute bottom-0 left-0 right-0 h-3 flex items-center justify-center bg-black/20 rounded-b-none">
+            <span style={{ fontSize: "8px" }}>↓</span>
+          </div>
+        )}
+      </div>
+
+      {/* Tooltip - Renderizado en document.body usando Portal para escapar del contexto de apilamiento */}
+      {showTooltip && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed bg-gray-900 text-white p-2 rounded shadow-lg whitespace-nowrap pointer-events-none"
+          style={{
+            left: `${tooltipPosition.x}px`,
+            top: `${tooltipPosition.y}px`,
+            zIndex: 9999
+          }}
+        >
           {getTooltipContent()}
           {/* Flecha del tooltip */}
           <div className="absolute right-full top-2 border-4 border-transparent border-r-gray-900" />
-        </div>
+        </div>,
+        document.body
       )}
-
-      {/* Indicador de continuacion al dia siguiente */}
-      {isTruncated && (
-        <div className="absolute bottom-0 left-0 right-0 h-3 flex items-center justify-center bg-black/20 rounded-b-none">
-          <span style={{ fontSize: "8px" }}>↓</span>
-        </div>
-      )}
-    </div>
+    </>
   )
 }

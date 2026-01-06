@@ -4,6 +4,7 @@
 "use client"
 
 import React, { useState } from "react"
+import { createPortal } from "react-dom"
 import { Moon, Sun, AlertCircle } from "lucide-react"
 import { format, differenceInMinutes, parseISO } from "date-fns"
 import { cn } from "@/lib/utils"
@@ -47,6 +48,8 @@ export function SleepSessionBlock({
   continuesNextDay = false,
 }: SleepSessionBlockProps) {
   const [showTooltip, setShowTooltip] = useState(false)
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
+  const blockRef = React.useRef<HTMLDivElement>(null)
 
   // Calcular posición vertical según la hora de inicio
   const calculateStartPosition = () => {
@@ -273,33 +276,39 @@ export function SleepSessionBlock({
     )
   }
 
+  // Calcular posición del tooltip cuando aparece
+  const handleMouseEnter = () => {
+    if (blockRef.current) {
+      const rect = blockRef.current.getBoundingClientRect()
+      setTooltipPosition({
+        x: rect.right + 8, // 8px de margen desde el borde derecho
+        y: rect.top + 16 // Un poco más abajo para alinearse mejor
+      })
+    }
+    setShowTooltip(true)
+  }
+
   // SUEÑO COMPLETADO - Con gradiente completo
   return (
-    <div
-      className={cn(
-        "group relative absolute left-2 right-2 cursor-pointer border border-white/10 backdrop-blur-sm",
-        !isContinuationFromPrevious && !continuesNextDay && "rounded-lg",
-        isContinuationFromPrevious && !continuesNextDay && "rounded-b-lg",
-        !isContinuationFromPrevious && continuesNextDay && "rounded-t-lg",
-        className
-      )}
-      style={{
-        top: `${position}px`,
-        height: `${height}px`,
-        background: "linear-gradient(to bottom, rgba(59, 130, 246, 0.18), rgba(139, 92, 246, 0.15), rgba(251, 191, 36, 0.12))",
-      }}
-      onClick={onClick}
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
-    >
-      {/* Tooltip - Hover en desktop */}
-      {showTooltip && (
-        <div className="absolute left-full top-4 ml-2 bg-gray-900 text-white p-2 rounded shadow-lg transition-opacity duration-200 z-50 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none">
-          {getTooltipContent()}
-          {/* Flecha del tooltip */}
-          <div className="absolute right-full top-2 border-4 border-transparent border-r-gray-900" />
-        </div>
-      )}
+    <>
+      <div
+        ref={blockRef}
+        className={cn(
+          "group relative absolute left-2 right-2 cursor-pointer border border-white/10 backdrop-blur-sm",
+          !isContinuationFromPrevious && !continuesNextDay && "rounded-lg",
+          isContinuationFromPrevious && !continuesNextDay && "rounded-b-lg",
+          !isContinuationFromPrevious && continuesNextDay && "rounded-t-lg",
+          className
+        )}
+        style={{
+          top: `${position}px`,
+          height: `${height}px`,
+          background: "linear-gradient(to bottom, rgba(59, 130, 246, 0.18), rgba(139, 92, 246, 0.15), rgba(251, 191, 36, 0.12))",
+        }}
+        onClick={onClick}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={() => setShowTooltip(false)}
+      >
 
       {/* Indicador de continuación desde día anterior */}
       {isContinuationFromPrevious && (
@@ -368,10 +377,28 @@ export function SleepSessionBlock({
           <span className="text-yellow-600" style={{ fontSize: "10px" }}>↓</span>
         </div>
       )}
-      
-      {/* Despertares nocturnos */}
-      {renderNightWakings()}
-    </div>
+
+        {/* Despertares nocturnos */}
+        {renderNightWakings()}
+      </div>
+
+      {/* Tooltip - Renderizado en document.body usando Portal para escapar del contexto de apilamiento */}
+      {showTooltip && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed bg-gray-900 text-white p-2 rounded shadow-lg whitespace-nowrap pointer-events-none"
+          style={{
+            left: `${tooltipPosition.x}px`,
+            top: `${tooltipPosition.y}px`,
+            zIndex: 9999
+          }}
+        >
+          {getTooltipContent()}
+          {/* Flecha del tooltip */}
+          <div className="absolute right-full top-2 border-4 border-transparent border-r-gray-900" />
+        </div>,
+        document.body
+      )}
+    </>
   )
 }
 
