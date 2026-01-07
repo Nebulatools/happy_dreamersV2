@@ -2,58 +2,66 @@
 
 ## 📋 RESUMEN EJECUTIVO
 
-Happy Dreamers implementa una **arquitectura dual de eventos** para separar operaciones diarias de análisis profesional.
+Happy Dreamers implementa una **arquitectura unificada de eventos** con `collection("events")` como única fuente de verdad.
 
-### 🎯 DISEÑO INTENCIONAL
-- **Sistema Operativo**: Para CRUD diario de eventos
-- **Sistema Analítico**: Para IA, análisis profesional y consultas
+### 🎯 DISEÑO SIMPLIFICADO (v5.0 - Enero 2025)
+- **Colección única**: `collection("events")` es la fuente de verdad
+- **Sincronización automática**: Con analytics para IA y análisis profesional
+- **Array legacy eliminado**: `children.events[]` ya no se utiliza
 
 ---
 
-## 🏛️ ARQUITECTURA DUAL
+## 🏛️ ARQUITECTURA UNIFICADA
 
-### 🟦 Sistema Operativo (`children.events[]`)
+### 🟦 Sistema Principal (`collection("events")`)
 
-#### **Propósito**: Operaciones diarias de eventos
-- ✅ Registro rápido de eventos 
+#### **Propósito**: Todas las operaciones de eventos
+- ✅ Registro de eventos (POST)
+- ✅ Consulta de eventos (GET)
+- ✅ Edición de eventos (PUT/PATCH)
+- ✅ Eliminación de eventos (DELETE)
 - ✅ Dashboard y calendario
-- ✅ Edición y eliminación
-- ✅ Validaciones de negocio
+- ✅ Sistema de IA y análisis
 
-#### **Almacenamiento**: Array embebido en `children`
+#### **Almacenamiento**: Colección MongoDB separada
 ```typescript
-children: {
+events: {
   _id: ObjectId,
-  firstName: string,
-  events: [
-    {
-      _id: string,
-      eventType: string,
-      startTime: string,
-      // ... campos específicos
-    }
-  ]
+  childId: ObjectId,
+  parentId: ObjectId,
+  eventType: string,
+  startTime: string,
+  endTime?: string,
+  duration?: number,
+  emotionalState?: string,
+  sleepDelay?: number,
+  // ... campos específicos por tipo
+  createdAt: string,
+  updatedAt?: string
 }
 ```
 
 #### **API**: `/api/children/events`
-- `GET` - Obtener eventos de un niño
-- `POST` - Crear nuevo evento
-- `PUT` - Actualizar evento completo  
-- `PATCH` - Actualización parcial
-- `DELETE` - Eliminar evento
+- `GET` - Lee de `collection("events")`
+- `POST` - Escribe a `collection("events")` + sync analytics
+- `PUT` - Actualiza en `collection("events")` + sync analytics
+- `PATCH` - Actualiza parcial en `collection("events")` + sync analytics
+- `DELETE` - Elimina de `collection("events")` + sync analytics
 
 #### **Componentes que usan**:
 - `SleepButton.tsx`
-- `FeedingButton.tsx` 
+- `FeedingButton.tsx`
 - `MedicationButton.tsx`
 - `ExtraActivityButton.tsx`
 - `ManualEventModal.tsx`
+- `EventEditRouter.tsx`
 - Dashboard y Calendario
+- Sistema de IA (RAG Chat)
+- Análisis de sueño
 
 ---
 
-### 🟨 Sistema Analítico (`collection("events")`)
+### 🟨 Sistema Analítico (Sincronización automática)
 
 #### **Propósito**: Análisis e IA profesional
 - 📊 Sistema RAG/Chat
@@ -186,27 +194,31 @@ export const eventTypes: EventType[] = [
 
 ---
 
-## 🎯 FLUJO DE DATOS
+## 🎯 FLUJO DE DATOS (Simplificado v5.0)
 
 ```mermaid
 graph TD
-    A[Usuario registra evento] --> B[POST /api/children/events]
-    B --> C[Validaciones operativas]
-    C --> D[Guardar en children.events[]]
-    D --> E[Sincronizar a collection('events')]
-    
-    F[Sistema IA/Profesional] --> G[GET /api/events]
-    G --> H[collection('events')]
-    
-    I[Dashboard/Calendario] --> J[GET /api/children/events]
-    J --> K[children.events[]]
-    
-    E --> H
-    
+    A[Usuario registra/edita evento] --> B[API /api/children/events]
+    B --> C[Validaciones]
+    C --> D[collection('events')]
+    D --> E[Sync a analytics]
+
+    F[Dashboard/Calendario] --> G[GET /api/children/events]
+    G --> D
+
+    H[Sistema IA/Profesional] --> I[collection('events')]
+    D --> I
+
     style A fill:#e1f5fe
     style D fill:#c8e6c9
-    style H fill:#fff3e0
+    style I fill:#fff3e0
 ```
+
+### Flujo simplificado:
+1. **Todas las operaciones** (POST, PUT, PATCH, DELETE) van a `collection("events")`
+2. **Sincronización automática** a analytics después de cada operación
+3. **Una sola lectura** - todos leen de `collection("events")`
+4. **Sin duplicación** - no hay array embebido `children.events[]`
 
 ---
 
@@ -244,4 +256,4 @@ graph TD
 
 ---
 
-*Documentación generada el 2025-01-28 - Sistema v4.0*
+*Documentación actualizada el 2025-01-07 - Sistema v5.0 (Arquitectura Unificada)*

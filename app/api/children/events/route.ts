@@ -416,13 +416,14 @@ export async function POST(req: NextRequest) {
       await syncEventToAnalyticsCollection({
         _id: event._id,
         childId: event.childId,
-        parentId: ownerObjectId,
-        createdBy: new ObjectId(session.user.id),
+        parentId: ownerObjectId.toString(),
+        createdBy: session.user.id,
         eventType: event.eventType,
         emotionalState: event.emotionalState,
         startTime: event.startTime,
         endTime: event.endTime,
         duration: event.duration,
+        durationReadable: event.durationReadable,
         notes: event.notes,
         sleepDelay: event.sleepDelay,
         awakeDelay: event.awakeDelay,
@@ -454,7 +455,7 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     )
   } catch (error: any) {
-    logger.error("Error al registrar evento:", error.message, error.stack)
+    logger.error("Error al registrar evento:", { message: error.message, stack: error.stack })
     return NextResponse.json(
       { error: "Error al registrar el evento" },
       { status: 500 }
@@ -591,40 +592,140 @@ export async function PUT(req: NextRequest) {
     // Agregar campos específicos de alimentación si aplica
     if (data.eventType === "feeding") {
       updatedEvent.feedingType = data.feedingType
+      updatedEvent.feedingSubtype = data.feedingSubtype || data.feedingType
       updatedEvent.feedingAmount = data.feedingAmount
       updatedEvent.feedingDuration = data.feedingDuration
       updatedEvent.babyState = data.babyState
       updatedEvent.feedingNotes = data.feedingNotes || ""
     }
 
-    logger.info("Evento a actualizar:", updatedEvent)
-
-    // Actualizar el evento específico en el array de eventos del niño
-    const result = await db.collection("children").updateOne(
-      { 
-        _id: new ObjectId(data.childId),
-        parentId: new ObjectId(accessContext.ownerId),
-        "events._id": data.id,
-      },
-      { $set: { "events.$": updatedEvent } }
-    )
-
-    logger.info("Resultado de la actualización:", result)
-
-    if (result.matchedCount === 0) {
-      logger.error("Evento no encontrado")
-      return NextResponse.json(
-        { error: "Evento no encontrado" },
-        { status: 404 }
-      )
+    // Agregar campos específicos de medicamentos si aplica
+    if (data.eventType === "medication") {
+      updatedEvent.medicationName = data.medicationName || ""
+      updatedEvent.medicationDose = data.medicationDose || ""
+      updatedEvent.medicationTime = data.medicationTime || data.startTime
+      updatedEvent.medicationNotes = data.medicationNotes || ""
     }
 
-    if (result.modifiedCount === 0) {
-      logger.error("No se realizaron cambios en el evento")
-      return NextResponse.json(
-        { message: "No se realizaron cambios en el evento" },
-        { status: 200 }
+    // Agregar campos específicos de actividad extra si aplica
+    if (data.eventType === "extra_activities") {
+      updatedEvent.activityDescription = data.activityDescription || data.description || ""
+      updatedEvent.activityDuration = data.activityDuration || null
+      updatedEvent.activityImpact = data.activityImpact || "neutral"
+      updatedEvent.activityNotes = data.activityNotes || ""
+    }
+
+    // Agregar campos de sueño si aplica
+    if (["sleep", "nap", "night_waking"].includes(data.eventType)) {
+      updatedEvent.sleepDelay = data.sleepDelay || null
+      updatedEvent.awakeDelay = data.awakeDelay || null
+      updatedEvent.didNotSleep = data.didNotSleep || false
+
+      // Calcular duración si hay startTime y endTime
+      if (data.startTime && data.endTime) {
+        if (["sleep", "nap"].includes(data.eventType)) {
+          updatedEvent.duration = calculateSleepDuration(data.startTime, data.endTime, data.sleepDelay)
+        } else if (data.eventType === "night_waking") {
+          updatedEvent.duration = calculateAwakeDuration(data.startTime, data.endTime, data.awakeDelay)
+        }
+        updatedEvent.durationReadable = formatDurationReadable(updatedEvent.duration)
+      }
+    }
+
+    logger.info("Evento a actualizar:", updatedEvent)
+
+    // ACTUALIZAR EN COLECCIÓN CANÓNICA 'events' (fuente única de verdad)
+    const eventsCol = db.collection("events")
+    let eventObjectId: any
+
+    // Intentar convertir el ID a ObjectId
+    try {
+      eventObjectId = new ObjectId(data.id)
+    } catch {
+      eventObjectId = data.id // Usar como string si no es ObjectId válido
+    }
+
+    // Preparar los campos a actualizar (sin _id)
+    const { _id: _ignoreId, ...updateFields } = updatedEvent
+
+    // Buscar y actualizar el evento
+    const result = await eventsCol.updateOne(
+      {
+        _id: eventObjectId,
+        childId: new ObjectId(data.childId),
+      },
+      {
+        $set: {
+          ...updateFields,
+          updatedAt: new Date().toISOString(),
+        }
+      }
+    )
+
+    logger.info("Resultado de la actualización en colección events:", result)
+
+    if (result.matchedCount === 0) {
+      // Intentar buscar con string ID (eventos legacy)
+      const legacyResult = await eventsCol.updateOne(
+        {
+          _id: data.id,
+          childId: new ObjectId(data.childId),
+        },
+        {
+          $set: {
+            ...updateFields,
+            updatedAt: new Date().toISOString(),
+          }
+        }
       )
+
+      if (legacyResult.matchedCount === 0) {
+        logger.error("Evento no encontrado en colección events")
+        return NextResponse.json(
+          { error: "Evento no encontrado" },
+          { status: 404 }
+        )
+      }
+
+      logger.info("Evento actualizado (legacy string ID)")
+    }
+
+    // SINCRONIZAR CON COLECCIÓN ANALYTICS (no bloquear si falla)
+    try {
+      await syncEventToAnalyticsCollection({
+        _id: data.id,
+        childId: data.childId,
+        parentId: accessContext.ownerId,
+        eventType: updatedEvent.eventType,
+        emotionalState: updatedEvent.emotionalState,
+        startTime: updatedEvent.startTime,
+        endTime: updatedEvent.endTime,
+        duration: updatedEvent.duration,
+        durationReadable: updatedEvent.durationReadable,
+        notes: updatedEvent.notes,
+        sleepDelay: updatedEvent.sleepDelay,
+        awakeDelay: updatedEvent.awakeDelay,
+        didNotSleep: updatedEvent.didNotSleep,
+        feedingType: updatedEvent.feedingType,
+        feedingSubtype: updatedEvent.feedingSubtype,
+        feedingAmount: updatedEvent.feedingAmount,
+        feedingDuration: updatedEvent.feedingDuration,
+        babyState: updatedEvent.babyState,
+        feedingNotes: updatedEvent.feedingNotes,
+        medicationName: updatedEvent.medicationName,
+        medicationDose: updatedEvent.medicationDose,
+        medicationTime: updatedEvent.medicationTime,
+        medicationNotes: updatedEvent.medicationNotes,
+        activityDescription: updatedEvent.activityDescription,
+        activityDuration: updatedEvent.activityDuration,
+        activityImpact: updatedEvent.activityImpact,
+        activityNotes: updatedEvent.activityNotes,
+        createdAt: updatedEvent.createdAt,
+      })
+      logger.info(`Evento ${data.id} sincronizado a colección analytics`)
+    } catch (syncError) {
+      logger.warn(`No se pudo sincronizar evento ${data.id} a analytics:`, syncError)
+      // No fallar la operación principal por error de sincronización
     }
 
     return NextResponse.json(
@@ -632,7 +733,7 @@ export async function PUT(req: NextRequest) {
       { status: 200 }
     )
   } catch (error: any) {
-    logger.error("Error al actualizar evento:", error.message, error.stack)
+    logger.error("Error al actualizar evento:", { message: error.message, stack: error.stack })
     return NextResponse.json(
       { error: "Error al actualizar el evento" },
       { status: 500 }
@@ -676,15 +777,6 @@ export async function PATCH(req: NextRequest) {
       throw error
     }
 
-    let child = accessContext.child
-    if (!child?.events) {
-      const childWithEvents = await db.collection("children").findOne(
-        { _id: new ObjectId(data.childId) },
-        { projection: { events: 1, parentId: 1 } }
-      )
-      child = childWithEvents || child
-    }
-
     // Validaciones para sleepDelay y awakeDelay en PATCH
     if (data.sleepDelay !== undefined && data.sleepDelay !== null) {
       if (data.sleepDelay < 0 || data.sleepDelay > 180) {
@@ -706,96 +798,137 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
+    // ACTUALIZAR EN COLECCIÓN CANÓNICA 'events' (fuente única de verdad)
+    const eventsCol = db.collection("events")
+    let eventObjectId: any
+
+    // Intentar convertir el ID a ObjectId
+    try {
+      eventObjectId = new ObjectId(data.eventId)
+    } catch {
+      eventObjectId = data.eventId // Usar como string si no es ObjectId válido
+    }
+
+    // Primero obtener el evento existente para acceder a sus datos
+    let existingEvent: any = null
+    try {
+      existingEvent = await eventsCol.findOne({ _id: eventObjectId })
+    } catch {
+      existingEvent = await eventsCol.findOne({ _id: data.eventId })
+    }
+
+    if (!existingEvent) {
+      logger.error("Evento no encontrado en colección events")
+      return NextResponse.json(
+        { error: "Evento no encontrado" },
+        { status: 404 }
+      )
+    }
+
     // Preparar los campos a actualizar
     const updateFields: any = {}
-    if (data.endTime) updateFields["events.$.endTime"] = data.endTime
-    if (data.duration !== undefined) updateFields["events.$.duration"] = data.duration
-    if (data.notes !== undefined) updateFields["events.$.notes"] = data.notes
-    if (data.emotionalState) updateFields["events.$.emotionalState"] = data.emotionalState
-    if (data.sleepDelay !== undefined) updateFields["events.$.sleepDelay"] = data.sleepDelay
-    if (data.awakeDelay !== undefined) updateFields["events.$.awakeDelay"] = data.awakeDelay
-    if (data.didNotSleep !== undefined) updateFields["events.$.didNotSleep"] = data.didNotSleep
-    
+    if (data.endTime) updateFields.endTime = data.endTime
+    if (data.duration !== undefined) updateFields.duration = data.duration
+    if (data.notes !== undefined) updateFields.notes = data.notes
+    if (data.emotionalState) updateFields.emotionalState = data.emotionalState
+    if (data.sleepDelay !== undefined) updateFields.sleepDelay = data.sleepDelay
+    if (data.awakeDelay !== undefined) updateFields.awakeDelay = data.awakeDelay
+    if (data.didNotSleep !== undefined) updateFields.didNotSleep = data.didNotSleep
+
     // Campos específicos de alimentación
-    if (data.feedingType) updateFields["events.$.feedingType"] = data.feedingType
-    if (data.feedingAmount !== undefined) updateFields["events.$.feedingAmount"] = data.feedingAmount
-    if (data.feedingDuration !== undefined) updateFields["events.$.feedingDuration"] = data.feedingDuration
-    if (data.babyState) updateFields["events.$.babyState"] = data.babyState
-    if (data.feedingNotes !== undefined) updateFields["events.$.feedingNotes"] = data.feedingNotes
+    if (data.feedingType) updateFields.feedingType = data.feedingType
+    if (data.feedingAmount !== undefined) updateFields.feedingAmount = data.feedingAmount
+    if (data.feedingDuration !== undefined) updateFields.feedingDuration = data.feedingDuration
+    if (data.babyState) updateFields.babyState = data.babyState
+    if (data.feedingNotes !== undefined) updateFields.feedingNotes = data.feedingNotes
 
     // CALCULAR DURACIÓN AUTOMÁTICAMENTE si se está agregando endTime y no hay duration explícita
-    if (data.endTime && data.duration === undefined) {
-      // Primero necesitamos obtener el evento para acceder a startTime y delays
-      const existingEvent = child?.events?.find((e: any) => e._id === data.eventId)
-      
-      if (existingEvent && existingEvent.startTime) {
-        // Para eventos de sueño/siesta, usar calculateSleepDuration
-        if (["sleep", "nap"].includes(existingEvent.eventType)) {
-          const sleepDelay = data.sleepDelay !== undefined ? data.sleepDelay : existingEvent.sleepDelay
-          const calculatedDuration = calculateSleepDuration(existingEvent.startTime, data.endTime, sleepDelay)
-          updateFields["events.$.duration"] = calculatedDuration
-          updateFields["events.$.durationReadable"] = formatDurationReadable(calculatedDuration)
-          logger.info(`Duración calculada automáticamente en PATCH: ${calculatedDuration} minutos (${formatDurationReadable(calculatedDuration)})`)
-        } 
-        // Para eventos night_waking, usar calculateAwakeDuration
-        else if (existingEvent.eventType === "night_waking") {
-          const awakeDelay = data.awakeDelay !== undefined ? data.awakeDelay : existingEvent.awakeDelay
-          const calculatedDuration = calculateAwakeDuration(existingEvent.startTime, data.endTime, awakeDelay)
-          updateFields["events.$.duration"] = calculatedDuration
-          updateFields["events.$.durationReadable"] = formatDurationReadable(calculatedDuration)
-          logger.info(`Duración de despertar calculada automáticamente en PATCH: ${calculatedDuration} minutos (${formatDurationReadable(calculatedDuration)})`)
-        }
+    if (data.endTime && data.duration === undefined && existingEvent.startTime) {
+      // Para eventos de sueño/siesta, usar calculateSleepDuration
+      if (["sleep", "nap"].includes(existingEvent.eventType)) {
+        const sleepDelay = data.sleepDelay !== undefined ? data.sleepDelay : existingEvent.sleepDelay
+        const calculatedDuration = calculateSleepDuration(existingEvent.startTime, data.endTime, sleepDelay)
+        updateFields.duration = calculatedDuration
+        updateFields.durationReadable = formatDurationReadable(calculatedDuration)
+        logger.info(`Duración calculada automáticamente en PATCH: ${calculatedDuration} minutos (${formatDurationReadable(calculatedDuration)})`)
+      }
+      // Para eventos night_waking, usar calculateAwakeDuration
+      else if (existingEvent.eventType === "night_waking") {
+        const awakeDelay = data.awakeDelay !== undefined ? data.awakeDelay : existingEvent.awakeDelay
+        const calculatedDuration = calculateAwakeDuration(existingEvent.startTime, data.endTime, awakeDelay)
+        updateFields.duration = calculatedDuration
+        updateFields.durationReadable = formatDurationReadable(calculatedDuration)
+        logger.info(`Duración de despertar calculada automáticamente en PATCH: ${calculatedDuration} minutos (${formatDurationReadable(calculatedDuration)})`)
       }
     } else if (data.duration !== undefined) {
       // Si se proporciona duration manualmente, también calcular el formato legible
-      updateFields["events.$.durationReadable"] = formatDurationReadable(data.duration)
+      updateFields.durationReadable = formatDurationReadable(data.duration)
     }
-    
+
+    // Agregar timestamp de actualización
+    updateFields.updatedAt = new Date().toISOString()
+
     logger.info("Actualizando evento con campos:", updateFields)
-    
-    // Actualizar el evento específico en el array events del niño
-    const result = await db.collection("children").updateOne(
-      { 
-        _id: new ObjectId(data.childId),
-        parentId: new ObjectId(accessContext.ownerId),
-        "events._id": data.eventId,
-      },
+
+    // Actualizar el evento en la colección events
+    const result = await eventsCol.updateOne(
+      { _id: eventObjectId },
       { $set: updateFields }
     )
 
     logger.info("Resultado de la actualización parcial:", result)
 
     if (result.matchedCount === 0) {
-      // Si no se encontró en el array events, buscar en la colección events
-      const eventResult = await db.collection("events").updateOne(
-        { 
-          _id: data.eventId,
-          childId: data.childId,
-        },
-        { 
-          $set: {
-            endTime: data.endTime,
-            duration: data.duration,
-            ...(data.notes !== undefined && { notes: data.notes }),
-            ...(data.emotionalState && { emotionalState: data.emotionalState }),
-            ...(data.sleepDelay !== undefined && { sleepDelay: data.sleepDelay }),
-            ...(data.awakeDelay !== undefined && { awakeDelay: data.awakeDelay }),
-            ...(data.didNotSleep !== undefined && { didNotSleep: data.didNotSleep }),
-          },
-        }
+      // Intentar con string ID (eventos legacy)
+      const legacyResult = await eventsCol.updateOne(
+        { _id: data.eventId },
+        { $set: updateFields }
       )
-      
-      if (eventResult.matchedCount === 0) {
+
+      if (legacyResult.matchedCount === 0) {
         return NextResponse.json(
           { error: "Evento no encontrado" },
           { status: 404 }
         )
       }
-      
-      return NextResponse.json(
-        { message: "Evento actualizado exitosamente en colección events" },
-        { status: 200 }
-      )
+    }
+
+    // SINCRONIZAR CON COLECCIÓN ANALYTICS (no bloquear si falla)
+    try {
+      await syncEventToAnalyticsCollection({
+        _id: data.eventId,
+        childId: existingEvent.childId?.toString() || data.childId,
+        parentId: existingEvent.parentId?.toString() || accessContext.ownerId,
+        eventType: existingEvent.eventType,
+        emotionalState: updateFields.emotionalState || existingEvent.emotionalState,
+        startTime: existingEvent.startTime,
+        endTime: updateFields.endTime || existingEvent.endTime,
+        duration: updateFields.duration || existingEvent.duration,
+        durationReadable: updateFields.durationReadable || existingEvent.durationReadable,
+        notes: updateFields.notes !== undefined ? updateFields.notes : existingEvent.notes,
+        sleepDelay: updateFields.sleepDelay !== undefined ? updateFields.sleepDelay : existingEvent.sleepDelay,
+        awakeDelay: updateFields.awakeDelay !== undefined ? updateFields.awakeDelay : existingEvent.awakeDelay,
+        didNotSleep: updateFields.didNotSleep !== undefined ? updateFields.didNotSleep : existingEvent.didNotSleep,
+        feedingType: updateFields.feedingType || existingEvent.feedingType,
+        feedingSubtype: existingEvent.feedingSubtype,
+        feedingAmount: updateFields.feedingAmount !== undefined ? updateFields.feedingAmount : existingEvent.feedingAmount,
+        feedingDuration: updateFields.feedingDuration !== undefined ? updateFields.feedingDuration : existingEvent.feedingDuration,
+        babyState: updateFields.babyState || existingEvent.babyState,
+        feedingNotes: updateFields.feedingNotes !== undefined ? updateFields.feedingNotes : existingEvent.feedingNotes,
+        medicationName: existingEvent.medicationName,
+        medicationDose: existingEvent.medicationDose,
+        medicationTime: existingEvent.medicationTime,
+        medicationNotes: existingEvent.medicationNotes,
+        activityDescription: existingEvent.activityDescription,
+        activityDuration: existingEvent.activityDuration,
+        activityImpact: existingEvent.activityImpact,
+        activityNotes: existingEvent.activityNotes,
+        createdAt: existingEvent.createdAt,
+      })
+      logger.info(`Evento ${data.eventId} sincronizado a colección analytics`)
+    } catch (syncError) {
+      logger.warn(`No se pudo sincronizar evento ${data.eventId} a analytics:`, syncError)
+      // No fallar la operación principal por error de sincronización
     }
 
     return NextResponse.json(
@@ -865,18 +998,13 @@ export async function DELETE(req: NextRequest) {
 
       // Si no se eliminó, intentar con string (eventos antiguos)
       if (deletedFromEvents === 0) {
-        deleteResult = await eventsCol.deleteOne({ _id: eventId })
+        deleteResult = await eventsCol.deleteOne({ _id: eventId as any })
         deletedFromEvents = deleteResult.deletedCount || 0
         logger.info(`Eliminado de colección events (string): ${deletedFromEvents}`)
       }
     } catch (e) {
       logger.warn("Error eliminando de colección events:", e)
     }
-
-    // LEGACY DEPRECADO: Ya no eliminamos del array embebido children.events
-    // Todos los eventos nuevos se guardan en la coleccion 'events'
-    // Si deletedFromEvents > 0, el evento se elimino correctamente
-    // Si deletedFromEvents === 0, el evento no existia o era muy antiguo
 
     // Verificar que se elimino de la coleccion events
     if (deletedFromEvents === 0) {
@@ -901,7 +1029,7 @@ export async function DELETE(req: NextRequest) {
       { status: 200 }
     )
   } catch (error: any) {
-    logger.error("Error al eliminar evento:", error.message, error.stack)
+    logger.error("Error al eliminar evento:", { message: error.message, stack: error.stack })
     return NextResponse.json(
       { error: "Error al eliminar el evento" },
       { status: 500 }

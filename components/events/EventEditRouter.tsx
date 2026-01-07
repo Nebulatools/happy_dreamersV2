@@ -69,6 +69,7 @@ export function EventEditRouter({
   if (!event || !open) return null
 
   // Función para actualizar el evento en la base de datos
+  // IMPORTANTE: Preserva TODOS los campos del evento original y sobrescribe solo los editados
   const updateEvent = async (updatedData: any) => {
     setIsProcessing(true)
     try {
@@ -76,7 +77,11 @@ export function EventEditRouter({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          // Preservar todos los campos del evento original
+          ...event,
+          // Sobrescribir con los datos actualizados
           ...updatedData,
+          // Asegurar que childId y eventType siempre estén presentes
           childId: event.childId,
           eventType: event.eventType,
         }),
@@ -215,13 +220,20 @@ export function EventEditRouter({
       <SleepDelayModal
         open={open}
         onClose={onClose}
-        onConfirm={async (delay, emotionalState, notes, _options) => {
+        onConfirm={async (delay, emotionalState, notes, options) => {
+          // Usar valores editados del modal, o los originales si no se editaron
+          const updatedStartTime = options?.startTime || event.startTime
+          const updatedEndTime = options?.endTime !== undefined ? options.endTime : event.endTime
+
           await updateEvent({
+            // Preservar campos del evento original
+            ...event,
+            // Sobrescribir con valores editados
             sleepDelay: delay,
             emotionalState,
             notes,
-            startTime: event.startTime,
-            endTime: event.endTime,
+            startTime: updatedStartTime,
+            endTime: updatedEndTime,
           })
         }}
         childName={childName}
@@ -232,6 +244,7 @@ export function EventEditRouter({
           emotionalState: event.emotionalState,
           notes: event.notes,
           startTime: event.startTime,
+          endTime: event.endTime,  // Ahora pasamos endTime para mostrar en el modal
           eventId: event._id,
         }}
       />

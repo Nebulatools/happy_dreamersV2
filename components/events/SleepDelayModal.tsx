@@ -20,7 +20,11 @@ import { useDevTime } from "@/context/dev-time-context"
 interface SleepDelayModalProps {
   open: boolean
   onClose: () => void
-  onConfirm: (delay: number, emotionalState: string, notes: string, options?: { didNotSleep?: boolean }) => void
+  onConfirm: (delay: number, emotionalState: string, notes: string, options?: {
+    didNotSleep?: boolean
+    startTime?: string
+    endTime?: string | null
+  }) => void
   childName: string
   eventType: "sleep" | "nap"
   mode?: "create" | "edit"
@@ -29,6 +33,7 @@ interface SleepDelayModalProps {
     emotionalState?: string
     notes?: string
     startTime?: string
+    endTime?: string
     eventId?: string
   }
 }
@@ -62,6 +67,22 @@ export function SleepDelayModal({
     }
     return format(getCurrentTime(), "HH:mm")
   })
+  // Estados para hora de despertar (endTime) - solo en modo edicion
+  const [endDate, setEndDate] = useState<string>(() => {
+    if (mode === "edit" && initialData?.endTime) {
+      return format(new Date(initialData.endTime), "yyyy-MM-dd")
+    }
+    return format(getCurrentTime(), "yyyy-MM-dd")
+  })
+  const [endTimeValue, setEndTimeValue] = useState<string>(() => {
+    if (mode === "edit" && initialData?.endTime) {
+      return format(new Date(initialData.endTime), "HH:mm")
+    }
+    return ""
+  })
+  const [hasEndTime, setHasEndTime] = useState<boolean>(() => {
+    return mode === "edit" && !!initialData?.endTime
+  })
   const [isProcessing, setIsProcessing] = useState(false)
   const [didNotSleep, setDidNotSleep] = useState(false)
 
@@ -75,9 +96,19 @@ export function SleepDelayModal({
         setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
         setEventTime(format(new Date(initialData.startTime), "HH:mm"))
       }
+      // Inicializar hora de despertar si existe
+      if (initialData.endTime) {
+        setEndDate(format(new Date(initialData.endTime), "yyyy-MM-dd"))
+        setEndTimeValue(format(new Date(initialData.endTime), "HH:mm"))
+        setHasEndTime(true)
+      } else {
+        setEndDate(format(getCurrentTime(), "yyyy-MM-dd"))
+        setEndTimeValue("")
+        setHasEndTime(false)
+      }
       setDidNotSleep(false)
     }
-  }, [open, mode, initialData])
+  }, [open, mode, initialData, getCurrentTime])
 
   // Opciones rápidas predefinidas para fácil selección
   const quickOptions = [0, 15, 30, 45]
@@ -108,13 +139,38 @@ export function SleepDelayModal({
 
   const handleConfirm = async () => {
     setIsProcessing(true)
-    await onConfirm(selectedDelay, emotionalState, notes, { didNotSleep })
+
+    // Construir opciones con tiempos editados
+    const options: {
+      didNotSleep?: boolean
+      startTime?: string
+      endTime?: string | null
+    } = { didNotSleep }
+
+    // En modo edicion, incluir startTime y endTime editados
+    if (mode === "edit") {
+      // Construir startTime desde fecha/hora editadas
+      const startDateTime = new Date(`${eventDate}T${eventTime}:00`)
+      options.startTime = startDateTime.toISOString()
+
+      // Construir endTime si existe
+      if (hasEndTime && endTimeValue) {
+        const endDateTime = new Date(`${endDate}T${endTimeValue}:00`)
+        options.endTime = endDateTime.toISOString()
+      } else {
+        options.endTime = null
+      }
+    }
+
+    await onConfirm(selectedDelay, emotionalState, notes, options)
     setIsProcessing(false)
     // Reset para próxima vez
     setSelectedDelay(15)
     setEmotionalState("tranquilo")
     setNotes("")
     setDidNotSleep(false)
+    setHasEndTime(false)
+    setEndTimeValue("")
   }
 
   const handleSkip = () => {
@@ -160,33 +216,109 @@ export function SleepDelayModal({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Fecha y hora - Solo visible en modo edición */}
+        {/* Fecha y hora de inicio (cuando se durmio) - Solo visible en modo edición */}
         {mode === "edit" && (
-          <div className="grid grid-cols-2 gap-2 pb-4 border-b">
-            <div className="space-y-2">
-              <Label htmlFor="sleep-date">
-                Fecha
-              </Label>
-              <Input
-                id="sleep-date"
-                type="date"
-                value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
-                className="w-full"
-              />
+          <div className="space-y-3 pb-4 border-b">
+            <div className="text-sm font-medium text-gray-700">
+              Hora de dormir
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="sleep-time">
-                Hora
-              </Label>
-              <Input
-                id="sleep-time"
-                type="time"
-                value={eventTime}
-                onChange={(e) => setEventTime(e.target.value)}
-                className="w-full"
-              />
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <Label htmlFor="sleep-date" className="text-xs text-gray-500">
+                  Fecha
+                </Label>
+                <Input
+                  id="sleep-date"
+                  type="date"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sleep-time" className="text-xs text-gray-500">
+                  Hora
+                </Label>
+                <Input
+                  id="sleep-time"
+                  type="time"
+                  value={eventTime}
+                  onChange={(e) => setEventTime(e.target.value)}
+                  className="w-full"
+                />
+              </div>
             </div>
+          </div>
+        )}
+
+        {/* Fecha y hora de despertar - Solo visible en modo edición si hay endTime */}
+        {mode === "edit" && (
+          <div className="space-y-3 pb-4 border-b">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-gray-700">
+                Hora de despertar
+              </div>
+              {!hasEndTime && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHasEndTime(true)
+                    setEndDate(eventDate)
+                    setEndTimeValue(format(getCurrentTime(), "HH:mm"))
+                  }}
+                  className="text-xs text-blue-600 hover:text-blue-700 underline"
+                >
+                  + Agregar hora de despertar
+                </button>
+              )}
+            </div>
+            {hasEndTime ? (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label htmlFor="wake-date" className="text-xs text-gray-500">
+                    Fecha
+                  </Label>
+                  <Input
+                    id="wake-date"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="wake-time" className="text-xs text-gray-500">
+                    Hora
+                  </Label>
+                  <div className="flex gap-1">
+                    <Input
+                      id="wake-time"
+                      type="time"
+                      value={endTimeValue}
+                      onChange={(e) => setEndTimeValue(e.target.value)}
+                      className="w-full"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setHasEndTime(false)
+                        setEndTimeValue("")
+                      }}
+                      className="px-2 text-gray-400 hover:text-red-500"
+                      title="Quitar hora de despertar"
+                    >
+                      x
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-gray-500 italic">
+                El sueno aun no tiene hora de despertar registrada
+              </div>
+            )}
           </div>
         )}
 

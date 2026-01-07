@@ -54,8 +54,8 @@ export async function PUT(
       throw error
     }
 
-    // Crear el objeto de evento actualizado
-    const updatedEvent = {
+    // Crear el objeto de evento actualizado con TODOS los campos especificos
+    const updatedEvent: Record<string, any> = {
       _id: eventId,
       eventType: data.eventType,
       emotionalState: data.emotionalState || "neutral",
@@ -65,33 +65,81 @@ export async function PUT(
       createdAt: data.createdAt || new Date().toISOString(),
     }
 
+    // Campos especificos de sleep/nap
+    if (data.sleepDelay !== undefined) updatedEvent.sleepDelay = data.sleepDelay
+    if (data.awakeDelay !== undefined) updatedEvent.awakeDelay = data.awakeDelay
+    if (data.didNotSleep !== undefined) updatedEvent.didNotSleep = data.didNotSleep
+
+    // Campos especificos de feeding
+    if (data.feedingType !== undefined) updatedEvent.feedingType = data.feedingType
+    if (data.feedingSubtype !== undefined) updatedEvent.feedingSubtype = data.feedingSubtype
+    if (data.feedingAmount !== undefined) updatedEvent.feedingAmount = data.feedingAmount
+    if (data.feedingDuration !== undefined) updatedEvent.feedingDuration = data.feedingDuration
+    if (data.babyState !== undefined) updatedEvent.babyState = data.babyState
+    if (data.feedingNotes !== undefined) updatedEvent.feedingNotes = data.feedingNotes
+
+    // Campos especificos de medication
+    if (data.medicationName !== undefined) updatedEvent.medicationName = data.medicationName
+    if (data.medicationDose !== undefined) updatedEvent.medicationDose = data.medicationDose
+    if (data.medicationTime !== undefined) updatedEvent.medicationTime = data.medicationTime
+    if (data.medicationNotes !== undefined) updatedEvent.medicationNotes = data.medicationNotes
+
+    // Campos especificos de extra_activities
+    if (data.activityDescription !== undefined) updatedEvent.activityDescription = data.activityDescription
+    if (data.activityDuration !== undefined) updatedEvent.activityDuration = data.activityDuration
+    if (data.activityImpact !== undefined) updatedEvent.activityImpact = data.activityImpact
+    if (data.activityNotes !== undefined) updatedEvent.activityNotes = data.activityNotes
+
+    // Campos calculados
+    if (data.duration !== undefined) updatedEvent.duration = data.duration
+    if (data.durationReadable !== undefined) updatedEvent.durationReadable = data.durationReadable
+
     logger.info("Evento a actualizar:", updatedEvent)
 
-    // Actualizar el evento específico en el array de eventos del niño
-    const result = await db.collection("children").updateOne(
-      { 
-        _id: new ObjectId(data.childId),
-        parentId: new ObjectId(accessContext.ownerId),
-        "events._id": eventId,
-      },
-      { $set: { "events.$": updatedEvent } }
-    )
+    // Primero intentar actualizar en la colección canónica 'events'
+    const eventsCol = db.collection("events")
+    let updatedInEvents = false
 
-    logger.info("Resultado de la actualización:", result)
+    // Buscar el evento en la colección events
+    let eventDoc: any = null
+    try {
+      eventDoc = await eventsCol.findOne({ _id: new ObjectId(eventId) })
+    } catch {
+      // Si no es ObjectId válido, intentar como string
+      eventDoc = await eventsCol.findOne({ _id: eventId as any })
+    }
 
-    if (result.matchedCount === 0) {
-      logger.error("Evento no encontrado")
+    if (eventDoc) {
+      // Verificar que el evento pertenece al niño correcto
+      const eventChildId = eventDoc.childId?.toString?.() || eventDoc.childId
+      if (eventChildId === data.childId) {
+        // Actualizar en la colección events (preservar _id original)
+        const { _id: _ignoreId, ...updateFields } = updatedEvent
+        try {
+          const eventsResult = await eventsCol.updateOne(
+            { _id: new ObjectId(eventId) },
+            { $set: updateFields }
+          )
+          updatedInEvents = eventsResult.modifiedCount > 0 || eventsResult.matchedCount > 0
+          logger.info("Actualizado en colección events:", eventsResult)
+        } catch {
+          // Si falla con ObjectId, intentar con string
+          const eventsResult = await eventsCol.updateOne(
+            { _id: eventId as any },
+            { $set: updateFields }
+          )
+          updatedInEvents = eventsResult.modifiedCount > 0 || eventsResult.matchedCount > 0
+          logger.info("Actualizado en colección events (string id):", eventsResult)
+        }
+      }
+    }
+
+    // Verificar si se actualizó
+    if (!updatedInEvents) {
+      logger.error("Evento no encontrado en colección events")
       return NextResponse.json(
         { error: "Evento no encontrado" },
         { status: 404 }
-      )
-    }
-
-    if (result.modifiedCount === 0) {
-      logger.error("No se realizaron cambios en el evento")
-      return NextResponse.json(
-        { message: "No se realizaron cambios en el evento" },
-        { status: 200 }
       )
     }
 
@@ -100,7 +148,7 @@ export async function PUT(
       { status: 200 }
     )
   } catch (error: any) {
-    logger.error("Error al actualizar evento:", error.message, error.stack)
+    logger.error("Error al actualizar evento:", { message: error.message, stack: error.stack })
     return NextResponse.json(
       { error: "Error al actualizar el evento" },
       { status: 500 }
@@ -140,7 +188,7 @@ export async function DELETE(
     }
 
     if (!eventDoc) {
-      eventDoc = await eventsCol.findOne({ _id: eventId })
+      eventDoc = await eventsCol.findOne({ _id: eventId as any })
     }
 
     const targetChildId = childIdParam || eventDoc?.childId?.toString?.()
@@ -150,9 +198,9 @@ export async function DELETE(
       return NextResponse.json({ error: "No se pudo determinar el niño asociado al evento" }, { status: 400 })
     }
 
-    let accessContext
+    // Verificar acceso al niño (lanza error si no tiene permisos)
     try {
-      accessContext = await resolveChildAccess(db, session.user, targetChildId, "canEditEvents")
+      await resolveChildAccess(db, session.user, targetChildId, "canEditEvents")
     } catch (error) {
       if (error instanceof ChildAccessError) {
         return NextResponse.json({ error: error.message }, { status: error.status })
@@ -167,36 +215,24 @@ export async function DELETE(
       deletedFromEvents = deleteResult.deletedCount || 0
     } catch (error) {
       // Si no es ObjectId válido, intentar como string
-      const deleteResult = await eventsCol.deleteOne({ _id: eventId })
+      const deleteResult = await eventsCol.deleteOne({ _id: eventId as any })
       deletedFromEvents = deleteResult.deletedCount || 0
     }
 
     // Si no se eliminó con ObjectId, intentar string (para eventos antiguos)
     if (deletedFromEvents === 0) {
-      const deleteResult = await eventsCol.deleteOne({ _id: eventId })
+      const deleteResult = await eventsCol.deleteOne({ _id: eventId as any })
       deletedFromEvents = deleteResult.deletedCount || 0
     }
 
     if (deletedFromEvents === 0) {
-      logger.warn("Evento no encontrado en colección events, intentando en children.events")
-    }
-
-    // También eliminar de la colección embebida para compatibilidad
-    const childrenResult = await db.collection("children").updateOne(
-      { 
-        _id: new ObjectId(targetChildId),
-        parentId: new ObjectId(accessContext.ownerId),
-      },
-      { $pull: { events: { _id: eventId } } as any }
-    )
-
-    if (deletedFromEvents === 0 && childrenResult.modifiedCount === 0) {
+      logger.warn("Evento no encontrado en colección events")
       return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 })
     }
 
     return NextResponse.json({ message: "Evento eliminado exitosamente" }, { status: 200 })
   } catch (error: any) {
-    logger.error("Error al eliminar evento:", error.message, error.stack)
+    logger.error("Error al eliminar evento:", { message: error.message, stack: error.stack })
     return NextResponse.json(
       { error: "Error al eliminar el evento" },
       { status: 500 }
