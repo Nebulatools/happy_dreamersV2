@@ -309,8 +309,8 @@ export async function POST(req: NextRequest) {
       createdAt: new Date().toISOString(),
     }
 
-    // Agregar campos específicos de alimentación si aplica
-    if (data.eventType === "feeding") {
+    // Agregar campos específicos de alimentación si aplica (feeding y night_feeding)
+    if (data.eventType === "feeding" || data.eventType === "night_feeding") {
       event.feedingType = data.feedingType
       event.feedingSubtype = data.feedingSubtype || data.feedingType
       event.feedingAmount = data.feedingAmount
