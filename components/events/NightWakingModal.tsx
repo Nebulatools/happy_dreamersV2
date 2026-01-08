@@ -110,13 +110,24 @@ export function NightWakingModal({
 
   const handleConfirm = async () => {
     setIsProcessing(true)
-    
+
     try {
-      // Calcular startTime y endTime basado en awakeDelay
+      // En modo edicion, solo llamar al callback (el PUT lo maneja EventEditRouter)
+      if (mode === "edit") {
+        await onConfirm(selectedDelay, emotionalState, notes)
+        setIsProcessing(false)
+        // Reset para proxima vez
+        setSelectedDelay(15)
+        setEmotionalState("tranquilo")
+        setNotes("")
+        return
+      }
+
+      // Modo create: Calcular startTime y endTime basado en awakeDelay
       const now = getCurrentTime()
       const startTime = new Date(now.getTime() - (selectedDelay * 60 * 1000)) // Restar awakeDelay minutos
       const endTime = now
-      
+
       // Crear evento night_waking completo
       const eventData: Partial<EventData> = {
         childId,
@@ -126,30 +137,30 @@ export function NightWakingModal({
         awakeDelay: selectedDelay,
         emotionalState,
         notes,
-        duration: 0, // Será calculado por el backend (endTime - startTime - awakeDelay)
+        duration: 0, // Sera calculado por el backend (endTime - startTime - awakeDelay)
       }
-      
+
       const response = await fetch("/api/children/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(eventData),
       })
-      
+
       if (!response.ok) {
         throw new Error("Error al registrar despertar nocturno")
       }
-      
+
       // Llamar al callback original para actualizar la UI
       await onConfirm(selectedDelay, emotionalState, notes)
-      
+
     } catch (error) {
       console.error("Error creando despertar nocturno:", error)
-      // Si hay error, aún así llamar al callback para que maneje el error
+      // Si hay error, aun asi llamar al callback para que maneje el error
       await onConfirm(selectedDelay, emotionalState, notes)
     }
-    
+
     setIsProcessing(false)
-    // Reset para próxima vez
+    // Reset para proxima vez
     setSelectedDelay(15)
     setEmotionalState("tranquilo")
     setNotes("")
