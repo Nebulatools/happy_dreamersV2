@@ -276,8 +276,13 @@ export function SleepButton({
   const DisplayIcon = config.icon // Usar el icono de la acción
   
 
-  const combineNotes = (...values: (string | undefined)[]) =>
-    values.filter((val) => val && val.trim().length > 0).join(" | ")
+  const combineNotes = (...values: (string | undefined)[]) => {
+    // Filtrar valores válidos y eliminar duplicados
+    const uniqueNotes = values
+      .filter((val) => val && val.trim().length > 0)
+      .filter((val, index, arr) => arr.indexOf(val) === index)
+    return uniqueNotes.join(" | ")
+  }
 
   const finalizeNightWaking = async (endTime: Date) => {
     if (!nightWakePending) return

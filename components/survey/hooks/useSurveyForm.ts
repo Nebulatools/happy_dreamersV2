@@ -30,7 +30,7 @@ const defaultFormData: Partial<SurveyData> = {
   },
   dinamicaFamiliar: {},
   historial: {},
-  desarrollo: {},
+  desarrolloSalud: {},
   actividadFisica: {},
   rutinaHabitos: {},
 }
@@ -43,7 +43,7 @@ function normalizeSurveyData(data?: Partial<SurveyData>): Partial<SurveyData> {
     informacionFamiliar: { ...data.informacionFamiliar },
     dinamicaFamiliar: { ...data.dinamicaFamiliar },
     historial: { ...(data.historial || {}) },
-    desarrollo: { ...(data.desarrollo || {}) },
+    desarrolloSalud: { ...(data.desarrolloSalud || {}) },
     actividadFisica: { ...(data.actividadFisica || {}) },
     rutinaHabitos: { ...(data.rutinaHabitos || {}) },
   }
@@ -55,9 +55,9 @@ function normalizeSurveyData(data?: Partial<SurveyData>): Partial<SurveyData> {
     }
   }
 
-  if (normalized.actividadFisica?.situacionesHijo && !normalized.desarrollo?.situacionesHijo) {
-    normalized.desarrollo = {
-      ...normalized.desarrollo,
+  if (normalized.actividadFisica?.situacionesHijo && !normalized.desarrolloSalud?.situacionesHijo) {
+    normalized.desarrolloSalud = {
+      ...normalized.desarrolloSalud,
       situacionesHijo: normalized.actividadFisica.situacionesHijo,
     }
   }
@@ -179,9 +179,9 @@ export function useSurveyForm(initialData?: Partial<SurveyData>) {
           ...prevData.historial,
           ...normalized.historial,
         },
-        desarrollo: {
-          ...prevData.desarrollo,
-          ...normalized.desarrollo,
+        desarrolloSalud: {
+          ...prevData.desarrolloSalud,
+          ...normalized.desarrolloSalud,
         },
         actividadFisica: {
           ...prevData.actividadFisica,
@@ -232,7 +232,7 @@ function getStepKey(step: number): string {
     1: "informacionFamiliar",
     2: "dinamicaFamiliar",
     3: "historial",
-    4: "desarrollo",
+    4: "desarrolloSalud",
     5: "actividadFisica",
     6: "rutinaHabitos",
   }

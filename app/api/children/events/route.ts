@@ -303,8 +303,8 @@ export async function POST(req: NextRequest) {
       notes: data.notes || "", // Dejar vacío si no se proporciona
       duration: data.duration || null, // Se calculará automáticamente si es posible
       durationReadable: "", // Se calculará si hay duration
-      sleepDelay: data.sleepDelay || null,
-      awakeDelay: data.awakeDelay || null, // Para eventos night_waking
+      sleepDelay: data.sleepDelay ?? null, // Usar ?? para preservar 0
+      awakeDelay: data.awakeDelay ?? null, // Para eventos night_waking
       didNotSleep: data.didNotSleep || false,
       createdAt: new Date().toISOString(),
     }
