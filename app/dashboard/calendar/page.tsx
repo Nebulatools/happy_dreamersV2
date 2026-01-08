@@ -111,8 +111,32 @@ interface Event {
   endTime?: string;
   notes?: string;
   duration?: number;
-  sleepDelay?: number; // Added missing sleepDelay property
+
+  // Campos específicos de SLEEP/NAP
+  sleepDelay?: number;
   didNotSleep?: boolean;
+
+  // Campos específicos de NIGHT_WAKING
+  awakeDelay?: number;
+
+  // Campos específicos de FEEDING/NIGHT_FEEDING
+  feedingType?: "breast" | "bottle" | "solids";
+  feedingAmount?: number;
+  feedingDuration?: number;
+  babyState?: "awake" | "asleep";
+  feedingNotes?: string;
+
+  // Campos específicos de MEDICATION
+  medicationName?: string;
+  medicationDose?: string;
+  medicationTime?: string;
+  medicationNotes?: string;
+
+  // Campos específicos de EXTRA_ACTIVITIES
+  activityDescription?: string;
+  activityDuration?: number;
+  activityImpact?: "positive" | "neutral" | "negative";
+  activityNotes?: string;
 }
 
 interface Child {
@@ -1213,6 +1237,7 @@ export default function CalendarPage() {
       wake: "Despertar",
       night_waking: "Despertar nocturno",
       feeding: "Alimentación",
+      night_feeding: "Alimentación nocturna",
       medication: "Medicamento",
       activity: "Actividad Extra",
       extra_activities: "Actividad Extra",
@@ -1237,7 +1262,57 @@ export default function CalendarPage() {
     }
     return states[state] || state
   }
-  
+
+  // Funciones helper para formatear campos específicos de eventos
+  const getFeedingTypeName = (type: string) => {
+    const types: Record<string, string> = {
+      breast: "Pecho",
+      bottle: "Biberón",
+      solids: "Sólidos",
+    }
+    return types[type] || type
+  }
+
+  const getBabyStateName = (state: string) => {
+    const states: Record<string, string> = {
+      awake: "Despierto",
+      asleep: "Dormido",
+    }
+    return states[state] || state
+  }
+
+  const getActivityImpactName = (impact: string) => {
+    const impacts: Record<string, string> = {
+      positive: "Positivo",
+      neutral: "Neutral",
+      negative: "Negativo",
+    }
+    return impacts[impact] || impact
+  }
+
+  const formatMinutes = (minutes: number): string => {
+    if (minutes < 60) {
+      return `${minutes} minuto${minutes !== 1 ? 's' : ''}`
+    }
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    if (mins === 0) {
+      return `${hours} hora${hours !== 1 ? 's' : ''}`
+    }
+    return `${hours} hora${hours !== 1 ? 's' : ''} y ${mins} minuto${mins !== 1 ? 's' : ''}`
+  }
+
+  const formatFeedingAmount = (type: string, amount: number): string => {
+    if (type === "breast") {
+      return `${amount} minutos`
+    } else if (type === "bottle") {
+      return `${amount} oz`
+    } else if (type === "solids") {
+      return `${amount} gr`
+    }
+    return `${amount}`
+  }
+
   // Función para manejar el clic en un día del calendario
   const handleDayClick = (day: Date) => {
     setSelectedDateForEvent(day)
@@ -1891,10 +1966,24 @@ export default function CalendarPage() {
                 </div>
               )}
               
-              {/* Información adicional para eventos de sueño */}
-              {selectedEvent.eventType === "sleep" && (
+              {/* Información específica por tipo de evento */}
+
+              {/* SLEEP / NAP */}
+              {(selectedEvent.eventType === "sleep" || selectedEvent.eventType === "nap") && (
                 <div className="border-t pt-3 space-y-2">
-                  <div className="text-sm font-medium text-gray-600">Información del sueño</div>
+                  <div className="text-sm font-medium text-gray-600">
+                    Información del {selectedEvent.eventType === "sleep" ? "sueño" : "siesta"}
+                  </div>
+
+                  {/* Delay para dormirse */}
+                  {typeof selectedEvent.sleepDelay === "number" && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-medium">Tiempo para dormirse:</span>
+                      <span>{formatMinutes(selectedEvent.sleepDelay)}</span>
+                    </div>
+                  )}
+
+                  {/* Duración del sueño */}
                   {selectedEvent.endTime ? (
                     <div className="text-sm text-gray-700">
                       El niño durmió {(() => {
@@ -1909,7 +1998,174 @@ export default function CalendarPage() {
                       })()}
                     </div>
                   ) : (
-                    <div className="text-sm text-gray-700">El niño está durmiendo actualmente</div>
+                    <div className="text-sm text-gray-700">
+                      El niño está durmiendo actualmente
+                    </div>
+                  )}
+
+                  {/* Marcador de intento fallido */}
+                  {selectedEvent.didNotSleep && (
+                    <div className="text-sm text-orange-600 bg-orange-50 p-2 rounded">
+                      No logró dormirse
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* NIGHT_WAKING */}
+              {selectedEvent.eventType === "night_waking" && (
+                <div className="border-t pt-3 space-y-2">
+                  <div className="text-sm font-medium text-gray-600">
+                    Información del despertar nocturno
+                  </div>
+
+                  {typeof selectedEvent.awakeDelay === "number" && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-medium">Tiempo despierto:</span>
+                      <span>{formatMinutes(selectedEvent.awakeDelay)}</span>
+                    </div>
+                  )}
+
+                  {selectedEvent.endTime && (
+                    <div className="text-sm text-gray-700">
+                      Duración total del episodio: {(() => {
+                        const start = new Date(selectedEvent.startTime)
+                        const end = new Date(selectedEvent.endTime)
+                        const minutes = differenceInMinutes(end, start)
+                        return formatMinutes(minutes)
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* FEEDING / NIGHT_FEEDING */}
+              {(selectedEvent.eventType === "feeding" || selectedEvent.eventType === "night_feeding") && (
+                <div className="border-t pt-3 space-y-2">
+                  <div className="text-sm font-medium text-gray-600">
+                    Información de alimentación
+                  </div>
+
+                  {selectedEvent.feedingType && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-medium">Tipo:</span>
+                      <span>{getFeedingTypeName(selectedEvent.feedingType)}</span>
+                    </div>
+                  )}
+
+                  {typeof selectedEvent.feedingAmount === "number" && selectedEvent.feedingType && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-medium">Cantidad:</span>
+                      <span>{formatFeedingAmount(selectedEvent.feedingType, selectedEvent.feedingAmount)}</span>
+                    </div>
+                  )}
+
+                  {typeof selectedEvent.feedingDuration === "number" && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-medium">Duración:</span>
+                      <span>{formatMinutes(selectedEvent.feedingDuration)}</span>
+                    </div>
+                  )}
+
+                  {selectedEvent.babyState && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-medium">Estado del bebé:</span>
+                      <span>{getBabyStateName(selectedEvent.babyState)}</span>
+                    </div>
+                  )}
+
+                  {selectedEvent.feedingNotes && (
+                    <div className="mt-2">
+                      <span className="text-sm font-medium text-gray-600">Notas de alimentación:</span>
+                      <p className="text-sm text-gray-700 mt-1 bg-gray-50 p-2 rounded">
+                        {selectedEvent.feedingNotes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* MEDICATION */}
+              {selectedEvent.eventType === "medication" && (
+                <div className="border-t pt-3 space-y-2">
+                  <div className="text-sm font-medium text-gray-600">
+                    Información del medicamento
+                  </div>
+
+                  {selectedEvent.medicationName && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-medium">Medicamento:</span>
+                      <span>{selectedEvent.medicationName}</span>
+                    </div>
+                  )}
+
+                  {selectedEvent.medicationDose && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-medium">Dosis:</span>
+                      <span>{selectedEvent.medicationDose}</span>
+                    </div>
+                  )}
+
+                  {selectedEvent.medicationTime && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-medium">Hora de administración:</span>
+                      <span>{selectedEvent.medicationTime}</span>
+                    </div>
+                  )}
+
+                  {selectedEvent.medicationNotes && (
+                    <div className="mt-2">
+                      <span className="text-sm font-medium text-gray-600">Notas del medicamento:</span>
+                      <p className="text-sm text-gray-700 mt-1 bg-gray-50 p-2 rounded">
+                        {selectedEvent.medicationNotes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* EXTRA_ACTIVITIES */}
+              {selectedEvent.eventType === "extra_activities" && (
+                <div className="border-t pt-3 space-y-2">
+                  <div className="text-sm font-medium text-gray-600">
+                    Información de la actividad
+                  </div>
+
+                  {selectedEvent.activityDescription && (
+                    <div className="flex items-start gap-2 text-sm">
+                      <span className="font-medium">Descripción:</span>
+                      <span className="flex-1">{selectedEvent.activityDescription}</span>
+                    </div>
+                  )}
+
+                  {typeof selectedEvent.activityDuration === "number" && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-medium">Duración:</span>
+                      <span>{formatMinutes(selectedEvent.activityDuration)}</span>
+                    </div>
+                  )}
+
+                  {selectedEvent.activityImpact && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-medium">Impacto en el sueño:</span>
+                      <span className={cn(
+                        "px-2 py-1 rounded-full text-xs font-medium",
+                        selectedEvent.activityImpact === "positive" && "bg-green-100 text-green-700",
+                        selectedEvent.activityImpact === "neutral" && "bg-gray-100 text-gray-700",
+                        selectedEvent.activityImpact === "negative" && "bg-red-100 text-red-700"
+                      )}>
+                        {getActivityImpactName(selectedEvent.activityImpact)}
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedEvent.activityNotes && (
+                    <div className="mt-2">
+                      <span className="text-sm font-medium text-gray-600">Notas de la actividad:</span>
+                      <p className="text-sm text-gray-700 mt-1 bg-gray-50 p-2 rounded">
+                        {selectedEvent.activityNotes}
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
