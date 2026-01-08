@@ -865,3 +865,36 @@ const combineNotes = (...values: (string | undefined)[]) => {
 > **Resultado final**: 147 PASSED, 0 FAILED, 111 PENDING (57% completado)
 > **Bugs encontrados**: 5 (4 corregidos, 1 verificado como artefacto del test)
 > **Fases pendientes**: 5 (Edición eventos), 6 (Survey completo), 8, 10, 11
+
+---
+
+## 🚀 CÓMO CONTINUAR EL E2E TESTING
+
+### Prerequisitos
+1. Servidor corriendo en `localhost:3000`
+2. Conexión a MongoDB `jaco_db_ultimate_2025`
+3. Child de prueba existe: **E2E TestChild** (ID: `695ed70ed26eb704d3e3b7fe`)
+
+### Próximos pasos (en orden)
+1. **FASE 3.3-3.4**: Crear eventos WAKE y NIGHT_WAKING pendientes
+2. **FASE 5**: Completar edición de eventos (tests 5.1.1 - 5.2.8)
+3. **FASE 6**: Survey completo - llenar 6 pasos desde cero
+4. **FASE 8**: Admin edición de eventos
+5. **FASE 10**: Sincronización user→admin
+6. **FASE 11**: Verificación final y limpieza
+
+### Estado actual del Child de prueba
+- **Eventos creados**: SLEEP, NAP, FEEDING, MEDICATION, EXTRA_ACTIVITIES
+- **Eventos pendientes**: WAKE (directo), NIGHT_WAKING, NIGHT_FEEDING
+- **Survey**: Parcialmente completado (necesita verificación)
+
+### Para iniciar sesión de testing
+```bash
+# 1. Iniciar servidor
+npm run dev
+
+# 2. Abrir browser en localhost:3000
+# 3. Login como eljulius@nebulastudios.io / juls0925
+# 4. Seleccionar child "E2E TestChild" en el header
+# 5. Continuar desde FASE 3.3 (eventos pendientes)
+```
