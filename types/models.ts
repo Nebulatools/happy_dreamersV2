@@ -357,6 +357,31 @@ export enum SleepEventType {
   OTHER = "other"
 }
 
+// Evento general (usado en calendario y admin)
+export interface Event {
+  _id: string
+  childId: string
+  parentId?: string
+  eventType: "sleep" | "nap" | "wake" | "night_waking" | "feeding" | "night_feeding" | "medication" | "extra_activities" | string
+  emotionalState?: string
+  startTime: string
+  endTime?: string
+  notes?: string
+  duration?: number // en minutos
+  sleepDelay?: number // tiempo para dormirse en minutos
+  // Campos de alimentacion
+  feedingType?: "breast" | "bottle" | "solids"
+  feedingDuration?: number
+  feedingAmount?: string
+  // Campos de medicamento
+  medicationName?: string
+  medicationDose?: string
+  // Campos de actividad extra
+  activityType?: string
+  createdAt?: Date
+  updatedAt?: Date
+}
+
 // Mensaje del chat con el asistente
 export interface ChatMessage {
   _id: ObjectId | string

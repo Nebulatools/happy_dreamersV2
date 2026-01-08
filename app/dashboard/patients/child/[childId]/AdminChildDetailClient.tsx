@@ -6,7 +6,7 @@
 import { useState, useCallback, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle, Clock, FileText, TrendingUp, Loader2, Moon, Sun, Utensils, Pill, Activity } from "lucide-react"
+import { AlertCircle, Clock, FileText, TrendingUp, Loader2, Moon, Sun, Utensils, UtensilsCrossed, Pill, Activity, Baby } from "lucide-react"
 import { SurveyResponseViewer } from "@/components/survey/SurveyResponseViewer"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
@@ -58,9 +58,9 @@ export function AdminChildDetailClient({
     }
   }, [activeTab, eventsFetched, childId])
 
-  // Helper para obtener icono segun tipo de evento
-  const getEventIcon = (eventType: string) => {
-    switch (eventType) {
+  // Helper para obtener icono segun tipo de evento - Sin emojis, solo iconos Lucide
+  const getEventIcon = (event: Event) => {
+    switch (event.eventType) {
     case "sleep":
       return <Moon className="h-4 w-4 text-indigo-500" />
     case "nap":
@@ -68,10 +68,14 @@ export function AdminChildDetailClient({
     case "wake":
       return <Sun className="h-4 w-4 text-yellow-500" />
     case "night_waking":
-      return <Moon className="h-4 w-4 text-purple-500" />
+      return <Baby className="h-4 w-4 text-purple-500" />
     case "feeding":
     case "night_feeding":
-      return <Utensils className="h-4 w-4 text-green-500" />
+      // Solidos = icono diferente, liquidos (breast/bottle) = mismo icono
+      if (event.feedingType === "solids") {
+        return <UtensilsCrossed className="h-4 w-4 text-green-500" />
+      }
+      return <Utensils className="h-4 w-4 text-green-500" /> // breast y bottle
     case "medication":
       return <Pill className="h-4 w-4 text-blue-500" />
     case "extra_activities":
@@ -260,7 +264,7 @@ export function AdminChildDetailClient({
                     key={event._id}
                     className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                   >
-                    <div className="mt-0.5">{getEventIcon(event.eventType)}</div>
+                    <div className="mt-0.5">{getEventIcon(event)}</div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium">{getEventTypeName(event.eventType)}</span>

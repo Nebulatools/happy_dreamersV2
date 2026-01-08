@@ -3,7 +3,7 @@
 
 import React, { useState } from "react"
 import { createPortal } from "react-dom"
-import { Moon, Sun, AlertCircle, Clock } from "lucide-react"
+import { Moon, Sun, Clock, Baby, Utensils, UtensilsCrossed, Pill, Activity } from "lucide-react"
 
 interface Event {
   _id: string;
@@ -13,6 +13,7 @@ interface Event {
   startTime: string;
   endTime?: string;
   notes?: string;
+  feedingType?: "breast" | "bottle" | "solids";
 }
 
 // ⚡ FUNCIÓN CLAVE: Extracción de tiempo con conversión de timezone
@@ -101,17 +102,24 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
     }
   }
   
-  // 🎭 EMOJI POR TIPO
-  const getEmoji = () => {
+  // Icono Lucide segun tipo de evento - Sin emojis
+  const getIcon = () => {
+    const iconClass = "h-3 w-3"
     switch (event.eventType) {
-    case "nap": return <span className="text-sm">💤</span>
-    case "sleep": return <span className="text-sm">😴</span>
-    case "wake": return <span className="text-sm">☀️</span>
-    case "night_waking": return <span className="text-sm">👶</span>
-    case "feeding": return <span className="text-sm">🍼</span>
-    case "medication": return <span className="text-sm">💊</span>
-    case "extra_activities": return <span className="text-sm">🎈</span>
-    default: return <span className="text-sm">⏰</span>
+    case "nap": return <Sun className={iconClass} style={{ color: "#f59e0b" }} />
+    case "sleep": return <Moon className={iconClass} style={{ color: "#6366f1" }} />
+    case "wake": return <Sun className={iconClass} style={{ color: "#eab308" }} />
+    case "night_waking": return <Baby className={iconClass} style={{ color: "#a855f7" }} />
+    case "feeding":
+    case "night_feeding":
+      // Solidos = icono diferente, liquidos (breast/bottle) = mismo icono
+      if (event.feedingType === "solids") {
+        return <UtensilsCrossed className={iconClass} style={{ color: "#22c55e" }} />
+      }
+      return <Utensils className={iconClass} style={{ color: "#22c55e" }} />
+    case "medication": return <Pill className={iconClass} style={{ color: "#3b82f6" }} />
+    case "extra_activities": return <Activity className={iconClass} style={{ color: "#f97316" }} />
+    default: return <Clock className={iconClass} style={{ color: "#6b7280" }} />
     }
   }
   
@@ -152,14 +160,14 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
       // MUY PEQUEÑO (< 22px): Solo emoji centrado
       return (
         <div className="flex items-center justify-center w-full">
-          {getEmoji()}
+          {getIcon()}
         </div>
       )
     } else if (height < 32) {
       // PEQUEÑO (22-32px): Emoji izq + duración centrada grande
       return (
         <div className="flex items-center w-full">
-          <div className="flex-shrink-0">{getEmoji()}</div>
+          <div className="flex-shrink-0">{getIcon()}</div>
           <div className="flex-1 text-center">
             <span className="font-bold" style={{ fontSize: "11px" }}>
               {formatDuration() || timeData.formatted}
@@ -171,7 +179,7 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
       // MEDIANO (32-55px): Emoji izq + duración centrada más grande
       return (
         <div className="flex items-center w-full">
-          <div className="flex-shrink-0">{getEmoji()}</div>
+          <div className="flex-shrink-0">{getIcon()}</div>
           <div className="flex-1 text-center">
             <span className="font-bold" style={{ fontSize: "13px" }}>
               {formatDuration() || timeData.formatted}
@@ -183,7 +191,7 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
       // GRANDE (> 55px): Emoji + Nombre + horario (hay suficiente espacio)
       return (
         <>
-          {getEmoji()}
+          {getIcon()}
           <div className="flex-1 truncate">
             <div>{getName()}</div>
             <div className="text-xs opacity-90">
@@ -224,13 +232,14 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
     )
   }
 
-  // Calcular posición del tooltip cuando aparece
+  // Calcular posición del tooltip cuando aparece (ARRIBA del evento)
   const handleMouseEnter = () => {
     if (eventRef.current) {
       const rect = eventRef.current.getBoundingClientRect()
+      // Posicionar arriba del evento, centrado horizontalmente
       setTooltipPosition({
-        x: rect.right + 8, // 8px de margen desde el borde derecho
-        y: rect.top
+        x: rect.left + rect.width / 2, // Centrado
+        y: rect.top - 8 // 8px arriba del evento
       })
     }
     setShowTooltip(true)
@@ -265,20 +274,21 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
         )}
       </div>
 
-      {/* Tooltip - Renderizado en document.body usando Portal para escapar del contexto de apilamiento */}
+      {/* Tooltip - Renderizado ARRIBA del evento usando Portal */}
       {showTooltip && typeof document !== 'undefined' && createPortal(
         <div
           className="fixed bg-white/95 backdrop-blur-sm border border-blue-200/60 text-gray-800 px-3 py-2 rounded-lg shadow-lg whitespace-nowrap pointer-events-none"
           style={{
             left: `${tooltipPosition.x}px`,
             top: `${tooltipPosition.y}px`,
+            transform: 'translate(-50%, -100%)', // Centrado y arriba
             zIndex: 9999
           }}
         >
           {getTooltipContent()}
-          {/* Flecha del tooltip */}
-          <div className="absolute right-full top-2 border-4 border-transparent border-r-white/95"
-               style={{ filter: 'drop-shadow(-1px 0 0 rgba(191, 219, 254, 0.6))' }} />
+          {/* Flecha del tooltip apuntando hacia abajo */}
+          <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-white/95"
+               style={{ filter: 'drop-shadow(0 1px 0 rgba(191, 219, 254, 0.6))' }} />
         </div>,
         document.body
       )}

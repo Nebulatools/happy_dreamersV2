@@ -12,7 +12,6 @@ import { GridLines } from "./GridLines"
 import { EventGlobe } from "./EventGlobe"
 import { SleepSessionBlock } from "./SleepSessionBlock"
 import { processSleepSessions, type Event as SleepEvent } from "@/lib/utils/sleep-sessions"
-import { EARLY_MORNING_CUTOFF_HOUR } from "@/lib/datetime"
 
 interface Event {
   _id: string;
@@ -141,14 +140,9 @@ export function CalendarWeekView({
   })
   
   // Obtener eventos que afectan un día específico (incluye eventos que cruzan días)
-  // LOGICA DE MADRUGADA: Eventos antes de las 5 AM se muestran en el dia anterior
   const getEventsForDay = (day: Date) => {
     const dayStart = startOfDay(day)
     const dayEnd = endOfDay(day)
-    // El "dia logico" termina a las 5 AM del dia siguiente
-    const nextDayEarlyMorningEnd = new Date(dayEnd.getTime())
-    nextDayEarlyMorningEnd.setHours(EARLY_MORNING_CUTOFF_HOUR, 0, 0, 0)
-    nextDayEarlyMorningEnd.setDate(nextDayEarlyMorningEnd.getDate() + 1)
 
     const dayEvents = events.filter(event => {
       if (!event.startTime || event.startTime === "") return false
@@ -156,35 +150,13 @@ export function CalendarWeekView({
       try {
         const eventStart = new Date(event.startTime)
         const eventEnd = event.endTime ? new Date(event.endTime) : eventStart
-        const eventStartHour = eventStart.getHours()
-
-        // LOGICA DE MADRUGADA:
-        // Si el evento empieza antes de las 5 AM, pertenece visualmente al dia anterior
-        const isEarlyMorning = eventStartHour < EARLY_MORNING_CUTOFF_HOUR
-
-        if (isEarlyMorning) {
-          // Evento de madrugada: verificar si pertenece al "dia logico" de este dia
-          // Es decir, si empieza entre 00:00 y 04:59 del dia SIGUIENTE al dia actual
-          const nextDay = addDays(day, 1)
-          const nextDayStart = startOfDay(nextDay)
-          const nextDayEarlyEnd = new Date(nextDayStart)
-          nextDayEarlyEnd.setHours(EARLY_MORNING_CUTOFF_HOUR, 0, 0, 0)
-
-          const belongsToThisDayLogically = eventStart >= nextDayStart && eventStart < nextDayEarlyEnd
-          if (belongsToThisDayLogically) return true
-        }
 
         // Incluir evento si:
-        // 1. Empieza en este día (despues de las 5 AM)
+        // 1. Empieza en este día
         // 2. Termina en este día
         // 3. Cruza este día (empieza antes y termina después)
         // 4. Es una sesión de sueño en progreso que empezó antes de este día
-
-        // Para eventos normales (no madrugada), usar la logica estandar
-        const dayStartAt5AM = new Date(dayStart)
-        dayStartAt5AM.setHours(EARLY_MORNING_CUTOFF_HOUR, 0, 0, 0)
-
-        const startsThisDay = !isEarlyMorning && eventStart >= dayStartAt5AM && eventStart <= dayEnd
+        const startsThisDay = eventStart >= dayStart && eventStart <= dayEnd
         const endsThisDay = eventEnd >= dayStart && eventEnd <= dayEnd
         const crossesThisDay = eventStart < dayStart && eventEnd > dayEnd
         const sleepInProgress = event.eventType === "sleep" && !event.endTime && eventStart < dayEnd

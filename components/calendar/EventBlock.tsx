@@ -7,8 +7,12 @@ import React, { useState, useEffect, useRef } from "react"
 import {
   Moon,
   Sun,
-  AlertCircle,
   Clock,
+  Baby,
+  Utensils,
+  UtensilsCrossed,
+  Pill,
+  Activity,
 } from "lucide-react"
 import { format, differenceInMinutes, differenceInHours } from "date-fns"
 import { cn } from "@/lib/utils"
@@ -207,34 +211,37 @@ export function EventBlock({
     }
   }
 
-  // Obtener emoji según tipo de evento - Tamaño ajustado
-  const getEventEmoji = () => {
-    // Ajustar tamaño del emoji según altura del bloque
-    const emojiSize = blockHeight >= 40 ? "12px" : blockHeight >= 28 ? "11px" : "10px"
+  // Obtener icono Lucide según tipo de evento - Sin emojis
+  const getEventIcon = () => {
+    // Ajustar tamaño del icono según altura del bloque
+    const iconSize = blockHeight >= 40 ? 14 : blockHeight >= 28 ? 12 : 10
+    const iconClass = `h-${iconSize <= 10 ? 3 : iconSize <= 12 ? 3.5 : 4} w-${iconSize <= 10 ? 3 : iconSize <= 12 ? 3.5 : 4}`
 
     switch (event.eventType) {
     case "sleep":
     case "bedtime":
-      return <span style={{ fontSize: emojiSize }}>😴</span>
+      return <Moon className={iconClass} style={{ color: "#6366f1" }} /> // indigo
     case "nap":
-      return <span style={{ fontSize: emojiSize }}>💤</span>
+      return <Sun className={iconClass} style={{ color: "#f59e0b" }} /> // amber
     case "wake":
-      return <span style={{ fontSize: emojiSize }}>☀️</span>
+      return <Sun className={iconClass} style={{ color: "#eab308" }} /> // yellow
     case "night_waking":
-      return <span style={{ fontSize: emojiSize }}>👶</span>
+      return <Baby className={iconClass} style={{ color: "#a855f7" }} /> // purple
     case "feeding":
     case "night_feeding":
-      // Icono segun tipo de alimentacion
-      if (event.feedingType === "breast") return <span style={{ fontSize: emojiSize }}>🤱</span>
-      if (event.feedingType === "solids") return <span style={{ fontSize: emojiSize }}>🥄</span>
-      return <span style={{ fontSize: emojiSize }}>🍼</span> // default: bottle
+      // Icono segun tipo de alimentacion: solidos = diferente, liquidos = mismo
+      if (event.feedingType === "solids") {
+        return <UtensilsCrossed className={iconClass} style={{ color: "#22c55e" }} /> // green
+      }
+      // breast y bottle usan el mismo icono (liquidos)
+      return <Utensils className={iconClass} style={{ color: "#22c55e" }} /> // green
     case "medication":
-      return <span style={{ fontSize: emojiSize }}>💊</span>
+      return <Pill className={iconClass} style={{ color: "#3b82f6" }} /> // blue
     case "activity":
     case "extra_activities":
-      return <span style={{ fontSize: emojiSize }}>🎈</span>
+      return <Activity className={iconClass} style={{ color: "#f97316" }} /> // orange
     default:
-      return <span style={{ fontSize: emojiSize }}>⏰</span>
+      return <Clock className={iconClass} style={{ color: "#6b7280" }} /> // gray
     }
   }
 
@@ -404,12 +411,12 @@ export function EventBlock({
         {blockHeight < 20 ? (
           // MUY PEQUEÑO (< 20px): Solo emoji centrado
           <div className="flex items-center justify-center">
-            {getEventEmoji()}
+            {getEventIcon()}
           </div>
         ) : blockHeight < 30 ? (
           // PEQUEÑO (20-30px): Emoji + hora/duración compacta
           <div className="flex items-center gap-1">
-            {getEventEmoji()}
+            {getEventIcon()}
             <span className="font-bold truncate" style={{ fontSize: "8px", lineHeight: "1" }}>
               {isNightWaking ? formatDuration() : format(parseLocalISODate(event.startTime), "HH:mm")}
             </span>
@@ -417,7 +424,7 @@ export function EventBlock({
         ) : blockHeight < 55 ? (
           // MEDIANO (30-55px): Emoji + hora/duración (SIN nombre para mejor legibilidad)
           <div className="flex items-center gap-1">
-            {getEventEmoji()}
+            {getEventIcon()}
             <span className="font-bold truncate" style={{ fontSize: isNightWaking ? "11px" : "9px", lineHeight: "1" }}>
               {isNightWaking ? formatDuration() : formatEventTime()}
             </span>
@@ -425,7 +432,7 @@ export function EventBlock({
         ) : (
           // GRANDE (> 55px): Emoji + Nombre/Duración + horario (hay suficiente espacio)
           <div className="flex items-center gap-1 w-full min-w-0">
-            {getEventEmoji()}
+            {getEventIcon()}
             {isNightWaking ? (
               // Para night_waking: mostrar duración grande como texto principal
               <span className="truncate font-bold" style={{ fontSize: "12px" }}>
@@ -511,30 +518,31 @@ export function CompactEventBlock({
     }
   }
 
-  const getEventEmoji = () => {
+  const getEventIcon = () => {
+    const iconClass = "h-3 w-3"
     switch (event.eventType) {
     case "sleep":
     case "bedtime":
-      return <span className="text-xs">😴</span>
+      return <Moon className={iconClass} style={{ color: "#6366f1" }} />
     case "nap":
-      return <span className="text-xs">💤</span>
+      return <Sun className={iconClass} style={{ color: "#f59e0b" }} />
     case "wake":
-      return <span className="text-xs">☀️</span>
+      return <Sun className={iconClass} style={{ color: "#eab308" }} />
     case "night_waking":
-      return <span className="text-xs">👶</span>
+      return <Baby className={iconClass} style={{ color: "#a855f7" }} />
     case "feeding":
     case "night_feeding":
-      // Icono segun tipo de alimentacion
-      if (event.feedingType === "breast") return <span className="text-xs">🤱</span>
-      if (event.feedingType === "solids") return <span className="text-xs">🥄</span>
-      return <span className="text-xs">🍼</span> // default: bottle
+      if (event.feedingType === "solids") {
+        return <UtensilsCrossed className={iconClass} style={{ color: "#22c55e" }} />
+      }
+      return <Utensils className={iconClass} style={{ color: "#22c55e" }} />
     case "medication":
-      return <span className="text-xs">💊</span>
+      return <Pill className={iconClass} style={{ color: "#3b82f6" }} />
     case "activity":
     case "extra_activities":
-      return <span className="text-xs">🎈</span>
+      return <Activity className={iconClass} style={{ color: "#f97316" }} />
     default:
-      return <span className="text-xs">⏰</span>
+      return <Clock className={iconClass} style={{ color: "#6b7280" }} />
     }
   }
 
@@ -562,7 +570,7 @@ export function CompactEventBlock({
       getEventColor(),
       className
     )} style={{ fontSize: "10px" }}>
-      {getEventEmoji()}
+      {getEventIcon()}
       <span className="line-clamp-1 font-medium">
         {formatTime()}
       </span>
