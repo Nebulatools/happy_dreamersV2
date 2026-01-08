@@ -453,6 +453,48 @@ export function getDateKey(isoString: string, timezone: string = DEFAULT_TIMEZON
   return `${parts.year}-${month}-${day}`
 }
 
+/** Hora limite para considerar "madrugada" como parte del dia anterior (5 AM) */
+export const EARLY_MORNING_CUTOFF_HOUR = 5
+
+/**
+ * Obtiene la fecha LOGICA de un evento para visualizacion en calendario
+ *
+ * Los eventos de madrugada (00:00-04:59) se agrupan visualmente con el dia anterior.
+ * Esto permite que un despertar a las 02:00 AM del sabado aparezca en la columna del viernes.
+ *
+ * @param isoString - Timestamp ISO del evento
+ * @param timezone - Timezone del usuario
+ * @returns String YYYY-MM-DD de la fecha logica
+ *
+ * @example
+ * // Evento a las 02:00 AM del 2025-01-18 (sabado)
+ * getLogicalDateKey("2025-01-18T02:00:00-06:00", "America/Monterrey")
+ * // Retorna: "2025-01-17" (viernes)
+ *
+ * // Evento a las 10:00 AM del 2025-01-18 (sabado)
+ * getLogicalDateKey("2025-01-18T10:00:00-06:00", "America/Monterrey")
+ * // Retorna: "2025-01-18" (sabado - sin cambio)
+ */
+export function getLogicalDateKey(isoString: string, timezone: string = DEFAULT_TIMEZONE): string {
+  const date = parseTimestamp(isoString)
+  const parts = getTimePartsInTimezone(date, timezone)
+
+  // Si es madrugada (antes de las 5 AM), el evento pertenece al dia anterior visualmente
+  if (parts.hours < EARLY_MORNING_CUTOFF_HOUR) {
+    // Restar un dia manualmente
+    const previousDate = new Date(date.getTime() - 24 * 60 * 60 * 1000)
+    const prevParts = getTimePartsInTimezone(previousDate, timezone)
+    const prevMonth = String(prevParts.month).padStart(2, "0")
+    const prevDay = String(prevParts.day).padStart(2, "0")
+    return `${prevParts.year}-${prevMonth}-${prevDay}`
+  }
+
+  // Hora normal: usar la fecha real
+  const month = String(parts.month).padStart(2, "0")
+  const day = String(parts.day).padStart(2, "0")
+  return `${parts.year}-${month}-${day}`
+}
+
 // ============================================================================
 // FUNCIONES DE CONVERSION LEGACY (para compatibilidad)
 // ============================================================================

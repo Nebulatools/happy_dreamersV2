@@ -14,6 +14,7 @@ import ErrorBoundary from "@/components/ErrorBoundary"
 import { DevTools } from "@/components/dev/DevTools"
 import { UserProvider } from "@/context/UserContext"
 import { ProfileCompletionGuard } from "@/components/profile/ProfileCompletionGuard"
+import { GlobalActivityMonitor } from "@/components/ui/GlobalActivityMonitor"
 
 export default async function DashboardLayout({
   children,
@@ -53,6 +54,8 @@ export default async function DashboardLayout({
               </div>
               {/* Herramientas de desarrollo - solo en desarrollo */}
               <DevTools />
+              {/* Monitor de eventos pendientes (alerta despues de 20 min) */}
+              <GlobalActivityMonitor />
               {/* Bottom navigation for mobile */}
               <MobileBottomNav />
             </div>

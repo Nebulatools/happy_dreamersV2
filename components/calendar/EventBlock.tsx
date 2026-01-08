@@ -50,6 +50,7 @@ interface Event {
   endTime?: string;
   notes?: string;
   duration?: number;
+  feedingType?: "breast" | "bottle" | "solids";
 }
 
 interface EventBlockProps {
@@ -222,7 +223,11 @@ export function EventBlock({
     case "night_waking":
       return <span style={{ fontSize: emojiSize }}>👶</span>
     case "feeding":
-      return <span style={{ fontSize: emojiSize }}>🍼</span>
+    case "night_feeding":
+      // Icono segun tipo de alimentacion
+      if (event.feedingType === "breast") return <span style={{ fontSize: emojiSize }}>🤱</span>
+      if (event.feedingType === "solids") return <span style={{ fontSize: emojiSize }}>🥄</span>
+      return <span style={{ fontSize: emojiSize }}>🍼</span> // default: bottle
     case "medication":
       return <span style={{ fontSize: emojiSize }}>💊</span>
     case "activity":
@@ -246,6 +251,7 @@ export function EventBlock({
     case "night_waking":
       return "bg-night-wake border-night-wake text-white font-semibold"
     case "feeding":
+    case "night_feeding":
       return "bg-feeding border-feeding text-white font-semibold"
     case "medication":
       return "bg-medication border-medication text-white font-semibold"
@@ -261,10 +267,11 @@ export function EventBlock({
     const types: Record<string, string> = {
       sleep: "Dormir",
       bedtime: "Dormir",
-      nap: "Siesta", 
+      nap: "Siesta",
       wake: "Despertar",
       night_waking: "Despertar nocturno",
-      feeding: "Alimentación",
+      feeding: "Alimentacion",
+      night_feeding: "Toma nocturna",
       medication: "Medicamento",
       extra_activities: "Actividad Extra",
     }
@@ -401,7 +408,7 @@ export function EventBlock({
           </div>
         ) : blockHeight < 30 ? (
           // PEQUEÑO (20-30px): Emoji + hora/duración compacta
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-1">
             {getEventEmoji()}
             <span className="font-bold truncate" style={{ fontSize: "8px", lineHeight: "1" }}>
               {isNightWaking ? formatDuration() : format(parseLocalISODate(event.startTime), "HH:mm")}
@@ -474,12 +481,12 @@ export function EventBlock({
 }
 
 // Componente simplificado para dispositivos móviles
-export function CompactEventBlock({ 
-  event, 
-  className, 
-}: { 
-  event: Event; 
-  className?: string; 
+export function CompactEventBlock({
+  event,
+  className,
+}: {
+  event: Event;
+  className?: string;
 }) {
   const getEventColor = () => {
     switch (event.eventType) {
@@ -493,6 +500,7 @@ export function CompactEventBlock({
     case "night_waking":
       return "bg-night-wake"
     case "feeding":
+    case "night_feeding":
       return "bg-feeding"
     case "medication":
       return "bg-medication"
@@ -515,7 +523,11 @@ export function CompactEventBlock({
     case "night_waking":
       return <span className="text-xs">👶</span>
     case "feeding":
-      return <span className="text-xs">🍼</span>
+    case "night_feeding":
+      // Icono segun tipo de alimentacion
+      if (event.feedingType === "breast") return <span className="text-xs">🤱</span>
+      if (event.feedingType === "solids") return <span className="text-xs">🥄</span>
+      return <span className="text-xs">🍼</span> // default: bottle
     case "medication":
       return <span className="text-xs">💊</span>
     case "activity":

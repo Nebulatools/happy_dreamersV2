@@ -109,8 +109,55 @@ export async function ingestZoomMeetingTranscripts(opts: {
   if (recMeetingId) sessionQuery.meetingId = recMeetingId
   const existingSession = await db.collection("consultation_sessions").findOne(sessionQuery)
 
+  // Si ya fue procesado Y tiene reporte, verificar si se puede reasignar
   if (existingSession?.transcriptProcessed && existingSession?.reportId) {
-    return { processed: true, linked: true, reportId: String(existingSession.reportId) }
+    // Si NO hay fallbackChildId, usar el reporte existente
+    if (!fallbackChildId) {
+      return { processed: true, linked: true, reportId: String(existingSession.reportId) }
+    }
+    // Si hay fallbackChildId, continuar para crear nuevo report con ese child
+    // (la logica de abajo creara un nuevo reporte vinculado al nuevo child)
+  }
+
+  // Si fue procesado pero no tiene reporte (status: "transcript_unlinked")
+  // y ahora tenemos fallbackChildId, podemos vincular
+  if (existingSession?.transcriptProcessed && existingSession?.status === "transcript_unlinked" && fallbackChildId) {
+    // Usar el transcript almacenado en lugar de descargar de nuevo
+    const storedTranscript = existingSession.transcriptText
+    if (storedTranscript && fallbackUserId) {
+      const model = process.env.GEMINI_API_KEY ? "gemini" : "openai"
+      const analysis = await analyzeTranscriptLLM(storedTranscript, model as "gemini" | "openai")
+
+      const ins = await db.collection("consultation_reports").insertOne({
+        childId: new ObjectId(fallbackChildId),
+        userId: new ObjectId(fallbackUserId),
+        provider: "zoom",
+        transcript: storedTranscript,
+        analysis: analysis?.summary || "",
+        recommendations: analysis?.recommendations || [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        source: {
+          zoom: {
+            meetingId: existingSession.meetingId,
+            uuid: existingSession.uuid,
+          },
+        },
+      })
+
+      await db.collection("consultation_sessions").updateOne(sessionQuery, {
+        $set: {
+          transcriptProcessed: true,
+          reportId: ins.insertedId,
+          status: "transcript_processed",
+          updatedAt: new Date(),
+          userId: new ObjectId(fallbackUserId),
+          childId: new ObjectId(fallbackChildId),
+        },
+      })
+
+      return { processed: true, reportId: String(ins.insertedId), linked: true }
+    }
   }
 
   const transcriptFile = recordingFiles.find((f: any) => isTranscriptFile(f))
