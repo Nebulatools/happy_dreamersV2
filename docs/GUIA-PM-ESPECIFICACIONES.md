@@ -13,22 +13,10 @@ Tu (PM) recibes feedback → Chateas con Gemini → Documento de Sprint → Equi
 **Tu responsabilidad:** Capturar QUE quieren los usuarios
 **Responsabilidad del equipo tecnico:** Decidir COMO implementarlo
 
----
-
-## Paso 1: Configurar tu Gem en Gemini
-
-1. Ve a [gemini.google.com](https://gemini.google.com)
-2. Haz clic en "Gems" en el menu lateral
-3. Crea un nuevo Gem llamado "Especificaciones de Sprint"
-4. Copia TODO el contenido del archivo `PROMPT-GEMINI-SPRINT.md`
-5. Pegalo en las instrucciones del Gem
-6. Guarda el Gem
-
-**Nota:** Solo necesitas hacer esto una vez. El Gem recuerda las instrucciones.
 
 ---
 
-## Paso 2: Usar el Gem Durante la Semana
+## Paso 1: Usar el Gem Durante la Semana
 
 ### Cuando recibas feedback de un usuario:
 
@@ -68,7 +56,7 @@ Antes de documentarlo, necesito saber:
 
 ---
 
-## Paso 3: Agregar Capturas de Pantalla
+## Paso 2: Agregar Capturas de Pantalla
 
 Cuando tengas una captura que muestre el problema:
 
@@ -101,7 +89,7 @@ GEMINI: Analicé la captura. Veo:
 
 ---
 
-## Paso 4: Revisar el Documento
+## Paso 3: Revisar el Documento
 
 En cualquier momento puedes decir:
 
@@ -116,7 +104,7 @@ En cualquier momento puedes decir:
 
 ---
 
-## Paso 5: Generar Documento Final
+## Paso 4: Generar Documento Final
 
 Cuando termines la semana:
 
