@@ -56,17 +56,23 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
   const endTimeData = event.endTime ? extractTimeFromISO(event.endTime) : null
 
   if (!timeData) return null
-  
+
   const { hours, minutes } = timeData
-  
+
   // 🎯 POSICIÓN EXACTA: minutos desde medianoche * altura por minuto
   const totalMinutes = hours * 60 + minutes
   const position = totalMinutes * (hourHeight / 60)
-  
+
   // 🎯 ALTURA DINÁMICA: basada en duración, limitada al borde del día
   const maxMinutesInDay = 24 * 60
   const availableMinutes = maxMinutesInDay - totalMinutes
   const maxHeight = availableMinutes * (hourHeight / 60)
+
+  // 🚫 NO RENDERIZAR eventos que se salen del día (posición >= 24 horas)
+  // Esto evita que eventos de madrugada del día siguiente aparezcan fuera del calendario
+  if (totalMinutes >= maxMinutesInDay || availableMinutes <= 0) {
+    return null
+  }
 
   let duration = 0
   let isTruncated = false
@@ -95,7 +101,8 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
     case "sleep": return "bg-blue-400 text-white"
     case "wake": return "bg-wake text-white"
     case "night_waking": return "bg-night-wake text-white"
-    case "feeding": return "bg-feeding text-white"
+    case "feeding":
+    case "night_feeding": return "bg-feeding text-white"
     case "medication": return "bg-medication text-white"
     case "extra_activities": return "bg-extra-activities text-white"
     default: return "bg-gray-400 text-white"
@@ -131,6 +138,7 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
       wake: "Despertar",
       night_waking: "Despertar nocturno",
       feeding: "Alimentación",
+      night_feeding: "Toma nocturna",
       medication: "Medicamento",
       extra_activities: "Actividad Extra",
     }
@@ -249,7 +257,7 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
     <>
       <div
         ref={eventRef}
-        className={`group relative absolute shadow-md px-2 py-1 text-xs font-medium flex items-center justify-center cursor-pointer hover:shadow-lg transition-shadow z-10 ${getColor()} ${isTruncated ? "rounded-t-lg" : "rounded-lg"}`}
+        className={`group absolute shadow-md px-2 py-1 text-xs font-medium flex items-center justify-center cursor-pointer hover:shadow-lg transition-shadow z-10 ${getColor()} ${isTruncated ? "rounded-t-lg" : "rounded-lg"}`}
         style={{
           top: `${position}px`,
           height: `${height}px`,
