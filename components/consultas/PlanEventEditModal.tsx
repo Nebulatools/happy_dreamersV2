@@ -43,7 +43,7 @@ interface PlanEventEditModalProps {
 
 const planEventTypes = [
   { id: "wake", label: "Despertar" },
-  { id: "bedtime", label: "Hora de dormir" },
+  { id: "bedtime", label: "Dormir" },
   { id: "nap", label: "Siesta" },
   { id: "meal", label: "Comida" },
   { id: "activity", label: "Actividad" },

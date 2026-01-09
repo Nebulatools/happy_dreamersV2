@@ -1723,6 +1723,7 @@ INSTRUCCIONES PARA REFINAMIENTO:
 4. Mantén la coherencia general del plan base, pero aplica refinamientos específicos
 5. Enfócate en los problemas identificados y cambios solicitados en la consulta
 6. Conserva elementos que funcionan del plan base
+7. ⛔ NO generar actividades de "Acostado", "Acostarse", "Ir a la cama" o "Rutina de sueño" - el campo "bedtime" ya cubre la hora de dormir
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {
@@ -1738,10 +1739,10 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
     ],
     "activities": [
       {
-        "time": "08:00",
-        "activity": "jugar",
+        "time": "10:30",
+        "activity": "Juego activo",
         "duration": 60,
-        "description": "Descripción de la actividad"
+        "description": "Actividad motriz o al aire libre"
       }
     ],
     "naps": [
@@ -1795,6 +1796,7 @@ INSTRUCCIONES:
 4. Mantén la estructura general pero aplica mejoras específicas de la sesión
 5. Enfócate en los problemas identificados y cambios solicitados en la consulta
 6. Si un horario no está en los cambios extraídos, mantén el del plan anterior
+7. ⛔ NO generar actividades de "Acostado", "Acostarse", "Ir a la cama" o "Rutina de sueño" - el campo "bedtime" ya cubre la hora de dormir
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {

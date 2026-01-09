@@ -109,6 +109,51 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
     return `nap-${index}-${time}`
   }
 
+  // Constante para límite de madrugada (eventos antes de 06:00 son "post-bedtime")
+  const EARLY_MORNING_CUTOFF = 6 * 60 // 06:00 = 360 minutos
+
+  // Convierte HH:MM a minutos desde medianoche
+  const timeToMinutes = (time: string): number => {
+    const [h, m] = time.split(":").map(Number)
+    return h * 60 + m
+  }
+
+  // Ordena eventos por "día lógico" del niño:
+  // despertar → actividades diurnas → dormir → eventos nocturnos (madrugada)
+  const sortByLogicalDay = (events: TimelineEvent[], wakeTime?: string | null): TimelineEvent[] => {
+    const wakeMinutes = timeToMinutes(wakeTime || "07:00")
+
+    const wakeEvent = events.find(e => e.type === "wake")
+    const bedtimeEvent = events.find(e => e.type === "bedtime")
+    const postBedtime: TimelineEvent[] = []
+    const daytime: TimelineEvent[] = []
+
+    events.forEach(event => {
+      if (event.type === "wake" || event.type === "bedtime") return
+      const mins = timeToMinutes(event.time)
+      // Evento es nocturno si: antes de despertar Y antes de las 06:00
+      if (mins < wakeMinutes && mins < EARLY_MORNING_CUTOFF) {
+        postBedtime.push(event)
+      } else {
+        daytime.push(event)
+      }
+    })
+
+    const byTime = (a: TimelineEvent, b: TimelineEvent) =>
+      timeToMinutes(a.time) - timeToMinutes(b.time)
+
+    daytime.sort(byTime)
+    postBedtime.sort(byTime)
+
+    const result: TimelineEvent[] = []
+    if (wakeEvent) result.push(wakeEvent)
+    result.push(...daytime)
+    if (bedtimeEvent) result.push(bedtimeEvent)
+    result.push(...postBedtime)
+
+    return result
+  }
+
   const sleepRoutineNotes = getSleepRoutineNotes(plan.sleepRoutine)
   const hasSleepRoutineNotes = sleepRoutineNotes.length > 0
   const showLegacySleepRoutine = hasLegacySleepRoutineDetails(plan.sleepRoutine)
@@ -171,20 +216,14 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
         id: "bedtime",
         time: bedT,
         type: "bedtime",
-        title: "Hora de dormir",
-        description: "Ir a la cama",
+        title: "Dormir",
+        description: "",
         icon: <Moon className="h-4 w-4" />,
       })
     }
 
-    // Ordenar por hora
-    return events
-      .filter(e => typeof e.time === "string")
-      .sort((a, b) => {
-        const [ah, am] = a.time.split(":").map(Number)
-        const [bh, bm] = b.time.split(":").map(Number)
-        return ah * 60 + am - (bh * 60 + bm)
-      })
+    // Filtrar eventos válidos (sin ordenar aquí - se ordena después)
+    return events.filter(e => typeof e.time === "string")
   }
 
   const applyManualOrder = (events: TimelineEvent[]) => {
@@ -204,7 +243,9 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
     return ordered
   }
 
-  const timeline = applyManualOrder(createTimeline())
+  // Crear timeline con ordenamiento por día lógico, luego aplicar orden manual si existe
+  const sortedTimeline = sortByLogicalDay(createTimeline(), plan.schedule?.wakeTime)
+  const timeline = applyManualOrder(sortedTimeline)
 
   return (
     <div className="space-y-6">
@@ -305,9 +346,11 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-muted-foreground">
-                        {event.description}
-                      </p>
+                      {event.description && (
+                        <p className="text-muted-foreground">
+                          {event.description}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
