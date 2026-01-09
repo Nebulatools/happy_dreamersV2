@@ -1724,6 +1724,7 @@ INSTRUCCIONES PARA REFINAMIENTO:
 5. Enfócate en los problemas identificados y cambios solicitados en la consulta
 6. Conserva elementos que funcionan del plan base
 7. ⛔ NO generar actividades de "Acostado", "Acostarse", "Ir a la cama" o "Rutina de sueño" - el campo "bedtime" ya cubre la hora de dormir
+8. ⛔ NO incluir actividades en el plan - solo incluir: despertar (wakeTime), siestas (naps), comidas (meals) y dormir (bedtime)
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {
@@ -1737,14 +1738,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
         "description": "Descripción del desayuno"
       }
     ],
-    "activities": [
-      {
-        "time": "10:30",
-        "activity": "Juego activo",
-        "duration": 60,
-        "description": "Actividad motriz o al aire libre"
-      }
-    ],
+    "activities": [],
     "naps": [
       {
         "time": "14:00",
@@ -1797,6 +1791,7 @@ INSTRUCCIONES:
 5. Enfócate en los problemas identificados y cambios solicitados en la consulta
 6. Si un horario no está en los cambios extraídos, mantén el del plan anterior
 7. ⛔ NO generar actividades de "Acostado", "Acostarse", "Ir a la cama" o "Rutina de sueño" - el campo "bedtime" ya cubre la hora de dormir
+8. ⛔ NO incluir actividades en el plan - solo incluir: despertar (wakeTime), siestas (naps), comidas (meals) y dormir (bedtime)
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {
