@@ -34,25 +34,27 @@ const getEventTypeIcon = (type: string) => {
 }
 
 const getEventTypeColor = (type: string) => {
+  // Colores pasteles unificados con la tabla de eventos
   switch(type) {
   case "sleep":
-    return "bg-indigo-500"
+    return "bg-blue-200 text-blue-800"
   case "nap":
-    return "bg-amber-500"
+    return "bg-blue-100 text-blue-600"
   case "wake":
-    return "bg-green-500"
+    return "bg-amber-200 text-amber-800"
   case "night_waking":
-    return "bg-red-500"
+    return "bg-red-200 text-red-800"
   case "feeding":
+    return "bg-sky-200 text-sky-800"
   case "night_feeding":
-    return "bg-yellow-500"
+    return "bg-yellow-200 text-yellow-800"
   case "medication":
-    return "bg-purple-500"
+    return "bg-purple-200 text-purple-800"
   case "activity":
   case "extra_activities":
-    return "bg-emerald-500"
+    return "bg-indigo-200 text-indigo-800"
   default:
-    return "bg-gray-400"
+    return "bg-gray-200 text-gray-800"
   }
 }
 
@@ -179,7 +181,7 @@ export function EventDetailsModal({
           {/* Badge del tipo de evento */}
           <div className="flex items-center gap-2">
             <div className={cn(
-              "px-3 py-1 rounded-full text-white text-sm font-medium inline-flex items-center gap-2",
+              "px-3 py-1 rounded-full text-sm font-medium inline-flex items-center gap-2",
               getEventTypeColor(event.eventType)
             )}>
               {getEventTypeIcon(event.eventType)}

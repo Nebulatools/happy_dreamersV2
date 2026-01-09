@@ -33,6 +33,7 @@ import { useEventsCache, useEventsInvalidation } from "@/hooks/use-events-cache"
 import { ManualEventModal } from "@/components/events/ManualEventModal"
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal"
 import { EventEditRouter } from "@/components/events/EventEditRouter"
+import { EventDetailsModal } from "@/components/events/EventDetailsModal"
 
 const logger = createLogger("EventsPage")
 
@@ -194,6 +195,7 @@ export default function ChildEventsPage() {
       activity: "Actividad física",
       extra_activities: "Actividades Extra",
       feeding: "Alimentación",
+      night_feeding: "Alimentación nocturna",
       medication: "Medicamento",
       bath: "Baño",
       other: "Otro",
@@ -243,6 +245,7 @@ export default function ChildEventsPage() {
       activity: "bg-orange-200 text-orange-800",
       extra_activities: "bg-indigo-200 text-indigo-800",
       feeding: "bg-sky-200 text-sky-800",
+      night_feeding: "bg-yellow-200 text-yellow-800",
       medication: "bg-purple-200 text-purple-800",
       bath: "bg-cyan-200 text-cyan-800",
       other: "bg-gray-200 text-gray-800",
@@ -633,99 +636,18 @@ export default function ChildEventsPage() {
         </Card>
       )}
 
-      {/* Diálogo para visualizar detalles del evento */}
-      <Dialog open={isDialogOpen} onOpenChange={(open) => {
-        setIsDialogOpen(open)
-        if (!open) setSelectedEvent(null) // Limpiar cuando se cierra
-      }}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          {selectedEvent && (
-            <>
-              <DialogHeader>
-                <DialogTitle>{getEventTypeName(selectedEvent.eventType)}</DialogTitle>
-                <DialogDescription>Detalles del evento</DialogDescription>
-              </DialogHeader>
-
-              {/* Modo visualización */}
-              <div className="space-y-4 py-4">
-                <div className="grid gap-2">
-                  <div className="flex items-center">
-                    <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span className="text-sm">
-                      {(() => {
-                        const startDate = selectedEvent.startTime ? new Date(selectedEvent.startTime) : null
-                        const endDate = selectedEvent.endTime ? new Date(selectedEvent.endTime) : null
-
-                        if (!startDate || isNaN(startDate.getTime())) {
-                          return "Fecha no disponible"
-                        }
-
-                        return (
-                          <>
-                            {format(startDate, "PPpp", { locale: es })}
-                            {endDate && !isNaN(endDate.getTime()) && (
-                              <> hasta {format(endDate, "p", { locale: es })}</>
-                            )}
-                          </>
-                        )
-                      })()}
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="font-medium mr-2">Estado:</span>
-                    <span>
-                      {selectedEvent.eventType === "feeding"
-                        ? (getBabyStateLabel(selectedEvent.babyState) || "Sin estado")
-                        : selectedEvent.eventType === "extra_activities"
-                          ? "No aplica"
-                          : getEmotionalStateName(selectedEvent.emotionalState)}
-                    </span>
-                  </div>
-                  {selectedEvent.eventType === "extra_activities" && selectedEvent.activityDuration && (
-                    <div className="flex items-center">
-                      <span className="font-medium mr-2">Duración:</span>
-                      <span>{formatMinutesReadable(selectedEvent.activityDuration)}</span>
-                    </div>
-                  )}
-                  {selectedEvent.eventType === "feeding" && selectedEvent.feedingDuration && (
-                    <div className="flex items-center">
-                      <span className="font-medium mr-2">Duración:</span>
-                      <span>{formatMinutesReadable(selectedEvent.feedingDuration)}</span>
-                    </div>
-                  )}
-                  {selectedEvent.notes && (
-                    <div className="mt-2">
-                      <span className="font-medium">Notas:</span>
-                      <p className="text-sm mt-1">{selectedEvent.notes}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <DialogFooter className="flex justify-between w-full">
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    setShowDeleteModal(true)
-                  }}
-                >
-                  <Trash className="h-4 w-4 mr-2" />
-                  Eliminar
-                </Button>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cerrar
-                  </Button>
-                  <Button onClick={() => selectedEvent && handleEditEvent(selectedEvent)}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Editar evento
-                  </Button>
-                </div>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Modal para visualizar detalles del evento - Componente reutilizable */}
+      <EventDetailsModal
+        event={selectedEvent}
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          setIsDialogOpen(open)
+          if (!open) setSelectedEvent(null)
+        }}
+        onEdit={() => selectedEvent && handleEditEvent(selectedEvent)}
+        onDelete={() => setShowDeleteModal(true)}
+        showActions={true}
+      />
       
       {/* Modal para registrar eventos */}
       <ManualEventModal
