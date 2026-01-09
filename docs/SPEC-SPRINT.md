@@ -262,21 +262,19 @@ case "night_feeding":
 ### 6.5 TRABAJO PENDIENTE
 
 #### PRIORIDAD ALTA
-| Item | Descripcion | Archivo |
-|------|-------------|---------|
-| Dia logico para planes | Implementar ordenamiento correcto en generacion de planes IA | `app/api/consultas/plans/route.ts` |
-| Testing E2E completo | Verificar todos los cambios funcionan correctamente | Manual |
+| Item | Descripcion | Estado |
+|------|-------------|--------|
+| ~~Dia logico para planes~~ | ~~Ordenamiento por ciclo del nino~~ | **COMPLETADO** (ver 6.12) |
+| Testing E2E completo | Verificar todos los cambios funcionan correctamente | Pendiente |
 
-#### Dia Logico para Planes - Detalle
-El plan de sueno generado por IA debe ordenar actividades de la siguiente manera:
+#### ~~Dia Logico para Planes - Detalle~~ (COMPLETADO)
+✅ **Implementado en seccion 6.12** - Los planes ahora ordenan eventos en el siguiente orden:
 1. **Despertar (wakeTime)** - Inicio del dia
 2. **Actividades diurnas** - En orden cronologico
-3. **Hora de dormir (bedtime/sleep)** - Fin del dia visible
-4. **Eventos de madrugada (night_feeding, night_waking)** - Aparecen al final aunque sean las 02:00 AM
+3. **Dormir (bedtime)** - Fin del dia visible (etiqueta simplificada)
+4. **Eventos de madrugada** - Aparecen al final aunque sean las 02:00 AM
 
-**Archivo a modificar:** `app/api/consultas/plans/route.ts`
-**Funcion:** `generatePlanWithAI()` lineas ~1533-1767
-**Cambio:** Modificar prompts para ordenar correctamente usando `schedule.timelineOrder`
+**Nota:** Se implemento en la visualizacion (`PlanDisplay.tsx`, `EditablePlanDisplay.tsx`) + se agrego regla 7 al prompt de IA para evitar actividades redundantes.
 
 #### PRIORIDAD MEDIA
 | Item | Descripcion | Estado |
@@ -319,7 +317,7 @@ El plan de sueno generado por IA debe ordenar actividades de la siguiente manera
 - [x] GlobalActivityMonitor: Solo alerta para night_waking
 - [x] Calendario: Eventos de madrugada en su dia real (no dia anterior)
 - [x] EventGlobe: Posicionamiento correcto de eventos (fix clase relative)
-- [ ] **PENDIENTE:** Dia logico en generacion de planes
+- [x] **COMPLETADO:** Dia logico en visualizacion de planes (ver 6.12)
 
 ---
 
@@ -559,3 +557,122 @@ className="bg-primary hover:bg-primary/90 text-white"
 - [x] Boton Editar abre EventEditRouter correctamente
 - [x] Boton Eliminar muestra confirmacion y elimina evento
 - [x] Build compila sin errores
+
+---
+
+### 6.12 FEAT: Día Lógico para Planes y Simplificación de Etiquetas (Commit 074960d) - 2026-01-09
+
+#### Problema Reportado por Usuario
+El plan de sueño mostraba DOS eventos redundantes para la hora de dormir:
+- 8:15 PM - "Acostado" (15 min) - descripción "Acostarse"
+- 8:30 PM - "Hora de dormir" - descripción "Ir a la cama"
+
+Además, eventos de madrugada (ej: alimentación a las 02:00 AM) aparecían al INICIO del plan cronológicamente cuando deberían aparecer AL FINAL del día lógico del niño.
+
+#### Decisiones de Diseño
+
+| Decisión | Justificación |
+|----------|---------------|
+| Mantener `schedule.bedtime` | Es un campo de horario recomendado, no un tipo de evento |
+| Eliminar actividad "Acostado" | Redundante con el evento `bedtime` |
+| Simplificar a "Dormir" | Más claro y directo para los padres |
+| Día lógico en visualización | Los planes deben reflejar el ciclo natural del niño |
+
+#### Solución Implementada
+
+##### A. Función sortByLogicalDay()
+Nueva función para ordenar eventos según el ciclo del niño:
+
+```typescript
+const EARLY_MORNING_CUTOFF = 6 * 60 // 06:00 = 360 minutos
+
+const timeToMinutes = (time: string): number => {
+  const [h, m] = time.split(":").map(Number)
+  return h * 60 + m
+}
+
+const sortByLogicalDay = (events: TimelineEvent[], wakeTime?: string | null): TimelineEvent[] => {
+  const wakeMinutes = timeToMinutes(wakeTime || "07:00")
+
+  // Separar eventos en categorías
+  const wakeEvent = events.find(e => e.type === "wake")
+  const bedtimeEvent = events.find(e => e.type === "bedtime")
+  const postBedtime: TimelineEvent[] = []  // Eventos de madrugada
+  const daytime: TimelineEvent[] = []       // Eventos diurnos
+
+  events.forEach(event => {
+    if (event.type === "wake" || event.type === "bedtime") return
+    const mins = timeToMinutes(event.time)
+    // Es nocturno si: antes de despertar Y antes de las 06:00
+    if (mins < wakeMinutes && mins < EARLY_MORNING_CUTOFF) {
+      postBedtime.push(event)
+    } else {
+      daytime.push(event)
+    }
+  })
+
+  // Orden: despertar → actividades → dormir → eventos nocturnos
+  return [
+    ...(wakeEvent ? [wakeEvent] : []),
+    ...daytime.sort(byTime),
+    ...(bedtimeEvent ? [bedtimeEvent] : []),
+    ...postBedtime.sort(byTime)
+  ]
+}
+```
+
+##### B. Simplificación de Etiquetas
+
+| Antes | Después |
+|-------|---------|
+| "Hora de dormir" | "Dormir" |
+| "Ir a la cama" (descripción) | "" (vacío) |
+
+**Archivos modificados:**
+- `PlanDisplay.tsx` líneas 219-220
+- `EditablePlanDisplay.tsx` líneas 578-579
+- `PlanEventEditModal.tsx` línea 46
+- `EditablePlanDisplay.tsx` EVENT_TEMPLATES línea 89
+
+##### C. Regla 7 en Prompt de IA
+Agregada instrucción para evitar actividades redundantes:
+
+```
+7. ⛔ NO generar actividades de "Acostado", "Acostarse", "Ir a la cama"
+   o "Rutina de sueño" - el campo "bedtime" ya cubre la hora de dormir
+```
+
+**Archivos modificados:**
+- `app/api/consultas/plans/route.ts` línea 1726 (refinamiento)
+- `app/api/consultas/plans/route.ts` línea 1799 (fallback)
+
+##### D. Ejemplo de Activities Mejorado
+El ejemplo de actividades en el prompt usaba "jugar" genérico. Cambiado a ejemplo más representativo:
+
+```json
+// ANTES:
+"activities": [{ "time": "08:00", "activity": "jugar", "duration": 60 }]
+
+// DESPUÉS:
+"activities": [{ "time": "10:30", "activity": "Juego activo", "duration": 60,
+                 "description": "Actividad motriz o al aire libre" }]
+```
+
+#### Archivos Modificados (Commit 074960d)
+
+| Archivo | Cambio |
+|---------|--------|
+| `components/consultas/PlanDisplay.tsx` | sortByLogicalDay + etiquetas simplificadas |
+| `components/consultas/EditablePlanDisplay.tsx` | sortByLogicalDay + etiquetas + template actualizado |
+| `components/consultas/PlanEventEditModal.tsx` | Etiqueta "Dormir" en selector |
+| `app/api/consultas/plans/route.ts` | Regla 7 + ejemplo mejorado |
+
+#### Verificación
+
+- [x] Eventos de madrugada (02:00 AM) aparecen AL FINAL del plan
+- [x] Orden: despertar → actividades → dormir → eventos nocturnos
+- [x] Etiqueta "Dormir" en lugar de "Hora de dormir"
+- [x] Sin descripción "Ir a la cama" redundante
+- [x] Planes generados por IA no incluyen actividad "Acostado"
+- [x] Build compila sin errores
+- [x] App inicia correctamente (Next.js Ready)
