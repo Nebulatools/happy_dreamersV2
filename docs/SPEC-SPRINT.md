@@ -477,3 +477,85 @@ return (
 - [x] SleepSessionBlock ocupa 100% del ancho de la columna del dia
 - [x] EventGlobe (feeding, medication, activities) sigue escalonandose correctamente
 - [x] NightWakings visibles sobre el bloque de sleep
+
+---
+
+### 6.11 REFACTOR: EventDetailsModal como Componente Reutilizable (Commit e84bc4a) - 2026-01-09
+
+#### Problema Identificado
+El modal de "Detalles del Evento" en el calendario estaba implementado inline (~300 lineas de codigo) en `calendar/page.tsx`. Esto causaba:
+1. Codigo duplicado si se queria usar en otras partes de la app
+2. Tab "Eventos" en Admin (`AdminChildDetailClient`) no tenia modal de detalles
+3. Admin podia ver lista de eventos pero no podia hacer click para ver todos los campos
+
+#### Solucion Implementada
+
+##### A. Nuevo Componente EventDetailsModal
+**Archivo:** `components/events/EventDetailsModal.tsx`
+
+**Contenido extraido:**
+- 9 funciones helper: `getEventTypeIcon`, `getEventTypeColor`, `getEventTypeName`, `getEmotionalStateName`, `getFeedingTypeName`, `getBabyStateName`, `getActivityImpactName`, `formatMinutes`, `formatFeedingAmount`
+- Secciones especificas por tipo de evento (sleep, feeding, medication, activities)
+- Botones de accion (Editar/Eliminar)
+
+**Props del componente:**
+```typescript
+interface EventDetailsModalProps {
+  event: Event | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onEdit?: () => void
+  onDelete?: () => void
+  showActions?: boolean
+  userTimeZone?: string
+}
+```
+
+##### B. Integracion en AdminChildDetailClient
+**Archivo:** `app/dashboard/patients/child/[childId]/AdminChildDetailClient.tsx`
+
+**Cambios:**
+1. Import de `EventDetailsModal`, `EventEditRouter`, `DeleteConfirmationModal`
+2. Estados agregados: `selectedEvent`, `isDetailsModalOpen`, `isEditModalOpen`, `showDeleteModal`, `isDeleting`
+3. Eventos clickeables con `cursor-pointer` y `onClick`
+4. Modales agregados al final del componente
+5. Funcion `refetchEvents()` para actualizar lista despues de editar/eliminar
+
+**Resultado:** Admin ahora puede hacer click en cualquier evento del Tab "Eventos" y ver el modal completo con todos los campos.
+
+##### C. Refactor de calendar/page.tsx
+**Archivo:** `app/dashboard/calendar/page.tsx`
+
+**Cambios:**
+- Import del nuevo `EventDetailsModal`
+- Eliminacion de ~300 lineas de Dialog inline
+- Uso del componente reutilizable con mismos props
+
+**Reduccion:** El archivo paso de tener el modal inline a solo 11 lineas usando el componente.
+
+##### D. Boton Editar con Color de Branding
+El boton de Editar en el modal usaba un gradiente `from-indigo-500 to-purple-500` que no coincidia con el branding de la app.
+
+**Cambio:**
+```tsx
+// ANTES:
+className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
+
+// DESPUES:
+className="bg-primary hover:bg-primary/90 text-white"
+```
+
+#### Archivos Modificados (Commit e84bc4a)
+| Archivo | Cambio |
+|---------|--------|
+| `components/events/EventDetailsModal.tsx` | **NUEVO** - Componente reutilizable |
+| `components/events/index.ts` | Export agregado |
+| `app/dashboard/patients/child/[childId]/AdminChildDetailClient.tsx` | Integracion del modal, eventos clickeables |
+| `app/dashboard/calendar/page.tsx` | Reemplazo de Dialog inline con componente |
+
+#### Verificacion
+- [x] Calendario: Click en evento abre modal igual que antes
+- [x] Admin Tab Eventos: Click en evento abre modal con todos los campos
+- [x] Boton Editar abre EventEditRouter correctamente
+- [x] Boton Eliminar muestra confirmacion y elimina evento
+- [x] Build compila sin errores
