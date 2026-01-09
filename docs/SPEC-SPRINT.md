@@ -318,4 +318,65 @@ El plan de sueno generado por IA debe ordenar actividades de la siguiente manera
 - [x] Iconos feeding: Solidos (UtensilsCrossed) vs Liquidos (Utensils)
 - [x] GlobalActivityMonitor: Solo alerta para night_waking
 - [x] Calendario: Eventos de madrugada en su dia real (no dia anterior)
+- [x] EventGlobe: Posicionamiento correcto de eventos (fix clase relative)
 - [ ] **PENDIENTE:** Dia logico en generacion de planes
+
+---
+
+### 6.9 FIX: Posicionamiento de Eventos EventGlobe (Commit f606207) - 2026-01-09
+
+#### Problema Reportado
+Los eventos de tipo `feeding`, `medication` y `extra_activities` aparecian desplazados ~1 hora hacia abajo de su posicion correcta. Los eventos de `sleep`, `nap` y `night_waking` (renderizados por SleepSessionBlock) se mostraban correctamente.
+
+#### Diagnostico con Claude in Chrome
+
+| Verificacion | Resultado |
+|-------------|-----------|
+| Timezone interpretation | Correcta (`new Date().getHours()` retorna valor correcto) |
+| Formulas matematicas | Correctas y consistentes entre componentes |
+| cssTop del evento 21:00 | 630px (correcto: 21 * 30 = 630) |
+| **computed position** | **`relative` en vez de `absolute`** ← BUG |
+
+#### Causa Raiz
+**EventGlobe.tsx linea 260** tenia clases conflictivas:
+```tsx
+className={`group relative absolute shadow-md...`}
+```
+
+En Tailwind CSS, cuando hay clases conflictivas (`relative` y `absolute`), una gana segun el orden en la stylesheet compilada. El **computed style mostraba `position: relative`**, causando que `top: 630px` fuera relativo a la posicion en el flujo del documento, NO al contenedor padre.
+
+#### Por que SleepSessionBlock funcionaba
+SleepSessionBlock.tsx solo tenia `absolute` sin `relative` conflictivo:
+```tsx
+className={cn("absolute left-2 right-2 cursor-pointer", className)}
+```
+
+#### Solucion Implementada
+
+**Archivo:** `components/calendar/EventGlobe.tsx`
+```diff
+- className={`group relative absolute shadow-md...`}
++ className={`group absolute shadow-md...`}
+```
+
+**Archivo:** `components/calendar/CalendarWeekView.tsx`
+```diff
+- "h-6 bg-white border-b border-gray-200..."
++ "h-8 bg-white border-b border-gray-200..."
+```
+(Alineacion de header con TimeAxis)
+
+#### Verificacion Post-Fix
+```javascript
+// Antes del fix
+{ cssTop: 630, position: "relative" } // ❌
+
+// Despues del fix
+{ cssTop: 630, position: "absolute" } // ✓
+```
+
+#### Archivos Modificados (Commit f606207)
+| Archivo | Cambio |
+|---------|--------|
+| `components/calendar/EventGlobe.tsx` | Quitar `relative` conflictivo, agregar soporte `night_feeding` |
+| `components/calendar/CalendarWeekView.tsx` | Header h-6 → h-8, agregar overflow-hidden |
