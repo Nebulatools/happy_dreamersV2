@@ -676,3 +676,117 @@ El ejemplo de actividades en el prompt usaba "jugar" genérico. Cambiado a ejemp
 - [x] Planes generados por IA no incluyen actividad "Acostado"
 - [x] Build compila sin errores
 - [x] App inicia correctamente (Next.js Ready)
+
+---
+
+### 6.13 REFACTOR: Eliminar night_feeding como eventType separado (Commit ec3d44e) - 2026-01-09
+
+#### Problema Identificado
+Cuando se registraba una alimentación mientras el bebé dormía, el sistema creaba **2 eventos separados**:
+1. Evento `feeding` con los detalles de la alimentación
+2. Evento `night_feeding` como marcador de alimentación nocturna
+
+Esto causaba:
+- **Inconsistencia de datos**: Editar uno no actualizaba el otro
+- **Error de edición**: "Cannot read properties of null (reading 'toString')" al editar `night_feeding`
+- **Duplicados en la BD**: 2 registros por cada alimentación nocturna
+
+#### Solución Implementada
+
+##### A. Nuevo Modelo de Datos
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `isNightFeeding` | `boolean` | `true` si la alimentación ocurrió mientras el bebé dormía |
+| `feedingContext` | `"awake" \| "during_sleep" \| "during_nap"` | Contexto del bebé al momento de alimentar |
+
+##### B. Cambio en Creación de Eventos
+
+**FeedingButton.tsx - ANTES:**
+```typescript
+// Creaba 2 eventos
+await createEvent({ eventType: "feeding", ... })
+if (isBabySleeping && isLiquid) {
+  await createEvent({ eventType: "night_feeding", ... })
+}
+```
+
+**FeedingButton.tsx - DESPUÉS:**
+```typescript
+// Crea 1 solo evento con flag
+const isNightFeeding = isBabySleeping && isLiquid
+const feedingContext = sleepState.status === "sleeping"
+  ? "during_sleep"
+  : sleepState.status === "napping"
+    ? "during_nap"
+    : "awake"
+
+await createEvent({
+  eventType: "feeding",
+  isNightFeeding,
+  feedingContext,
+  ...
+})
+```
+
+##### C. Compatibilidad hacia Atrás
+La UI detecta alimentaciones nocturnas con ambos formatos:
+
+```typescript
+const isNightFeedingEvent = (event: Event) =>
+  event.eventType === "night_feeding" ||  // Legacy
+  (event.eventType === "feeding" && event.isNightFeeding === true)  // Nuevo
+```
+
+##### D. Visualización en UI
+
+**Tabla de Mis Eventos:**
+```
+| Tipo                          | Hora  |
+|-------------------------------|-------|
+| Alimentación [Nocturna]       | 02:30 |  ← Badge morado
+| Alimentación                  | 14:00 |
+```
+
+**Modal de Detalles:**
+- Badge "Nocturna" junto al tipo de evento
+- Texto: "Esta alimentación ocurrió mientras el bebé dormía"
+
+##### E. Script de Migración
+**Archivo:** `scripts/migrate-night-feeding.ts`
+
+```bash
+npx tsx scripts/migrate-night-feeding.ts
+```
+
+**Resultados de la migración:**
+- 34 eventos `night_feeding` encontrados
+- 32 convertidos directamente a `feeding` con flag
+- 2 duplicados fusionados y eliminados
+- 0 eventos `night_feeding` restantes
+
+#### Archivos Modificados (Commit ec3d44e)
+
+| Archivo | Cambio |
+|---------|--------|
+| `types/models.ts` | Agregados `isNightFeeding`, `feedingContext` al Event |
+| `components/events/types.ts` | Agregados campos a EventData |
+| `app/api/children/events/route.ts` | POST/PUT/PATCH guardan nuevos campos |
+| `components/events/FeedingButton.tsx` | Crear 1 evento con flag en lugar de 2 |
+| `app/dashboard/children/[id]/events/page.tsx` | Badge "Nocturna" en tabla |
+| `components/events/EventDetailsModal.tsx` | Badge "Nocturna" + texto informativo |
+| `components/events/EventEditRouter.tsx` | `night_feeding` → FeedingModal con conversión |
+| `components/events/ManualEventModal.tsx` | Fix bug null check (`!= null`) |
+| `lib/event-sync.ts` | Agregados campos a EventSyncData |
+| `scripts/migrate-night-feeding.ts` | **NUEVO** - Script de migración |
+
+#### Verificación
+
+- [x] Alimentar bebé dormido crea 1 solo evento con `isNightFeeding: true`
+- [x] Badge "Nocturna" visible en tabla de Mis Eventos
+- [x] Badge "Nocturna" visible en modal de detalles
+- [x] Editar evento nocturno abre FeedingModal correctamente
+- [x] Cambios persisten después de editar
+- [x] Eventos legacy `night_feeding` se muestran correctamente
+- [x] Migración ejecutada: 0 eventos `night_feeding` en BD
+- [x] Build compila sin errores relacionados con este cambio
