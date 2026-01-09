@@ -95,3 +95,227 @@ Este sprint se enfoca en resolver inconsistencias de UX y calidad de datos crít
 2.  **Medicamentos (Unhappy Path):** Si intento guardar un medicamento sin nombre, la UI me muestra error rojo y **NO** permite guardar.
 3.  **Plan de Sueño:** Un evento a las 02:00 AM del Sábado debe aparecer visualmente en la columna del Viernes (al final).
 4.  **Migración:** Los eventos viejos de "Ir a acostarse" desaparecen de la vista, pero el evento "Dormir" siguiente muestra: "Tiempo para dormir: X min".
+
+---
+
+## 6. HISTORIAL DE IMPLEMENTACION - Sesion 2026-01-08
+
+### 6.1 Contexto Inicial
+Durante testing del usuario, se identificaron MULTIPLES errores en la implementacion previa. Los problemas principales fueron:
+
+| Problema | Descripcion | Impacto |
+|----------|-------------|---------|
+| Dia logico mal ubicado | Se implemento en calendario cuando debia ser para planes | Eventos de madrugada aparecian en dia anterior incorrectamente |
+| GlobalActivityMonitor | Monitoreaba sleep/nap cuando solo debia monitorear night_waking | Alertas innecesarias para ninos durmiendo 6+ horas |
+| Iconos con emojis | Se usaron emojis en lugar de iconos Lucide | Inconsistencia visual con el resto de la app |
+| Vista diaria | Eventos muy anchos, tooltip mal posicionado | UX pobre, tooltip salia de pantalla |
+
+### 6.2 CAMBIOS REVERTIDOS
+
+#### A. Dia Logico de Madrugada (REVERTIDO)
+**Archivos afectados:**
+- `lib/datetime.ts`
+- `components/calendar/CalendarWeekView.tsx`
+
+**Que se elimino:**
+```typescript
+// ELIMINADO de lib/datetime.ts:
+export const EARLY_MORNING_CUTOFF_HOUR = 5
+
+export function getLogicalDateKey(isoString: string, timezone: string = DEFAULT_TIMEZONE): string {
+  // ... logica que movia eventos de madrugada al dia anterior
+}
+```
+
+**Razon:** El dia logico de madrugada es para GENERACION DE PLANES, no para visualizacion del calendario. El calendario debe mostrar eventos en su dia real.
+
+**NOTA IMPORTANTE:** La logica de "dia logico" todavia debe implementarse, pero en `app/api/consultas/plans/route.ts` para que los planes generados por IA:
+1. Empiecen con la hora de despertar (wakeTime)
+2. Continuen con actividades del dia
+3. Terminen con alimentacion nocturna (night_feeding a las 02:00, etc.)
+
+---
+
+### 6.3 CAMBIOS IMPLEMENTADOS (Correctos)
+
+#### A. GlobalActivityMonitor - Solo night_waking
+**Archivo:** `components/ui/GlobalActivityMonitor.tsx`
+
+**Cambio:** El componente ahora SOLO monitorea eventos de `night_waking` (despertar nocturno).
+
+**Por que:** Los eventos de `sleep` y `nap` duran horas (6+ horas es normal para ninos). No tiene sentido alertar al usuario que "tiene un evento de sueno abierto" cuando el nino simplemente sigue dormido.
+
+**Logica actual:**
+```typescript
+// Solo verifica localStorage key para night_waking
+const nightWakeKey = `pending_night_wake_${activeChild._id}`
+const storedNightWake = window.localStorage.getItem(nightWakeKey)
+
+// Alerta solo si night_waking lleva > 20 minutos abierto
+if (elapsed >= ALERT_THRESHOLD_MINUTES && !dismissed) {
+  setShowAlert(true)
+}
+```
+
+---
+
+#### B. Vista Diaria - Sistema de Columnas
+**Archivo:** `components/calendar/CalendarDayView.tsx`
+
+**Problema:** Eventos superpuestos ocupaban 100% del ancho y se tapaban entre si.
+
+**Solucion:** Se copio la funcion `calculateEventColumns()` de CalendarWeekView.tsx para calcular columnas para eventos superpuestos.
+
+**Como funciona:**
+1. Ordena eventos por hora de inicio
+2. Determina cuales eventos se superponen en tiempo
+3. Asigna columnas (0, 1, 2...) a eventos superpuestos
+4. Divide el ancho disponible entre el numero de columnas
+5. Cada evento recibe `column` y `totalColumns` para posicionarse
+
+```typescript
+// Ejemplo: 3 eventos superpuestos
+// Evento A: column=0, totalColumns=3 -> ocupa 33% izquierda
+// Evento B: column=1, totalColumns=3 -> ocupa 33% centro
+// Evento C: column=2, totalColumns=3 -> ocupa 33% derecha
+```
+
+---
+
+#### C. Tooltip Posicionado Arriba
+**Archivo:** `components/calendar/EventGlobe.tsx`
+
+**Problema:** Tooltip aparecia a la derecha del evento y se salia de la pantalla.
+
+**Solucion:** Tooltip ahora aparece ARRIBA del evento, centrado horizontalmente.
+
+**Codigo clave:**
+```typescript
+// Posicion del tooltip
+const handleMouseEnter = () => {
+  if (eventRef.current) {
+    const rect = eventRef.current.getBoundingClientRect()
+    setTooltipPosition({
+      x: rect.left + rect.width / 2,  // Centrado horizontalmente
+      y: rect.top - 8                  // 8px arriba del evento
+    })
+  }
+}
+
+// CSS del tooltip
+style={{
+  transform: 'translate(-50%, -100%)',  // Centrado y arriba
+  zIndex: 9999
+}}
+```
+
+**Flecha indicadora:** Se agrego una flecha que apunta hacia abajo para indicar a que evento pertenece el tooltip.
+
+---
+
+#### D. Iconos de Feeding (Lucide, sin emojis)
+**Archivos modificados:**
+- `components/calendar/EventBlock.tsx`
+- `components/calendar/EventGlobe.tsx`
+- `app/dashboard/patients/child/[childId]/AdminChildDetailClient.tsx`
+
+**Regla de iconos:**
+| Tipo de Evento | Icono Lucide | Color |
+|----------------|--------------|-------|
+| sleep | Moon | indigo (#6366f1) |
+| nap | Sun | amber (#f59e0b) |
+| wake | Sun | yellow (#eab308) |
+| night_waking | Baby | purple (#a855f7) |
+| feeding (liquidos: breast/bottle) | Utensils | green (#22c55e) |
+| feeding (solidos) | UtensilsCrossed | green (#22c55e) |
+| medication | Pill | blue (#3b82f6) |
+| extra_activities | Activity | orange (#f97316) |
+
+**Codigo de ejemplo:**
+```typescript
+case "feeding":
+case "night_feeding":
+  if (event.feedingType === "solids") {
+    return <UtensilsCrossed className="h-4 w-4 text-green-500" />
+  }
+  return <Utensils className="h-4 w-4 text-green-500" />
+```
+
+---
+
+### 6.4 ACLARACION IMPORTANTE: Admin vs User Views
+
+**El calendario (vistas semana/mes/dia) es SOLO para Admin.**
+
+| Vista | Quien la ve | Ruta |
+|-------|-------------|------|
+| Calendario completo (semana/mes/dia) | Solo Admin | `/dashboard/calendar` |
+| Grafica de barras (resumen) | Usuario normal (padres) | `/dashboard/children/{id}` |
+
+**Implicacion para testing:**
+- Para probar el calendario: Login como admin (mariana@admin.com)
+- Los usuarios normales NO tienen acceso a las vistas detalladas del calendario
+- La verificacion de columnas, tooltips, etc. debe hacerse desde cuenta admin
+
+---
+
+### 6.5 TRABAJO PENDIENTE
+
+#### PRIORIDAD ALTA
+| Item | Descripcion | Archivo |
+|------|-------------|---------|
+| Dia logico para planes | Implementar ordenamiento correcto en generacion de planes IA | `app/api/consultas/plans/route.ts` |
+| Testing E2E completo | Verificar todos los cambios funcionan correctamente | Manual |
+
+#### Dia Logico para Planes - Detalle
+El plan de sueno generado por IA debe ordenar actividades de la siguiente manera:
+1. **Despertar (wakeTime)** - Inicio del dia
+2. **Actividades diurnas** - En orden cronologico
+3. **Hora de dormir (bedtime/sleep)** - Fin del dia visible
+4. **Eventos de madrugada (night_feeding, night_waking)** - Aparecen al final aunque sean las 02:00 AM
+
+**Archivo a modificar:** `app/api/consultas/plans/route.ts`
+**Funcion:** `generatePlanWithAI()` lineas ~1533-1767
+**Cambio:** Modificar prompts para ordenar correctamente usando `schedule.timelineOrder`
+
+#### PRIORIDAD MEDIA
+| Item | Descripcion | Estado |
+|------|-------------|--------|
+| Errores TypeScript pre-existentes | Hay errores en archivos de API no tocados | Pendiente |
+| Errores de lint | Warnings de ESLint en varios archivos | Pendiente |
+
+---
+
+### 6.6 ARCHIVOS MODIFICADOS (Commit 554412a)
+
+| Archivo | Tipo de Cambio |
+|---------|----------------|
+| `lib/datetime.ts` | Eliminadas funciones de dia logico |
+| `components/calendar/CalendarWeekView.tsx` | Restaurada funcion getEventsForDay original |
+| `components/calendar/CalendarDayView.tsx` | Agregada funcion calculateEventColumns |
+| `components/calendar/EventGlobe.tsx` | Tooltip arriba + iconos Lucide |
+| `components/calendar/EventBlock.tsx` | Iconos Lucide sin emojis |
+| `components/ui/GlobalActivityMonitor.tsx` | Solo monitorea night_waking |
+| `AdminChildDetailClient.tsx` | Iconos Lucide sin emojis |
+
+---
+
+### 6.7 CREDENCIALES DE TESTING
+
+| Rol | Email | Password |
+|-----|-------|----------|
+| Admin | mariana@admin.com | password |
+| Usuario | eljulius@nebulastudios.io | juls0925 |
+
+**URL Base:** `http://localhost:3000`
+
+---
+
+### 6.8 CHECKLIST DE VERIFICACION
+
+- [x] Vista diaria: Eventos superpuestos lado a lado (no tapandose)
+- [x] Tooltip: Aparece arriba del evento, no a la derecha
+- [x] Iconos feeding: Solidos (UtensilsCrossed) vs Liquidos (Utensils)
+- [x] GlobalActivityMonitor: Solo alerta para night_waking
+- [x] Calendario: Eventos de madrugada en su dia real (no dia anterior)
+- [ ] **PENDIENTE:** Dia logico en generacion de planes
