@@ -362,6 +362,7 @@ export interface Event {
   _id: string
   childId: string
   parentId?: string
+  // NOTA: "night_feeding" es legacy - nuevos eventos usan "feeding" con isNightFeeding: true
   eventType: "sleep" | "nap" | "wake" | "night_waking" | "feeding" | "night_feeding" | "medication" | "extra_activities" | string
   emotionalState?: string
   startTime: string
@@ -369,15 +370,29 @@ export interface Event {
   notes?: string
   duration?: number // en minutos
   sleepDelay?: number // tiempo para dormirse en minutos
+  awakeDelay?: number // tiempo despierto en despertar nocturno
   // Campos de alimentacion
   feedingType?: "breast" | "bottle" | "solids"
   feedingDuration?: number
-  feedingAmount?: string
+  feedingAmount?: number | string
+  feedingNotes?: string
+  babyState?: "awake" | "asleep"
+  // Flag para alimentacion nocturna (reemplaza eventType: "night_feeding")
+  isNightFeeding?: boolean
+  feedingContext?: "awake" | "during_sleep" | "during_nap"
   // Campos de medicamento
   medicationName?: string
   medicationDose?: string
+  medicationTime?: string
+  medicationNotes?: string
   // Campos de actividad extra
   activityType?: string
+  activityDescription?: string
+  activityDuration?: number
+  activityImpact?: "positive" | "neutral" | "negative"
+  activityNotes?: string
+  // Flag para eventos no dormidos
+  didNotSleep?: boolean
   createdAt?: Date
   updatedAt?: Date
 }

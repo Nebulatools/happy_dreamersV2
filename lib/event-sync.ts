@@ -29,6 +29,9 @@ export interface EventSyncData {
   feedingDuration?: number
   babyState?: string
   feedingNotes?: string
+  // Flag para alimentación nocturna (reemplaza eventType: "night_feeding")
+  isNightFeeding?: boolean
+  feedingContext?: string
   // Campos específicos para medicamentos
   medicationName?: string
   medicationDose?: string

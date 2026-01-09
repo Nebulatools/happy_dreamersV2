@@ -179,7 +179,7 @@ export function EventDetailsModal({
 
         <div className="space-y-4">
           {/* Badge del tipo de evento */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <div className={cn(
               "px-3 py-1 rounded-full text-sm font-medium inline-flex items-center gap-2",
               getEventTypeColor(event.eventType)
@@ -187,6 +187,12 @@ export function EventDetailsModal({
               {getEventTypeIcon(event.eventType)}
               {getEventTypeName(event.eventType)}
             </div>
+            {/* Badge "Nocturna" para alimentaciones durante el sueño */}
+            {(event.isNightFeeding || event.eventType === "night_feeding") && (
+              <div className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                Nocturna
+              </div>
+            )}
           </div>
 
           {/* Informacion principal */}
@@ -353,6 +359,13 @@ export function EventDetailsModal({
                 <div className="flex items-center gap-2 text-sm">
                   <span className="font-medium">Estado del bebe:</span>
                   <span>{getBabyStateName(event.babyState)}</span>
+                </div>
+              )}
+
+              {/* Indicador de alimentación nocturna */}
+              {(event.isNightFeeding || event.eventType === "night_feeding") && (
+                <div className="text-sm text-purple-600 bg-purple-50 p-2 rounded">
+                  Esta alimentacion ocurrio mientras el bebe dormia
                 </div>
               )}
 

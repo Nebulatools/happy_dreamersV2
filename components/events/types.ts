@@ -24,6 +24,9 @@ export interface EventData {
   feedingDuration?: number  // duración en minutos
   babyState?: "awake" | "asleep"  // para tomas nocturnas
   feedingNotes?: string  // notas específicas de alimentación
+  // Flag para alimentación nocturna (reemplaza eventType: "night_feeding")
+  isNightFeeding?: boolean
+  feedingContext?: "awake" | "during_sleep" | "during_nap"
   // Campos específicos para medicamentos
   medicationName?: string  // nombre del medicamento
   medicationDose?: string  // dosis administrada

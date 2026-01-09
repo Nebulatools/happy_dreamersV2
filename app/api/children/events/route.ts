@@ -309,7 +309,7 @@ export async function POST(req: NextRequest) {
       createdAt: new Date().toISOString(),
     }
 
-    // Agregar campos específicos de alimentación si aplica (feeding y night_feeding)
+    // Agregar campos específicos de alimentación si aplica (feeding y night_feeding legacy)
     if (data.eventType === "feeding" || data.eventType === "night_feeding") {
       event.feedingType = data.feedingType
       event.feedingSubtype = data.feedingSubtype || data.feedingType
@@ -317,6 +317,9 @@ export async function POST(req: NextRequest) {
       event.feedingDuration = data.feedingDuration
       event.babyState = data.babyState
       event.feedingNotes = data.feedingNotes || ""
+      // Nuevos campos para alimentación nocturna (reemplaza eventType: "night_feeding")
+      event.isNightFeeding = data.isNightFeeding ?? false
+      event.feedingContext = data.feedingContext || "awake"
     }
     
     // Agregar campos específicos de medicamentos si aplica
@@ -392,6 +395,8 @@ export async function POST(req: NextRequest) {
         feedingDuration: event.feedingDuration,
         babyState: event.babyState,
         feedingNotes: event.feedingNotes,
+        isNightFeeding: event.isNightFeeding,
+        feedingContext: event.feedingContext,
         medicationName: event.medicationName,
         medicationDose: event.medicationDose,
         medicationTime: event.medicationTime,
@@ -434,6 +439,8 @@ export async function POST(req: NextRequest) {
         feedingDuration: event.feedingDuration,
         babyState: event.babyState,
         feedingNotes: event.feedingNotes,
+        isNightFeeding: event.isNightFeeding,
+        feedingContext: event.feedingContext,
         medicationName: event.medicationName,
         medicationDose: event.medicationDose,
         medicationTime: event.medicationTime,
@@ -590,13 +597,15 @@ export async function PUT(req: NextRequest) {
     }
 
     // Agregar campos específicos de alimentación si aplica
-    if (data.eventType === "feeding") {
+    if (data.eventType === "feeding" || data.eventType === "night_feeding") {
       updatedEvent.feedingType = data.feedingType
       updatedEvent.feedingSubtype = data.feedingSubtype || data.feedingType
       updatedEvent.feedingAmount = data.feedingAmount
       updatedEvent.feedingDuration = data.feedingDuration
       updatedEvent.babyState = data.babyState
       updatedEvent.feedingNotes = data.feedingNotes || ""
+      updatedEvent.isNightFeeding = data.isNightFeeding ?? false
+      updatedEvent.feedingContext = data.feedingContext || "awake"
     }
 
     // Agregar campos específicos de medicamentos si aplica
@@ -712,6 +721,8 @@ export async function PUT(req: NextRequest) {
         feedingDuration: updatedEvent.feedingDuration,
         babyState: updatedEvent.babyState,
         feedingNotes: updatedEvent.feedingNotes,
+        isNightFeeding: updatedEvent.isNightFeeding,
+        feedingContext: updatedEvent.feedingContext,
         medicationName: updatedEvent.medicationName,
         medicationDose: updatedEvent.medicationDose,
         medicationTime: updatedEvent.medicationTime,
@@ -841,6 +852,8 @@ export async function PATCH(req: NextRequest) {
     if (data.feedingDuration !== undefined) updateFields.feedingDuration = data.feedingDuration
     if (data.babyState) updateFields.babyState = data.babyState
     if (data.feedingNotes !== undefined) updateFields.feedingNotes = data.feedingNotes
+    if (data.isNightFeeding !== undefined) updateFields.isNightFeeding = data.isNightFeeding
+    if (data.feedingContext) updateFields.feedingContext = data.feedingContext
 
     // CALCULAR DURACIÓN AUTOMÁTICAMENTE si se está agregando endTime y no hay duration explícita
     if (data.endTime && data.duration === undefined && existingEvent.startTime) {
@@ -915,6 +928,8 @@ export async function PATCH(req: NextRequest) {
         feedingDuration: updateFields.feedingDuration !== undefined ? updateFields.feedingDuration : existingEvent.feedingDuration,
         babyState: updateFields.babyState || existingEvent.babyState,
         feedingNotes: updateFields.feedingNotes !== undefined ? updateFields.feedingNotes : existingEvent.feedingNotes,
+        isNightFeeding: updateFields.isNightFeeding !== undefined ? updateFields.isNightFeeding : existingEvent.isNightFeeding,
+        feedingContext: updateFields.feedingContext || existingEvent.feedingContext,
         medicationName: existingEvent.medicationName,
         medicationDose: existingEvent.medicationDose,
         medicationTime: existingEvent.medicationTime,

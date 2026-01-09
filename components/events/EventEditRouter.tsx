@@ -31,6 +31,9 @@ interface Event {
   feedingDuration?: number
   babyState?: "awake" | "asleep"
   feedingNotes?: string
+  // Flag para alimentación nocturna (reemplaza eventType: "night_feeding")
+  isNightFeeding?: boolean
+  feedingContext?: "awake" | "during_sleep" | "during_nap"
   // Campos específicos de actividad extra
   activityDescription?: string
   activityDuration?: number
@@ -147,6 +150,7 @@ export function EventEditRouter({
     )
 
   case "feeding":
+  case "night_feeding": // Legacy: manejar igual que feeding
     // Utilidades de conversión
     const mlToOz = (ml?: number) => {
       if (!ml || isNaN(ml)) return 0
@@ -169,8 +173,13 @@ export function EventEditRouter({
           if (payload.feedingType === "solids") {
             payload.babyState = "awake"
           }
+          // Preservar isNightFeeding si existe, o detectar por eventType legacy
+          const isNightFeeding = event.isNightFeeding ?? (event.eventType === "night_feeding")
           await updateEvent({
             ...payload,
+            eventType: "feeding", // Convertir night_feeding → feeding al editar
+            isNightFeeding,
+            feedingContext: isNightFeeding ? "during_sleep" : "awake",
             startTime: event.startTime,
             notes: data.feedingNotes,
           })

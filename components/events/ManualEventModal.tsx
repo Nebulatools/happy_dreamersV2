@@ -112,10 +112,10 @@ export function ManualEventModal({
       setNotes(initialData.notes || "")
 
       // Campos específicos de sueño
-      if (initialData.sleepDelay !== undefined) {
+      if (initialData.sleepDelay != null) {
         setSleepDelayValue(initialData.sleepDelay.toString())
       }
-      if (initialData.awakeDelay !== undefined) {
+      if (initialData.awakeDelay != null) {
         setAwakeDelay(initialData.awakeDelay)
       }
       if (initialData.emotionalState) {

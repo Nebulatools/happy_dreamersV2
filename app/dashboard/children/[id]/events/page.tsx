@@ -56,6 +56,9 @@ interface Event {
   feedingAmount?: number;
   babyState?: "awake" | "asleep";
   feedingNotes?: string;
+  // Flag para alimentación nocturna (reemplaza eventType: "night_feeding")
+  isNightFeeding?: boolean;
+  feedingContext?: "awake" | "during_sleep" | "during_nap";
   // Actividades extra
   activityDuration?: number;
   activityDescription?: string;
@@ -253,6 +256,12 @@ export default function ChildEventsPage() {
       night_waking: "bg-red-200 text-red-800",
     }
     return colors[type] || "bg-gray-200 text-gray-800"
+  }
+
+  // Helper para detectar alimentación nocturna (soporta ambos formatos: legacy y nuevo)
+  const isNightFeedingEvent = (event: Event): boolean => {
+    return event.eventType === "night_feeding" ||
+      (event.eventType === "feeding" && event.isNightFeeding === true)
   }
 
   // Función para manejar el clic en un evento (solo visualización)
@@ -579,9 +588,17 @@ export default function ChildEventsPage() {
                           {formatMinutesReadable(derivedDuration)}
                         </td>
                         <td className="py-3 px-4">
-                          <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getEventColor(event.eventType)}`}>
-                            {getEventTypeName(event.eventType)}
-                          </span>
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getEventColor(event.eventType)}`}>
+                              {getEventTypeName(event.eventType)}
+                            </span>
+                            {/* Badge "Nocturna" para alimentaciones durante el sueño */}
+                            {isNightFeedingEvent(event) && event.eventType === "feeding" && (
+                              <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                                Nocturna
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 px-4 text-sm hidden md:table-cell">
                           {event.eventType === "feeding"
