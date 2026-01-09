@@ -1,7 +1,107 @@
 # Guia Rapida de QA - Happy Dreamers
 
 **Fecha:** 2026-01-09
+**Ultima Actualizacion:** 2026-01-09 (Commit 1d5c238)
 **URL:** http://localhost:3000
+
+---
+
+## 🚨 TESTING CRITICO - Push Actual (1d5c238)
+
+### Bug UTC en Edicion de Eventos (CORREGIDO)
+
+**Problema anterior:** Al editar un evento y cambiar SOLO la hora, la fecha se movia un dia hacia atras.
+
+**Causa:** JavaScript interpretaba `new Date("2026-01-07")` como UTC medianoche, causando desfase.
+
+**Solucion:** Se implemento `buildLocalDate()` en todos los modales de edicion.
+
+---
+
+### TEST 1: Edicion de Alimentacion (FeedingModal)
+
+**Ruta:** `/dashboard/children/[childId]/events` > Click en evento > Editar
+
+**Pasos:**
+1. Login como usuario (eljulius@nebulastudios.io / juls0925)
+2. Ir a "Mis Eventos" de un hijo
+3. Localizar un evento de **Alimentacion** (ej: 7 de enero, 14:30)
+4. Click en el evento para ver detalles
+5. Click en "Editar"
+6. **Cambiar SOLO la hora** (ej: de 14:30 a 15:00)
+7. Guardar
+
+**Verificar:**
+- [ ] La FECHA se mantiene igual (7 de enero sigue siendo 7 de enero)
+- [ ] Solo la HORA cambio (ahora muestra 15:00)
+- [ ] El evento NO se movio al dia anterior
+- [ ] Los demas campos (tipo, cantidad, notas) se mantienen
+
+**Repetir con:**
+- [ ] Evento de madrugada (ej: 02:30 AM) - La fecha debe mantenerse
+- [ ] Evento nocturno (ej: 22:00) - La fecha debe mantenerse
+
+---
+
+### TEST 2: Edicion de Actividad Extra (ExtraActivityModal)
+
+**Pasos:**
+1. Localizar un evento de **Actividad Extra**
+2. Click para editar
+3. Cambiar SOLO la hora
+4. Guardar
+
+**Verificar:**
+- [ ] Fecha se mantiene igual
+- [ ] Hora cambio correctamente
+- [ ] Descripcion y duracion se mantienen
+
+---
+
+### TEST 3: Edicion de Despertar Nocturno (NightWakingModal)
+
+**Pasos:**
+1. Localizar un evento de **Despertar Nocturno** (night_waking)
+2. Click para editar
+3. Cambiar SOLO la hora
+4. Guardar
+
+**Verificar:**
+- [ ] Fecha se mantiene igual
+- [ ] Hora cambio correctamente
+- [ ] Estado emocional se mantiene
+
+---
+
+### TEST 4: Alimentacion Nocturna (isNightFeeding flag)
+
+**Contexto:** Ya no existe el tipo `night_feeding` separado. Ahora es `feeding` con flag `isNightFeeding: true`.
+
+**Pasos:**
+1. Buscar un evento de alimentacion que tenga badge **"Nocturna"**
+2. Verificar que se puede editar correctamente
+3. Verificar que el badge "Nocturna" se mantiene despues de editar
+
+**Verificar:**
+- [ ] Badge "Nocturna" visible en la tabla de eventos
+- [ ] Click abre modal de detalles con texto "Esta alimentacion ocurrio mientras el bebe dormia"
+- [ ] Al editar, el flag `isNightFeeding` se preserva
+
+---
+
+### TEST 5: Creacion de Evento Manual (ManualEventModal)
+
+**Ruta:** Boton "+" o "Agregar Evento Manual"
+
+**Pasos:**
+1. Crear un evento nuevo con fecha especifica (ej: 15 de enero, 10:00)
+2. Guardar
+3. Verificar que aparece en la fecha correcta
+
+**Verificar:**
+- [ ] Evento aparece en el dia correcto (15 de enero)
+- [ ] Hora es correcta (10:00)
+- [ ] No hay desfase de timezone
 
 ---
 
@@ -170,6 +270,8 @@
 
 | Feature | Commit | Estado |
 |---------|--------|--------|
+| **Fix bug UTC edicion eventos** | 1d5c238 | 🔴 CRITICO - Probar |
+| **buildLocalDate() en modales** | 1d5c238 | 🔴 CRITICO - Probar |
 | Dia logico en planes | 074960d | Listo |
 | Etiqueta "Dormir" simplificada | 074960d | Listo |
 | EventDetailsModal reutilizable | e84bc4a | Listo |
@@ -181,12 +283,25 @@
 | Sistema columnas vista diaria | 554412a | Listo |
 | GlobalActivityMonitor night_waking | 554412a | Listo |
 
+### Archivos Modificados en Push Actual (1d5c238)
+
+| Archivo | Cambio |
+|---------|--------|
+| `lib/datetime.ts` | Nuevo helper `buildLocalDate()` |
+| `components/events/FeedingModal.tsx` | Usa `buildLocalDate()` |
+| `components/events/ExtraActivityModal.tsx` | Usa `buildLocalDate()` |
+| `components/events/NightWakingModal.tsx` | Usa `buildLocalDate()` |
+| `components/events/SleepDelayModal.tsx` | Usa `buildLocalDate()` |
+| `components/events/ManualEventModal.tsx` | Usa `buildLocalDate()` |
+| `components/events/manual/ManualEventForm.tsx` | Usa `buildLocalDate()` |
+| `components/events/EventEditRouter.tsx` | Soporte para edicion |
+| `components/events/types.ts` | Interface `EditOptions` |
+
 ### Pendiente de Verificar
 
 | Feature | Descripcion | Prioridad |
 |---------|-------------|-----------|
 | Cuestionario desarrollo/salud | Verificar guardado y carga de datos | ALTA |
-| Edicion eventos (usuario) | Verificar flujo completo de edicion | ALTA |
 | Visualizacion medicamentos | Admin debe ver nombre y dosis | ALTA |
 
 ### Pendiente de Implementar
