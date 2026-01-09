@@ -790,3 +790,112 @@ npx tsx scripts/migrate-night-feeding.ts
 - [x] Eventos legacy `night_feeding` se muestran correctamente
 - [x] Migración ejecutada: 0 eventos `night_feeding` en BD
 - [x] Build compila sin errores relacionados con este cambio
+
+---
+
+### 6.14 DOCS: Sistema de Rules, Skill y Knowledge Compounding (Commit pendiente) - 2026-01-09
+
+#### Contexto
+Después de resolver el bug UTC de edición de eventos, se identificó la necesidad de documentar patrones y bugs conocidos de forma que Claude Code los cargue automáticamente en cada sesión.
+
+#### Solución Implementada
+
+##### A. Sistema de Rules (`.claude/rules/`)
+Directorio con archivos `.md` que se cargan automáticamente al inicio de cada sesión de Claude Code.
+
+| Archivo | Contenido |
+|---------|-----------|
+| `core.md` | Stack tecnológico, archivos clave, imports comunes, credenciales de testing |
+| `datetime.md` | Bug UTC crítico y solución con `buildLocalDate()` |
+| `events.md` | Tipos de evento válidos, validación de campos, patrón EditOptions |
+| `patterns.md` | Patrón modal con modo edit, EventEditRouter, validación API, día lógico |
+| `ui.md` | CSS sin conflictos, iconos Lucide, SleepSessions 100% ancho |
+
+##### B. Skill Happy Dreamers (`.claude/skills/happy-dreamers/`)
+Skill con YAML frontmatter siguiendo el patrón compound-engineering.
+
+**Estructura:**
+```
+skills/happy-dreamers/
+├── SKILL.md              # Metadata + instrucciones + mecanismo compound
+└── references/
+    ├── datetime-patterns.md   # Detalle profundo de manejo de fechas
+    ├── event-system.md        # Sistema de eventos completo
+    └── modal-patterns.md      # Patrones de implementación de modales
+```
+
+**SKILL.md incluye:**
+- YAML frontmatter con `name` y `description`
+- Quick reference del stack
+- Lista de bugs críticos conocidos
+- **Mecanismo de compound** - Instrucciones para documentar nuevos descubrimientos
+
+##### C. Knowledge Repository (`.claude/docs/solutions/`)
+Directorio para acumular conocimiento a lo largo del desarrollo.
+
+**Estructura por categorías:**
+```
+docs/solutions/
+├── README.md                              # Cómo usar el sistema
+├── datetime-bugs/
+│   └── utc-midnight-interpretation.md     # Bug UTC documentado
+├── event-bugs/
+│   └── duplicate-event-types.md           # Anti-patrón de tipos duplicados
+├── ui-bugs/                               # Para futuros bugs de UI
+└── patterns/                              # Para patrones reutilizables
+```
+
+**Template de documento:**
+```yaml
+---
+title: [Título descriptivo]
+category: [datetime-bugs|event-bugs|ui-bugs|patterns]
+date: [YYYY-MM-DD]
+severity: [critical|high|medium|low]
+tags: [comma, separated, tags]
+---
+```
+
+##### D. Mecanismo de Compound
+Instrucciones en SKILL.md para que Claude documente automáticamente cuando:
+1. Arregla un bug no obvio
+2. Descubre un patrón reutilizable
+3. Encuentra un "gotcha" que hizo perder tiempo
+4. Aprende cómo interactúan dos sistemas
+
+**Flujo:**
+```
+Descubrir problema → Resolver → Documentar en docs/solutions/ → Si es crítico, agregar a rules/
+```
+
+#### Archivos Creados
+
+| Archivo | Propósito |
+|---------|-----------|
+| `.claude/rules/core.md` | Reglas core del proyecto |
+| `.claude/rules/datetime.md` | Reglas de manejo de fechas |
+| `.claude/rules/events.md` | Reglas del sistema de eventos |
+| `.claude/rules/patterns.md` | Patrones de implementación |
+| `.claude/rules/ui.md` | Reglas de UI y componentes |
+| `.claude/skills/happy-dreamers/SKILL.md` | Skill principal |
+| `.claude/skills/happy-dreamers/references/datetime-patterns.md` | Referencia de fechas |
+| `.claude/skills/happy-dreamers/references/event-system.md` | Referencia de eventos |
+| `.claude/skills/happy-dreamers/references/modal-patterns.md` | Referencia de modales |
+| `.claude/docs/solutions/README.md` | Guía del repositorio de conocimiento |
+| `.claude/docs/solutions/datetime-bugs/utc-midnight-interpretation.md` | Documento de bug UTC |
+| `.claude/docs/solutions/event-bugs/duplicate-event-types.md` | Documento de tipos duplicados |
+
+#### Beneficios
+
+1. **Prevención automática**: Las rules se cargan en cada sesión, previniendo bugs conocidos
+2. **Contexto profundo disponible**: References cargables cuando se necesita más detalle
+3. **Conocimiento acumulativo**: Cada bug resuelto mejora las sesiones futuras
+4. **Searchable con YAML**: Frontmatter permite buscar por categoría, severidad, tags
+
+#### Verificación
+
+- [x] `.claude/rules/` contiene 5 archivos .md
+- [x] `.claude/skills/happy-dreamers/SKILL.md` tiene YAML frontmatter válido
+- [x] `.claude/skills/happy-dreamers/references/` contiene 3 archivos de referencia
+- [x] `.claude/docs/solutions/` tiene estructura por categorías
+- [x] Documentos de ejemplo creados con template correcto

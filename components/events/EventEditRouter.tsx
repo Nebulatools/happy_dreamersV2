@@ -8,7 +8,7 @@ import { SleepDelayModal } from "./SleepDelayModal"
 import { NightWakingModal } from "./NightWakingModal"
 import { ManualEventModal } from "./ManualEventModal"
 import { useToast } from "@/hooks/use-toast"
-import { FeedingModalData } from "./types"
+import { FeedingModalData, EditOptions } from "./types"
 import { useUser } from "@/context/UserContext"
 import { dateToTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
 
@@ -160,7 +160,7 @@ export function EventEditRouter({
       <FeedingModal
         open={open}
         onClose={onClose}
-        onConfirm={async (data: FeedingModalData) => {
+        onConfirm={async (data: FeedingModalData, editOptions?: EditOptions) => {
           // Normalizar payload y convertir oz → ml para biberón
           const payload: any = { ...data }
           if (payload.feedingType === "bottle" && typeof payload.feedingAmount === "number") {
@@ -175,12 +175,14 @@ export function EventEditRouter({
           }
           // Preservar isNightFeeding si existe, o detectar por eventType legacy
           const isNightFeeding = event.isNightFeeding ?? (event.eventType === "night_feeding")
+          // Usar startTime editado si existe, sino usar el original
+          const startTime = editOptions?.startTime || event.startTime
           await updateEvent({
             ...payload,
             eventType: "feeding", // Convertir night_feeding → feeding al editar
             isNightFeeding,
             feedingContext: isNightFeeding ? "during_sleep" : "awake",
-            startTime: event.startTime,
+            startTime,
             notes: data.feedingNotes,
           })
         }}
@@ -203,10 +205,12 @@ export function EventEditRouter({
       <ExtraActivityModal
         open={open}
         onClose={onClose}
-        onConfirm={async (data) => {
+        onConfirm={async (data, editOptions?: EditOptions) => {
+          // Usar startTime editado si existe, sino usar el original
+          const startTime = editOptions?.startTime || event.startTime
           await updateEvent({
             ...data,
-            startTime: event.startTime,
+            startTime,
             notes: data.activityNotes,
           })
         }}
@@ -264,12 +268,14 @@ export function EventEditRouter({
       <NightWakingModal
         open={open}
         onClose={onClose}
-        onConfirm={async (awakeDelay, emotionalState, notes) => {
+        onConfirm={async (awakeDelay, emotionalState, notes, editOptions?: EditOptions) => {
+          // Usar startTime editado si existe, sino usar el original
+          const startTime = editOptions?.startTime || event.startTime
           await updateEvent({
             awakeDelay,
             emotionalState,
             notes,
-            startTime: event.startTime,
+            startTime,
             endTime: event.endTime,
           })
         }}

@@ -11,9 +11,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { Moon, Plus, Minus } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { dateToTimestamp } from "@/lib/datetime"
+import { buildLocalDate, dateToTimestamp } from "@/lib/datetime"
 import { useDevTime } from "@/context/dev-time-context"
-import { EventData } from "./types"
+import { EventData, EditOptions } from "./types"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -23,7 +23,7 @@ import { useUser } from "@/context/UserContext"
 interface NightWakingModalProps {
   open: boolean
   onClose: () => void
-  onConfirm: (awakeDelay: number, emotionalState: string, notes: string) => void
+  onConfirm: (awakeDelay: number, emotionalState: string, notes: string, editOptions?: EditOptions) => void | Promise<void>
   childName: string
   childId: string
   mode?: "create" | "edit"
@@ -114,7 +114,16 @@ export function NightWakingModal({
     try {
       // En modo edicion, solo llamar al callback (el PUT lo maneja EventEditRouter)
       if (mode === "edit") {
-        await onConfirm(selectedDelay, emotionalState, notes)
+        // Construir editOptions con fecha/hora editados
+        let editOptions: EditOptions | undefined
+        if (eventDate && eventTime) {
+          const dateObj = buildLocalDate(eventDate, eventTime)
+          editOptions = {
+            startTime: dateToTimestamp(dateObj, userData?.timezone)
+          }
+        }
+
+        await onConfirm(selectedDelay, emotionalState, notes, editOptions)
         setIsProcessing(false)
         // Reset para proxima vez
         setSelectedDelay(15)

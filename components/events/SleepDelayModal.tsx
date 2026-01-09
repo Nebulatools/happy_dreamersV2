@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { format } from "date-fns"
 import { useDevTime } from "@/context/dev-time-context"
+import { useUser } from "@/context/UserContext"
+import { buildLocalDate, dateToTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
 
 interface SleepDelayModalProps {
   open: boolean
@@ -52,6 +54,8 @@ export function SleepDelayModal({
   initialData,
 }: SleepDelayModalProps) {
   const { getCurrentTime } = useDevTime()
+  const { userData } = useUser()
+  const timezone = userData?.timezone || DEFAULT_TIMEZONE
   const [selectedDelay, setSelectedDelay] = useState<number>(initialData?.sleepDelay || 15) // Default 15 min
   const [emotionalState, setEmotionalState] = useState<string>(initialData?.emotionalState || "tranquilo") // Default tranquilo
   const [notes, setNotes] = useState<string>(initialData?.notes || "") // Notas opcionales
@@ -149,14 +153,14 @@ export function SleepDelayModal({
 
     // En modo edicion, incluir startTime y endTime editados
     if (mode === "edit") {
-      // Construir startTime desde fecha/hora editadas
-      const startDateTime = new Date(`${eventDate}T${eventTime}:00`)
-      options.startTime = startDateTime.toISOString()
+      // Construir startTime desde fecha/hora editadas (usando buildLocalDate para evitar bug UTC)
+      const startDateTime = buildLocalDate(eventDate, eventTime)
+      options.startTime = dateToTimestamp(startDateTime, timezone)
 
       // Construir endTime si existe
       if (hasEndTime && endTimeValue) {
-        const endDateTime = new Date(`${endDate}T${endTimeValue}:00`)
-        options.endTime = endDateTime.toISOString()
+        const endDateTime = buildLocalDate(endDate, endTimeValue)
+        options.endTime = dateToTimestamp(endDateTime, timezone)
       } else {
         options.endTime = null
       }

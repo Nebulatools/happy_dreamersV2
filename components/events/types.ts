@@ -58,3 +58,17 @@ export interface Child {
   birthDate: string
   parentId: string
 }
+
+// Interface para pasar fecha/hora editados desde modales en modo edición
+export interface EditOptions {
+  startTime?: string   // ISO timestamp editado
+  endTime?: string     // ISO timestamp editado (opcional)
+}
+
+// Interface para datos de actividad extra
+export interface ExtraActivityModalData {
+  activityDescription: string
+  activityDuration: number
+  activityImpact: "positive" | "neutral" | "negative"
+  activityNotes: string
+}

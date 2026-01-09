@@ -13,7 +13,7 @@ import { Calendar, Clock, Save, X } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { useUser } from "@/context/UserContext"
-import { dateToTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
+import { buildLocalDate, dateToTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
 
 interface ManualEventFormProps {
   childId: string
@@ -58,9 +58,9 @@ export function ManualEventForm({ childId, childName, onEventRegistered, onCance
     setIsSubmitting(true)
     
     try {
-      // Construir fecha/hora completa
-      const startDateTime = new Date(`${startDate}T${startTime}`)
-      const endDateTime = endDate && endTime ? new Date(`${endDate}T${endTime}`) : null
+      // Construir fecha/hora completa (usando buildLocalDate para evitar bug UTC)
+      const startDateTime = buildLocalDate(startDate, startTime)
+      const endDateTime = endDate && endTime ? buildLocalDate(endDate, endTime) : null
       
       // Validar que la fecha fin sea posterior a la fecha inicio
       if (endDateTime && endDateTime <= startDateTime) {

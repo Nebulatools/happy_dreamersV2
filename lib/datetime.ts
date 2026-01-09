@@ -94,6 +94,43 @@ export function isValidTimezone(timezone: string): boolean {
 }
 
 // ============================================================================
+// FUNCIONES DE CONSTRUCCION DE FECHAS LOCALES (INPUTS DE FORMULARIO)
+// ============================================================================
+
+/**
+ * Construye una fecha en zona horaria local desde inputs de formulario.
+ * USAR SIEMPRE que se combine dateString (YYYY-MM-DD) + timeString (HH:mm)
+ *
+ * IMPORTANTE: NO usar new Date("YYYY-MM-DD") ni new Date(`${date}T${time}`)
+ * porque JavaScript interpreta esos formatos como UTC, causando desfase de dias.
+ *
+ * @param dateString - Fecha en formato YYYY-MM-DD (de input type="date")
+ * @param timeString - Hora en formato HH:mm (de input type="time")
+ * @returns Date object en timezone local del navegador
+ *
+ * @example
+ * // Correcto - usa constructor de componentes (local)
+ * const date = buildLocalDate("2026-01-07", "19:30")
+ *
+ * // INCORRECTO - interpreta como UTC!
+ * const buggy = new Date("2026-01-07T19:30")
+ * // En Mexico (UTC-6), esto crea 2026-01-06T13:30 local
+ */
+export function buildLocalDate(dateString: string, timeString: string): Date {
+  const [year, month, day] = dateString.split("-")
+  const [hours, minutes] = timeString.split(":")
+  return new Date(
+    parseInt(year),
+    parseInt(month) - 1, // Meses en JS son 0-indexed
+    parseInt(day),
+    parseInt(hours),
+    parseInt(minutes),
+    0,
+    0
+  )
+}
+
+// ============================================================================
 // FUNCIONES DE OBTENCION DE TIEMPO
 // ============================================================================
 

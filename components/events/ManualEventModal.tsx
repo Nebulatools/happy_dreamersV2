@@ -13,7 +13,7 @@ import { format } from "date-fns"
 import { Clock, Plus, Minus } from "lucide-react"
 import { eventTypes, getEventType } from "@/lib/event-types"
 import { useUser } from "@/context/UserContext"
-import { dateToTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
+import { buildLocalDate, dateToTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
 
 // Eventos disponibles en el modal manual (excluyendo wake y night_feeding)
 const manualEventTypes = eventTypes.filter(type => 
@@ -201,9 +201,9 @@ export function ManualEventModal({
       // Validaciones básicas
       // Validación de fin obligatorio para "Dormir"
       if ((eventType === "sleep") || (hasEndTime && includeEndTime)) {
-        const startDateTime = new Date(`${startDate}T${startTime}`)
-        const endDateTime = new Date(`${endDate}T${endTime}`)
-        if (endDateTime <= startDateTime) {
+        const startDateTimeVal = buildLocalDate(startDate, startTime)
+        const endDateTimeVal = buildLocalDate(endDate, endTime)
+        if (endDateTimeVal <= startDateTimeVal) {
           toast({
             title: "Error de validación",
             description: "La hora de fin debe ser posterior a la hora de inicio",
@@ -236,8 +236,8 @@ export function ManualEventModal({
         }
       }
       
-      // Construir fecha/hora de inicio
-      const startDateTime = new Date(`${startDate}T${startTime}`)
+      // Construir fecha/hora de inicio (usando buildLocalDate para evitar bug UTC)
+      const startDateTime = buildLocalDate(startDate, startTime)
       
       // Calcular endTime automáticamente para alimentación y actividades extra
       let calculatedEndTime: Date | null = null
@@ -261,7 +261,7 @@ export function ManualEventModal({
 
       // Agregar endTime si corresponde (obligatorio para "Dormir")
       if ((eventType === "sleep") || (hasEndTime && includeEndTime)) {
-        const endDateTime = new Date(`${endDate}T${endTime}`)
+        const endDateTime = buildLocalDate(endDate, endTime)
         eventData.endTime = dateToTimestamp(endDateTime, timezone)
       } else if (!hasEndTime && calculatedEndTime) {
         // Usar endTime calculado automaticamente para alimentacion y actividades extra
@@ -403,7 +403,7 @@ export function ManualEventModal({
   useEffect(() => {
     if (hasEndTime && includeEndTime && startTime) {
       // Para eventos con fin, establecer hora de fin predeterminada
-      const startDateTime = new Date(`${startDate}T${startTime}`)
+      const startDateTime = buildLocalDate(startDate, startTime)
       let defaultDuration = 60 // 1 hora por defecto
       
       if (eventType === "nap") defaultDuration = 90 // 1.5 horas para siesta

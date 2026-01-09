@@ -15,6 +15,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Activity, Plus, Minus } from "lucide-react"
 import { format } from "date-fns"
 import { useDevTime } from "@/context/dev-time-context"
+import { useUser } from "@/context/UserContext"
+import { buildLocalDate, dateToTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
+import { EditOptions } from "./types"
 
 interface ExtraActivityModalData {
   activityDescription: string
@@ -26,7 +29,7 @@ interface ExtraActivityModalData {
 interface ExtraActivityModalProps {
   open: boolean
   onClose: () => void
-  onConfirm: (data: ExtraActivityModalData) => void
+  onConfirm: (data: ExtraActivityModalData, editOptions?: EditOptions) => void | Promise<void>
   childName: string
   mode?: "create" | "edit"
   initialData?: {
@@ -52,6 +55,8 @@ export function ExtraActivityModal({
   initialData,
 }: ExtraActivityModalProps) {
   const { getCurrentTime } = useDevTime()
+  const { userData } = useUser()
+  const timezone = userData?.timezone || DEFAULT_TIMEZONE
   const [activityDescription, setActivityDescription] = useState<string>(initialData?.activityDescription || "")
   const [activityDuration, setActivityDuration] = useState<number>(initialData?.activityDuration || 30) // Default 30 minutos
   const [activityNotes, setActivityNotes] = useState<string>(initialData?.activityNotes || "")
@@ -134,7 +139,16 @@ export function ExtraActivityModal({
       activityNotes: activityNotes.trim(),
     }
 
-    await onConfirm(data)
+    // Construir editOptions solo en modo edición con fecha/hora editados
+    let editOptions: EditOptions | undefined
+    if (mode === "edit" && eventDate && eventTime) {
+      const dateObj = buildLocalDate(eventDate, eventTime)
+      editOptions = {
+        startTime: dateToTimestamp(dateObj, timezone)
+      }
+    }
+
+    await onConfirm(data, editOptions)
     setIsProcessing(false)
     resetForm()
   }

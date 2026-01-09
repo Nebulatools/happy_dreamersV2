@@ -11,14 +11,16 @@ import {
 import { Button } from "@/components/ui/button"
 import { Baby, Plus, Minus } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { FeedingModalData, FeedingType } from "./types"
+import { FeedingModalData, FeedingType, EditOptions } from "./types"
 import { format } from "date-fns"
 import { useDevTime } from "@/context/dev-time-context"
+import { useUser } from "@/context/UserContext"
+import { buildLocalDate, dateToTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
 
 interface FeedingModalProps {
   open: boolean
   onClose: () => void
-  onConfirm: (data: FeedingModalData) => void
+  onConfirm: (data: FeedingModalData, editOptions?: EditOptions) => void | Promise<void>
   childName: string
   mode?: "create" | "edit"
   initialData?: {
@@ -45,6 +47,8 @@ export function FeedingModal({
   initialData,
 }: FeedingModalProps) {
   const { getCurrentTime } = useDevTime()
+  const { userData } = useUser()
+  const timezone = userData?.timezone || DEFAULT_TIMEZONE
   const [feedingType, setFeedingType] = useState<FeedingType>(initialData?.feedingType || "breast")
   const [feedingAmount, setFeedingAmount] = useState<number>(() => {
     if (typeof initialData?.feedingAmount === "number") return initialData.feedingAmount
@@ -178,7 +182,7 @@ export function FeedingModal({
 
   const handleConfirm = async () => {
     setIsProcessing(true)
-    
+
     // Normalización: pecho en minutos (feedingDuration), sólidos siempre despierto
     const normalizedBabyState = feedingType === "solids" ? "awake" : babyState
     const data: FeedingModalData = {
@@ -188,10 +192,19 @@ export function FeedingModal({
       babyState: normalizedBabyState,
       feedingNotes,
     }
-    
-    await onConfirm(data)
+
+    // Construir editOptions solo en modo edición con fecha/hora editados
+    let editOptions: EditOptions | undefined
+    if (mode === "edit" && eventDate && eventTime) {
+      const dateObj = buildLocalDate(eventDate, eventTime)
+      editOptions = {
+        startTime: dateToTimestamp(dateObj, timezone)
+      }
+    }
+
+    await onConfirm(data, editOptions)
     setIsProcessing(false)
-    
+
     // Reset para próxima vez
     setFeedingType("breast")
     setFeedingAmount(15)
