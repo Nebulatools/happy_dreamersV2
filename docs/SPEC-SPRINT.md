@@ -380,3 +380,100 @@ className={cn("absolute left-2 right-2 cursor-pointer", className)}
 |---------|--------|
 | `components/calendar/EventGlobe.tsx` | Quitar `relative` conflictivo, agregar soporte `night_feeding` |
 | `components/calendar/CalendarWeekView.tsx` | Header h-6 → h-8, agregar overflow-hidden |
+
+---
+
+### 6.10 FIX: Contraste de Iconos y Ancho de SleepSessionBlock (Commit 67e3fdb) - 2026-01-09
+
+#### Problemas Reportados por Usuario
+1. **Iconos sin contraste**: El drop-shadow blanco no proporcionaba suficiente contraste sobre fondos de colores
+2. **SleepSessionBlock escalonado**: El bloque de sueno participaba en el sistema de columnas cuando deberia ocupar siempre 100% del ancho
+
+#### Diagnostico
+
+| Componente | Problema | Impacto |
+|------------|----------|---------|
+| EventGlobe iconos | `drop-shadow-[0_0_2px_rgba(255,255,255,0.9)]` insuficiente | Iconos dificiles de ver sobre fondos de colores |
+| SleepSessionBlock iconos | Mismo problema de drop-shadow blanco | Iconos Moon/Sun/Baby poco visibles |
+| SleepSessionBlock ancho | Pasaba por `calculateEventColumns()` | Se escalonaba con otros eventos cuando no debia |
+
+#### Solucion Implementada
+
+##### A. Stroke Negro en Iconos
+Cambio de drop-shadow blanco a doble drop-shadow negro que crea efecto de contorno:
+
+**EventGlobe.tsx - funcion getIcon():**
+```tsx
+// ANTES:
+const iconClass = "h-3 w-3 drop-shadow-[0_0_2px_rgba(255,255,255,0.9)]"
+
+// DESPUES:
+const iconClass = "h-3 w-3 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]"
+```
+
+**SleepSessionBlock.tsx - todos los iconos:**
+```tsx
+// ANTES:
+<Moon className="h-4 w-4 drop-shadow-[0_0_2px_rgba(255,255,255,0.9)]" />
+<Sun className="h-4 w-4 drop-shadow-[0_0_2px_rgba(255,255,255,0.9)]" />
+<Baby className="h-3 w-3 drop-shadow-[0_0_2px_rgba(255,255,255,0.9)]" />
+
+// DESPUES:
+<Moon className="h-4 w-4 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]" />
+<Sun className="h-4 w-4 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]" />
+<Baby className="h-3 w-3 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]" />
+```
+
+**Por que doble drop-shadow:** Un solo drop-shadow de 1px no crea suficiente grosor de contorno. Al duplicar el filtro, se logra un efecto de stroke mas visible sin agregar blur excesivo.
+
+##### B. SleepSessionBlock Siempre 100% Ancho
+Las sesiones de sueno (sleep/nap con duracion) ahora se renderizan ANTES de pasar otros eventos por `calculateEventColumns()`:
+
+**CalendarDayView.tsx y CalendarWeekView.tsx:**
+```tsx
+// ANTES: Sesiones incluidas en calculateEventColumns
+const allEvents = [...sessionEvents, ...otherEvents]
+const eventsWithColumns = calculateEventColumns(allEvents)
+
+// DESPUES: Sesiones renderizadas aparte, SIEMPRE 100% ancho
+const eventsWithColumns = calculateEventColumns(otherEvents as Event[])
+
+return (
+  <>
+    {/* Sesiones de sleep PRIMERO (fondo) - SIEMPRE 100% ancho */}
+    {sessions.map((session, idx) => (
+      <SleepSessionBlock
+        key={`session-${idx}`}
+        {...sessionProps}
+        column={0}
+        totalColumns={1}  // ← Forzar ancho 100%
+      />
+    ))}
+
+    {/* EventGlobes con sistema de columnas */}
+    {eventsWithColumns.map(event => (
+      <EventGlobe
+        column={event.column}
+        totalColumns={event.totalColumns}
+      />
+    ))}
+  </>
+)
+```
+
+**Justificacion del usuario:** "El evento de dormir es el unico que quiero que se mantenga constante como antes, ocupando todo el espacio ya que es un evento largo por naturaleza."
+
+#### Archivos Modificados (Commit 67e3fdb)
+| Archivo | Cambio |
+|---------|--------|
+| `components/calendar/EventGlobe.tsx` | Stroke negro en iconos |
+| `components/calendar/SleepSessionBlock.tsx` | Stroke negro en iconos (Moon, Sun, Baby) |
+| `components/calendar/CalendarDayView.tsx` | Sesiones excluidas de calculateEventColumns, forzar 100% ancho |
+| `components/calendar/CalendarWeekView.tsx` | Sesiones excluidas de calculateEventColumns, forzar 100% ancho |
+| `components/events/ManualEventModal.tsx` | endTime requerido para night_waking |
+
+#### Verificacion
+- [x] Iconos con buen contraste sobre todos los fondos de colores
+- [x] SleepSessionBlock ocupa 100% del ancho de la columna del dia
+- [x] EventGlobe (feeding, medication, activities) sigue escalonandose correctamente
+- [x] NightWakings visibles sobre el bloque de sleep
