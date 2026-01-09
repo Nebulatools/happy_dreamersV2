@@ -51,9 +51,13 @@ interface EventGlobeProps {
 export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalColumns = 1 }: EventGlobeProps) {
   const [showTooltip, setShowTooltip] = useState(false)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
+  const [tooltipShownByTouch, setTooltipShownByTouch] = useState(false)
   const eventRef = React.useRef<HTMLDivElement>(null)
   const timeData = extractTimeFromISO(event.startTime)
   const endTimeData = event.endTime ? extractTimeFromISO(event.endTime) : null
+
+  // Detectar si es touch device
+  const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window
 
   if (!timeData) return null
 
@@ -109,9 +113,9 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
     }
   }
   
-  // Icono Lucide segun tipo de evento - Sin emojis
+  // Icono Lucide segun tipo de evento - Con stroke negro para contraste
   const getIcon = () => {
-    const iconClass = "h-3 w-3"
+    const iconClass = "h-3 w-3 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]"
     switch (event.eventType) {
     case "nap": return <Sun className={iconClass} style={{ color: "#f59e0b" }} />
     case "sleep": return <Moon className={iconClass} style={{ color: "#6366f1" }} />
@@ -162,54 +166,13 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
   const actualWidth = `calc(${widthPercent}% - ${padding * 2}px)`
   const actualLeft = `calc(${leftPercent}% + ${padding}px)`
 
-  // Renderizar contenido basado en altura del bloque (UX mejorado)
+  // Renderizar contenido - SOLO ICONO (info en tooltip)
   const renderContent = () => {
-    if (height < 22) {
-      // MUY PEQUEÑO (< 22px): Solo emoji centrado
-      return (
-        <div className="flex items-center justify-center w-full">
-          {getIcon()}
-        </div>
-      )
-    } else if (height < 32) {
-      // PEQUEÑO (22-32px): Emoji izq + duración centrada grande
-      return (
-        <div className="flex items-center w-full">
-          <div className="flex-shrink-0">{getIcon()}</div>
-          <div className="flex-1 text-center">
-            <span className="font-bold" style={{ fontSize: "11px" }}>
-              {formatDuration() || timeData.formatted}
-            </span>
-          </div>
-        </div>
-      )
-    } else if (height < 55) {
-      // MEDIANO (32-55px): Emoji izq + duración centrada más grande
-      return (
-        <div className="flex items-center w-full">
-          <div className="flex-shrink-0">{getIcon()}</div>
-          <div className="flex-1 text-center">
-            <span className="font-bold" style={{ fontSize: "13px" }}>
-              {formatDuration() || timeData.formatted}
-            </span>
-          </div>
-        </div>
-      )
-    } else {
-      // GRANDE (> 55px): Emoji + Nombre + horario (hay suficiente espacio)
-      return (
-        <>
-          {getIcon()}
-          <div className="flex-1 truncate">
-            <div>{getName()}</div>
-            <div className="text-xs opacity-90">
-              {timeData.formatted}
-              {endTimeData && `-${endTimeData.formatted}`}
-            </div>
-          </div>
-        </>
-      )
-    }
+    return (
+      <div className="flex items-center justify-center w-full h-full">
+        {getIcon()}
+      </div>
+    )
   }
 
   // Calcular duración del evento en minutos
@@ -241,7 +204,7 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
   }
 
   // Calcular posición del tooltip cuando aparece (ARRIBA del evento)
-  const handleMouseEnter = () => {
+  const updateTooltipPosition = () => {
     if (eventRef.current) {
       const rect = eventRef.current.getBoundingClientRect()
       // Posicionar arriba del evento, centrado horizontalmente
@@ -250,7 +213,42 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
         y: rect.top - 8 // 8px arriba del evento
       })
     }
-    setShowTooltip(true)
+  }
+
+  const handleMouseEnter = () => {
+    if (!isTouchDevice) {
+      updateTooltipPosition()
+      setShowTooltip(true)
+    }
+  }
+
+  const handleMouseLeave = () => {
+    if (!isTouchDevice) {
+      setShowTooltip(false)
+      setTooltipShownByTouch(false)
+    }
+  }
+
+  // En móvil: tap 1 = tooltip, tap 2 = abrir evento
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+
+    if (isTouchDevice) {
+      if (!tooltipShownByTouch) {
+        // Primer tap: mostrar tooltip
+        updateTooltipPosition()
+        setShowTooltip(true)
+        setTooltipShownByTouch(true)
+      } else {
+        // Segundo tap: abrir evento
+        setShowTooltip(false)
+        setTooltipShownByTouch(false)
+        onClick?.(event)
+      }
+    } else {
+      // Desktop: abrir directamente
+      onClick?.(event)
+    }
   }
 
   return (
@@ -265,12 +263,9 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
           left: actualLeft,
           width: actualWidth,
         }}
-        onClick={(e) => {
-          e.stopPropagation()
-          onClick?.(event)
-        }}
+        onClick={handleClick}
         onMouseEnter={handleMouseEnter}
-        onMouseLeave={() => setShowTooltip(false)}
+        onMouseLeave={handleMouseLeave}
       >
         {renderContent()}
 

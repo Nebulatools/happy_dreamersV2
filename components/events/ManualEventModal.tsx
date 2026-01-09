@@ -473,10 +473,10 @@ export function ManualEventModal({
             </div>
           </div>
           
-          {/* Fecha y hora de fin - obligatorio para "Dormir", opcional para otros tipos con duración */}
+          {/* Fecha y hora de fin - obligatorio para "Dormir" y "Despertar nocturno", opcional para otros tipos con duración */}
           {hasEndTime && (
             <div className="space-y-2">
-              {eventType !== "sleep" ? (
+              {eventType !== "sleep" && eventType !== "night_waking" ? (
                 <div className="flex items-center gap-2">
                   <input
                     id="toggle-end-time"
@@ -487,10 +487,12 @@ export function ManualEventModal({
                   <Label htmlFor="toggle-end-time">Agregar hora de fin (opcional)</Label>
                 </div>
               ) : (
-                <div className="text-sm text-muted-foreground">Hora de fin requerida para "Dormir"</div>
+                <div className="text-sm text-muted-foreground">
+                  Hora de fin requerida para {eventType === "sleep" ? '"Dormir"' : '"Despertar nocturno"'}
+                </div>
               )}
 
-              {(includeEndTime || eventType === "sleep") && (
+              {(includeEndTime || eventType === "sleep" || eventType === "night_waking") && (
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label>Fecha de fin</Label>

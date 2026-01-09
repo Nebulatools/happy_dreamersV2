@@ -5,7 +5,7 @@
 
 import React, { useState } from "react"
 import { createPortal } from "react-dom"
-import { Moon, Sun, AlertCircle } from "lucide-react"
+import { Moon, Sun, AlertCircle, Baby } from "lucide-react"
 import { format, differenceInMinutes, parseISO } from "date-fns"
 import { cn } from "@/lib/utils"
 
@@ -32,6 +32,8 @@ interface SleepSessionBlockProps {
   onNightWakingClick?: (waking: Event) => void  // Handler para clicks en despertares nocturnos
   isContinuationFromPrevious?: boolean  // Si es continuación del día anterior
   continuesNextDay?: boolean           // Si continúa al día siguiente
+  column?: number        // Columna del evento (para eventos superpuestos)
+  totalColumns?: number  // Total de columnas en el grupo
 }
 
 export function SleepSessionBlock({
@@ -46,10 +48,16 @@ export function SleepSessionBlock({
   onNightWakingClick,
   isContinuationFromPrevious = false,
   continuesNextDay = false,
+  column = 0,
+  totalColumns = 1,
 }: SleepSessionBlockProps) {
   const [showTooltip, setShowTooltip] = useState(false)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
+  const [tooltipShownByTouch, setTooltipShownByTouch] = useState(false)
   const blockRef = React.useRef<HTMLDivElement>(null)
+
+  // Detectar si es touch device
+  const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window
 
   // Calcular posición vertical según la hora de inicio
   const calculateStartPosition = () => {
@@ -149,9 +157,16 @@ export function SleepSessionBlock({
   const position = calculateStartPosition()
   const height = calculateBlockHeight()
   const isInProgress = !endTime
+
+  // Calcular posicion horizontal basada en columna (igual que EventGlobe)
+  const widthPercent = (1 / totalColumns) * 100
+  const leftPercent = column * widthPercent
+  const padding = 2 // px de margen
+  const actualWidth = `calc(${widthPercent}% - ${padding * 2}px)`
+  const actualLeft = `calc(${leftPercent}% + ${padding}px)`
   
-  // Renderizar despertares nocturnos dentro de la sesión
-  const renderNightWakings = () => {
+  // Renderizar despertares nocturnos como HERMANOS (no hijos) para z-index correcto
+  const renderNightWakingsAsSiblings = () => {
     return nightWakings.map(waking => {
       try {
         // Usar parseISO para convertir correctamente a hora local
@@ -159,30 +174,33 @@ export function SleepSessionBlock({
         const wakingHours = wakingDate.getHours()
         const wakingMinutes = wakingDate.getMinutes()
         const wakingTotalMinutes = wakingHours * 60 + wakingMinutes
+        // Posición ABSOLUTA en el contenedor del calendario (no relativa al bloque de sleep)
         const wakingPosition = Math.round(wakingTotalMinutes * (hourHeight / 60))
+
+        // Verificar que el waking está dentro del rango del sleep
         const relativePosition = wakingPosition - position
-        
         if (relativePosition < 0 || relativePosition > height) return null
-        
+
         return (
           <div
             key={waking._id}
-            className="absolute left-2 right-2 bg-red-600/90 hover:bg-red-700 text-white rounded px-2 py-1 z-20 cursor-pointer transition-colors shadow-md border border-red-400/50"
-            style={{ 
-              top: `${relativePosition}px`,
+            className="absolute bg-red-600/90 hover:bg-red-700 text-white rounded cursor-pointer transition-colors shadow-md border border-red-400/50 z-30"
+            style={{
+              top: `${wakingPosition}px`,
               height: "20px",
+              left: actualLeft,
+              width: actualWidth,
             }}
             onClick={(e) => {
-              e.stopPropagation() // Evitar que el click se propague al contenedor padre
+              e.stopPropagation()
               if (onNightWakingClick) {
                 onNightWakingClick(waking)
               }
             }}
             title="Click para editar despertar nocturno"
           >
-            <div className="flex items-center gap-1 pointer-events-none">
-              <span className="text-xs">👶</span>
-              <span style={{ fontSize: "9px" }}>{formatTime(waking.startTime)}</span>
+            <div className="flex items-center justify-center w-full h-full pointer-events-none">
+              <Baby className="h-3 w-3 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]" style={{ color: "#fff" }} />
             </div>
           </div>
         )
@@ -196,46 +214,43 @@ export function SleepSessionBlock({
   if (isInProgress) {
     // SUEÑO EN PROGRESO - Con fade hacia abajo
     return (
-      <div
-        className={cn("absolute left-2 right-2 cursor-pointer", className)}
-        style={{ top: `${position}px` }}
-        onClick={onClick}
-      >
-        {/* Parte superior sólida - Emoji izq + hora centrada grande */}
+      <>
         <div
-          className="bg-blue-500/50 rounded-t-lg border border-blue-400/40 flex items-center px-2 shadow-sm"
-          style={{ height: "28px" }}
+          className={cn("absolute cursor-pointer", className)}
+          style={{ top: `${position}px`, left: actualLeft, width: actualWidth }}
+          onClick={onClick}
         >
-          <div className="flex-shrink-0">
-            <span className="text-sm">🌙</span>
+          {/* Parte superior sólida - Solo icono Moon */}
+          <div
+            className="bg-blue-500/50 rounded-t-lg border border-blue-400/40 flex items-center justify-center shadow-sm"
+            style={{ height: "24px" }}
+          >
+            <Moon className="h-4 w-4 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]" style={{ color: "#6366f1" }} />
           </div>
-          <div className="flex-1 text-center">
-            <span className="text-white font-bold" style={{ fontSize: "13px" }}>{formatTime(startTime)}</span>
-          </div>
-        </div>
-        
-        {/* Fade hacia abajo indicando continuación */}
-        <div 
-          className="relative"
-          style={{ 
-            height: `${height - 24}px`,
-            background: "linear-gradient(to bottom, rgba(59, 130, 246, 0.35), rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.08), transparent)",
-            animation: "pulse 3s ease-in-out infinite",
-          }}
-        >
-          {/* Indicador visual de "continúa..." */}
-          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
-            <div className="flex flex-col items-center gap-1">
-              <div className="w-1 h-1 bg-blue-400/60 rounded-full animate-pulse" />
-              <div className="w-1 h-1 bg-blue-400/40 rounded-full animate-pulse delay-75" />
-              <div className="w-1 h-1 bg-blue-400/20 rounded-full animate-pulse delay-150" />
+
+          {/* Fade hacia abajo indicando continuación */}
+          <div
+            className="relative"
+            style={{
+              height: `${height - 24}px`,
+              background: "linear-gradient(to bottom, rgba(59, 130, 246, 0.35), rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.08), transparent)",
+              animation: "pulse 3s ease-in-out infinite",
+            }}
+          >
+            {/* Indicador visual de "continúa..." */}
+            <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
+              <div className="flex flex-col items-center gap-1">
+                <div className="w-1 h-1 bg-blue-400/60 rounded-full animate-pulse" />
+                <div className="w-1 h-1 bg-blue-400/40 rounded-full animate-pulse delay-75" />
+                <div className="w-1 h-1 bg-blue-400/20 rounded-full animate-pulse delay-150" />
+              </div>
             </div>
           </div>
-          
-          {/* Despertares nocturnos si los hay */}
-          {renderNightWakings()}
         </div>
-      </div>
+
+        {/* Despertares nocturnos como HERMANOS (z-index alto) */}
+        {renderNightWakingsAsSiblings()}
+      </>
     )
   }
 
@@ -276,8 +291,8 @@ export function SleepSessionBlock({
     )
   }
 
-  // Calcular posición del tooltip cuando aparece
-  const handleMouseEnter = () => {
+  // Calcular posición del tooltip
+  const updateTooltipPosition = () => {
     if (blockRef.current) {
       const rect = blockRef.current.getBoundingClientRect()
       setTooltipPosition({
@@ -285,7 +300,40 @@ export function SleepSessionBlock({
         y: rect.top + 16 // Un poco más abajo para alinearse mejor
       })
     }
-    setShowTooltip(true)
+  }
+
+  const handleMouseEnter = () => {
+    if (!isTouchDevice) {
+      updateTooltipPosition()
+      setShowTooltip(true)
+    }
+  }
+
+  const handleMouseLeave = () => {
+    if (!isTouchDevice) {
+      setShowTooltip(false)
+      setTooltipShownByTouch(false)
+    }
+  }
+
+  // En móvil: tap 1 = tooltip, tap 2 = abrir evento
+  const handleClick = () => {
+    if (isTouchDevice) {
+      if (!tooltipShownByTouch) {
+        // Primer tap: mostrar tooltip
+        updateTooltipPosition()
+        setShowTooltip(true)
+        setTooltipShownByTouch(true)
+      } else {
+        // Segundo tap: abrir evento
+        setShowTooltip(false)
+        setTooltipShownByTouch(false)
+        onClick?.()
+      }
+    } else {
+      // Desktop: abrir directamente
+      onClick?.()
+    }
   }
 
   // SUEÑO COMPLETADO - Con gradiente completo
@@ -294,7 +342,7 @@ export function SleepSessionBlock({
       <div
         ref={blockRef}
         className={cn(
-          "group relative absolute left-2 right-2 cursor-pointer border border-white/10 backdrop-blur-sm",
+          "group absolute cursor-pointer border border-white/10 backdrop-blur-sm",
           !isContinuationFromPrevious && !continuesNextDay && "rounded-lg",
           isContinuationFromPrevious && !continuesNextDay && "rounded-b-lg",
           !isContinuationFromPrevious && continuesNextDay && "rounded-t-lg",
@@ -303,11 +351,13 @@ export function SleepSessionBlock({
         style={{
           top: `${position}px`,
           height: `${height}px`,
+          left: actualLeft,
+          width: actualWidth,
           background: "linear-gradient(to bottom, rgba(59, 130, 246, 0.18), rgba(139, 92, 246, 0.15), rgba(251, 191, 36, 0.12))",
         }}
-        onClick={onClick}
+        onClick={handleClick}
         onMouseEnter={handleMouseEnter}
-        onMouseLeave={() => setShowTooltip(false)}
+        onMouseLeave={handleMouseLeave}
       >
 
       {/* Indicador de continuación desde día anterior */}
@@ -320,67 +370,30 @@ export function SleepSessionBlock({
         </div>
       )}
       
-      {/* Indicador de inicio (solo si no es continuación) - Emoji izq + hora centrada grande */}
+      {/* Indicador de inicio (solo si no es continuación) - Solo icono Moon */}
       {!isContinuationFromPrevious && (
-        <div className="absolute top-1 left-2 right-2 flex items-center">
-          <div className="flex-shrink-0">
-            <span className="text-sm">🌙</span>
-          </div>
-          <div className="flex-1 text-center">
-            <span className="font-bold text-blue-700" style={{ fontSize: "13px" }}>
-              {formatTime(originalStartTime || startTime)}
-            </span>
-          </div>
+        <div className="absolute top-1 left-0 right-0 flex items-center justify-center">
+          <Moon className="h-4 w-4 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]" style={{ color: "#6366f1" }} />
         </div>
       )}
       
-      {/* Indicador de fin con duración total (solo si no continúa al día siguiente) */}
+      {/* Indicador de fin (solo si no continúa al día siguiente) - Solo icono Sun */}
       {!continuesNextDay && endTime && (
-        <div className="absolute bottom-1 left-2 right-2 flex items-center">
-          <div className="flex-shrink-0">
-            <span className="text-sm">☀️</span>
-          </div>
-          <div className="flex-1 text-center">
-            <span className="font-bold text-yellow-700" style={{ fontSize: "13px" }}>
-              {formatTime(originalEndTime || endTime)}
-            </span>
-          </div>
+        <div className="absolute bottom-1 left-0 right-0 flex items-center justify-center">
+          <Sun className="h-4 w-4 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]" style={{ color: "#eab308" }} />
         </div>
       )}
 
-      {/* Duración total centrada (solo si tiene inicio y fin completos) */}
-      {!isContinuationFromPrevious && !continuesNextDay && endTime && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <div className="bg-white/80 backdrop-blur-sm rounded-lg px-2 py-1 shadow-sm">
-            <span className="font-bold text-gray-700" style={{ fontSize: "12px" }}>
-              {(() => {
-                try {
-                  const start = parseISO(originalStartTime || startTime)
-                  const end = parseISO(originalEndTime || endTime)
-                  const minutes = differenceInMinutes(end, start)
-                  const hours = Math.floor(minutes / 60)
-                  const mins = minutes % 60
-                  if (mins === 0) return `${hours}h`
-                  return `${hours}h ${mins}m`
-                } catch {
-                  return "--"
-                }
-              })()}
-            </span>
-          </div>
-        </div>
-      )}
-      
       {/* Indicador de continuacion al dia siguiente - minimalista */}
       {continuesNextDay && (
         <div className="absolute bottom-0 left-0 right-0 h-3 flex items-center justify-center">
           <span className="text-yellow-600" style={{ fontSize: "10px" }}>↓</span>
         </div>
       )}
-
-        {/* Despertares nocturnos */}
-        {renderNightWakings()}
       </div>
+
+      {/* Despertares nocturnos como HERMANOS (z-index alto) */}
+      {renderNightWakingsAsSiblings()}
 
       {/* Tooltip - Renderizado en document.body usando Portal para escapar del contexto de apilamiento */}
       {showTooltip && typeof document !== 'undefined' && createPortal(

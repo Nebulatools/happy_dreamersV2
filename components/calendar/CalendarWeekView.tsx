@@ -241,13 +241,16 @@ export function CalendarWeekView({
                 {/* Líneas de grid */}
                 <GridLines hourHeight={hourHeight} />
                 
-                {/* Eventos procesados - Sesiones de sueño y otros eventos */}
+                {/* Eventos procesados - Sesiones SIEMPRE 100% ancho, otros eventos con columnas */}
                 {(() => {
                   const { sessions, otherEvents } = processSleepSessions(dayEvents as SleepEvent[], day)
-                  
+
+                  // Solo otros eventos pasan por calculateEventColumns (no sesiones)
+                  const eventsWithColumns = calculateEventColumns(otherEvents as Event[])
+
                   return (
                     <>
-                      {/* Renderizar sesiones de sueño primero (z-index más bajo) */}
+                      {/* Sesiones de sleep PRIMERO (fondo) - SIEMPRE 100% ancho */}
                       {sessions.map((session, idx) => (
                         <SleepSessionBlock
                           key={`session-${day.toString()}-${idx}`}
@@ -261,23 +264,22 @@ export function CalendarWeekView({
                           onNightWakingClick={(waking) => onEventClick?.(waking as Event)}
                           isContinuationFromPrevious={session.isContinuationFromPrevious}
                           continuesNextDay={session.continuesNextDay}
+                          column={0}
+                          totalColumns={1}
                         />
                       ))}
-                      
-                      {/* Renderizar otros eventos con manejo de superposicion */}
-                      {(() => {
-                        const eventsWithColumns = calculateEventColumns(otherEvents as Event[])
-                        return eventsWithColumns.map((event) => (
-                          <EventGlobe
-                            key={event._id}
-                            event={event}
-                            hourHeight={hourHeight}
-                            onClick={onEventClick}
-                            column={event.column}
-                            totalColumns={event.totalColumns}
-                          />
-                        ))
-                      })()}
+
+                      {/* EventGlobes con sistema de columnas */}
+                      {eventsWithColumns.map((event) => (
+                        <EventGlobe
+                          key={event._id}
+                          event={event}
+                          hourHeight={hourHeight}
+                          onClick={onEventClick}
+                          column={event.column}
+                          totalColumns={event.totalColumns}
+                        />
+                      ))}
                     </>
                   )
                 })()}
