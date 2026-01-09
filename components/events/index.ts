@@ -5,6 +5,7 @@ export { SleepButton } from "./SleepButton"
 export { SleepDelayModal } from "./SleepDelayModal"
 export { FeedingButton } from "./FeedingButton"
 export { FeedingModal } from "./FeedingModal"
+export { EventDetailsModal } from "./EventDetailsModal"
 export type { 
   EventData, 
   EventType, 

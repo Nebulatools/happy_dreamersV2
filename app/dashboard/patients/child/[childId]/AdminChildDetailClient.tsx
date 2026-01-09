@@ -8,8 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertCircle, Clock, FileText, TrendingUp, Loader2, Moon, Sun, Utensils, UtensilsCrossed, Pill, Activity, Baby } from "lucide-react"
 import { SurveyResponseViewer } from "@/components/survey/SurveyResponseViewer"
+import { EventDetailsModal } from "@/components/events/EventDetailsModal"
+import { EventEditRouter } from "@/components/events/EventEditRouter"
+import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
+import { useToast } from "@/hooks/use-toast"
 import type { SurveyData, Event } from "@/types/models"
 
 interface AdminChildDetailClientProps {
@@ -28,6 +32,15 @@ export function AdminChildDetailClient({
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [events, setEvents] = useState<Event[]>([])
   const [isLoadingEvents, setIsLoadingEvents] = useState(false)
+
+  // Estados para el modal de detalles de evento
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const { toast } = useToast()
 
   // Fetch eventos cuando el tab cambia a "eventos" (solo la primera vez)
   const [eventsFetched, setEventsFetched] = useState(false)
@@ -57,6 +70,59 @@ export function AdminChildDetailClient({
       fetchEventsData()
     }
   }, [activeTab, eventsFetched, childId])
+
+  // Funcion para refrescar eventos
+  const refetchEvents = useCallback(async () => {
+    setIsLoadingEvents(true)
+    try {
+      const response = await fetch(`/api/children/events?childId=${childId}`)
+      if (response.ok) {
+        const data = await response.json()
+        const sortedEvents = (data.events || []).sort((a: Event, b: Event) => {
+          return new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+        })
+        setEvents(sortedEvents)
+      }
+    } catch (error) {
+      console.error("Error al refrescar eventos:", error)
+    } finally {
+      setIsLoadingEvents(false)
+    }
+  }, [childId])
+
+  // Funcion para eliminar un evento
+  const handleDeleteEvent = async () => {
+    if (!selectedEvent) return
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/children/events/${selectedEvent._id}?childId=${childId}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Evento eliminado",
+          description: "El evento ha sido eliminado correctamente",
+        })
+        await refetchEvents()
+        setShowDeleteModal(false)
+        setIsDetailsModalOpen(false)
+        setSelectedEvent(null)
+      } else {
+        throw new Error("Error al eliminar evento")
+      }
+    } catch (error) {
+      console.error("Error al eliminar evento:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el evento",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   // Helper para obtener icono segun tipo de evento - Sin emojis, solo iconos Lucide
   const getEventIcon = (event: Event) => {
@@ -262,7 +328,11 @@ export function AdminChildDetailClient({
                 {events.map((event) => (
                   <div
                     key={event._id}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                    onClick={() => {
+                      setSelectedEvent(event)
+                      setIsDetailsModalOpen(true)
+                    }}
                   >
                     <div className="mt-0.5">{getEventIcon(event)}</div>
                     <div className="flex-1 min-w-0">
@@ -328,6 +398,44 @@ export function AdminChildDetailClient({
           </CardContent>
         </Card>
       </TabsContent>
+
+      {/* Modal de detalles del evento */}
+      <EventDetailsModal
+        event={selectedEvent}
+        open={isDetailsModalOpen}
+        onOpenChange={setIsDetailsModalOpen}
+        onEdit={() => {
+          setIsDetailsModalOpen(false)
+          setIsEditModalOpen(true)
+        }}
+        onDelete={() => setShowDeleteModal(true)}
+      />
+
+      {/* Router para editar eventos usando modales especificos */}
+      <EventEditRouter
+        event={selectedEvent}
+        open={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setSelectedEvent(null)
+        }}
+        onUpdate={async () => {
+          await refetchEvents()
+          setIsEditModalOpen(false)
+          setIsDetailsModalOpen(false)
+          setSelectedEvent(null)
+        }}
+        childName={childName}
+      />
+
+      {/* Modal de confirmacion de eliminacion */}
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteEvent}
+        itemName={selectedEvent ? `evento de ${getEventTypeName(selectedEvent.eventType)}` : "evento"}
+        isDeleting={isDeleting}
+      />
     </Tabs>
   )
 }
