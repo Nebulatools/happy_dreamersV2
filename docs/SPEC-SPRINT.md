@@ -899,3 +899,133 @@ Descubrir problema → Resolver → Documentar en docs/solutions/ → Si es crí
 - [x] `.claude/skills/happy-dreamers/references/` contiene 3 archivos de referencia
 - [x] `.claude/docs/solutions/` tiene estructura por categorías
 - [x] Documentos de ejemplo creados con template correcto
+
+---
+
+### 6.15 FIX: Estandarizar Cálculo de endTime en Todos los Flujos (Commit 9b787c2) - 2026-01-09
+
+#### Problemas Identificados
+
+1. **Duraciones negativas** (-56m, -15m) en la tabla de eventos de "Mis Eventos"
+2. **Registro manual afectaba botones en vivo**: Al registrar un `night_waking` manual, los botones cambiaban a "VOLVER A DORMIR"
+3. **Inconsistencia entre flujos**: Algunos flujos enviaban `endTime`, otros no
+
+#### Causa Raíz
+
+##### A. Duraciones Negativas
+Los modales de edición NO calculaban `endTime` correctamente. Al editar un evento y cambiar la hora, el `endTime` quedaba incorrecto o no se actualizaba, resultando en `endTime < startTime`.
+
+##### B. Registro Manual Afectando Botones En Vivo
+En `lib/event-types.ts`, `night_waking` tenía `hasEndTime: true`, lo que causaba:
+1. ManualEventModal mostraba checkbox "incluir hora fin"
+2. Si el usuario no lo marcaba, evento se guardaba SIN endTime
+3. API veía `night_waking && !endTime` → devolvía `status: "night_waking"`
+4. Botones cambiaban a "VOLVER A DORMIR"
+
+#### Solución Implementada
+
+##### A. Cálculo Automático de endTime en Registro En Vivo
+
+**ExtraActivityButton.tsx:**
+```typescript
+const now = getCurrentTime()
+// NUEVO: Calcular endTime = startTime + activityDuration
+const endTime = new Date(now.getTime() + (activityData.activityDuration * 60 * 1000))
+
+const eventData = {
+  startTime: dateToTimestamp(now, userData.timezone),
+  endTime: dateToTimestamp(endTime, userData.timezone),  // ← AGREGADO
+  activityDuration: activityData.activityDuration,
+  // ...
+}
+```
+
+**FeedingButton.tsx:**
+```typescript
+const durationToSend = feedingData.feedingDuration || ...
+// NUEVO: Calcular endTime = startTime + feedingDuration
+const endTime = new Date(now.getTime() + (durationToSend * 60 * 1000))
+
+const eventData = {
+  startTime: dateToTimestamp(now, userData.timezone),
+  endTime: dateToTimestamp(endTime, userData.timezone),  // ← AGREGADO
+  feedingDuration: durationToSend,
+  // ...
+}
+```
+
+##### B. Cálculo Automático de endTime en Registro Manual
+
+**ManualEventModal.tsx:**
+```typescript
+// Calcular endTime automáticamente para alimentación, actividades extra Y despertares nocturnos
+let calculatedEndTime: Date | null = null
+if (eventType === "feeding") {
+  calculatedEndTime = new Date(startDateTime.getTime() + (feedingDuration * 60 * 1000))
+} else if (eventType === "extra_activities") {
+  calculatedEndTime = new Date(startDateTime.getTime() + (activityDuration * 60 * 1000))
+} else if (eventType === "night_waking") {  // ← NUEVO CASO
+  const awakeDelayMinutes = awakeDelay || 15
+  calculatedEndTime = new Date(startDateTime.getTime() + (awakeDelayMinutes * 60 * 1000))
+}
+```
+
+##### C. Separación Total: Manual vs En Vivo
+
+**lib/event-types.ts:**
+```typescript
+{
+  id: "night_waking",
+  hasEndTime: false,  // ANTES: true → AHORA: false
+  // Usa awakeDelay para calcular endTime automáticamente
+}
+```
+
+**Por qué este cambio:**
+- `hasEndTime: true` mostraba campos de "hora fin" en el formulario manual
+- `hasEndTime: false` usa el cálculo automático `startTime + awakeDelay`
+- El flujo EN VIVO (SleepButton) NO usa `event-types.ts` → no se afecta
+
+##### D. Cálculo de endTime en Modales de Edición
+
+**NightWakingModal.tsx, ExtraActivityModal.tsx, FeedingModal.tsx:**
+Todos ahora calculan `endTime` en modo edición usando el patrón:
+```typescript
+if (mode === "edit" && eventDate && eventTime) {
+  const startDateObj = buildLocalDate(eventDate, eventTime)
+  const endDateObj = new Date(startDateObj.getTime() + (duration * 60 * 1000))
+  editOptions = {
+    startTime: dateToTimestamp(startDateObj, timezone),
+    endTime: dateToTimestamp(endDateObj, timezone)
+  }
+}
+```
+
+#### Matriz de Consistencia Final
+
+| Flujo | extra_activities | feeding | night_waking |
+|-------|------------------|---------|--------------|
+| **EN VIVO** | ✅ Sí endTime | ✅ Sí endTime | ✅ Sí endTime |
+| **MANUAL** | ✅ Sí endTime | ✅ Sí endTime | ✅ Sí endTime |
+| **EDICIÓN** | ✅ Sí endTime | ✅ Sí endTime | ✅ Sí endTime |
+
+#### Archivos Modificados (Commit 9b787c2)
+
+| Archivo | Cambio |
+|---------|--------|
+| `components/events/ExtraActivityButton.tsx` | +endTime en registro en vivo |
+| `components/events/FeedingButton.tsx` | +endTime en registro en vivo |
+| `components/events/ManualEventModal.tsx` | +cálculo endTime para night_waking |
+| `components/events/ExtraActivityModal.tsx` | +cálculo endTime en edición |
+| `components/events/FeedingModal.tsx` | +cálculo endTime en edición |
+| `components/events/NightWakingModal.tsx` | +cálculo endTime en edición |
+| `components/events/EventEditRouter.tsx` | Pasar endTime calculado a updateEvent |
+| `lib/event-types.ts` | night_waking: `hasEndTime: false` |
+
+#### Verificación
+
+- [x] Duraciones positivas en tabla de eventos
+- [x] Registro manual NO afecta botones en vivo
+- [x] Editar eventos mantiene duración correcta
+- [x] Build compila sin errores
+- [x] Flujos en vivo y manual completamente independientes
