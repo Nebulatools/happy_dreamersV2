@@ -239,7 +239,7 @@ export function ManualEventModal({
       // Construir fecha/hora de inicio (usando buildLocalDate para evitar bug UTC)
       const startDateTime = buildLocalDate(startDate, startTime)
       
-      // Calcular endTime automáticamente para alimentación y actividades extra
+      // Calcular endTime automáticamente para alimentación, actividades extra y despertares nocturnos
       let calculatedEndTime: Date | null = null
       if (eventType === "feeding") {
         // Alimentación: usar duración (máximo 60 minutos)
@@ -248,6 +248,10 @@ export function ManualEventModal({
       } else if (eventType === "extra_activities") {
         // Actividad extra: usar duración (sin límite)
         calculatedEndTime = new Date(startDateTime.getTime() + (activityDuration * 60 * 1000))
+      } else if (eventType === "night_waking") {
+        // Despertar nocturno: usar awakeDelay (tiempo que estuvo despierto)
+        const awakeDelayMinutes = awakeDelay || 15 // default 15 minutos
+        calculatedEndTime = new Date(startDateTime.getTime() + (awakeDelayMinutes * 60 * 1000))
       }
       
       // Construir datos del evento base

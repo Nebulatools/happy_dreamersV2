@@ -140,11 +140,15 @@ export function ExtraActivityModal({
     }
 
     // Construir editOptions solo en modo edición con fecha/hora editados
+    // Opción B: endTime = startTime + activityDuration (duración automática)
     let editOptions: EditOptions | undefined
     if (mode === "edit" && eventDate && eventTime) {
-      const dateObj = buildLocalDate(eventDate, eventTime)
+      const startDateObj = buildLocalDate(eventDate, eventTime)
+      // Calcular endTime sumando activityDuration minutos al startTime
+      const endDateObj = new Date(startDateObj.getTime() + (activityDuration * 60 * 1000))
       editOptions = {
-        startTime: dateToTimestamp(dateObj, timezone)
+        startTime: dateToTimestamp(startDateObj, timezone),
+        endTime: dateToTimestamp(endDateObj, timezone)
       }
     }
 

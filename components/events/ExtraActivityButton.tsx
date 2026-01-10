@@ -66,13 +66,17 @@ export function ExtraActivityButton({
       setIsProcessing(true)
       
       const now = getCurrentTime()
-      
+
+      // Calcular endTime = startTime + activityDuration
+      const endTime = new Date(now.getTime() + (activityData.activityDuration * 60 * 1000))
+
       // Crear evento de actividad extra con todos los datos en campos separados
       const impact = activityData.activityImpact ?? "neutral"
       const eventData: Partial<EventData> = {
         childId,
         eventType: "extra_activities",
         startTime: dateToTimestamp(now, userData.timezone),
+        endTime: dateToTimestamp(endTime, userData.timezone),
         activityDescription: activityData.activityDescription,
         activityDuration: activityData.activityDuration,
         activityImpact: impact,

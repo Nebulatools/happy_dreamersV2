@@ -115,11 +115,15 @@ export function NightWakingModal({
       // En modo edicion, solo llamar al callback (el PUT lo maneja EventEditRouter)
       if (mode === "edit") {
         // Construir editOptions con fecha/hora editados
+        // Opción B: endTime = startTime + awakeDelay (duración automática)
         let editOptions: EditOptions | undefined
         if (eventDate && eventTime) {
-          const dateObj = buildLocalDate(eventDate, eventTime)
+          const startDateObj = buildLocalDate(eventDate, eventTime)
+          // Calcular endTime sumando awakeDelay minutos al startTime
+          const endDateObj = new Date(startDateObj.getTime() + (selectedDelay * 60 * 1000))
           editOptions = {
-            startTime: dateToTimestamp(dateObj, userData?.timezone)
+            startTime: dateToTimestamp(startDateObj, userData?.timezone),
+            endTime: dateToTimestamp(endDateObj, userData?.timezone)
           }
         }
 

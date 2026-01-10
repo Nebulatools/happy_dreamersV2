@@ -175,14 +175,17 @@ export function EventEditRouter({
           }
           // Preservar isNightFeeding si existe, o detectar por eventType legacy
           const isNightFeeding = event.isNightFeeding ?? (event.eventType === "night_feeding")
-          // Usar startTime editado si existe, sino usar el original
+          // Usar startTime y endTime editados si existen, sino usar los originales
           const startTime = editOptions?.startTime || event.startTime
+          // endTime calculado automáticamente: startTime + feedingDuration
+          const endTime = editOptions?.endTime ?? event.endTime
           await updateEvent({
             ...payload,
             eventType: "feeding", // Convertir night_feeding → feeding al editar
             isNightFeeding,
             feedingContext: isNightFeeding ? "during_sleep" : "awake",
             startTime,
+            endTime,
             notes: data.feedingNotes,
           })
         }}
@@ -206,11 +209,14 @@ export function EventEditRouter({
         open={open}
         onClose={onClose}
         onConfirm={async (data, editOptions?: EditOptions) => {
-          // Usar startTime editado si existe, sino usar el original
+          // Usar startTime y endTime editados si existen, sino usar los originales
           const startTime = editOptions?.startTime || event.startTime
+          // endTime calculado automáticamente: startTime + activityDuration
+          const endTime = editOptions?.endTime ?? event.endTime
           await updateEvent({
             ...data,
             startTime,
+            endTime,
             notes: data.activityNotes,
           })
         }}
@@ -269,14 +275,16 @@ export function EventEditRouter({
         open={open}
         onClose={onClose}
         onConfirm={async (awakeDelay, emotionalState, notes, editOptions?: EditOptions) => {
-          // Usar startTime editado si existe, sino usar el original
+          // Usar startTime y endTime editados si existen, sino usar los originales
           const startTime = editOptions?.startTime || event.startTime
+          // endTime calculado automáticamente: startTime + awakeDelay
+          const endTime = editOptions?.endTime ?? event.endTime
           await updateEvent({
             awakeDelay,
             emotionalState,
             notes,
             startTime,
-            endTime: event.endTime,
+            endTime,
           })
         }}
         childName={childName}

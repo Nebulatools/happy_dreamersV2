@@ -42,7 +42,7 @@ export const eventTypes: EventType[] = [
     label: "Despertar nocturno",
     icon: AlertCircle,
     description: "Despertar durante la noche",
-    hasEndTime: true,
+    hasEndTime: false,  // Usa awakeDelay para calcular endTime automáticamente
     hasSleepDelay: true,
     defaultStartTime: "02:00",
   },

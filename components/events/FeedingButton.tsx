@@ -77,11 +77,15 @@ export function FeedingButton({
           ? "during_nap"
           : "awake"
 
+      // Calcular endTime = startTime + feedingDuration
+      const endTime = new Date(now.getTime() + (durationToSend * 60 * 1000))
+
       // Crear UN SOLO evento de alimentación con flag isNightFeeding
       const eventData: Partial<EventData> = {
         childId,
         eventType: "feeding",
         startTime: dateToTimestamp(now, userData.timezone),
+        endTime: dateToTimestamp(endTime, userData.timezone),
         feedingType: feedingData.feedingType,
         feedingSubtype: feedingData.feedingType,
         // Duración: en pecho son minutos del control principal, en otros casos usamos la duración capturada

@@ -194,11 +194,19 @@ export function FeedingModal({
     }
 
     // Construir editOptions solo en modo edición con fecha/hora editados
+    // Opción B: endTime = startTime + feedingDuration (duración automática)
     let editOptions: EditOptions | undefined
     if (mode === "edit" && eventDate && eventTime) {
-      const dateObj = buildLocalDate(eventDate, eventTime)
+      const startDateObj = buildLocalDate(eventDate, eventTime)
+      // Calcular duración según tipo de alimentación
+      // Pecho: feedingAmount es la duración en minutos
+      // Biberón/Sólidos: usar feedingDuration
+      const durationMinutes = feedingType === "breast" ? feedingAmount : feedingDuration
+      // Calcular endTime sumando la duración al startTime
+      const endDateObj = new Date(startDateObj.getTime() + (durationMinutes * 60 * 1000))
       editOptions = {
-        startTime: dateToTimestamp(dateObj, timezone)
+        startTime: dateToTimestamp(startDateObj, timezone),
+        endTime: dateToTimestamp(endDateObj, timezone)
       }
     }
 
