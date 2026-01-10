@@ -1,14 +1,121 @@
 # Guia Rapida de QA - Happy Dreamers
 
 **Fecha:** 2026-01-09
-**Ultima Actualizacion:** 2026-01-09 (Commit 1d5c238)
+**Ultima Actualizacion:** 2026-01-09 (Commit 6184b1e)
 **URL:** http://localhost:3000
 
 ---
 
-## 🚨 TESTING CRITICO - Push Actual (1d5c238)
+## 🚨 TESTING CRITICO - Push Actual (9b787c2, 6184b1e)
 
-### Bug UTC en Edicion de Eventos (CORREGIDO)
+### Fix Estandarizacion endTime en Todos los Flujos (CORREGIDO)
+
+**Problemas anteriores:**
+1. Duraciones negativas (-56m, -15m) en tabla de eventos
+2. Registro manual de night_waking afectaba botones de registro en vivo
+
+**Causa:**
+- Modales de edicion NO calculaban endTime correctamente
+- `hasEndTime: true` en night_waking causaba que eventos manuales se guardaran sin endTime
+
+**Solucion:**
+- Todos los flujos ahora calculan: `endTime = startTime + duracion`
+- Cambio `hasEndTime: false` para night_waking (usa calculo automatico)
+
+---
+
+### TEST A: Duraciones Positivas en Tabla (FIX DURACIONES NEGATIVAS)
+
+**Ruta:** `/dashboard/children/[childId]/events` (Mis Eventos)
+
+**Pasos:**
+1. Login como usuario
+2. Ir a "Mis Eventos" de un hijo
+3. Revisar la columna "Duracion" en la tabla de eventos
+
+**Verificar:**
+- [ ] NINGUNA duracion es negativa (no debe haber -56m, -15m, etc.)
+- [ ] Todas las duraciones son positivas o "N/A"
+- [ ] Eventos de feeding muestran duracion correcta
+- [ ] Eventos de extra_activities muestran duracion correcta
+- [ ] Eventos de night_waking muestran duracion correcta
+
+---
+
+### TEST B: Registro Manual NO Afecta Botones En Vivo
+
+**Ruta:** `/dashboard/children/[childId]` (Vista con botones de registro)
+
+**Pasos:**
+1. Login como usuario
+2. Ir a la vista del hijo con los botones de registro en vivo
+3. Verificar que los botones muestran estado normal (ej: "SE DURMIO", "ALIMENTACION")
+4. Abrir modal de registro manual (boton "+")
+5. Crear un evento de **Despertar Nocturno** con fecha/hora pasada (ej: ayer 02:00 AM)
+6. Guardar el evento
+7. Volver a la vista con botones de registro en vivo
+
+**Verificar:**
+- [ ] Los botones de registro en vivo NO cambiaron de estado
+- [ ] NO aparece "VOLVER A DORMIR" despues de registrar manualmente
+- [ ] El registro manual es completamente independiente del registro en vivo
+- [ ] El evento manual aparece en la tabla de "Mis Eventos"
+
+---
+
+### TEST C: endTime se Calcula en Registro En Vivo
+
+**Ruta:** `/dashboard/children/[childId]` (Vista con botones)
+
+**Test C1: Alimentacion En Vivo**
+1. Click en boton "ALIMENTACION"
+2. Completar modal (tipo, duracion, etc.)
+3. Confirmar
+
+**Verificar en BD o tabla:**
+- [ ] Evento tiene startTime Y endTime
+- [ ] endTime = startTime + duracion seleccionada
+
+**Test C2: Actividad Extra En Vivo**
+1. Click en boton "ACTIVIDAD"
+2. Completar modal (descripcion, duracion)
+3. Confirmar
+
+**Verificar:**
+- [ ] Evento tiene startTime Y endTime
+- [ ] endTime = startTime + duracion seleccionada
+
+---
+
+### TEST D: endTime se Calcula en Registro Manual
+
+**Ruta:** Boton "+" > Modal de registro manual
+
+**Test D1: Night Waking Manual**
+1. Seleccionar tipo "Despertar Nocturno"
+2. Seleccionar fecha/hora de inicio
+3. Seleccionar duracion (awake delay)
+4. Guardar
+
+**Verificar:**
+- [ ] NO aparece checkbox de "incluir hora fin" (se calcula automatico)
+- [ ] Evento se guarda con endTime calculado
+- [ ] Duracion en tabla es positiva y correcta
+
+**Test D2: Alimentacion Manual**
+1. Seleccionar tipo "Alimentacion"
+2. Completar datos
+3. Guardar
+
+**Verificar:**
+- [ ] endTime se calcula automaticamente
+- [ ] Duracion en tabla es correcta
+
+---
+
+## 🔄 TESTING ANTERIOR - Bug UTC (1d5c238)
+
+### TEST 1: Bug UTC en Edicion de Eventos (CORREGIDO)
 
 **Problema anterior:** Al editar un evento y cambiar SOLO la hora, la fecha se movia un dia hacia atras.
 
@@ -185,11 +292,12 @@
 | sleep | Moon | indigo | Hora inicio/fin, duracion |
 | nap | Sun | amber | Hora inicio/fin, duracion |
 | wake | Sun | yellow | Solo hora |
-| night_waking | Baby | purple | Hora inicio/fin |
-| feeding | Utensils | green | feedingType, cantidad |
-| night_feeding | Utensils | green | feedingType, cantidad |
+| night_waking | AlertCircle | purple | Hora inicio/fin, duracion (awakeDelay) |
+| feeding | Utensils | green | feedingType, cantidad, isNightFeeding flag |
 | medication | Pill | blue | nombre, dosis |
-| extra_activities | Activity | orange | tipo, impacto |
+| extra_activities | Activity | cyan | descripcion, duracion, impacto |
+
+**Nota:** `night_feeding` ya no existe como tipo separado. Ahora es `feeding` con `isNightFeeding: true`.
 
 ---
 
@@ -270,8 +378,11 @@
 
 | Feature | Commit | Estado |
 |---------|--------|--------|
-| **Fix bug UTC edicion eventos** | 1d5c238 | 🔴 CRITICO - Probar |
-| **buildLocalDate() en modales** | 1d5c238 | 🔴 CRITICO - Probar |
+| **Fix duraciones negativas** | 9b787c2 | 🔴 CRITICO - Probar |
+| **Manual no afecta botones en vivo** | 9b787c2 | 🔴 CRITICO - Probar |
+| **endTime estandarizado todos flujos** | 9b787c2 | 🔴 CRITICO - Probar |
+| Fix bug UTC edicion eventos | 1d5c238 | Listo |
+| buildLocalDate() en modales | 1d5c238 | Listo |
 | Dia logico en planes | 074960d | Listo |
 | Etiqueta "Dormir" simplificada | 074960d | Listo |
 | EventDetailsModal reutilizable | e84bc4a | Listo |
@@ -283,7 +394,21 @@
 | Sistema columnas vista diaria | 554412a | Listo |
 | GlobalActivityMonitor night_waking | 554412a | Listo |
 
-### Archivos Modificados en Push Actual (1d5c238)
+### Archivos Modificados en Push Actual (9b787c2, 6184b1e)
+
+| Archivo | Cambio |
+|---------|--------|
+| `lib/event-types.ts` | `hasEndTime: false` para night_waking |
+| `components/events/ExtraActivityButton.tsx` | Calcula endTime en registro en vivo |
+| `components/events/FeedingButton.tsx` | Calcula endTime en registro en vivo |
+| `components/events/ManualEventModal.tsx` | Agrega night_waking a calculo automatico |
+| `components/events/ExtraActivityModal.tsx` | Calcula endTime en edicion |
+| `components/events/FeedingModal.tsx` | Calcula endTime en edicion |
+| `components/events/NightWakingModal.tsx` | Calcula endTime en edicion |
+| `components/events/EventEditRouter.tsx` | Pasa endTime al updateEvent |
+| `docs/SPEC-SPRINT.md` | Seccion 6.15 documentando cambios |
+
+### Archivos Modificados en Push Anterior (1d5c238)
 
 | Archivo | Cambio |
 |---------|--------|
