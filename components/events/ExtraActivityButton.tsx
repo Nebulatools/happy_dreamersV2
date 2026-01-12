@@ -5,23 +5,17 @@ import { Activity, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { EventData } from "./types"
-import { dateToTimestamp } from "@/lib/datetime"
+import { buildLocalDate, dateToTimestamp } from "@/lib/datetime"
 import { cn } from "@/lib/utils"
 import { useDevTime } from "@/context/dev-time-context"
-import { ExtraActivityModal } from "./ExtraActivityModal"
+import { ExtraActivityModal, ExtraActivityModalData } from "./ExtraActivityModal"
 import { useUser } from "@/context/UserContext"
+import { format } from "date-fns"
 
 interface ExtraActivityButtonProps {
   childId: string
   childName: string
   onEventRegistered?: () => void
-}
-
-interface ExtraActivityModalData {
-  activityDescription: string
-  activityDuration: number // en minutos
-  activityImpact?: "positive" | "neutral" | "negative"
-  activityNotes: string
 }
 
 /**
@@ -64,48 +58,49 @@ export function ExtraActivityButton({
   const handleActivityConfirm = async (activityData: ExtraActivityModalData) => {
     try {
       setIsProcessing(true)
-      
+
       const now = getCurrentTime()
 
-      // Calcular endTime = startTime + activityDuration
-      const endTime = new Date(now.getTime() + (activityData.activityDuration * 60 * 1000))
+      // NUEVO PATRON: startTime = hora ingresada, endTime = ahora (momento de guardar)
+      const todayDate = format(now, "yyyy-MM-dd")
+      const startTimeDate = buildLocalDate(todayDate, activityData.activityTime)
+      const endTimeDate = now
 
       // Crear evento de actividad extra con todos los datos en campos separados
       const impact = activityData.activityImpact ?? "neutral"
       const eventData: Partial<EventData> = {
         childId,
         eventType: "extra_activities",
-        startTime: dateToTimestamp(now, userData.timezone),
-        endTime: dateToTimestamp(endTime, userData.timezone),
+        startTime: dateToTimestamp(startTimeDate, userData.timezone),
+        endTime: dateToTimestamp(endTimeDate, userData.timezone),
         activityDescription: activityData.activityDescription,
-        activityDuration: activityData.activityDuration,
         activityImpact: impact,
         activityNotes: activityData.activityNotes || "",
         // El campo notes puede combinar descripción y notas para compatibilidad
-        notes: activityData.activityNotes ? 
-          `${activityData.activityDescription} - ${activityData.activityNotes}` : 
+        notes: activityData.activityNotes ?
+          `${activityData.activityDescription} - ${activityData.activityNotes}` :
           activityData.activityDescription,
         description: activityData.activityDescription, // Campo legacy para compatibilidad
-        emotionalState: impact === "positive" ? "tranquilo" : 
+        emotionalState: impact === "positive" ? "tranquilo" :
           impact === "negative" ? "inquieto" : "neutral",
       }
-      
+
       const response = await fetch("/api/children/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(eventData),
       })
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         const errorMessage = errorData.error || `Error al registrar actividad extra (${response.status})`
         throw new Error(errorMessage)
       }
-      
+
       // Mostrar confirmación personalizada
       toast({
         title: "Actividad registrada",
-        description: `${childName}: ${activityData.activityDescription} (${activityData.activityDuration} min)`,
+        description: `${childName}: ${activityData.activityDescription}`,
       })
       
       // Cerrar modal y limpiar

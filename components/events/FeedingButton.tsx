@@ -5,12 +5,13 @@ import { Baby, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { EventData, FeedingModalData } from "./types"
-import { dateToTimestamp } from "@/lib/datetime"
+import { buildLocalDate, dateToTimestamp } from "@/lib/datetime"
 import { cn } from "@/lib/utils"
 import { useDevTime } from "@/context/dev-time-context"
 import { FeedingModal } from "./FeedingModal"
 import { useSleepState } from "@/hooks/use-sleep-state"
 import { useUser } from "@/context/UserContext"
+import { format } from "date-fns"
 
 interface FeedingButtonProps {
   childId: string
@@ -59,16 +60,14 @@ export function FeedingButton({
   const handleFeedingConfirm = async (feedingData: FeedingModalData) => {
     try {
       setIsProcessing(true)
-      
+
       const now = getCurrentTime()
-      
+
       // Detectar si el bebé está dormido actualmente
       const isBabySleeping = sleepState.status === "sleeping" || sleepState.status === "napping"
       const isLiquid = feedingData.feedingType === "breast" || feedingData.feedingType === "bottle"
       const normalizedBabyState = feedingData.feedingType === "solids" ? "awake" : feedingData.babyState
-      const durationToSend = feedingData.feedingDuration || (feedingData.feedingType === "breast" ? feedingData.feedingAmount : 15)
-      const amountToSend = feedingData.feedingType === "breast" ? undefined : (feedingData.feedingAmount || (feedingData.feedingType === "solids" ? 50 : undefined))
-      
+
       // Determinar si es alimentación nocturna y el contexto
       const isNightFeeding = isBabySleeping && isLiquid
       const feedingContext = sleepState.status === "sleeping"
@@ -77,20 +76,20 @@ export function FeedingButton({
           ? "during_nap"
           : "awake"
 
-      // Calcular endTime = startTime + feedingDuration
-      const endTime = new Date(now.getTime() + (durationToSend * 60 * 1000))
+      // NUEVO PATRON: startTime = hora ingresada, endTime = ahora (momento de guardar)
+      const todayDate = format(now, "yyyy-MM-dd")
+      const startTimeDate = buildLocalDate(todayDate, feedingData.feedingTime)
+      const endTimeDate = now
 
       // Crear UN SOLO evento de alimentación con flag isNightFeeding
       const eventData: Partial<EventData> = {
         childId,
         eventType: "feeding",
-        startTime: dateToTimestamp(now, userData.timezone),
-        endTime: dateToTimestamp(endTime, userData.timezone),
+        startTime: dateToTimestamp(startTimeDate, userData.timezone),
+        endTime: dateToTimestamp(endTimeDate, userData.timezone),
         feedingType: feedingData.feedingType,
         feedingSubtype: feedingData.feedingType,
-        // Duración: en pecho son minutos del control principal, en otros casos usamos la duración capturada
-        feedingDuration: durationToSend,
-        feedingAmount: amountToSend,
+        feedingAmount: feedingData.feedingAmount, // Solo para bottle
         babyState: normalizedBabyState,
         feedingNotes: feedingData.feedingNotes,
         notes: feedingData.feedingNotes,
@@ -120,20 +119,17 @@ export function FeedingButton({
         }
       }
 
-      const getAmountText = (type: string, amount: number) => {
-        if (type === "breast") {
-          return `${amount} minutos`
-        } else if (type === "bottle") {
-          return `${amount} oz/ml`
-        } else {
-          return "descripción agregada"
+      const getAmountText = (type: string, amount?: number) => {
+        if (type === "bottle" && amount) {
+          return ` - ${amount} oz/ml`
         }
+        return ""
       }
 
       // Mostrar confirmación personalizada
       toast({
         title: isNightFeeding ? "Alimentación nocturna registrada" : "Alimentación registrada",
-        description: `${childName}: ${getTypeText(feedingData.feedingType)} - ${getAmountText(feedingData.feedingType, feedingData.feedingAmount)}${isNightFeeding ? " (durante el sueño)" : ""}`,
+        description: `${childName}: ${getTypeText(feedingData.feedingType)}${getAmountText(feedingData.feedingType, feedingData.feedingAmount)}${isNightFeeding ? " (durante el sueño)" : ""}`,
       })
       
       // Cerrar modal y limpiar

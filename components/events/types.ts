@@ -1,6 +1,6 @@
 // Tipos TypeScript para el sistema de eventos
 
-export type EventType = "sleep" | "wake" | "nap" | "night_waking" | "feeding" | "night_feeding" | "medication" | "extra_activities"
+export type EventType = "sleep" | "wake" | "nap" | "night_waking" | "feeding" | "night_feeding" | "medication" | "extra_activities" | "note"
 
 export type EmotionalState = "tranquilo" | "inquieto" | "irritable" | "neutral"
 
@@ -37,6 +37,8 @@ export interface EventData {
   activityDuration?: number  // duración en minutos
   activityImpact?: "positive" | "neutral" | "negative"  // impacto en el sueño
   activityNotes?: string  // notas adicionales de la actividad
+  // Campos específicos para notas de bitácora
+  noteText?: string  // contenido de la nota de bitácora
   description?: string  // campo legacy para compatibilidad
   createdAt?: string
   parentId?: string
@@ -45,10 +47,10 @@ export interface EventData {
 // Interface específica para el modal de alimentación
 export interface FeedingModalData {
   feedingType: FeedingType
-  feedingAmount: number
-  feedingDuration: number
+  feedingAmount?: number // Solo para bottle (oz/ml)
   babyState: "awake" | "asleep"
   feedingNotes: string
+  feedingTime: string // Hora de inicio (HH:mm)
 }
 
 export interface Child {
@@ -71,4 +73,9 @@ export interface ExtraActivityModalData {
   activityDuration: number
   activityImpact: "positive" | "neutral" | "negative"
   activityNotes: string
+}
+
+// Interface para datos de nota de bitácora
+export interface NoteModalData {
+  noteText: string
 }

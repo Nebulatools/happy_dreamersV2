@@ -12,18 +12,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Activity, Plus, Minus } from "lucide-react"
+import { Activity } from "lucide-react"
 import { format } from "date-fns"
 import { useDevTime } from "@/context/dev-time-context"
 import { useUser } from "@/context/UserContext"
 import { buildLocalDate, dateToTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
 import { EditOptions } from "./types"
 
-interface ExtraActivityModalData {
+export interface ExtraActivityModalData {
   activityDescription: string
-  activityDuration: number // en minutos
   activityImpact?: "positive" | "neutral" | "negative"
   activityNotes: string
+  activityTime: string // Hora de inicio (HH:mm)
 }
 
 interface ExtraActivityModalProps {
@@ -58,19 +58,19 @@ export function ExtraActivityModal({
   const { userData } = useUser()
   const timezone = userData?.timezone || DEFAULT_TIMEZONE
   const [activityDescription, setActivityDescription] = useState<string>(initialData?.activityDescription || "")
-  const [activityDuration, setActivityDuration] = useState<number>(initialData?.activityDuration || 30) // Default 30 minutos
   const [activityNotes, setActivityNotes] = useState<string>(initialData?.activityNotes || "")
+  // Hora de inicio: cuando empezo la actividad
+  const [activityTime, setActivityTime] = useState<string>(() => {
+    if (mode === "edit" && initialData?.startTime) {
+      return format(new Date(initialData.startTime), "HH:mm")
+    }
+    return format(getCurrentTime(), "HH:mm")
+  })
   const [eventDate, setEventDate] = useState<string>(() => {
     if (mode === "edit" && initialData?.startTime) {
       return format(new Date(initialData.startTime), "yyyy-MM-dd")
     }
     return format(getCurrentTime(), "yyyy-MM-dd")
-  })
-  const [eventTime, setEventTime] = useState<string>(() => {
-    if (mode === "edit" && initialData?.startTime) {
-      return format(new Date(initialData.startTime), "HH:mm")
-    }
-    return format(getCurrentTime(), "HH:mm")
   })
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -78,34 +78,35 @@ export function ExtraActivityModal({
   useEffect(() => {
     if (open && mode === "edit" && initialData) {
       setActivityDescription(initialData.activityDescription || "")
-      setActivityDuration(initialData.activityDuration || 30)
       setActivityNotes(initialData.activityNotes || "")
       if (initialData.startTime) {
         setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
-        setEventTime(format(new Date(initialData.startTime), "HH:mm"))
+        setActivityTime(format(new Date(initialData.startTime), "HH:mm"))
       }
     }
-  }, [open, mode, initialData])
+    // En modo create, actualizar la hora al abrir el modal
+    if (open && mode === "create") {
+      setActivityTime(format(getCurrentTime(), "HH:mm"))
+    }
+  }, [open, mode, initialData, getCurrentTime])
 
   // Reset del formulario
   const resetForm = () => {
     if (mode === "edit" && initialData) {
       // En modo edición, restaurar valores iniciales
       setActivityDescription(initialData.activityDescription || "")
-      setActivityDuration(initialData.activityDuration || 30)
       setActivityNotes(initialData.activityNotes || "")
       if (initialData.startTime) {
         setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
-        setEventTime(format(new Date(initialData.startTime), "HH:mm"))
+        setActivityTime(format(new Date(initialData.startTime), "HH:mm"))
       }
     } else {
       // En modo creación, limpiar todo
       setActivityDescription("")
-      setActivityDuration(30)
       setActivityNotes("")
       const now = getCurrentTime()
       setEventDate(format(now, "yyyy-MM-dd"))
-      setEventTime(format(now, "HH:mm"))
+      setActivityTime(format(now, "HH:mm"))
     }
   }
 
@@ -113,14 +114,6 @@ export function ExtraActivityModal({
   const handleClose = () => {
     resetForm()
     onClose()
-  }
-
-  // Ajustar duración
-  const adjustDuration = (increment: number) => {
-    setActivityDuration(prev => {
-      const newValue = prev + increment
-      return Math.max(5, Math.min(180, newValue)) // Entre 5 y 180 minutos
-    })
   }
 
   // Manejar confirmación
@@ -134,18 +127,17 @@ export function ExtraActivityModal({
 
     const data: ExtraActivityModalData = {
       activityDescription: activityDescription.trim(),
-      activityDuration,
       activityImpact: initialData?.activityImpact ?? "neutral",
       activityNotes: activityNotes.trim(),
+      activityTime, // Hora de inicio
     }
 
-    // Construir editOptions solo en modo edición con fecha/hora editados
-    // Opción B: endTime = startTime + activityDuration (duración automática)
+    // Construir editOptions solo en modo edición
+    // En modo edit: startTime = fecha/hora editada, endTime = ahora (momento de guardar)
     let editOptions: EditOptions | undefined
-    if (mode === "edit" && eventDate && eventTime) {
-      const startDateObj = buildLocalDate(eventDate, eventTime)
-      // Calcular endTime sumando activityDuration minutos al startTime
-      const endDateObj = new Date(startDateObj.getTime() + (activityDuration * 60 * 1000))
+    if (mode === "edit" && eventDate && activityTime) {
+      const startDateObj = buildLocalDate(eventDate, activityTime)
+      const endDateObj = getCurrentTime()
       editOptions = {
         startTime: dateToTimestamp(startDateObj, timezone),
         endTime: dateToTimestamp(endDateObj, timezone)
@@ -173,8 +165,8 @@ export function ExtraActivityModal({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Fecha y hora - Solo visible en modo edición */}
-          {mode === "edit" && (
+          {/* Hora de inicio - Visible en ambos modos */}
+          {mode === "edit" ? (
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-2">
                 <Label htmlFor="activity-date">
@@ -190,23 +182,37 @@ export function ExtraActivityModal({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="activity-time">
-                  Hora
+                  Hora de inicio
                 </Label>
                 <Input
                   id="activity-time"
                   type="time"
-                  value={eventTime}
-                  onChange={(e) => setEventTime(e.target.value)}
+                  value={activityTime}
+                  onChange={(e) => setActivityTime(e.target.value)}
                   className="w-full"
                 />
               </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="activity-time">
+                Hora de inicio
+              </Label>
+              <Input
+                id="activity-time"
+                type="time"
+                value={activityTime}
+                onChange={(e) => setActivityTime(e.target.value)}
+                className="w-full text-lg text-center"
+              />
+              <p className="text-xs text-gray-500 text-center">Cuando empezo la actividad</p>
             </div>
           )}
 
           {/* Descripción de la actividad */}
           <div className="space-y-2">
             <Label htmlFor="activity-description">
-              Descripción de la actividad *
+              Descripcion de la actividad *
             </Label>
             <Input
               id="activity-description"
@@ -216,39 +222,6 @@ export function ExtraActivityModal({
               className="w-full"
               autoFocus
             />
-          </div>
-
-          {/* Duración de la actividad */}
-          <div className="space-y-2">
-            <Label>
-              Duración de la actividad
-            </Label>
-            <div className="flex items-center justify-center gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => adjustDuration(-15)}
-                className="h-10 w-10"
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-              
-              <div className="text-center">
-                <div className="text-2xl font-bold">{activityDuration}</div>
-                <div className="text-sm text-gray-500">minutos</div>
-              </div>
-              
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => adjustDuration(15)}
-                className="h-10 w-10"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
           </div>
           {/* Notas adicionales */}
           <div className="space-y-2">

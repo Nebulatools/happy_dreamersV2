@@ -61,17 +61,18 @@ export function FeedingModal({
   const [babyState, setBabyState] = useState<"awake" | "asleep">(initialData?.babyState || "awake")
   const [feedingNotes, setFeedingNotes] = useState<string>(initialData?.feedingNotes || "")
   const [bottleUnit, setBottleUnit] = useState<"oz" | "ml">("oz") // Unidad para biberón
+  // Hora de inicio: en create es cuando empezo la alimentacion, en edit es la hora guardada
+  const [feedingTime, setFeedingTime] = useState<string>(() => {
+    if (mode === "edit" && initialData?.startTime) {
+      return format(new Date(initialData.startTime), "HH:mm")
+    }
+    return format(getCurrentTime(), "HH:mm")
+  })
   const [eventDate, setEventDate] = useState<string>(() => {
     if (mode === "edit" && initialData?.startTime) {
       return format(new Date(initialData.startTime), "yyyy-MM-dd")
     }
     return format(getCurrentTime(), "yyyy-MM-dd")
-  })
-  const [eventTime, setEventTime] = useState<string>(() => {
-    if (mode === "edit" && initialData?.startTime) {
-      return format(new Date(initialData.startTime), "HH:mm")
-    }
-    return format(getCurrentTime(), "HH:mm")
   })
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -89,10 +90,14 @@ export function FeedingModal({
       setFeedingNotes(initialData.feedingNotes || "")
       if (initialData.startTime) {
         setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
-        setEventTime(format(new Date(initialData.startTime), "HH:mm"))
+        setFeedingTime(format(new Date(initialData.startTime), "HH:mm"))
       }
     }
-  }, [open, mode, initialData])
+    // En modo create, actualizar la hora al abrir el modal
+    if (open && mode === "create") {
+      setFeedingTime(format(getCurrentTime(), "HH:mm"))
+    }
+  }, [open, mode, initialData, getCurrentTime])
 
   // Tipos de alimentación disponibles
   const feedingTypes = [
@@ -183,27 +188,23 @@ export function FeedingModal({
   const handleConfirm = async () => {
     setIsProcessing(true)
 
-    // Normalización: pecho en minutos (feedingDuration), sólidos siempre despierto
+    // Normalización: sólidos siempre despierto
     const normalizedBabyState = feedingType === "solids" ? "awake" : babyState
     const data: FeedingModalData = {
       feedingType,
-      feedingAmount: feedingAmount,
-      feedingDuration: feedingType === "breast" ? feedingAmount : feedingDuration,
+      feedingAmount: feedingType === "bottle" ? feedingAmount : undefined,
       babyState: normalizedBabyState,
       feedingNotes,
+      // Nueva propiedad: hora de inicio (para calcular startTime en el Button)
+      feedingTime,
     }
 
-    // Construir editOptions solo en modo edición con fecha/hora editados
-    // Opción B: endTime = startTime + feedingDuration (duración automática)
+    // Construir editOptions solo en modo edición
+    // En modo edit: startTime = fecha/hora editada, endTime = ahora (momento de guardar)
     let editOptions: EditOptions | undefined
-    if (mode === "edit" && eventDate && eventTime) {
-      const startDateObj = buildLocalDate(eventDate, eventTime)
-      // Calcular duración según tipo de alimentación
-      // Pecho: feedingAmount es la duración en minutos
-      // Biberón/Sólidos: usar feedingDuration
-      const durationMinutes = feedingType === "breast" ? feedingAmount : feedingDuration
-      // Calcular endTime sumando la duración al startTime
-      const endDateObj = new Date(startDateObj.getTime() + (durationMinutes * 60 * 1000))
+    if (mode === "edit" && eventDate && feedingTime) {
+      const startDateObj = buildLocalDate(eventDate, feedingTime)
+      const endDateObj = getCurrentTime()
       editOptions = {
         startTime: dateToTimestamp(startDateObj, timezone),
         endTime: dateToTimestamp(endDateObj, timezone)
@@ -215,8 +216,7 @@ export function FeedingModal({
 
     // Reset para próxima vez
     setFeedingType("breast")
-    setFeedingAmount(15)
-    setFeedingDuration(15)
+    setFeedingAmount(4)
     setBabyState("awake")
     setFeedingNotes("")
   }
@@ -227,24 +227,22 @@ export function FeedingModal({
     if (mode === "edit" && initialData) {
       // En modo edición, restaurar valores iniciales
       setFeedingType(initialData.feedingType || "breast")
-      setFeedingAmount(initialData.feedingAmount || 80)
-      setFeedingDuration(initialData.feedingDuration || 15)
+      setFeedingAmount(initialData.feedingAmount || 4)
       setBabyState(initialData.babyState || "awake")
       setFeedingNotes(initialData.feedingNotes || "")
       if (initialData.startTime) {
         setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
-        setEventTime(format(new Date(initialData.startTime), "HH:mm"))
+        setFeedingTime(format(new Date(initialData.startTime), "HH:mm"))
       }
     } else {
       // En modo creación, limpiar todo
       setFeedingType("breast")
-      setFeedingAmount(15)
-      setFeedingDuration(15)
+      setFeedingAmount(4)
       setBabyState("awake")
       setFeedingNotes("")
       const now = getCurrentTime()
       setEventDate(format(now, "yyyy-MM-dd"))
-      setEventTime(format(now, "HH:mm"))
+      setFeedingTime(format(now, "HH:mm"))
     }
   }
 
@@ -270,29 +268,42 @@ export function FeedingModal({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Fecha y hora - Solo visible en modo edición */}
-        {mode === "edit" && (
-          <div className="grid grid-cols-2 gap-2 pb-4 border-b">
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-gray-700">Fecha</label>
-              <input
-                type="date"
-                value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
+        {/* Hora de inicio - Visible en ambos modos */}
+        <div className={cn("pb-4", mode === "edit" ? "border-b" : "")}>
+          {mode === "edit" ? (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">Fecha</label>
+                <input
+                  type="date"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">Hora de inicio</label>
+                <input
+                  type="time"
+                  value={feedingTime}
+                  onChange={(e) => setFeedingTime(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
             </div>
+          ) : (
             <div className="space-y-1">
-              <label className="text-sm font-medium text-gray-700">Hora</label>
+              <label className="text-sm font-medium text-gray-700">Hora de inicio</label>
               <input
                 type="time"
-                value={eventTime}
-                onChange={(e) => setEventTime(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                value={feedingTime}
+                onChange={(e) => setFeedingTime(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg text-lg text-center focus:outline-none focus:ring-2 focus:ring-green-500"
               />
+              <p className="text-xs text-gray-500 text-center">Cuando empezo la alimentacion</p>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Sección 1: Tipo de Alimentación */}
         <div className="space-y-3 mt-4">
@@ -338,55 +349,11 @@ export function FeedingModal({
 
         {/* Sección 2: Campos según tipo de alimentación */}
         <div className="space-y-4 border-t pt-4">
-          {/* PECHO: Solo Duración (min) */}
+          {/* PECHO: Sin campo de duración - se calcula automáticamente */}
           {feedingType === "breast" && (
-            <>
-              <div className="text-sm font-medium text-gray-700">
-                Duración (min)
-              </div>
-              <div className="flex items-center justify-center gap-4 py-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => adjustAmount(-amountConfig.step)}
-                  disabled={isProcessing || feedingAmount <= amountConfig.min}
-                  className="h-10 w-10 rounded-full"
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-
-                <div className="bg-green-50 border-2 border-green-200 rounded-xl px-3 py-3 min-w-[200px] text-center flex items-center gap-2 justify-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {feedingAmount} min
-                  </div>
-                  <input
-                    type="number"
-                    className="w-16 h-9 text-center text-sm border rounded-md bg-white"
-                    value={feedingAmount}
-                    min={amountConfig.min}
-                    max={amountConfig.max}
-                    onChange={(e) => {
-                      const val = Number(e.target.value)
-                      if (Number.isFinite(val)) {
-                        setFeedingAmount(Math.max(amountConfig.min, Math.min(amountConfig.max, val)))
-                      }
-                    }}
-                  />
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => adjustAmount(amountConfig.step)}
-                  disabled={isProcessing || feedingAmount >= amountConfig.max}
-                  className="h-10 w-10 rounded-full"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </>
+            <div className="text-center py-4 text-sm text-gray-500">
+              La duración se calculará automáticamente al guardar
+            </div>
           )}
 
           {/* BIBERÓN: Cantidad con selector oz/ml */}
