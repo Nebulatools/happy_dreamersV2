@@ -1,214 +1,195 @@
-# Guia Rápida de Ajustes en QA - Happy Dreamers
+# Guia de QA - Happy Dreamers
 
-**Fecha:** 2026-01-09
-**Ultima Actualizacion:** 2026-01-09 (Commit 6184b1e)
+**Fecha:** 2026-01-12
+**Ultima Actualizacion:** 2026-01-12
 **URL:** http://localhost:3000
 
 ---
 
-## 🚨 TESTING CRITICO - Push Actual (9b787c2, 6184b1e)
+## TESTING CRITICO - Push Actual
 
-### Fix Estandarizacion endTime en Todos los Flujos (CORREGIDO)
+### Resumen de Cambios
 
-**Problemas anteriores:**
-1. Duraciones negativas (-56m, -15m) en tabla de eventos
-2. Registro manual de night_waking afectaba botones de registro en vivo
-
-**Causa:**
-- Modales de edicion NO calculaban endTime correctamente
-- `hasEndTime: true` en night_waking causaba que eventos manuales se guardaran sin endTime
-
-**Solucion:**
-- Todos los flujos ahora calculan: `endTime = startTime + duracion`
-- Cambio `hasEndTime: false` para night_waking (usa calculo automatico)
+| Cambio | Descripcion |
+|--------|-------------|
+| EventsCalendarTabs | Nuevo componente reutilizable con tabs dia/semana/mes |
+| NoteModal | Modal para crear/editar notas |
+| Calendario Usuario | Toggle grafico/calendario habilitado |
+| Mis Eventos | Vista tabla eliminada, solo calendario |
+| Bitacora | Rediseño de chat a lista de notas |
+| Notas | Estado emocional eliminado |
 
 ---
 
-### TEST A: Duraciones Positivas en Tabla (FIX DURACIONES NEGATIVAS)
+## TEST 1: Vista Calendario en "Mis Eventos" (Usuario)
 
-**Ruta:** `/dashboard/children/[childId]/events` (Mis Eventos)
-
-**Pasos:**
-1. Login como usuario
-2. Ir a "Mis Eventos" de un hijo
-3. Revisar la columna "Duracion" en la tabla de eventos
-
-**Verificar:**
-- [ ] NINGUNA duracion es negativa (no debe haber -56m, -15m, etc.)
-- [ ] Todas las duraciones son positivas o "N/A"
-- [ ] Eventos de feeding muestran duracion correcta
-- [ ] Eventos de extra_activities muestran duracion correcta
-- [ ] Eventos de night_waking muestran duracion correcta
-
----
-
-### TEST B: Registro Manual NO Afecta Botones En Vivo
-
-**Ruta:** `/dashboard/children/[childId]` (Vista con botones de registro)
-
-**Pasos:**
-1. Login como usuario
-2. Ir a la vista del hijo con los botones de registro en vivo
-3. Verificar que los botones muestran estado normal (ej: "SE DURMIO", "ALIMENTACION")
-4. Abrir modal de registro manual (boton "+")
-5. Crear un evento de **Despertar Nocturno** con fecha/hora pasada (ej: ayer 02:00 AM)
-6. Guardar el evento
-7. Volver a la vista con botones de registro en vivo
-
-**Verificar:**
-- [ ] Los botones de registro en vivo NO cambiaron de estado
-- [ ] NO aparece "VOLVER A DORMIR" despues de registrar manualmente
-- [ ] El registro manual es completamente independiente del registro en vivo
-- [ ] El evento manual aparece en la tabla de "Mis Eventos"
-
----
-
-### TEST C: endTime se Calcula en Registro En Vivo
-
-**Ruta:** `/dashboard/children/[childId]` (Vista con botones)
-
-**Test C1: Alimentacion En Vivo**
-1. Click en boton "ALIMENTACION"
-2. Completar modal (tipo, duracion, etc.)
-3. Confirmar
-
-**Verificar en BD o tabla:**
-- [ ] Evento tiene startTime Y endTime
-- [ ] endTime = startTime + duracion seleccionada
-
-**Test C2: Actividad Extra En Vivo**
-1. Click en boton "ACTIVIDAD"
-2. Completar modal (descripcion, duracion)
-3. Confirmar
-
-**Verificar:**
-- [ ] Evento tiene startTime Y endTime
-- [ ] endTime = startTime + duracion seleccionada
-
----
-
-### TEST D: endTime se Calcula en Registro Manual
-
-**Ruta:** Boton "+" > Modal de registro manual
-
-**Test D1: Night Waking Manual**
-1. Seleccionar tipo "Despertar Nocturno"
-2. Seleccionar fecha/hora de inicio
-3. Seleccionar duracion (awake delay)
-4. Guardar
-
-**Verificar:**
-- [ ] NO aparece checkbox de "incluir hora fin" (se calcula automatico)
-- [ ] Evento se guarda con endTime calculado
-- [ ] Duracion en tabla es positiva y correcta
-
-**Test D2: Alimentacion Manual**
-1. Seleccionar tipo "Alimentacion"
-2. Completar datos
-3. Guardar
-
-**Verificar:**
-- [ ] endTime se calcula automaticamente
-- [ ] Duracion en tabla es correcta
-
----
-
-## 🔄 TESTING ANTERIOR - Bug UTC (1d5c238)
-
-### TEST 1: Bug UTC en Edicion de Eventos (CORREGIDO)
-
-**Problema anterior:** Al editar un evento y cambiar SOLO la hora, la fecha se movia un dia hacia atras.
-
-**Causa:** JavaScript interpretaba `new Date("2026-01-07")` como UTC medianoche, causando desfase.
-
-**Solucion:** Se implemento `buildLocalDate()` en todos los modales de edicion.
-
----
-
-### TEST 1: Edicion de Alimentacion (FeedingModal)
-
-**Ruta:** `/dashboard/children/[childId]/events` > Click en evento > Editar
+**Ruta:** `/dashboard/children/[childId]/events`
 
 **Pasos:**
 1. Login como usuario (eljulius@nebulastudios.io / juls0925)
 2. Ir a "Mis Eventos" de un hijo
-3. Localizar un evento de **Alimentacion** (ej: 7 de enero, 14:30)
-4. Click en el evento para ver detalles
-5. Click en "Editar"
-6. **Cambiar SOLO la hora** (ej: de 14:30 a 15:00)
-7. Guardar
 
 **Verificar:**
-- [ ] La FECHA se mantiene igual (7 de enero sigue siendo 7 de enero)
-- [ ] Solo la HORA cambio (ahora muestra 15:00)
-- [ ] El evento NO se movio al dia anterior
-- [ ] Los demas campos (tipo, cantidad, notas) se mantienen
+- [ ] NO existe toggle "Calendario/Tabla" (fue eliminado)
+- [ ] Solo se muestra vista calendario con tabs
+- [ ] Tabs funcionan: Dia | Semana | Mes
+- [ ] Navegacion de fechas funciona (flechas anterior/siguiente)
+- [ ] Click en evento abre modal de detalles
+- [ ] Boton "Editar" funciona desde el modal
+- [ ] Eventos se muestran correctamente en cada vista
 
-**Repetir con:**
-- [ ] Evento de madrugada (ej: 02:30 AM) - La fecha debe mantenerse
-- [ ] Evento nocturno (ej: 22:00) - La fecha debe mantenerse
+**Vista Dia:**
+- [ ] Eventos se ordenan cronologicamente
+- [ ] Eventos superpuestos se muestran lado a lado
+
+**Vista Semana:**
+- [ ] 7 columnas (Lun-Dom)
+- [ ] Eventos posicionados en hora correcta
+
+**Vista Mes:**
+- [ ] Calendario mensual con eventos
+- [ ] Click en dia muestra eventos de ese dia
 
 ---
 
-### TEST 2: Edicion de Actividad Extra (ExtraActivityModal)
+## TEST 2: Bitacora Rediseñada (Dashboard Usuario)
+
+**Ruta:** `/dashboard` (Dashboard principal de usuario)
 
 **Pasos:**
-1. Localizar un evento de **Actividad Extra**
-2. Click para editar
-3. Cambiar SOLO la hora
-4. Guardar
+1. Login como usuario
+2. Localizar la seccion "Bitacora" en el dashboard
 
-**Verificar:**
-- [ ] Fecha se mantiene igual
-- [ ] Hora cambio correctamente
-- [ ] Descripcion y duracion se mantienen
+**Verificar UI:**
+- [ ] NO es estilo chat/WhatsApp (burbujas de mensaje)
+- [ ] ES estilo lista con tarjetas grises
+- [ ] Cada nota tiene icono violeta (MessageSquare)
+- [ ] Cada nota muestra texto y fecha/hora
+- [ ] Input de texto esta ARRIBA de la lista
+- [ ] Boton enviar tiene icono de flecha
+
+**Verificar Funcionalidad:**
+- [ ] Escribir nota y presionar Enter o click en boton
+- [ ] Nota nueva aparece EN LA LISTA (no como burbuja)
+- [ ] Lista muestra las 5 notas mas recientes
+- [ ] Notas ordenadas de mas reciente a mas antigua
+- [ ] Hover sobre nota muestra boton X (eliminar)
+- [ ] Click en X elimina la nota
+
+**Verificar Datos:**
+- [ ] Notas se guardan correctamente en BD
+- [ ] Al recargar pagina, notas persisten
+- [ ] Notas NO tienen campo "emotionalState"
 
 ---
 
-### TEST 3: Edicion de Despertar Nocturno (NightWakingModal)
+## TEST 3: Notas SIN Estado Emocional
+
+**Ruta:** `/dashboard/children/[childId]/events` > Click en nota
 
 **Pasos:**
-1. Localizar un evento de **Despertar Nocturno** (night_waking)
-2. Click para editar
-3. Cambiar SOLO la hora
-4. Guardar
+1. Crear una nota desde Bitacora o registro manual
+2. Ir a "Mis Eventos"
+3. Localizar la nota en el calendario
+4. Click para ver detalles
 
 **Verificar:**
-- [ ] Fecha se mantiene igual
-- [ ] Hora cambio correctamente
-- [ ] Estado emocional se mantiene
+- [ ] Modal de detalles NO muestra "Estado emocional"
+- [ ] Solo muestra: Tipo (Nota), Fecha/hora, Contenido
+- [ ] Al editar, NO hay selector de estado emocional
+
+**Comparar con otros eventos:**
+- [ ] Evento de sleep SI muestra estado emocional
+- [ ] Evento de feeding SI muestra estado emocional
+- [ ] Evento de note NO muestra estado emocional
 
 ---
 
-### TEST 4: Alimentacion Nocturna (isNightFeeding flag)
+## TEST 4: Toggle Grafico/Calendario (Calendario Usuario)
 
-**Contexto:** Ya no existe el tipo `night_feeding` separado. Ahora es `feeding` con flag `isNightFeeding: true`.
+**Ruta:** `/dashboard/calendar`
 
 **Pasos:**
-1. Buscar un evento de alimentacion que tenga badge **"Nocturna"**
-2. Verificar que se puede editar correctamente
-3. Verificar que el badge "Nocturna" se mantiene despues de editar
+1. Login como usuario
+2. Ir a "Calendario"
 
 **Verificar:**
-- [ ] Badge "Nocturna" visible en la tabla de eventos
-- [ ] Click abre modal de detalles con texto "Esta alimentacion ocurrio mientras el bebe dormia"
-- [ ] Al editar, el flag `isNightFeeding` se preserva
+- [ ] Por defecto muestra vista "Grafico" (barras apiladas)
+- [ ] Existe toggle/botones para cambiar: Grafico | Calendario
+- [ ] Click en "Calendario" muestra vista calendario completa
+
+**En modo Grafico:**
+- [ ] Muestra grafico de barras "Ultimos 7 dias"
+- [ ] Navegacion limitada (anterior/siguiente semana)
+
+**En modo Calendario:**
+- [ ] Tabs disponibles: Mensual | Semanal | Diario
+- [ ] Navegacion libre de fechas (sin limite de 7 dias)
+- [ ] Funciona igual que el calendario de admin
+- [ ] Click en evento abre detalles
 
 ---
 
-### TEST 5: Creacion de Evento Manual (ManualEventModal)
+## TEST 5: EventsCalendarTabs en Admin
 
-**Ruta:** Boton "+" o "Agregar Evento Manual"
+**Ruta:** `/dashboard/patients/child/[childId]` > Tab "Eventos"
 
 **Pasos:**
-1. Crear un evento nuevo con fecha especifica (ej: 15 de enero, 10:00)
-2. Guardar
-3. Verificar que aparece en la fecha correcta
+1. Login como admin (mariana@admin.com / password)
+2. Ir a Pacientes > Seleccionar paciente
+3. Click en tab "Eventos"
 
 **Verificar:**
-- [ ] Evento aparece en el dia correcto (15 de enero)
-- [ ] Hora es correcta (10:00)
-- [ ] No hay desfase de timezone
+- [ ] Vista calendario con tabs (Dia/Semana/Mes)
+- [ ] Mismo componente que "Mis Eventos" del usuario
+- [ ] Click en evento abre modal de detalles
+- [ ] Boton editar funciona
+- [ ] Boton eliminar funciona
+
+---
+
+## TEST 6: NoteModal (Crear/Editar Notas)
+
+**Ruta:** Registro manual > Tipo "Nota"
+
+**Pasos:**
+1. Click en boton "+" o "Registrar evento"
+2. Seleccionar tipo "Nota"
+3. Completar el formulario
+
+**Verificar Creacion:**
+- [ ] Campo de texto para la nota (obligatorio)
+- [ ] Selector de fecha
+- [ ] Selector de hora
+- [ ] Boton guardar funciona
+- [ ] Nota aparece en calendario
+
+**Verificar Edicion:**
+1. Ir a "Mis Eventos"
+2. Click en una nota existente
+3. Click en "Editar"
+
+- [ ] Modal de edicion carga datos correctos
+- [ ] Se puede modificar texto
+- [ ] Se puede modificar fecha/hora
+- [ ] Cambios se guardan correctamente
+
+---
+
+## TEST 7: Tipos de Evento en Calendario
+
+**Verificar que todos los tipos se muestran correctamente:**
+
+| Tipo | Icono | Color | Verificar |
+|------|-------|-------|-----------|
+| sleep | Moon | indigo | Bloque 100% ancho |
+| nap | Sun | amber | Bloque 100% ancho |
+| wake | Sun | yellow | Punto en timeline |
+| night_waking | Baby | purple | Evento normal |
+| feeding | Utensils | green | Evento normal |
+| medication | Pill | blue | Evento normal |
+| extra_activities | Activity | orange | Evento normal |
+| note | MessageSquare | violet | Evento normal |
 
 ---
 
@@ -217,224 +198,118 @@
 | Rol | Email | Password |
 |-----|-------|----------|
 | Admin | mariana@admin.com | password |
-| Usuario (Padre) | eljulius@nebulastudios.io | juls0925 |
+| Usuario | eljulius@nebulastudios.io | juls0925 |
 
 ---
 
-## PRIORIDAD ALTA - Testing Critico
-
-### 1. Cuestionario de Desarrollo y Salud
-
-**Ruta:** `/dashboard/survey`
-
-**Pasos:**
-1. Login como usuario (padre)
-2. Ir a "Cuestionario" o acceder via onboarding de nuevo hijo
-3. Navegar hasta el paso "Desarrollo y Salud" (paso 4)
-
-**Verificar:**
-- [ ] El formulario carga correctamente con todas las secciones
-- [ ] Campos de hitos del desarrollo funcionan (rodar, sentarse, gatear, pararse, caminar - en meses)
-- [ ] Radio buttons de "Su hijo/a utiliza" (Vaso/Biberon/Ambas) funcionan
-- [ ] Radio buttons de alimentacion funcionan con opciones condicionales
-- [ ] Checkboxes de problemas del hijo funcionan (chupa dedo, chupon, etc.)
-- [ ] Campos adicionales aparecen al seleccionar opciones que requieren detalle
-- [ ] Los datos se guardan correctamente al avanzar/finalizar
-- [ ] Los datos se cargan correctamente si se regresa al paso
-
-**Campos criticos a probar:**
-| Campo | Tipo | Verificar |
-|-------|------|-----------|
-| rodarMeses | number | Acepta numeros, guarda correctamente |
-| sentarseMeses | number | Acepta numeros, guarda correctamente |
-| gatearMeses | number | Acepta numeros, guarda correctamente |
-| pararseMeses | select | Muestra 1-36 meses + "Aun no lo hace" |
-| caminarMeses | number | Acepta numeros, guarda correctamente |
-| hijoUtiliza | radio | Vaso/Biberon/Ambas |
-| alimentacion | radio | Formula/Leche materna/Mixta/Vaca/Otro/Ninguna |
-| comeSolidos | radio | Si/No |
-| problemasHijo | checkbox multiple | Ver lista en seccion 9 |
-| situacionesHijo | checkbox multiple | Ver lista en seccion 10 |
-
----
-
-### 2. Visualizacion de Eventos (Lado Admin)
-
-**Ruta:** `/dashboard/patients/child/[childId]` > Tab "Eventos"
-
-**Pasos:**
-1. Login como admin (mariana@admin.com)
-2. Ir a Dashboard > Pacientes
-3. Seleccionar un paciente con eventos registrados
-4. Ir al Tab "Eventos"
-
-**Verificar:**
-- [ ] Lista de eventos se muestra correctamente
-- [ ] Click en cualquier evento abre modal de detalles
-- [ ] Modal muestra TODOS los campos del evento:
-  - Tipo de evento con icono correcto
-  - Hora de inicio y fin
-  - Duracion
-  - Estado emocional (si aplica)
-  - Notas (si hay)
-  - Detalles especificos segun tipo:
-    - **Feeding:** Tipo (breast/bottle/solids), cantidad, duracion
-    - **Medication:** Nombre del medicamento, dosis
-    - **Sleep/Nap:** Latencia, despertar nocturno
-    - **Activities:** Tipo de actividad, impacto
-- [ ] Boton "Editar" abre formulario de edicion
-- [ ] Boton "Eliminar" muestra confirmacion antes de eliminar
-- [ ] Despues de editar/eliminar, la lista se actualiza automaticamente
-
-**Tipos de evento a verificar:**
-| Tipo | Icono | Color | Campos especificos |
-|------|-------|-------|-------------------|
-| sleep | Moon | indigo | Hora inicio/fin, duracion |
-| nap | Sun | amber | Hora inicio/fin, duracion |
-| wake | Sun | yellow | Solo hora |
-| night_waking | AlertCircle | purple | Hora inicio/fin, duracion (awakeDelay) |
-| feeding | Utensils | green | feedingType, cantidad, isNightFeeding flag |
-| medication | Pill | blue | nombre, dosis |
-| extra_activities | Activity | cyan | descripcion, duracion, impacto |
-
-**Nota:** `night_feeding` ya no existe como tipo separado. Ahora es `feeding` con `isNightFeeding: true`.
-
----
-
-### 3. Edicion de Eventos (Lado Usuario)
-
-**Ruta:** `/dashboard/children/[childId]` (Vista padre)
-
-**Pasos:**
-1. Login como usuario (padre)
-2. Ir a perfil del hijo
-3. Localizar la seccion de eventos/historial
-4. Intentar editar un evento existente
-
-**Verificar:**
-- [ ] Usuario puede ver sus eventos registrados
-- [ ] Existe opcion para editar eventos (si aplica)
-- [ ] Formulario de edicion carga datos correctos
-- [ ] Cambios se guardan correctamente
-- [ ] Validaciones funcionan (campos requeridos, formatos)
-
----
-
-### 4. Calendario Admin (Visualizacion Correcta)
-
-**Ruta:** `/dashboard/calendar`
-
-**Pasos:**
-1. Login como admin (mariana@admin.com)
-2. Ir a Dashboard > Calendario
-3. Probar vistas: Semana, Dia, Mes
-
-**Verificar Vista Semanal:**
-- [ ] Eventos se posicionan en hora correcta (no desplazados)
-- [ ] SleepSessionBlock (sleep/nap) ocupa 100% del ancho
-- [ ] Otros eventos (feeding, medication) se escalonan si se superponen
-- [ ] Iconos tienen buen contraste (stroke negro visible)
-- [ ] Tooltip aparece ARRIBA del evento, no a la derecha
-- [ ] Eventos de madrugada (02:00 AM) aparecen en su dia REAL (no dia anterior)
-
-**Verificar Vista Diaria:**
-- [ ] Eventos superpuestos aparecen lado a lado (no tapandose)
-- [ ] Sistema de columnas funciona correctamente
-- [ ] Click en evento abre modal de detalles
-
----
-
-## PRIORIDAD MEDIA
-
-### 5. Plan de Sueno - Dia Logico
-
-**Ruta:** `/dashboard/consultas` (Admin) o `/dashboard/planes` (Padre)
-
-**Pasos:**
-1. Abrir un plan de sueno existente con eventos de madrugada
-2. Verificar el orden de los eventos en el timeline
-
-**Verificar:**
-- [ ] Eventos aparecen en orden logico del dia del nino:
-  1. Despertar (wakeTime) - PRIMERO
-  2. Actividades diurnas (en orden cronologico)
-  3. Dormir (bedtime) - ANTES de eventos nocturnos
-  4. Eventos de madrugada (night_feeding 02:00 AM) - AL FINAL
-- [ ] Etiqueta dice "Dormir" (NO "Hora de dormir")
-- [ ] NO hay descripcion "Ir a la cama" redundante
-- [ ] NO hay evento separado de "Acostado" (solo debe haber UN evento de dormir)
-
-### 6. GlobalActivityMonitor
-
-**Verificar:**
-- [ ] Alerta aparece SOLO para night_waking pendientes > 20 min
-- [ ] NO aparece alerta para sleep/nap en progreso (pueden durar horas)
-
----
-
-## RESUMEN DE ESTADO
-
-### Implementado y Listo para QA
-
-| Feature | Commit | Estado |
-|---------|--------|--------|
-| **Fix duraciones negativas** | 9b787c2 | 🔴 CRITICO - Probar |
-| **Manual no afecta botones en vivo** | 9b787c2 | 🔴 CRITICO - Probar |
-| **endTime estandarizado todos flujos** | 9b787c2 | 🔴 CRITICO - Probar |
-| Fix bug UTC edicion eventos | 1d5c238 | Listo |
-| buildLocalDate() en modales | 1d5c238 | Listo |
-| Dia logico en planes | 074960d | Listo |
-| Etiqueta "Dormir" simplificada | 074960d | Listo |
-| EventDetailsModal reutilizable | e84bc4a | Listo |
-| Tab Eventos clickeable (Admin) | e84bc4a | Listo |
-| Contraste iconos (stroke negro) | 67e3fdb | Listo |
-| SleepSessionBlock 100% ancho | 67e3fdb | Listo |
-| Posicionamiento EventGlobe | f606207 | Listo |
-| Tooltip arriba del evento | 554412a | Listo |
-| Sistema columnas vista diaria | 554412a | Listo |
-| GlobalActivityMonitor night_waking | 554412a | Listo |
-
-### Archivos Modificados en Push Actual (9b787c2, 6184b1e)
+## Archivos Modificados
 
 | Archivo | Cambio |
 |---------|--------|
-| `lib/event-types.ts` | `hasEndTime: false` para night_waking |
-| `components/events/ExtraActivityButton.tsx` | Calcula endTime en registro en vivo |
-| `components/events/FeedingButton.tsx` | Calcula endTime en registro en vivo |
-| `components/events/ManualEventModal.tsx` | Agrega night_waking a calculo automatico |
-| `components/events/ExtraActivityModal.tsx` | Calcula endTime en edicion |
-| `components/events/FeedingModal.tsx` | Calcula endTime en edicion |
-| `components/events/NightWakingModal.tsx` | Calcula endTime en edicion |
-| `components/events/EventEditRouter.tsx` | Pasa endTime al updateEvent |
-| `docs/SPEC-SPRINT.md` | Seccion 6.15 documentando cambios |
+| `components/events/EventsCalendarTabs.tsx` | NUEVO - Componente reutilizable |
+| `components/events/NoteModal.tsx` | NUEVO - Modal notas |
+| `app/dashboard/children/[id]/events/page.tsx` | Eliminada vista tabla |
+| `app/dashboard/page.tsx` | Rediseño Bitacora |
+| `app/dashboard/calendar/page.tsx` | Toggle grafico/calendario |
+| `components/events/EventDetailsModal.tsx` | Ocultar estado emocional en notas |
+| `AdminChildDetailClient.tsx` | Usa EventsCalendarTabs |
 
-### Archivos Modificados en Push Anterior (1d5c238)
+---
+
+## TEST 8: Modales Rapidos - Hora de Inicio (FeedingModal, ExtraActivityModal)
+
+**Commit:** 055b2c0, 99cab24
+**Descripcion:** Los modales rapidos ahora usan patron "Hora de inicio" donde el usuario puede editar la hora de inicio y la duracion se calcula automaticamente.
+
+### 8.1 Alimentacion Rapida (FeedingModal)
+
+**Ruta:** Dashboard > Botones rapidos > Icono de biberon
+
+**Pasos:**
+1. Login como usuario
+2. En dashboard, click en boton rapido de Alimentacion (icono biberon)
+3. Completar el formulario
+
+**Verificar UI:**
+- [ ] Campo "Hora de inicio" visible y editable
+- [ ] Hora por defecto es la hora actual
+- [ ] Se puede cambiar la hora manualmente
+- [ ] NO hay campo de "duracion" separado
+
+**Verificar Guardado:**
+- [ ] Seleccionar tipo "Pecho" y guardar
+- [ ] NO debe dar error 400
+- [ ] Evento se guarda correctamente
+- [ ] Seleccionar tipo "Biberon" con cantidad y guardar - OK
+- [ ] Seleccionar tipo "Solidos" con descripcion y guardar - OK
+
+**Verificar Calculo de Duracion:**
+1. Registrar alimentacion con hora de inicio hace 15 minutos
+2. Ir a "Mis Eventos" y localizar el evento
+3. Click para ver detalles
+- [ ] Duracion calculada automaticamente (ej: "15 min")
+- [ ] startTime = hora que seleccionaste
+- [ ] endTime = hora en que guardaste
+
+### 8.2 Actividad Extra Rapida (ExtraActivityModal)
+
+**Ruta:** Dashboard > Botones rapidos > Icono de actividad
+
+**Pasos:**
+1. Login como usuario
+2. En dashboard, click en boton rapido de Actividad Extra
+3. Completar el formulario
+
+**Verificar UI:**
+- [ ] Campo "Hora de inicio" visible y editable
+- [ ] Campo de descripcion obligatorio
+- [ ] Hora por defecto es la hora actual
+
+**Verificar Guardado:**
+- [ ] Escribir descripcion (min 3 caracteres) y guardar
+- [ ] Evento se guarda correctamente
+- [ ] Duracion se calcula automaticamente
+
+---
+
+## TEST 9: API - Calculo Automatico de Duracion Alimentacion
+
+**Descripcion:** La API ahora calcula automaticamente `feedingDuration` desde `startTime` y `endTime`. Ya no es campo obligatorio.
+
+**Verificar en Base de Datos:**
+1. Registrar evento de alimentacion
+2. Revisar documento en MongoDB
+
+- [ ] Campo `feedingDuration` existe y es > 0
+- [ ] Campo `duration` existe y es igual a `feedingDuration`
+- [ ] Campo `durationReadable` existe (ej: "15 min")
+- [ ] `startTime` es la hora que selecciono el usuario
+- [ ] `endTime` es la hora en que se guardo
+
+**Casos de Prueba API:**
+
+| Tipo | Campos Requeridos | Campos Opcionales |
+|------|-------------------|-------------------|
+| breast | feedingType, babyState | feedingAmount |
+| bottle | feedingType, babyState | feedingAmount |
+| solids | feedingType, babyState | feedingAmount, notes |
+
+**Errores que NO deben ocurrir:**
+- [ ] Error 400 por feedingDuration faltante
+- [ ] Error 400 por feedingAmount faltante en breast
+- [ ] Error 400 por feedingAmount faltante en solids
+
+---
+
+## Archivos Modificados (Session 2)
 
 | Archivo | Cambio |
 |---------|--------|
-| `lib/datetime.ts` | Nuevo helper `buildLocalDate()` |
-| `components/events/FeedingModal.tsx` | Usa `buildLocalDate()` |
-| `components/events/ExtraActivityModal.tsx` | Usa `buildLocalDate()` |
-| `components/events/NightWakingModal.tsx` | Usa `buildLocalDate()` |
-| `components/events/SleepDelayModal.tsx` | Usa `buildLocalDate()` |
-| `components/events/ManualEventModal.tsx` | Usa `buildLocalDate()` |
-| `components/events/manual/ManualEventForm.tsx` | Usa `buildLocalDate()` |
-| `components/events/EventEditRouter.tsx` | Soporte para edicion |
-| `components/events/types.ts` | Interface `EditOptions` |
-
-### Pendiente de Verificar
-
-| Feature | Descripcion | Prioridad |
-|---------|-------------|-----------|
-| Cuestionario desarrollo/salud | Verificar guardado y carga de datos | ALTA |
-| Visualizacion medicamentos | Admin debe ver nombre y dosis | ALTA |
-
-### Pendiente de Implementar
-
-| Feature | Descripcion | Estado |
-|---------|-------------|--------|
-| Validacion medicamentos | Hacer nombre/dosis obligatorios | Por implementar |
-| Script migracion latencia | migrate-bedtime-latency.ts | Por implementar |
+| `components/events/FeedingModal.tsx` | Agregado campo "Hora de inicio", removido feedingDuration |
+| `components/events/ExtraActivityModal.tsx` | Agregado campo "Hora de inicio" |
+| `components/events/FeedingButton.tsx` | Usa startTime del modal, endTime = getCurrentTime() |
+| `components/events/ExtraActivityButton.tsx` | Usa startTime del modal, endTime = getCurrentTime() |
+| `app/api/children/events/route.ts` | Removida validacion obligatoria feedingDuration, agregado calculo automatico |
 
 ---
 
@@ -448,9 +323,3 @@ Si encuentras un bug, documenta:
 4. **Resultado actual:** Que paso realmente
 5. **Screenshot:** Si es visual
 6. **Consola:** Errores en DevTools (F12)
-
----
-
-## Contacto
-
-Reportar issues en el repositorio o documentar en este archivo.
