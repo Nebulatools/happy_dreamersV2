@@ -234,8 +234,8 @@ export function EventDetailsModal({
               </div>
             )}
 
-            {/* Estado emocional */}
-            {event.emotionalState && (
+            {/* Estado emocional - No mostrar para notas */}
+            {event.emotionalState && event.eventType !== "note" && (
               <div className="flex items-center gap-2 text-sm">
                 <span className="font-medium">Estado emocional:</span>
                 <span>{getEmotionalStateName(event.emotionalState)}</span>

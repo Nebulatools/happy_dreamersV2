@@ -7,8 +7,9 @@ import { ExtraActivityModal } from "./ExtraActivityModal"
 import { SleepDelayModal } from "./SleepDelayModal"
 import { NightWakingModal } from "./NightWakingModal"
 import { ManualEventModal } from "./ManualEventModal"
+import { NoteModal } from "./NoteModal"
 import { useToast } from "@/hooks/use-toast"
-import { FeedingModalData, EditOptions } from "./types"
+import { FeedingModalData, EditOptions, NoteModalData } from "./types"
 import { useUser } from "@/context/UserContext"
 import { dateToTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
 
@@ -43,6 +44,8 @@ interface Event {
   sleepDelay?: number
   // Campos específicos de despertar nocturno
   awakeDelay?: number
+  // Campos específicos de notas de bitácora
+  noteText?: string
 }
 
 interface EventEditRouterProps {
@@ -294,6 +297,30 @@ export function EventEditRouter({
           awakeDelay: event.awakeDelay,
           emotionalState: event.emotionalState,
           notes: event.notes,
+          startTime: event.startTime,
+          eventId: event._id,
+        }}
+      />
+    )
+
+  case "note":
+    return (
+      <NoteModal
+        open={open}
+        onClose={onClose}
+        onConfirm={async (data: NoteModalData, editOptions?: EditOptions) => {
+          // Usar startTime editado si existe, sino usar el original
+          const startTime = editOptions?.startTime || event.startTime
+          await updateEvent({
+            noteText: data.noteText,
+            notes: data.noteText, // Mantener compatibilidad con campo notes
+            startTime,
+          })
+        }}
+        childName={childName}
+        mode="edit"
+        initialData={{
+          noteText: event.noteText || event.notes,
           startTime: event.startTime,
           eventId: event._id,
         }}

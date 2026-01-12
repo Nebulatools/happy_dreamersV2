@@ -183,7 +183,32 @@ export async function POST(req: NextRequest) {
         )
       }
     }
-    
+
+    // Validaciones específicas para notas de bitácora
+    if (data.eventType === "note") {
+      // noteText o notes es requerido (soportamos ambos campos por compatibilidad)
+      const noteContent = data.noteText || data.notes
+      if (!noteContent || noteContent.trim().length < 1) {
+        logger.error("Contenido de nota requerido")
+        return NextResponse.json(
+          { error: "El contenido de la nota es requerido" },
+          { status: 400 }
+        )
+      }
+
+      // Validar longitud máxima
+      if (noteContent.length > 1000) {
+        logger.error("Nota muy larga")
+        return NextResponse.json(
+          { error: "La nota no puede exceder 1000 caracteres" },
+          { status: 400 }
+        )
+      }
+
+      // Normalizar: guardar en noteText
+      data.noteText = noteContent.trim()
+    }
+
     // Validaciones específicas para eventos de alimentación
     if (data.eventType === "feeding") {
       // feedingType es requerido
@@ -210,16 +235,10 @@ export async function POST(req: NextRequest) {
       }
 
       // Validaciones específicas por tipo
+      // NOTA: feedingDuration ya NO es obligatorio - se calcula automáticamente desde startTime/endTime
       if (data.feedingType === "breast") {
-        // Pecho: minutos
-        if (!data.feedingDuration || data.feedingDuration < 1 || data.feedingDuration > 60) {
-          logger.error("Duración de alimentación inválida (pecho)")
-          return NextResponse.json(
-            { error: "En pecho, la duración debe estar entre 1 y 60 minutos" },
-            { status: 400 }
-          )
-        }
-        // feedingAmount opcional; si existe validar rango genérico
+        // Pecho: sin validaciones obligatorias - duración se calcula automáticamente
+        // feedingAmount es opcional; si existe validar rango
         if (data.feedingAmount !== undefined && data.feedingAmount !== null) {
           if (data.feedingAmount < 1 || data.feedingAmount > 500) {
             logger.error("Cantidad de alimentación inválida (opcional en pecho)")
@@ -230,37 +249,30 @@ export async function POST(req: NextRequest) {
           }
         }
       } else if (data.feedingType === "bottle") {
-        // Biberón: cantidad (ml) y duración requeridas
-        if (!data.feedingAmount || data.feedingAmount < 1 || data.feedingAmount > 500) {
-          logger.error("Cantidad de alimentación inválida (biberón)")
-          return NextResponse.json(
-            { error: "En biberón, la cantidad debe estar entre 1 y 500 ml" },
-            { status: 400 }
-          )
+        // Biberón: feedingAmount es opcional pero si existe, validar rango
+        if (data.feedingAmount !== undefined && data.feedingAmount !== null) {
+          if (data.feedingAmount < 1 || data.feedingAmount > 500) {
+            logger.error("Cantidad de alimentación inválida (biberón)")
+            return NextResponse.json(
+              { error: "En biberón, la cantidad debe estar entre 1 y 500 ml" },
+              { status: 400 }
+            )
+          }
         }
-        if (!data.feedingDuration || data.feedingDuration < 1 || data.feedingDuration > 60) {
-          logger.error("Duración de alimentación inválida (biberón)")
-          return NextResponse.json(
-            { error: "Duración de alimentación debe estar entre 1 y 60 minutos" },
-            { status: 400 }
-          )
-        }
+        // Sin validación de feedingDuration - se calcula automáticamente
       } else if (data.feedingType === "solids") {
-        // Sólidos: cantidad (gr) y duración requeridas; estado siempre awake
-        if (!data.feedingAmount || data.feedingAmount < 1 || data.feedingAmount > 500) {
-          logger.error("Cantidad de alimentación inválida (sólidos)")
-          return NextResponse.json(
-            { error: "En sólidos, la cantidad debe estar entre 1 y 500 gr" },
-            { status: 400 }
-          )
+        // Sólidos: sin validaciones obligatorias - solo descripción en notas
+        // feedingAmount es opcional
+        if (data.feedingAmount !== undefined && data.feedingAmount !== null) {
+          if (data.feedingAmount < 1 || data.feedingAmount > 500) {
+            logger.error("Cantidad de alimentación inválida (sólidos)")
+            return NextResponse.json(
+              { error: "En sólidos, la cantidad debe estar entre 1 y 500 gr" },
+              { status: 400 }
+            )
+          }
         }
-        if (!data.feedingDuration || data.feedingDuration < 1 || data.feedingDuration > 60) {
-          logger.error("Duración de alimentación inválida (sólidos)")
-          return NextResponse.json(
-            { error: "Duración de alimentación debe estar entre 1 y 60 minutos" },
-            { status: 400 }
-          )
-        }
+        // Sin validación de feedingDuration - se calcula automáticamente
       }
 
       // feedingNotes es opcional pero si existe, validar longitud
@@ -362,6 +374,13 @@ export async function POST(req: NextRequest) {
         event.duration = calculateAwakeDuration(event.startTime, event.endTime, event.awakeDelay)
         event.durationReadable = formatDurationReadable(event.duration)
         logger.info(`Duración de despertar calculada automáticamente: ${event.duration} minutos (${event.durationReadable})`)
+      } else if (["feeding", "night_feeding"].includes(event.eventType)) {
+        // Para eventos de alimentación, calcular duración desde startTime/endTime
+        const durationMinutes = differenceInMinutes(parseISO(event.endTime), parseISO(event.startTime))
+        event.feedingDuration = Math.max(0, durationMinutes)
+        event.duration = event.feedingDuration
+        event.durationReadable = formatDurationReadable(event.duration)
+        logger.info(`Duración de alimentación calculada automáticamente: ${event.duration} minutos (${event.durationReadable})`)
       }
     } else if (event.duration) {
       // Si ya tiene duration, calcular el formato legible

@@ -2,38 +2,19 @@
 
 import React, { useState, useEffect } from "react"
 import { createLogger } from "@/lib/logger"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, PlusCircle, Edit, Trash, Save, ChevronLeft, Clock, ChevronRight, ChevronLeft as ChevronLeftIcon } from "lucide-react"
-import { format } from "date-fns"
-import { es } from "date-fns/locale"
+import { Loader2, PlusCircle, ChevronLeft } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter, useParams } from "next/navigation"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
 import { useActiveChild } from "@/context/active-child-context"
 import { useEventsCache, useEventsInvalidation } from "@/hooks/use-events-cache"
 import { ManualEventModal } from "@/components/events/ManualEventModal"
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal"
 import { EventEditRouter } from "@/components/events/EventEditRouter"
 import { EventDetailsModal } from "@/components/events/EventDetailsModal"
+import { EventsCalendarTabs } from "@/components/events/EventsCalendarTabs"
 
 const logger = createLogger("EventsPage")
 
@@ -73,6 +54,8 @@ interface Event {
   sleepDelay?: number;
   // Despertar nocturno
   awakeDelay?: number;
+  // Notas de bitacora
+  noteText?: string;
 }
 
 interface Child {
@@ -106,15 +89,6 @@ export default function ChildEventsPage() {
   const [eventToEdit, setEventToEdit] = useState<Event | null>(null)
   const [isEditRouterOpen, setIsEditRouterOpen] = useState(false)
   const [eventModalOpen, setEventModalOpen] = useState(false)
-  const [children, setChildren] = useState<Child[]>([])
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [page, setPage] = useState(1)
-  const pageSize = 20
-
-  useEffect(() => {
-    setPage(1)
-    setSelectedIds(new Set())
-  }, [activeChildId, events.length])
 
   // Suscribirse a invalidaciones de cache
   useEffect(() => {
@@ -204,64 +178,9 @@ export default function ChildEventsPage() {
       other: "Otro",
       wake: "Despertar",
       night_waking: "Despertar nocturno",
+      note: "Nota",
     }
     return types[type] || type
-  }
-
-  // Función para obtener nombre de estado emocional
-  const getEmotionalStateName = (state: string) => {
-    const states: Record<string, string> = {
-      happy: "Feliz",
-      calm: "Tranquilo",
-      excited: "Emocionado",
-      tired: "Cansado",
-      irritable: "Irritable",
-      sad: "Triste",
-      anxious: "Ansioso",
-    }
-    return states[state] || state
-  }
-
-  const getBabyStateLabel = (state?: "awake" | "asleep") => {
-    if (state === "awake") return "Despierto"
-    if (state === "asleep") return "Dormido"
-    return ""
-  }
-
-  const formatMinutesReadable = (minutes?: number | null) => {
-    if (minutes === null || minutes === undefined) return "-"
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    if (hours > 0) {
-      return `${hours}h ${mins}m`
-    }
-    return `${mins}m`
-  }
-
-  // Función para obtener un color según el tipo de evento
-  const getEventColor = (type: string) => {
-    const colors: Record<string, string> = {
-      sleep: "bg-blue-200 text-blue-800",
-      nap: "bg-blue-100 text-blue-600",
-      meal: "bg-green-200 text-green-800",
-      play: "bg-yellow-200 text-yellow-800",
-      activity: "bg-orange-200 text-orange-800",
-      extra_activities: "bg-indigo-200 text-indigo-800",
-      feeding: "bg-sky-200 text-sky-800",
-      night_feeding: "bg-yellow-200 text-yellow-800",
-      medication: "bg-purple-200 text-purple-800",
-      bath: "bg-cyan-200 text-cyan-800",
-      other: "bg-gray-200 text-gray-800",
-      wake: "bg-amber-200 text-amber-800",
-      night_waking: "bg-red-200 text-red-800",
-    }
-    return colors[type] || "bg-gray-200 text-gray-800"
-  }
-
-  // Helper para detectar alimentación nocturna (soporta ambos formatos: legacy y nuevo)
-  const isNightFeedingEvent = (event: Event): boolean => {
-    return event.eventType === "night_feeding" ||
-      (event.eventType === "feeding" && event.isNightFeeding === true)
   }
 
   // Función para manejar el clic en un evento (solo visualización)
@@ -302,15 +221,10 @@ export default function ChildEventsPage() {
       }
       
       // Eliminar del estado local inmediatamente
-      setEvents(currentEvents => 
+      setEvents(currentEvents =>
         currentEvents.filter(event => event._id !== selectedEvent._id)
       )
-      setSelectedIds((prev) => {
-        const next = new Set(prev)
-        next.delete(selectedEvent._id)
-        return next
-      })
-      
+
       // Invalidar cache global
       invalidateEvents()
       
@@ -334,80 +248,6 @@ export default function ChildEventsPage() {
     }
   }
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
-  }
-
-  const isAllPageSelected = (currentPageEvents: Event[]) =>
-    currentPageEvents.length > 0 && currentPageEvents.every(ev => selectedIds.has(ev._id))
-
-  const toggleSelectAll = (currentPageEvents: Event[]) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      const allSelected = isAllPageSelected(currentPageEvents)
-      currentPageEvents.forEach(ev => {
-        if (allSelected) {
-          next.delete(ev._id)
-        } else {
-          next.add(ev._id)
-        }
-      })
-      return next
-    })
-  }
-
-  const bulkDelete = async () => {
-    if (selectedIds.size === 0) return
-    setIsSaving(true)
-    try {
-      await Promise.all(
-        Array.from(selectedIds).map(async (id) => {
-          const response = await fetch(`/api/children/events/${id}${activeChildId ? `?childId=${activeChildId}` : ""}`, { method: "DELETE" })
-          if (!response.ok) {
-            const data = await response.json().catch(() => ({}))
-            throw new Error(data.message || data.error || "Error al eliminar")
-          }
-        })
-      )
-      setEvents((prev) => prev.filter(ev => !selectedIds.has(ev._id)))
-      setSelectedIds(new Set())
-      invalidateEvents()
-      toast({ title: "Eventos eliminados", description: "Los eventos seleccionados se eliminaron correctamente." })
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error?.message || "No se pudieron eliminar los eventos seleccionados.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const totalPages = Math.max(1, Math.ceil(events.length / pageSize))
-  const currentPage = Math.min(page, totalPages)
-  const sortedEvents = [...events].sort((a, b) => {
-    const getSafeDate = (event: any) => {
-      const startDate = event.startTime ? new Date(event.startTime) : null
-      const createdDate = event.createdAt ? new Date(event.createdAt) : null
-      if (startDate && !isNaN(startDate.getTime())) return startDate
-      if (createdDate && !isNaN(createdDate.getTime())) return createdDate
-      return new Date()
-    }
-    const dateA = getSafeDate(a)
-    const dateB = getSafeDate(b)
-    return dateB.getTime() - dateA.getTime()
-  })
-  const paginatedEvents = sortedEvents.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[calc(100vh-12rem)]">
@@ -416,27 +256,6 @@ export default function ChildEventsPage() {
       </div>
     )
   }
-
-  // Opciones para el formulario de edición
-  const eventTypes = [
-    { id: "sleep", label: "Dormir" },
-    { id: "nap", label: "Siesta" },
-    { id: "meal", label: "Comida" },
-    { id: "play", label: "Juego" },
-    { id: "activity", label: "Actividad física" },
-    { id: "bath", label: "Baño" },
-    { id: "other", label: "Otro" },
-  ]
-
-  const emotionalStates = [
-    { id: "happy", label: "Feliz" },
-    { id: "calm", label: "Tranquilo" },
-    { id: "excited", label: "Emocionado" },
-    { id: "tired", label: "Cansado" },
-    { id: "irritable", label: "Irritable" },
-    { id: "sad", label: "Triste" },
-    { id: "anxious", label: "Ansioso" },
-  ]
 
   return (
     <div className="space-y-6">
@@ -471,186 +290,14 @@ export default function ChildEventsPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Eventos registrados</CardTitle>
-            <CardDescription>
-              Un registro de todos los eventos, ordenados por fecha
-            </CardDescription>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={selectedIds.size === 0 || isSaving}
-                  onClick={bulkDelete}
-                  className="flex items-center gap-2"
-                >
-                  <Trash className="h-4 w-4" />
-                  Eliminar seleccionados ({selectedIds.size})
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="icon"
-                  variant="outline"
-                  disabled={currentPage === 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  <ChevronLeftIcon className="h-4 w-4" />
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Página {currentPage} de {totalPages}
-                </span>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="py-3 px-4">
-                      <input
-                        type="checkbox"
-                        checked={isAllPageSelected(paginatedEvents)}
-                        onChange={() => toggleSelectAll(paginatedEvents)}
-                        aria-label="Seleccionar todos"
-                      />
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-700">Fecha</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-700">Hora</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-700 hidden sm:table-cell">Duración</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-700">Tipo</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-700 hidden md:table-cell">Estado</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-gray-700 hidden lg:table-cell">Notas</th>
-                    <th className="text-center py-3 px-4 font-medium text-sm text-gray-700">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedEvents.map((event) => {
-                    // Validar y crear fechas seguras
-                    const createSafeDate = (dateString?: string) => {
-                      if (!dateString) return null
-                      const date = new Date(dateString)
-                      return isNaN(date.getTime()) ? null : date
-                    }
-                      
-                    const startDate = createSafeDate(event.startTime) || createSafeDate(event.createdAt) || new Date()
-                    const endDate = createSafeDate(event.endTime)
-                    const duration = startDate && endDate 
-                      ? Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60)) 
-                      : null
-                    const derivedDuration = (() => {
-                      if (typeof duration === "number") return duration
-                      if (typeof event.duration === "number") return event.duration
-                      if (event.eventType === "extra_activities" && typeof event.activityDuration === "number") return event.activityDuration
-                      if (event.eventType === "feeding" && typeof event.feedingDuration === "number") return event.feedingDuration
-                      return null
-                    })()
-                      
-                    return (
-                      <tr
-                        key={event._id || `${event.childId}-${event.startTime}-${event.eventType}`}
-                        className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
-                        onClick={() => handleEventClick(event)}
-                      >
-                        <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.has(event._id)}
-                            onChange={() => toggleSelect(event._id)}
-                            aria-label={`Seleccionar evento ${event._id}`}
-                          />
-                        </td>
-                        <td className="py-3 px-4 text-sm">
-                          {format(startDate, "dd/MM/yyyy", { locale: es })}
-                        </td>
-                        <td className="py-3 px-4 text-sm">
-                          {event.startTime ? (
-                            <>
-                              {format(startDate, "HH:mm")}
-                              {endDate && ` - ${format(endDate, "HH:mm")}`}
-                            </>
-                          ) : (
-                            "-"
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-sm hidden sm:table-cell">
-                          {formatMinutesReadable(derivedDuration)}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-1 flex-wrap">
-                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getEventColor(event.eventType)}`}>
-                              {getEventTypeName(event.eventType)}
-                            </span>
-                            {/* Badge "Nocturna" para alimentaciones durante el sueño */}
-                            {isNightFeedingEvent(event) && event.eventType === "feeding" && (
-                              <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-                                Nocturna
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-sm hidden md:table-cell">
-                          {event.eventType === "feeding"
-                            ? (getBabyStateLabel(event.babyState) || "-")
-                            : event.eventType === "extra_activities"
-                              ? "-"
-                              : getEmotionalStateName(event.emotionalState)}
-                        </td>
-                        <td className="py-3 px-4 text-sm hidden lg:table-cell">
-                          <span className="truncate block max-w-xs" title={event.notes || event.description || ""}>
-                            {event.notes || event.description 
-                              ? (event.notes || event.description || "").substring(0, 50) + ((event.notes || event.description || "").length > 50 ? "..." : "")
-                              : "-"
-                            }
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex justify-center gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 w-8 p-0"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleEditEvent(event)
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                // Acción de eliminación - logging removido por seguridad
-                                setSelectedEvent(event)
-                                setShowDeleteModal(true)
-                              }}
-                            >
-                              <Trash className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        /* Vista Calendario con tabs dia/semana/mes */
+        <EventsCalendarTabs
+          events={events}
+          onEventClick={handleEventClick}
+          onEventEdit={handleEditEvent}
+          isLoading={isLoading}
+          showEditButton={true}
+        />
       )}
 
       {/* Modal para visualizar detalles del evento - Componente reutilizable */}

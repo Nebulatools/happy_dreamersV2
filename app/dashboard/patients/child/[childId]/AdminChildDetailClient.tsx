@@ -10,6 +10,7 @@ import { AlertCircle, Clock, FileText, TrendingUp, Loader2, Moon, Sun, Utensils,
 import { SurveyResponseViewer } from "@/components/survey/SurveyResponseViewer"
 import { EventDetailsModal } from "@/components/events/EventDetailsModal"
 import { EventEditRouter } from "@/components/events/EventEditRouter"
+import { EventsCalendarTabs } from "@/components/events/EventsCalendarTabs"
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
@@ -303,100 +304,16 @@ export function AdminChildDetailClient({
         )}
       </TabsContent>
 
-      {/* Tab Eventos - Lista de eventos del nino */}
+      {/* Tab Eventos - Vista calendarizada con tabs dia/semana/mes */}
       <TabsContent value="eventos">
-        <Card>
-          <CardHeader>
-            <CardTitle>Eventos Registrados</CardTitle>
-            <CardDescription>
-              Historial de sueno, alimentacion, medicamentos y actividades
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoadingEvents ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin mr-2 text-primary" />
-                <span className="text-muted-foreground">Cargando eventos...</span>
-              </div>
-            ) : events.length === 0 ? (
-              <div className="py-8 text-center">
-                <Clock className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <p className="text-muted-foreground">No hay eventos registrados</p>
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                {events.map((event) => (
-                  <div
-                    key={event._id}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
-                    onClick={() => {
-                      setSelectedEvent(event)
-                      setIsDetailsModalOpen(true)
-                    }}
-                  >
-                    <div className="mt-0.5">{getEventIcon(event)}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium">{getEventTypeName(event.eventType)}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {format(new Date(event.startTime), "dd MMM yyyy, HH:mm", { locale: es })}
-                        </span>
-                      </div>
-
-                      {/* Duracion para eventos de sueno/siesta */}
-                      {(event.eventType === "sleep" || event.eventType === "nap") && event.duration && (
-                        <div className="text-sm text-muted-foreground mt-1">
-                          Duracion: {formatDuration(event.duration)}
-                        </div>
-                      )}
-
-                      {/* Tiempo para dormirse (sleepDelay) */}
-                      {(event.eventType === "sleep" || event.eventType === "nap") &&
-                        typeof event.sleepDelay === "number" && event.sleepDelay > 0 && (
-                        <div className="text-sm text-indigo-600 dark:text-indigo-400 mt-1">
-                          Tiempo para dormirse: {event.sleepDelay} minutos
-                        </div>
-                      )}
-
-                      {/* Duracion despertar nocturno */}
-                      {event.eventType === "night_waking" && event.duration && (
-                        <div className="text-sm text-muted-foreground mt-1">
-                          Duracion despierto: {formatDuration(event.duration)}
-                        </div>
-                      )}
-
-                      {/* Detalles de medicamento */}
-                      {event.eventType === "medication" && (
-                        <div className="text-sm text-blue-600 dark:text-blue-400 mt-1">
-                          {event.medicationName && <span>{event.medicationName}</span>}
-                          {event.medicationDose && <span> - {event.medicationDose}</span>}
-                        </div>
-                      )}
-
-                      {/* Detalles de alimentacion */}
-                      {(event.eventType === "feeding" || event.eventType === "night_feeding") && (
-                        <div className="text-sm text-green-600 dark:text-green-400 mt-1">
-                          {event.feedingType === "breast" && "Pecho"}
-                          {event.feedingType === "bottle" && "Biberon"}
-                          {event.feedingType === "solids" && "Solidos"}
-                          {event.feedingDuration && ` - ${event.feedingDuration} min`}
-                          {event.feedingAmount && ` - ${event.feedingAmount} ml/oz`}
-                        </div>
-                      )}
-
-                      {/* Notas del evento */}
-                      {event.notes && (
-                        <div className="text-sm text-muted-foreground mt-1 italic">
-                          &ldquo;{event.notes}&rdquo;
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <EventsCalendarTabs
+          events={events}
+          onEventClick={(event) => {
+            setSelectedEvent(event)
+            setIsDetailsModalOpen(true)
+          }}
+          isLoading={isLoadingEvents}
+        />
       </TabsContent>
 
       {/* Modal de detalles del evento */}

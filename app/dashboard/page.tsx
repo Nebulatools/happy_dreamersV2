@@ -270,7 +270,6 @@ export default function DashboardPage() {
         body: JSON.stringify({
           childId: activeChildId,
           eventType: "note",
-          emotionalState: "neutral",
           startTime: new Date().toISOString(),
           notes: noteText.trim(),
         }),
@@ -770,59 +769,79 @@ export default function DashboardPage() {
             </Card>
           )}
 
-          {/* Bitácora */}
+          {/* Bitacora - Lista de notas */}
           <Card className="bg-white shadow-sm border-0 col-span-1 md:col-span-2 lg:col-span-3">
             <CardHeader className="pb-4">
-              <CardTitle className="text-[#2F2F2F]">Bitácora</CardTitle>
+              <CardTitle className="text-[#2F2F2F]">Bitacora</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-3">
-                {(() => {
-                  const notesEvents = events.filter(e => e.notes).slice(0, 3)
-                  return notesEvents.length > 0 ? (
-                    notesEvents.map((event, index) => (
-                      <div key={`note-${event._id}-${index}`} className="bg-[#EDE5FF] rounded-2xl rounded-tl-sm p-3 relative group">
-                        <button
-                          onClick={() => handleDeleteNote(event._id)}
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded-full"
-                          title="Eliminar nota"
-                        >
-                          <X className="h-4 w-4 text-red-500" />
-                        </button>
-                        <p className="text-sm text-[#3A3A3A] leading-relaxed pr-6">
-                          {event.notes}
-                        </p>
-                        <p className="text-xs text-[#666666] mt-2">
-                          {event.startTime ? format(parseISO(event.startTime), "d MMM, HH:mm", { locale: es }) : "Sin hora"}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <div key="no-notes" className="text-center py-8 text-gray-500">
-                      <p className="text-sm">No hay notas recientes</p>
-                      <p className="text-xs mt-2">Registra eventos para ver las notas aquí</p>
-                    </div>
-                  )})()}
-              </div>
-
-              {/* Input para nueva nota */}
-              <div className="flex gap-2 pt-2">
+              {/* Input para nueva nota - Arriba para mejor acceso */}
+              <div className="flex gap-2">
                 <input
                   value={noteText}
                   onChange={(e) => setNoteText(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleAddNote()}
-                  placeholder="Añadir una nota..."
+                  placeholder="Agregar una nota..."
                   disabled={isAddingNote}
-                  className="flex-1 px-4 py-3 bg-white border border-[#E5E5E5] rounded-xl text-sm placeholder-[#ADAEBC] focus:outline-none focus:ring-2 focus:ring-[#4A90E2] focus:border-transparent disabled:opacity-50"
+                  className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                 />
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   onClick={handleAddNote}
                   disabled={!noteText.trim() || isAddingNote}
-                  className="h-12 w-12 p-0 bg-[#4A90E2] hover:bg-[#357ABD] border-0 shadow-none disabled:opacity-50"
+                  className="h-12 px-4 bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-none disabled:opacity-50"
                 >
-                  <Send className="h-4 w-4 text-white" />
+                  <Send className="h-4 w-4" />
                 </Button>
+              </div>
+
+              {/* Lista de notas - Estilo similar a eventos */}
+              <div className="space-y-2">
+                {(() => {
+                  // Solo mostrar eventos de tipo "note", ordenados de mas reciente a antiguo
+                  const notesEvents = events
+                    .filter(e => e.eventType === "note")
+                    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+                    .slice(0, 5)
+                  return notesEvents.length > 0 ? (
+                    notesEvents.map((event, index) => (
+                      <div
+                        key={`note-${event._id}-${index}`}
+                        className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors group"
+                      >
+                        {/* Icono de nota */}
+                        <div className="flex-shrink-0 w-8 h-8 bg-violet-100 rounded-full flex items-center justify-center">
+                          <MessageSquare className="h-4 w-4 text-violet-600" />
+                        </div>
+
+                        {/* Contenido */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-700 leading-relaxed">
+                            {event.notes}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {event.startTime ? format(parseISO(event.startTime), "d MMM yyyy, HH:mm", { locale: es }) : "Sin fecha"}
+                          </p>
+                        </div>
+
+                        {/* Boton eliminar */}
+                        <button
+                          onClick={() => handleDeleteNote(event._id)}
+                          className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-red-100 rounded-full"
+                          title="Eliminar nota"
+                        >
+                          <X className="h-4 w-4 text-red-500" />
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      <MessageSquare className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No hay notas registradas</p>
+                      <p className="text-xs mt-1">Agrega tu primera nota arriba</p>
+                    </div>
+                  )
+                })()}
               </div>
             </CardContent>
           </Card>

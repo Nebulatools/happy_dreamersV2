@@ -6,6 +6,8 @@ export { SleepDelayModal } from "./SleepDelayModal"
 export { FeedingButton } from "./FeedingButton"
 export { FeedingModal } from "./FeedingModal"
 export { EventDetailsModal } from "./EventDetailsModal"
+export { EventsCalendarTabs } from "./EventsCalendarTabs"
+export { NoteModal } from "./NoteModal"
 export type { 
   EventData, 
   EventType, 

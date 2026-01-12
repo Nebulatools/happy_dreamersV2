@@ -25,6 +25,7 @@ import {
   Loader2,
   Clock,
   Calendar,
+  FileText,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
@@ -472,19 +473,24 @@ export default function CalendarPage() {
   })
   const [calendarTab, setCalendarTab] = useState<"calendar" | "stats">("calendar")
   const [isLoading, setIsLoading] = useState(true)
+  // Estado para toggle de vista del usuario (grafico vs calendario)
+  const [userViewMode, setUserViewMode] = useState<"chart" | "calendar">("chart")
 
+  // Solo forzar vista semana cuando el usuario esta en modo grafico
   useEffect(() => {
     if (isAdminView) return
-    if (view !== "week") {
+    // En modo grafico del usuario, forzar vista semana
+    if (userViewMode === "chart" && view !== "week") {
       handleViewChange("week")
     }
-  }, [isAdminView, view])
+  }, [isAdminView, view, userViewMode])
 
+  // Solo forzar tab calendario cuando el usuario esta en modo grafico
   useEffect(() => {
-    if (!isAdminView && calendarTab !== "calendar") {
+    if (!isAdminView && userViewMode === "chart" && calendarTab !== "calendar") {
       setCalendarTab("calendar")
     }
-  }, [isAdminView, calendarTab])
+  }, [isAdminView, calendarTab, userViewMode])
 
   // Función para cambiar la vista y guardar en localStorage
   const handleViewChange = (newView: "month" | "week" | "day") => {
@@ -498,7 +504,8 @@ export default function CalendarPage() {
 
   // Funciones de navegación de fechas
   const navigatePrevious = () => {
-    if (!isAdminView) {
+    // Usuario en modo grafico: navegacion limitada a 7 dias
+    if (!isAdminView && userViewMode === "chart") {
       const todayStart = startOfDay(new Date())
       const minAllowed = subDays(todayStart, 6)
       const nextDate = subDays(date, 1)
@@ -511,6 +518,7 @@ export default function CalendarPage() {
       return
     }
 
+    // Admin o usuario en modo calendario: navegacion libre por periodo
     if (view === "month") {
       setDate(subMonths(date, 1))
     } else if (view === "week") {
@@ -521,8 +529,8 @@ export default function CalendarPage() {
   }
 
   const navigateNext = () => {
-    // Para usuarios no admin, verificar si pueden navegar hacia adelante
-    if (!isAdminView) {
+    // Usuario en modo grafico: navegacion limitada hasta hoy
+    if (!isAdminView && userViewMode === "chart") {
       const today = startOfDay(new Date())
       const nextDate = addDays(date, 1)
       const nextDateStart = startOfDay(nextDate)
@@ -536,6 +544,7 @@ export default function CalendarPage() {
       return
     }
 
+    // Admin o usuario en modo calendario: navegacion libre por periodo
     if (view === "month") {
       setDate(addMonths(date, 1))
     } else if (view === "week") {
@@ -546,10 +555,10 @@ export default function CalendarPage() {
   }
 
   const getClampedUserDate = () => {
-    if (isAdminView) return date
+    // Admin o usuario en modo calendario: sin restriccion
+    if (isAdminView || userViewMode === "calendar") return date
 
-    // Ya inicializamos `date` correctamente con getStartOfDayAsDate
-    // No necesitamos recalcular "hoy" cada vez
+    // Usuario en modo grafico: ya inicializamos `date` correctamente
     return date
   }
 
@@ -1154,26 +1163,27 @@ export default function CalendarPage() {
   }, [date])
 
   // Para usuarios (parents), calcular si pueden navegar hacia adelante
-  // No se permite navegar más allá del día actual
+  // Solo limitado cuando estan en modo grafico
   const canNavigateForward = useMemo(() => {
-    if (isAdminView) return true // Admins siempre pueden navegar
+    // Admins o usuarios en modo calendario: siempre pueden navegar
+    if (isAdminView || userViewMode === "calendar") return true
 
+    // Usuario en modo grafico: no puede navegar mas alla de hoy
     const today = startOfDay(new Date())
     const currentDate = startOfDay(date)
-
-    // Puede avanzar si la fecha actual es menor que hoy
     return currentDate < today
-  }, [isAdminView, date])
+  }, [isAdminView, date, userViewMode])
 
   const canNavigateBackward = useMemo(() => {
-    if (isAdminView) return true
+    // Admins o usuarios en modo calendario: siempre pueden navegar
+    if (isAdminView || userViewMode === "calendar") return true
 
+    // Usuario en modo grafico: solo 7 dias atras
     const today = startOfDay(new Date())
     const minAllowed = subDays(today, 6)
     const currentEndDate = startOfDay(date)
-
     return currentEndDate > minAllowed
-  }, [isAdminView, date])
+  }, [isAdminView, date, userViewMode])
 
   const getEventTypeIcon = (type: string) => {
     switch(type) {
@@ -1192,6 +1202,8 @@ export default function CalendarPage() {
     case "activity":
     case "extra_activities":
       return null
+    case "note":
+      return <FileText className="w-3 h-3" />
     default:
       return null
     }
@@ -1214,6 +1226,8 @@ export default function CalendarPage() {
     case "activity":
     case "extra_activities":
       return "bg-extra-activities event-pill"  // Naranja para actividades extra
+    case "note":
+      return "bg-note event-pill"  // Morado para notas de bitacora
     default:
       return "bg-gray-400 event-pill"
     }
@@ -1242,6 +1256,7 @@ export default function CalendarPage() {
       medication: "Medicamento",
       activity: "Actividad Extra",
       extra_activities: "Actividad Extra",
+      note: "Nota",
       meal: "Comida",
       play: "Juego",
       bath: "Baño",
@@ -1798,43 +1813,94 @@ export default function CalendarPage() {
         </>
       ) : (
         <div className="space-y-6 px-4 pt-4 pb-10 md:px-6">
-          {/* Header con mes y año */}
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">{monthLabel}</p>
-          </div>
+          {/* Header con mes */}
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">{monthLabel}</p>
 
-          {/* Gráfico de barras apiladas */}
-          <Card className="p-4 md:p-6">
-            <div className="flex flex-col gap-4">
-              {/* Header con título y navegación (solo mobile) */}
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-semibold text-slate-900">
-                  Últimos 7 días
-                </h3>
-                {/* Navegación anterior/siguiente */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={navigatePrevious}
-                    disabled={!canNavigateBackward}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={navigateNext}
-                    disabled={!canNavigateForward}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
+          {/* Fila de controles: Toggle Grafico/Calendario + Tabs de vista + Navegacion */}
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            {/* Lado izquierdo: Toggle + Tabs de vista (solo en modo calendario) */}
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Toggle Grafico / Calendario */}
+              <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+                <Button
+                  variant={userViewMode === "chart" ? "default" : "ghost"}
+                  size="sm"
+                  className={userViewMode === "chart" ? "bg-white shadow-sm" : ""}
+                  onClick={() => setUserViewMode("chart")}
+                >
+                  Grafico
+                </Button>
+                <Button
+                  variant={userViewMode === "calendar" ? "default" : "ghost"}
+                  size="sm"
+                  className={userViewMode === "calendar" ? "bg-white shadow-sm" : ""}
+                  onClick={() => setUserViewMode("calendar")}
+                >
+                  Calendario
+                </Button>
               </div>
 
-              {/* Gráfico principal */}
+              {/* Tabs Mensual/Semanal/Diario - solo visible en modo calendario */}
+              {userViewMode === "calendar" && (
+                <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+                  <Button
+                    variant={view === "month" ? "default" : "ghost"}
+                    size="sm"
+                    className={view === "month" ? "bg-white shadow-sm" : ""}
+                    onClick={() => handleViewChange("month")}
+                  >
+                    Mensual
+                  </Button>
+                  <Button
+                    variant={view === "week" ? "default" : "ghost"}
+                    size="sm"
+                    className={view === "week" ? "bg-white shadow-sm" : ""}
+                    onClick={() => handleViewChange("week")}
+                  >
+                    Semanal
+                  </Button>
+                  <Button
+                    variant={view === "day" ? "default" : "ghost"}
+                    size="sm"
+                    className={view === "day" ? "bg-white shadow-sm" : ""}
+                    onClick={() => handleViewChange("day")}
+                  >
+                    Diario
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Lado derecho: Navegacion de periodo */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={navigatePrevious}
+                disabled={userViewMode === "chart" ? !canNavigateBackward : false}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium text-gray-700 min-w-[180px] text-center">
+                {userViewMode === "chart" ? "Ultimos 7 dias" : getPeriodTitle()}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={navigateNext}
+                disabled={userViewMode === "chart" ? !canNavigateForward : false}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {userViewMode === "chart" ? (
+            /* Vista Grafico (original del usuario) */
+            <Card className="p-4 md:p-6">
+              {/* Grafico principal */}
               {isLoading ? (
                 <div className="flex justify-center items-center h-96">
                   <div className="text-center">
@@ -1845,8 +1911,35 @@ export default function CalendarPage() {
               ) : (
                 <UserWeeklySleepChart data={userWeeklySleepData} />
               )}
-            </div>
-          </Card>
+            </Card>
+          ) : (
+            /* Vista Calendario (igual que admin) */
+            <Card ref={calendarContainerRef} className="p-4 h-[calc(100vh-280px)] overflow-auto" style={{ minHeight: "450px", maxHeight: "calc(100vh - 250px)" }}>
+                <div className="h-full">
+                  {isLoading ? (
+                    <div className="flex justify-center items-center h-96">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4A90E2] mx-auto mb-4" />
+                        <p className="text-gray-600">Cargando calendario...</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <CalendarMain
+                      events={events}
+                      onEventClick={handleEventClick}
+                      onCreateEvent={(clickTime) => {
+                        setSelectedDateForEvent(clickTime.date)
+                      }}
+                      monthView={renderMonthView()}
+                      initialDate={date}
+                      initialView={view}
+                      onDayNavigateBack={navigateOneDayBack}
+                      onDayNavigateForward={navigateOneDayForward}
+                    />
+                  )}
+                </div>
+            </Card>
+          )}
         </div>
       )}
 
