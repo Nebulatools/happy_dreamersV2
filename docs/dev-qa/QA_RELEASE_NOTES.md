@@ -1,4 +1,4 @@
-# Guia Rapida de QA - Happy Dreamers
+# Guia Rápida de Ajustes en QA - Happy Dreamers
 
 **Fecha:** 2026-01-09
 **Ultima Actualizacion:** 2026-01-09 (Commit 6184b1e)
