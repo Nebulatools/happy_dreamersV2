@@ -224,7 +224,7 @@ export function SleepDelayModal({
         {mode === "edit" && (
           <div className="space-y-3 pb-4 border-b">
             <div className="text-sm font-medium text-gray-700">
-              Hora de dormir
+              Hora de acostarse
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-2">

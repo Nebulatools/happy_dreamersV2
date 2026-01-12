@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { format } from "date-fns"
 import { Clock, Plus, Minus } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { eventTypes, getEventType } from "@/lib/event-types"
 import { useUser } from "@/context/UserContext"
 import { buildLocalDate, dateToTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
@@ -113,7 +114,7 @@ export function ManualEventModal({
 
       // Campos específicos de sueño
       if (initialData.sleepDelay != null) {
-        setSleepDelayValue(initialData.sleepDelay.toString())
+        setSleepDelay(initialData.sleepDelay)
       }
       if (initialData.awakeDelay != null) {
         setAwakeDelay(initialData.awakeDelay)
@@ -128,9 +129,6 @@ export function ManualEventModal({
       }
       if (initialData.feedingAmount !== undefined) {
         setFeedingAmount(initialData.feedingAmount)
-      }
-      if (initialData.feedingDuration !== undefined) {
-        setFeedingDuration(initialData.feedingDuration)
       }
       if (initialData.babyState) {
         setBabyState(initialData.babyState as "awake" | "asleep")
@@ -148,9 +146,6 @@ export function ManualEventModal({
       if (initialData.activityDescription) {
         setActivityDescription(initialData.activityDescription)
       }
-      if (initialData.activityDuration !== undefined) {
-        setActivityDuration(initialData.activityDuration)
-      }
       if (initialData.activityImpact) {
         setActivityImpact(initialData.activityImpact as "positive" | "neutral" | "negative")
       }
@@ -165,16 +160,26 @@ export function ManualEventModal({
   const [notes, setNotes] = useState("")
   
   // Campos específicos de sueño (sleep, nap, night_waking)
-  // sleepDelayValue se guarda como string para poder manejar la opción especial "no se pudo dormir" en siestas
-  // y luego convertirla a minutos numéricos al construir el payload.
-  const [sleepDelayValue, setSleepDelayValue] = useState<string>("0")
+  const [sleepDelay, setSleepDelay] = useState<number>(0)
+  const [didNotSleep, setDidNotSleep] = useState(false) // Solo para siestas donde no se logró dormir
   const [awakeDelay, setAwakeDelay] = useState(0)
   const [emotionalState, setEmotionalState] = useState<"tranquilo" | "inquieto" | "alterado">("tranquilo")
+
+  // Funciones para el stepper de sleepDelay
+  const adjustSleepDelay = (increment: number) => {
+    setSleepDelay(prev => Math.max(0, Math.min(120, prev + increment)))
+  }
+
+  const formatDelayText = (minutes: number): string => {
+    if (minutes === 0) return "0 minutos"
+    if (minutes === 60) return "1 hora"
+    if (minutes > 60) return `${Math.floor(minutes/60)}h ${minutes%60}min`
+    return `${minutes} minutos`
+  }
   
   // Campos específicos de alimentación
   const [feedingType, setFeedingType] = useState<"breast" | "bottle" | "solids">("bottle")
   const [feedingAmount, setFeedingAmount] = useState(4) // onzas (oz)
-  const [feedingDuration, setFeedingDuration] = useState(15)
   const [babyState, setBabyState] = useState<"awake" | "asleep">("awake")
   const [feedingNotes, setFeedingNotes] = useState("")
   
@@ -185,27 +190,25 @@ export function ManualEventModal({
   
   // Campos específicos de actividades
   const [activityDescription, setActivityDescription] = useState("")
-  const [activityDuration, setActivityDuration] = useState(30)
   const [activityImpact, setActivityImpact] = useState<"positive" | "neutral" | "negative">("neutral")
   const [activityNotes, setActivityNotes] = useState("")
   
   // Determinar si el evento actual tiene hora de fin
   const currentEventType = getEventType(eventType)
   const hasEndTime = currentEventType?.hasEndTime ?? false
-  const isNapNoSleep = eventType === "nap" && sleepDelayValue === "no-sleep"
+  const isNapNoSleep = eventType === "nap" && didNotSleep
   
   const handleSubmit = async () => {
     setIsSubmitting(true)
     
     try {
-      // Validaciones básicas
-      // Validación de fin obligatorio para "Dormir"
-      if ((eventType === "sleep") || (hasEndTime && includeEndTime)) {
+      // Validaciones básicas - endTime es obligatorio para todos los tipos
+      if (hasEndTime) {
         const startDateTimeVal = buildLocalDate(startDate, startTime)
         const endDateTimeVal = buildLocalDate(endDate, endTime)
         if (endDateTimeVal <= startDateTimeVal) {
           toast({
-            title: "Error de validación",
+            title: "Error de validacion",
             description: "La hora de fin debe ser posterior a la hora de inicio",
             variant: "destructive",
           })
@@ -238,22 +241,7 @@ export function ManualEventModal({
       
       // Construir fecha/hora de inicio (usando buildLocalDate para evitar bug UTC)
       const startDateTime = buildLocalDate(startDate, startTime)
-      
-      // Calcular endTime automáticamente para alimentación, actividades extra y despertares nocturnos
-      let calculatedEndTime: Date | null = null
-      if (eventType === "feeding") {
-        // Alimentación: usar duración (máximo 60 minutos)
-        const durationMinutes = Math.min(feedingDuration, 60)
-        calculatedEndTime = new Date(startDateTime.getTime() + (durationMinutes * 60 * 1000))
-      } else if (eventType === "extra_activities") {
-        // Actividad extra: usar duración (sin límite)
-        calculatedEndTime = new Date(startDateTime.getTime() + (activityDuration * 60 * 1000))
-      } else if (eventType === "night_waking") {
-        // Despertar nocturno: usar awakeDelay (tiempo que estuvo despierto)
-        const awakeDelayMinutes = awakeDelay || 15 // default 15 minutos
-        calculatedEndTime = new Date(startDateTime.getTime() + (awakeDelayMinutes * 60 * 1000))
-      }
-      
+
       // Construir datos del evento base
       // IMPORTANTE: Usar dateToTimestamp para incluir offset de timezone
       const eventData: any = {
@@ -263,21 +251,15 @@ export function ManualEventModal({
         notes: notes || undefined,
       }
 
-      // Agregar endTime si corresponde (obligatorio para "Dormir")
-      if ((eventType === "sleep") || (hasEndTime && includeEndTime)) {
+      // Agregar endTime - obligatorio para todos los tipos en registro manual
+      if (hasEndTime) {
         const endDateTime = buildLocalDate(endDate, endTime)
         eventData.endTime = dateToTimestamp(endDateTime, timezone)
-      } else if (!hasEndTime && calculatedEndTime) {
-        // Usar endTime calculado automaticamente para alimentacion y actividades extra
-        eventData.endTime = dateToTimestamp(calculatedEndTime, timezone)
       }
       
       // Campos específicos según tipo de evento
       if (eventType === "sleep" || eventType === "nap") {
-        const parsedDelay = parseInt(sleepDelayValue || "0", 10)
-        const safeDelay = Number.isNaN(parsedDelay) ? 0 : parsedDelay
-
-        eventData.sleepDelay = isNapNoSleep ? 0 : safeDelay
+        eventData.sleepDelay = isNapNoSleep ? 0 : sleepDelay
         eventData.emotionalState = emotionalState
 
         // Marcar explícitamente cuando la siesta fue un intento sin que se durmiera
@@ -294,7 +276,6 @@ export function ManualEventModal({
         eventData.feedingType = feedingType
         // Convertir oz → ml para biberón
         eventData.feedingAmount = feedingType === "bottle" ? Math.round((feedingAmount || 0) * 29.5735) : feedingAmount
-        eventData.feedingDuration = feedingDuration
         eventData.babyState = babyState
         eventData.feedingNotes = feedingNotes
       }
@@ -308,7 +289,6 @@ export function ManualEventModal({
       
       if (eventType === "extra_activities") {
         eventData.activityDescription = activityDescription
-        eventData.activityDuration = activityDuration
         eventData.activityImpact = activityImpact
         eventData.activityNotes = activityNotes
       }
@@ -361,27 +341,26 @@ export function ManualEventModal({
     setEndTime(getCurrentHourRounded())
     setIncludeEndTime(true)
     setNotes("")
-    
+
     // Reset campos de sueño
-    setSleepDelayValue("0")
+    setSleepDelay(0)
+    setDidNotSleep(false)
     setAwakeDelay(0)
     setEmotionalState("tranquilo")
-    
+
     // Reset campos de alimentación
     setFeedingType("bottle")
-    setFeedingAmount(120)
-    setFeedingDuration(15)
+    setFeedingAmount(4)
     setBabyState("awake")
     setFeedingNotes("")
-    
+
     // Reset campos de medicamento
     setMedicationName("")
     setMedicationDose("")
     setMedicationNotes("")
-    
+
     // Reset campos de actividad
     setActivityDescription("")
-    setActivityDuration(30)
     setActivityImpact("neutral")
     setActivityNotes("")
   }
@@ -390,17 +369,13 @@ export function ManualEventModal({
     if (!open) return
     setStartTime(getDefaultStartTimeForType(eventType))
     // Cuando cambiamos de tipo de evento, resetear el selector de delay
-    setSleepDelayValue("0")
+    setSleepDelay(0)
+    setDidNotSleep(false)
   }, [eventType, open])
 
-  // Ajustar disponibilidad de hora de fin por tipo de evento
+  // Siempre forzar hora de fin para todos los tipos de evento en registro manual
   useEffect(() => {
-    if (eventType === "sleep") {
-      setIncludeEndTime(true)
-      return
-    }
-
-    setIncludeEndTime(false)
+    setIncludeEndTime(true)
   }, [eventType])
 
   // Effect para ajustar endTime cuando cambia el tipo de evento
@@ -409,18 +384,20 @@ export function ManualEventModal({
       // Para eventos con fin, establecer hora de fin predeterminada
       const startDateTime = buildLocalDate(startDate, startTime)
       let defaultDuration = 60 // 1 hora por defecto
-      
-      if (eventType === "nap") defaultDuration = 90 // 1.5 horas para siesta
+
+      // Duraciones por defecto según tipo de evento
       if (eventType === "sleep") defaultDuration = 600 // 10 horas para sueño nocturno
-      if (eventType === "night_waking") defaultDuration = 60 // 1 hora para despertar nocturno (redondeado)
-      
+      else if (eventType === "nap") defaultDuration = 90 // 1.5 horas para siesta
+      else if (eventType === "night_waking") defaultDuration = 30 // 30 min para despertar nocturno
+      else if (eventType === "feeding") defaultDuration = 15 // 15 min para alimentación
+      else if (eventType === "medication") defaultDuration = 5 // 5 min para medicamentos
+      else if (eventType === "extra_activities") defaultDuration = 60 // 1 hora para actividades
+
       const endDateTime = new Date(startDateTime.getTime() + defaultDuration * 60000)
-      // Redondear la hora de fin al próximo punto en hora
-      endDateTime.setMinutes(0, 0, 0)
-      
+
       const endDateStr = format(endDateTime, "yyyy-MM-dd")
       const endTimeStr = format(endDateTime, "HH:mm")
-      
+
       setEndDate(endDateStr)
       setEndTime(endTimeStr)
     }
@@ -477,78 +454,107 @@ export function ManualEventModal({
             </div>
           </div>
           
-          {/* Fecha y hora de fin - obligatorio para "Dormir" y "Despertar nocturno", opcional para otros tipos con duración */}
+          {/* Fecha y hora de fin - obligatorio para todos los tipos */}
           {hasEndTime && (
-            <div className="space-y-2">
-              {eventType !== "sleep" && eventType !== "night_waking" ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    id="toggle-end-time"
-                    type="checkbox"
-                    checked={includeEndTime}
-                    onChange={(e) => setIncludeEndTime(e.target.checked)}
-                  />
-                  <Label htmlFor="toggle-end-time">Agregar hora de fin (opcional)</Label>
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground">
-                  Hora de fin requerida para {eventType === "sleep" ? '"Dormir"' : '"Despertar nocturno"'}
-                </div>
-              )}
-
-              {(includeEndTime || eventType === "sleep" || eventType === "night_waking") && (
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label>Fecha de fin</Label>
-                    <Input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      max={format(new Date(), "yyyy-MM-dd")}
-                      min={startDate}
-                    />
-                  </div>
-                  <div>
-                    <Label>Hora de fin</Label>
-                    <Input
-                      type="time"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Fecha de fin</Label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  max={format(new Date(), "yyyy-MM-dd")}
+                  min={startDate}
+                />
+              </div>
+              <div>
+                <Label>Hora de fin</Label>
+                <Input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                />
+              </div>
             </div>
           )}
           
           {/* Campos específicos de sueño */}
           {(eventType === "sleep" || eventType === "nap") && (
             <>
-              <div>
+              <div className="space-y-3">
                 <Label>¿Cuánto tardó en dormirse?</Label>
-                <Select
-                  value={sleepDelayValue}
-                  onValueChange={(val) => setSleepDelayValue(val)}
-                >
-                  <SelectTrigger className="min-h-[44px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">Inmediatamente</SelectItem>
-                    <SelectItem value="5">5 minutos</SelectItem>
-                    <SelectItem value="10">10 minutos</SelectItem>
-                    <SelectItem value="15">15 minutos</SelectItem>
-                    <SelectItem value="20">20 minutos</SelectItem>
-                    <SelectItem value="30">30 minutos</SelectItem>
-                    <SelectItem value="45">45 minutos</SelectItem>
-                    <SelectItem value="60">Más de 1 hora</SelectItem>
-                    {eventType === "nap" && (
-                      <SelectItem value="no-sleep">No se pudo dormir</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+
+                {/* Stepper +/- */}
+                <div className="flex items-center justify-center gap-4 py-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => adjustSleepDelay(-5)}
+                    disabled={isSubmitting || sleepDelay <= 0}
+                    className="h-10 w-10 rounded-full"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+
+                  <div className="bg-blue-50 border-2 border-blue-200 rounded-xl px-6 py-3 min-w-[160px] text-center">
+                    <div className="text-xl font-bold text-blue-600">
+                      {formatDelayText(sleepDelay)}
+                    </div>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => adjustSleepDelay(5)}
+                    disabled={isSubmitting || sleepDelay >= 120}
+                    className="h-10 w-10 rounded-full"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Opciones rápidas */}
+                <div className="flex justify-center gap-2 flex-wrap">
+                  {[0, 15, 30, 45].map(minutes => (
+                    <button
+                      key={minutes}
+                      type="button"
+                      onClick={() => setSleepDelay(minutes)}
+                      disabled={isSubmitting}
+                      className={cn(
+                        "px-3 py-1 rounded-full text-xs font-medium transition-colors",
+                        sleepDelay === minutes
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                      )}
+                    >
+                      {minutes}min
+                    </button>
+                  ))}
+                </div>
+
+                {/* Botón especial para siestas: No se pudo dormir */}
+                {eventType === "nap" && (
+                  <div className="flex justify-center pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setDidNotSleep(!didNotSleep)}
+                      disabled={isSubmitting}
+                      className={cn(
+                        "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                        didNotSleep
+                          ? "bg-rose-100 border-rose-400 text-rose-700"
+                          : "bg-white border-gray-200 text-gray-700 hover:bg-rose-50 hover:border-rose-300"
+                      )}
+                    >
+                      No se pudo dormir
+                    </button>
+                  </div>
+                )}
               </div>
-              
+
               <div>
                 <Label>Estado emocional</Label>
                 <RadioGroup value={emotionalState} onValueChange={(val: any) => setEmotionalState(val)}>
@@ -614,133 +620,66 @@ export function ManualEventModal({
               </div>
               
               {feedingType === "bottle" && (
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label>Cantidad (oz)</Label>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setFeedingAmount(Math.max(0, feedingAmount - 1))}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <Input
-                        type="number"
-                        value={feedingAmount}
-                        onChange={(e) => setFeedingAmount(parseInt(e.target.value) || 0)}
-                        className="text-center"
-                        min="0"
-                        max="16"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setFeedingAmount(Math.min(16, feedingAmount + 1))}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Duración (min)</Label>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setFeedingDuration(Math.max(1, feedingDuration - 5))}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <Input
-                        type="number"
-                        value={feedingDuration}
-                        onChange={(e) => setFeedingDuration(parseInt(e.target.value) || 1)}
-                        className="text-center"
-                        min="1"
-                        max="120"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setFeedingDuration(Math.min(120, feedingDuration + 5))}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
+                <div>
+                  <Label>Cantidad (oz)</Label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setFeedingAmount(Math.max(0, feedingAmount - 1))}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      type="number"
+                      value={feedingAmount}
+                      onChange={(e) => setFeedingAmount(parseInt(e.target.value) || 0)}
+                      className="text-center w-24"
+                      min="0"
+                      max="16"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setFeedingAmount(Math.min(16, feedingAmount + 1))}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               )}
 
-              {/* Controles para Pecho y Sólidos: Duración y (para sólidos) Cantidad en gramos */}
-              {(feedingType === "breast" || feedingType === "solids") && (
-                <div className="grid grid-cols-2 gap-2">
-                  {/* Cantidad en gramos solo para sólidos */}
-                  {feedingType === "solids" ? (
-                    <div>
-                      <Label>Cantidad (gr)</Label>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setFeedingAmount(Math.max(1, (feedingAmount || 0) - 10))}
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <Input
-                          type="number"
-                          value={feedingAmount}
-                          onChange={(e) => setFeedingAmount(parseInt(e.target.value) || 0)}
-                          className="text-center"
-                          min="1"
-                          max="500"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setFeedingAmount(Math.min(500, (feedingAmount || 0) + 10))}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="hidden sm:block" />
-                  )}
-                  <div>
-                    <Label>Duración (min)</Label>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setFeedingDuration(Math.max(1, feedingDuration - 5))}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <Input
-                        type="number"
-                        value={feedingDuration}
-                        onChange={(e) => setFeedingDuration(parseInt(e.target.value) || 1)}
-                        className="text-center"
-                        min="1"
-                        max="120"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setFeedingDuration(Math.min(120, feedingDuration + 5))}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
+              {/* Cantidad en gramos solo para sólidos */}
+              {feedingType === "solids" && (
+                <div>
+                  <Label>Cantidad (gr)</Label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setFeedingAmount(Math.max(1, (feedingAmount || 0) - 10))}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      type="number"
+                      value={feedingAmount}
+                      onChange={(e) => setFeedingAmount(parseInt(e.target.value) || 0)}
+                      className="text-center w-24"
+                      min="1"
+                      max="500"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setFeedingAmount(Math.min(500, (feedingAmount || 0) + 10))}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               )}
@@ -823,37 +762,7 @@ export function ManualEventModal({
                   maxLength={100}
                 />
               </div>
-              
-              <div>
-                <Label>Duración estimada (minutos)</Label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setActivityDuration(Math.max(5, activityDuration - 15))}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <Input
-                    type="number"
-                    value={activityDuration}
-                    onChange={(e) => setActivityDuration(parseInt(e.target.value) || 5)}
-                    className="text-center"
-                    min="5"
-                    max="480"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setActivityDuration(Math.min(480, activityDuration + 15))}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              
+
               <div>
                 <Label>Impacto esperado en el sueño</Label>
                 <RadioGroup value={activityImpact} onValueChange={(val: any) => setActivityImpact(val)}>
@@ -871,7 +780,7 @@ export function ManualEventModal({
                   </div>
                 </RadioGroup>
               </div>
-              
+
               <div>
                 <Label>Notas adicionales (opcional)</Label>
                 <Textarea
