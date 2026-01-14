@@ -591,24 +591,6 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
     return sortByLogicalDay(events, editedPlan?.schedule?.wakeTime)
   }, [editedPlan])
 
-  const orderedTimeline = useMemo(() => {
-    if (!timelineOrder.length) {
-      return timelineEvents
-    }
-    const byId = new Map(timelineEvents.map(event => [event.id, event]))
-    const ordered: TimelineEvent[] = []
-    timelineOrder.forEach(id => {
-      const event = byId.get(id)
-      if (event) ordered.push(event)
-    })
-    timelineEvents.forEach(event => {
-      if (!timelineOrder.includes(event.id)) {
-        ordered.push(event)
-      }
-    })
-    return ordered
-  }, [timelineEvents, timelineOrder])
-
   useEffect(() => {
     if (!timelineEvents.length) return
     const ids = timelineEvents.map(event => event.id)
@@ -830,8 +812,10 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
       }
     }
 
-    // Recalcular orden del timeline
-    const recalculatedOrder = createTimeline(updatedPlan).map(e => e.id)
+    // Recalcular orden del timeline (aplicando orden logico)
+    const events = createTimeline(updatedPlan)
+    const sortedEvents = sortByLogicalDay(events, updatedPlan.schedule?.wakeTime)
+    const recalculatedOrder = sortedEvents.map(e => e.id)
     updatedPlan.schedule.timelineOrder = recalculatedOrder
     setEditedPlan(updatedPlan)
     setTimelineOrder(recalculatedOrder)
@@ -922,7 +906,10 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
       break
     }
 
-    const recalculatedOrder = createTimeline(updatedPlan).map(event => event.id)
+    // Recalcular orden del timeline (aplicando orden logico)
+    const events = createTimeline(updatedPlan)
+    const sortedEvents = sortByLogicalDay(events, updatedPlan.schedule?.wakeTime)
+    const recalculatedOrder = sortedEvents.map(event => event.id)
     updatedPlan.schedule.timelineOrder = recalculatedOrder
     setEditedPlan(updatedPlan)
     setTimelineOrder(recalculatedOrder)
@@ -1186,7 +1173,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {orderedTimeline.map((event, index) => (
+                {timelineEvents.map((event, index) => (
                   <div key={event.id} className="flex items-start gap-4">
                     {/* Timeline visual */}
                     <div className="flex flex-col items-center">
@@ -1200,7 +1187,7 @@ export function EditablePlanDisplay({ plan, onPlanUpdate }: EditablePlanDisplayP
                       `}>
                         {event.icon}
                       </div>
-                      {index < orderedTimeline.length - 1 && (
+                      {index < timelineEvents.length - 1 && (
                         <div className="w-px h-8 bg-border mt-2" />
                       )}
                     </div>
