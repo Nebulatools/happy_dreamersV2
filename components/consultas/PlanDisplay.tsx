@@ -225,27 +225,8 @@ export function PlanDisplay({ plan }: PlanDisplayProps) {
     // Filtrar eventos válidos (sin ordenar aquí - se ordena después)
     return events.filter(e => typeof e.time === "string")
   }
-
-  const applyManualOrder = (events: TimelineEvent[]) => {
-    const order = plan.schedule?.timelineOrder
-    if (!order?.length) return events
-    const map = new Map(events.map(event => [event.id, event]))
-    const ordered: TimelineEvent[] = []
-    order.forEach(id => {
-      const event = map.get(id)
-      if (event) ordered.push(event)
-    })
-    events.forEach(event => {
-      if (!order.includes(event.id)) {
-        ordered.push(event)
-      }
-    })
-    return ordered
-  }
-
-  // Crear timeline con ordenamiento por día lógico, luego aplicar orden manual si existe
-  const sortedTimeline = sortByLogicalDay(createTimeline(), plan.schedule?.wakeTime)
-  const timeline = applyManualOrder(sortedTimeline)
+  // Crear timeline con ordenamiento por día lógico
+  const timeline = sortByLogicalDay(createTimeline(), plan.schedule?.wakeTime)
 
   return (
     <div className="space-y-6">
