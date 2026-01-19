@@ -55,6 +55,7 @@ interface Event {
   startTime: string
   endTime?: string
   notes?: string
+  noteText?: string // Campo exclusivo para bitacoras (eventType: "note")
   createdAt: string
 }
 
@@ -271,7 +272,7 @@ export default function DashboardPage() {
           childId: activeChildId,
           eventType: "note",
           startTime: new Date().toISOString(),
-          notes: noteText.trim(),
+          noteText: noteText.trim(),
         }),
       })
       
@@ -283,12 +284,14 @@ export default function DashboardPage() {
           description: "La nota se ha guardado correctamente.",
         })
       } else {
-        throw new Error("Error al guardar la nota")
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Error al guardar la nota")
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "No se pudo guardar la nota"
       toast({
         title: "Error",
-        description: "No se pudo guardar la nota. Intenta de nuevo.",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -817,7 +820,7 @@ export default function DashboardPage() {
                         {/* Contenido */}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-gray-700 leading-relaxed">
-                            {event.notes}
+                            {event.noteText || event.notes}
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
                             {event.startTime ? format(parseISO(event.startTime), "d MMM yyyy, HH:mm", { locale: es }) : "Sin fecha"}
