@@ -1,0 +1,4 @@
+# Esta carpeta contiene el spec actual para Ralph Loop
+# Archivos esperados:
+# - prompt.md (prompt principal para Claude)
+# - implementation_plan.md (plan con tareas checkables)
