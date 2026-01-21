@@ -29,7 +29,9 @@ interface SleepSessionBlockProps {
   hourHeight: number
   className?: string
   onClick?: () => void
+  onDoubleClick?: () => void  // Handler para doble click (abrir modal edicion)
   onNightWakingClick?: (waking: Event) => void  // Handler para clicks en despertares nocturnos
+  onNightWakingDoubleClick?: (waking: Event) => void  // Handler para doble click en despertares
   isContinuationFromPrevious?: boolean  // Si es continuación del día anterior
   continuesNextDay?: boolean           // Si continúa al día siguiente
   column?: number        // Columna del evento (para eventos superpuestos)
@@ -45,7 +47,9 @@ export function SleepSessionBlock({
   hourHeight,
   className,
   onClick,
+  onDoubleClick,
   onNightWakingClick,
+  onNightWakingDoubleClick,
   isContinuationFromPrevious = false,
   continuesNextDay = false,
   column = 0,
@@ -197,7 +201,13 @@ export function SleepSessionBlock({
                 onNightWakingClick(waking)
               }
             }}
-            title="Click para editar despertar nocturno"
+            onDoubleClick={(e) => {
+              e.stopPropagation()
+              if (onNightWakingDoubleClick) {
+                onNightWakingDoubleClick(waking)
+              }
+            }}
+            title="Click para seleccionar, doble click para editar"
           >
             <div className="flex items-center justify-center w-full h-full pointer-events-none">
               <Baby className="h-3 w-3 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]" style={{ color: "#fff" }} />
@@ -219,6 +229,7 @@ export function SleepSessionBlock({
           className={cn("absolute cursor-pointer", className)}
           style={{ top: `${position}px`, left: actualLeft, width: actualWidth }}
           onClick={onClick}
+          onDoubleClick={onDoubleClick}
         >
           {/* Parte superior sólida - Solo icono Moon */}
           <div
@@ -336,6 +347,13 @@ export function SleepSessionBlock({
     }
   }
 
+  // Doble click abre modal de edicion
+  const handleDoubleClick = () => {
+    setShowTooltip(false)
+    setTooltipShownByTouch(false)
+    onDoubleClick?.()
+  }
+
   // SUEÑO COMPLETADO - Con gradiente completo
   return (
     <>
@@ -356,6 +374,7 @@ export function SleepSessionBlock({
           background: "linear-gradient(to bottom, rgba(59, 130, 246, 0.18), rgba(139, 92, 246, 0.15), rgba(251, 191, 36, 0.12))",
         }}
         onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >

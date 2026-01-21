@@ -185,7 +185,7 @@ Validacion Fase 5:
   - Comportamiento: scrollIntoView smooth + clase highlight-fade
   - Referencia: spec lines 141-143
 
-- [ ] **6.4** Implementar doble click para editar
+- [x] **6.4** Implementar doble click para editar
   - Input: Doble click en bloque o tarjeta
   - Output: Modal de edicion abre
   - Comportamiento: Reusar EventEditRouter existente

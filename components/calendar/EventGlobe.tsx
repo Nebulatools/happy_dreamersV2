@@ -44,11 +44,12 @@ interface EventGlobeProps {
   event: Event;
   hourHeight: number;  // Ej: 30px por hora
   onClick?: (event: Event) => void;
+  onDoubleClick?: (event: Event) => void;  // Para abrir modal de edicion
   column?: number;      // Columna del evento (para eventos superpuestos)
   totalColumns?: number; // Total de columnas en el grupo
 }
 
-export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalColumns = 1 }: EventGlobeProps) {
+export function EventGlobe({ event, hourHeight = 30, onClick, onDoubleClick, column = 0, totalColumns = 1 }: EventGlobeProps) {
   const [showTooltip, setShowTooltip] = useState(false)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
   const [tooltipShownByTouch, setTooltipShownByTouch] = useState(false)
@@ -228,6 +229,14 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
     }
   }
 
+  // Doble click abre modal de edicion
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setShowTooltip(false)
+    setTooltipShownByTouch(false)
+    onDoubleClick?.(event)
+  }
+
   return (
     <>
       <div
@@ -241,6 +250,7 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
           width: actualWidth,
         }}
         onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >

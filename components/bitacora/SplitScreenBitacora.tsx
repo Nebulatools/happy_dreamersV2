@@ -10,7 +10,7 @@
 
 "use client"
 
-import { useRef, useCallback } from "react"
+import { useState, useRef, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import { CalendarDayView } from "@/components/calendar/CalendarDayView"
 import {
@@ -22,6 +22,7 @@ import {
   SplitScreenProvider,
   useSplitScreen,
 } from "@/context/SplitScreenContext"
+import { EventEditRouter } from "@/components/events/EventEditRouter"
 import type { SleepSession } from "@/lib/utils/sleep-sessions"
 
 // ============================================================================
@@ -64,8 +65,10 @@ export interface SplitScreenBitacoraProps {
   timezone?: string
   /** Altura por hora para el calendario */
   hourHeight?: number
-  /** Callback cuando se solicita editar un evento */
+  /** Callback cuando se solicita editar un evento (opcional, si no se provee usa modal interno) */
   onEventEdit?: (eventId: string) => void
+  /** Callback cuando un evento se actualiza (para refrescar datos) */
+  onEventUpdate?: () => void
   /** Callback cuando se navega al dia anterior */
   onDayNavigateBack?: () => void
   /** Callback cuando se navega al dia siguiente */
@@ -89,6 +92,7 @@ function SplitScreenBitacoraInner({
   timezone,
   hourHeight = 30,
   onEventEdit,
+  onEventUpdate,
   onDayNavigateBack,
   onDayNavigateForward,
   onCalendarClick,
@@ -96,6 +100,10 @@ function SplitScreenBitacoraInner({
   className,
 }: SplitScreenBitacoraProps) {
   const { highlightedEventId, selectionSource, selectEvent } = useSplitScreen()
+
+  // Estado para modal de edicion
+  const [editingEvent, setEditingEvent] = useState<BitacoraEvent | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   // Refs para scroll-into-view
   const calendarContainerRef = useRef<HTMLDivElement>(null)
@@ -150,10 +158,40 @@ function SplitScreenBitacoraInner({
   // Handler: Doble click o chevron para editar
   const handleEventEdit = useCallback(
     (eventId: string) => {
-      onEventEdit?.(eventId)
+      // Si hay callback externo, usarlo
+      if (onEventEdit) {
+        onEventEdit(eventId)
+        return
+      }
+      // Si no, usar modal interno
+      const event = events.find((e) => e._id === eventId)
+      if (event) {
+        setEditingEvent(event)
+        setIsEditModalOpen(true)
+      }
     },
-    [onEventEdit]
+    [onEventEdit, events]
   )
+
+  // Handler: Doble click en calendario para editar
+  const handleCalendarEventDoubleClick = useCallback(
+    (event: { _id: string }) => {
+      handleEventEdit(event._id)
+    },
+    [handleEventEdit]
+  )
+
+  // Handler: Cerrar modal de edicion
+  const handleCloseEditModal = useCallback(() => {
+    setIsEditModalOpen(false)
+    setEditingEvent(null)
+  }, [])
+
+  // Handler: Evento actualizado
+  const handleEventUpdated = useCallback(() => {
+    handleCloseEditModal()
+    onEventUpdate?.()
+  }, [handleCloseEditModal, onEventUpdate])
 
   return (
     <div
@@ -179,6 +217,7 @@ function SplitScreenBitacoraInner({
           events={events}
           hourHeight={hourHeight}
           onEventClick={handleCalendarEventClick}
+          onEventDoubleClick={handleCalendarEventDoubleClick}
           onCalendarClick={onCalendarClick}
           onDayNavigateBack={onDayNavigateBack}
           onDayNavigateForward={onDayNavigateForward}
@@ -211,6 +250,15 @@ function SplitScreenBitacoraInner({
           emptyMessage="No hay eventos registrados para este dia"
         />
       </div>
+
+      {/* Modal de edicion de evento */}
+      <EventEditRouter
+        event={editingEvent}
+        open={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onUpdate={handleEventUpdated}
+        childName={childName}
+      />
     </div>
   )
 }

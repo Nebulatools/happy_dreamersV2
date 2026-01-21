@@ -493,3 +493,64 @@ interface SplitScreenBitacoraProps {
 - 6.4: Implementar doble click para editar (requiere modificar CalendarDayView o EventGlobe)
 - 6.5: Integrar en pagina admin (`/dashboard/patients/child/[childId]`)
 - Nota: El calendario necesita `data-calendar-event-id` en bloques para scroll funcione
+
+### Session 13 - 2026-01-20
+
+**Task:** 6.4 - Implementar doble click para editar
+**Files:**
+- `components/calendar/CalendarDayView.tsx` (modificado)
+- `components/calendar/EventGlobe.tsx` (modificado)
+- `components/calendar/SleepSessionBlock.tsx` (modificado)
+- `components/bitacora/SplitScreenBitacora.tsx` (modificado)
+
+**Cambios realizados:**
+
+1. **CalendarDayView.tsx:**
+   - Agregada prop `onEventDoubleClick?: (event: Event) => void`
+   - Pasada a `EventGlobe` y `SleepSessionBlock`
+   - Para SleepSessionBlock: tambien `onNightWakingDoubleClick`
+
+2. **EventGlobe.tsx:**
+   - Agregada prop `onDoubleClick?: (event: Event) => void`
+   - Handler `handleDoubleClick` que cierra tooltip y llama callback
+   - `onDoubleClick={handleDoubleClick}` en el div principal
+
+3. **SleepSessionBlock.tsx:**
+   - Agregada prop `onDoubleClick?: () => void`
+   - Agregada prop `onNightWakingDoubleClick?: (waking: Event) => void`
+   - Handler `handleDoubleClick` en bloque de sleep (en progreso y completado)
+   - `onDoubleClick` handler en night wakings individuales
+
+4. **SplitScreenBitacora.tsx:**
+   - Importado `EventEditRouter`
+   - Estado `editingEvent` y `isEditModalOpen` para modal interno
+   - `handleCalendarEventDoubleClick` que busca evento y abre modal
+   - `handleEventEdit` actualizado: si no hay `onEventEdit` externo, usa modal interno
+   - `handleCloseEditModal` y `handleEventUpdated` para ciclo de vida del modal
+   - Agregada prop `onEventUpdate?: () => void` para refrescar datos despues de editar
+   - `EventEditRouter` renderizado con estado y callbacks
+
+**Patron descubierto - Modal interno vs externo:**
+```typescript
+// Si hay callback externo, usarlo
+if (onEventEdit) {
+  onEventEdit(eventId)
+  return
+}
+// Si no, usar modal interno
+const event = events.find((e) => e._id === eventId)
+if (event) {
+  setEditingEvent(event)
+  setIsEditModalOpen(true)
+}
+```
+
+**Comportamiento implementado:**
+- Click simple -> highlight + scroll bidireccional (mirroring)
+- Doble click -> abre modal de edicion via EventEditRouter
+- Chevron en NarrativeCard -> tambien abre edicion
+
+**Notes para proxima sesion:**
+- Siguiente: 6.5 - Integrar SplitScreenBitacora en pagina admin
+- Ruta: `/dashboard/patients/child/[childId]`
+- Verificar que la pagina admin puede usar SplitScreenBitacora

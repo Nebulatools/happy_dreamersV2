@@ -110,6 +110,7 @@ interface CalendarDayViewProps {
   events: Event[];
   hourHeight?: number;
   onEventClick?: (event: Event) => void;
+  onEventDoubleClick?: (event: Event) => void;
   onCalendarClick?: (clickEvent: React.MouseEvent, dayDate: Date) => void;
   className?: string;
   onDayNavigateBack?: () => void;
@@ -121,6 +122,7 @@ export function CalendarDayView({
   events,
   hourHeight = 30,
   onEventClick,
+  onEventDoubleClick,
   onCalendarClick,
   className = "",
   onDayNavigateBack,
@@ -200,7 +202,9 @@ export function CalendarDayView({
                     nightWakings={session.nightWakings}
                     hourHeight={hourHeight}
                     onClick={() => onEventClick?.(session.originalEvent as Event)}
+                    onDoubleClick={() => onEventDoubleClick?.(session.originalEvent as Event)}
                     onNightWakingClick={(waking) => onEventClick?.(waking as Event)}
+                    onNightWakingDoubleClick={(waking) => onEventDoubleClick?.(waking as Event)}
                     isContinuationFromPrevious={session.isContinuationFromPrevious}
                     continuesNextDay={session.continuesNextDay}
                     column={0}
@@ -215,6 +219,7 @@ export function CalendarDayView({
                     event={event}
                     hourHeight={hourHeight}
                     onClick={onEventClick}
+                    onDoubleClick={onEventDoubleClick}
                     column={event.column}
                     totalColumns={event.totalColumns}
                   />
