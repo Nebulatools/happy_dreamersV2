@@ -45,7 +45,7 @@ Validacion Fase 0:
   - Comportamiento: Reemplazar switch case por lookup en registry
   - Referencia: `EventGlobe.tsx:117-134` (codigo actual a reemplazar)
 
-- [ ] **1.3** Modificar `EventBlock.tsx` para usar nuevo registry
+- [x] **1.3** Modificar `EventBlock.tsx` para usar nuevo registry
   - Input: Importar `getEventIconType()` y `EVENT_ICONS`
   - Output: Iconos consistentes con EventGlobe
   - Comportamiento: Mismo lookup que EventGlobe

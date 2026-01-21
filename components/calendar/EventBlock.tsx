@@ -4,18 +4,9 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
-import {
-  Moon,
-  Sun,
-  Clock,
-  Baby,
-  Utensils,
-  UtensilsCrossed,
-  Pill,
-  Activity,
-} from "lucide-react"
-import { format, differenceInMinutes, differenceInHours } from "date-fns"
+import { format, differenceInMinutes } from "date-fns"
 import { cn } from "@/lib/utils"
+import { getEventIconConfig } from "@/lib/icons/event-icons"
 
 // Funcion auxiliar para parsear fechas ISO locales correctamente
 // CORREGIDO: Usa el constructor Date nativo que respeta el offset en el string
@@ -212,38 +203,20 @@ export function EventBlock({
     }
   }
 
-  // Obtener icono Lucide según tipo de evento - Sin emojis
+  // Obtener icono Lucide usando el registry centralizado
   const getEventIcon = () => {
-    // Ajustar tamaño del icono según altura del bloque
-    const iconSize = blockHeight >= 40 ? 14 : blockHeight >= 28 ? 12 : 10
-    const iconClass = `h-${iconSize <= 10 ? 3 : iconSize <= 12 ? 3.5 : 4} w-${iconSize <= 10 ? 3 : iconSize <= 12 ? 3.5 : 4}`
+    // Ajustar tamaño del icono segun altura del bloque
+    const iconClass = blockHeight >= 40
+      ? "h-4 w-4"
+      : blockHeight >= 28
+        ? "h-3.5 w-3.5"
+        : "h-3 w-3"
 
-    switch (event.eventType) {
-    case "sleep":
-    case "bedtime":
-      return <Moon className={iconClass} style={{ color: "#6366f1" }} /> // indigo
-    case "nap":
-      return <Sun className={iconClass} style={{ color: "#f59e0b" }} /> // amber
-    case "wake":
-      return <Sun className={iconClass} style={{ color: "#eab308" }} /> // yellow
-    case "night_waking":
-      return <Baby className={iconClass} style={{ color: "#a855f7" }} /> // purple
-    case "feeding":
-    case "night_feeding":
-      // Icono segun tipo de alimentacion: solidos = diferente, liquidos = mismo
-      if (event.feedingType === "solids") {
-        return <UtensilsCrossed className={iconClass} style={{ color: "#22c55e" }} /> // green
-      }
-      // breast y bottle usan el mismo icono (liquidos)
-      return <Utensils className={iconClass} style={{ color: "#22c55e" }} /> // green
-    case "medication":
-      return <Pill className={iconClass} style={{ color: "#3b82f6" }} /> // blue
-    case "activity":
-    case "extra_activities":
-      return <Activity className={iconClass} style={{ color: "#f97316" }} /> // orange
-    default:
-      return <Clock className={iconClass} style={{ color: "#6b7280" }} /> // gray
-    }
+    // Usar registry centralizado para obtener icono y color
+    const config = getEventIconConfig(event.eventType, event.feedingType)
+    const IconComponent = config.icon
+
+    return <IconComponent className={iconClass} style={{ color: config.color }} />
   }
 
   // Obtener color según tipo de evento
@@ -521,30 +494,10 @@ export function CompactEventBlock({
 
   const getEventIcon = () => {
     const iconClass = "h-3 w-3"
-    switch (event.eventType) {
-    case "sleep":
-    case "bedtime":
-      return <Moon className={iconClass} style={{ color: "#6366f1" }} />
-    case "nap":
-      return <Sun className={iconClass} style={{ color: "#f59e0b" }} />
-    case "wake":
-      return <Sun className={iconClass} style={{ color: "#eab308" }} />
-    case "night_waking":
-      return <Baby className={iconClass} style={{ color: "#a855f7" }} />
-    case "feeding":
-    case "night_feeding":
-      if (event.feedingType === "solids") {
-        return <UtensilsCrossed className={iconClass} style={{ color: "#22c55e" }} />
-      }
-      return <Utensils className={iconClass} style={{ color: "#22c55e" }} />
-    case "medication":
-      return <Pill className={iconClass} style={{ color: "#3b82f6" }} />
-    case "activity":
-    case "extra_activities":
-      return <Activity className={iconClass} style={{ color: "#f97316" }} />
-    default:
-      return <Clock className={iconClass} style={{ color: "#6b7280" }} />
-    }
+    // Usar registry centralizado para obtener icono y color
+    const config = getEventIconConfig(event.eventType, event.feedingType)
+    const IconComponent = config.icon
+    return <IconComponent className={iconClass} style={{ color: config.color }} />
   }
 
   // Formatear hora con validación

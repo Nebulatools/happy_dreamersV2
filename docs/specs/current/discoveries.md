@@ -106,3 +106,38 @@ const getIcon = () => {
 - CompactEventBlock tambien tiene funciones duplicadas (2 mas)
 - Total ~100 lineas de codigo a eliminar en tarea 1.3
 - Considerar si SleepSessionBlock tambien necesita actualizarse
+
+### Session 3 - 2026-01-20
+
+**Task:** 1.3 - Modificar `EventBlock.tsx` para usar nuevo registry
+**Files:** `components/calendar/EventBlock.tsx` (modificado)
+
+**Cambios realizados:**
+1. Eliminados imports individuales de Lucide icons (Moon, Sun, Clock, Baby, Utensils, etc.)
+2. Agregado import de `getEventIconConfig` desde el registry centralizado
+3. Reemplazado `getEventIcon()` en EventBlock (de 30 lineas switch-case a 7 lineas)
+4. Reemplazado `getEventIcon()` en CompactEventBlock (de 25 lineas switch-case a 5 lineas)
+
+**Funciones NO modificadas (por diseño):**
+- `getEventColor()` - Usa clases Tailwind especificas del proyecto (bg-sleep, bg-nap, etc.)
+- `getEventTypeName()` - Record estatico local, simple y funcional
+
+**Reduccion de codigo:**
+- Antes: ~55 lineas de switch-case para iconos
+- Despues: ~12 lineas usando registry
+- ~43 lineas eliminadas
+
+**Patron reutilizable:**
+```typescript
+const getEventIcon = () => {
+  const iconClass = "h-3 w-3" // o dinamico segun blockHeight
+  const config = getEventIconConfig(event.eventType, event.feedingType)
+  const IconComponent = config.icon
+  return <IconComponent className={iconClass} style={{ color: config.color }} />
+}
+```
+
+**Notes para proxima sesion:**
+- Fase 1 COMPLETADA - Taxonomia Visual implementada en registry, EventGlobe, EventBlock
+- Siguiente: Fase 2 - Componentes Narrativos (generate-narrative.ts)
+- SleepSessionBlock podria beneficiarse del registry (pero no es parte del plan)

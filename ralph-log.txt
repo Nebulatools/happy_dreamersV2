@@ -29,3 +29,31 @@ La sesion termina aqui. El script `ralph-loop.sh` iniciara una nueva sesion para
 
 ═══ ITERACIÓN 2 - 18:19:59 ═══
 Tarea: - [ ] **1.1** Implementar `EVENT_ICONS` record completo
+```
+RALPH_COMPLETE: Task 1.2 completed
+```
+
+---
+
+**Resumen de sesión:**
+
+Ejecuté la tarea **1.2** del plan de implementación:
+
+**Cambios realizados:**
+- `components/calendar/EventGlobe.tsx` - Refactorizado para usar el registry centralizado de iconos:
+  - Removí imports individuales de Lucide (Moon, Sun, Baby, Utensils, etc.)
+  - Agregué import de `getEventIconConfig` desde `@/lib/icons/event-icons`
+  - `getColor()` ahora usa `config.bgColor` del registry
+  - `getIcon()` ahora usa componente dinámico `IconComponent = config.icon`
+  - `getName()` ahora usa `config.label` con lógica especial para feeding
+
+**Verificación:**
+- `npm run build` pasa exitosamente
+- Errores de lint son pre-existentes (no introducidos por mis cambios)
+
+**Commit:** `ff6165f` - "refactor(calendar): EventGlobe uses centralized icon registry"
+
+**Próxima tarea:** 1.3 - Modificar EventBlock.tsx para usar nuevo registry (siguiente sesión de Ralph Loop)
+
+═══ ITERACIÓN 3 - 18:22:35 ═══
+Tarea: - [ ] **1.3** Modificar `EventBlock.tsx` para usar nuevo registry
