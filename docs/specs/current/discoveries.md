@@ -260,3 +260,50 @@ interface NarrativeCardProps {
 - Siguiente: 3.2 - Crear NarrativeTimeline.tsx (lista de NarrativeCards)
 - NarrativeTimeline necesita: ordenamiento cronologico inverso, collapsible, empty state
 - La clase `animate-highlight-fade` se implementara en Fase 5 (5.2)
+
+### Session 7 - 2026-01-20
+
+**Task:** 3.2 - Crear `components/narrative/NarrativeTimeline.tsx`
+**Files:**
+- `components/narrative/NarrativeTimeline.tsx` (nuevo)
+- `components/narrative/NarrativeCard.tsx` (modificado - agregado data-event-id)
+
+**Estructura del componente:**
+```typescript
+interface NarrativeTimelineProps {
+  events: NarrativeTimelineEvent[]
+  childName: string
+  timezone?: string
+  highlightedEventId?: string | null  // Para mirroring
+  collapsible?: boolean               // Habilita Ver todo/Colapsar
+  initialLimit?: number               // Default: 5 (segun spec)
+  isLoading?: boolean                 // Muestra skeletons
+  onEventClick?: (eventId: string) => void
+  onEventEdit?: (eventId: string) => void
+  emptyMessage?: string
+}
+```
+
+**Funcionalidades implementadas:**
+1. **Ordenamiento cronologico inverso** - useMemo con sort por timestamp descendente
+2. **Sistema collapsible** - Estado local `isExpanded`, boton "Ver todo/Colapsar"
+3. **Estado NO persistente** - `isExpanded` siempre inicia en `false` (spec line 69)
+4. **Empty state** - Icono CalendarX + mensaje personalizable
+5. **Skeleton loaders** - 5 skeletons durante carga
+6. **Map de refs** - Para scroll-into-view eficiente en mirroring
+7. **data-event-id** - Agregado a NarrativeCard para `scrollToNarrativeEvent()`
+
+**Sub-componentes:**
+- `NarrativeCardSkeleton` - Skeleton con icono circular + lineas
+- `EmptyState` - Mensaje centrado con icono CalendarX
+
+**Funcion auxiliar exportada:**
+```typescript
+export function scrollToNarrativeEvent(eventId: string, containerRef?): void
+// Busca elemento por data-event-id y hace scrollIntoView smooth
+```
+
+**Notes para proxima sesion:**
+- Siguiente: 3.3 - Agregar skeleton loader y empty state (YA COMPLETADO en 3.2)
+- La tarea 3.3 puede marcarse como completada porque skeleton/empty ya estan en NarrativeTimeline
+- Siguiente real: Fase 4 - Integracion Home Padres

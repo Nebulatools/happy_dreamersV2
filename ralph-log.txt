@@ -118,3 +118,24 @@ RALPH_COMPLETE: Task 2.2 completed
 
 ═══ ITERACIÓN 6 - 18:31:50 ═══
 Tarea: - [ ] **3.1** Crear `components/narrative/NarrativeCard.tsx`
+`★ Insight ─────────────────────────────────────`
+**Arquitectura de NarrativeCard:**
+1. **Composicion sobre herencia**: El componente usa funciones del registry y generador de narrativa en lugar de duplicar logica
+2. **Props de callback pattern**: `onClick` y `onEdit` permiten que el padre (NarrativeTimeline o SplitScreen) controle el comportamiento sin acoplar
+3. **Ref forwarding**: `cardRef` permite scroll-into-view externo para el mirroring bidireccional con el calendario
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task 3.1 completed
+
+**Resumen de la sesion:**
+- Creado `components/narrative/NarrativeCard.tsx` - Componente visual que renderiza eventos como tarjetas narrativas
+- Integra el registry de iconos (Fase 1) y el generador de narrativa (Fase 2)
+- Implementa la anatomia del spec: icono circular + texto + hora + chevron
+- Soporta interacciones para mirroring (onClick, isHighlighted) y edicion (onEdit, doble click)
+- Build y lint pasan correctamente
+- Commit: `4ca9a50`
+
+**Siguiente tarea:** 3.2 - Crear `NarrativeTimeline.tsx` (lista de NarrativeCards ordenadas cronologicamente con collapsible y empty state)
+
+═══ ITERACIÓN 7 - 18:34:08 ═══
+Tarea: - [ ] **3.2** Crear `components/narrative/NarrativeTimeline.tsx`

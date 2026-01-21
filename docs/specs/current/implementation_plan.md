@@ -91,7 +91,7 @@ Validacion Fase 2:
   - Comportamiento: Click en chevron llama `onEdit`, click en card llama `onClick`
   - Referencia: ver shadcn Card, anatomia en spec lines 36-48
 
-- [ ] **3.2** Crear `components/narrative/NarrativeTimeline.tsx`
+- [x] **3.2** Crear `components/narrative/NarrativeTimeline.tsx`
   - Props: `{ events, childName, highlightedEventId?, collapsible?, initialLimit? }`
   - Render: Lista de NarrativeCards ordenadas cronologico inverso
   - Comportamiento:

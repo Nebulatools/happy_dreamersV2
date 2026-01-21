@@ -88,6 +88,7 @@ export function NarrativeCard({
   return (
     <div
       ref={cardRef}
+      data-event-id={eventId}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       className={cn(
