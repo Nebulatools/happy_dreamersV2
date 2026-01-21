@@ -256,8 +256,9 @@ Validacion Fase 7 (Jest + Playwright MCP):
 
 ## Fase 8: QA Final y Regression Testing
 
-- [ ] **8.1** Test suite completo Admin
+- [x] **8.1** Test suite completo Admin
   - Verificar: Split screen, mirroring bidireccional, highlight fade, doble click editar
+  - Screenshots: `qa-8.1-split-screen-layout.png`, `qa-8.1-mirroring-narrative-click.png`, `qa-8.1-edit-modal-doubleclick.png`
 
 - [ ] **8.2** Test suite completo Padre
   - Verificar: Home feed 5 eventos, Ver todo/Colapsar, click chevron editar

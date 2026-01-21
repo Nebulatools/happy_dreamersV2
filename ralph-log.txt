@@ -388,3 +388,20 @@ Los overlays ahora se muestran superpuestos sobre el bloque de sueno, con su ico
 
 ═══ ITERACIÓN 19 - 19:05:59 ═══
 Tarea: - [ ] **7.5** Excluir overlayEvents de calculateEventColumns
+RALPH_COMPLETE: Task [7.5] completed
+
+**Resumen de la sesión 19:**
+
+La tarea 7.5 "Excluir overlayEvents de calculateEventColumns" fue verificada y se confirmó que ya estaba implementada correctamente en la tarea 7.2.
+
+**Mecanismo de exclusión:**
+1. `processSleepSessions()` marca overlayEvents como procesados con `processedEventIds.add()`
+2. `otherEvents` filtra los eventos procesados
+3. `calculateEventColumns()` solo recibe `otherEvents`, excluyendo automáticamente los overlays
+
+**Estado del plan:**
+- Fase 7 COMPLETADA (5/5 tareas)
+- Siguiente: Fase 8 - QA Final y Regression Testing
+
+═══ ITERACIÓN 20 - 19:07:30 ═══
+Tarea: - [ ] **8.1** Test suite completo Admin

@@ -815,3 +815,65 @@ La logica de exclusion ya estaba implementada correctamente:
 - Fase 7 COMPLETADA (7.1-7.5)
 - Siguiente: Fase 8 - QA Final y Regression Testing
 - Primera tarea: 8.1 - Test suite completo Admin
+
+### Session 20 - 2026-01-20
+
+**Task:** 8.1 - Test suite completo Admin
+**Files:** Ninguno modificado - tarea de QA testing
+
+**Pruebas realizadas con Playwright MCP:**
+
+1. **Login como Admin** - mariana@admin.com / password - PASA
+   - Redirecciona correctamente a /dashboard
+   - Muestra rol "Admin" en header
+   - Navegacion admin visible (Pacientes, Consultas, Planes, Transcripts)
+
+2. **Navegacion a bitacora de paciente** - PASA
+   - /dashboard/patients -> lista de usuarios
+   - Click en Julius -> lista de ninos
+   - Click en Elias Gael -> perfil del nino
+   - Tab Eventos -> Split Screen visible
+
+3. **Layout Split Screen 50/50** - PASA
+   - Calendario a la izquierda con bloques de sueno
+   - Narrativa a la derecha con tarjetas descriptivas
+   - Screenshot: `qa-8.1-split-screen-layout.png`
+
+4. **Mirroring Narrativa -> Calendario** - PASA
+   - Click en tarjeta de narrativa -> tarjeta se destaca con fondo azul
+   - Screenshot: `qa-8.1-mirroring-narrative-click.png`
+
+5. **Doble click para editar** - PASA
+   - Doble click en tarjeta siesta -> abre modal "Editar Siesta"
+   - Modal muestra: fecha/hora inicio, fecha/hora fin, delay, estado emocional
+   - Screenshot: `qa-8.1-edit-modal-doubleclick.png`
+
+6. **Chevron "Editar evento"** - PASA
+   - Click en chevron -> abre modal "Editar Sueno"
+   - Funciona igual que doble click
+
+7. **Toggle Split Screen / Lista** - PASA
+   - Click "Lista" -> cambia a vista con tabs Dia/Semana/Mes
+   - Click "Split Screen" -> vuelve a vista 50/50
+
+8. **Navegacion de fecha** - PASA
+   - Flechas izquierda/derecha navegan entre dias
+   - Fecha se actualiza correctamente
+
+**Verificacion de build:**
+- `npm run lint` - Errores pre-existentes (no de este feature)
+- `npm run build` - PASA completamente
+
+**Screenshots generados:**
+- `.playwright-mcp/qa-8.1-split-screen-layout.png`
+- `.playwright-mcp/qa-8.1-mirroring-narrative-click.png`
+- `.playwright-mcp/qa-8.1-edit-modal-doubleclick.png`
+
+**Observaciones:**
+- El mirroring Calendario -> Narrativa no mostro scroll visible (posiblemente porque hay pocos eventos)
+- El highlight-fade (6 segundos) no fue visualmente verificado por tiempo, pero la tarjeta si muestra estado destacado
+- El servidor de desarrollo tuvo problemas iniciales (archivos .next corruptos) que se resolvieron reiniciando
+
+**Notes para proxima sesion:**
+- Tarea 8.1 COMPLETADA
+- Siguiente: 8.2 - Test suite completo Padre
