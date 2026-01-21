@@ -369,3 +369,38 @@ export function scrollToNarrativeEvent(eventId: string, containerRef?): void
 - Fase 4 COMPLETADA (4.1 + 4.2)
 - Falta implementar `onEventEdit` para abrir modal de edicion (tiene console.log placeholder)
 - Siguiente: Fase 5 - Split Screen Context
+
+### Session 10 - 2026-01-20
+
+**Task:** 5.1 - Crear `context/SplitScreenContext.tsx`
+**Files:** `context/SplitScreenContext.tsx` (nuevo)
+
+**Estructura del contexto:**
+```typescript
+interface SplitScreenContextType {
+  selectedEventId: string | null      // ID del evento seleccionado
+  highlightedEventId: string | null   // ID con highlight visual activo
+  selectionSource: SelectionSource | null  // "calendar" | "narrative"
+  selectEvent: (eventId: string, source: SelectionSource) => void
+  clearSelection: () => void
+  isHighlightActive: boolean          // Para animaciones CSS
+}
+```
+
+**Comportamientos implementados (segun spec lines 135-145):**
+1. `selectEvent(id, source)` establece highlight + programa auto-clear en 6 segundos
+2. Click rapido cancela timeout anterior (useRef para NodeJS.Timeout)
+3. `clearSelection()` limpia todo manualmente y cancela timeout
+4. `selectionSource` permite saber de donde vino el click (para mirroring bidireccional)
+5. `isHighlightActive` facilita aplicar clases CSS condicionales
+
+**Patron aplicado:**
+- Mismo patron que `ActiveChildContext.tsx` (estructura probada en proyecto)
+- `useCallback` para funciones estables
+- `useRef` para timeout mutable
+- Constante `HIGHLIGHT_DURATION_MS = 6000` (6 segundos segun spec "5-7 seg")
+
+**Notes para proxima sesion:**
+- Siguiente: 5.2 - Agregar animacion `highlight-fade` a tailwind.config.js
+- La clase `animate-highlight-fade` se usa en NarrativeCard.tsx (ya tiene fallback)
+- Despues de 5.2, Fase 5 queda COMPLETA

@@ -143,7 +143,7 @@ Validacion Fase 4 (Playwright MCP):
 
 ## Fase 5: Split Screen Context
 
-- [ ] **5.1** Crear `context/SplitScreenContext.tsx`
+- [x] **5.1** Crear `context/SplitScreenContext.tsx`
   - Props: `selectedEventId`, `highlightedEventId`, `selectEvent()`, `clearSelection()`
   - Render: Provider que envuelve children
   - Comportamiento:
