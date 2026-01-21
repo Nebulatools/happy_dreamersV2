@@ -877,3 +877,123 @@ La logica de exclusion ya estaba implementada correctamente:
 **Notes para proxima sesion:**
 - Tarea 8.1 COMPLETADA
 - Siguiente: 8.2 - Test suite completo Padre
+
+### Session 21 - 2026-01-20
+
+**Task:** 8.2 - Test suite completo Padre
+**Files:** Ninguno modificado - tarea de QA testing
+
+**Pruebas realizadas con Playwright MCP:**
+
+1. **Login como Padre** - eljulius@nebulastudios.io / juls0925 - PASA
+   - Redirecciona correctamente a /dashboard
+   - Muestra rol "Papa" y nombre "Julius" en header
+   - Nino activo: Elias Gael
+
+2. **Home feed muestra eventos** - PASA
+   - Seccion "Hoy" visible con NarrativeTimeline
+   - Inicialmente mostraba "No hay eventos registrados hoy" (empty state correcto)
+   - Registramos 6 eventos de prueba para verificar funcionalidad completa
+
+3. **Limite inicial de 5 eventos** - PASA
+   - Con 6 eventos, solo 5 son visibles inicialmente
+   - Boton "Ver todo (1 mas)" aparece correctamente
+
+4. **Ver todo / Colapsar** - PASA
+   - Click "Ver todo (1 mas)" -> expande a 6 eventos
+   - Boton cambia a "Colapsar"
+   - Click "Colapsar" -> vuelve a 5 eventos
+   - Screenshot estado colapsado: `qa-8.2-home-collapsed-with-ver-todo.png`
+   - Screenshot estado expandido: `qa-8.2-home-expanded-ver-todo.png`
+
+5. **Estado NO persiste** - PASA
+   - Expandimos lista -> refresh pagina
+   - Despues del refresh, vuelve a mostrar 5 eventos (estado colapsado)
+   - Confirma que el estado NO persiste entre navegaciones
+
+6. **Click chevron "Editar evento"** - PARCIAL
+   - Click en boton chevron -> callback se dispara
+   - Console log muestra: "Edit event: 69702ae9faf88dd1094eccf0"
+   - El eventId se pasa correctamente al callback onEventEdit
+   - **NOTA**: Modal de edicion NO abre porque Home page tiene placeholder console.log
+   - Esto es intencional segun Session 9 - integracion de EventEditRouter pendiente
+
+**Screenshots generados:**
+- `.playwright-mcp/qa-8.2-home-collapsed-with-ver-todo.png` - 5 eventos visibles con boton "Ver todo"
+- `.playwright-mcp/qa-8.2-home-expanded-ver-todo.png` - 6 eventos visibles con boton "Colapsar"
+- `.playwright-mcp/qa-8.2-chevron-click-logs-eventid.png` - Estado despues de click chevron
+
+**Patron descubierto - integracion pendiente:**
+El callback onEventEdit en Home page (`/dashboard`) actualmente solo hace console.log:
+```typescript
+onEventEdit={(eventId) => { console.log("Edit event:", eventId) }}
+```
+Para completar la funcionalidad, se debe integrar EventEditRouter similar a como esta en SplitScreenBitacora.
+
+**Verificacion de build:**
+- Servidor de desarrollo funcionando correctamente
+- Registros de eventos funcionan (feeding, medication, solids)
+
+**Eventos de prueba registrados:**
+1. Vitamina D (2 gotas) - 7:24 PM
+2. Paracetamol (10ml) - 7:24 PM
+3. Solidos - 7:24 PM
+4. Ibuprofeno (5ml) - 7:22 PM
+5. Pecho - 7:22 PM
+6. Biberon (4ml) - 7:20 PM
+
+**Notes para proxima sesion:**
+- Tarea 8.2 COMPLETADA
+- Siguiente: 8.3 - Test suite Responsive
+- Consideracion futura: Integrar EventEditRouter en Home page para modal de edicion
+
+### Session 22 - 2026-01-20
+
+**Task:** 8.3 - Test suite Responsive
+**Files:** Ninguno modificado - tarea de QA testing
+
+**Pruebas realizadas con Playwright MCP:**
+
+1. **Calendario Semanal - 3 Breakpoints**
+
+   | Breakpoint | Viewport | Resultado | Observaciones |
+   |------------|----------|-----------|---------------|
+   | Desktop | 1440x900 | PASA | Sidebar expandido, 7 columnas claras, todos los controles accesibles |
+   | Tablet | 768x1024 | PASA | Sidebar visible, columnas mas estrechas, bottom nav aparece |
+   | Mobile | 375x667 | PASA | Sidebar colapsado a hamburguesa, columnas compactas, bottom nav principal |
+
+2. **Admin Dashboard - 3 Breakpoints**
+
+   | Breakpoint | Viewport | Resultado | Observaciones |
+   |------------|----------|-----------|---------------|
+   | Desktop | 1440x900 | PASA | Cards en fila horizontal, sidebar completo |
+   | Tablet | 768x1024 | PASA | Cards en fila, sidebar visible |
+   | Mobile | 375x667 | PASA | Cards apiladas verticalmente, menu hamburguesa |
+
+**Breakpoints Tailwind verificados:**
+- `lg` (1024px) - Punto de cambio para grid 2 columnas a stack
+- `md` (768px) - Bottom navigation aparece
+- `sm` (640px) - Layout completamente mobile
+
+**Screenshots generados:**
+- `qa-8.3-responsive-desktop-1440px.png` - Calendario desktop
+- `qa-8.3-responsive-tablet-768px.png` - Calendario tablet
+- `qa-8.3-responsive-mobile-375px.png` - Calendario mobile
+- `qa-8.3-responsive-admin-dashboard-desktop-1440px.png`
+- `qa-8.3-responsive-admin-dashboard-tablet-768px.png`
+- `qa-8.3-responsive-admin-dashboard-mobile-375px.png`
+
+**Verificacion de build:**
+- `npm run build` - PASA completamente
+
+**Comportamientos responsive verificados:**
+1. Sidebar colapsa a hamburguesa en mobile (<768px)
+2. Bottom navigation aparece en mobile/tablet
+3. Cards de estadisticas se apilan verticalmente en mobile
+4. Calendario semanal comprime columnas pero mantiene 7 dias visibles
+5. Todos los botones y controles accesibles en todos los breakpoints
+
+**Notes para proxima sesion:**
+- Tarea 8.3 COMPLETADA
+- Siguiente: 8.4 - Test suite Edge Cases
+- El responsive funciona correctamente en los 3 breakpoints principales

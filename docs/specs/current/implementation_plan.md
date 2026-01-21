@@ -260,11 +260,14 @@ Validacion Fase 7 (Jest + Playwright MCP):
   - Verificar: Split screen, mirroring bidireccional, highlight fade, doble click editar
   - Screenshots: `qa-8.1-split-screen-layout.png`, `qa-8.1-mirroring-narrative-click.png`, `qa-8.1-edit-modal-doubleclick.png`
 
-- [ ] **8.2** Test suite completo Padre
+- [x] **8.2** Test suite completo Padre
   - Verificar: Home feed 5 eventos, Ver todo/Colapsar, click chevron editar
+  - Screenshots: `qa-8.2-home-collapsed-with-ver-todo.png`, `qa-8.2-home-expanded-ver-todo.png`
+  - **NOTA**: Click chevron dispara callback con eventId correctamente (console log confirma). Modal de edicion pendiente de integrar en Home page.
 
-- [ ] **8.3** Test suite Responsive
+- [x] **8.3** Test suite Responsive
   - Verificar: Mobile (375px), Tablet (768px), Desktop (1440px)
+  - Screenshots: `qa-8.3-responsive-*.png` (6 screenshots generados)
 
 - [ ] **8.4** Test suite Edge Cases
   - Verificar: Dia sin eventos, evento en progreso, datos incompletos
