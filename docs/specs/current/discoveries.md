@@ -684,3 +684,49 @@ overlayEvents.forEach(oe => processedEventIds.add(oe._id))
 - Siguiente: 7.3 - Crear test Jest para overlayEvents
 - Ubicacion: `__tests__/lib/utils/sleep-sessions.test.ts`
 - Tests deben verificar que overlayEvents contiene feeding/medication durante sueno
+
+### Session 17 - 2026-01-20
+
+**Task:** 7.3 - Crear test Jest para overlayEvents
+**Files:** `__tests__/lib/utils/sleep-sessions.test.ts` (nuevo)
+
+**Tests creados (19 tests, 100% pasan):**
+- overlayEvents - feeding durante sueno (5 tests)
+  - Detecta feeding durante sesion
+  - Detecta multiples feedings
+  - No incluye feeding antes del sueno
+  - No incluye feeding despues del sueno
+  - Excluye de otherEvents para evitar duplicacion
+- overlayEvents - medication durante sueno (2 tests)
+  - Detecta medication durante sesion
+  - Detecta mezcla de feeding y medication
+- overlayEvents - exclusion de tipos (4 tests)
+  - NO incluye night_waking (ya esta en nightWakings)
+  - NO incluye nap (es sesion separada)
+  - NO incluye wake
+  - NO incluye otro sleep
+- overlayEvents - extra_activities (1 test)
+- overlayEvents - sueno sin endTime (1 test)
+- nightWakings - separacion de overlayEvents (1 test)
+- sesiones multiples (1 test)
+- casos limite (4 tests)
+  - Evento exactamente en limite inicio/fin
+  - Lista vacia
+  - Eventos sin sleep
+
+**Patron de test:**
+```typescript
+function createEvent(overrides: Partial<Event> & { _id: string; eventType: string }): Event {
+  return {
+    childId: "child-123",
+    emotionalState: "calm",
+    startTime: "2026-01-20T08:00:00.000-06:00",
+    ...overrides,
+  }
+}
+```
+
+**Notes para proxima sesion:**
+- Siguiente: 7.4 - Modificar SleepSessionBlock para renderizar overlays
+- Los tests confirman que overlayEvents se llena correctamente
+- SleepSessionBlock necesita recibir overlayEvents y renderizarlos dentro del bloque

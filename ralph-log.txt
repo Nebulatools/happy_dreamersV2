@@ -322,3 +322,28 @@ RALPH_COMPLETE: Task [7.1] completed
 
 ═══ ITERACIÓN 16 - 18:57:34 ═══
 Tarea: - [ ] **7.2** Modificar `processSleepSessions()` para detectar overlays
+**RALPH_COMPLETE: Task [7.2] completed**
+
+---
+
+## Resumen de la Sesion 16
+
+| Campo | Valor |
+|-------|-------|
+| **Tarea** | 7.2 - Modificar `processSleepSessions()` para detectar overlays |
+| **Archivos** | `lib/utils/sleep-sessions.ts` |
+| **Lineas modificadas** | +22 lineas de logica de filtrado |
+| **Verificacion** | Lint OK, Build OK |
+| **Commit** | `620d082` |
+
+`★ Insight ─────────────────────────────────────`
+**Patron de deteccion de eventos superpuestos:**
+- Los eventos que ocurren durante el sueno se identifican por rango temporal
+- Se usa un Set para excluir tipos que ya tienen manejo especial (sleep, wake, night_waking, nap)
+- Los overlayEvents se marcan como procesados para evitar que aparezcan dos veces
+`─────────────────────────────────────────────────`
+
+**Siguiente tarea:** 7.3 - Crear test Jest para overlayEvents
+
+═══ ITERACIÓN 17 - 18:59:31 ═══
+Tarea: - [ ] **7.3** Crear test Jest para overlayEvents

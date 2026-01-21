@@ -225,7 +225,7 @@ Validacion Fase 6 (Playwright MCP):
     - Agregar a session.overlayEvents
   - Referencia: `sleep-sessions.ts:82-90`
 
-- [ ] **7.3** Crear test Jest para overlayEvents
+- [x] **7.3** Crear test Jest para overlayEvents
   - Input: Mock de eventos con feedings durante sueno
   - Output: Test verifica que overlayEvents contiene los correctos
   - Referencia: crear en `__tests__/lib/utils/sleep-sessions.test.ts`
