@@ -776,3 +776,42 @@ z-30: Night wakings - eventos urgentes (rojo)
 - Siguiente: 7.5 - Excluir overlayEvents de calculateEventColumns
 - Los overlayEvents ya no se duplicaran visualmente (estan en overlayEvents)
 - CalendarWeekView.tsx lineas 246-282 tiene calculateEventColumns
+
+### Session 19 - 2026-01-20
+
+**Task:** 7.5 - Excluir overlayEvents de calculateEventColumns (VERIFICACION)
+**Files:** Ninguno modificado - tarea ya implementada en Session 16
+
+**Verificacion realizada:**
+La logica de exclusion ya estaba implementada correctamente:
+
+1. `processSleepSessions()` linea 111 marca overlayEvents como procesados:
+   ```typescript
+   overlayEvents.forEach(oe => processedEventIds.add(oe._id))
+   ```
+
+2. `processSleepSessions()` linea 142 excluye procesados de otherEvents:
+   ```typescript
+   const otherEvents = dayEvents.filter(e => !processedEventIds.has(e._id))
+   ```
+
+3. `CalendarWeekView.tsx` linea 249 solo pasa otherEvents a calculateEventColumns:
+   ```typescript
+   const eventsWithColumns = calculateEventColumns(otherEvents as Event[])
+   ```
+
+**Test que confirma el comportamiento:**
+- "excluye overlayEvents de otherEvents para evitar duplicacion" (pasa)
+- 19 tests en sleep-sessions.test.ts pasan
+
+**Patron descubierto - implementacion anticipada:**
+- La tarea 7.5 fue resuelta como parte de 7.2 al marcar overlayEvents como procesados
+- El sistema de `processedEventIds` es la solucion elegante para evitar duplicacion
+- No se requiere modificacion adicional a calculateEventColumns
+
+**Resultado:** Tarea marcada como completada - fue implementada anticipadamente en 7.2
+
+**Notes para proxima sesion:**
+- Fase 7 COMPLETADA (7.1-7.5)
+- Siguiente: Fase 8 - QA Final y Regression Testing
+- Primera tarea: 8.1 - Test suite completo Admin

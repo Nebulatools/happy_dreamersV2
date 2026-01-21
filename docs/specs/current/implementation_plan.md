@@ -236,11 +236,12 @@ Validacion Fase 6 (Playwright MCP):
   - Comportamiento: Overlays con z-index mayor, mismo ancho que bloque base
   - Referencia: `SleepSessionBlock.tsx`
 
-- [ ] **7.5** Excluir overlayEvents de calculateEventColumns
+- [x] **7.5** Excluir overlayEvents de calculateEventColumns
   - Input: Modificar `CalendarWeekView.tsx`
   - Output: Eventos durante sueno NO se fragmentan
   - Comportamiento: Filtrar eventos que ya estan en overlayEvents de alguna sesion
   - Referencia: `CalendarWeekView.tsx:246-282`
+  - **NOTA**: Ya implementado en 7.2 - processedEventIds excluye overlayEvents de otherEvents
 
 Validacion Fase 7 (Jest + Playwright MCP):
 • `npm test -- sleep-sessions` pasa

@@ -366,3 +366,25 @@ La siguiente tarea es **7.4** - Modificar `SleepSessionBlock` para renderizar ov
 
 ═══ ITERACIÓN 18 - 19:02:21 ═══
 Tarea: - [ ] **7.4** Modificar `SleepSessionBlock` para renderizar overlays
+`★ Insight ─────────────────────────────────────`
+El patron de renderizar elementos como **hermanos** en lugar de **hijos** es crucial para z-index en React. Cuando los elementos son hijos del contenedor principal, su z-index esta limitado al stacking context del padre. Al renderizarlos como hermanos con posicion absoluta, cada uno crea su propio stacking context y el z-index funciona correctamente.
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task [7.4] completed
+
+**Resumen de la tarea 7.4:**
+
+Modifique `SleepSessionBlock.tsx` para renderizar `overlayEvents` (eventos que ocurren durante el sueno como feedings y medicaciones). Los cambios clave fueron:
+
+1. **Nueva prop `overlayEvents`** - Array de eventos durante sueno
+2. **Funcion `renderOverlayEventsAsSiblings()`** - Renderiza overlays con:
+   - Posicion absoluta calculada por hora
+   - Icono dinamico usando el registry centralizado
+   - z-index 20 (debajo de night_wakings pero arriba del bloque base)
+   - Handlers de click y doble click para interaccion
+3. **Actualizados CalendarDayView y CalendarWeekView** para pasar `overlayEvents` y handlers
+
+Los overlays ahora se muestran superpuestos sobre el bloque de sueno, con su icono correspondiente (Heart para pecho, Milk para biberon, Pill para medicamento, etc.) y el label del tipo de evento.
+
+═══ ITERACIÓN 19 - 19:05:59 ═══
+Tarea: - [ ] **7.5** Excluir overlayEvents de calculateEventColumns
