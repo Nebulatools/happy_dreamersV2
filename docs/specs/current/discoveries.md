@@ -609,3 +609,38 @@ if (event) {
 - Fase 6 COMPLETADA (6.1-6.5)
 - Siguiente: Fase 7 - Bug Fix Eventos Fragmentados en Sesiones de Sueno
 - Primera tarea: 7.1 - Agregar campo `overlayEvents` a interface SleepSession
+
+### Session 15 - 2026-01-20
+
+**Task:** 7.1 - Agregar campo `overlayEvents` a interface SleepSession
+**Files:** `lib/utils/sleep-sessions.ts` (modificado)
+
+**Cambios realizados:**
+1. Agregado campo `overlayEvents: Event[]` a interface `SleepSession` (linea 24)
+2. Inicializado `overlayEvents: []` en la funcion `processSleepSessions()` (linea 111)
+
+**Proposito del campo:**
+- Capturar eventos que ocurren DURANTE una sesion de sueno (feeding, medication, etc.)
+- Estos eventos actualmente se renderizan como bloques separados, fragmentando visualmente el sueno
+- Con `overlayEvents`, se renderizaran como superposiciones sobre el bloque base de sueno
+
+**Estructura actualizada:**
+```typescript
+export interface SleepSession {
+  type: "sleep-session"
+  startTime: string
+  endTime?: string
+  originalStartTime: string
+  originalEndTime?: string
+  nightWakings: Event[]
+  overlayEvents: Event[]  // NUEVO - eventos durante sueno
+  originalEvent: Event
+  isContinuationFromPrevious: boolean
+  continuesNextDay: boolean
+}
+```
+
+**Notes para proxima sesion:**
+- Siguiente: 7.2 - Modificar `processSleepSessions()` para detectar y poblar overlayEvents
+- La logica debe filtrar eventos con startTime dentro del rango [sleep.startTime, sleep.endTime]
+- Excluir night_waking (ya capturado en campo separado)

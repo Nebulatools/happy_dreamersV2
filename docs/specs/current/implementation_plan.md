@@ -211,7 +211,7 @@ Validacion Fase 6 (Playwright MCP):
 
 ## Fase 7: Bug Fix - Eventos Fragmentados en Sesiones de Sueno
 
-- [ ] **7.1** Agregar campo `overlayEvents` a interface SleepSession
+- [x] **7.1** Agregar campo `overlayEvents` a interface SleepSession
   - Input: Modificar `lib/utils/sleep-sessions.ts`
   - Output: Interface tiene `overlayEvents: Event[]`
   - Referencia: `sleep-sessions.ts:17-27`

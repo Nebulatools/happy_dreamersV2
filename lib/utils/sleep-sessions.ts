@@ -21,6 +21,7 @@ export interface SleepSession {
   originalStartTime: string // Tiempo original del evento completo
   originalEndTime?: string // Tiempo original del evento completo
   nightWakings: Event[]
+  overlayEvents: Event[] // Eventos que ocurren durante el sueno (feeding, medication, etc.)
   originalEvent: Event
   isContinuationFromPrevious: boolean
   continuesNextDay: boolean
@@ -108,6 +109,7 @@ export function processSleepSessions(
         originalStartTime: event.startTime, // Tiempo original completo
         originalEndTime: event.endTime, // Tiempo original completo
         nightWakings: nightWakings,
+        overlayEvents: [], // Se llena en tarea 7.2
         originalEvent: event,
         isContinuationFromPrevious,
         continuesNextDay,

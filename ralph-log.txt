@@ -268,3 +268,38 @@ RALPH_COMPLETE: Task [6.4] completed
 
 ═══ ITERACIÓN 14 - 18:52:12 ═══
 Tarea: - [ ] **6.5** Integrar SplitScreenBitacora en pagina admin
+`★ Insight ─────────────────────────────────────`
+**Patron de integracion de vistas duales:**
+1. **Estado de modo de vista** - `eventsViewMode: "split" | "list"` permite al usuario elegir
+2. **Filtrado por fecha** - `useMemo` con `isWithinInterval` para eventos del dia seleccionado
+3. **Toggle UI** - Botones con iconos Columns/List para cambiar de modo
+4. **Navegacion contextual** - Solo visible cuando el modo lo requiere (Split Screen)
+5. **Reutilizacion** - Vista Lista mantiene componente original (`EventsCalendarTabs`)
+`─────────────────────────────────────────────────`
+
+---
+
+**RALPH_COMPLETE: Task [6.5] completed**
+
+## Resumen de la Sesion 14
+
+**Tarea ejecutada:** 6.5 - Integrar SplitScreenBitacora en pagina admin
+
+**Archivo modificado:** `app/dashboard/patients/child/[childId]/AdminChildDetailClient.tsx`
+
+**Cambios clave:**
+1. Toggle entre **Split Screen** (Calendario + Narrativa) y **Lista** (vista original)
+2. Navegacion de fecha con botones anterior/siguiente en modo Split
+3. Filtrado de eventos por dia seleccionado usando `useMemo`
+4. `SplitScreenBitacora` integrado con `onEventUpdate` para refrescar despues de editar
+
+**Verificacion:**
+- Build pasa exitosamente
+- Pagina `/dashboard/patients/child/[childId]` compila (229 kB)
+
+**Fase 6 COMPLETADA** - Todas las tareas 6.1-6.5 estan implementadas.
+
+**Proxima tarea:** 7.1 - Agregar campo `overlayEvents` a interface SleepSession (inicio de Fase 7 - Bug Fix)
+
+═══ ITERACIÓN 15 - 18:55:58 ═══
+Tarea: - [ ] **7.1** Agregar campo `overlayEvents` a interface SleepSession
