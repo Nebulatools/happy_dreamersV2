@@ -313,7 +313,6 @@ export function EventEditRouter({
           const startTime = editOptions?.startTime || event.startTime
           await updateEvent({
             noteText: data.noteText,
-            notes: data.noteText, // Mantener compatibilidad con campo notes
             startTime,
           })
         }}

@@ -53,6 +53,7 @@ interface Event {
   startTime: string;
   endTime?: string;
   notes?: string;
+  noteText?: string; // Campo exclusivo para bitacoras (eventType: "note")
   duration?: number;
   feedingType?: "breast" | "bottle" | "solids";
 }
@@ -366,7 +367,7 @@ export function EventBlock({
       <div className="text-xs space-y-1">
         <div className="font-medium">{getEventTypeName()}</div>
         <div>{formatEventTime()}{durationText}</div>
-        {event.notes && <div className="text-gray-200">"{event.notes}"</div>}
+        {(event.notes || event.noteText) && <div className="text-gray-200 line-clamp-2">"{event.noteText || event.notes}"</div>}
         <div className="text-gray-200">Estado: {event.emotionalState}</div>
       </div>
     )
@@ -456,7 +457,7 @@ export function EventBlock({
       {showTooltip && (
         <div
           className={cn(
-            "absolute left-full top-0 ml-2 bg-gray-900 text-white p-2 rounded shadow-lg transition-opacity duration-200 z-20 whitespace-nowrap",
+            "absolute left-full top-0 ml-2 bg-gray-900 text-white p-2 rounded shadow-lg transition-opacity duration-200 z-20 whitespace-normal max-w-xs",
             // En dispositivos tactiles: controlado por estado
             isTouchDevice
               ? isMobileTooltipOpen
