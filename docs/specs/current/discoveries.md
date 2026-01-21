@@ -404,3 +404,42 @@ interface SplitScreenContextType {
 - Siguiente: 5.2 - Agregar animacion `highlight-fade` a tailwind.config.js
 - La clase `animate-highlight-fade` se usa en NarrativeCard.tsx (ya tiene fallback)
 - Despues de 5.2, Fase 5 queda COMPLETA
+
+### Session 11 - 2026-01-20
+
+**Task:** 5.2 - Agregar animacion highlight-fade a Tailwind
+**Files:** `tailwind.config.ts` (modificado)
+
+**Cambios realizados:**
+1. Agregada keyframe `highlight-fade` que transiciona de:
+   - backgroundColor: `rgb(254 249 195)` (yellow-100)
+   - boxShadow: `0 0 0 2px rgb(250 204 21)` (ring-yellow-400)
+   - A transparente
+2. Agregada animacion `animate-highlight-fade` con duracion 6s, ease-out, forwards
+
+**Detalles tecnicos:**
+```javascript
+"highlight-fade": {
+  "0%": {
+    backgroundColor: "rgb(254 249 195)", // yellow-100
+    boxShadow: "0 0 0 2px rgb(250 204 21)" // ring-yellow-400
+  },
+  "100%": {
+    backgroundColor: "transparent",
+    boxShadow: "0 0 0 0 transparent"
+  },
+},
+animation: {
+  "highlight-fade": "highlight-fade 6s ease-out forwards",
+}
+```
+
+**Pattern aplicado:**
+- `forwards` mantiene el estado final (transparente) despues de terminar
+- 6 segundos coincide con `HIGHLIGHT_DURATION_MS` de SplitScreenContext.tsx
+- NarrativeCard.tsx ya usa la clase (linea 101)
+
+**Notes para proxima sesion:**
+- Fase 5 COMPLETADA (5.1 SplitScreenContext + 5.2 animacion)
+- Siguiente: Fase 6 - Split Screen Bitacora Admin
+- Primera tarea: 6.1 - Crear `components/bitacora/SplitScreenBitacora.tsx`

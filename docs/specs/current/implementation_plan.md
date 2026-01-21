@@ -151,7 +151,7 @@ Validacion Fase 4 (Playwright MCP):
     - Click rapido cancela timeout anterior
   - Referencia: spec lines 135-145
 
-- [ ] **5.2** Agregar animacion highlight-fade a Tailwind
+- [x] **5.2** Agregar animacion highlight-fade a Tailwind
   - Input: Nueva keyframe en tailwind.config.js
   - Output: Clase `animate-highlight-fade` disponible
   - Comportamiento: Fade de amarillo a transparente en 6s

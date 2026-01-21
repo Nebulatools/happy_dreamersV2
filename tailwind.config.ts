@@ -88,11 +88,22 @@ const config = {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(200%)" },
         },
+        "highlight-fade": {
+          "0%": {
+            backgroundColor: "rgb(254 249 195)", // yellow-100
+            boxShadow: "0 0 0 2px rgb(250 204 21)" // ring-yellow-400
+          },
+          "100%": {
+            backgroundColor: "transparent",
+            boxShadow: "0 0 0 0 transparent"
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         shimmer: "shimmer 3s infinite linear",
+        "highlight-fade": "highlight-fade 6s ease-out forwards",
       },
     },
   },
