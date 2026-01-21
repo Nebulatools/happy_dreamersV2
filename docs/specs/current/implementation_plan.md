@@ -16,7 +16,7 @@ Fecha: 2026-01-20
 
 ## Fase 0: Activation & Smoke Test
 
-- [ ] **0.1** Crear archivo `lib/icons/event-icons.ts` con estructura base
+- [x] **0.1** Crear archivo `lib/icons/event-icons.ts` con estructura base
   - Output: Archivo exporta `EVENT_ICONS` y `getEventIconType()`
   - Comportamiento: Retorna config de icono segun eventType + feedingType
   - Referencia: ver `components/calendar/EventGlobe.tsx:117-134` para mapa actual

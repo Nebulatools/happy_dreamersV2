@@ -35,3 +35,36 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Iconos actuales usan switch-case en EventGlobe.tsx
 - Sleep sessions NO detectan feeding/medication durante sueno (bug conocido)
 - Playwright MCP para testing, NO npx playwright test
+
+### Session 1 - 2026-01-20
+
+**Task:** 0.1 - Crear archivo `lib/icons/event-icons.ts` con estructura base
+**Files:** `lib/icons/event-icons.ts` (nuevo)
+
+**Patterns descubiertos:**
+- ESLint requiere if-statements en lugar de switch-case para evitar errores de indentacion
+- El proyecto tiene errores de lint pre-existentes en otros archivos (no bloquean build)
+- TypeScript skipLibCheck es necesario para lucide-react (error ReactSVG)
+
+**Estructura del registry:**
+```typescript
+export const EVENT_ICONS: Record<EventIconType, EventIconConfig>
+export function getEventIconType(eventType, feedingType): EventIconType
+export function getEventIconConfig(eventType, feedingType): EventIconConfig
+```
+
+**Taxonomia implementada:**
+- sleep: Moon (indigo)
+- nap: CloudMoon (violet) - DIFERENTE a sleep
+- wake: Sun (yellow)
+- night_waking: Baby (purple)
+- feeding_breast: Heart (pink)
+- feeding_bottle: Milk (sky)
+- feeding_solids: UtensilsCrossed (emerald)
+- medication: Pill (blue)
+- extra_activities: Activity (orange)
+
+**Notes para proxima sesion:**
+- Tarea 1.1 debe implementar los colores exactos en el registry
+- EventGlobe.tsx:117-134 debe ser reemplazado para usar getEventIconConfig()
+- EventBlock.tsx tambien necesita actualizarse
