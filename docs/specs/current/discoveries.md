@@ -178,3 +178,43 @@ const getEventIcon = () => {
 - Siguiente: 2.2 - Crear tests Jest para `generateNarrative()`
 - Los tests deben cubrir cada formato del spec
 - Ubicacion: `__tests__/lib/narrative/generate-narrative.test.ts`
+
+### Session 5 - 2026-01-20
+
+**Task:** 2.2 - Crear test Jest para `generateNarrative()`
+**Files:**
+- `__tests__/lib/narrative/generate-narrative.test.ts` (nuevo)
+- `jest.config.js` (nuevo - configuracion ts-jest)
+
+**Descubrimiento critico:**
+- Jest NO estaba configurado para TypeScript a pesar de tener ts-jest instalado
+- Otros tests del proyecto tampoco funcionaban (ej: `event.test.ts`)
+- Creado `jest.config.js` con preset ts-jest y moduleNameMapper para @/
+
+**Configuracion Jest agregada:**
+```javascript
+{
+  preset: "ts-jest",
+  testEnvironment: "node",
+  moduleNameMapper: { "^@/(.*)$": "<rootDir>/$1" },
+  transform: { "^.+\\.tsx?$": ["ts-jest", {...}] }
+}
+```
+
+**Tests creados (47 tests, 100% pasan):**
+- Alimentacion: breast (2), bottle (3), solids (2), fallback (2)
+- Sueno: sleep (4), nap (4)
+- Despertares: wake (2), night_waking (4)
+- Otros: medication (3), extra_activities (4), note (4), unknown (1)
+- Formato duracion: minutos, horas, horas+minutos (4)
+- generateTimeMetadata: 8 tests
+
+**Mock de datetime:**
+- Mock sin tipos TypeScript en funcion factory (Jest/Babel limitation)
+- formatForDisplay mockeado para producir "8:30 PM" consistentemente
+- parseTimestamp mockeado como wrapper de new Date()
+
+**Notes para proxima sesion:**
+- Fase 2 COMPLETADA - Narrativa logica + tests funcionando
+- Siguiente: Fase 3 - Componentes Narrativos UI (NarrativeCard, NarrativeTimeline)
+- jest.config.js permite ejecutar todos los tests del proyecto ahora

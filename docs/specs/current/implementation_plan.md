@@ -71,7 +71,7 @@ Validacion Fase 1 (Playwright MCP):
     - Dato faltante -> omitir (NO placeholder)
   - Referencia: ver spec lines 52-61
 
-- [ ] **2.2** Crear test Jest para `generateNarrative()`
+- [x] **2.2** Crear test Jest para `generateNarrative()`
   - Input: Casos de prueba por tipo de evento
   - Output: Tests pasan
   - Comportamiento: Verificar cada formato de narrativa
