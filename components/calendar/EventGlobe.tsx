@@ -3,7 +3,7 @@
 
 import React, { useState } from "react"
 import { createPortal } from "react-dom"
-import { Moon, Sun, Clock, Baby, Utensils, UtensilsCrossed, Pill, Activity } from "lucide-react"
+import { getEventIconConfig, EVENT_ICONS } from "@/lib/icons/event-icons"
 
 interface Event {
   _id: string;
@@ -98,55 +98,32 @@ export function EventGlobe({ event, hourHeight = 30, onClick, column = 0, totalC
     isTruncated = true
   }
   
-  // 🎨 COLOR POR TIPO DE EVENTO
+  // 🎨 COLOR POR TIPO DE EVENTO - Usando registry centralizado
   const getColor = () => {
-    switch (event.eventType) {
-    case "nap": return "bg-orange-400 text-white"
-    case "sleep": return "bg-blue-400 text-white"
-    case "wake": return "bg-wake text-white"
-    case "night_waking": return "bg-night-wake text-white"
-    case "feeding":
-    case "night_feeding": return "bg-feeding text-white"
-    case "medication": return "bg-medication text-white"
-    case "extra_activities": return "bg-extra-activities text-white"
-    default: return "bg-gray-400 text-white"
-    }
+    const config = getEventIconConfig(event.eventType, event.feedingType)
+    return `${config.bgColor} text-white`
   }
   
-  // Icono Lucide segun tipo de evento - Con stroke negro para contraste
+  // Icono Lucide segun tipo de evento - Usando registry centralizado
   const getIcon = () => {
     const iconClass = "h-3 w-3 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]"
-    switch (event.eventType) {
-    case "nap": return <Sun className={iconClass} style={{ color: "#f59e0b" }} />
-    case "sleep": return <Moon className={iconClass} style={{ color: "#6366f1" }} />
-    case "wake": return <Sun className={iconClass} style={{ color: "#eab308" }} />
-    case "night_waking": return <Baby className={iconClass} style={{ color: "#a855f7" }} />
-    case "feeding":
-    case "night_feeding":
-      // Solidos = icono diferente, liquidos (breast/bottle) = mismo icono
-      if (event.feedingType === "solids") {
-        return <UtensilsCrossed className={iconClass} style={{ color: "#22c55e" }} />
-      }
-      return <Utensils className={iconClass} style={{ color: "#22c55e" }} />
-    case "medication": return <Pill className={iconClass} style={{ color: "#3b82f6" }} />
-    case "extra_activities": return <Activity className={iconClass} style={{ color: "#f97316" }} />
-    default: return <Clock className={iconClass} style={{ color: "#6b7280" }} />
-    }
+    const config = getEventIconConfig(event.eventType, event.feedingType)
+    const IconComponent = config.icon
+    return <IconComponent className={iconClass} style={{ color: config.color }} />
   }
   
-  // 📝 NOMBRE DEL EVENTO
+  // 📝 NOMBRE DEL EVENTO - Usando registry centralizado
   const getName = () => {
-    const names: Record<string, string> = {
-      nap: "Siesta",
-      sleep: "Dormir",
-      wake: "Despertar",
-      night_waking: "Despertar nocturno",
-      feeding: "Alimentación",
-      night_feeding: "Toma nocturna",
-      medication: "Medicamento",
-      extra_activities: "Actividad Extra",
+    const config = getEventIconConfig(event.eventType, event.feedingType)
+    // Para feeding, incluir el tipo específico en el nombre
+    if (event.eventType === "feeding" || event.eventType === "night_feeding") {
+      const prefix = event.eventType === "night_feeding" ? "Toma nocturna" : "Alimentación"
+      if (event.feedingType === "breast") return `${prefix} (Pecho)`
+      if (event.feedingType === "bottle") return `${prefix} (Biberón)`
+      if (event.feedingType === "solids") return `${prefix} (Sólidos)`
+      return prefix
     }
-    return names[event.eventType] || event.eventType
+    return config.label
   }
 
   // ⏱️ FORMATEAR DURACIÓN

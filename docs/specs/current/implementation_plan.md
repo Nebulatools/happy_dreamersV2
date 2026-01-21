@@ -29,7 +29,7 @@ Validacion Fase 0:
 
 ## Fase 1: Taxonomia Visual - Registry de Iconos
 
-- [ ] **1.1** Implementar `EVENT_ICONS` record completo
+- [x] **1.1** Implementar `EVENT_ICONS` record completo
   - Input: EventType (sleep, nap, wake, feeding, etc.)
   - Output: `{ icon: LucideIcon, color: string, bgColor: string, label: string }`
   - Comportamiento:
@@ -39,7 +39,7 @@ Validacion Fase 0:
     - `nap` -> CloudMoon (violet) - diferente a sleep
   - Referencia: ver mapa de iconos en spec lines 77-89
 
-- [ ] **1.2** Modificar `EventGlobe.tsx` para usar nuevo registry
+- [x] **1.2** Modificar `EventGlobe.tsx` para usar nuevo registry
   - Input: Importar `getEventIconType()` y `EVENT_ICONS`
   - Output: Iconos renderizados con colores correctos
   - Comportamiento: Reemplazar switch case por lookup en registry

@@ -68,3 +68,41 @@ export function getEventIconConfig(eventType, feedingType): EventIconConfig
 - Tarea 1.1 debe implementar los colores exactos en el registry
 - EventGlobe.tsx:117-134 debe ser reemplazado para usar getEventIconConfig()
 - EventBlock.tsx tambien necesita actualizarse
+
+### Session 2 - 2026-01-20
+
+**Task:** 1.1 + 1.2 - Verificar registry completo y modificar EventGlobe.tsx
+**Files:** `components/calendar/EventGlobe.tsx` (modificado)
+
+**Patterns descubiertos:**
+- Tarea 1.1 ya estaba implementada en session anterior (registro completo en lib/icons/event-icons.ts)
+- EventGlobe.tsx tenia 3 funciones con switch-case que fueron reemplazadas:
+  - `getColor()` -> ahora usa `getEventIconConfig().bgColor`
+  - `getIcon()` -> ahora usa `getEventIconConfig().icon` con componente dinamico
+  - `getName()` -> ahora usa `getEventIconConfig().label` con logica especial para feeding
+- La importacion de Lucide icons individuales fue removida, solo se importa el registry
+
+**Refactorizacion aplicada:**
+```typescript
+// ANTES (30+ lineas de switch-case)
+const getIcon = () => {
+  switch (event.eventType) {
+    case "nap": return <Sun ... />
+    case "sleep": return <Moon ... />
+    // ... 8+ casos
+  }
+}
+
+// DESPUES (5 lineas)
+const getIcon = () => {
+  const config = getEventIconConfig(event.eventType, event.feedingType)
+  const IconComponent = config.icon
+  return <IconComponent className={iconClass} style={{ color: config.color }} />
+}
+```
+
+**Notes para proxima sesion:**
+- EventBlock.tsx tiene la MISMA duplicacion (4 funciones con switch-case)
+- CompactEventBlock tambien tiene funciones duplicadas (2 mas)
+- Total ~100 lineas de codigo a eliminar en tarea 1.3
+- Considerar si SleepSessionBlock tambien necesita actualizarse
