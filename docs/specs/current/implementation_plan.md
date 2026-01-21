@@ -216,7 +216,7 @@ Validacion Fase 6 (Playwright MCP):
   - Output: Interface tiene `overlayEvents: Event[]`
   - Referencia: `sleep-sessions.ts:17-27`
 
-- [ ] **7.2** Modificar `processSleepSessions()` para detectar overlays
+- [x] **7.2** Modificar `processSleepSessions()` para detectar overlays
   - Input: Eventos durante rango de sleep
   - Output: `overlayEvents` contiene feeding/medication durante sueno
   - Comportamiento:

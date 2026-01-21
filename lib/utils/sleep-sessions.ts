@@ -81,14 +81,34 @@ export function processSleepSessions(
       }
       
       // Buscar despertares nocturnos dentro del rango de sueño
-      const nightWakings = dayEvents.filter(e => 
-        e.eventType === "night_waking" && 
+      const nightWakings = dayEvents.filter(e =>
+        e.eventType === "night_waking" &&
         e.startTime > event.startTime &&
         (!event.endTime || e.startTime < event.endTime)
       )
-      
+
       // Marcar night_wakings como procesados
       nightWakings.forEach(nw => processedEventIds.add(nw._id))
+
+      // Buscar eventos overlay (feeding, medication, etc.) dentro del rango de sueno
+      // Excluir: sleep, wake, night_waking (ya manejados), nap (es una sesion separada)
+      const excludedTypes = new Set(["sleep", "wake", "night_waking", "nap"])
+      const overlayEvents = dayEvents.filter(e => {
+        // No incluir tipos excluidos
+        if (excludedTypes.has(e.eventType)) return false
+        // No incluir el evento de sueno actual
+        if (e._id === event._id) return false
+        // Ya procesado
+        if (processedEventIds.has(e._id)) return false
+        // El evento debe empezar despues del inicio del sueno
+        if (e.startTime <= event.startTime) return false
+        // Si hay endTime, el evento debe empezar antes del fin del sueno
+        if (event.endTime && e.startTime >= event.endTime) return false
+        return true
+      })
+
+      // Marcar overlayEvents como procesados para que no aparezcan en otherEvents
+      overlayEvents.forEach(oe => processedEventIds.add(oe._id))
       
       // Si hay endTime, buscar evento wake correspondiente y marcarlo como procesado
       if (event.endTime) {
@@ -109,7 +129,7 @@ export function processSleepSessions(
         originalStartTime: event.startTime, // Tiempo original completo
         originalEndTime: event.endTime, // Tiempo original completo
         nightWakings: nightWakings,
-        overlayEvents: [], // Se llena en tarea 7.2
+        overlayEvents: overlayEvents, // Eventos durante sueno (feeding, medication, etc.)
         originalEvent: event,
         isContinuationFromPrevious,
         continuesNextDay,

@@ -303,3 +303,22 @@ Tarea: - [ ] **6.5** Integrar SplitScreenBitacora en pagina admin
 
 ═══ ITERACIÓN 15 - 18:55:58 ═══
 Tarea: - [ ] **7.1** Agregar campo `overlayEvents` a interface SleepSession
+`★ Insight ─────────────────────────────────────`
+**Patron Interface-First:** Agregamos el campo a la interface ANTES de implementar la logica. Esto permite:
+1. El build sigue pasando porque `overlayEvents: []` es un valor valido
+2. Otros componentes pueden empezar a tipar contra el nuevo campo
+3. La implementacion de la logica (tarea 7.2) sera un cambio aislado
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task [7.1] completed
+
+**Resumen de la sesion:**
+- Agregado campo `overlayEvents: Event[]` a interface `SleepSession`
+- Inicializado como array vacio en `processSleepSessions()`
+- Build pasa exitosamente
+- Commit realizado: `c48ec36`
+
+**Siguiente tarea:** 7.2 - Modificar `processSleepSessions()` para detectar y poblar overlayEvents con eventos que ocurren durante el rango de sueno.
+
+═══ ITERACIÓN 16 - 18:57:34 ═══
+Tarea: - [ ] **7.2** Modificar `processSleepSessions()` para detectar overlays

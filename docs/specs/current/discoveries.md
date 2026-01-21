@@ -644,3 +644,43 @@ export interface SleepSession {
 - Siguiente: 7.2 - Modificar `processSleepSessions()` para detectar y poblar overlayEvents
 - La logica debe filtrar eventos con startTime dentro del rango [sleep.startTime, sleep.endTime]
 - Excluir night_waking (ya capturado en campo separado)
+
+### Session 16 - 2026-01-20
+
+**Task:** 7.2 - Modificar `processSleepSessions()` para detectar overlays
+**Files:** `lib/utils/sleep-sessions.ts` (modificado)
+
+**Cambios realizados:**
+1. Creado Set de tipos excluidos: `sleep`, `wake`, `night_waking`, `nap`
+2. Agregada logica de filtrado para `overlayEvents`:
+   - Evento no es tipo excluido
+   - Evento no es el sleep actual
+   - Evento no ya procesado
+   - `startTime` > `event.startTime` (despues del inicio del sueno)
+   - `startTime` < `event.endTime` (antes del fin del sueno, si existe)
+3. Marcado de `overlayEvents` como procesados para evitar duplicacion en `otherEvents`
+4. Actualizado el push de sesion para usar `overlayEvents` en lugar de array vacio
+
+**Logica de filtrado:**
+```typescript
+const excludedTypes = new Set(["sleep", "wake", "night_waking", "nap"])
+const overlayEvents = dayEvents.filter(e => {
+  if (excludedTypes.has(e.eventType)) return false
+  if (e._id === event._id) return false
+  if (processedEventIds.has(e._id)) return false
+  if (e.startTime <= event.startTime) return false
+  if (event.endTime && e.startTime >= event.endTime) return false
+  return true
+})
+overlayEvents.forEach(oe => processedEventIds.add(oe._id))
+```
+
+**Patron clave - deteccion de overlays:**
+- Los eventos durante sueno (feeding, medication) ahora se capturan en `overlayEvents`
+- Esto permite renderizarlos como capas superpuestas sobre el bloque de sueno
+- Evita la fragmentacion visual que ocurria antes (eventos mostrados como columnas separadas)
+
+**Notes para proxima sesion:**
+- Siguiente: 7.3 - Crear test Jest para overlayEvents
+- Ubicacion: `__tests__/lib/utils/sleep-sessions.test.ts`
+- Tests deben verificar que overlayEvents contiene feeding/medication durante sueno
