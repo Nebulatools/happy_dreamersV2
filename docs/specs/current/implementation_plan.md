@@ -100,11 +100,12 @@ Validacion Fase 2:
     - Empty state: "No hay eventos registrados hoy"
   - Referencia: ver spec lines 64-77
 
-- [ ] **3.3** Agregar skeleton loader y empty state
+- [x] **3.3** Agregar skeleton loader y empty state
   - Input: `isLoading` prop en NarrativeTimeline
   - Output: Skeleton circular + lineas mientras carga
   - Comportamiento: Mostrar 5 skeletons por defecto
   - Referencia: ver shadcn Skeleton
+  - **NOTA**: Ya implementado en tarea 3.2 - NarrativeCardSkeleton + EmptyState
 
 Validacion Fase 3 (Playwright MCP):
 • Login como Padre -> `/dashboard`
