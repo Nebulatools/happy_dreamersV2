@@ -218,3 +218,45 @@ const getEventIcon = () => {
 - Fase 2 COMPLETADA - Narrativa logica + tests funcionando
 - Siguiente: Fase 3 - Componentes Narrativos UI (NarrativeCard, NarrativeTimeline)
 - jest.config.js permite ejecutar todos los tests del proyecto ahora
+
+### Session 6 - 2026-01-20
+
+**Task:** 3.1 - Crear `components/narrative/NarrativeCard.tsx`
+**Files:** `components/narrative/NarrativeCard.tsx` (nuevo)
+
+**Estructura del componente:**
+```typescript
+interface NarrativeCardProps {
+  event: NarrativeEvent & { _id?: string }
+  childName: string
+  timezone?: string
+  isHighlighted?: boolean  // Para mirroring
+  onClick?: (eventId: string) => void  // Click simple -> scroll en calendario
+  onEdit?: (eventId: string) => void   // Doble click o chevron -> modal edicion
+  cardRef?: React.RefObject<HTMLDivElement>  // Para scroll-into-view
+}
+```
+
+**Anatomia implementada (segun spec lines 36-48):**
+1. Icono circular (izquierda) - usa `getEventIconConfig()` del registry
+2. Narrativa (centro) - usa `generateNarrative()` + hora con `generateTimeMetadata()`
+3. Chevron (derecha) - boton para abrir edicion
+
+**Integraciones:**
+- `lib/icons/event-icons.ts` - Taxonomia visual (Fase 1)
+- `lib/narrative/generate-narrative.ts` - Texto narrativo (Fase 2)
+- `lib/datetime.ts` - DEFAULT_TIMEZONE
+
+**Interacciones implementadas:**
+- Click simple -> `onClick(eventId)` (para mirroring con calendario)
+- Doble click -> `onEdit(eventId)` (abre modal edicion)
+- Click en chevron -> `onEdit(eventId)` con stopPropagation
+
+**Clase CSS para highlight:**
+- `animate-highlight-fade` - Requiere implementacion en tailwind.config.js (Fase 5)
+- Por ahora usa fallback con `ring-2 ring-yellow-400 bg-yellow-50/50`
+
+**Notes para proxima sesion:**
+- Siguiente: 3.2 - Crear NarrativeTimeline.tsx (lista de NarrativeCards)
+- NarrativeTimeline necesita: ordenamiento cronologico inverso, collapsible, empty state
+- La clase `animate-highlight-fade` se implementara en Fase 5 (5.2)

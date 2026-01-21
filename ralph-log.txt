@@ -76,3 +76,45 @@ RALPH_COMPLETE: Task [1.3] completed
 
 ═══ ITERACIÓN 4 - 18:24:48 ═══
 Tarea: - [ ] **2.1** Crear `lib/narrative/generate-narrative.ts`
+`★ Insight ─────────────────────────────────────`
+**Patrón de Degradación Elegante en Narrativas**
+1. **Omisión vs Placeholder**: El enfoque de omitir datos faltantes es más limpio que mostrar "undefined" o "N/A". Esto mejora significativamente la legibilidad.
+2. **Generadores Modulares**: Cada tipo de evento tiene su propio generador, facilitando mantener y extender el código sin afectar otros tipos.
+3. **Timezone-aware**: La función acepta timezone como parámetro, respetando el patrón establecido en `lib/datetime.ts` para usuarios en diferentes zonas horarias de México.
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task [2.1] completed
+
+**Resumen de la sesión:**
+- Creado `lib/narrative/generate-narrative.ts` con:
+  - Interface `NarrativeEvent` para tipar eventos
+  - Función `generateNarrative()` que produce oraciones en español
+  - Función `generateTimeMetadata()` para metadatos de hora
+  - 8 generadores específicos por tipo de evento
+  - Funciones auxiliares para formateo de tiempo y duración
+- Build y lint verificados exitosamente
+- Documentado en discoveries.md
+- Plan actualizado marcando tarea 2.1 como completada
+
+**Siguiente tarea:** 2.2 - Crear tests Jest para `generateNarrative()`
+
+═══ ITERACIÓN 5 - 18:27:16 ═══
+Tarea: - [ ] **2.2** Crear test Jest para `generateNarrative()`
+RALPH_COMPLETE: Task 2.2 completed
+
+**Resumen de la sesión:**
+
+| Item | Detalle |
+|------|---------|
+| **Tarea** | 2.2 - Crear test Jest para `generateNarrative()` |
+| **Archivos creados** | `__tests__/lib/narrative/generate-narrative.test.ts`, `jest.config.js` |
+| **Tests** | 47 tests, todos pasan |
+| **Verificación** | `npm run build` ✓, `npm test -- generate-narrative` ✓ |
+| **Commit** | `fbed87b` |
+
+**Descubrimiento importante:** El proyecto no tenía `jest.config.js` configurado correctamente para TypeScript a pesar de tener ts-jest instalado. Esto causaba que TODOS los tests del proyecto fallaran. La configuración creada ahora permite ejecutar tests en todo el proyecto.
+
+**Siguiente tarea:** 3.1 - Crear `components/narrative/NarrativeCard.tsx`
+
+═══ ITERACIÓN 6 - 18:31:50 ═══
+Tarea: - [ ] **3.1** Crear `components/narrative/NarrativeCard.tsx`

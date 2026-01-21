@@ -85,7 +85,7 @@ Validacion Fase 2:
 
 ## Fase 3: Componentes Narrativos - UI
 
-- [ ] **3.1** Crear `components/narrative/NarrativeCard.tsx`
+- [x] **3.1** Crear `components/narrative/NarrativeCard.tsx`
   - Props: `{ event, childName, isHighlighted?, onClick?, onEdit? }`
   - Render: Icono circular + texto narrativo + hora + chevron
   - Comportamiento: Click en chevron llama `onEdit`, click en card llama `onClick`
