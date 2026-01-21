@@ -325,3 +325,47 @@ export function scrollToNarrativeEvent(eventId: string, containerRef?): void
 - Fase 3 COMPLETADA
 - Siguiente: Fase 4 - Integracion Home Padres
 - Primera tarea: 4.1 - Integrar NarrativeTimeline en dashboard Home
+
+### Session 9 - 2026-01-20
+
+**Task:** 4.1 + 4.2 - Integrar NarrativeTimeline en dashboard Home + Ver todo/Colapsar
+**Files:** `app/dashboard/page.tsx` (modificado)
+
+**Cambios realizados:**
+1. Agregado import de `NarrativeTimeline` y `NarrativeTimelineEvent`
+2. Agregado import de `useMemo` a React hooks
+3. Expandido interface `Event` local para incluir todos los campos de narrativa:
+   - feedingType, feedingAmount, feedingDuration, isNightFeeding
+   - sleepDelay, awakeDelay
+   - medicationName, medicationDose
+   - activityDescription, activityDuration
+   - duration
+4. Agregado `todayNarrativeEvents` useMemo que:
+   - Filtra eventos del dia actual
+   - Excluye notas (tienen seccion separada)
+   - Mapea todos los campos necesarios para narrativa
+5. Nueva seccion "Hoy" con Card + NarrativeTimeline
+
+**Props usadas en integracion:**
+```typescript
+<NarrativeTimeline
+  events={todayNarrativeEvents}
+  childName={child.firstName}
+  collapsible={true}
+  initialLimit={5}
+  isLoading={isLoading}
+  emptyMessage="No hay eventos registrados hoy"
+  onEventEdit={(eventId) => { /* TODO: Fase 4.2 - modal */ }}
+/>
+```
+
+**Descubrimiento clave:**
+- La tarea 4.2 "Ver todo/Colapsar" ya estaba IMPLEMENTADA dentro de NarrativeTimeline
+- Solo requiere `collapsible=true, initialLimit=5` como props
+- El boton y logica de expansion/colapso es parte del componente
+- Estado NO persiste (siempre inicia colapsado) - cumple spec line 69
+
+**Notes para proxima sesion:**
+- Fase 4 COMPLETADA (4.1 + 4.2)
+- Falta implementar `onEventEdit` para abrir modal de edicion (tiene console.log placeholder)
+- Siguiente: Fase 5 - Split Screen Context

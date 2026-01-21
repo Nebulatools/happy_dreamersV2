@@ -117,17 +117,18 @@ Validacion Fase 3 (Playwright MCP):
 
 ## Fase 4: Integracion Home Padres
 
-- [ ] **4.1** Integrar NarrativeTimeline en dashboard Home
+- [x] **4.1** Integrar NarrativeTimeline en dashboard Home
   - Input: Eventos del dia actual
   - Output: Feed de narrativa visible en Home
   - Comportamiento: `collapsible=true, initialLimit=5`
   - Referencia: ver `app/dashboard/page.tsx` o similar
 
-- [ ] **4.2** Implementar "Ver todo" / "Colapsar"
+- [x] **4.2** Implementar "Ver todo" / "Colapsar"
   - Input: Click en boton
   - Output: Lista expande/colapsa
   - Comportamiento: Estado NO persiste (siempre inicia colapsado)
   - Referencia: spec lines 64-69
+  - **NOTA**: Ya implementado en NarrativeTimeline - solo requiere props `collapsible=true`
 
 Validacion Fase 4 (Playwright MCP):
 • Login como Padre -> `/dashboard`

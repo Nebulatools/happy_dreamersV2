@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense, lazy, useCallback } from "react"
+import { useState, useEffect, Suspense, lazy, useCallback, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -16,6 +16,9 @@ const SleepMetricsCombinedChart = lazy(() => import("@/components/child-profile/
 // Sistema de eventos - Nueva implementación v1.0
 import { EventRegistration } from "@/components/events"
 import { PlanSummaryCard } from "@/components/parent/PlanSummaryCard"
+// Vista narrativa de eventos (Fase 4)
+import { NarrativeTimeline } from "@/components/narrative/NarrativeTimeline"
+import type { NarrativeTimelineEvent } from "@/components/narrative/NarrativeTimeline"
 import { 
   Moon, Sun, Activity, TrendingUp, Calendar, MessageSquare, 
   Lightbulb, ChevronLeft, ChevronRight, Send, X,
@@ -54,9 +57,25 @@ interface Event {
   emotionalState: string
   startTime: string
   endTime?: string
+  duration?: number
   notes?: string
   noteText?: string // Campo exclusivo para bitacoras (eventType: "note")
   createdAt: string
+  // Campos de alimentacion (para narrativa)
+  feedingType?: "breast" | "bottle" | "solids"
+  feedingAmount?: number
+  feedingDuration?: number
+  isNightFeeding?: boolean
+  // Campos de sueno
+  sleepDelay?: number
+  // Campos de despertar nocturno
+  awakeDelay?: number
+  // Campos de medicamento
+  medicationName?: string
+  medicationDose?: string
+  // Campos de actividades
+  activityDescription?: string
+  activityDuration?: number
 }
 
 
@@ -417,6 +436,41 @@ export default function DashboardPage() {
     .slice(-5)
     .reverse()
 
+  // Eventos del dia actual para NarrativeTimeline (excluir notas, ya tienen su seccion)
+  const todayNarrativeEvents: NarrativeTimelineEvent[] = useMemo(() => {
+    const today = new Date()
+    return events
+      .filter(e => {
+        if (!e.startTime) return false
+        if (e.eventType === "note") return false // Las notas tienen seccion separada
+        return isSameDay(parseISO(e.startTime), today)
+      })
+      .map(e => ({
+        _id: e._id,
+        eventType: e.eventType as NarrativeTimelineEvent["eventType"],
+        startTime: e.startTime,
+        endTime: e.endTime,
+        duration: e.duration,
+        notes: e.notes,
+        noteText: e.noteText,
+        // Campos de alimentacion
+        feedingType: e.feedingType,
+        feedingAmount: e.feedingAmount,
+        feedingDuration: e.feedingDuration,
+        isNightFeeding: e.isNightFeeding,
+        // Campos de sueno
+        sleepDelay: e.sleepDelay,
+        // Campos de despertar nocturno
+        awakeDelay: e.awakeDelay,
+        // Campos de medicamento
+        medicationName: e.medicationName,
+        medicationDose: e.medicationDose,
+        // Campos de actividades
+        activityDescription: e.activityDescription,
+        activityDuration: e.activityDuration,
+      }))
+  }, [events])
+
   // Si es admin, mostrar las estadísticas completas (independiente de selección)
   if (isAdmin) {
     return (
@@ -520,6 +574,29 @@ export default function DashboardPage() {
         )}
 
         {/* Registro de eventos ya se muestra al inicio para padres */}
+
+        {/* Feed narrativo de eventos del dia - Fase 4 */}
+        {activeChildId && child && (
+          <Card className="bg-white shadow-sm border-0">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-[#2F2F2F]">Hoy</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <NarrativeTimeline
+                events={todayNarrativeEvents}
+                childName={child.firstName}
+                collapsible={true}
+                initialLimit={5}
+                isLoading={isLoading}
+                emptyMessage="No hay eventos registrados hoy"
+                onEventEdit={(eventId) => {
+                  // TODO: Fase 4.2 - Abrir modal de edicion
+                  console.log("Edit event:", eventId)
+                }}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Grid de contenido principal (ocultar widgets avanzados para padre) */}
         {false && (
