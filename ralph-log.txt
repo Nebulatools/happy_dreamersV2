@@ -347,3 +347,22 @@ Tarea: - [ ] **7.2** Modificar `processSleepSessions()` para detectar overlays
 
 ═══ ITERACIÓN 17 - 18:59:31 ═══
 Tarea: - [ ] **7.3** Crear test Jest para overlayEvents
+`★ Insight ─────────────────────────────────────`
+**Tests de overlayEvents - Patrones clave:**
+1. **Helper createEvent()** - Simplifica creacion de mocks con valores default, solo requiere `_id` y `eventType`
+2. **Comparacion de timestamps** - El filtrado usa `>` y `<` (no `>=` ni `<=`) para excluir eventos exactamente en los limites
+3. **Set de exclusion** - `new Set(["sleep", "wake", "night_waking", "nap"])` evita que estos tipos sean overlays
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task [7.3] completed
+
+**Resumen:**
+- Creado archivo `__tests__/lib/utils/sleep-sessions.test.ts` con 19 tests
+- Todos los tests pasan (100%)
+- Build de produccion exitoso
+- Commit realizado: `434f23d`
+
+La siguiente tarea es **7.4** - Modificar `SleepSessionBlock` para renderizar overlays.
+
+═══ ITERACIÓN 18 - 19:02:21 ═══
+Tarea: - [ ] **7.4** Modificar `SleepSessionBlock` para renderizar overlays

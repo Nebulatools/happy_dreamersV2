@@ -200,11 +200,14 @@ export function CalendarDayView({
                     originalStartTime={session.originalStartTime}
                     originalEndTime={session.originalEndTime}
                     nightWakings={session.nightWakings}
+                    overlayEvents={session.overlayEvents}
                     hourHeight={hourHeight}
                     onClick={() => onEventClick?.(session.originalEvent as Event)}
                     onDoubleClick={() => onEventDoubleClick?.(session.originalEvent as Event)}
                     onNightWakingClick={(waking) => onEventClick?.(waking as Event)}
                     onNightWakingDoubleClick={(waking) => onEventDoubleClick?.(waking as Event)}
+                    onOverlayEventClick={(overlay) => onEventClick?.(overlay as Event)}
+                    onOverlayEventDoubleClick={(overlay) => onEventDoubleClick?.(overlay as Event)}
                     isContinuationFromPrevious={session.isContinuationFromPrevious}
                     continuesNextDay={session.continuesNextDay}
                     column={0}

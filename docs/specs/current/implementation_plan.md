@@ -230,7 +230,7 @@ Validacion Fase 6 (Playwright MCP):
   - Output: Test verifica que overlayEvents contiene los correctos
   - Referencia: crear en `__tests__/lib/utils/sleep-sessions.test.ts`
 
-- [ ] **7.4** Modificar `SleepSessionBlock` para renderizar overlays
+- [x] **7.4** Modificar `SleepSessionBlock` para renderizar overlays
   - Input: `overlayEvents` del session
   - Output: Eventos renderizados dentro del bloque de sueno
   - Comportamiento: Overlays con z-index mayor, mismo ancho que bloque base

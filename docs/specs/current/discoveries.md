@@ -730,3 +730,49 @@ function createEvent(overrides: Partial<Event> & { _id: string; eventType: strin
 - Siguiente: 7.4 - Modificar SleepSessionBlock para renderizar overlays
 - Los tests confirman que overlayEvents se llena correctamente
 - SleepSessionBlock necesita recibir overlayEvents y renderizarlos dentro del bloque
+
+### Session 18 - 2026-01-20
+
+**Task:** 7.4 - Modificar `SleepSessionBlock` para renderizar overlays
+**Files:**
+- `components/calendar/SleepSessionBlock.tsx` (modificado)
+- `components/calendar/CalendarDayView.tsx` (modificado)
+- `components/calendar/CalendarWeekView.tsx` (modificado)
+
+**Cambios realizados en SleepSessionBlock.tsx:**
+1. Agregado import de `getEventIconConfig` desde el registry centralizado
+2. Agregado campo `feedingType` a interface `Event` local
+3. Agregada prop `overlayEvents?: Event[]` a SleepSessionBlockProps
+4. Agregadas props `onOverlayEventClick` y `onOverlayEventDoubleClick` para handlers
+5. Implementada funcion `renderOverlayEventsAsSiblings()`:
+   - Renderiza eventos overlay como hermanos (z-20) en lugar de hijos
+   - Calcula posicion absoluta usando parseISO y hourHeight
+   - Usa `getEventIconConfig()` para icono y color dinamico
+   - Muestra icono + label en cada overlay
+   - Click simple -> highlight/seleccion
+   - Doble click -> modal de edicion
+6. Llamada a `renderOverlayEventsAsSiblings()` en ambos returns (in progress + completado)
+7. Actualizado tooltip para mostrar conteo de overlayEvents
+
+**Cambios en CalendarDayView.tsx y CalendarWeekView.tsx:**
+- Pasada prop `overlayEvents={session.overlayEvents}`
+- Pasados handlers `onOverlayEventClick` y `onOverlayEventDoubleClick`
+
+**Patron descubierto - jerarquia de z-index:**
+```
+z-10: Bloque base de sueno
+z-20: Overlay events (feeding, medication) - eventos no urgentes
+z-30: Night wakings - eventos urgentes (rojo)
+```
+
+**Diseno visual de overlays:**
+- Altura fija de 24px (mayor que nightWakings 20px para acomodar label)
+- Color de fondo con alpha (`${iconConfig.color}dd`)
+- Icono blanco con drop-shadow para contraste
+- Label truncado para evitar overflow
+- Hover aumenta z-index a z-25 para traer al frente
+
+**Notes para proxima sesion:**
+- Siguiente: 7.5 - Excluir overlayEvents de calculateEventColumns
+- Los overlayEvents ya no se duplicaran visualmente (estan en overlayEvents)
+- CalendarWeekView.tsx lineas 246-282 tiene calculateEventColumns

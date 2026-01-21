@@ -8,6 +8,7 @@ import { createPortal } from "react-dom"
 import { Moon, Sun, AlertCircle, Baby } from "lucide-react"
 import { format, differenceInMinutes, parseISO } from "date-fns"
 import { cn } from "@/lib/utils"
+import { getEventIconConfig } from "@/lib/icons/event-icons"
 
 interface Event {
   _id: string
@@ -18,6 +19,7 @@ interface Event {
   endTime?: string
   notes?: string
   duration?: number
+  feedingType?: "breast" | "bottle" | "solids"
 }
 
 interface SleepSessionBlockProps {
@@ -26,12 +28,15 @@ interface SleepSessionBlockProps {
   originalStartTime?: string  // Tiempo original del evento completo
   originalEndTime?: string    // Tiempo original del evento completo
   nightWakings: Event[]
+  overlayEvents?: Event[]     // Eventos durante sueno (feeding, medication, etc.)
   hourHeight: number
   className?: string
   onClick?: () => void
   onDoubleClick?: () => void  // Handler para doble click (abrir modal edicion)
   onNightWakingClick?: (waking: Event) => void  // Handler para clicks en despertares nocturnos
   onNightWakingDoubleClick?: (waking: Event) => void  // Handler para doble click en despertares
+  onOverlayEventClick?: (overlay: Event) => void  // Handler para clicks en overlays
+  onOverlayEventDoubleClick?: (overlay: Event) => void  // Handler para doble click en overlays
   isContinuationFromPrevious?: boolean  // Si es continuación del día anterior
   continuesNextDay?: boolean           // Si continúa al día siguiente
   column?: number        // Columna del evento (para eventos superpuestos)
@@ -44,12 +49,15 @@ export function SleepSessionBlock({
   originalStartTime,
   originalEndTime,
   nightWakings,
+  overlayEvents = [],
   hourHeight,
   className,
   onClick,
   onDoubleClick,
   onNightWakingClick,
   onNightWakingDoubleClick,
+  onOverlayEventClick,
+  onOverlayEventDoubleClick,
   isContinuationFromPrevious = false,
   continuesNextDay = false,
   column = 0,
@@ -220,7 +228,70 @@ export function SleepSessionBlock({
       }
     })
   }
-  
+
+  // Renderizar eventos overlay (feeding, medication, etc.) como HERMANOS
+  // Usan z-index menor que night_wakings (z-20 vs z-30) ya que son menos urgentes
+  const renderOverlayEventsAsSiblings = () => {
+    return overlayEvents.map(overlay => {
+      try {
+        const overlayDate = parseISO(overlay.startTime)
+        const overlayHours = overlayDate.getHours()
+        const overlayMinutes = overlayDate.getMinutes()
+        const overlayTotalMinutes = overlayHours * 60 + overlayMinutes
+        // Posicion ABSOLUTA en el contenedor del calendario
+        const overlayPosition = Math.round(overlayTotalMinutes * (hourHeight / 60))
+
+        // Verificar que el overlay esta dentro del rango del sleep
+        const relativePosition = overlayPosition - position
+        if (relativePosition < 0 || relativePosition > height) return null
+
+        // Obtener configuracion de icono desde el registry
+        const iconConfig = getEventIconConfig(overlay.eventType, overlay.feedingType)
+        const IconComponent = iconConfig.icon
+
+        return (
+          <div
+            key={overlay._id}
+            className="absolute rounded cursor-pointer transition-colors shadow-md border border-white/30 z-20 hover:z-25"
+            style={{
+              top: `${overlayPosition}px`,
+              height: "24px",
+              left: actualLeft,
+              width: actualWidth,
+              backgroundColor: `${iconConfig.color}dd`, // Color con alpha
+            }}
+            onClick={(e) => {
+              e.stopPropagation()
+              if (onOverlayEventClick) {
+                onOverlayEventClick(overlay)
+              }
+            }}
+            onDoubleClick={(e) => {
+              e.stopPropagation()
+              if (onOverlayEventDoubleClick) {
+                onOverlayEventDoubleClick(overlay)
+              }
+            }}
+            title={`${iconConfig.label} - Click para seleccionar, doble click para editar`}
+          >
+            <div className="flex items-center justify-center w-full h-full pointer-events-none gap-1">
+              <IconComponent
+                className="h-3 w-3 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]"
+                style={{ color: "#fff" }}
+              />
+              <span className="text-white text-[10px] font-medium truncate [text-shadow:0_0_2px_black]">
+                {iconConfig.label}
+              </span>
+            </div>
+          </div>
+        )
+      } catch (error) {
+        console.error("Error parsing overlay startTime:", error)
+        return null
+      }
+    })
+  }
+
   if (isInProgress) {
     // SUEÑO EN PROGRESO - Con fade hacia abajo
     return (
@@ -261,6 +332,9 @@ export function SleepSessionBlock({
 
         {/* Despertares nocturnos como HERMANOS (z-index alto) */}
         {renderNightWakingsAsSiblings()}
+
+        {/* Eventos overlay (feeding, medication) durante sueno */}
+        {renderOverlayEventsAsSiblings()}
       </>
     )
   }
@@ -296,6 +370,11 @@ export function SleepSessionBlock({
         {nightWakings.length > 0 && (
           <div className="text-blue-600 font-medium text-[11px]">
             {nightWakings.length} {nightWakings.length === 1 ? "despertar" : "despertares"}
+          </div>
+        )}
+        {overlayEvents.length > 0 && (
+          <div className="text-emerald-600 font-medium text-[11px]">
+            {overlayEvents.length} {overlayEvents.length === 1 ? "evento" : "eventos"} durante sueno
           </div>
         )}
       </div>
@@ -413,6 +492,9 @@ export function SleepSessionBlock({
 
       {/* Despertares nocturnos como HERMANOS (z-index alto) */}
       {renderNightWakingsAsSiblings()}
+
+      {/* Eventos overlay (feeding, medication) durante sueno */}
+      {renderOverlayEventsAsSiblings()}
 
       {/* Tooltip - Renderizado en document.body usando Portal para escapar del contexto de apilamiento */}
       {showTooltip && typeof document !== 'undefined' && createPortal(
