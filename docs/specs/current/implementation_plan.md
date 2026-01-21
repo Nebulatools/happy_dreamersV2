@@ -269,8 +269,10 @@ Validacion Fase 7 (Jest + Playwright MCP):
   - Verificar: Mobile (375px), Tablet (768px), Desktop (1440px)
   - Screenshots: `qa-8.3-responsive-*.png` (6 screenshots generados)
 
-- [ ] **8.4** Test suite Edge Cases
+- [x] **8.4** Test suite Edge Cases
   - Verificar: Dia sin eventos, evento en progreso, datos incompletos
+  - Screenshots: `qa-8.4-edge-case-empty-day-hoy.png`, `qa-8.4-edge-case-event-in-progress.png`
+  - **VERIFICADO**: Empty state muestra "No hay eventos registrados hoy", contador tiempo real funciona, datos incompletos se omiten correctamente
 
 - [ ] **8.5** Test suite Regression
   - Verificar: Registro eventos funciona, calendario funciona, edicion funciona

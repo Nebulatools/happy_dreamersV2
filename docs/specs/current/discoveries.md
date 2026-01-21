@@ -997,3 +997,56 @@ Para completar la funcionalidad, se debe integrar EventEditRouter similar a como
 - Tarea 8.3 COMPLETADA
 - Siguiente: 8.4 - Test suite Edge Cases
 - El responsive funciona correctamente en los 3 breakpoints principales
+
+### Session 23 - 2026-01-20
+
+**Task:** 8.4 - Test suite Edge Cases
+**Files:** Ninguno modificado - tarea de QA testing
+
+**Pruebas realizadas con Playwright MCP:**
+
+1. **Dia sin eventos (Empty State)** - PASA
+   - Cambio a nino "E2E" que no tiene eventos registrados hoy
+   - Seccion "Hoy" muestra: "No hay eventos registrados hoy"
+   - Empty state amigable, sin placeholders confusos
+   - Screenshot: `qa-8.4-edge-case-empty-day-hoy.png`
+
+2. **Evento en progreso** - PASA
+   - Cambio de vuelta a "Elias Gael"
+   - Click en "VOLVER A DORMIR" -> modal de sueno aparece
+   - Selecciono estado "Tranquilo" y confirmo
+   - Dashboard muestra:
+     - Boton cambia a "DESPERTAR NOCTURNO" (rojo)
+     - Contador en tiempo real: "21 minutos durmiendo"
+   - El contador se actualiza cada segundo
+   - Screenshot: `qa-8.4-edge-case-event-in-progress.png`
+
+3. **Datos incompletos (Omision correcta)** - PASA
+   - Eventos en seccion "Hoy" muestran omision inteligente:
+     - "Elias Gael tomo pecho" - SIN duracion (campo omitido, no placeholder)
+     - "Elias Gael comio solidos" - SIN descripcion (campo omitido)
+     - "Elias Gael tomo Vitamina D (2 gotas)" - CON dosis (dato presente)
+   - Confirma regla del spec: "Datos incompletos: Omitir el dato faltante (no mostrar placeholder)"
+
+**Edge cases adicionales verificados:**
+- Refresh de pagina con evento en progreso -> estado se mantiene correctamente
+- Click rapido en botones -> no causa duplicacion de eventos
+- Modal puede cancelarse sin efectos secundarios
+
+**Screenshots generados:**
+- `.playwright-mcp/qa-8.4-edge-case-empty-day-hoy.png` - Empty state con mensaje amigable
+- `.playwright-mcp/qa-8.4-edge-case-event-in-progress.png` - Contador de sueno en tiempo real
+- `.playwright-mcp/qa-8.4-edge-case-calendar-week-view.png` - Vista semanal del calendario
+
+**Limpieza de test:**
+- Evento de sueno finalizado correctamente con "Guardar despertar"
+- Sistema vuelve a estado "VOLVER A DORMIR"
+
+**Verificacion de build:**
+- Servidor de desarrollo funcionando correctamente
+- Sin errores durante las pruebas de edge cases
+
+**Notes para proxima sesion:**
+- Tarea 8.4 COMPLETADA
+- Siguiente: 8.5 - Test suite Regression
+- Todos los edge cases del spec verificados y funcionando
