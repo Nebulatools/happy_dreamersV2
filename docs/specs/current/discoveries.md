@@ -554,3 +554,58 @@ if (event) {
 - Siguiente: 6.5 - Integrar SplitScreenBitacora en pagina admin
 - Ruta: `/dashboard/patients/child/[childId]`
 - Verificar que la pagina admin puede usar SplitScreenBitacora
+
+### Session 14 - 2026-01-20
+
+**Task:** 6.5 - Integrar SplitScreenBitacora en pagina admin
+**Files:** `app/dashboard/patients/child/[childId]/AdminChildDetailClient.tsx` (modificado)
+
+**Cambios realizados:**
+
+1. **Imports agregados:**
+   - `useMemo` de React
+   - `Button` de shadcn/ui
+   - Iconos: `ChevronLeft`, `ChevronRight`, `Columns`, `List`
+   - `SplitScreenBitacora` desde `@/components/bitacora/SplitScreenBitacora`
+   - Funciones de date-fns: `startOfDay`, `endOfDay`, `addDays`, `subDays`, `isWithinInterval`
+
+2. **Nuevos estados:**
+   - `eventsViewMode`: "split" | "list" - Controla vista activa
+   - `splitScreenDate`: Date - Fecha seleccionada para Split Screen
+
+3. **Nuevos memos y handlers:**
+   - `splitScreenEvents`: Filtra eventos del dia seleccionado
+   - `handleSplitScreenDayBack/Forward`: Navegacion de fecha
+   - `splitScreenDayTitle`: Titulo formateado del dia
+
+4. **UI del Tab Eventos:**
+   - Toggle Split Screen / Lista (botones con iconos Columns/List)
+   - Navegacion de fecha solo visible en modo Split
+   - `SplitScreenBitacora` renderizado cuando `eventsViewMode === "split"`
+   - `EventsCalendarTabs` renderizado cuando `eventsViewMode === "list"`
+
+**Patron de integracion:**
+```typescript
+// Toggle entre vistas
+{eventsViewMode === "split" ? (
+  <SplitScreenBitacora
+    events={splitScreenEvents}  // Solo eventos del dia
+    childName={childName}
+    selectedDate={splitScreenDate}
+    onEventUpdate={refetchEvents}  // Refrescar al editar
+  />
+) : (
+  <EventsCalendarTabs ... />  // Vista original
+)}
+```
+
+**Descubrimiento arquitectonico:**
+- `AdminChildDetailClient` ya tenia `EventsCalendarTabs` con tabs dia/semana/mes
+- Para admin, **vista diaria** ahora usa Split Screen por defecto
+- Vista lista mantiene compatibilidad con semana/mes
+- El toggle permite al admin elegir su preferencia
+
+**Notes para proxima sesion:**
+- Fase 6 COMPLETADA (6.1-6.5)
+- Siguiente: Fase 7 - Bug Fix Eventos Fragmentados en Sesiones de Sueno
+- Primera tarea: 7.1 - Agregar campo `overlayEvents` a interface SleepSession

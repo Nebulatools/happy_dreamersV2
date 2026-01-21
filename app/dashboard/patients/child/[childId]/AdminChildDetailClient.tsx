@@ -1,18 +1,45 @@
 // Componente cliente para la pagina de detalle de nino (admin)
 // Maneja la interactividad de tabs y actualizaciones
+// Incluye SplitScreenBitacora para vista diaria (Fase 6.5)
 
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle, Clock, FileText, TrendingUp, Loader2, Moon, Sun, Utensils, UtensilsCrossed, Pill, Activity, Baby } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  AlertCircle,
+  Clock,
+  FileText,
+  TrendingUp,
+  Loader2,
+  Moon,
+  Sun,
+  Utensils,
+  UtensilsCrossed,
+  Pill,
+  Activity,
+  Baby,
+  ChevronLeft,
+  ChevronRight,
+  Columns,
+  List,
+} from "lucide-react"
 import { SurveyResponseViewer } from "@/components/survey/SurveyResponseViewer"
 import { EventDetailsModal } from "@/components/events/EventDetailsModal"
 import { EventEditRouter } from "@/components/events/EventEditRouter"
 import { EventsCalendarTabs } from "@/components/events/EventsCalendarTabs"
+import { SplitScreenBitacora } from "@/components/bitacora/SplitScreenBitacora"
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal"
-import { format } from "date-fns"
+import {
+  format,
+  startOfDay,
+  endOfDay,
+  addDays,
+  subDays,
+  isWithinInterval,
+} from "date-fns"
 import { es } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
 import type { SurveyData, Event } from "@/types/models"
@@ -40,6 +67,11 @@ export function AdminChildDetailClient({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Estados para vista de eventos (Fase 6.5 - Split Screen)
+  type EventsViewMode = "split" | "list"
+  const [eventsViewMode, setEventsViewMode] = useState<EventsViewMode>("split")
+  const [splitScreenDate, setSplitScreenDate] = useState(new Date())
 
   const { toast } = useToast()
 
@@ -194,6 +226,30 @@ export function AdminChildDetailClient({
     }
   }, [childId])
 
+  // Filtrar eventos para el Split Screen (solo dia seleccionado)
+  const splitScreenEvents = useMemo(() => {
+    const dayStart = startOfDay(splitScreenDate)
+    const dayEnd = endOfDay(splitScreenDate)
+    return events.filter((event) => {
+      const eventDate = new Date(event.startTime)
+      return isWithinInterval(eventDate, { start: dayStart, end: dayEnd })
+    })
+  }, [events, splitScreenDate])
+
+  // Handlers de navegacion para Split Screen
+  const handleSplitScreenDayBack = useCallback(() => {
+    setSplitScreenDate((prev) => subDays(prev, 1))
+  }, [])
+
+  const handleSplitScreenDayForward = useCallback(() => {
+    setSplitScreenDate((prev) => addDays(prev, 1))
+  }, [])
+
+  // Formatear titulo del dia para Split Screen
+  const splitScreenDayTitle = useMemo(() => {
+    return format(splitScreenDate, "EEEE, d 'de' MMMM yyyy", { locale: es })
+  }, [splitScreenDate])
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
       <TabsList className="grid w-full grid-cols-3 mb-6">
@@ -304,16 +360,82 @@ export function AdminChildDetailClient({
         )}
       </TabsContent>
 
-      {/* Tab Eventos - Vista calendarizada con tabs dia/semana/mes */}
+      {/* Tab Eventos - Split Screen (admin) o Lista */}
       <TabsContent value="eventos">
-        <EventsCalendarTabs
-          events={events}
-          onEventClick={(event) => {
-            setSelectedEvent(event)
-            setIsDetailsModalOpen(true)
-          }}
-          isLoading={isLoadingEvents}
-        />
+        {/* Controles de vista */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          {/* Toggle Split/Lista */}
+          <div className="flex items-center gap-1 bg-muted p-1 rounded-lg w-fit">
+            <Button
+              variant={eventsViewMode === "split" ? "default" : "ghost"}
+              size="sm"
+              className={eventsViewMode === "split" ? "gap-2" : "gap-2 text-muted-foreground"}
+              onClick={() => setEventsViewMode("split")}
+            >
+              <Columns className="h-4 w-4" />
+              <span className="hidden sm:inline">Split Screen</span>
+            </Button>
+            <Button
+              variant={eventsViewMode === "list" ? "default" : "ghost"}
+              size="sm"
+              className={eventsViewMode === "list" ? "gap-2" : "gap-2 text-muted-foreground"}
+              onClick={() => setEventsViewMode("list")}
+            >
+              <List className="h-4 w-4" />
+              <span className="hidden sm:inline">Lista</span>
+            </Button>
+          </div>
+
+          {/* Navegacion de fecha (solo en Split Screen) */}
+          {eventsViewMode === "split" && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={handleSplitScreenDayBack}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium text-muted-foreground min-w-[200px] text-center capitalize">
+                {splitScreenDayTitle}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={handleSplitScreenDayForward}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Vista Split Screen (Calendario + Narrativa) */}
+        {eventsViewMode === "split" ? (
+          <div className="h-[600px]">
+            <SplitScreenBitacora
+              events={splitScreenEvents}
+              childName={childName}
+              selectedDate={splitScreenDate}
+              isLoading={isLoadingEvents}
+              onEventUpdate={refetchEvents}
+              onDayNavigateBack={handleSplitScreenDayBack}
+              onDayNavigateForward={handleSplitScreenDayForward}
+            />
+          </div>
+        ) : (
+          /* Vista Lista (original) */
+          <EventsCalendarTabs
+            events={events}
+            onEventClick={(event) => {
+              setSelectedEvent(event)
+              setIsDetailsModalOpen(true)
+            }}
+            isLoading={isLoadingEvents}
+          />
+        )}
       </TabsContent>
 
       {/* Modal de detalles del evento */}

@@ -191,7 +191,7 @@ Validacion Fase 5:
   - Comportamiento: Reusar EventEditRouter existente
   - Referencia: `components/events/EventEditRouter.tsx`
 
-- [ ] **6.5** Integrar SplitScreenBitacora en pagina admin
+- [x] **6.5** Integrar SplitScreenBitacora en pagina admin
   - Input: Pagina de bitacora de paciente
   - Output: Split screen visible para admin
   - Comportamiento: Solo admin ve split screen

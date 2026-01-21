@@ -249,3 +249,22 @@ RALPH_COMPLETE: Task [6.1, 6.2, 6.3] completed
 
 ═══ ITERACIÓN 13 - 18:47:32 ═══
 Tarea: - [ ] **6.4** Implementar doble click para editar
+RALPH_COMPLETE: Task [6.4] completed
+
+`★ Insight ─────────────────────────────────────`
+**Resumen de la implementación:**
+1. **Propagación de eventos**: El patrón `onDoubleClick` se propaga desde `CalendarDayView` → `EventGlobe`/`SleepSessionBlock`
+2. **Modal interno vs externo**: `SplitScreenBitacora` ahora puede funcionar de forma autónoma o delegar el manejo de edición
+3. **Reutilización**: Se reusa completamente `EventEditRouter` sin modificaciones, solo conectando los estados
+`─────────────────────────────────────────────────`
+
+**Archivos modificados:**
+- `components/calendar/CalendarDayView.tsx` - Nueva prop `onEventDoubleClick`
+- `components/calendar/EventGlobe.tsx` - Handler `onDoubleClick` agregado
+- `components/calendar/SleepSessionBlock.tsx` - Handlers para sleep y night wakings
+- `components/bitacora/SplitScreenBitacora.tsx` - Integración con `EventEditRouter`
+
+**Siguiente tarea:** 6.5 - Integrar SplitScreenBitacora en página admin `/dashboard/patients/child/[childId]`
+
+═══ ITERACIÓN 14 - 18:52:12 ═══
+Tarea: - [ ] **6.5** Integrar SplitScreenBitacora en pagina admin
