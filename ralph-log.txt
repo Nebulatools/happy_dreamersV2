@@ -57,3 +57,22 @@ Ejecuté la tarea **1.2** del plan de implementación:
 
 ═══ ITERACIÓN 3 - 18:22:35 ═══
 Tarea: - [ ] **1.3** Modificar `EventBlock.tsx` para usar nuevo registry
+`★ Insight ─────────────────────────────────────`
+**Patron Registry para Iconos:**
+1. **Centralizacion** - Un solo archivo (`lib/icons/event-icons.ts`) define TODA la configuracion de iconos, evitando duplicacion en 3+ componentes
+2. **Componentes Dinamicos** - En React, puedes almacenar un componente en una variable (`const IconComponent = config.icon`) y renderizarlo como `<IconComponent />` - esto permite abstraer la seleccion del icono
+3. **Separacion de Concerns** - El registry maneja icon/color, pero `getEventColor()` se mantuvo local porque usa clases CSS especificas del proyecto (bg-sleep, etc.) que son diferentes al color del icono
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task [1.3] completed
+
+**Resumen de la sesion:**
+- Tarea 1.3 completada exitosamente
+- EventBlock.tsx ahora usa el registry centralizado de iconos
+- ~43 lineas de codigo switch-case eliminadas
+- Build y lint pasan (errores pre-existentes no relacionados)
+- Fase 1 (Taxonomia Visual) completada al 100%
+- Siguiente tarea: 2.1 - Crear `lib/narrative/generate-narrative.ts`
+
+═══ ITERACIÓN 4 - 18:24:48 ═══
+Tarea: - [ ] **2.1** Crear `lib/narrative/generate-narrative.ts`

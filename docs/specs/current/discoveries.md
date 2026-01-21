@@ -141,3 +141,40 @@ const getEventIcon = () => {
 - Fase 1 COMPLETADA - Taxonomia Visual implementada en registry, EventGlobe, EventBlock
 - Siguiente: Fase 2 - Componentes Narrativos (generate-narrative.ts)
 - SleepSessionBlock podria beneficiarse del registry (pero no es parte del plan)
+
+### Session 4 - 2026-01-20
+
+**Task:** 2.1 - Crear `lib/narrative/generate-narrative.ts`
+**Files:** `lib/narrative/generate-narrative.ts` (nuevo)
+
+**Estructura implementada:**
+- Interface `NarrativeEvent` - Subconjunto de EventData con campos para narrativa
+- `generateNarrative(childName, event, timezone)` - Funcion principal
+- `generateTimeMetadata(event, timezone)` - Genera string de hora/rango
+- Generadores especificos por tipo de evento (feeding, sleep, nap, wake, etc.)
+
+**Formatos de narrativa implementados (segun spec lines 52-61):**
+- feeding_breast: "[nombre] tomo pecho por [X] minutos"
+- feeding_bottle: "[nombre] tomo [X] ml de biberon"
+- feeding_solids: "[nombre] comio [X] gr de solidos"
+- sleep: "[nombre] durmio de [hora] a [hora]"
+- nap: "[nombre] durmio una siesta de [X] minutos"
+- wake: "[nombre] desperto a las [hora]"
+- night_waking: "[nombre] desperto a las [hora]"
+- medication: "[nombre] tomo [medicamento] ([dosis])"
+- extra_activities: "[nombre] hizo [descripcion] por [X] minutos"
+- note: "Nota: [texto]"
+
+**Regla clave aplicada:**
+- Si dato falta -> omitir (NO usar placeholders)
+- Ejemplo: Si feedingAmount es undefined, muestra "Matias tomo biberon" en lugar de "Matias tomo undefined ml"
+
+**Funciones auxiliares:**
+- `formatTimeForNarrative()` - Formato "8:30 AM"
+- `formatDuration()` - "45 minutos", "1 hora", "2 horas y 15 minutos"
+- `calculateDurationMinutes()` - Calcula diferencia entre timestamps
+
+**Notes para proxima sesion:**
+- Siguiente: 2.2 - Crear tests Jest para `generateNarrative()`
+- Los tests deben cubrir cada formato del spec
+- Ubicacion: `__tests__/lib/narrative/generate-narrative.test.ts`

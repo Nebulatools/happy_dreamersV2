@@ -61,7 +61,7 @@ Validacion Fase 1 (Playwright MCP):
 
 ## Fase 2: Componentes Narrativos - Logica
 
-- [ ] **2.1** Crear `lib/narrative/generate-narrative.ts`
+- [x] **2.1** Crear `lib/narrative/generate-narrative.ts`
   - Input: `(childName: string, event: NarrativeEvent)`
   - Output: String con oracion en espanol
   - Comportamiento:
