@@ -443,3 +443,53 @@ animation: {
 - Fase 5 COMPLETADA (5.1 SplitScreenContext + 5.2 animacion)
 - Siguiente: Fase 6 - Split Screen Bitacora Admin
 - Primera tarea: 6.1 - Crear `components/bitacora/SplitScreenBitacora.tsx`
+
+### Session 12 - 2026-01-20
+
+**Task:** 6.1 + 6.2 + 6.3 - Crear SplitScreenBitacora con mirroring bidireccional
+**Files:** `components/bitacora/SplitScreenBitacora.tsx` (nuevo)
+
+**Estructura del componente:**
+```typescript
+// Wrapper que provee contexto
+export function SplitScreenBitacora(props) {
+  return (
+    <SplitScreenProvider>
+      <SplitScreenBitacoraInner {...props} />
+    </SplitScreenProvider>
+  )
+}
+```
+
+**Funcionalidades implementadas:**
+1. **Layout responsive** - `flex flex-col lg:grid lg:grid-cols-2`:
+   - Desktop (>=1024px): Grid 50/50
+   - Tablet/Mobile (<1024px): Stack vertical
+2. **Mirroring Cal->Narr** (6.2): `handleCalendarEventClick` + `scrollToNarrativeEvent()`
+3. **Mirroring Narr->Cal** (6.3): `handleNarrativeEventClick` + scroll por `[data-calendar-event-id]`
+4. **Integracion modular**: Reutiliza `CalendarDayView` y `NarrativeTimeline` sin modificarlos
+
+**Props del componente:**
+```typescript
+interface SplitScreenBitacoraProps {
+  events: BitacoraEvent[]
+  childName: string
+  selectedDate: Date
+  timezone?: string
+  hourHeight?: number
+  onEventEdit?: (eventId: string) => void
+  onDayNavigateBack?: () => void
+  onDayNavigateForward?: () => void
+  onCalendarClick?: (clickEvent, dayDate) => void
+  isLoading?: boolean
+}
+```
+
+**Pattern clave - mapeo de eventos:**
+- `narrativeEvents` mapea BitacoraEvent a NarrativeTimelineEvent
+- Mantiene ambos tipos compatibles sin modificar componentes internos
+
+**Pendiente para proxima sesion:**
+- 6.4: Implementar doble click para editar (requiere modificar CalendarDayView o EventGlobe)
+- 6.5: Integrar en pagina admin (`/dashboard/patients/child/[childId]`)
+- Nota: El calendario necesita `data-calendar-event-id` en bloques para scroll funcione

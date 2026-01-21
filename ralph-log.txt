@@ -190,3 +190,42 @@ La Fase 4 esta COMPLETADA. La siguiente tarea sera **5.1** - Crear `context/Spli
 
 ═══ ITERACIÓN 10 - 18:41:19 ═══
 Tarea: - [ ] **5.1** Crear `context/SplitScreenContext.tsx`
+`★ Insight ─────────────────────────────────────`
+**SplitScreenContext - Arquitectura de Mirroring:**
+1. **useRef para timeouts** - Permite cancelar el timeout anterior cuando hay clicks rápidos, evitando race conditions
+2. **selectionSource** - Crítico para saber "hacia dónde" hacer scroll (si vino de calendar, scroll a narrative y viceversa)
+3. **Separación selectedEventId vs highlightedEventId** - El highlight es temporal (6s) pero la selección puede persistir para otros usos
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task [5.1] completed
+
+**Resumen de la sesión:**
+- **Tarea completada:** 5.1 - Crear `context/SplitScreenContext.tsx`
+- **Archivo creado:** `context/SplitScreenContext.tsx`
+- **Verificación:** Build pasa exitosamente
+- **Commit:** `5f8da6f` - feat(split-screen): create SplitScreenContext for bidirectional mirroring
+
+**Próxima tarea pendiente:** 5.2 - Agregar animación `highlight-fade` a tailwind.config.js
+
+═══ ITERACIÓN 11 - 18:43:17 ═══
+Tarea: - [ ] **5.2** Agregar animacion highlight-fade a Tailwind
+RALPH_COMPLETE: Task [5.2] completed
+
+`★ Insight ─────────────────────────────────────`
+**Fase 5 completada.** El sistema de Split Screen ahora tiene:
+1. `SplitScreenContext` - Maneja estado de seleccion y highlight con auto-clear
+2. `animate-highlight-fade` - Animacion CSS que desvanece el highlight en 6s
+
+La integracion funciona asi: cuando `selectEvent()` se llama, establece `highlightedEventId`, NarrativeCard detecta esto y aplica la clase `animate-highlight-fade`. Despues de 6 segundos, tanto la animacion CSS termina como el timeout del contexto limpia el estado.
+`─────────────────────────────────────────────────`
+
+---
+
+**Resumen de sesion:**
+- Tarea 5.2 completada: Animacion `highlight-fade` agregada a `tailwind.config.ts`
+- La clase `animate-highlight-fade` ahora esta disponible para uso en componentes
+- Fase 5 (Split Screen Context) finalizada completamente
+- Proxima tarea: 6.1 - Crear `components/bitacora/SplitScreenBitacora.tsx`
+
+═══ ITERACIÓN 12 - 18:45:06 ═══
+Tarea: - [ ] **6.1** Crear `components/bitacora/SplitScreenBitacora.tsx`

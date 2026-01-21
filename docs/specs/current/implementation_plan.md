@@ -165,7 +165,7 @@ Validacion Fase 5:
 
 ## Fase 6: Split Screen Bitacora Admin
 
-- [ ] **6.1** Crear `components/bitacora/SplitScreenBitacora.tsx`
+- [x] **6.1** Crear `components/bitacora/SplitScreenBitacora.tsx`
   - Props: `{ events, sleepSessions, childName, selectedDate }`
   - Render: Grid 50/50 - Calendario | Narrativa
   - Comportamiento:
@@ -173,13 +173,13 @@ Validacion Fase 5:
     - Tablet (<1024px): stack vertical o tabs
   - Referencia: spec lines 34-59
 
-- [ ] **6.2** Implementar mirroring Calendario -> Narrativa
+- [x] **6.2** Implementar mirroring Calendario -> Narrativa
   - Input: Click en bloque de calendario
   - Output: Narrativa hace scroll + highlight
   - Comportamiento: scrollIntoView smooth + clase highlight-fade
   - Referencia: spec lines 137-139
 
-- [ ] **6.3** Implementar mirroring Narrativa -> Calendario
+- [x] **6.3** Implementar mirroring Narrativa -> Calendario
   - Input: Click en tarjeta de narrativa
   - Output: Calendario hace scroll + highlight
   - Comportamiento: scrollIntoView smooth + clase highlight-fade
