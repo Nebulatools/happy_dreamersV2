@@ -38,8 +38,12 @@ Happy Dreamers is a comprehensive child sleep tracking and AI consultation platf
 | File | Purpose |
 |------|---------|
 | `/lib/datetime.ts` | Timezone handling - ALWAYS use `buildLocalDate()` |
+| `/lib/colors/event-colors.ts` | Centralized color system for events |
+| `/lib/icons/event-icons.ts` | Centralized icon registry for events |
+| `/lib/utils/calculate-event-columns.ts` | Column calculation for overlapping events |
 | `/components/events/types.ts` | Event interfaces and EditOptions |
 | `/components/events/EventEditRouter.tsx` | Centralized edit modal router |
+| `/components/calendar/SleepSessionBlock.tsx` | Sleep block with internal events in columns |
 | `/app/api/children/events/route.ts` | Event CRUD API |
 
 ### Key Imports
@@ -47,7 +51,35 @@ Happy Dreamers is a comprehensive child sleep tracking and AI consultation platf
 import { buildLocalDate, dateToTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
 import { EventType, EventData, EditOptions } from "@/components/events/types"
 import { useUser } from "@/context/UserContext"
+import { getEventBgClass, getEventBlockClasses } from "@/lib/colors/event-colors"
+import { getEventIconConfig } from "@/lib/icons/event-icons"
 ```
+
+### Visual Taxonomy System
+
+El sistema de taxonomía visual usa colores e iconos centralizados para diferenciar tipos de eventos.
+
+**Colores por subtipo de alimentación:**
+| Tipo | Color | Hex |
+|------|-------|-----|
+| Pecho | Rosa | `#EC4899` |
+| Biberón | Cyan | `#0EA5E9` |
+| Sólidos | Esmeralda | `#10B981` |
+
+**Uso correcto:**
+```typescript
+// Para obtener clase de fondo
+const bgClass = getEventBgClass(event.eventType, event.feedingType)
+
+// Para obtener icono con su configuración
+const config = getEventIconConfig(event.eventType, event.feedingType)
+const IconComponent = config.icon
+
+// IMPORTANTE: Iconos blancos sobre fondos de color
+return <IconComponent className="w-3 h-3 text-white" />
+```
+
+**Regla crítica:** Los iconos sobre fondos de color SIEMPRE deben ser blancos (`text-white`) para buen contraste. NO usar `style={{ color: config.color }}` cuando hay fondo de color.
 
 ## Deep Context References
 
@@ -56,6 +88,8 @@ For detailed information, read the following reference files:
 - `references/datetime-patterns.md` - UTC bug details and timezone handling
 - `references/event-system.md` - Event types, validation, and flags
 - `references/modal-patterns.md` - Modal implementation with edit mode
+- `/lib/colors/event-colors.ts` - Color system (Single Source of Truth)
+- `/lib/icons/event-icons.ts` - Icon registry (Single Source of Truth)
 
 ## Known Critical Bugs
 
@@ -66,6 +100,33 @@ For detailed information, read the following reference files:
 ### Event Type Duplication Bug
 **Problem**: Creating separate event types for variants (e.g., `night_feeding`) causes duplicates.
 **Solution**: Use boolean flags on existing types (e.g., `isNightFeeding: true` on `feeding`).
+
+### Inconsistent Visual Taxonomy Bug
+**Problem**: Using local color/icon functions instead of centralized system causes inconsistency.
+**Solution**: ALWAYS use `getEventBgClass()` and `getEventIconConfig()` from centralized files.
+**Files affected**: Any component rendering events (calendar views, dashboards, lists).
+
+### Icon Contrast Bug
+**Problem**: Using `style={{ color: config.color }}` on icons over colored backgrounds makes them invisible.
+**Solution**: Use `className="text-white"` for icons on colored backgrounds.
+
+### Events Inside Sleep Block Overlap Bug
+**Problem**: Events (night_waking, feeding, medication) occurring DURING a sleep block overlap visually.
+**Cause**: `SleepSessionBlock` rendered `nightWakings` and `overlayEvents` separately without column calculation.
+**Solution**: Combine both arrays into `allInternalEvents` and use `calculateEventColumns()` from shared utility.
+**File**: `lib/utils/calculate-event-columns.ts` - shared column calculation algorithm.
+
+```typescript
+// In SleepSessionBlock.tsx
+const allInternalEvents = useMemo(() => {
+  const combined = [
+    ...nightWakings.map(e => ({ ...e, _internalType: 'nightWaking' })),
+    ...(overlayEvents || []).map(e => ({ ...e, _internalType: 'overlay' }))
+  ]
+  const withColumns = calculateEventColumns(combined)
+  return filterVisibleEvents(withColumns, MAX_VISIBLE_OVERLAY_COLUMNS)
+}, [nightWakings, overlayEvents])
+```
 
 ---
 

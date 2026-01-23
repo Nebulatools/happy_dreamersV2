@@ -78,7 +78,7 @@ Mostrar empty state amigable: "No hay eventos registrados hoy"
 
 ---
 
-## Item 2: Taxonomia Visual (Alimentacion y Sueno)
+## Item 2: Taxonomia Visual (Alimentacion y Sueno) ✅ COMPLETADO
 
 ### 2.1 Iconos de Alimentacion
 
@@ -113,6 +113,40 @@ Mostrar empty state amigable: "No hay eventos registrados hoy"
 | Diaria | Si (bloques + narrativa) |
 | Semanal | Si (solo bloques) |
 | Mensual | Si (solo bloques) |
+
+### Testing Realizado (2026-01-23)
+
+#### Bugs Encontrados y Corregidos
+
+| Bug | Ubicacion | Solucion |
+|-----|-----------|----------|
+| Vista mensual no usaba sistema centralizado | `app/dashboard/calendar/page.tsx` | Reemplazar `getEventTypeColor()` local por `getEventBgClass()` |
+| Iconos no diferenciados en mensual | `app/dashboard/calendar/page.tsx` | Usar `getEventIconConfig()` con feedingType |
+| Iconos sin contraste sobre fondos de color | Multiples archivos | Cambiar a `text-white` en lugar de `config.color` |
+| Color siesta usaba naranja (prohibido) | `globals.css`, `event-colors.ts` | Cambiar a lavanda `#a78bfa` (violet-400) |
+
+#### Archivos Modificados para Color Siesta
+
+| Archivo | Cambio |
+|---------|--------|
+| `app/globals.css` | `--color-nap: 258 89% 78%` (lavanda) |
+| `lib/colors/event-colors.ts` | `hex: "#a78bfa"` |
+| `lib/icons/event-icons.ts` | `color: "#a78bfa"` |
+| `components/calendar/MonthLineChart.tsx` | Colores nap a violeta |
+| `components/calendar/SimpleSleepBarChart.tsx` | NAP_COLOR a violeta |
+| `components/calendar/UserWeeklySleepChart.tsx` | NAP_COLOR a violeta |
+| `components/sleep-statistics/SleepDataStorytellingCard.tsx` | `bg-violet-50`, `text-violet-600` |
+| `components/child-profile/SleepMetricsCombinedChart.tsx` | `hover:ring-violet-300` |
+
+#### Verificacion
+
+| Criterio | Estado |
+|----------|--------|
+| Colores diferenciados por feedingType | PASS |
+| Iconos blancos para contraste | PASS |
+| Consistencia en vistas (mensual/semanal/diaria) | PASS |
+| Color siesta en lavanda (no naranja) | PASS |
+| Sistema centralizado en todas las vistas | PASS |
 
 ---
 
@@ -243,13 +277,13 @@ El feature funciona bien cuando:
 // lib/colors/event-colors.ts
 EVENT_COLORS = {
   sleep:           "#7DBFE2"  // Cyan azulado - sueno nocturno
-  nap:             "#F5A623"  // Naranja - siesta
+  nap:             "#a78bfa"  // Lavanda - siesta (violet-400)
   wake:            "#34D399"  // Verde - despertar
   night_waking:    "#DC2626"  // ROJO - despertar nocturno
   feeding_breast:  "#EC4899"  // Rosa - pecho
   feeding_bottle:  "#0EA5E9"  // Azul cielo - biberon
   feeding_solids:  "#10B981"  // Esmeralda - solidos
-  medication:      "#BF73DF"  // Purpura - medicamentos
+  medication:      "#f59e0b"  // Ambar/Dorado - medicamentos
   extra_activities:"#33CCCC"  // Turquesa - actividades
   note:            "#8B5CF6"  // Violeta - notas
 }
@@ -289,6 +323,57 @@ EVENT_COLORS = {
 
 ---
 
+---
+
+## Fix: Eventos Dentro de Bloques de Sueno (2026-01-23)
+
+### Problema
+
+Eventos (night_waking, feeding, medication) que ocurren DURANTE un bloque de sueno nocturno se "aplastaban" visualmente - se solapaban en lugar de mostrarse en columnas separadas.
+
+### Causa Raiz
+
+`SleepSessionBlock.tsx` renderizaba `nightWakings` y `overlayEvents` por separado, sin calcular columnas. Todos usaban `column=0, totalColumns=1` (100% ancho).
+
+### Solucion Implementada
+
+1. **Crear funcion compartida** - `lib/utils/calculate-event-columns.ts`
+   - Algoritmo de 2 pasadas para calcular columnas de eventos superpuestos
+   - Tipado generico `<T extends BaseEvent>` para preservar propiedades
+   - Incluye `filterVisibleEvents()` para limitar a 3 columnas max
+
+2. **Modificar SleepSessionBlock.tsx**
+   - Combinar `nightWakings` + `overlayEvents` en `allInternalEvents`
+   - Usar `calculateEventColumns()` para calcular columnas juntas
+   - Eventos simultaneos ahora se muestran lado a lado (50%, 33%, etc.)
+
+3. **Refactor DRY** - CalendarWeekView y CalendarDayView
+   - Eliminar ~80 lineas de codigo duplicado de cada archivo
+   - Importar funcion compartida desde `lib/utils/`
+
+4. **UI: Solo iconos** - Quitar texto de eventos dentro de bloques de sueno
+   - Consistente con el resto del calendario
+
+### Archivos Modificados
+
+| Archivo | Cambio |
+|---------|--------|
+| `lib/utils/calculate-event-columns.ts` | NUEVO - Funcion compartida |
+| `components/calendar/SleepSessionBlock.tsx` | Usar columnas para eventos internos |
+| `components/calendar/CalendarWeekView.tsx` | Importar funcion compartida |
+| `components/calendar/CalendarDayView.tsx` | Importar funcion compartida |
+
+### Verificacion
+
+| Criterio | Estado |
+|----------|--------|
+| Eventos dentro de sleep se muestran en columnas | PASS |
+| nightWaking + feeding simultaneos lado a lado | PASS |
+| Solo iconos (sin texto) dentro de sleep blocks | PASS |
+| Vista semanal y diaria funcionan correctamente | PASS |
+
+---
+
 ## Siguiente Paso
 
-Ejecutar `/workflows:plan` para agregar arquitectura tecnica y tareas de implementacion.
+**Item 2 completado.** Siguiente: Item 1 (Vista Narrativa) o Item 3 (Split Screen Admin).

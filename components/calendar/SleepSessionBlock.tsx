@@ -3,12 +3,18 @@
 
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useMemo } from "react"
 import { createPortal } from "react-dom"
-import { Moon, Sun, AlertCircle, Baby } from "lucide-react"
+import { Moon, Sun, AlertCircle, Baby, MoreHorizontal } from "lucide-react"
 import { format, differenceInMinutes, parseISO } from "date-fns"
 import { cn } from "@/lib/utils"
 import { getEventIconConfig } from "@/lib/icons/event-icons"
+import { calculateEventColumns, filterVisibleEvents } from "@/lib/utils/calculate-event-columns"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 interface Event {
   _id: string
@@ -176,120 +182,208 @@ export function SleepSessionBlock({
   const padding = 2 // px de margen
   const actualWidth = `calc(${widthPercent}% - ${padding * 2}px)`
   const actualLeft = `calc(${leftPercent}% + ${padding}px)`
-  
-  // Renderizar despertares nocturnos como HERMANOS (no hijos) para z-index correcto
-  const renderNightWakingsAsSiblings = () => {
-    return nightWakings.map(waking => {
-      try {
-        // Usar parseISO para convertir correctamente a hora local
-        const wakingDate = parseISO(waking.startTime)
-        const wakingHours = wakingDate.getHours()
-        const wakingMinutes = wakingDate.getMinutes()
-        const wakingTotalMinutes = wakingHours * 60 + wakingMinutes
-        // Posición ABSOLUTA en el contenedor del calendario (no relativa al bloque de sleep)
-        const wakingPosition = Math.round(wakingTotalMinutes * (hourHeight / 60))
 
-        // Verificar que el waking está dentro del rango del sleep
-        const relativePosition = wakingPosition - position
+  // Constante para maximo de columnas visibles dentro del bloque de sueno
+  const MAX_VISIBLE_OVERLAY_COLUMNS = 3
+
+  // Combinar nightWakings + overlayEvents para calcular columnas juntas
+  // Esto permite que un despertar nocturno y una alimentación al mismo tiempo se muestren lado a lado
+  const allInternalEvents = useMemo(() => {
+    const combined = [
+      ...nightWakings.map(e => ({ ...e, _internalType: 'nightWaking' as const })),
+      ...(overlayEvents || []).map(e => ({ ...e, _internalType: 'overlay' as const }))
+    ]
+    if (combined.length === 0) return { visible: [], hidden: [], hiddenCount: 0 }
+    const withColumns = calculateEventColumns(combined)
+    return filterVisibleEvents(withColumns, MAX_VISIBLE_OVERLAY_COLUMNS)
+  }, [nightWakings, overlayEvents])
+
+  // Renderizar todos los eventos internos (nightWakings + overlays) con columnas
+  const renderInternalEventsAsSiblings = () => {
+    const { visible, hidden, hiddenCount } = allInternalEvents
+
+    // Calcular el maximo de columnas para los eventos visibles
+    const maxColumns = visible.length > 0
+      ? Math.min(Math.max(...visible.map(e => e.totalColumns)), MAX_VISIBLE_OVERLAY_COLUMNS)
+      : 1
+
+    const renderSingleInternalEvent = (
+      event: (typeof visible)[0],
+      effectiveMaxColumns: number
+    ) => {
+      try {
+        const eventDate = parseISO(event.startTime)
+        const eventHours = eventDate.getHours()
+        const eventMinutes = eventDate.getMinutes()
+        const eventTotalMinutes = eventHours * 60 + eventMinutes
+        const eventPosition = Math.round(eventTotalMinutes * (hourHeight / 60))
+
+        // Verificar que el evento esta dentro del rango del sleep
+        const relativePosition = eventPosition - position
         if (relativePosition < 0 || relativePosition > height) return null
 
-        return (
-          <div
-            key={waking._id}
-            className="absolute bg-red-600/90 hover:bg-red-700 text-white rounded cursor-pointer transition-colors shadow-md border border-red-400/50 z-30"
-            style={{
-              top: `${wakingPosition}px`,
-              height: "20px",
-              left: actualLeft,
-              width: actualWidth,
-            }}
-            onClick={(e) => {
-              e.stopPropagation()
-              if (onNightWakingClick) {
-                onNightWakingClick(waking)
-              }
-            }}
-            onDoubleClick={(e) => {
-              e.stopPropagation()
-              if (onNightWakingDoubleClick) {
-                onNightWakingDoubleClick(waking)
-              }
-            }}
-            title="Click para seleccionar, doble click para editar"
-          >
-            <div className="flex items-center justify-center w-full h-full pointer-events-none">
-              <Baby className="h-3 w-3 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]" style={{ color: "#fff" }} />
+        // Calcular posicion horizontal basada en columna
+        const eventWidthPercent = (1 / effectiveMaxColumns) * 100
+        const eventLeftPercent = event.column * eventWidthPercent
+        const eventPadding = 2
+        const eventWidth = `calc(${eventWidthPercent}% - ${eventPadding * 2}px)`
+        const eventLeft = `calc(${eventLeftPercent}% + ${eventPadding}px)`
+
+        // Renderizar segun tipo
+        if (event._internalType === 'nightWaking') {
+          return (
+            <div
+              key={event._id}
+              className="absolute bg-red-600/90 hover:bg-red-700 text-white rounded cursor-pointer transition-colors shadow-md border border-red-400/50 z-30"
+              style={{
+                top: `${eventPosition}px`,
+                height: "20px",
+                left: eventLeft,
+                width: eventWidth,
+              }}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (onNightWakingClick) {
+                  onNightWakingClick(event as Event)
+                }
+              }}
+              onDoubleClick={(e) => {
+                e.stopPropagation()
+                if (onNightWakingDoubleClick) {
+                  onNightWakingDoubleClick(event as Event)
+                }
+              }}
+              title="Despertar nocturno - Click para seleccionar, doble click para editar"
+            >
+              <div className="flex items-center justify-center w-full h-full pointer-events-none">
+                <Baby className="h-3 w-3 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]" style={{ color: "#fff" }} />
+              </div>
             </div>
-          </div>
-        )
+          )
+        } else {
+          // overlay event (feeding, medication, etc.)
+          const iconConfig = getEventIconConfig(event.eventType, event.feedingType)
+          const IconComponent = iconConfig.icon
+
+          return (
+            <div
+              key={event._id}
+              className="absolute rounded cursor-pointer transition-colors shadow-md border border-white/30 z-20 hover:z-25"
+              style={{
+                top: `${eventPosition}px`,
+                height: "24px",
+                left: eventLeft,
+                width: eventWidth,
+                backgroundColor: `${iconConfig.color}dd`,
+              }}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (onOverlayEventClick) {
+                  onOverlayEventClick(event as Event)
+                }
+              }}
+              onDoubleClick={(e) => {
+                e.stopPropagation()
+                if (onOverlayEventDoubleClick) {
+                  onOverlayEventDoubleClick(event as Event)
+                }
+              }}
+              title={`${iconConfig.label} - Click para seleccionar, doble click para editar`}
+            >
+              <div className="flex items-center justify-center w-full h-full pointer-events-none">
+                <IconComponent
+                  className="h-3 w-3 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]"
+                  style={{ color: "#fff" }}
+                />
+              </div>
+            </div>
+          )
+        }
       } catch (error) {
-        console.error("Error parsing waking startTime:", error)
+        console.error("Error parsing event startTime:", error)
         return null
       }
-    })
-  }
+    }
 
-  // Renderizar eventos overlay (feeding, medication, etc.) como HERMANOS
-  // Usan z-index menor que night_wakings (z-20 vs z-30) ya que son menos urgentes
-  const renderOverlayEventsAsSiblings = () => {
-    return overlayEvents.map(overlay => {
-      try {
-        const overlayDate = parseISO(overlay.startTime)
-        const overlayHours = overlayDate.getHours()
-        const overlayMinutes = overlayDate.getMinutes()
-        const overlayTotalMinutes = overlayHours * 60 + overlayMinutes
-        // Posicion ABSOLUTA en el contenedor del calendario
-        const overlayPosition = Math.round(overlayTotalMinutes * (hourHeight / 60))
+    const renderedEvents = visible.map(event => renderSingleInternalEvent(event, maxColumns))
 
-        // Verificar que el overlay esta dentro del rango del sleep
-        const relativePosition = overlayPosition - position
-        if (relativePosition < 0 || relativePosition > height) return null
+    // Si hay eventos ocultos, mostrar indicador "+N mas"
+    if (hiddenCount > 0) {
+      const firstHidden = hidden[0]
+      let indicatorPosition = position + height / 2
 
-        // Obtener configuracion de icono desde el registry
-        const iconConfig = getEventIconConfig(overlay.eventType, overlay.feedingType)
-        const IconComponent = iconConfig.icon
-
-        return (
-          <div
-            key={overlay._id}
-            className="absolute rounded cursor-pointer transition-colors shadow-md border border-white/30 z-20 hover:z-25"
-            style={{
-              top: `${overlayPosition}px`,
-              height: "24px",
-              left: actualLeft,
-              width: actualWidth,
-              backgroundColor: `${iconConfig.color}dd`, // Color con alpha
-            }}
-            onClick={(e) => {
-              e.stopPropagation()
-              if (onOverlayEventClick) {
-                onOverlayEventClick(overlay)
-              }
-            }}
-            onDoubleClick={(e) => {
-              e.stopPropagation()
-              if (onOverlayEventDoubleClick) {
-                onOverlayEventDoubleClick(overlay)
-              }
-            }}
-            title={`${iconConfig.label} - Click para seleccionar, doble click para editar`}
-          >
-            <div className="flex items-center justify-center w-full h-full pointer-events-none gap-1">
-              <IconComponent
-                className="h-3 w-3 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]"
-                style={{ color: "#fff" }}
-              />
-              <span className="text-white text-[10px] font-medium truncate [text-shadow:0_0_2px_black]">
-                {iconConfig.label}
-              </span>
-            </div>
-          </div>
-        )
-      } catch (error) {
-        console.error("Error parsing overlay startTime:", error)
-        return null
+      if (firstHidden) {
+        try {
+          const hiddenDate = parseISO(firstHidden.startTime)
+          const hiddenTotalMinutes = hiddenDate.getHours() * 60 + hiddenDate.getMinutes()
+          indicatorPosition = Math.round(hiddenTotalMinutes * (hourHeight / 60))
+        } catch {
+          // Usar posicion por defecto
+        }
       }
-    })
+
+      renderedEvents.push(
+        <Popover key="hidden-internal-events-popover">
+          <PopoverTrigger asChild>
+            <button
+              className="absolute rounded cursor-pointer transition-colors shadow-md border border-white/30 z-25 bg-gray-600/90 hover:bg-gray-700/90 flex items-center justify-center"
+              style={{
+                top: `${indicatorPosition}px`,
+                height: "20px",
+                left: `calc(${((MAX_VISIBLE_OVERLAY_COLUMNS - 1) / MAX_VISIBLE_OVERLAY_COLUMNS) * 100}% + 2px)`,
+                width: `calc(${(1 / MAX_VISIBLE_OVERLAY_COLUMNS) * 100}% - 4px)`,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontal className="h-3 w-3 text-white" />
+              <span className="text-white text-[10px] font-bold ml-0.5">+{hiddenCount}</span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-48 p-2" side="right" align="start">
+            <div className="text-xs font-medium text-gray-700 mb-2">
+              Eventos adicionales ({hiddenCount})
+            </div>
+            <div className="space-y-1">
+              {hidden.map(evt => {
+                const isNightWaking = evt._internalType === 'nightWaking'
+                const iconConfig = isNightWaking
+                  ? { icon: Baby, color: '#dc2626', label: 'Despertar nocturno' }
+                  : getEventIconConfig(evt.eventType, evt.feedingType)
+                const IconComponent = iconConfig.icon
+                return (
+                  <button
+                    key={evt._id}
+                    className="w-full flex items-center gap-2 p-1.5 rounded hover:bg-gray-100 transition-colors text-left"
+                    onClick={() => {
+                      if (isNightWaking && onNightWakingClick) {
+                        onNightWakingClick(evt as Event)
+                      } else if (!isNightWaking && onOverlayEventClick) {
+                        onOverlayEventClick(evt as Event)
+                      }
+                    }}
+                  >
+                    <div
+                      className="w-5 h-5 rounded flex items-center justify-center"
+                      style={{ backgroundColor: iconConfig.color }}
+                    >
+                      <IconComponent className="h-3 w-3 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-medium">{iconConfig.label}</div>
+                      <div className="text-[10px] text-gray-500">
+                        {format(parseISO(evt.startTime), "HH:mm")}
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )
+    }
+
+    return <>{renderedEvents}</>
   }
 
   if (isInProgress) {
@@ -330,11 +424,8 @@ export function SleepSessionBlock({
           </div>
         </div>
 
-        {/* Despertares nocturnos como HERMANOS (z-index alto) */}
-        {renderNightWakingsAsSiblings()}
-
-        {/* Eventos overlay (feeding, medication) durante sueno */}
-        {renderOverlayEventsAsSiblings()}
+        {/* Todos los eventos internos (nightWakings + overlays) con columnas */}
+        {renderInternalEventsAsSiblings()}
       </>
     )
   }
@@ -490,11 +581,8 @@ export function SleepSessionBlock({
       )}
       </div>
 
-      {/* Despertares nocturnos como HERMANOS (z-index alto) */}
-      {renderNightWakingsAsSiblings()}
-
-      {/* Eventos overlay (feeding, medication) durante sueno */}
-      {renderOverlayEventsAsSiblings()}
+      {/* Todos los eventos internos (nightWakings + overlays) con columnas */}
+      {renderInternalEventsAsSiblings()}
 
       {/* Tooltip - Renderizado en document.body usando Portal para escapar del contexto de apilamiento */}
       {showTooltip && typeof document !== 'undefined' && createPortal(
