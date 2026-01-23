@@ -42,3 +42,4 @@ package-lock.json
 **/test-results/
 **/playwright-report/
 **/__screenshots__/ralph-log.txt
+docs/dev-qa/screenshots/
