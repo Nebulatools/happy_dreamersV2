@@ -133,11 +133,11 @@
     
     /* Colores de eventos */
     --color-sleep: 201 56% 68%;            /* #7DBFE2 - Dormir/Acostarse */
-    --color-nap: 37 90% 56%;               /* #F5A623 - Siesta */
+    --color-nap: 258 89% 78%;              /* #a78bfa - Siesta (lavanda) */
     --color-wake: 142 71% 45%;             /* #34D399 - Despertar matutino (verde claro) */
     --color-night-wake: 0 72% 51%;         /* #DC2626 - Despertar nocturno (rojo) */
     --color-feeding: 199 89% 48%;          /* #0EA5E9 - Alimentación (azul cielo) */
-    --color-medication: 285 60% 65%;       /* #BF73DF - Medicamentos (púrpura) */
+    --color-medication: 38 92% 50%;        /* #f59e0b - Medicamentos (ámbar/dorado) */
     --color-extra-activity: 180 60% 50%;   /* #33CCCC - Actividad Extra (turquesa) */
     --color-note: 262 83% 58%;             /* #8B5CF6 - Notas de bitacora (violeta) */
 

@@ -54,7 +54,7 @@ export const colors = {
   // Colores para eventos de sueño
   sleep: {
     bedtime: "#7DBFE2",      // Dormir/Acostarse
-    nap: "#F5A623",          // Siesta
+    nap: "#a78bfa",          // Siesta (lavanda/violet-400)
     morningWake: "#FFD700",  // Despertar matutino
     nightWake: "#FF9194",    // Despertar nocturno
   },

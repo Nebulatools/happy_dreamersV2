@@ -205,19 +205,20 @@ export function EventBlock({
   }
 
   // Obtener icono Lucide usando el registry centralizado
+  // Color blanco para mejor contraste sobre fondos de color
   const getEventIcon = () => {
     // Ajustar tamaño del icono segun altura del bloque
     const iconClass = blockHeight >= 40
-      ? "h-4 w-4"
+      ? "h-4 w-4 text-white"
       : blockHeight >= 28
-        ? "h-3.5 w-3.5"
-        : "h-3 w-3"
+        ? "h-3.5 w-3.5 text-white"
+        : "h-3 w-3 text-white"
 
-    // Usar registry centralizado para obtener icono y color
+    // Usar registry centralizado para obtener icono
     const config = getEventIconConfig(event.eventType, event.feedingType)
     const IconComponent = config.icon
 
-    return <IconComponent className={iconClass} style={{ color: config.color }} />
+    return <IconComponent className={iconClass} />
   }
 
   // Obtener clases de color usando el sistema centralizado
@@ -455,11 +456,12 @@ export function CompactEventBlock({
   const eventBgClass = getEventBgClass(event.eventType, event.feedingType)
 
   const getEventIcon = () => {
-    const iconClass = "h-3 w-3"
-    // Usar registry centralizado para obtener icono y color
+    // Color blanco para mejor contraste sobre fondos de color
+    const iconClass = "h-3 w-3 text-white"
+    // Usar registry centralizado para obtener icono
     const config = getEventIconConfig(event.eventType, event.feedingType)
     const IconComponent = config.icon
-    return <IconComponent className={iconClass} style={{ color: config.color }} />
+    return <IconComponent className={iconClass} />
   }
 
   // Formatear hora con validación

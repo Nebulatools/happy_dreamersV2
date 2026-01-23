@@ -106,11 +106,12 @@ export function EventGlobe({ event, hourHeight = 30, onClick, onDoubleClick, col
   }
   
   // Icono Lucide segun tipo de evento - Usando registry centralizado
+  // Color blanco para mejor contraste sobre fondos de color
   const getIcon = () => {
-    const iconClass = "h-3 w-3 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]"
+    const iconClass = "h-3 w-3 text-white"
     const config = getEventIconConfig(event.eventType, event.feedingType)
     const IconComponent = config.icon
-    return <IconComponent className={iconClass} style={{ color: config.color }} />
+    return <IconComponent className={iconClass} />
   }
   
   // 📝 NOMBRE DEL EVENTO - Usando registry centralizado

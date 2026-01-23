@@ -18,8 +18,8 @@ import { cn } from "@/lib/utils"
 
 const NIGHT_COLOR = "#4C8AF7"
 const NIGHT_COLOR_SELECTED = "#2563EB"
-const NAP_COLOR = "#FF8A34"
-const NAP_COLOR_SELECTED = "#FB6514"
+const NAP_COLOR = "#a78bfa"        // Lavanda (violet-400)
+const NAP_COLOR_SELECTED = "#8b5cf6" // Violet-500
 const WAKING_COLOR = "#E11D48"
 
 export interface DailySleepPoint {

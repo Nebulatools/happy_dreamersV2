@@ -54,7 +54,7 @@ export function MedicationButton({
     return {
       text: "MEDICAMENTO",
       icon: Pill,
-      color: "from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700",
+      color: "from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700",
     }
   }
   

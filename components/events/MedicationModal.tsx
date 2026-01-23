@@ -150,7 +150,7 @@ export function MedicationModal({
       <DialogContent className="sm:max-w-[425px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Pill className="w-5 h-5 text-purple-600" />
+            <Pill className="w-5 h-5 text-amber-600" />
             {mode === "edit" ? "Editar Medicamento" : "Registrar Medicamento"}
           </DialogTitle>
           <DialogDescription>
@@ -268,7 +268,7 @@ export function MedicationModal({
           <Button
             onClick={handleConfirm}
             disabled={isProcessing || !medicationName.trim() || !medicationDose.trim()}
-            className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white"
+            className="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white"
           >
             {isProcessing 
               ? (mode === "edit" ? "Guardando..." : "Registrando...") 

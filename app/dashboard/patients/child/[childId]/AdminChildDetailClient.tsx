@@ -176,7 +176,7 @@ export function AdminChildDetailClient({
       }
       return <Utensils className="h-4 w-4 text-green-500" /> // breast y bottle
     case "medication":
-      return <Pill className="h-4 w-4 text-blue-500" />
+      return <Pill className="h-4 w-4 text-amber-500" />
     case "extra_activities":
       return <Activity className="h-4 w-4 text-orange-500" />
     default:

@@ -59,13 +59,13 @@ export interface EventColorConfig {
  *
  * Taxonomia de colores:
  * - Sleep: Cyan azulado (#7DBFE2) - calma nocturna
- * - Nap: Naranja (#F5A623) - energia de siesta
+ * - Nap: Lavanda (#a78bfa) - siesta suave
  * - Wake: Verde (#34D399) - frescura del despertar
  * - Night waking: Rojo (#DC2626) - alerta/atencion
  * - Feeding breast: Rosa (#EC4899) - conexion maternal
  * - Feeding bottle: Azul cielo (#0EA5E9) - liquidos
  * - Feeding solids: Esmeralda (#10B981) - alimentos
- * - Medication: Purpura (#BF73DF) - cuidado medico
+ * - Medication: Ambar (#f59e0b) - cuidado medico
  * - Extra activities: Turquesa (#33CCCC) - actividad
  * - Note: Violeta (#8B5CF6) - notas/bitacora
  */
@@ -82,8 +82,8 @@ export const EVENT_COLORS: Record<EventColorType, EventColorConfig> = {
     bg: "bg-nap",
     bgLight: "bg-nap/10",
     border: "border-nap",
-    hex: "#F5A623",
-    hexAlpha: "rgba(245, 166, 35, 0.5)",
+    hex: "#a78bfa",
+    hexAlpha: "rgba(167, 139, 250, 0.5)",
     text: "text-white",
   },
   wake: {
@@ -139,8 +139,8 @@ export const EVENT_COLORS: Record<EventColorType, EventColorConfig> = {
     bg: "bg-medication",
     bgLight: "bg-medication/10",
     border: "border-medication",
-    hex: "#BF73DF",
-    hexAlpha: "rgba(191, 115, 223, 0.5)",
+    hex: "#f59e0b",
+    hexAlpha: "rgba(245, 158, 11, 0.5)",
     text: "text-white",
   },
   extra_activities: {

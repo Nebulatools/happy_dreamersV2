@@ -186,7 +186,7 @@ export function SleepButton({
     return {
       text: "SIESTA",
       icon: Moon,
-      color: "from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600",
+      color: "from-violet-400 to-purple-500 hover:from-violet-500 hover:to-purple-600",
       action: "nap",
     }
   }

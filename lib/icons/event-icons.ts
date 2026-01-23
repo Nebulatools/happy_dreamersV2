@@ -57,7 +57,7 @@ export interface EventIconConfig {
  * - Alimentacion pecho: Heart (pink) - conexion madre-hijo
  * - Alimentacion biberon: Milk (sky) - liquidos
  * - Alimentacion solidos: UtensilsCrossed (emerald) - comida
- * - Medicamento: Pill (blue) - medicina
+ * - Medicamento: Pill (amber) - medicina
  * - Actividades: Activity (orange) - movimiento
  */
 export const EVENT_ICONS: Record<EventIconType, EventIconConfig> = {
@@ -69,7 +69,7 @@ export const EVENT_ICONS: Record<EventIconType, EventIconConfig> = {
   },
   nap: {
     icon: CloudMoon,
-    color: "#8b5cf6",      // violet-500
+    color: "#a78bfa",      // violet-400 (lavanda)
     bgColor: "bg-nap",
     label: "Siesta",
   },
@@ -105,7 +105,7 @@ export const EVENT_ICONS: Record<EventIconType, EventIconConfig> = {
   },
   medication: {
     icon: Pill,
-    color: "#3b82f6",      // blue-500
+    color: "#f59e0b",      // amber-500 (dorado)
     bgColor: "bg-medication",
     label: "Medicamento",
   },

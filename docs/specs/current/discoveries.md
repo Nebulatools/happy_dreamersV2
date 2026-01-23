@@ -61,7 +61,7 @@ export function getEventIconConfig(eventType, feedingType): EventIconConfig
 - feeding_breast: Heart (pink)
 - feeding_bottle: Milk (sky)
 - feeding_solids: UtensilsCrossed (emerald)
-- medication: Pill (blue)
+- medication: Pill (amber)
 - extra_activities: Activity (orange)
 
 **Notes para proxima sesion:**

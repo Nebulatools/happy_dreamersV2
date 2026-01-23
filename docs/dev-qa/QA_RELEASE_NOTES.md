@@ -183,11 +183,11 @@
 | Tipo | Icono | Color | Verificar |
 |------|-------|-------|-----------|
 | sleep | Moon | indigo | Bloque 100% ancho |
-| nap | Sun | amber | Bloque 100% ancho |
+| nap | CloudMoon | violet | Bloque 100% ancho |
 | wake | Sun | yellow | Punto en timeline |
 | night_waking | Baby | purple | Evento normal |
 | feeding | Utensils | green | Evento normal |
-| medication | Pill | blue | Evento normal |
+| medication | Pill | amber | Evento normal |
 | extra_activities | Activity | orange | Evento normal |
 | note | MessageSquare | violet | Evento normal |
 

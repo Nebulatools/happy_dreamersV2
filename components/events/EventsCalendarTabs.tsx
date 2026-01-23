@@ -191,7 +191,7 @@ export function EventsCalendarTabs({
     case "night_feeding":
       return <Utensils className="h-4 w-4 text-sky-500" />
     case "medication":
-      return <Pill className="h-4 w-4 text-purple-500" />
+      return <Pill className="h-4 w-4 text-amber-500" />
     case "extra_activities":
     case "activity":
       return <Activity className="h-4 w-4 text-teal-500" />
@@ -223,12 +223,12 @@ export function EventsCalendarTabs({
   const getEventBgColor = (type: string) => {
     const colors: Record<string, string> = {
       sleep: "bg-blue-50 border-blue-200",
-      nap: "bg-amber-50 border-amber-200",
+      nap: "bg-violet-50 border-violet-200",
       wake: "bg-green-50 border-green-200",
       night_waking: "bg-red-50 border-red-200",
       feeding: "bg-sky-50 border-sky-200",
       night_feeding: "bg-yellow-50 border-yellow-200",
-      medication: "bg-purple-50 border-purple-200",
+      medication: "bg-amber-50 border-amber-200",
       activity: "bg-teal-50 border-teal-200",
       extra_activities: "bg-teal-50 border-teal-200",
       note: "bg-violet-50 border-violet-200",
