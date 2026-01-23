@@ -1,9 +1,41 @@
-// Tipos TypeScript para el sistema de eventos
+/**
+ * Tipos TypeScript para el sistema de eventos - SINGLE SOURCE OF TRUTH
+ *
+ * Este archivo define los tipos canonicos para eventos en Happy Dreamers.
+ * Todos los componentes y APIs deben importar tipos de aqui.
+ *
+ * @see lib/icons/event-icons.ts para iconos (usa EventIconType derivado)
+ * @see lib/colors/event-colors.ts para colores (usa EventColorType derivado)
+ * @see types/models.ts para interfaces de MongoDB (importa desde aqui)
+ */
 
-export type EventType = "sleep" | "wake" | "nap" | "night_waking" | "feeding" | "night_feeding" | "medication" | "extra_activities" | "note"
+/**
+ * Tipos de evento del sistema
+ *
+ * IMPORTANTE sobre night_feeding:
+ * - "night_feeding" es LEGACY y no debe usarse en nuevo codigo
+ * - Para alimentacion nocturna, usar "feeding" con isNightFeeding: true
+ * - El sistema maneja ambos para compatibilidad con datos historicos
+ */
+export type EventType =
+  | "sleep"           // Sueno nocturno
+  | "wake"            // Despertar matutino
+  | "nap"             // Siesta
+  | "night_waking"    // Despertar nocturno
+  | "feeding"         // Alimentacion (con feedingType para especificar breast/bottle/solids)
+  | "night_feeding"   // LEGACY: usar feeding + isNightFeeding: true
+  | "medication"      // Medicamento
+  | "extra_activities" // Actividad extra
+  | "note"            // Nota de bitacora
 
+/**
+ * Estado emocional del nino durante el evento
+ */
 export type EmotionalState = "tranquilo" | "inquieto" | "irritable" | "neutral"
 
+/**
+ * Tipo de alimentacion
+ */
 export type FeedingType = "breast" | "bottle" | "solids"
 
 export interface EventData {

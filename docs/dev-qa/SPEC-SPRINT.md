@@ -210,6 +210,85 @@ El feature funciona bien cuando:
 
 ---
 
+---
+
+## Trabajo Previo Completado: Refactorizacion Arquitectural
+
+**Fecha:** 2026-01-23
+**Objetivo:** Establecer Single Source of Truth para colores y componentes reutilizables antes de implementar Items 1-3.
+
+### Archivos Creados
+
+| Archivo | Proposito |
+|---------|-----------|
+| `lib/colors/event-colors.ts` | Sistema centralizado de colores para eventos |
+| `hooks/use-modal-datetime.ts` | Hook reutilizable para fecha/hora en modales |
+| `components/events/shared/DelaySelector.tsx` | Selector de tiempo con +/- y opciones rapidas |
+| `components/events/shared/EmotionalStateSelector.tsx` | Selector de estado emocional (tranquilo/inquieto/alterado) |
+| `components/events/shared/index.ts` | Barrel exports |
+
+### Archivos Modificados
+
+| Archivo | Cambios |
+|---------|---------|
+| `components/calendar/EventBlock.tsx` | Usa `getEventBlockClasses()` del sistema centralizado |
+| `components/events/types.ts` | Documentacion mejorada, tipos canonicos |
+| `lib/icons/event-icons.ts` | Importa tipos desde `types.ts` |
+| `components/events/SleepDelayModal.tsx` | Integra `DelaySelector` y `EmotionalStateSelector` |
+| `components/events/NightWakingModal.tsx` | Integra componentes compartidos con `themeColor="red"` |
+
+### Taxonomia de Colores (Single Source of Truth)
+
+```typescript
+// lib/colors/event-colors.ts
+EVENT_COLORS = {
+  sleep:           "#7DBFE2"  // Cyan azulado - sueno nocturno
+  nap:             "#F5A623"  // Naranja - siesta
+  wake:            "#34D399"  // Verde - despertar
+  night_waking:    "#DC2626"  // ROJO - despertar nocturno
+  feeding_breast:  "#EC4899"  // Rosa - pecho
+  feeding_bottle:  "#0EA5E9"  // Azul cielo - biberon
+  feeding_solids:  "#10B981"  // Esmeralda - solidos
+  medication:      "#BF73DF"  // Purpura - medicamentos
+  extra_activities:"#33CCCC"  // Turquesa - actividades
+  note:            "#8B5CF6"  // Violeta - notas
+}
+```
+
+### Tests Realizados
+
+#### Test 1: SleepDelayModal (Color Azul) - PASSED
+- Selector de tiempo: Fondo azul claro, borde azul, texto azul
+- Boton seleccionado: Azul solido
+- Estado emocional: Borde azul cuando seleccionado
+- **Screenshot:** `/tmp/test-1-siesta-modal.png`
+
+#### Test 2: NightWakingModal (Color Rojo) - PENDIENTE
+- Modal actualizado para usar `themeColor="red"`
+- Consistente con `night_waking` en calendario (#DC2626)
+
+#### Test 3: Registro Manual - VERIFICADO
+- Formulario funcional con campos de fecha/hora
+- **Screenshot:** `/tmp/test-2-registro-manual.png`
+
+### Reduccion de Codigo
+
+| Fase | Lineas Eliminadas | Lineas Creadas | Neto |
+|------|-------------------|----------------|------|
+| Colores centralizados | ~80 | ~80 | 0 |
+| Hook useModalDatetime | ~150 | ~60 | -90 |
+| DelaySelector | ~160 | ~45 | -115 |
+| EmotionalStateSelector | ~140 | ~55 | -85 |
+| **Total** | **~530** | **~240** | **-290** |
+
+### Builds Verificados
+
+- [x] `npm run build` exitoso despues de cada fase
+- [x] Sin errores de TypeScript relacionados con los cambios
+- [x] Componentes compartidos compilan correctamente
+
+---
+
 ## Siguiente Paso
 
 Ejecutar `/workflows:plan` para agregar arquitectura tecnica y tareas de implementacion.

@@ -5,13 +5,27 @@
  * de eventos en el sistema. Reemplaza el switch-case distribuido en multiples
  * componentes por un lookup O(1) tipado.
  *
- * @see spec.md lines 77-89 para la taxonomia visual
- * @see EventGlobe.tsx:117-134 para el mapa original a reemplazar
+ * ARQUITECTURA:
+ * - EventType (components/events/types.ts) = tipo canonico del evento
+ * - EventIconType (este archivo) = clave derivada que combina eventType + feedingType
+ *
+ * La funcion getEventIconType() transforma:
+ *   ("feeding", "breast") → "feeding_breast"
+ *   ("sleep", undefined) → "sleep"
+ *
+ * @see components/events/types.ts para tipos canonicos de eventos
+ * @see lib/colors/event-colors.ts para sistema de colores
  */
 
 import { LucideIcon, Moon, Sun, Baby, UtensilsCrossed, Pill, Activity, Clock, Heart, Milk, CloudMoon } from "lucide-react"
+import type { EventType, FeedingType } from "@/components/events/types"
 
-// Tipo para las claves del registry
+/**
+ * Tipo para las claves del registry de iconos
+ *
+ * Este tipo es DERIVADO de EventType + FeedingType, no es un reemplazo.
+ * La funcion getEventIconType() hace la conversion.
+ */
 export type EventIconType =
   | "sleep"
   | "nap"
@@ -50,13 +64,13 @@ export const EVENT_ICONS: Record<EventIconType, EventIconConfig> = {
   sleep: {
     icon: Moon,
     color: "#6366f1",      // indigo-500
-    bgColor: "bg-blue-400",
+    bgColor: "bg-sleep",
     label: "Dormir",
   },
   nap: {
     icon: CloudMoon,
     color: "#8b5cf6",      // violet-500
-    bgColor: "bg-violet-400",
+    bgColor: "bg-nap",
     label: "Siesta",
   },
   wake: {
@@ -74,19 +88,19 @@ export const EVENT_ICONS: Record<EventIconType, EventIconConfig> = {
   feeding_breast: {
     icon: Heart,
     color: "#ec4899",      // pink-500
-    bgColor: "bg-pink-400",
+    bgColor: "bg-feeding-breast",
     label: "Pecho",
   },
   feeding_bottle: {
     icon: Milk,
     color: "#0ea5e9",      // sky-500
-    bgColor: "bg-sky-400",
+    bgColor: "bg-feeding-bottle",
     label: "Biberon",
   },
   feeding_solids: {
     icon: UtensilsCrossed,
     color: "#10b981",      // emerald-500
-    bgColor: "bg-emerald-400",
+    bgColor: "bg-feeding-solids",
     label: "Solidos",
   },
   medication: {
@@ -104,7 +118,7 @@ export const EVENT_ICONS: Record<EventIconType, EventIconConfig> = {
   default: {
     icon: Clock,
     color: "#6b7280",      // gray-500
-    bgColor: "bg-gray-400",
+    bgColor: "bg-muted",
     label: "Evento",
   },
 }

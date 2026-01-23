@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef } from "react"
 import { format, differenceInMinutes } from "date-fns"
 import { cn } from "@/lib/utils"
 import { getEventIconConfig } from "@/lib/icons/event-icons"
+import { getEventBlockClasses, getEventBgClass } from "@/lib/colors/event-colors"
 
 // Funcion auxiliar para parsear fechas ISO locales correctamente
 // CORREGIDO: Usa el constructor Date nativo que respeta el offset en el string
@@ -219,28 +220,9 @@ export function EventBlock({
     return <IconComponent className={iconClass} style={{ color: config.color }} />
   }
 
-  // Obtener color según tipo de evento
+  // Obtener clases de color usando el sistema centralizado
   const getEventColor = () => {
-    switch (event.eventType) {
-    case "sleep":
-    case "bedtime":
-      return "bg-sleep border-sleep text-white font-semibold"
-    case "nap":
-      return "bg-nap border-nap text-white font-semibold"
-    case "wake":
-      return "bg-wake border-wake text-gray-900 font-semibold"
-    case "night_waking":
-      return "bg-night-wake border-night-wake text-white font-semibold"
-    case "feeding":
-    case "night_feeding":
-      return "bg-feeding border-feeding text-white font-semibold"
-    case "medication":
-      return "bg-medication border-medication text-white font-semibold"
-    case "extra_activities":
-      return "bg-extra-activity border-extra-activity text-white font-semibold"
-    default:
-      return "bg-gray-400 border-gray-400 text-white font-semibold"
-    }
+    return getEventBlockClasses(event.eventType, event.feedingType)
   }
 
   // Obtener nombre del tipo de evento
@@ -469,28 +451,8 @@ export function CompactEventBlock({
   event: Event;
   className?: string;
 }) {
-  const getEventColor = () => {
-    switch (event.eventType) {
-    case "sleep":
-    case "bedtime":
-      return "bg-sleep"
-    case "nap":
-      return "bg-nap"
-    case "wake":
-      return "bg-wake"
-    case "night_waking":
-      return "bg-night-wake"
-    case "feeding":
-    case "night_feeding":
-      return "bg-feeding"
-    case "medication":
-      return "bg-medication"
-    case "extra_activities":
-      return "bg-extra-activity"
-    default:
-      return "bg-gray-400"
-    }
-  }
+  // Usar sistema centralizado de colores
+  const eventBgClass = getEventBgClass(event.eventType, event.feedingType)
 
   const getEventIcon = () => {
     const iconClass = "h-3 w-3"
@@ -521,7 +483,7 @@ export function CompactEventBlock({
   return (
     <div className={cn(
       "flex items-center gap-1 px-1.5 py-0.5 rounded text-white",
-      getEventColor(),
+      eventBgClass,
       className
     )} style={{ fontSize: "10px" }}>
       {getEventIcon()}
