@@ -35,3 +35,10 @@ package-lock.json
 
 #dumps
 /dump
+
+# Playwright & testing screenshots
+.playwright-mcp/
+*.playwright.png
+**/test-results/
+**/playwright-report/
+**/__screenshots__/ralph-log.txt

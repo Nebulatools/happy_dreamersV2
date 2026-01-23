@@ -15,6 +15,7 @@ const SleepMetricsGrid = lazy(() => import("@/components/child-profile/SleepMetr
 const SleepMetricsCombinedChart = lazy(() => import("@/components/child-profile/SleepMetricsCombinedChart"))
 // Sistema de eventos - Nueva implementación v1.0
 import { EventRegistration } from "@/components/events"
+import { EventEditRouter } from "@/components/events/EventEditRouter"
 import { PlanSummaryCard } from "@/components/parent/PlanSummaryCard"
 // Vista narrativa de eventos (Fase 4)
 import { NarrativeTimeline } from "@/components/narrative/NarrativeTimeline"
@@ -97,6 +98,7 @@ export default function DashboardPage() {
   const [activePlan, setActivePlan] = useState<ChildPlan | null>(null)
   const [planLoading, setPlanLoading] = useState(false)
   const [planError, setPlanError] = useState<string | null>(null)
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null)
   
   // Ya no redirigimos, manejamos todo en esta página
   
@@ -590,9 +592,20 @@ export default function DashboardPage() {
                 isLoading={isLoading}
                 emptyMessage="No hay eventos registrados hoy"
                 onEventEdit={(eventId) => {
-                  // TODO: Fase 4.2 - Abrir modal de edicion
-                  console.log("Edit event:", eventId)
+                  const eventToEdit = events.find(e => e._id === eventId)
+                  if (eventToEdit) {
+                    setEditingEvent(eventToEdit)
+                  }
                 }}
+              />
+
+              {/* Modal de edicion de eventos */}
+              <EventEditRouter
+                event={editingEvent}
+                open={!!editingEvent}
+                onClose={() => setEditingEvent(null)}
+                onUpdate={loadChildData}
+                childName={child.firstName}
               />
             </CardContent>
           </Card>

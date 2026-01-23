@@ -14,7 +14,7 @@
 
 "use client"
 
-import { ChevronRight } from "lucide-react"
+import { Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getEventIconConfig } from "@/lib/icons/event-icons"
 import { generateNarrative, generateTimeMetadata } from "@/lib/narrative/generate-narrative"
@@ -142,7 +142,7 @@ export function NarrativeCard({
           )}
           aria-label="Editar evento"
         >
-          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          <Pencil className="h-4 w-4 text-muted-foreground" />
         </button>
       )}
     </div>
