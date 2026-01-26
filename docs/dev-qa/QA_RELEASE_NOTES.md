@@ -10,6 +10,7 @@
 
 | Item | Descripcion | Estado |
 |------|-------------|--------|
+| Item 1 | Vista Narrativa en Home (padres) con collapsible | COMPLETADO |
 | Item 2 | Taxonomia Visual (colores por tipo alimentacion, siestas lavanda) | COMPLETADO |
 | Item 3 | Split Screen Admin / Narrativa Parent en vista Diaria | COMPLETADO |
 | Fix | Eventos dentro de bloques de sueno en columnas | COMPLETADO |
@@ -17,7 +18,57 @@
 
 ---
 
-## TEST 1: Taxonomia Visual - Colores por Tipo de Alimentacion
+## TEST 1: Vista Narrativa en Home (Padres) - Item 1
+
+**Ruta:** `/dashboard` (Home del padre)
+
+**Descripcion:** Los padres ven los ultimos eventos del dia en formato narrativo con opcion de expandir/colapsar.
+
+### Pasos
+
+1. Login como USUARIO/PADRE (eljulius@nebulastudios.io / juls0925)
+2. Ir al Dashboard principal (Home)
+3. Localizar la seccion de eventos/bitacora
+
+### Verificar Estado Inicial (Colapsado)
+
+- [ ] Por defecto muestra maximo 5 eventos
+- [ ] Eventos en formato narrativo (tarjetas con texto)
+- [ ] Cada tarjeta tiene: icono + texto narrativo + hora
+- [ ] Existe boton "Ver todo" (si hay mas de 5 eventos)
+
+### Verificar Expandir/Colapsar
+
+- [ ] Click en "Ver todo" expande la lista completa del dia
+- [ ] Click en "Colapsar" vuelve a mostrar solo 5 eventos
+- [ ] Al recargar pagina, vuelve a estado colapsado (no guarda estado)
+
+### Verificar Formato de Narrativa
+
+| Tipo | Formato Esperado |
+|------|------------------|
+| Alimentacion pecho | "[Nombre] tomo pecho por [X] minutos" |
+| Alimentacion biberon | "[Nombre] tomo [X] oz de leche" |
+| Siesta | "[Nombre] durmio una siesta de [X] min" |
+| Sueno nocturno | "[Nombre] durmio de [hora] a [hora]" |
+| Despertar nocturno | "[Nombre] desperto a las [hora]" |
+| Medicamento | "[Nombre] tomo [medicamento]" |
+
+### Verificar Ordenamiento
+
+- [ ] Eventos ordenados cronologicamente inverso (mas reciente arriba)
+
+### Verificar Edge Case
+
+- [ ] Si no hay eventos del dia: mostrar "No hay eventos registrados hoy"
+
+### Verificar Navegacion
+
+- [ ] Click en chevron (>) de una tarjeta abre modal de edicion
+
+---
+
+## TEST 2: Taxonomia Visual - Colores por Tipo de Alimentacion
 
 **Ruta:** `/dashboard/calendar`
 
@@ -47,7 +98,7 @@
 
 ---
 
-## TEST 2: Taxonomia Visual - Siestas en Lavanda
+## TEST 3: Taxonomia Visual - Siestas en Lavanda
 
 **Ruta:** `/dashboard/calendar`
 
@@ -75,7 +126,7 @@
 
 ---
 
-## TEST 3: Split Screen para Admin (Vista Diaria)
+## TEST 4: Split Screen para Admin (Vista Diaria)
 
 **Ruta:** `/dashboard/calendar` > Vista "Dia"
 
@@ -103,7 +154,7 @@
 
 ---
 
-## TEST 4: Narrativa Vertical para Padres (Vista Diaria)
+## TEST 5: Narrativa Vertical para Padres (Vista Diaria)
 
 **Ruta:** `/dashboard/calendar` > Vista "Dia"
 
@@ -134,7 +185,7 @@
 
 ---
 
-## TEST 5: Eventos Dentro de Bloques de Sueno en Columnas
+## TEST 6: Eventos Dentro de Bloques de Sueno en Columnas
 
 **Ruta:** `/dashboard/calendar` > Vista Diaria o Semanal
 
@@ -157,7 +208,7 @@
 
 ---
 
-## TEST 6: Estilos Nocturnos en Bloques de Sueno
+## TEST 7: Estilos Nocturnos en Bloques de Sueno
 
 **Ruta:** `/dashboard/calendar`
 

@@ -22,7 +22,7 @@ Transformar la experiencia de lectura de la bitacora de eventos de un sistema de
 
 ---
 
-## Item 1: Vista Narrativa de Bitacora (Timeline)
+## Item 1: Vista Narrativa de Bitacora (Timeline) ✅ COMPLETADO
 
 ### Flujo por Tipo de Usuario
 
@@ -458,4 +458,4 @@ El `SplitScreenBitacora` estaba ubicado incorrectamente en `/dashboard/patients/
 
 ## Siguiente Paso
 
-**Items 2 y 3 completados.** Siguiente: Item 1 (Vista Narrativa en Home para padres con collapsible).
+**Items 1, 2 y 3 completados.** Sprint MVP finalizado. Listo para QA.
