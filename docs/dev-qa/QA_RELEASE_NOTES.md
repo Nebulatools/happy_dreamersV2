@@ -1,7 +1,7 @@
 # Guia de QA - Happy Dreamers
 
 **Fecha:** 2026-01-12
-**Ultima Actualizacion:** 2026-01-12
+**Ultima Actualizacion:** 2026-01-25
 **URL:** http://localhost:3000
 
 ---
@@ -310,6 +310,69 @@
 | `components/events/FeedingButton.tsx` | Usa startTime del modal, endTime = getCurrentTime() |
 | `components/events/ExtraActivityButton.tsx` | Usa startTime del modal, endTime = getCurrentTime() |
 | `app/api/children/events/route.ts` | Removida validacion obligatoria feedingDuration, agregado calculo automatico |
+
+---
+
+---
+
+## TEST 10: Estilos Nocturnos en Bloques de Sueno
+
+**Commit:** 64b16c8
+**Fecha:** 2026-01-25
+**Descripcion:** Los bloques de sueno nocturno ahora tienen colores mas oscuros (indigo/purpura profundo) para diferenciarse de las siestas y dar sensacion de "noche".
+
+### Cambios Visuales
+
+| Elemento | Antes | Ahora |
+|----------|-------|-------|
+| Gradiente fondo | Azul claro (0.18 opacidad) | Indigo-purpura oscuro (0.45+ opacidad) |
+| Icono Moon | Indigo (#6366f1) | Blanco |
+| Icono Sun | Amarillo (#eab308) | Blanco |
+| Header (sueno en progreso) | Azul 50% | Gradiente indigo-700 a purple-800 |
+
+### Rutas a Verificar
+
+- `/dashboard/calendar` (Vista Diario, Semanal, Mensual)
+- `/dashboard/children/[id]/events`
+
+### Pasos de Testing
+
+1. Login como usuario (eljulius@nebulastudios.io / juls0925)
+2. Ir a Calendario > Vista Diaria
+3. Localizar un bloque de sueno nocturno (sleep)
+
+### Verificar Sueno Completado
+
+- [ ] Bloque tiene gradiente azul-purpura OSCURO (no tenue/transparente)
+- [ ] Icono Moon (arriba) es BLANCO con sombra negra
+- [ ] Icono Sun (abajo) es BLANCO con sombra negra
+- [ ] El color es claramente diferente a las siestas (que son lavanda claro)
+- [ ] Buen contraste - se puede leer/ver claramente
+
+### Verificar Sueno en Progreso
+
+1. Registrar un nuevo sueno (boton "DORMIR")
+2. Verificar en el calendario:
+
+- [ ] Header tiene gradiente indigo-purpura SOLIDO
+- [ ] Icono Moon es BLANCO
+- [ ] Fade hacia abajo es purpura oscuro (no azul claro)
+- [ ] Puntos animados de "continua..." son BLANCOS
+
+### Comparacion Visual
+
+| Tipo | Color Esperado |
+|------|----------------|
+| Sueno nocturno (sleep) | Indigo/purpura OSCURO - sensacion nocturna |
+| Siesta (nap) | Lavanda CLARO (#a78bfa) - sensacion de dia |
+
+**Resultado esperado:** El sueno nocturno debe verse "de noche" (oscuro) mientras las siestas se ven "de dia" (claras).
+
+### Archivos Modificados
+
+| Archivo | Cambio |
+|---------|--------|
+| `components/calendar/SleepSessionBlock.tsx` | Gradientes oscuros, iconos blancos |
 
 ---
 
