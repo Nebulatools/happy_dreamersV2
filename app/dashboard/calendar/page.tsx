@@ -44,6 +44,8 @@ import {
   SimpleSleepBarChart,
   UserWeeklySleepChart,
 } from "@/components/calendar"
+import { SplitScreenBitacora } from "@/components/bitacora/SplitScreenBitacora"
+import { NarrativeTimeline, type NarrativeTimelineEvent } from "@/components/narrative/NarrativeTimeline"
 import type { DailySleepPoint, NightWakingPoint } from "@/components/calendar/SimpleSleepBarChart"
 import type { DailyUserSleepData } from "@/components/calendar/UserWeeklySleepChart"
 import {
@@ -1031,6 +1033,23 @@ export default function CalendarPage() {
     calculateMonthlyStats(monthScoped)
   }, [activeChildId, allEventsCache, events, date])
 
+  // Nombre del nino activo para Split Screen
+  const activeChildName = useMemo(() => {
+    if (!children || !Array.isArray(children)) return "el bebe"
+    const child = children.find((c: Child) => c._id === activeChildId)
+    return child?.name || "el bebe"
+  }, [children, activeChildId])
+
+  // Eventos del dia seleccionado para Narrativa (vista diaria padres)
+  const dayEvents = useMemo(() => {
+    const dayStart = startOfDay(date)
+    const dayEnd = endOfDay(date)
+    return events.filter((event) => {
+      const eventDate = new Date(event.startTime)
+      return eventDate >= dayStart && eventDate <= dayEnd
+    })
+  }, [events, date])
+
   const weeklySummary = useMemo(() => {
     const sourceEvents = allEventsCache.length > 0 ? allEventsCache : events
     const scopedEvents = isAdminView ? sourceEvents : filterToLastSevenDays(sourceEvents)
@@ -1671,7 +1690,19 @@ export default function CalendarPage() {
                         <p className="text-gray-600">Cargando calendario...</p>
                       </div>
                     </div>
+                  ) : view === "day" ? (
+                    // Vista diaria admin: Split Screen (calendario + narrativa)
+                    <SplitScreenBitacora
+                      events={events}
+                      childName={activeChildName}
+                      selectedDate={date}
+                      timezone={userTimeZone}
+                      onEventUpdate={invalidateEvents}
+                      onDayNavigateBack={navigateOneDayBack}
+                      onDayNavigateForward={navigateOneDayForward}
+                    />
                   ) : (
+                    // Vista semanal/mensual: CalendarMain normal
                     <CalendarMain
                       events={events}
                       onEventClick={handleEventClick}
@@ -1892,7 +1923,23 @@ export default function CalendarPage() {
                         <p className="text-gray-600">Cargando calendario...</p>
                       </div>
                     </div>
+                  ) : view === "day" ? (
+                    // Vista diaria padres: Narrativa vertical
+                    <div className="space-y-4">
+                      <NarrativeTimeline
+                        events={dayEvents as unknown as NarrativeTimelineEvent[]}
+                        childName={activeChildName}
+                        timezone={userTimeZone}
+                        isLoading={isLoading}
+                        onEventEdit={(eventId) => {
+                          const ev = dayEvents.find(e => e._id === eventId)
+                          if (ev) handleEventClick(ev)
+                        }}
+                        emptyMessage="No hay eventos registrados hoy"
+                      />
+                    </div>
                   ) : (
+                    // Vista semanal/mensual: CalendarMain normal
                     <CalendarMain
                       events={events}
                       onEventClick={handleEventClick}
