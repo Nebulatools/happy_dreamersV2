@@ -9,15 +9,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Clock, ChevronLeft, ChevronRight, Plus, Minus } from "lucide-react"
+import { Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { format } from "date-fns"
 import { useDevTime } from "@/context/dev-time-context"
 import { useUser } from "@/context/UserContext"
 import { buildLocalDate, dateToTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
+import { DelaySelector, EmotionalStateSelector } from "@/components/events/shared"
+import type { EmotionalState } from "@/components/events/types"
 
 interface SleepDelayModalProps {
   open: boolean
@@ -57,7 +58,7 @@ export function SleepDelayModal({
   const { userData } = useUser()
   const timezone = userData?.timezone || DEFAULT_TIMEZONE
   const [selectedDelay, setSelectedDelay] = useState<number>(initialData?.sleepDelay || 15) // Default 15 min
-  const [emotionalState, setEmotionalState] = useState<string>(initialData?.emotionalState || "tranquilo") // Default tranquilo
+  const [emotionalState, setEmotionalState] = useState<EmotionalState>((initialData?.emotionalState as EmotionalState) || "tranquilo") // Default tranquilo
   const [notes, setNotes] = useState<string>(initialData?.notes || "") // Notas opcionales
   const [eventDate, setEventDate] = useState<string>(() => {
     if (mode === "edit" && initialData?.startTime) {
@@ -94,7 +95,7 @@ export function SleepDelayModal({
   useEffect(() => {
     if (open && mode === "edit" && initialData) {
       setSelectedDelay(initialData.sleepDelay || 15)
-      setEmotionalState(initialData.emotionalState || "tranquilo")
+      setEmotionalState((initialData.emotionalState as EmotionalState) || "tranquilo")
       setNotes(initialData.notes || "")
       if (initialData.startTime) {
         setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
@@ -114,32 +115,8 @@ export function SleepDelayModal({
     }
   }, [open, mode, initialData, getCurrentTime])
 
-  // Opciones rápidas predefinidas para fácil selección
-  const quickOptions = [0, 15, 30, 45]
-  
-  // Incrementar/decrementar en pasos de 5 minutos
-  const adjustDelay = (increment: number) => {
-    setSelectedDelay(prev => {
-      const newValue = prev + increment
-      // Limitar entre 0 y 120 minutos (2 horas)
-      return Math.max(0, Math.min(120, newValue))
-    })
-  }
-  
-  // Formatear el texto del tiempo
-  const formatDelayText = (minutes: number): string => {
-    if (minutes === 0) return "Se durmió inmediatamente"
-    if (minutes === 60) return "1 hora"
-    if (minutes > 60) return `${Math.floor(minutes/60)}h ${minutes%60}min`
-    return `${minutes} minutos`
-  }
-
-  // Estados emocionales disponibles según registroeventos.md
-  const emotionalStates = [
-    { value: "tranquilo", label: "Tranquilo", description: "Se durmió con calma" },
-    { value: "inquieto", label: "Inquieto", description: "Algo de dificultad" },
-    { value: "alterado", label: "Alterado", description: "Muy difícil dormirse" },
-  ]
+  // NOTA: quickOptions, adjustDelay, formatDelayText y emotionalStates
+  // ahora vienen de los componentes compartidos DelaySelector y EmotionalStateSelector
 
   const handleConfirm = async () => {
     setIsProcessing(true)
@@ -170,7 +147,7 @@ export function SleepDelayModal({
     setIsProcessing(false)
     // Reset para próxima vez
     setSelectedDelay(15)
-    setEmotionalState("tranquilo")
+    setEmotionalState("tranquilo" as EmotionalState)
     setNotes("")
     setDidNotSleep(false)
     setHasEndTime(false)
@@ -182,7 +159,7 @@ export function SleepDelayModal({
     onClose()
     // Reset para próxima vez
     setSelectedDelay(15)
-    setEmotionalState("tranquilo")
+    setEmotionalState("tranquilo" as EmotionalState)
     setNotes("")
     setDidNotSleep(false)
   }
@@ -326,124 +303,57 @@ export function SleepDelayModal({
           </div>
         )}
 
-        {/* Sección 1: Selector de Tiempo con Flechas */}
-        <div className="space-y-4 mt-4">
-          <div className="text-sm font-medium text-gray-700">
-            {eventType === "nap" && didNotSleep
+        {/* Sección 1: Selector de Tiempo - Usa componente compartido */}
+        <DelaySelector
+          label={
+            eventType === "nap" && didNotSleep
               ? "¿Cuánto tiempo intentaron dormirlo?"
-              : "¿Cuánto tiempo tardó en dormirse?"}
-          </div>
-          
-          {/* Control principal con flechas */}
-          <div className="flex items-center justify-center gap-4 py-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => adjustDelay(-5)}
-              disabled={isProcessing || selectedDelay <= 0}
-              className="h-10 w-10 rounded-full"
-            >
-              <Minus className="h-4 w-4" />
-            </Button>
-            
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl px-6 py-3 min-w-[180px] text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {formatDelayText(selectedDelay)}
-              </div>
-            </div>
-            
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => adjustDelay(5)}
-              disabled={isProcessing || selectedDelay >= 120}
-              className="h-10 w-10 rounded-full"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          {/* Opciones rápidas */}
-          <div className="flex justify-center gap-2">
-            <span className="text-xs text-gray-500">Opciones rápidas:</span>
-            {quickOptions.map(minutes => (
-              <button
-                key={minutes}
-                type="button"
-                onClick={() => {
-                  setSelectedDelay(minutes)
-                }}
-                disabled={isProcessing}
-                className={cn(
-                  "px-3 py-1 rounded-full text-xs font-medium transition-colors",
-                  selectedDelay === minutes
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                )}
-              >
-                {minutes === 0 ? "Inmediato" : `${minutes}min`}
-              </button>
-            ))}
-          </div>
+              : "¿Cuánto tiempo tardó en dormirse?"
+          }
+          value={selectedDelay}
+          onChange={setSelectedDelay}
+          min={0}
+          max={120}
+          disabled={isProcessing}
+          zeroLabel="Se durmió inmediatamente"
+          themeColor="blue"
+          className="mt-4"
+        />
 
-          {/* Opción especial para siestas donde no se logró dormir */}
-          {eventType === "nap" && mode === "create" && (
-            <div className="mt-3 pt-3 border-t flex justify-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setDidNotSleep((prev) => !prev)
-                }}
-                disabled={isProcessing}
-                className={cn(
-                  "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
-                  didNotSleep
-                    ? "bg-rose-100 border-rose-400 text-rose-700"
-                    : "bg-white border-gray-200 text-gray-700 hover:bg-rose-50 hover:border-rose-300"
-                )}
-              >
-                No se pudo dormir
-              </button>
-            </div>
-          )}
-        </div>
+        {/* Opción especial para siestas donde no se logró dormir */}
+        {eventType === "nap" && mode === "create" && (
+          <div className="mt-3 pt-3 border-t flex justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                setDidNotSleep((prev) => !prev)
+              }}
+              disabled={isProcessing}
+              className={cn(
+                "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                didNotSleep
+                  ? "bg-rose-100 border-rose-400 text-rose-700"
+                  : "bg-white border-gray-200 text-gray-700 hover:bg-rose-50 hover:border-rose-300"
+              )}
+            >
+              No se pudo dormir
+            </button>
+          </div>
+        )}
 
-        {/* Sección 2: Estado Emocional */}
-        <div className="space-y-3 border-t pt-4">
-          <div className="text-sm font-medium text-gray-700">
-            {eventType === "nap" && didNotSleep
+        {/* Sección 2: Estado Emocional - Usa componente compartido */}
+        <EmotionalStateSelector
+          label={
+            eventType === "nap" && didNotSleep
               ? `¿Cómo estaba ${childName} al intentar tomar la siesta?`
-              : `¿Cómo estaba ${childName} al dormirse?`}
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {emotionalStates.map(state => (
-              <button
-                key={state.value}
-                type="button"
-                onClick={() => setEmotionalState(state.value)}
-                disabled={isProcessing}
-                className={cn(
-                  "p-3 rounded-lg border-2 transition-all text-center",
-                  emotionalState === state.value
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 hover:border-gray-300"
-                )}
-              >
-                <div className={cn(
-                  "font-medium text-sm",
-                  emotionalState === state.value ? "text-blue-700" : "text-gray-700"
-                )}>
-                  {state.label}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {state.description}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+              : `¿Cómo estaba ${childName} al dormirse?`
+          }
+          value={emotionalState}
+          onChange={setEmotionalState}
+          disabled={isProcessing}
+          themeColor="blue"
+          className="border-t pt-4"
+        />
 
         {/* Sección 3: Notas (Campo Guiado según Dra. Mariana) */}
         <div className="space-y-2 border-t pt-4">

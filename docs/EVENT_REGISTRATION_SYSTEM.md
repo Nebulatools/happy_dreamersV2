@@ -103,7 +103,7 @@ Sistema dual de registro de eventos que ofrece dos modos de operación:
 | Hora | Tipo de Evento | Color en Calendario | Texto del Botón |
 |------|----------------|---------------------|-----------------|
 | 19:00 - 10:00 | Sueño Nocturno (`sleep`) | Azul 🔵 | "SE DURMIÓ" |
-| 10:00 - 19:00 | Siesta (`nap`) | Naranja 🟠 | "INICIAR SIESTA" |
+| 10:00 - 19:00 | Siesta (`nap`) | Lavanda 🟣 | "INICIAR SIESTA" |
 
 ### Ventanas de Sueño
 - Cálculo automático del tiempo despierto entre sueños

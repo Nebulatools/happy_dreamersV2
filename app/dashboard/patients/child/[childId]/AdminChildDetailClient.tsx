@@ -6,14 +6,25 @@
 import { useState, useCallback, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle, Clock, FileText, TrendingUp, Loader2, Moon, Sun, Utensils, UtensilsCrossed, Pill, Activity, Baby } from "lucide-react"
+import {
+  AlertCircle,
+  Clock,
+  FileText,
+  TrendingUp,
+  Loader2,
+  Moon,
+  Sun,
+  Utensils,
+  UtensilsCrossed,
+  Pill,
+  Activity,
+  Baby,
+} from "lucide-react"
 import { SurveyResponseViewer } from "@/components/survey/SurveyResponseViewer"
 import { EventDetailsModal } from "@/components/events/EventDetailsModal"
 import { EventEditRouter } from "@/components/events/EventEditRouter"
 import { EventsCalendarTabs } from "@/components/events/EventsCalendarTabs"
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal"
-import { format } from "date-fns"
-import { es } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
 import type { SurveyData, Event } from "@/types/models"
 
@@ -144,7 +155,7 @@ export function AdminChildDetailClient({
       }
       return <Utensils className="h-4 w-4 text-green-500" /> // breast y bottle
     case "medication":
-      return <Pill className="h-4 w-4 text-blue-500" />
+      return <Pill className="h-4 w-4 text-amber-500" />
     case "extra_activities":
       return <Activity className="h-4 w-4 text-orange-500" />
     default:
@@ -304,7 +315,7 @@ export function AdminChildDetailClient({
         )}
       </TabsContent>
 
-      {/* Tab Eventos - Vista calendarizada con tabs dia/semana/mes */}
+      {/* Tab Eventos */}
       <TabsContent value="eventos">
         <EventsCalendarTabs
           events={events}

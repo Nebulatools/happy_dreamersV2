@@ -96,15 +96,16 @@ This skill is **reusable across projects** - configure paths and branches as nee
 ### Phase 5-6: Release Notes & Push to QA
 
 **Actions:**
-1. Read existing format of `QA_RELEASE_NOTES.md`
-2. Add new tests following the format
-3. Include:
-   - Summary of changes
+1. Read `SPEC-SPRINT.md` to identify ALL completed items
+2. **REPLACE** (not add) `QA_RELEASE_NOTES.md` with tests for current sprint
+3. Each completed item in SPEC-SPRINT = 1 test section in QA_RELEASE_NOTES
+4. Include:
+   - Summary of changes (from SPEC-SPRINT completed items)
    - Verification steps (checkboxes)
    - Modified files
    - Testing credentials
-4. Commit with descriptive message
-5. Push and merge:
+5. Commit with descriptive message
+6. Push and merge:
    ```bash
    git push origin dev
    git checkout QA && git merge dev && git push origin QA

@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Baby, Plus, Minus } from "lucide-react"
+import { UtensilsCrossed, Plus, Minus, Heart, Milk } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { FeedingModalData, FeedingType, EditOptions } from "./types"
 import { format } from "date-fns"
@@ -99,26 +99,38 @@ export function FeedingModal({
     }
   }, [open, mode, initialData, getCurrentTime])
 
-  // Tipos de alimentación disponibles
+  // Tipos de alimentación disponibles con íconos oficiales y colores
   const feedingTypes = [
-    { 
-      value: "breast" as FeedingType, 
-      label: "Pecho", 
-      icon: "🤱",
+    {
+      value: "breast" as FeedingType,
+      label: "Pecho",
+      Icon: Heart,
+      color: "text-pink-500",        // #EC4899
+      selectedBg: "bg-pink-50",
+      selectedBorder: "border-pink-500",
+      selectedText: "text-pink-700",
       description: "Lactancia materna",
       unit: "minutos",
     },
-    { 
-      value: "bottle" as FeedingType, 
-      label: "Biberón", 
-      icon: "🍼",
+    {
+      value: "bottle" as FeedingType,
+      label: "Biberón",
+      Icon: Milk,
+      color: "text-sky-500",         // #0EA5E9
+      selectedBg: "bg-sky-50",
+      selectedBorder: "border-sky-500",
+      selectedText: "text-sky-700",
       description: "Leche o fórmula",
       unit: "oz",
     },
-    { 
-      value: "solids" as FeedingType, 
-      label: "Sólidos", 
-      icon: "🥄",
+    {
+      value: "solids" as FeedingType,
+      label: "Sólidos",
+      Icon: UtensilsCrossed,
+      color: "text-emerald-500",     // #10B981
+      selectedBg: "bg-emerald-50",
+      selectedBorder: "border-emerald-500",
+      selectedText: "text-emerald-700",
       description: "Comida sólida",
       unit: "gr",
     },
@@ -258,7 +270,7 @@ export function FeedingModal({
       <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Baby className="w-5 h-5 text-green-500" />
+            <UtensilsCrossed className="w-5 h-5 text-emerald-500" />
             {mode === "edit" ? "Editar Alimentación" : "Registro de Alimentación"}
           </DialogTitle>
           <DialogDescription>
@@ -311,39 +323,42 @@ export function FeedingModal({
             Tipo de alimentación
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {feedingTypes.map(type => (
-              <button
-                key={type.value}
-                type="button"
-                onClick={() => {
-                  setFeedingType(type.value)
-                  // Ajustar cantidad por defecto según tipo
-                  if (type.value === "breast") setFeedingAmount(15)
-                  else if (type.value === "bottle") setFeedingAmount(4)
-                  else setFeedingAmount(50)
-                  // Sólidos: siempre despierto
-                  if (type.value === "solids") setBabyState("awake")
-                }}
-                disabled={isProcessing}
-                className={cn(
-                  "p-3 rounded-lg border-2 transition-all text-center",
-                  feedingType === type.value
-                    ? "border-green-500 bg-green-50"
-                    : "border-gray-200 hover:border-gray-300"
-                )}
-              >
-                <div className="text-xl mb-1">{type.icon}</div>
-                <div className={cn(
-                  "font-medium text-sm",
-                  feedingType === type.value ? "text-green-700" : "text-gray-700"
-                )}>
-                  {type.label}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {type.description}
-                </div>
-              </button>
-            ))}
+            {feedingTypes.map(type => {
+              const isSelected = feedingType === type.value
+              return (
+                <button
+                  key={type.value}
+                  type="button"
+                  onClick={() => {
+                    setFeedingType(type.value)
+                    // Ajustar cantidad por defecto según tipo
+                    if (type.value === "breast") setFeedingAmount(15)
+                    else if (type.value === "bottle") setFeedingAmount(4)
+                    else setFeedingAmount(50)
+                    // Sólidos: siempre despierto
+                    if (type.value === "solids") setBabyState("awake")
+                  }}
+                  disabled={isProcessing}
+                  className={cn(
+                    "p-3 rounded-lg border-2 transition-all text-center",
+                    isSelected
+                      ? `${type.selectedBorder} ${type.selectedBg}`
+                      : "border-gray-200 hover:border-gray-300"
+                  )}
+                >
+                  <type.Icon className={cn("w-6 h-6 mx-auto mb-1", type.color)} />
+                  <div className={cn(
+                    "font-medium text-sm",
+                    isSelected ? type.selectedText : "text-gray-700"
+                  )}>
+                    {type.label}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {type.description}
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </div>
 

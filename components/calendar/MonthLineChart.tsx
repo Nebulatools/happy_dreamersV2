@@ -48,10 +48,10 @@ interface MonthLineChartProps {
 // Colores consistentes con el sistema existente
 const EVENT_COLORS: Record<string, string> = {
   sleep: "#9B7EDE",      // Morado para dormir
-  nap: "#FFB951",        // Naranja para siesta
-  nap1: "#FFB951",       // Siesta 1
-  nap2: "#FFA726",       // Siesta 2 (naranja mas oscuro)
-  nap3: "#FF9800",       // Siesta 3
+  nap: "#a78bfa",        // Lavanda para siesta (violet-400)
+  nap1: "#a78bfa",       // Siesta 1 (lavanda)
+  nap2: "#8b5cf6",       // Siesta 2 (violet-500)
+  nap3: "#7c3aed",       // Siesta 3 (violet-600)
   wake: "#65C466",       // Verde para despertar
   night_waking: "#FF6B6B", // Rojo para despertar nocturno
 }

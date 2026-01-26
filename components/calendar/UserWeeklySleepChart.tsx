@@ -19,7 +19,7 @@ import { es } from "date-fns/locale"
 
 // Colores según el diseño de referencia
 const NIGHT_COLOR = "#5B8DEF" // Azul para sueño nocturno
-const NAP_COLOR = "#FF8A34" // Naranja para siestas
+const NAP_COLOR = "#a78bfa" // Lavanda para siestas (violet-400)
 const WAKING_COLOR = "#E11D48" // Rojo para despertares
 
 export interface DailyUserSleepData {

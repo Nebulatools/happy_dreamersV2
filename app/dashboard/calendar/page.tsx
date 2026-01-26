@@ -44,6 +44,8 @@ import {
   SimpleSleepBarChart,
   UserWeeklySleepChart,
 } from "@/components/calendar"
+import { SplitScreenBitacora } from "@/components/bitacora/SplitScreenBitacora"
+import { NarrativeTimeline, type NarrativeTimelineEvent } from "@/components/narrative/NarrativeTimeline"
 import type { DailySleepPoint, NightWakingPoint } from "@/components/calendar/SimpleSleepBarChart"
 import type { DailyUserSleepData } from "@/components/calendar/UserWeeklySleepChart"
 import {
@@ -100,6 +102,8 @@ import {
   parseTimestamp,
   DEFAULT_TIMEZONE,
 } from "@/lib/datetime"
+import { getEventBgClass } from "@/lib/colors/event-colors"
+import { getEventIconConfig } from "@/lib/icons/event-icons"
 
 const logger = createLogger("CalendarPage")
 
@@ -1029,6 +1033,23 @@ export default function CalendarPage() {
     calculateMonthlyStats(monthScoped)
   }, [activeChildId, allEventsCache, events, date])
 
+  // Nombre del nino activo para Split Screen
+  const activeChildName = useMemo(() => {
+    if (!children || !Array.isArray(children)) return "el bebe"
+    const child = children.find((c: Child) => c._id === activeChildId)
+    return child?.name || "el bebe"
+  }, [children, activeChildId])
+
+  // Eventos del dia seleccionado para Narrativa (vista diaria padres)
+  const dayEvents = useMemo(() => {
+    const dayStart = startOfDay(date)
+    const dayEnd = endOfDay(date)
+    return events.filter((event) => {
+      const eventDate = new Date(event.startTime)
+      return eventDate >= dayStart && eventDate <= dayEnd
+    })
+  }, [events, date])
+
   const weeklySummary = useMemo(() => {
     const sourceEvents = allEventsCache.length > 0 ? allEventsCache : events
     const scopedEvents = isAdminView ? sourceEvents : filterToLastSevenDays(sourceEvents)
@@ -1185,52 +1206,19 @@ export default function CalendarPage() {
     return currentEndDate > minAllowed
   }, [isAdminView, date, userViewMode])
 
-  const getEventTypeIcon = (type: string) => {
-    switch(type) {
-    case "sleep":
-      return <Moon className="w-3 h-3" />
-    case "nap":
-      return <Sun className="w-3 h-3" />
-    case "wake":
-      return <Sun className="w-3 h-3" />
-    case "night_waking":
-      return <AlertCircle className="w-3 h-3" />
-    case "feeding":
-      return null
-    case "medication":
-      return null
-    case "activity":
-    case "extra_activities":
-      return null
-    case "note":
-      return <FileText className="w-3 h-3" />
-    default:
-      return null
-    }
+  // Usa sistema centralizado de iconos con soporte para feedingType
+  // Color blanco para mejor contraste sobre fondos de color
+  const getEventTypeIcon = (type: string, feedingType?: "breast" | "bottle" | "solids") => {
+    const config = getEventIconConfig(type, feedingType)
+    const IconComponent = config.icon
+    return <IconComponent className="w-3 h-3 text-white" />
   }
 
-  const getEventTypeColor = (type: string) => {
-    switch(type) {
-    case "sleep":
-      return "bg-sleep event-pill"
-    case "nap":
-      return "bg-nap event-pill"
-    case "wake":
-      return "bg-wake event-pill"  // Verde para despertar matutino
-    case "night_waking":
-      return "bg-night-wake event-pill"  // Rojo para despertar nocturno
-    case "feeding":
-      return "bg-feeding event-pill"  // Amarillo para alimentación
-    case "medication":
-      return "bg-medication event-pill"  // Morado para medicamentos
-    case "activity":
-    case "extra_activities":
-      return "bg-extra-activities event-pill"  // Naranja para actividades extra
-    case "note":
-      return "bg-note event-pill"  // Morado para notas de bitacora
-    default:
-      return "bg-gray-400 event-pill"
-    }
+  // Usa sistema centralizado de colores con soporte para feedingType
+  const getEventTypeColor = (type: string, feedingType?: "breast" | "bottle" | "solids") => {
+    // Usar sistema centralizado que diferencia subtipos de alimentación
+    const bgClass = getEventBgClass(type, feedingType)
+    return `${bgClass} event-pill`
   }
 
   const formatEventTimeDisplay = (event: Event) => {
@@ -1541,7 +1529,7 @@ export default function CalendarPage() {
                     <div
                       key={event._id}
                       className={cn(
-                        getEventTypeColor(event.eventType),
+                        getEventTypeColor(event.eventType, event.feedingType),
                         "flex items-center gap-0.5 cursor-pointer hover:opacity-80 z-10 relative px-1 py-px rounded"
                       )}
                       style={{ fontSize: "9px", lineHeight: "1.1" }}
@@ -1550,7 +1538,7 @@ export default function CalendarPage() {
                         handleEventClick(event)
                       }}
                     >
-                      {getEventTypeIcon(event.eventType)}
+                      {getEventTypeIcon(event.eventType, event.feedingType)}
                       <span className="truncate" style={{ fontSize: "10px" }}>
                         {formatTime(event.startTime, userTimeZone)}
                       </span>
@@ -1702,7 +1690,19 @@ export default function CalendarPage() {
                         <p className="text-gray-600">Cargando calendario...</p>
                       </div>
                     </div>
+                  ) : view === "day" ? (
+                    // Vista diaria admin: Split Screen (calendario + narrativa)
+                    <SplitScreenBitacora
+                      events={events}
+                      childName={activeChildName}
+                      selectedDate={date}
+                      timezone={userTimeZone}
+                      onEventUpdate={invalidateEvents}
+                      onDayNavigateBack={navigateOneDayBack}
+                      onDayNavigateForward={navigateOneDayForward}
+                    />
                   ) : (
+                    // Vista semanal/mensual: CalendarMain normal
                     <CalendarMain
                       events={events}
                       onEventClick={handleEventClick}
@@ -1923,7 +1923,23 @@ export default function CalendarPage() {
                         <p className="text-gray-600">Cargando calendario...</p>
                       </div>
                     </div>
+                  ) : view === "day" ? (
+                    // Vista diaria padres: Narrativa vertical
+                    <div className="space-y-4">
+                      <NarrativeTimeline
+                        events={dayEvents as unknown as NarrativeTimelineEvent[]}
+                        childName={activeChildName}
+                        timezone={userTimeZone}
+                        isLoading={isLoading}
+                        onEventEdit={(eventId) => {
+                          const ev = dayEvents.find(e => e._id === eventId)
+                          if (ev) handleEventClick(ev)
+                        }}
+                        emptyMessage="No hay eventos registrados hoy"
+                      />
+                    </div>
                   ) : (
+                    // Vista semanal/mensual: CalendarMain normal
                     <CalendarMain
                       events={events}
                       onEventClick={handleEventClick}

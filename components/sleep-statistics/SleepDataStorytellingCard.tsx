@@ -505,8 +505,8 @@ export default function SleepDataStorytellingCard({
           <div className="text-xl md:text-2xl font-bold text-green-600">{avgNightHours.toFixed(1)}h</div>
           <div className="text-xs md:text-sm text-gray-600">Sueño nocturno</div>
         </div>
-        <div className="text-center p-3 bg-orange-50 rounded-lg">
-          <div className="text-xl md:text-2xl font-bold text-orange-600">{avgNapHours.toFixed(1)}h</div>
+        <div className="text-center p-3 bg-violet-50 rounded-lg">
+          <div className="text-xl md:text-2xl font-bold text-violet-600">{avgNapHours.toFixed(1)}h</div>
           <div className="text-xs md:text-sm text-gray-600">Siestas{napCount ? ` (${napCount})` : ""}</div>
         </div>
         <div className="text-center p-3 bg-red-50 rounded-lg">

@@ -10,6 +10,7 @@ import { GridLines } from "./GridLines"
 import { EventGlobe } from "./EventGlobe"
 import { SleepSessionBlock } from "./SleepSessionBlock"
 import { processSleepSessions, type Event as SleepEvent } from "@/lib/utils/sleep-sessions"
+import { calculateEventColumns } from "@/lib/utils/calculate-event-columns"
 
 interface Event {
   _id: string;
@@ -21,95 +22,12 @@ interface Event {
   notes?: string;
 }
 
-// Funcion para calcular columnas de eventos superpuestos (misma que CalendarWeekView)
-interface EventWithColumn extends Event {
-  column: number;
-  totalColumns: number;
-}
-
-function calculateEventColumns(events: Event[]): EventWithColumn[] {
-  if (events.length === 0) return []
-
-  // Ordenar por hora de inicio
-  const sortedEvents = [...events].sort((a, b) =>
-    new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-  )
-
-  const eventsWithColumns: EventWithColumn[] = []
-  const activeColumns: { endTime: number; column: number }[] = []
-
-  sortedEvents.forEach(event => {
-    const startTime = new Date(event.startTime).getTime()
-    const endTime = event.endTime
-      ? new Date(event.endTime).getTime()
-      : startTime + 30 * 60 * 1000 // 30 min default para eventos sin fin
-
-    // Limpiar columnas que ya terminaron
-    const availableColumns = activeColumns.filter(col => col.endTime <= startTime)
-    availableColumns.forEach(col => {
-      const idx = activeColumns.indexOf(col)
-      if (idx > -1) activeColumns.splice(idx, 1)
-    })
-
-    // Encontrar la primera columna disponible
-    let column = 0
-    const usedColumns = activeColumns.map(c => c.column).sort((a, b) => a - b)
-    for (let i = 0; i <= usedColumns.length; i++) {
-      if (!usedColumns.includes(i)) {
-        column = i
-        break
-      }
-    }
-
-    // Agregar a columnas activas
-    activeColumns.push({ endTime, column })
-
-    // Guardar evento con su columna
-    eventsWithColumns.push({
-      ...event,
-      column,
-      totalColumns: Math.max(...activeColumns.map(c => c.column)) + 1,
-    })
-  })
-
-  // Segunda pasada para calcular totalColumns correctamente para cada grupo
-  const groups: EventWithColumn[][] = []
-  let currentGroup: EventWithColumn[] = []
-  let groupEndTime = 0
-
-  eventsWithColumns.forEach(event => {
-    const startTime = new Date(event.startTime).getTime()
-    if (startTime >= groupEndTime && currentGroup.length > 0) {
-      groups.push(currentGroup)
-      currentGroup = []
-    }
-    currentGroup.push(event)
-    const endTime = event.endTime
-      ? new Date(event.endTime).getTime()
-      : startTime + 30 * 60 * 1000
-    groupEndTime = Math.max(groupEndTime, endTime)
-  })
-  if (currentGroup.length > 0) {
-    groups.push(currentGroup)
-  }
-
-  // Actualizar totalColumns para cada grupo
-  const result: EventWithColumn[] = []
-  groups.forEach(group => {
-    const maxColumn = Math.max(...group.map(e => e.column)) + 1
-    group.forEach(event => {
-      result.push({ ...event, totalColumns: maxColumn })
-    })
-  })
-
-  return result
-}
-
 interface CalendarDayViewProps {
   date: Date;
   events: Event[];
   hourHeight?: number;
   onEventClick?: (event: Event) => void;
+  onEventDoubleClick?: (event: Event) => void;
   onCalendarClick?: (clickEvent: React.MouseEvent, dayDate: Date) => void;
   className?: string;
   onDayNavigateBack?: () => void;
@@ -121,6 +39,7 @@ export function CalendarDayView({
   events,
   hourHeight = 30,
   onEventClick,
+  onEventDoubleClick,
   onCalendarClick,
   className = "",
   onDayNavigateBack,
@@ -198,9 +117,14 @@ export function CalendarDayView({
                     originalStartTime={session.originalStartTime}
                     originalEndTime={session.originalEndTime}
                     nightWakings={session.nightWakings}
+                    overlayEvents={session.overlayEvents}
                     hourHeight={hourHeight}
                     onClick={() => onEventClick?.(session.originalEvent as Event)}
+                    onDoubleClick={() => onEventDoubleClick?.(session.originalEvent as Event)}
                     onNightWakingClick={(waking) => onEventClick?.(waking as Event)}
+                    onNightWakingDoubleClick={(waking) => onEventDoubleClick?.(waking as Event)}
+                    onOverlayEventClick={(overlay) => onEventClick?.(overlay as Event)}
+                    onOverlayEventDoubleClick={(overlay) => onEventDoubleClick?.(overlay as Event)}
                     isContinuationFromPrevious={session.isContinuationFromPrevious}
                     continuesNextDay={session.continuesNextDay}
                     column={0}
@@ -215,6 +139,7 @@ export function CalendarDayView({
                     event={event}
                     hourHeight={hourHeight}
                     onClick={onEventClick}
+                    onDoubleClick={onEventDoubleClick}
                     column={event.column}
                     totalColumns={event.totalColumns}
                   />

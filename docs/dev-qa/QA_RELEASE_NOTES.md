@@ -1,195 +1,249 @@
-# Guia de QA - Happy Dreamers
+# QA Release Notes - Sprint Actual
 
-**Fecha:** 2026-01-12
-**Ultima Actualizacion:** 2026-01-12
+**Fecha:** 2026-01-25
+**Sprint:** Mejoras UX/UI Dashboard - Vista Narrativa y Taxonomia Visual
 **URL:** http://localhost:3000
 
 ---
 
-## TESTING CRITICO - Push Actual
+## Resumen de Cambios (SPEC-SPRINT)
 
-### Resumen de Cambios
-
-| Cambio | Descripcion |
-|--------|-------------|
-| EventsCalendarTabs | Nuevo componente reutilizable con tabs dia/semana/mes |
-| NoteModal | Modal para crear/editar notas |
-| Calendario Usuario | Toggle grafico/calendario habilitado |
-| Mis Eventos | Vista tabla eliminada, solo calendario |
-| Bitacora | Rediseño de chat a lista de notas |
-| Notas | Estado emocional eliminado |
+| Item | Descripcion | Estado |
+|------|-------------|--------|
+| Item 1 | Vista Narrativa en Home (padres) con collapsible | COMPLETADO |
+| Item 2 | Taxonomia Visual (colores por tipo alimentacion, siestas lavanda) | COMPLETADO |
+| Item 3 | Split Screen Admin / Narrativa Parent en vista Diaria | COMPLETADO |
+| Fix | Eventos dentro de bloques de sueno en columnas | COMPLETADO |
+| UI | Estilos nocturnos oscuros para bloques de sueno | COMPLETADO |
 
 ---
 
-## TEST 1: Vista Calendario en "Mis Eventos" (Usuario)
+## TEST 1: Vista Narrativa en Home (Padres) - Item 1
 
-**Ruta:** `/dashboard/children/[childId]/events`
+**Ruta:** `/dashboard` (Home del padre)
 
-**Pasos:**
-1. Login como usuario (eljulius@nebulastudios.io / juls0925)
-2. Ir a "Mis Eventos" de un hijo
+**Descripcion:** Los padres ven los ultimos eventos del dia en formato narrativo con opcion de expandir/colapsar.
 
-**Verificar:**
-- [ ] NO existe toggle "Calendario/Tabla" (fue eliminado)
-- [ ] Solo se muestra vista calendario con tabs
-- [ ] Tabs funcionan: Dia | Semana | Mes
-- [ ] Navegacion de fechas funciona (flechas anterior/siguiente)
-- [ ] Click en evento abre modal de detalles
-- [ ] Boton "Editar" funciona desde el modal
-- [ ] Eventos se muestran correctamente en cada vista
+### Pasos
 
-**Vista Dia:**
-- [ ] Eventos se ordenan cronologicamente
-- [ ] Eventos superpuestos se muestran lado a lado
+1. Login como USUARIO/PADRE (eljulius@nebulastudios.io / juls0925)
+2. Ir al Dashboard principal (Home)
+3. Localizar la seccion de eventos/bitacora
 
-**Vista Semana:**
-- [ ] 7 columnas (Lun-Dom)
-- [ ] Eventos posicionados en hora correcta
+### Verificar Estado Inicial (Colapsado)
 
-**Vista Mes:**
-- [ ] Calendario mensual con eventos
-- [ ] Click en dia muestra eventos de ese dia
+- [ ] Por defecto muestra maximo 5 eventos
+- [ ] Eventos en formato narrativo (tarjetas con texto)
+- [ ] Cada tarjeta tiene: icono + texto narrativo + hora
+- [ ] Existe boton "Ver todo" (si hay mas de 5 eventos)
 
----
+### Verificar Expandir/Colapsar
 
-## TEST 2: Bitacora Rediseñada (Dashboard Usuario)
+- [ ] Click en "Ver todo" expande la lista completa del dia
+- [ ] Click en "Colapsar" vuelve a mostrar solo 5 eventos
+- [ ] Al recargar pagina, vuelve a estado colapsado (no guarda estado)
 
-**Ruta:** `/dashboard` (Dashboard principal de usuario)
+### Verificar Formato de Narrativa
 
-**Pasos:**
-1. Login como usuario
-2. Localizar la seccion "Bitacora" en el dashboard
+| Tipo | Formato Esperado |
+|------|------------------|
+| Alimentacion pecho | "[Nombre] tomo pecho por [X] minutos" |
+| Alimentacion biberon | "[Nombre] tomo [X] oz de leche" |
+| Siesta | "[Nombre] durmio una siesta de [X] min" |
+| Sueno nocturno | "[Nombre] durmio de [hora] a [hora]" |
+| Despertar nocturno | "[Nombre] desperto a las [hora]" |
+| Medicamento | "[Nombre] tomo [medicamento]" |
 
-**Verificar UI:**
-- [ ] NO es estilo chat/WhatsApp (burbujas de mensaje)
-- [ ] ES estilo lista con tarjetas grises
-- [ ] Cada nota tiene icono violeta (MessageSquare)
-- [ ] Cada nota muestra texto y fecha/hora
-- [ ] Input de texto esta ARRIBA de la lista
-- [ ] Boton enviar tiene icono de flecha
+### Verificar Ordenamiento
 
-**Verificar Funcionalidad:**
-- [ ] Escribir nota y presionar Enter o click en boton
-- [ ] Nota nueva aparece EN LA LISTA (no como burbuja)
-- [ ] Lista muestra las 5 notas mas recientes
-- [ ] Notas ordenadas de mas reciente a mas antigua
-- [ ] Hover sobre nota muestra boton X (eliminar)
-- [ ] Click en X elimina la nota
+- [ ] Eventos ordenados cronologicamente inverso (mas reciente arriba)
 
-**Verificar Datos:**
-- [ ] Notas se guardan correctamente en BD
-- [ ] Al recargar pagina, notas persisten
-- [ ] Notas NO tienen campo "emotionalState"
+### Verificar Edge Case
+
+- [ ] Si no hay eventos del dia: mostrar "No hay eventos registrados hoy"
+
+### Verificar Navegacion
+
+- [ ] Click en chevron (>) de una tarjeta abre modal de edicion
 
 ---
 
-## TEST 3: Notas SIN Estado Emocional
-
-**Ruta:** `/dashboard/children/[childId]/events` > Click en nota
-
-**Pasos:**
-1. Crear una nota desde Bitacora o registro manual
-2. Ir a "Mis Eventos"
-3. Localizar la nota en el calendario
-4. Click para ver detalles
-
-**Verificar:**
-- [ ] Modal de detalles NO muestra "Estado emocional"
-- [ ] Solo muestra: Tipo (Nota), Fecha/hora, Contenido
-- [ ] Al editar, NO hay selector de estado emocional
-
-**Comparar con otros eventos:**
-- [ ] Evento de sleep SI muestra estado emocional
-- [ ] Evento de feeding SI muestra estado emocional
-- [ ] Evento de note NO muestra estado emocional
-
----
-
-## TEST 4: Toggle Grafico/Calendario (Calendario Usuario)
+## TEST 2: Taxonomia Visual - Colores por Tipo de Alimentacion
 
 **Ruta:** `/dashboard/calendar`
 
-**Pasos:**
+**Descripcion:** Los eventos de alimentacion ahora tienen colores diferenciados segun el tipo.
+
+### Colores Esperados
+
+| Tipo | Color | Icono |
+|------|-------|-------|
+| Pecho (breast) | Rosa (#EC4899) | Icono pecho |
+| Biberon (bottle) | Azul cielo (#0EA5E9) | Icono biberon |
+| Solidos (solids) | Esmeralda (#10B981) | Cubiertos cruzados |
+
+### Pasos
+
+1. Login como usuario (eljulius@nebulastudios.io / juls0925)
+2. Ir a Calendario
+3. Verificar eventos de alimentacion en vistas Dia, Semana, Mes
+
+### Verificar
+
+- [ ] Alimentacion pecho = color ROSA
+- [ ] Alimentacion biberon = color AZUL CIELO
+- [ ] Alimentacion solidos = color ESMERALDA/VERDE
+- [ ] Iconos son BLANCOS sobre el fondo de color
+- [ ] Colores consistentes en vista Diaria, Semanal y Mensual
+
+---
+
+## TEST 3: Taxonomia Visual - Siestas en Lavanda
+
+**Ruta:** `/dashboard/calendar`
+
+**Descripcion:** Las siestas (nap) ahora usan color lavanda claro para diferenciarse del sueno nocturno.
+
+### Colores Esperados
+
+| Tipo | Color |
+|------|-------|
+| Siesta (nap) | Lavanda (#a78bfa / violet-400) - CLARO |
+| Sueno nocturno (sleep) | Indigo-purpura OSCURO |
+
+### Pasos
+
 1. Login como usuario
-2. Ir a "Calendario"
+2. Ir a Calendario > Vista Diaria
+3. Localizar eventos de siesta y sueno nocturno
 
-**Verificar:**
-- [ ] Por defecto muestra vista "Grafico" (barras apiladas)
-- [ ] Existe toggle/botones para cambiar: Grafico | Calendario
-- [ ] Click en "Calendario" muestra vista calendario completa
+### Verificar
 
-**En modo Grafico:**
-- [ ] Muestra grafico de barras "Ultimos 7 dias"
-- [ ] Navegacion limitada (anterior/siguiente semana)
-
-**En modo Calendario:**
-- [ ] Tabs disponibles: Mensual | Semanal | Diario
-- [ ] Navegacion libre de fechas (sin limite de 7 dias)
-- [ ] Funciona igual que el calendario de admin
-- [ ] Click en evento abre detalles
+- [ ] Siestas tienen color LAVANDA CLARO (no naranja)
+- [ ] Sueno nocturno tiene color INDIGO/PURPURA OSCURO
+- [ ] Diferencia visual clara entre siesta y sueno nocturno
+- [ ] Graficos de barras usan mismos colores (consistencia)
 
 ---
 
-## TEST 5: EventsCalendarTabs en Admin
+## TEST 4: Split Screen para Admin (Vista Diaria)
 
-**Ruta:** `/dashboard/patients/child/[childId]` > Tab "Eventos"
+**Ruta:** `/dashboard/calendar` > Vista "Dia"
 
-**Pasos:**
-1. Login como admin (mariana@admin.com / password)
-2. Ir a Pacientes > Seleccionar paciente
-3. Click en tab "Eventos"
+**Descripcion:** Admins ven layout 50/50 con calendario a la izquierda y narrativa a la derecha.
 
-**Verificar:**
-- [ ] Vista calendario con tabs (Dia/Semana/Mes)
-- [ ] Mismo componente que "Mis Eventos" del usuario
-- [ ] Click en evento abre modal de detalles
-- [ ] Boton editar funciona
-- [ ] Boton eliminar funciona
+### Pasos
 
----
+1. Login como ADMIN (mariana@admin.com / password)
+2. Ir a Calendario
+3. Seleccionar vista "Dia"
 
-## TEST 6: NoteModal (Crear/Editar Notas)
+### Verificar Layout
 
-**Ruta:** Registro manual > Tipo "Nota"
+- [ ] Pantalla dividida 50% / 50%
+- [ ] Lado IZQUIERDO = Calendario (bloques de tiempo)
+- [ ] Lado DERECHO = Narrativa (tarjetas de texto)
+- [ ] Ambos paneles muestran los mismos eventos
 
-**Pasos:**
-1. Click en boton "+" o "Registrar evento"
-2. Seleccionar tipo "Nota"
-3. Completar el formulario
+### Verificar Mirroring Bidireccional
 
-**Verificar Creacion:**
-- [ ] Campo de texto para la nota (obligatorio)
-- [ ] Selector de fecha
-- [ ] Selector de hora
-- [ ] Boton guardar funciona
-- [ ] Nota aparece en calendario
-
-**Verificar Edicion:**
-1. Ir a "Mis Eventos"
-2. Click en una nota existente
-3. Click en "Editar"
-
-- [ ] Modal de edicion carga datos correctos
-- [ ] Se puede modificar texto
-- [ ] Se puede modificar fecha/hora
-- [ ] Cambios se guardan correctamente
+- [ ] Click en evento del CALENDARIO -> Narrativa hace scroll + highlight
+- [ ] Click en evento de NARRATIVA -> Calendario hace scroll + highlight
+- [ ] Highlight se desvanece gradualmente (5-7 segundos)
+- [ ] Doble click abre modal de edicion
 
 ---
 
-## TEST 7: Tipos de Evento en Calendario
+## TEST 5: Narrativa Vertical para Padres (Vista Diaria)
 
-**Verificar que todos los tipos se muestran correctamente:**
+**Ruta:** `/dashboard/calendar` > Vista "Dia"
 
-| Tipo | Icono | Color | Verificar |
-|------|-------|-------|-----------|
-| sleep | Moon | indigo | Bloque 100% ancho |
-| nap | Sun | amber | Bloque 100% ancho |
-| wake | Sun | yellow | Punto en timeline |
-| night_waking | Baby | purple | Evento normal |
-| feeding | Utensils | green | Evento normal |
-| medication | Pill | blue | Evento normal |
-| extra_activities | Activity | orange | Evento normal |
-| note | MessageSquare | violet | Evento normal |
+**Descripcion:** Padres ven narrativa vertical completa (sin split screen).
+
+### Pasos
+
+1. Login como USUARIO/PADRE (eljulius@nebulastudios.io / juls0925)
+2. Ir a Calendario
+3. Seleccionar vista "Dia"
+
+### Verificar
+
+- [ ] NO hay split screen (pantalla completa)
+- [ ] Se muestra narrativa vertical (timeline de tarjetas)
+- [ ] Cada evento tiene: icono + texto narrativo + hora
+- [ ] Click en chevron (>) abre modal de edicion
+- [ ] Eventos ordenados cronologicamente
+
+### Formato de Narrativa Esperado
+
+| Tipo | Ejemplo |
+|------|---------|
+| Alimentacion pecho | "[Nombre] tomo pecho por [X] minutos" |
+| Alimentacion biberon | "[Nombre] tomo [X] oz de leche" |
+| Siesta | "[Nombre] durmio una siesta de [X] min" |
+| Sueno nocturno | "[Nombre] durmio de [hora] a [hora]" |
+
+---
+
+## TEST 6: Eventos Dentro de Bloques de Sueno en Columnas
+
+**Ruta:** `/dashboard/calendar` > Vista Diaria o Semanal
+
+**Descripcion:** Eventos que ocurren DURANTE un bloque de sueno (despertares, alimentacion nocturna) se muestran en columnas lado a lado.
+
+### Pasos
+
+1. Login como usuario
+2. Ir a Calendario
+3. Localizar un bloque de sueno nocturno que tenga eventos internos
+
+### Verificar
+
+- [ ] Despertares nocturnos (night_waking) visibles DENTRO del bloque de sueno
+- [ ] Alimentaciones nocturnas visibles DENTRO del bloque de sueno
+- [ ] Si hay 2+ eventos simultaneos, se muestran LADO A LADO (columnas)
+- [ ] Eventos internos solo muestran ICONO (sin texto)
+- [ ] Click en evento interno abre sus detalles
+- [ ] Maximo 3 columnas visibles ("+N mas" si hay mas)
+
+---
+
+## TEST 7: Estilos Nocturnos en Bloques de Sueno
+
+**Ruta:** `/dashboard/calendar`
+
+**Descripcion:** Los bloques de sueno nocturno tienen colores oscuros (indigo/purpura) para dar sensacion de "noche".
+
+### Cambios Visuales
+
+| Elemento | Valor |
+|----------|-------|
+| Gradiente fondo | Indigo-700 -> Purple-800 -> Purple-900 |
+| Iconos Moon/Sun | BLANCO con sombra negra |
+| Opacidad | Alta (0.45+) - NO tenue |
+
+### Pasos
+
+1. Login como usuario
+2. Ir a Calendario > Vista Diaria
+3. Localizar bloque de sueno nocturno completado
+
+### Verificar Sueno Completado
+
+- [ ] Gradiente azul-purpura OSCURO visible
+- [ ] Icono Moon (arriba) es BLANCO
+- [ ] Icono Sun (abajo) es BLANCO
+- [ ] Buen contraste - se ve claramente
+
+### Verificar Sueno en Progreso
+
+1. Registrar un nuevo sueno (boton "DORMIR")
+2. Verificar en calendario:
+
+- [ ] Header tiene gradiente SOLIDO (indigo-purpura)
+- [ ] Icono Moon es BLANCO
+- [ ] Fade hacia abajo es purpura oscuro
+- [ ] Puntos animados son BLANCOS
 
 ---
 
@@ -198,124 +252,29 @@
 | Rol | Email | Password |
 |-----|-------|----------|
 | Admin | mariana@admin.com | password |
-| Usuario | eljulius@nebulastudios.io | juls0925 |
+| Usuario/Padre | eljulius@nebulastudios.io | juls0925 |
 
 ---
 
-## Archivos Modificados
+## Archivos Modificados (Sprint Actual)
 
 | Archivo | Cambio |
 |---------|--------|
-| `components/events/EventsCalendarTabs.tsx` | NUEVO - Componente reutilizable |
-| `components/events/NoteModal.tsx` | NUEVO - Modal notas |
-| `app/dashboard/children/[id]/events/page.tsx` | Eliminada vista tabla |
-| `app/dashboard/page.tsx` | Rediseño Bitacora |
-| `app/dashboard/calendar/page.tsx` | Toggle grafico/calendario |
-| `components/events/EventDetailsModal.tsx` | Ocultar estado emocional en notas |
-| `AdminChildDetailClient.tsx` | Usa EventsCalendarTabs |
-
----
-
-## TEST 8: Modales Rapidos - Hora de Inicio (FeedingModal, ExtraActivityModal)
-
-**Commit:** 055b2c0, 99cab24
-**Descripcion:** Los modales rapidos ahora usan patron "Hora de inicio" donde el usuario puede editar la hora de inicio y la duracion se calcula automaticamente.
-
-### 8.1 Alimentacion Rapida (FeedingModal)
-
-**Ruta:** Dashboard > Botones rapidos > Icono de biberon
-
-**Pasos:**
-1. Login como usuario
-2. En dashboard, click en boton rapido de Alimentacion (icono biberon)
-3. Completar el formulario
-
-**Verificar UI:**
-- [ ] Campo "Hora de inicio" visible y editable
-- [ ] Hora por defecto es la hora actual
-- [ ] Se puede cambiar la hora manualmente
-- [ ] NO hay campo de "duracion" separado
-
-**Verificar Guardado:**
-- [ ] Seleccionar tipo "Pecho" y guardar
-- [ ] NO debe dar error 400
-- [ ] Evento se guarda correctamente
-- [ ] Seleccionar tipo "Biberon" con cantidad y guardar - OK
-- [ ] Seleccionar tipo "Solidos" con descripcion y guardar - OK
-
-**Verificar Calculo de Duracion:**
-1. Registrar alimentacion con hora de inicio hace 15 minutos
-2. Ir a "Mis Eventos" y localizar el evento
-3. Click para ver detalles
-- [ ] Duracion calculada automaticamente (ej: "15 min")
-- [ ] startTime = hora que seleccionaste
-- [ ] endTime = hora en que guardaste
-
-### 8.2 Actividad Extra Rapida (ExtraActivityModal)
-
-**Ruta:** Dashboard > Botones rapidos > Icono de actividad
-
-**Pasos:**
-1. Login como usuario
-2. En dashboard, click en boton rapido de Actividad Extra
-3. Completar el formulario
-
-**Verificar UI:**
-- [ ] Campo "Hora de inicio" visible y editable
-- [ ] Campo de descripcion obligatorio
-- [ ] Hora por defecto es la hora actual
-
-**Verificar Guardado:**
-- [ ] Escribir descripcion (min 3 caracteres) y guardar
-- [ ] Evento se guarda correctamente
-- [ ] Duracion se calcula automaticamente
-
----
-
-## TEST 9: API - Calculo Automatico de Duracion Alimentacion
-
-**Descripcion:** La API ahora calcula automaticamente `feedingDuration` desde `startTime` y `endTime`. Ya no es campo obligatorio.
-
-**Verificar en Base de Datos:**
-1. Registrar evento de alimentacion
-2. Revisar documento en MongoDB
-
-- [ ] Campo `feedingDuration` existe y es > 0
-- [ ] Campo `duration` existe y es igual a `feedingDuration`
-- [ ] Campo `durationReadable` existe (ej: "15 min")
-- [ ] `startTime` es la hora que selecciono el usuario
-- [ ] `endTime` es la hora en que se guardo
-
-**Casos de Prueba API:**
-
-| Tipo | Campos Requeridos | Campos Opcionales |
-|------|-------------------|-------------------|
-| breast | feedingType, babyState | feedingAmount |
-| bottle | feedingType, babyState | feedingAmount |
-| solids | feedingType, babyState | feedingAmount, notes |
-
-**Errores que NO deben ocurrir:**
-- [ ] Error 400 por feedingDuration faltante
-- [ ] Error 400 por feedingAmount faltante en breast
-- [ ] Error 400 por feedingAmount faltante en solids
-
----
-
-## Archivos Modificados (Session 2)
-
-| Archivo | Cambio |
-|---------|--------|
-| `components/events/FeedingModal.tsx` | Agregado campo "Hora de inicio", removido feedingDuration |
-| `components/events/ExtraActivityModal.tsx` | Agregado campo "Hora de inicio" |
-| `components/events/FeedingButton.tsx` | Usa startTime del modal, endTime = getCurrentTime() |
-| `components/events/ExtraActivityButton.tsx` | Usa startTime del modal, endTime = getCurrentTime() |
-| `app/api/children/events/route.ts` | Removida validacion obligatoria feedingDuration, agregado calculo automatico |
+| `lib/colors/event-colors.ts` | Sistema centralizado de colores |
+| `lib/icons/event-icons.ts` | Iconos por tipo de evento |
+| `components/calendar/SleepSessionBlock.tsx` | Estilos nocturnos, columnas internas |
+| `components/calendar/CalendarDayView.tsx` | Usa sistema centralizado |
+| `components/calendar/CalendarWeekView.tsx` | Usa sistema centralizado |
+| `components/bitacora/SplitScreenBitacora.tsx` | Split screen admin |
+| `components/narrative/NarrativeTimeline.tsx` | Narrativa vertical |
+| `app/dashboard/calendar/page.tsx` | Integra Split/Narrativa segun rol |
+| `app/globals.css` | Color siesta lavanda |
 
 ---
 
 ## Reporte de Bugs
 
-Si encuentras un bug, documenta:
+Si encuentras un bug, documenta en `QA_FEEDBACK_NOTES.md`:
 
 1. **Ruta:** URL donde ocurrio
 2. **Pasos para reproducir:** Numerados

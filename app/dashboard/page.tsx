@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense, lazy, useCallback } from "react"
+import { useState, useEffect, Suspense, lazy, useCallback, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,7 +15,11 @@ const SleepMetricsGrid = lazy(() => import("@/components/child-profile/SleepMetr
 const SleepMetricsCombinedChart = lazy(() => import("@/components/child-profile/SleepMetricsCombinedChart"))
 // Sistema de eventos - Nueva implementación v1.0
 import { EventRegistration } from "@/components/events"
+import { EventEditRouter } from "@/components/events/EventEditRouter"
 import { PlanSummaryCard } from "@/components/parent/PlanSummaryCard"
+// Vista narrativa de eventos (Fase 4)
+import { NarrativeTimeline } from "@/components/narrative/NarrativeTimeline"
+import type { NarrativeTimelineEvent } from "@/components/narrative/NarrativeTimeline"
 import { 
   Moon, Sun, Activity, TrendingUp, Calendar, MessageSquare, 
   Lightbulb, ChevronLeft, ChevronRight, Send, X,
@@ -54,8 +58,25 @@ interface Event {
   emotionalState: string
   startTime: string
   endTime?: string
+  duration?: number
   notes?: string
+  noteText?: string // Campo exclusivo para bitacoras (eventType: "note")
   createdAt: string
+  // Campos de alimentacion (para narrativa)
+  feedingType?: "breast" | "bottle" | "solids"
+  feedingAmount?: number
+  feedingDuration?: number
+  isNightFeeding?: boolean
+  // Campos de sueno
+  sleepDelay?: number
+  // Campos de despertar nocturno
+  awakeDelay?: number
+  // Campos de medicamento
+  medicationName?: string
+  medicationDose?: string
+  // Campos de actividades
+  activityDescription?: string
+  activityDuration?: number
 }
 
 
@@ -77,6 +98,7 @@ export default function DashboardPage() {
   const [activePlan, setActivePlan] = useState<ChildPlan | null>(null)
   const [planLoading, setPlanLoading] = useState(false)
   const [planError, setPlanError] = useState<string | null>(null)
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null)
   
   // Ya no redirigimos, manejamos todo en esta página
   
@@ -271,7 +293,7 @@ export default function DashboardPage() {
           childId: activeChildId,
           eventType: "note",
           startTime: new Date().toISOString(),
-          notes: noteText.trim(),
+          noteText: noteText.trim(),
         }),
       })
       
@@ -283,12 +305,14 @@ export default function DashboardPage() {
           description: "La nota se ha guardado correctamente.",
         })
       } else {
-        throw new Error("Error al guardar la nota")
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Error al guardar la nota")
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "No se pudo guardar la nota"
       toast({
         title: "Error",
-        description: "No se pudo guardar la nota. Intenta de nuevo.",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -414,6 +438,41 @@ export default function DashboardPage() {
     .slice(-5)
     .reverse()
 
+  // Eventos del dia actual para NarrativeTimeline (excluir notas, ya tienen su seccion)
+  const todayNarrativeEvents: NarrativeTimelineEvent[] = useMemo(() => {
+    const today = new Date()
+    return events
+      .filter(e => {
+        if (!e.startTime) return false
+        if (e.eventType === "note") return false // Las notas tienen seccion separada
+        return isSameDay(parseISO(e.startTime), today)
+      })
+      .map(e => ({
+        _id: e._id,
+        eventType: e.eventType as NarrativeTimelineEvent["eventType"],
+        startTime: e.startTime,
+        endTime: e.endTime,
+        duration: e.duration,
+        notes: e.notes,
+        noteText: e.noteText,
+        // Campos de alimentacion
+        feedingType: e.feedingType,
+        feedingAmount: e.feedingAmount,
+        feedingDuration: e.feedingDuration,
+        isNightFeeding: e.isNightFeeding,
+        // Campos de sueno
+        sleepDelay: e.sleepDelay,
+        // Campos de despertar nocturno
+        awakeDelay: e.awakeDelay,
+        // Campos de medicamento
+        medicationName: e.medicationName,
+        medicationDose: e.medicationDose,
+        // Campos de actividades
+        activityDescription: e.activityDescription,
+        activityDuration: e.activityDuration,
+      }))
+  }, [events])
+
   // Si es admin, mostrar las estadísticas completas (independiente de selección)
   if (isAdmin) {
     return (
@@ -517,6 +576,40 @@ export default function DashboardPage() {
         )}
 
         {/* Registro de eventos ya se muestra al inicio para padres */}
+
+        {/* Feed narrativo de eventos del dia - Fase 4 */}
+        {activeChildId && child && (
+          <Card className="bg-white shadow-sm border-0">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-[#2F2F2F]">Hoy</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <NarrativeTimeline
+                events={todayNarrativeEvents}
+                childName={child.firstName}
+                collapsible={true}
+                initialLimit={5}
+                isLoading={isLoading}
+                emptyMessage="No hay eventos registrados hoy"
+                onEventEdit={(eventId) => {
+                  const eventToEdit = events.find(e => e._id === eventId)
+                  if (eventToEdit) {
+                    setEditingEvent(eventToEdit)
+                  }
+                }}
+              />
+
+              {/* Modal de edicion de eventos */}
+              <EventEditRouter
+                event={editingEvent}
+                open={!!editingEvent}
+                onClose={() => setEditingEvent(null)}
+                onUpdate={loadChildData}
+                childName={child.firstName}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Grid de contenido principal (ocultar widgets avanzados para padre) */}
         {false && (
@@ -817,7 +910,7 @@ export default function DashboardPage() {
                         {/* Contenido */}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-gray-700 leading-relaxed">
-                            {event.notes}
+                            {event.noteText || event.notes}
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
                             {event.startTime ? format(parseISO(event.startTime), "d MMM yyyy, HH:mm", { locale: es }) : "Sin fecha"}
