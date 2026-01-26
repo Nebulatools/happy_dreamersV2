@@ -398,10 +398,10 @@ export function SleepSessionBlock({
         >
           {/* Parte superior sólida - Solo icono Moon */}
           <div
-            className="bg-blue-500/50 rounded-t-lg border border-blue-400/40 flex items-center justify-center shadow-sm"
+            className="bg-gradient-to-r from-indigo-700 to-purple-800 rounded-t-lg border border-purple-600/40 flex items-center justify-center shadow-sm"
             style={{ height: "24px" }}
           >
-            <Moon className="h-4 w-4 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]" style={{ color: "#6366f1" }} />
+            <Moon className="h-4 w-4 text-white [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]" />
           </div>
 
           {/* Fade hacia abajo indicando continuación */}
@@ -409,16 +409,16 @@ export function SleepSessionBlock({
             className="relative"
             style={{
               height: `${height - 24}px`,
-              background: "linear-gradient(to bottom, rgba(59, 130, 246, 0.35), rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.08), transparent)",
+              background: "linear-gradient(to bottom, rgba(107, 33, 168, 0.5), rgba(107, 33, 168, 0.3), rgba(107, 33, 168, 0.15), transparent)",
               animation: "pulse 3s ease-in-out infinite",
             }}
           >
             {/* Indicador visual de "continúa..." */}
             <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
               <div className="flex flex-col items-center gap-1">
-                <div className="w-1 h-1 bg-blue-400/60 rounded-full animate-pulse" />
-                <div className="w-1 h-1 bg-blue-400/40 rounded-full animate-pulse delay-75" />
-                <div className="w-1 h-1 bg-blue-400/20 rounded-full animate-pulse delay-150" />
+                <div className="w-1 h-1 bg-white/60 rounded-full animate-pulse" />
+                <div className="w-1 h-1 bg-white/40 rounded-full animate-pulse delay-75" />
+                <div className="w-1 h-1 bg-white/20 rounded-full animate-pulse delay-150" />
               </div>
             </div>
           </div>
@@ -541,7 +541,7 @@ export function SleepSessionBlock({
           height: `${height}px`,
           left: actualLeft,
           width: actualWidth,
-          background: "linear-gradient(to bottom, rgba(59, 130, 246, 0.18), rgba(139, 92, 246, 0.15), rgba(251, 191, 36, 0.12))",
+          background: "linear-gradient(to bottom, rgba(67, 56, 202, 0.55), rgba(107, 33, 168, 0.5), rgba(88, 28, 135, 0.45))",
         }}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
@@ -562,14 +562,14 @@ export function SleepSessionBlock({
       {/* Indicador de inicio (solo si no es continuación) - Solo icono Moon */}
       {!isContinuationFromPrevious && (
         <div className="absolute top-1 left-0 right-0 flex items-center justify-center">
-          <Moon className="h-4 w-4 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]" style={{ color: "#6366f1" }} />
+          <Moon className="h-4 w-4 text-white [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]" />
         </div>
       )}
       
       {/* Indicador de fin (solo si no continúa al día siguiente) - Solo icono Sun */}
       {!continuesNextDay && endTime && (
         <div className="absolute bottom-1 left-0 right-0 flex items-center justify-center">
-          <Sun className="h-4 w-4 [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]" style={{ color: "#eab308" }} />
+          <Sun className="h-4 w-4 text-white [filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]" />
         </div>
       )}
 
