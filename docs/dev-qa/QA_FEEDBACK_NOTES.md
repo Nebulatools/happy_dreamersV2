@@ -39,3 +39,14 @@ y el tab 'calendario' será lo único de vista en esa URL
 - La edición de los horarios de eventos sólo dejan editar hora inicio no hora fin (para admin y users)
 
 ## TEST 7: Estilos Nocturnos en Bloques de Sueno
+
+
+# REVISIÓN CON MARIANA & FEEDBACK PT. 2
+
+- Reducir el detalle en el texto de los eventos en Bitácora, más parecido a el tab eventos del perfil del niño
+(que sólo traiga 1 palabra o 2 en cada evento)
+
+- Cambio en lógica, la visualización del estado de los botones de eventos rápidos reflejen estatus actual
+en función del niño y no en función de la sesión del dispositivo logueado o del usuario cuidador que captura.
+
+- Ajuste de UX en acomodo visual de eventos diarios (íconos de la rutina del plan lado izquierdo y los eventos que se van capturando vs. plan del lado derecho)
