@@ -109,8 +109,10 @@ export function NarrativeCard({
         )}
       >
         <IconComponent
-          className="h-5 w-5 text-white"
+          className="h-5 w-5"
           style={{
+            // Notas tienen fondo claro, necesitan icono oscuro
+            color: event.eventType === "note" ? iconConfig.color : "white",
             filter: "drop-shadow(0 0 1px rgba(0,0,0,0.3))",
           }}
         />

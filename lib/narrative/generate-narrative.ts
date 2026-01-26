@@ -289,9 +289,9 @@ function generateNoteNarrative(childName: string, event: NarrativeEvent): string
   const text = noteText || notes
 
   if (text) {
-    // Truncar si es muy largo
+    // Truncar si es muy largo - mostrar solo el contenido sin prefijo
     const truncated = text.length > 100 ? text.substring(0, 97) + "..." : text
-    return `Nota: ${truncated}`
+    return truncated
   }
 
   return `Nota sobre ${childName}`

@@ -102,16 +102,20 @@ export function EventGlobe({ event, hourHeight = 30, onClick, onDoubleClick, col
   // 🎨 COLOR POR TIPO DE EVENTO - Usando registry centralizado
   const getColor = () => {
     const config = getEventIconConfig(event.eventType, event.feedingType)
-    return `${config.bgColor} text-white`
+    // Notas tienen fondo claro, necesitan texto oscuro
+    const textColor = event.eventType === "note" ? "text-gray-700" : "text-white"
+    return `${config.bgColor} ${textColor}`
   }
-  
+
   // Icono Lucide segun tipo de evento - Usando registry centralizado
-  // Color blanco para mejor contraste sobre fondos de color
+  // Color blanco para fondos oscuros, color del config para fondos claros (ej: note)
   const getIcon = () => {
-    const iconClass = "h-3 w-3 text-white"
     const config = getEventIconConfig(event.eventType, event.feedingType)
     const IconComponent = config.icon
-    return <IconComponent className={iconClass} />
+    // Notas tienen fondo claro, necesitan icono oscuro
+    const isLightBackground = event.eventType === "note"
+    const colorStyle = isLightBackground ? { color: config.color } : { color: "white" }
+    return <IconComponent className="h-3 w-3" style={colorStyle} />
   }
   
   // 📝 NOMBRE DEL EVENTO - Usando registry centralizado

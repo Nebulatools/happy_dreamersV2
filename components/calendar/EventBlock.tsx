@@ -205,20 +205,26 @@ export function EventBlock({
   }
 
   // Obtener icono Lucide usando el registry centralizado
-  // Color blanco para mejor contraste sobre fondos de color
+  // Color blanco para fondos oscuros, color del config para fondos claros (ej: note)
   const getEventIcon = () => {
-    // Ajustar tamaño del icono segun altura del bloque
-    const iconClass = blockHeight >= 40
-      ? "h-4 w-4 text-white"
-      : blockHeight >= 28
-        ? "h-3.5 w-3.5 text-white"
-        : "h-3 w-3 text-white"
-
-    // Usar registry centralizado para obtener icono
+    // Usar registry centralizado para obtener icono y color
     const config = getEventIconConfig(event.eventType, event.feedingType)
     const IconComponent = config.icon
 
-    return <IconComponent className={iconClass} />
+    // Notas tienen fondo claro, necesitan icono oscuro
+    const isLightBackground = event.eventType === "note"
+
+    // Ajustar tamaño del icono segun altura del bloque
+    const sizeClass = blockHeight >= 40
+      ? "h-4 w-4"
+      : blockHeight >= 28
+        ? "h-3.5 w-3.5"
+        : "h-3 w-3"
+
+    // Color: blanco para fondos oscuros, color del config para fondos claros
+    const colorStyle = isLightBackground ? { color: config.color } : { color: "white" }
+
+    return <IconComponent className={sizeClass} style={colorStyle} />
   }
 
   // Obtener clases de color usando el sistema centralizado
@@ -238,6 +244,7 @@ export function EventBlock({
       night_feeding: "Toma nocturna",
       medication: "Medicamento",
       extra_activities: "Actividad Extra",
+      note: "Nota",
     }
     return types[event.eventType] || event.eventType
   }
@@ -456,12 +463,13 @@ export function CompactEventBlock({
   const eventBgClass = getEventBgClass(event.eventType, event.feedingType)
 
   const getEventIcon = () => {
-    // Color blanco para mejor contraste sobre fondos de color
-    const iconClass = "h-3 w-3 text-white"
     // Usar registry centralizado para obtener icono
     const config = getEventIconConfig(event.eventType, event.feedingType)
     const IconComponent = config.icon
-    return <IconComponent className={iconClass} />
+    // Notas tienen fondo claro, necesitan icono oscuro
+    const isLightBackground = event.eventType === "note"
+    const colorStyle = isLightBackground ? { color: config.color } : { color: "white" }
+    return <IconComponent className="h-3 w-3" style={colorStyle} />
   }
 
   // Formatear hora con validación

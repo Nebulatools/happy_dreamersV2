@@ -1207,11 +1207,14 @@ export default function CalendarPage() {
   }, [isAdminView, date, userViewMode])
 
   // Usa sistema centralizado de iconos con soporte para feedingType
-  // Color blanco para mejor contraste sobre fondos de color
+  // Color blanco para fondos oscuros, color del config para fondos claros (ej: note)
   const getEventTypeIcon = (type: string, feedingType?: "breast" | "bottle" | "solids") => {
     const config = getEventIconConfig(type, feedingType)
     const IconComponent = config.icon
-    return <IconComponent className="w-3 h-3 text-white" />
+    // Notas tienen fondo claro, necesitan icono oscuro
+    const isLightBackground = type === "note"
+    const colorStyle = isLightBackground ? { color: config.color } : { color: "white" }
+    return <IconComponent className="w-3 h-3" style={colorStyle} />
   }
 
   // Usa sistema centralizado de colores con soporte para feedingType

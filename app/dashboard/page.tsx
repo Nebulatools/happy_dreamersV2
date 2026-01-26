@@ -438,13 +438,12 @@ export default function DashboardPage() {
     .slice(-5)
     .reverse()
 
-  // Eventos del dia actual para NarrativeTimeline (excluir notas, ya tienen su seccion)
+  // Eventos del dia actual para NarrativeTimeline
   const todayNarrativeEvents: NarrativeTimelineEvent[] = useMemo(() => {
     const today = new Date()
     return events
       .filter(e => {
         if (!e.startTime) return false
-        if (e.eventType === "note") return false // Las notas tienen seccion separada
         return isSameDay(parseISO(e.startTime), today)
       })
       .map(e => ({

@@ -312,7 +312,7 @@ export async function POST(req: NextRequest) {
       childId: data.childId,
       eventType: data.eventType,
       emotionalState: data.emotionalState || "neutral",
-      notes: data.notes || "", // Dejar vacío si no se proporciona
+      notes: data.noteText || data.notes || "", // Soporta noteText (NoteModal) y notes (legacy)
       duration: data.duration || null, // Se calculará automáticamente si es posible
       durationReadable: "", // Se calculará si hay duration
       sleepDelay: data.sleepDelay ?? null, // Usar ?? para preservar 0
@@ -611,7 +611,7 @@ export async function PUT(req: NextRequest) {
       emotionalState: data.emotionalState || "neutral",
       startTime: data.startTime,
       endTime: data.endTime || null,
-      notes: data.notes || "",
+      notes: data.noteText || data.notes || "", // Soporta noteText (NoteModal) y notes (legacy)
       createdAt: data.createdAt || new Date().toISOString(),
     }
 
