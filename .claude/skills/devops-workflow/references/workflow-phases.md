@@ -132,6 +132,13 @@ Transform PM spec into technical spec with these sections:
 
 ### File: `docs/dev-qa/QA_RELEASE_NOTES.md`
 
+### Key Rule: REPLACE, Don't Accumulate
+
+**IMPORTANT:** Each sprint, REPLACE the entire QA_RELEASE_NOTES with tests for the CURRENT sprint only.
+- Read SPEC-SPRINT.md to find all completed items
+- Each completed item = 1 TEST section
+- Delete old tests from previous sprints (keeps file clean and focused)
+
 ### Format
 
 ```markdown
