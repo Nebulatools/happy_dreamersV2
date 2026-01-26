@@ -150,7 +150,7 @@ Mostrar empty state amigable: "No hay eventos registrados hoy"
 
 ---
 
-## Item 3: Vista Dual Split Screen (Solo Admin)
+## Item 3: Vista Dual Split Screen (Solo Admin) ✅ COMPLETADO
 
 ### Layout
 
@@ -374,6 +374,88 @@ Eventos (night_waking, feeding, medication) que ocurren DURANTE un bloque de sue
 
 ---
 
+## Item 3: Implementacion Completada (2026-01-25)
+
+### Cambio Arquitectural
+
+El `SplitScreenBitacora` estaba ubicado incorrectamente en `/dashboard/patients/child/[childId]/` (seccion de detalle de pacientes admin). Segun el spec, debia estar en la **vista Diaria del calendario** (`/dashboard/calendar`).
+
+### Cambios Realizados
+
+| Archivo | Cambio | Lineas |
+|---------|--------|--------|
+| `app/dashboard/calendar/page.tsx` | Integrar SplitScreenBitacora (admin) y NarrativeTimeline (parent) | +47 |
+| `app/dashboard/patients/child/[childId]/AdminChildDetailClient.tsx` | Remover SplitScreen y simplificar tab eventos | -121 |
+
+### Flujo Implementado
+
+```
+/dashboard/calendar (vista Diario):
+├── Admin → SplitScreenBitacora (50% calendario + 50% narrativa)
+└── Parent → NarrativeTimeline (solo narrativa vertical)
+
+/dashboard/patients/child/[id] (tab Eventos):
+└── Todos → EventsCalendarTabs (lista simplificada)
+```
+
+### Codigo Clave Agregado
+
+**calendar/page.tsx - Admin:**
+```typescript
+{view === "day" ? (
+  <SplitScreenBitacora
+    events={events}
+    childName={activeChildName}
+    selectedDate={date}
+    timezone={userTimeZone}
+    onEventUpdate={invalidateEvents}
+    onDayNavigateBack={navigateOneDayBack}
+    onDayNavigateForward={navigateOneDayForward}
+  />
+) : (
+  <CalendarMain ... />
+)}
+```
+
+**calendar/page.tsx - Parent:**
+```typescript
+{view === "day" ? (
+  <NarrativeTimeline
+    events={dayEvents as unknown as NarrativeTimelineEvent[]}
+    childName={activeChildName}
+    timezone={userTimeZone}
+    isLoading={isLoading}
+    onEventEdit={(eventId) => {
+      const ev = dayEvents.find(e => e._id === eventId)
+      if (ev) handleEventClick(ev)
+    }}
+    emptyMessage="No hay eventos registrados hoy"
+  />
+) : (
+  <CalendarMain ... />
+)}
+```
+
+### Testing Visual Realizado
+
+| Test | Usuario | Resultado | Screenshot |
+|------|---------|-----------|------------|
+| Vista Diaria Admin | mariana@admin.com | Split Screen visible (50/50) | `/tmp/test-admin-split-screen.png` |
+| Vista Diaria Parent | eljulius@nebulastudios.io | Narrativa vertical centrada | `/tmp/test-parent-narrative.png` |
+
+### Verificacion
+
+| Criterio | Estado |
+|----------|--------|
+| Admin ve Split Screen en vista Diario | PASS |
+| Parent ve Narrativa vertical en vista Diario | PASS |
+| Patients sin Split Screen (tab eventos simplificado) | PASS |
+| Build exitoso (`npm run build`) | PASS |
+| Mirroring bidireccional (calendario <-> narrativa) | PASS (componente existente) |
+| Empty state correcto | PASS |
+
+---
+
 ## Siguiente Paso
 
-**Item 2 completado.** Siguiente: Item 1 (Vista Narrativa) o Item 3 (Split Screen Admin).
+**Items 2 y 3 completados.** Siguiente: Item 1 (Vista Narrativa en Home para padres con collapsible).
