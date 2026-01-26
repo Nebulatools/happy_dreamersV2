@@ -1,24 +1,41 @@
 # Notas de testing en QA - Happy Dreamers
 
-**Fecha:** 2026-01-12
+**Fecha:** 2026-01-26
 
-### TEST A: Duraciones Positivas en Tabla (FIX DURACIONES NEGATIVAS)
+## TEST 1: Vista Narrativa en Home (Padres)
 
-- Se validó cambio en perfil user pero las columnas adicionales agregadas sólo se ven en desktop view, en mobile view no aparecen.
+- En dashboard reemplazar los gráficos igual que en bitácora
 
-### TEST B: Registro Manual NO Afecta Botones En Vivo
+- Cambiar el orden de cards, primero mostrar 'diario' en texto y luego el calendario con los eventos de hoy
 
-- En registro manuales de evento el modal no muestra captura de fecha y hora de término del evento (y en siesta lo muestra si se selecciona un checkbox opcional).
+- No se visualiza la opción/botón de Expandir/Colapsar
 
-- Cambio de texto en modal de dormir y siesta, en lugar de "hora de dormir" que diga "hora de acostarse".
+## TEST 2: Taxonomia Visual - Colores por Tipo de Alimentación
 
-### TEST C: endTime se Calcula en Registro En Vivo
+- La nueva iconifización sólo está en las vistas de Dashboard/Bitácora/Calendario pero
+en la **Ruta:** `/dashboard/patient/child/[id] ` en el tab Eventos todas las alimentaciones
+siguen usando un mismo ícono (confirmar primero si así lo pidió Mariana o hay que ajustarlo también)
 
-- Captura de alimentación en biberón asume duración default de 15 min.
+## TEST 3: Taxonomia Visual - Siestas en Lavanda
 
-- Validar cómo asumir la hora de evento rápido en la que se captura un evento, si se toma siempre como hora inicio, como hora fin, o debería preguntarme cuál de las dos sería.
+## TEST 4: Split Screen para Admin (Vista Diaria)
 
-### TEST 1: Bug UTC en Edicion de Eventos (CORREGIDO)
+- Vista 50/50 está bien, sólo también hacer calendario completo hacia abajo hasta donde ya no tenga scroll
 
-- Edición de eventos ya modifica horarios, falta mostrar campos de fecha y hora en color normal en lugar de color gris que hace pensar que los campos están bloqueados y no se pueden editar.
+## TEST 5: Narrativa Vertical para Padres (Vista Diaria)
 
+- Se requiere quitar el tab 'gráfico' de sueño y despertares nocturnos en barras
+y el tab 'calendario' será lo único de vista en esa URL
+
+- También quitar el tab 'mensual' al menos de la vista de padres
+
+- Que al gráfico del tab 'semanal' se ajuste la UI y no tenga scroll dentro del gráfico
+(que sólo exista el scroll del navegador en desktop, y en mobile el card más alto para que quepa al 100)
+
+- En el tab 'diario' que se agregue como primer evento del día el despertar
+
+## TEST 6: Eventos Dentro de Bloques de Sueno en Columnas
+
+- La edición de los horarios de eventos sólo dejan editar hora inicio no hora fin (para admin y users)
+
+## TEST 7: Estilos Nocturnos en Bloques de Sueno
