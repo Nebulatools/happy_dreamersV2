@@ -670,3 +670,32 @@ El EventEditRouter no pasaba `endTime` en `initialData` para los modales de edic
 **Notes:**
 - Build pasa correctamente
 - Próxima tarea: [7.2] Testing consistencia iconos (será parte de Fase 8 E2E)
+
+---
+
+### Session 17 - 2026-01-27
+
+**Task:** [8.1.1] - Test Home Dashboard (Desktop)
+
+**Test:** E2E visual testing del Home Dashboard en Desktop (1280px)
+**Resultado:** ✅ PASS
+**Screenshot:** `test-screenshots/8.1.1-desktop-home.png`
+
+**Checkpoints verificados:**
+- [x] Saludo personalizado: "¡Buenas noches, Julius!"
+- [x] Botones de eventos visibles (DORMIR, ALIMENTACIÓN, MEDICAMENTO, ACTIVIDAD)
+- [x] NarrativeTimeline ("Hoy") visible
+- [x] Layout side-by-side (narrativa izquierda, calendario/métricas derecha)
+- [x] Plan Summary con horarios visible
+- [x] Métricas de sueño visibles (06:00, 7h 30m, 20:00)
+
+**Observaciones:**
+- El niño está en estado "despierto" (botón "DORMIR" visible)
+- La narrativa muestra "Cargando registros recientes..." inicialmente
+- Layout responsivo funciona correctamente en 1280px
+- Colores y gradientes se muestran correctamente
+- No hay elementos cortados ni overflow
+
+**Decisiones tomadas:**
+- Playwright instalado para tests E2E automatizados
+- Scripts de test guardados en `test-screenshots/` para reutilización

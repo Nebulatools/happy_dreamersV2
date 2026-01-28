@@ -136,7 +136,7 @@ Validación Fase 3:
   - Comportamiento: Envolver toggle en {isAdminView && ...}
   - Referencia: Líneas 1828-1845
 
-- [ ] **4.3** Testing roles (→ movido a 8.3.4 E2E)
+- [x] **4.3** Testing roles (→ movido a 8.3.4 E2E)
   - Comportamiento: Login como padre, verificar solo Diario + Semanal. Login como admin, verificar todos los tabs
   - Validar: Tabs correctos por rol
 
@@ -204,7 +204,7 @@ Validación Fase 5:
   - Referencia: Ver estructura actual de vista diaria
   - **Completado**: Integrado en vista admin (SplitScreenBitacora) y padre (NarrativeTimeline)
 
-- [ ] **6.3** Testing Plan vs Eventos
+- [x] **6.3** Testing Plan vs Eventos (→ movido a Fase 8 E2E)
   - Comportamiento: Verificar card con niño CON plan y SIN plan
   - Validar: Layout correcto en ambos casos
 
@@ -224,7 +224,7 @@ Validación Fase 6:
   - Referencia: `lib/icons/event-icons.ts`
   - **Completado**: Switch-case de 25 líneas reemplazado por 3 líneas usando registry
 
-- [ ] **7.2** Testing consistencia iconos
+- [x] **7.2** Testing consistencia iconos (→ movido a Fase 8 E2E)
   - Comportamiento: Comparar iconos en admin vs dashboard de padres
   - Validar: Mismos iconos en todas las vistas
 
@@ -247,15 +247,16 @@ agent-browser --headed --url "http://localhost:3000" ...
 
 ### 8.1 Testing Visual Desktop - Vista Padre
 
-- [ ] **8.1.1** Test Home Dashboard (Desktop)
+- [x] **8.1.1** Test Home Dashboard (Desktop)
   - Input: Login como padre en http://localhost:3000
-  - Output: Screenshot `test-desktop-home.png`
+  - Output: Screenshot `test-screenshots/8.1.1-desktop-home.png`
   - Comportamiento:
     - Verificar narrativa con 3 eventos colapsados
     - Verificar botón "Ver más" visible
     - Verificar layout side-by-side (narrativa + calendario)
     - Verificar botones de eventos (SleepButton, etc.)
   - Validar: Sin elementos cortados, sin overflow, sin errores en consola
+  - **PASS**: Todos los checkpoints verificados OK (Session 17)
 
 - [ ] **8.1.2** Test Calendario Vista Diaria (Desktop)
   - Input: Navegar a /dashboard/calendar
