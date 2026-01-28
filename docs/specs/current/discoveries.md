@@ -512,4 +512,40 @@ El EventEditRouter no pasaba `endTime` en `initialData` para los modales de edic
 
 **Notes:**
 - Build pasa correctamente
-- Próxima tarea: [5.4] Reducir texto en NarrativeTimeline (ITEM 8)
+
+---
+
+### Session 13 - 2026-01-27
+
+**Task:** [5.4] - Reducir texto en NarrativeTimeline (ITEM 8)
+
+**Files modificados:**
+- `lib/narrative/generate-narrative.ts` - Funciones de narrativa simplificadas
+
+**Cambios realizados:**
+
+1. **generateFeedingNarrative()**
+   - Antes: "Matías tomó pecho por 15 minutos" / "tomó 120 ml de biberón"
+   - Ahora: "Matías tomó pecho" / "tomó biberón 120ml"
+   - Eliminada la duración (feedingDuration) de las narrativas
+   - Formato más compacto: cantidad pegada a unidad (120ml, 50gr)
+
+2. **generateActivityNarrative()**
+   - Antes: "Matías hizo paseo por 30 minutos"
+   - Ahora: "Matías hizo paseo"
+   - Eliminada la duración (activityDuration) de las narrativas
+
+3. **Narrativas no modificadas:**
+   - Sleep/Nap: Mantienen duración porque es el dato principal
+   - NightWaking: Mantiene "estuvo despierto X minutos" - dato crítico
+   - Medication: Mantiene formato actual (nombre + dosis)
+   - Wake: Sin cambios necesarios
+
+**Patterns:**
+- El spec pedía: "8:30 AM - Biberón 120ml" (tipo + cantidad, sin duración)
+- La hora viene de `generateTimeMetadata()`, no de la narrativa
+- La narrativa ahora es más corta y enfocada en el dato principal
+
+**Notes:**
+- Build pasa correctamente
+- Próxima tarea: [5.5] Remover scroll interno de calendario (ITEM 4)

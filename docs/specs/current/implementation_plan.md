@@ -167,11 +167,11 @@ Validación Fase 4:
   - Comportamiento: `grid-cols-1 lg:grid-cols-2`
   - Referencia: Tailwind responsive patterns
 
-- [ ] **5.4** Reducir texto en NarrativeTimeline (ITEM 8)
-  - Input: `components/narrative/NarrativeTimeline.tsx`
-  - Output: Formato "8:30 AM - Biberón 120ml" (sin duración)
-  - Comportamiento: Modificar función de formateo de texto
-  - Referencia: Ver función que genera texto de eventos
+- [x] **5.4** Reducir texto en NarrativeTimeline (ITEM 8)
+  - Input: `lib/narrative/generate-narrative.ts`
+  - Output: Formato "biberón 120ml" (sin duración)
+  - Comportamiento: Modificadas generateFeedingNarrative() y generateActivityNarrative()
+  - **Fix aplicado**: Eliminada duración de alimentación y actividades
 
 - [ ] **5.5** Remover scroll interno de calendario (ITEM 4)
   - Input: `components/calendar/CalendarMain.tsx`
