@@ -1961,6 +1961,7 @@ export default function CalendarPage() {
                         childName={activeChildName}
                         timezone={userTimeZone}
                         isLoading={isLoading}
+                        sortOrder="asc"
                         onEventEdit={(eventId) => {
                           const ev = dayEvents.find(e => e._id === eventId)
                           if (ev) handleEventClick(ev)

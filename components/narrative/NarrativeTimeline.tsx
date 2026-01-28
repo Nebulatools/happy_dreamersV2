@@ -52,6 +52,8 @@ export interface NarrativeTimelineProps {
   onEventEdit?: (eventId: string) => void
   /** Mensaje personalizado para empty state */
   emptyMessage?: string
+  /** Orden de los eventos: "desc" (reciente primero) o "asc" (cronologico) */
+  sortOrder?: "asc" | "desc"
 }
 
 // ============================================================================
@@ -111,6 +113,7 @@ export function NarrativeTimeline({
   onEventClick,
   onEventEdit,
   emptyMessage = "No hay eventos registrados hoy",
+  sortOrder = "desc",
 }: NarrativeTimelineProps) {
   // Estado para expandir/colapsar
   const [isExpanded, setIsExpanded] = useState(false)
@@ -118,14 +121,14 @@ export function NarrativeTimeline({
   // Refs para scroll-into-view (una por evento)
   const cardRefs = useRef<Map<string, React.RefObject<HTMLDivElement>>>(new Map())
 
-  // Ordenar eventos cronologicamente inverso (mas reciente primero)
+  // Ordenar eventos segun sortOrder
   const sortedEvents = useMemo(() => {
     return [...events].sort((a, b) => {
       const timeA = new Date(a.startTime).getTime()
       const timeB = new Date(b.startTime).getTime()
-      return timeB - timeA // Inverso: mayor timestamp primero
+      return sortOrder === "asc" ? timeA - timeB : timeB - timeA
     })
-  }, [events])
+  }, [events, sortOrder])
 
   // Eventos a mostrar segun estado colapsado/expandido
   const visibleEvents = useMemo(() => {
