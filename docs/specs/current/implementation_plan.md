@@ -190,17 +190,19 @@ Validación Fase 5:
 
 ## Fase 6: Card Plan vs Eventos (ITEM 10)
 
-- [ ] **6.1** Crear PlanVsEventsCard.tsx
+- [x] **6.1** Crear PlanVsEventsCard.tsx
   - Props: `{ plan, events, selectedDate, timezone }`
   - Output: Card con 2 columnas (Plan | Eventos)
   - Comportamiento: Si no hay plan, solo mostrar eventos. Eventos extras se incrustan cronológicamente
   - Referencia: `components/ui/card.tsx` para estructura base
+  - **Completado**: Componente creado con layout responsive y iconos del registry
 
-- [ ] **6.2** Integrar card en calendar page
+- [x] **6.2** Integrar card en calendar page
   - Input: `app/dashboard/calendar/page.tsx`
   - Output: PlanVsEventsCard renderizado ARRIBA del calendario
   - Comportamiento: Visible en vista diaria para ambos roles
   - Referencia: Ver estructura actual de vista diaria
+  - **Completado**: Integrado en vista admin (SplitScreenBitacora) y padre (NarrativeTimeline)
 
 - [ ] **6.3** Testing Plan vs Eventos
   - Comportamiento: Verificar card con niño CON plan y SIN plan

@@ -589,3 +589,45 @@ El EventEditRouter no pasaba `endTime` en `initialData` para los modales de edic
 **Notes:**
 - Build pasa correctamente
 - Próxima tarea: [6.1] Crear PlanVsEventsCard.tsx (ITEM 10)
+
+---
+
+### Session 15 - 2026-01-27
+
+**Task:** [6.1, 6.2] - ITEM 10: Card Plan vs Eventos
+
+**Files creados/modificados:**
+- `components/calendar/PlanVsEventsCard.tsx` - NUEVO componente
+- `components/calendar/index.ts` - Export del nuevo componente
+- `app/dashboard/calendar/page.tsx` - Integración en vistas diarias
+
+**Cambios realizados:**
+
+1. **PlanVsEventsCard.tsx** (nuevo)
+   - Props: `{ plan, events, selectedDate, timezone }`
+   - Layout de 2 columnas: Plan (izquierda) | Eventos (derecha)
+   - Si no hay plan activo (isDefault), solo muestra eventos
+   - Ordena items cronológicamente por hora
+   - Usa iconos de `lib/icons/event-icons.ts` para consistencia
+   - Estilo diferenciado: plan en gris tenue, eventos con colores del registry
+
+2. **calendar/index.ts**
+   - Export agregado: `export { PlanVsEventsCard } from "./PlanVsEventsCard"`
+
+3. **calendar/page.tsx**
+   - Import de PlanVsEventsCard desde components/calendar
+   - Vista admin (view === "day"): PlanVsEventsCard arriba de SplitScreenBitacora
+   - Vista padre (view === "day"): PlanVsEventsCard arriba de NarrativeTimeline
+   - Usa `activePlan` existente y `dayEvents` ya filtrados
+
+**Patterns:**
+- El componente reutiliza el estado `activePlan` que ya se cargaba en el calendario
+- Usa `getEventIconConfig()` para iconos consistentes con el resto de la app
+- Formato de hora "HH:MM" (24h) para simplicidad
+- El plan se muestra tenue (gris) para distinguir de eventos reales
+- Sin plan activo → solo columna de eventos
+
+**Notes:**
+- Build pasa correctamente (errores de lint son pre-existentes)
+- El componente devuelve `null` si no hay plan ni eventos
+- Próxima tarea: [6.3] Testing Plan vs Eventos

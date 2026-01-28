@@ -43,6 +43,7 @@ import {
   CalendarMain,
   SimpleSleepBarChart,
   UserWeeklySleepChart,
+  PlanVsEventsCard,
 } from "@/components/calendar"
 import { SplitScreenBitacora } from "@/components/bitacora/SplitScreenBitacora"
 import { NarrativeTimeline, type NarrativeTimelineEvent } from "@/components/narrative/NarrativeTimeline"
@@ -1694,16 +1695,24 @@ export default function CalendarPage() {
                       </div>
                     </div>
                   ) : view === "day" ? (
-                    // Vista diaria admin: Split Screen (calendario + narrativa)
-                    <SplitScreenBitacora
-                      events={events}
-                      childName={activeChildName}
-                      selectedDate={date}
-                      timezone={userTimeZone}
-                      onEventUpdate={invalidateEvents}
-                      onDayNavigateBack={navigateOneDayBack}
-                      onDayNavigateForward={navigateOneDayForward}
-                    />
+                    // Vista diaria admin: Plan vs Eventos + Split Screen
+                    <div className="space-y-4">
+                      <PlanVsEventsCard
+                        plan={activePlan}
+                        events={dayEvents}
+                        selectedDate={date}
+                        timezone={userTimeZone}
+                      />
+                      <SplitScreenBitacora
+                        events={events}
+                        childName={activeChildName}
+                        selectedDate={date}
+                        timezone={userTimeZone}
+                        onEventUpdate={invalidateEvents}
+                        onDayNavigateBack={navigateOneDayBack}
+                        onDayNavigateForward={navigateOneDayForward}
+                      />
+                    </div>
                   ) : (
                     // Vista semanal/mensual: CalendarMain normal
                     <CalendarMain
@@ -1932,8 +1941,14 @@ export default function CalendarPage() {
                       </div>
                     </div>
                   ) : view === "day" ? (
-                    // Vista diaria padres: Narrativa vertical
+                    // Vista diaria padres: Plan vs Eventos + Narrativa vertical
                     <div className="space-y-4">
+                      <PlanVsEventsCard
+                        plan={activePlan}
+                        events={dayEvents}
+                        selectedDate={date}
+                        timezone={userTimeZone}
+                      />
                       <NarrativeTimeline
                         events={dayEvents as unknown as NarrativeTimelineEvent[]}
                         childName={activeChildName}
