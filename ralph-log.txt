@@ -600,3 +600,100 @@ RALPH_COMPLETE: Task [5.2] completed
 
 ═══ ITERACIÓN 11 - 18:40:26 ═══
 Tarea: - [ ] **4.3** Testing roles (→ movido a 8.3.4 E2E)
+RALPH_COMMIT: Task 5.3 committed successfully
+
+RALPH_COMPLETE: Task [5.3] completed
+
+La tarea 5.3 ha sido completada exitosamente:
+
+**Resumen de cambios:**
+- Layout responsivo implementado en `app/dashboard/page.tsx`
+- En móvil (< 1024px): narrativa arriba, calendario abajo (vertical)
+- En desktop (>= 1024px): narrativa izquierda, calendario derecha (side-by-side)
+- Grid usa clases Tailwind: `grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6`
+
+**Próxima tarea:** [5.4] Reducir texto en NarrativeTimeline (ITEM 8)
+
+═══ ITERACIÓN 12 - 18:42:34 ═══
+Tarea: - [ ] **4.3** Testing roles (→ movido a 8.3.4 E2E)
+RALPH_COMPLETE: Task [5.4] completed
+
+`★ Insight ─────────────────────────────────────`
+**Separación de responsabilidades en narrativas:**
+1. `generateTimeMetadata()` → Genera "8:30 AM - 9:15 AM" (la hora)
+2. `generateNarrative()` → Genera "Matías tomó biberón 120ml" (el contenido)
+
+Esta separación permite que la UI decida dónde y cómo mostrar cada parte. El NarrativeCard muestra la hora como metadata secundaria debajo del texto principal.
+
+**Cuándo mantener vs eliminar duración:**
+- Alimentación/Actividades: La duración es secundaria, el tipo y cantidad importan más
+- Sueño/Siesta: La duración ES el dato principal ("durmió 2 horas")
+- Despertar nocturno: Cuánto tiempo estuvo despierto es crítico para los padres
+`─────────────────────────────────────────────────`
+
+═══ ITERACIÓN 13 - 18:45:12 ═══
+Tarea: - [ ] **4.3** Testing roles (→ movido a 8.3.4 E2E)
+`★ Insight ─────────────────────────────────────`
+**Por qué funcionaba el scroll interno como bug:**
+1. El contenedor padre tenía altura fija de 752px
+2. En vistas donde el espacio disponible era menor (admin split-screen 50/50), el contenedor excedía el viewport
+3. El navegador agregaba scroll al contenedor padre del calendario
+
+**Solución arquitectural:**
+- Los componentes hijos (eventos, time axis) ya definen su altura internamente
+- El contenedor padre no necesita forzar altura - simplemente envuelve
+- Ahora el scroll natural de la página toma control
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task [5.5] completed
+
+---
+
+**Resumen de cambios:**
+
+| Archivo | Cambio |
+|---------|--------|
+| `CalendarDayView.tsx` | Removido `style={{ height: '${24 * hourHeight + 32}px' }}` |
+| `CalendarWeekView.tsx` | Removido `style={{ height: '${24 * hourHeight + 32}px' }}` |
+
+El calendario ahora crece naturalmente con su contenido. En admin split-screen, usará scroll de página en lugar de scroll interno.
+
+═══ ITERACIÓN 14 - 18:48:14 ═══
+Tarea: - [ ] **4.3** Testing roles (→ movido a 8.3.4 E2E)
+```
+RALPH_COMPLETE: Task [6.1, 6.2] completed
+```
+
+`★ Insight ─────────────────────────────────────`
+**Resumen de la sesión - Tareas 6.1 y 6.2 completadas:**
+
+1. **PlanVsEventsCard.tsx** creado con las siguientes características:
+   - Layout de 2 columnas (Plan | Eventos) cuando hay plan activo
+   - Layout de 1 columna (solo Eventos) cuando no hay plan
+   - Usa el registry centralizado de iconos (`getEventIconConfig`)
+   - Plan se muestra en gris tenue para diferenciarlo de eventos reales
+   - Items ordenados cronológicamente por hora
+
+2. **Integración en calendar/page.tsx:**
+   - Vista admin: PlanVsEventsCard arriba de SplitScreenBitacora
+   - Vista padre: PlanVsEventsCard arriba de NarrativeTimeline
+   - Reutiliza el estado `activePlan` existente
+
+3. **Pendiente:** Tarea 6.3 (Testing) será parte de la Fase 8 E2E
+`─────────────────────────────────────────────────`
+
+---
+
+**Commit realizado:** `15b89a1` - feat(calendar): add PlanVsEventsCard comparing plan vs actual events (ITEM 10 - Tasks 6.1, 6.2)
+
+**Archivos modificados:**
+- `components/calendar/PlanVsEventsCard.tsx` (nuevo)
+- `components/calendar/index.ts`
+- `app/dashboard/calendar/page.tsx`
+- `docs/specs/current/discoveries.md`
+- `docs/specs/current/implementation_plan.md`
+
+**Próxima tarea:** [6.3] Testing Plan vs Eventos (movido a Fase 8 E2E) o [7.1] Usar getEventIconConfig en admin child profile
+
+═══ ITERACIÓN 15 - 18:57:25 ═══
+Tarea: - [ ] **4.3** Testing roles (→ movido a 8.3.4 E2E)

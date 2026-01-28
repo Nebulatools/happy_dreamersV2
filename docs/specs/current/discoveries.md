@@ -631,3 +631,42 @@ El EventEditRouter no pasaba `endTime` en `initialData` para los modales de edic
 - Build pasa correctamente (errores de lint son pre-existentes)
 - El componente devuelve `null` si no hay plan ni eventos
 - Próxima tarea: [6.3] Testing Plan vs Eventos
+
+---
+
+### Session 16 - 2026-01-27
+
+**Task:** [7.1] - ITEM 2: Usar getEventIconConfig en admin child profile
+
+**Files modificados:**
+- `app/dashboard/patients/child/[childId]/AdminChildDetailClient.tsx` - Reemplazado iconos hardcodeados con registry
+
+**Cambios realizados:**
+
+1. **Imports actualizados**
+   - Eliminados: `Moon, Sun, Utensils, UtensilsCrossed, Pill, Activity, Baby` (iconos individuales)
+   - Agregado: `getEventIconConfig` desde `@/lib/icons/event-icons`
+
+2. **getEventIcon() refactorizado**
+   - Antes: Switch-case de 25 líneas con iconos hardcodeados
+   - Ahora: 3 líneas usando `getEventIconConfig(eventType, feedingType)`
+   - El color se aplica via `style={{ color: config.color }}`
+
+3. **Función formatDuration eliminada**
+   - No estaba siendo usada (dead code)
+   - `getEventTypeName` se mantiene porque se usa en DeleteConfirmationModal
+
+**Inconsistencias corregidas:**
+- `nap` ahora usa `CloudMoon` (violet) en lugar de `Sun` (amber)
+- `feeding_breast` ahora usa `Heart` (pink) en lugar de `Utensils` (green)
+- `feeding_bottle` ahora usa `Milk` (sky) en lugar de `Utensils` (green)
+- Todos los iconos ahora tienen colores consistentes con el registry central
+
+**Patterns:**
+- El registry `lib/icons/event-icons.ts` es la única fuente de verdad para iconos
+- Los componentes solo llaman a `getEventIconConfig()` sin duplicar lógica
+- El color se aplica via inline style para usar valores hex del registry
+
+**Notes:**
+- Build pasa correctamente
+- Próxima tarea: [7.2] Testing consistencia iconos (será parte de Fase 8 E2E)

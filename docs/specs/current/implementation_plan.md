@@ -217,11 +217,12 @@ Validación Fase 6:
 
 ## Fase 7: Iconos Admin (ITEM 2)
 
-- [ ] **7.1** Usar getEventIconConfig en admin child profile
-  - Input: `app/dashboard/patients/child/[id]/page.tsx`
+- [x] **7.1** Usar getEventIconConfig en admin child profile
+  - Input: `app/dashboard/patients/child/[childId]/AdminChildDetailClient.tsx`
   - Output: Tab Eventos usa iconos del registry centralizado
   - Comportamiento: Importar getEventIconConfig, reemplazar iconos hardcodeados
   - Referencia: `lib/icons/event-icons.ts`
+  - **Completado**: Switch-case de 25 líneas reemplazado por 3 líneas usando registry
 
 - [ ] **7.2** Testing consistencia iconos
   - Comportamiento: Comparar iconos en admin vs dashboard de padres
