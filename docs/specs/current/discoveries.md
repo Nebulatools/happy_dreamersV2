@@ -478,3 +478,38 @@ El EventEditRouter no pasaba `endTime` en `initialData` para los modales de edic
 **Notes:**
 - Build pasa correctamente
 - Próxima tarea: [5.3] Layout responsivo narrativa + calendario
+
+---
+
+### Session 12 - 2026-01-27
+
+**Task:** [5.3] - Layout responsivo narrativa + calendario
+
+**Files modificados:**
+- `app/dashboard/page.tsx` - Grid responsivo para narrativa + calendario
+
+**Cambios realizados:**
+
+1. **Grid responsivo**
+   - Envuelto narrativa (Card "Hoy") y SleepMetricsCombinedChart en un div grid
+   - Clases: `grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6`
+   - Móvil: 1 columna (narrativa arriba, calendario abajo)
+   - Desktop (lg+): 2 columnas lado a lado
+
+2. **Reordenamiento**
+   - Narrativa ahora es el primer hijo del grid (izquierda en desktop)
+   - Calendario es el segundo hijo (derecha en desktop)
+   - El orden también afecta mobile: narrativa primero, más accesible
+
+3. **Fallback agregado**
+   - Si `activeChildId` existe pero `child` aún no se ha cargado, solo muestra calendario
+   - Previene errores durante estados de carga
+
+**Patterns:**
+- `lg:grid-cols-2` es el breakpoint estándar para side-by-side (1024px+)
+- Gap responsivo: `gap-4 md:gap-6` para mejor espaciado en desktop
+- El orden del DOM es importante para mobile-first
+
+**Notes:**
+- Build pasa correctamente
+- Próxima tarea: [5.4] Reducir texto en NarrativeTimeline (ITEM 8)

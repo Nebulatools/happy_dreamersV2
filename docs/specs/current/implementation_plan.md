@@ -161,7 +161,7 @@ Validación Fase 4:
   - Comportamiento: showExpandButton={true} o prop equivalente
   - **Fix aplicado**: Nueva prop `alwaysShowExpandButton` con texto contextual "Ver detalles"
 
-- [ ] **5.3** Layout responsivo narrativa + calendario
+- [x] **5.3** Layout responsivo narrativa + calendario
   - Input: `app/dashboard/page.tsx`
   - Output: Grid responsive: mobile vertical, desktop side-by-side
   - Comportamiento: `grid-cols-1 lg:grid-cols-2`

@@ -589,3 +589,14 @@ La tarea 5.1 ha sido completada exitosamente. El componente NarrativeTimeline en
 
 ═══ ITERACIÓN 10 - 18:37:28 ═══
 Tarea: - [ ] **4.3** Testing roles (→ movido a 8.3.4 E2E)
+`★ Insight ─────────────────────────────────────`
+**Patrón de extensibilidad aplicado:**
+1. En vez de modificar el comportamiento por defecto, agregué una prop opt-in `alwaysShowExpandButton`
+2. Esto mantiene retrocompatibilidad con otros usos del componente
+3. El texto contextual ("Ver detalles" vs "Ver todo N más") mejora la UX indicando qué esperar
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task [5.2] completed
+
+═══ ITERACIÓN 11 - 18:40:26 ═══
+Tarea: - [ ] **4.3** Testing roles (→ movido a 8.3.4 E2E)
