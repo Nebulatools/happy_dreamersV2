@@ -405,3 +405,175 @@ La tarea 7.5 "Excluir overlayEvents de calculateEventColumns" fue verificada y s
 
 ═══ ITERACIÓN 20 - 19:07:30 ═══
 Tarea: - [ ] **8.1** Test suite completo Admin
+
+═══════════════════════════════════════════════════════════════
+RALPH LOOP v3.3 INICIADO: Tue Jan 27 18:01:40 CST 2026
+Modelo: default
+Spec Dir: docs/specs/current
+Servidor PID: 74073
+═══════════════════════════════════════════════════════════════
+
+═══ ITERACIÓN 1 - 18:01:40 ═══
+Tarea: - [ ] **0.2** Verificar ITEM 7 - Estilos nocturnos
+`RALPH_COMPLETE:` Task [1.1, 1.2, 1.3] completed - Fase 1 (Estado por Niño) implementada.
+
+---
+
+**Resumen Session 2:**
+
+| Task | Estado | Descripción |
+|------|--------|-------------|
+| 1.1 | ✅ | Eliminado localStorage de `use-sleep-state.ts` |
+| 1.2 | ✅ | Eliminado localStorage de `SleepButton.tsx` |
+| 1.3 | ✅ | Verificado endpoint `current-sleep-state` |
+| 1.4 | → Fase 8 | Testing multi-dispositivo será parte de E2E |
+
+**Próxima sesión:** Fase 2 - ITEM 11 (Alimentación Nocturna)
+
+`★ Insight ─────────────────────────────────────`
+**Impacto del Cambio:**
+- **Antes**: Cada dispositivo tenía su propio estado en localStorage. Papá registra "se durmió" → mamá no lo ve.
+- **Después**: Estado viene 100% del API via SWR. Ambos dispositivos ven el mismo estado, sincronizado automáticamente.
+- SWR revalida en: focus, reconexión, y cada 30 segundos.
+`─────────────────────────────────────────────────`
+
+═══ ITERACIÓN 2 - 18:07:07 ═══
+Tarea: - [ ] **1.4** Testing multi-dispositivo (→ Fase 8 E2E)
+`★ Insight ─────────────────────────────────────`
+**Patrón implementado - Separación de responsabilidades:**
+1. `FeedingButton` → Para cuando el niño está despierto (comportamiento normal)
+2. `NightFeedingButton` → Para cuando el niño duerme (no cambia estado)
+3. El flag `isNightFeeding: true` permite distinguir en analytics sin crear un nuevo `eventType`
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task [2.1, 2.2] completed
+
+---
+
+**Resumen de Session 3:**
+- Creado `NightFeedingButton.tsx` con icono compuesto (Milk + Moon)
+- Integrado en `EventRegistration.tsx` - visible solo cuando niño duerme
+- FeedingButton ahora solo visible cuando despierto
+- El nuevo botón registra alimentación SIN despertar al niño
+- Build pasa correctamente
+
+**Próxima tarea:** [3.1] Agregar endTime a FeedingModal.tsx (Fase 3 - ITEM 6)
+
+═══ ITERACIÓN 3 - 18:11:42 ═══
+Tarea: - [ ] **1.4** Testing multi-dispositivo (→ Fase 8 E2E)
+`★ Insight ─────────────────────────────────────`
+**Patrón de edición de hora fin en modales:**
+1. Los estados `endDate`, `endTimeValue`, `hasEndTime` permiten gestionar opcionalmente la hora de fin
+2. El botón "+ Agregar hora de fin" aparece solo cuando no hay endTime existente
+3. El flujo permite agregar/quitar hora de fin dinámicamente en modo edición
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task [3.1] completed
+
+La tarea 3.1 ha sido completada exitosamente. Se agregó soporte para edición de hora de fin (endTime) en FeedingModal.tsx siguiendo el patrón establecido en SleepDelayModal.tsx. El build pasa correctamente.
+
+═══ ITERACIÓN 4 - 18:15:32 ═══
+Tarea: - [ ] **1.4** Testing multi-dispositivo (→ Fase 8 E2E)
+`★ Insight ─────────────────────────────────────`
+**Patrón de edición de tiempos en modales:**
+1. **Estados separados** para fecha y hora permiten inputs `type="date"` y `type="time"` nativos
+2. **hasEndTime booleano** controla visibilidad de la sección entera
+3. **EditOptions** encapsula timestamps editados separados del data principal - esto permite que el EventEditRouter procese timestamps independientemente de los datos del modal
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task [3.2] completed
+
+Resumen de la tarea completada:
+- **Archivo modificado**: `components/events/MedicationModal.tsx`
+- **Cambios principales**:
+  - Agregado campo `endTime` a la interface `initialData`
+  - Nuevos estados `endDate`, `endTimeValue`, `hasEndTime`
+  - Firma de `onConfirm` actualizada para aceptar `EditOptions`
+  - Nueva sección UI para editar hora de fin (solo en modo edit)
+  - Uso de `buildLocalDate()` y `dateToTimestamp()` para conversión correcta de timezone
+- **Build**: ✅ Pasa correctamente
+- **Próxima tarea**: [3.3] Agregar endTime a ExtraActivityModal.tsx
+
+═══ ITERACIÓN 5 - 18:19:46 ═══
+Tarea: - [ ] **3.3** Agregar endTime a ExtraActivityModal.tsx
+RALPH_COMPLETE: Task [3.3] completed
+
+La tarea **3.3** (Agregar endTime a ExtraActivityModal.tsx) fue completada exitosamente:
+
+**Cambios realizados:**
+- Agregado campo `endTime?: string` a la interface `initialData`
+- Nuevos estados: `endDate`, `endTimeValue`, `hasEndTime`
+- useEffect actualizado para inicializar estados de hora de fin
+- resetForm actualizado para manejar estados de hora de fin
+- handleConfirm ahora construye `endTime` desde los inputs del usuario (no auto-calcula)
+- Nueva sección UI "Hora de fin" visible solo en modo edit con color cyan
+
+**Build:** ✅ Pasa correctamente
+**Próxima tarea:** [3.4] NightWakingModal.tsx
+
+═══ ITERACIÓN 6 - 18:24:09 ═══
+Tarea: - [ ] **3.4** Agregar endTime a NightWakingModal.tsx
+`★ Insight ─────────────────────────────────────`
+**Diferencia clave en NightWakingModal:**
+1. A diferencia de los otros modales, NightWakingModal tiene un fallback: si no se especifica endTime manual, lo calcula como `startTime + awakeDelay`
+2. Esto es porque el campo "Tiempo que estuvo despierto" ya determina implícitamente el endTime
+3. La edición manual permite corregir casos donde el cálculo automático no es preciso
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task [3.4] completed
+
+---
+
+**Resumen de la sesión:**
+- **Tarea:** [3.4] - Agregar endTime a NightWakingModal.tsx
+- **Archivos modificados:** `components/events/NightWakingModal.tsx`
+- **Cambios clave:**
+  - Agregado campo `endTime` a la interface de initialData
+  - Agregados estados: `endDate`, `endTimeValue`, `hasEndTime`
+  - Nueva sección UI "Hora de fin (volvió a dormir)" en modo edición
+  - Lógica híbrida: usa hora manual si existe, sino calcula desde awakeDelay
+- **Build:** Exitoso
+- **Próxima tarea:** [3.5] Testing edición hora fin
+
+═══ ITERACIÓN 7 - 18:28:18 ═══
+Tarea: - [ ] **3.5** Testing edición hora fin
+`★ Insight ─────────────────────────────────────`
+Durante el testing de Task 3.5, descubrí que **implementar la UI en los modales no es suficiente** - el router que conecta los eventos con los modales también debe pasar los datos iniciales. Este es un patrón común en React:
+
+1. **Componente padre** (EventEditRouter) debe saber qué props pasar
+2. **Componente hijo** (modales) debe saber qué hacer con esas props
+3. **Ambos deben estar sincronizados** - si agregas una prop al hijo, el padre debe pasarla
+
+El fix consistió en agregar `endTime: event.endTime` a todos los `initialData` en EventEditRouter.
+`─────────────────────────────────────────────────`
+
+---
+
+RALPH_COMPLETE: Task [3.5] completed
+
+**Resumen de Session 8:**
+- **Task ejecutada:** [3.5] Testing edición hora fin
+- **Bug encontrado:** EventEditRouter no pasaba `endTime` a los modales
+- **Fix aplicado:** Agregado `endTime: event.endTime` a initialData de 4 modales
+- **Archivos modificados:** `components/events/EventEditRouter.tsx`
+- **Build:** ✅ Pasa correctamente
+- **Commit:** `68e8611`
+
+═══ ITERACIÓN 8 - 18:32:49 ═══
+Tarea: - [ ] **4.1** Ocultar tab Mensual para padres
+RALPH_COMPLETE: Task [4.1, 4.2] completed
+
+---
+
+**Resumen de la sesión:**
+
+- **Tasks completadas:** 4.1 (Ocultar tab Mensual para padres) y 4.2 (Ocultar toggle Gráfico/Calendario para padres)
+- **Archivo modificado:** `app/dashboard/calendar/page.tsx`
+- **Resultado:** Los padres ahora solo ven tabs Diario y Semanal. El toggle Gráfico/Calendario y el tab Mensual son exclusivos para admin.
+- **Verificación:** Build pasa correctamente
+- **Commit:** `8da6d8e`
+
+**Próxima tarea:** [5.1] - Cambiar initialLimit a 3 en dashboard (ITEM 1: Vista Narrativa Home)
+
+═══ ITERACIÓN 9 - 18:35:17 ═══
+Tarea: - [ ] **4.3** Testing roles (→ movido a 8.3.4 E2E)

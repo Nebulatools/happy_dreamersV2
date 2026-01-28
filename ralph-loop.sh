@@ -226,9 +226,15 @@ echo "║  Para detener: Ctrl+C                                         ║"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo ""
 
-# Iniciar log
-echo "" >> "$LOG_FILE"
-echo "═══════════════════════════════════════════════════════════════" >> "$LOG_FILE"
+# Resetear log (archivar el anterior si existe)
+if [ -f "$LOG_FILE" ] && [ -s "$LOG_FILE" ]; then
+    TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
+    mv "$LOG_FILE" "ralph-log-${TIMESTAMP}.txt"
+    echo -e "${YELLOW}[LOG]${NC} Log anterior archivado como ralph-log-${TIMESTAMP}.txt"
+fi
+
+# Iniciar log fresco
+echo "═══════════════════════════════════════════════════════════════" > "$LOG_FILE"
 echo "RALPH LOOP v3.3 INICIADO: $(date)" >> "$LOG_FILE"
 echo "Modelo: ${MODEL:-default}" >> "$LOG_FILE"
 echo "Spec Dir: $SPEC_DIR" >> "$LOG_FILE"

@@ -149,7 +149,7 @@ Validación Fase 4:
 
 ## Fase 5: Vista Narrativa Home (ITEM 1, 8, 4)
 
-- [ ] **5.1** Cambiar initialLimit a 3 en dashboard
+- [x] **5.1** Cambiar initialLimit a 3 en dashboard
   - Input: `app/dashboard/page.tsx`
   - Output: NarrativeTimeline con initialLimit={3}
   - Comportamiento: Mostrar solo 3 eventos colapsados por default

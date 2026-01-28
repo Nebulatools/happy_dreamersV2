@@ -587,7 +587,7 @@ export default function DashboardPage() {
                 events={todayNarrativeEvents}
                 childName={child.firstName}
                 collapsible={true}
-                initialLimit={5}
+                initialLimit={3}
                 isLoading={isLoading}
                 emptyMessage="No hay eventos registrados hoy"
                 onEventEdit={(eventId) => {

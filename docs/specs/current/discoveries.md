@@ -415,3 +415,29 @@ El EventEditRouter no pasaba `endTime` en `initialData` para los modales de edic
 **Notes:**
 - Build pasa correctamente
 - Próxima tarea: [4.3] Testing roles (será parte de Fase 8 E2E)
+
+---
+
+### Session 10 - 2026-01-27
+
+**Task:** [5.1] - ITEM 1: Cambiar initialLimit a 3 en dashboard
+
+**Files modificados:**
+- `app/dashboard/page.tsx` - Línea 590: cambió `initialLimit={5}` a `initialLimit={3}`
+
+**Cambios realizados:**
+
+1. **NarrativeTimeline initialLimit**
+   - Reducido de 5 a 3 eventos visibles por default
+   - Componente en modo colapsado (`collapsible={true}`)
+   - Usuarios verán resumen más compacto
+   - Botón "Ver más" disponible para expandir
+
+**Patterns:**
+- El componente NarrativeTimeline ya soporta `initialLimit` y `collapsible`
+- El cambio es mínimo y directo (una propiedad)
+- Mejora UX reduciendo carga visual inicial
+
+**Notes:**
+- Build pasa correctamente
+- Próxima tarea: [5.2] Asegurar botón expandir siempre visible
