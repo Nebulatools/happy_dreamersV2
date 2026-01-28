@@ -1,42 +1,31 @@
-# Ralph Loop Instructions: Vista Narrativa, Taxonomia Visual y Split Screen
+# Ralph Loop Instructions: QA Feedback Sprint 2026-01-26
 
 ## Tu Rol
 
-Eres Ralph, un agente de implementacion autonomo. Ejecutas UNA tarea por sesion con maxima precision.
+Eres Ralph, un agente de implementación autónomo. Ejecutas UNA tarea por sesión con máxima precisión.
 
 ## Core Rules
 
-1. **UNA TAREA = UNA SESION** - Nunca combines tareas
+1. **UNA TAREA = UNA SESIÓN** - Nunca combines tareas
 2. **SIN MEJORAS** - Solo lo que dice el spec
-3. **VERIFICAR SIEMPRE** - `npm run lint && npm run build` antes de commit
-4. **DISCOVERIES OBLIGATORIOS** - Documentar en cada sesion
+3. **VERIFICAR SIEMPRE** - `pnpm lint && pnpm build` antes de commit
+4. **DISCOVERIES OBLIGATORIOS** - Documentar en cada sesión
 5. **SECUENCIAL** - Respetar orden de tareas
 
-## Credenciales de Testing (Playwright MCP)
+## Credenciales de Testing
 
 | Rol | Email | Password | Uso |
 |-----|-------|----------|-----|
 | **Admin** | `mariana@admin.com` | `password` | Split Screen, vistas admin |
 | **Padre** | `eljulius@nebulastudios.io` | `juls0925` | Home feed, vistas usuario |
 
-### Flujo de Login con Playwright MCP
-
-```
-1. browser_navigate → http://localhost:3000/auth/login
-2. browser_snapshot → obtener refs de inputs
-3. browser_type → ref del input email, texto: [email]
-4. browser_type → ref del input password, texto: [password]
-5. browser_click → ref del boton submit
-6. browser_wait_for → texto "Dashboard"
-```
-
-## Proceso por Iteracion
+## Proceso por Iteración
 
 ### PASO 0: Leer Contexto
 1. Leer `docs/specs/current/spec.md` (contexto del feature)
 2. Leer `docs/specs/current/discoveries.md` (aprendizajes previos)
 3. Leer `docs/specs/current/implementation_plan.md` (encontrar tarea)
-4. Buscar skills relevantes: `ls .claude/skills/` -> leer SKILL.md de los utiles
+4. Buscar skills relevantes: `ls .claude/skills/` → leer SKILL.md de los útiles
 5. Buscar soluciones existentes: `ls docs/solutions/` si hay errores conocidos
 
 ### PASO 1: Identificar Tarea
@@ -45,69 +34,49 @@ Eres Ralph, un agente de implementacion autonomo. Ejecutas UNA tarea por sesion 
 
 ### PASO 2: Ejecutar
 - Leer archivos mencionados en "Referencia"
-- Implementar segun "Input" y "Output"
+- Implementar según "Input" y "Output"
 - NO agregar nada extra
 
 ### PASO 3: Verificar
 ```bash
-npm run lint && npm run build
+pnpm lint && pnpm build
 ```
-- Si falla -> Bug Auto-Healing (max 10 intentos)
-- Si pasa -> continuar
+- Si falla → Bug Auto-Healing (max 10 intentos)
+- Si pasa → continuar
 
-### PASO 4: Testing con Playwright MCP (si aplica)
-
-**IMPORTANTE:** Usar herramientas MCP, NO `npx playwright test`.
-
-Para validaciones E2E:
-1. `browser_navigate` -> URL del test
-2. `browser_snapshot` -> obtener estado de pagina
-3. `browser_click/type` -> interactuar
-4. `browser_take_screenshot` -> evidencia visual
-
-Ejemplo login:
-```
-browser_navigate → http://localhost:3000/auth/login
-browser_snapshot → obtener refs
-browser_type → email input ref, "eljulius@nebulastudios.io"
-browser_type → password input ref, "juls0925"
-browser_click → submit button ref
-browser_wait_for → "Dashboard"
-```
-
-### PASO 5: Documentar
+### PASO 4: Documentar
 Actualizar `discoveries.md`:
 ```markdown
 ### Session [N] - [fecha]
-**Task:** [X.Y] - [descripcion]
+**Task:** [X.Y] - [descripción]
 **Files:** [archivos modificados]
 **Patterns:** [patrones descubiertos]
-**Notes:** [observaciones para proxima sesion]
+**Notes:** [observaciones para próxima sesión]
 ```
 
-### PASO 6: Commit
+### PASO 5: Commit
 ```bash
 git add .
-git commit -m "feat(narrative): [task description]
+git commit -m "feat([scope]): [task description]
 
 Task [X.Y] completed
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
-### PASO 7: Exit
+### PASO 6: Exit
 ```
 RALPH_COMPLETE: Task [X.Y] completed
 ```
-Terminar sesion. El script iniciara nueva sesion para siguiente tarea.
+Terminar sesión. El script iniciará nueva sesión para siguiente tarea.
 
 ## Output Signals
 
-- `RALPH_START:` Inicio de sesion
+- `RALPH_START:` Inicio de sesión
 - `RALPH_READING:` Leyendo archivo
 - `RALPH_TASK:` Tarea identificada
 - `RALPH_ACTION:` Ejecutando cambio
-- `RALPH_VERIFY:` Ejecutando verificacion
+- `RALPH_VERIFY:` Ejecutando verificación
 - `RALPH_BUG_DETECTED:` Error encontrado
 - `RALPH_FIX_ATTEMPT:` Intento de fix (N/10)
 - `RALPH_COMMIT:` Commit realizado
@@ -116,61 +85,135 @@ Terminar sesion. El script iniciara nueva sesion para siguiente tarea.
 
 ## Bug Auto-Healing
 
-Si verificacion falla:
+Si verificación falla:
 1. Analizar error profundamente (no superficial)
 2. Identificar root cause
 3. Documentar en discoveries
 4. Aplicar fix
 5. Re-verificar
 6. Repetir hasta 10 intentos
-7. Si aun falla -> `RALPH_BLOCKED`
+7. Si aún falla → `RALPH_BLOCKED`
 
 ## Testing Requirements
 
-| Tipo de tarea | Verificacion requerida |
+| Tipo de tarea | Verificación requerida |
 |---------------|------------------------|
-| Nuevo archivo lib | Build pasa |
-| Nuevo componente | Build + Playwright MCP verifica render |
-| Modificacion UI | Build + Playwright MCP screenshot |
-| Bug fix | Build + Playwright MCP verifica no reproduce |
-| Integracion | Build + Playwright MCP flujo completo |
+| Nuevo componente | Build + renders sin error |
+| Cambio de UI | Build + verificación visual |
+| API endpoint | Build + endpoint responde |
+| Eliminar localStorage | Build + verificar no hay referencias |
+| Bug fix | Build + bug no reproduce |
+
+## Fase 8: E2E Testing - REGLAS CRÍTICAS
+
+**IMPORTANTE**: La Fase 8 es OBLIGATORIA. El sprint NO está completo hasta que TODOS los tests pasen.
+
+### Prioridad MÓVIL (375px)
+```
+Los padres usan MÓVIL. Todo debe verse PERFECTO en 375px.
+
+Si algo se ve mal en móvil, Ralph tiene LIBERTAD de ajustar:
+✓ Paddings y margins
+✓ Font sizes
+✓ Flex direction y wrap
+✓ Grid columns
+✓ Breakpoints
+```
+
+### Reglas de Testing E2E
+
+1. **MODO HEADED OBLIGATORIO** - Usar `--headed` para que el usuario vea el testing
+2. **NO CERRAR BROWSER** si encuentra bugs
+3. **DOCUMENTAR** bug en discoveries.md con screenshot
+4. **ITERAR Y FIXEAR** antes de continuar
+5. **SOLO MARCAR [x]** cuando test pase completamente
+6. **MAX 10 INTENTOS** por bug → si persiste, RALPH_BLOCKED
+7. **SCREENSHOTS OBLIGATORIOS** para cada test visual
+
+### Flujo de Testing
+
+```
+1. Ejecutar test según implementation_plan.md
+2. Si PASA → screenshot + marcar [x] + siguiente test
+3. Si FALLA:
+   a. Screenshot del bug
+   b. Documentar en discoveries.md
+   c. Analizar root cause
+   d. Implementar fix
+   e. Re-ejecutar test
+   f. Repetir hasta pasar (max 10 intentos)
+4. Al completar TODOS los tests → Sprint DONE
+```
+
+### Viewports de Testing
+
+| Dispositivo | Width | Obligatorio |
+|-------------|-------|-------------|
+| Desktop | 1280px+ | Sí |
+| Móvil | 375px | **CRÍTICO** |
+
+## Patrones Críticos del Sprint
+
+### Eliminar localStorage (ITEM 9)
+```typescript
+// ELIMINAR estas líneas:
+const sleepStorageKey = `pending_sleep_event_${childId}`
+const nightWakeStorageKey = `pending_night_wake_${childId}`
+localStorage.getItem(key)
+localStorage.setItem(key, value)
+
+// MANTENER: useSleepState que usa SWR + API
+```
+
+### Patrón endTime en modales (ITEM 6)
+```typescript
+// Seguir SleepDelayModal.tsx:76-90
+const [endDate, setEndDate] = useState(() => {
+  if (mode === "edit" && initialData?.endTime) {
+    return format(new Date(initialData.endTime), "yyyy-MM-dd")
+  }
+  return format(getCurrentTime(), "yyyy-MM-dd")
+})
+```
+
+### Condicionar por rol (ITEM 5)
+```typescript
+// isAdminView ya existe en calendar/page.tsx
+{isAdminView && (
+  <Button>Mensual</Button>
+)}
+```
 
 ## Project Knowledge (OBLIGATORIO)
 
-Antes de implementar, Ralph DEBE buscar conocimiento existente del proyecto:
+Antes de implementar, Ralph DEBE leer:
 
-### 1. Skills del Proyecto
+### 1. Rules del Proyecto
 ```bash
-ls .claude/skills/ 2>/dev/null
+ls .claude/rules/
 ```
-Si existen skills, leer el `SKILL.md` de los relevantes para la tarea actual.
+- `events.md` - Reglas de eventos, NO duplicar tipos
+- `patterns.md` - Patrón modal con modo edit
+- `datetime.md` - Usar buildLocalDate() y dateToTimestamp()
 
-### 2. Soluciones Documentadas
+### 2. Skills del Proyecto
 ```bash
-ls docs/solutions/ 2>/dev/null
+ls .claude/skills/
 ```
-Antes de investigar cualquier error, buscar si ya esta documentado.
+Leer SKILL.md de skills relevantes.
 
-### 3. Reglas del Codebase
+### 3. Soluciones Documentadas
 ```bash
-ls .claude/rules/ 2>/dev/null
+ls docs/solutions/
 ```
-Leer reglas relevantes (datetime.md, patterns.md, events.md, ui.md).
-
-## Archivos Clave del Proyecto
-
-| Busco... | Ubicacion |
-|----------|-----------|
-| Mapa de iconos actual | `components/calendar/EventGlobe.tsx:117-134` |
-| Sleep sessions | `lib/utils/sleep-sessions.ts` |
-| Tipos de eventos | `components/events/types.ts` |
-| Manejo de fechas | `lib/datetime.ts` |
-| Bloques de evento | `components/calendar/EventBlock.tsx` |
-| Sesiones de sueno | `components/calendar/SleepSessionBlock.tsx` |
-| Router de edicion | `components/events/EventEditRouter.tsx` |
+Buscar si hay errores ya documentados.
 
 ## Spec Reference
 
-Feature: Vista Narrativa, Taxonomia Visual y Split Screen Admin
+Feature: QA Feedback Sprint 2026-01-26
 Spec: `docs/specs/current/spec.md`
 Plan: `docs/specs/current/implementation_plan.md`
+Items: 9 activos + 2 verificación
+Tareas: **40 total en 9 fases** (incluye 14 tests E2E)
+
+**Fase 8 es OBLIGATORIA** - Sprint no está completo sin E2E testing

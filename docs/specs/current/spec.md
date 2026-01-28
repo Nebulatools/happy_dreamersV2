@@ -1,215 +1,150 @@
-# Feature: Mejoras UX/UI Dashboard - Vista Narrativa y Taxonomía Visual
+# Sprint: QA Feedback 2026-01-26
 
-## Vision
+## Visión
 
-Transformar la experiencia de lectura de la bitacora de eventos de un sistema de "bloques de calendario" dificiles de leer a una **narrativa fluida tipo feed** que permita a admins y padres entender rapidamente "que paso hoy" sin esfuerzo cognitivo.
-
-**Problema actual:** Los bloques de calendario fragmentan visualmente el sueno nocturno y usan iconografia generica que no diferencia tipos de alimentacion.
-
-**Solucion:** Vista narrativa cronologica + taxonomia visual clara + sincronizacion bidireccional calendario-narrativa.
+Resolver el feedback completo de QA para mejorar la experiencia de usuario en Happy Dreamers, incluyendo correcciones de UI, cambios de lógica de negocio, y ajustes de UX solicitados por Mariana.
 
 ---
 
-## Alcance del Sprint
+## Items del Sprint (9 activos + 2 verificación)
 
-### MVP (Items 1-3)
-1. **Item 1:** Vista Narrativa de Bitacora (Timeline)
-2. **Item 2:** Taxonomia Visual (Alimentacion y Sueno)
-3. **Item 3:** Vista Dual Split Screen (Admin)
+### ITEM 9: Estado de Botones por Niño (CRÍTICO)
 
-### Diferido (Item 4)
-- Panel de Estadisticas y Diagnostico AI (mas complejo, siguiente sprint)
+**Problema:** Estado de sueño guardado en localStorage por dispositivo. Papá registra "se durmió" → mamá no lo ve en su celular.
 
----
+**Solución:** Estado viene 100% de BD, calculado por último evento sleep/nap vs wake.
 
-## Item 1: Vista Narrativa de Bitacora (Timeline)
-
-### Flujo por Tipo de Usuario
-
-| Vista | Admin (Mariana) | Padres |
-|-------|-----------------|--------|
-| **Home** | N/A | Ultimos 5 eventos + "Ver todo/Colapsar" |
-| **Bitacora Diaria** | Split Screen (50% calendario, 50% narrativa) | Narrativa completa vertical |
-| **Semanal/Mensual** | Solo bloques (sin narrativa) | Solo bloques (sin narrativa) |
-
-### Anatomia de Tarjeta de Evento
-
+**Lógica:**
 ```
-+--------------------------------------------------+
-| [ICONO]  Matias tomo 5 oz de leche materna       |
-|          08:30 AM                          [>]   |
-+--------------------------------------------------+
+Si último 'sleep/nap' es MÁS RECIENTE que último 'wake' → DORMIDO
+Si último 'wake' es MÁS RECIENTE que último 'sleep/nap' → DESPIERTO
 ```
 
-**Elementos:**
-1. **Icono (izquierda):** Circular, respeta taxonomia Item 2
-2. **Narrativa (centro):** Oracion completa generada automaticamente
-3. **Metadatos (debajo):** Hora o rango (08:30 - 09:15)
-4. **Navegacion (derecha):** `chevron-right` abre edicion
-
-### Reglas de Narrativa (100% automatica)
-
-| Tipo Evento | Formato Narrativa |
-|-------------|-------------------|
-| Alimentacion Pecho | "[Nombre] tomo pecho por [X] minutos" |
-| Alimentacion Biberon | "[Nombre] tomo [X] oz de [formula/leche]" |
-| Alimentacion Solidos | "[Nombre] comio [descripcion]" |
-| Siesta | "[Nombre] durmio una siesta de [X] min" |
-| Sueno Nocturno | "[Nombre] durmio de [hora] a [hora]" |
-| Despertar Nocturno | "[Nombre] desperto a las [hora]" |
-| Medicamento | "[Nombre] tomo [medicamento]" |
-
-**Datos incompletos:** Omitir el dato faltante (no mostrar placeholder).
-
-### Comportamiento Home (Padres)
-
-- **Default:** Muestra 5 eventos mas recientes, colapsado
-- **"Ver todo":** Expande lista completa del dia
-- **"Colapsar":** Vuelve a 5 eventos
-- **Persistencia:** Siempre inicia colapsado (no guarda estado)
-
-### Ordenamiento
-
-**Cronologico Inverso Estricto:** El evento con `timestamp` mayor aparece primero (arriba).
-
-### Edge Case: Dia sin eventos
-
-Mostrar empty state amigable: "No hay eventos registrados hoy"
+**Archivos:**
+- `hooks/use-sleep-state.ts` - Eliminar localStorage, solo API
+- `components/events/SleepButton.tsx` - Remover sleepStorageKey
 
 ---
 
-## Item 2: Taxonomia Visual (Alimentacion y Sueno)
+### ITEM 11: Botón Alimentación Nocturna
 
-### 2.1 Iconos de Alimentacion
+**Problema:** Bebé come "medio dormido" pero sistema obliga registrar wake primero.
 
-| Subtipo | Icono Lucide | Contexto |
-|---------|--------------|----------|
-| Solidos | `UtensilsCrossed` | Desayuno, comida, cena, snacks |
-| Biberon | `Baby` (buscar mejor) | Formula, leche extraida |
-| Pecho | Buscar en Lucide el mas cercano | Lactancia directa |
+**Solución:** Nuevo botón visible SOLO cuando niño duerme. Marca `isNightFeeding: true`. NO cambia estado del niño.
 
-**Regla:** Nunca usar icono generico de "cubiertos" para todo.
-
-**Tomas Nocturnas:** Usan el mismo icono que diurnas (biberon/pecho/solidos segun corresponda).
-
-### 2.2 Sueno Nocturno (Layering Logic)
-
-**NOTA:** Revisar implementacion actual - puede que ya este resuelto.
-
-- **Capa Base:** Bloque continuo azul oscuro desde `hora_dormir` hasta `hora_despertar_definitivo`
-- **Overlays:** Eventos nocturnos (despertares, tomas) se superponen con `z-index` mayor
-- **El bloque base NUNCA se corta visualmente**
-
-### 2.3 Siestas (Diferenciacion Visual)
-
-- **Paleta:** Tonos morados/azules claros (revisar colores existentes, no repetir)
-- **Prohibido:** Naranja (asociado a alerta/actividad)
-- **Icono:** Diferente al sueno nocturno (elegir el mas apropiado de Lucide)
-
-### Aplicacion por Vista
-
-| Vista | Aplica Taxonomia |
-|-------|------------------|
-| Diaria | Si (bloques + narrativa) |
-| Semanal | Si (solo bloques) |
-| Mensual | Si (solo bloques) |
+**Archivos:**
+- CREAR: `components/events/NightFeedingButton.tsx`
+- MODIFICAR: `components/events/EventRegistration.tsx`
 
 ---
 
-## Item 3: Vista Dual Split Screen (Solo Admin)
+### ITEM 6: Edición Hora Fin (BUG)
 
-### Layout
+**Problema:** Solo se puede editar hora inicio, no hora fin en timeline.
 
+**Solución:** Agregar campos endDate/endTime a modales en modo edit. Seguir patrón de `SleepDelayModal.tsx:76-90`.
+
+**Archivos (4 modales):**
+- `components/events/FeedingModal.tsx`
+- `components/events/MedicationModal.tsx`
+- `components/events/ExtraActivityModal.tsx`
+- `components/events/NightWakingModal.tsx`
+
+---
+
+### ITEM 5: Tabs por Rol
+
+**Problema:** Padres ven tabs que no deberían (Mensual, Gráfico).
+
+**Solución:** Condicionar renderizado: Padres solo ven Diario + Semanal. Admin mantiene todo.
+
+**Archivo:** `app/dashboard/calendar/page.tsx` (líneas 1828-1874)
+
+---
+
+### ITEM 1: Vista Narrativa Home
+
+**Problema:** Home muestra gráficos en lugar de narrativa.
+
+**Solución:**
+- `initialLimit={3}` (colapsado por default)
+- Botón expandir visible SIEMPRE
+- Layout: Mobile vertical | Web side-by-side
+- Día = despertar a despertar (no 24hrs)
+
+**Archivo:** `app/dashboard/page.tsx`
+
+---
+
+### ITEM 8: Reducir Texto Bitácora
+
+**Formato actual:** `8:30 AM - Alimentación: Biberón 120ml, 15 min`
+**Formato nuevo:** `8:30 AM - Biberón 120ml` (tipo + cantidad, sin duración)
+
+**Archivo:** `components/narrative/NarrativeTimeline.tsx`
+
+---
+
+### ITEM 4: Calendario sin Scroll
+
+**Problema:** Calendario tiene scroll interno en admin split-screen.
+
+**Solución:** Remover height fija y overflow. Calendario crece, scroll de página.
+
+**Archivo:** `components/calendar/CalendarMain.tsx`
+
+---
+
+### ITEM 10: Card Plan vs Eventos
+
+**Diseño:**
 ```
-+------------------------+------------------------+
-|                        |                        |
-|   CALENDARIO (50%)     |   NARRATIVA (50%)      |
-|   Gantt Chart          |   Timeline fluido      |
-|                        |                        |
-|   [Bloques con         |   [Tarjetas apiladas   |
-|    taxonomia Item 2]   |    sin espacios]       |
-|                        |                        |
-+------------------------+------------------------+
+| PLAN (izq)      | EVENTOS (der)    |
+| 07:00 Despertar | 07:15 Despertó   |
+| 09:00 Siesta    | 09:30 Siesta     |
 ```
 
-### Logica de Interaccion (Mirroring Bidireccional)
+**Comportamiento:**
+- Nueva card ARRIBA del calendario
+- Aplica para AMBOS roles
+- Sin plan: solo muestra eventos
+- Eventos extras se incrustan cronológicamente
 
-**Click en Calendario:**
-1. Click 1: Narrativa hace `scroll-into-view` + highlight con fade gradual (5-7 seg)
-2. Click 2 (doble click): Abre modal de edicion
-
-**Click en Narrativa:**
-1. Click 1: Calendario hace scroll al bloque correspondiente + highlight
-2. Click 2: Abre modal de edicion (o click en chevron)
-
-**Highlight:** Fade gradual que se desvanece en 5-7 segundos.
-
-### Padres: Sin Split Screen
-
-Los padres ven la narrativa en flujo vertical completo, sin el calendario al lado.
+**Archivos:**
+- CREAR: `components/calendar/PlanVsEventsCard.tsx`
+- MODIFICAR: `app/dashboard/calendar/page.tsx`
 
 ---
 
-## UI/UX Estados
+### ITEM 2: Iconos Consistentes Admin
 
-### Loading
-- Skeleton loaders para tarjetas de narrativa
-- Mantener layout estable durante carga
+**Problema:** Iconos de alimentación no están en admin `/dashboard/patients/child/[id]`
 
-### Error
-- Toast con mensaje en espanol si falla carga de eventos
-- Retry automatico silencioso
+**Solución:** Usar `getEventIconConfig()` de `lib/icons/event-icons.ts`
 
-### Exito
-- Feedback visual al editar evento (actualizacion inmediata en ambos paneles)
+**Archivo:** `app/dashboard/patients/child/[id]/page.tsx`
 
 ---
 
-## Edge Cases
+### Items Ya Implementados (Solo Verificar)
 
-| Caso | Manejo |
-|------|--------|
-| Dia sin eventos | Empty state: "No hay eventos registrados hoy" |
-| Datos incompletos | Omitir dato faltante en narrativa |
-| Evento en progreso | Revisar implementacion actual, puede que no aplique |
-| Muchos eventos (scroll largo) | Highlight se mantiene hasta fade, scroll suave |
-| Click rapido multiples bloques | Cancelar scroll anterior, hacer nuevo |
+- **ITEM 3:** Siestas en lavanda
+- **ITEM 7:** Estilos nocturnos en bloques de sueño
 
 ---
 
-## Exito
+## Credenciales de Testing
 
-El feature funciona bien cuando:
-
-1. **Admin (Mariana)** puede leer la bitacora del dia en menos de 30 segundos
-2. **Padres** entienden que paso sin hacer scroll horizontal en calendario
-3. **La taxonomia visual** permite identificar tipo de evento de un vistazo
-4. **El mirroring** nunca pierde sincronizacion entre calendario y narrativa
-5. **Sueno nocturno** se ve como UNA barra continua, no fragmentada
+| Rol | Email | Password |
+|-----|-------|----------|
+| Admin | mariana@admin.com | password |
+| Padre | eljulius@nebulastudios.io | juls0925 |
 
 ---
 
-## Notas de la Entrevista
+## Referencias
 
-### Decisiones Tomadas
-
-1. **Prioridad:** Items 1-3 son MVP, Item 4 (AI) para siguiente sprint
-2. **Narrativa:** 100% automatica, no editable por usuario
-3. **Iconos:** Usar Lucide, buscar el mas cercano para "pecho"
-4. **Colores siesta:** Usar paleta existente, evitar repetir colores ya usados
-5. **Persistencia "Ver todo":** No guarda estado, siempre inicia colapsado
-6. **Interaccion Split:** Click 1 = highlight, Click 2 = editar
-7. **Mirroring:** Bidireccional (calendario <-> narrativa)
-8. **Highlight:** Fade gradual 5-7 segundos
-9. **Layering sueno nocturno:** Revisar si ya esta implementado
-10. **Eventos en progreso:** Revisar implementacion actual
-
-### Contexto Adicional del Usuario
-
-> "Para que no haya confusion: la vista diaria es donde vive el Item 1 de forma extendida. Para Admin es Split Screen. Para Padres es feed vertical. Las vistas semanal/mensual NO llevan narrativa, solo aplica el rediseno visual (Item 2)."
-
----
-
-## Siguiente Paso
-
-Ejecutar `/workflows:plan` para agregar arquitectura tecnica y tareas de implementacion.
+- Patrones de eventos: `.claude/rules/events.md`
+- Patrones de modales: `.claude/rules/patterns.md`
+- Manejo de fechas: `.claude/rules/datetime.md`
+- Patrón endTime edit: `components/events/SleepDelayModal.tsx:76-90`
