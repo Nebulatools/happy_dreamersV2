@@ -86,7 +86,7 @@ Validación Fase 2:
 
 ## Fase 3: Edición Hora Fin (ITEM 6)
 
-- [ ] **3.1** Agregar endTime a FeedingModal.tsx
+- [x] **3.1** Agregar endTime a FeedingModal.tsx
   - Input: `components/events/FeedingModal.tsx`
   - Output: Modal con campos endDate/endTime en modo edit
   - Comportamiento: Mostrar inputs solo si mode === "edit" && initialData?.endTime

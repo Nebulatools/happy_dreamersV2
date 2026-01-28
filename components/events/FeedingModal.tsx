@@ -30,6 +30,7 @@ interface FeedingModalProps {
     babyState?: "awake" | "asleep"
     feedingNotes?: string
     startTime?: string
+    endTime?: string
     eventId?: string
   }
 }
@@ -74,6 +75,22 @@ export function FeedingModal({
     }
     return format(getCurrentTime(), "yyyy-MM-dd")
   })
+  // Estados para hora de fin (endTime) - solo en modo edicion
+  const [endDate, setEndDate] = useState<string>(() => {
+    if (mode === "edit" && initialData?.endTime) {
+      return format(new Date(initialData.endTime), "yyyy-MM-dd")
+    }
+    return format(getCurrentTime(), "yyyy-MM-dd")
+  })
+  const [endTimeValue, setEndTimeValue] = useState<string>(() => {
+    if (mode === "edit" && initialData?.endTime) {
+      return format(new Date(initialData.endTime), "HH:mm")
+    }
+    return ""
+  })
+  const [hasEndTime, setHasEndTime] = useState<boolean>(() => {
+    return mode === "edit" && !!initialData?.endTime
+  })
   const [isProcessing, setIsProcessing] = useState(false)
 
   // Inicializar con datos cuando se abre en modo edición
@@ -91,6 +108,16 @@ export function FeedingModal({
       if (initialData.startTime) {
         setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
         setFeedingTime(format(new Date(initialData.startTime), "HH:mm"))
+      }
+      // Inicializar hora de fin si existe
+      if (initialData.endTime) {
+        setEndDate(format(new Date(initialData.endTime), "yyyy-MM-dd"))
+        setEndTimeValue(format(new Date(initialData.endTime), "HH:mm"))
+        setHasEndTime(true)
+      } else {
+        setEndDate(format(getCurrentTime(), "yyyy-MM-dd"))
+        setEndTimeValue("")
+        setHasEndTime(false)
       }
     }
     // En modo create, actualizar la hora al abrir el modal
@@ -212,14 +239,17 @@ export function FeedingModal({
     }
 
     // Construir editOptions solo en modo edición
-    // En modo edit: startTime = fecha/hora editada, endTime = ahora (momento de guardar)
     let editOptions: EditOptions | undefined
     if (mode === "edit" && eventDate && feedingTime) {
       const startDateObj = buildLocalDate(eventDate, feedingTime)
-      const endDateObj = getCurrentTime()
       editOptions = {
         startTime: dateToTimestamp(startDateObj, timezone),
-        endTime: dateToTimestamp(endDateObj, timezone)
+      }
+
+      // Construir endTime si existe
+      if (hasEndTime && endTimeValue) {
+        const endDateTime = buildLocalDate(endDate, endTimeValue)
+        editOptions.endTime = dateToTimestamp(endDateTime, timezone)
       }
     }
 
@@ -246,6 +276,16 @@ export function FeedingModal({
         setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
         setFeedingTime(format(new Date(initialData.startTime), "HH:mm"))
       }
+      // Restaurar endTime si existe
+      if (initialData.endTime) {
+        setEndDate(format(new Date(initialData.endTime), "yyyy-MM-dd"))
+        setEndTimeValue(format(new Date(initialData.endTime), "HH:mm"))
+        setHasEndTime(true)
+      } else {
+        setEndDate(format(getCurrentTime(), "yyyy-MM-dd"))
+        setEndTimeValue("")
+        setHasEndTime(false)
+      }
     } else {
       // En modo creación, limpiar todo
       setFeedingType("breast")
@@ -255,6 +295,9 @@ export function FeedingModal({
       const now = getCurrentTime()
       setEventDate(format(now, "yyyy-MM-dd"))
       setFeedingTime(format(now, "HH:mm"))
+      setEndDate(format(now, "yyyy-MM-dd"))
+      setEndTimeValue("")
+      setHasEndTime(false)
     }
   }
 
@@ -316,6 +359,69 @@ export function FeedingModal({
             </div>
           )}
         </div>
+
+        {/* Hora de fin - Solo visible en modo edición */}
+        {mode === "edit" && (
+          <div className="space-y-3 pb-4 border-b">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-gray-700">
+                Hora de fin
+              </div>
+              {!hasEndTime && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHasEndTime(true)
+                    setEndDate(eventDate)
+                    setEndTimeValue(format(getCurrentTime(), "HH:mm"))
+                  }}
+                  className="text-xs text-green-600 hover:text-green-700 underline"
+                >
+                  + Agregar hora de fin
+                </button>
+              )}
+            </div>
+            {hasEndTime ? (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs text-gray-500">Fecha</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-gray-500">Hora</label>
+                  <div className="flex gap-1">
+                    <input
+                      type="time"
+                      value={endTimeValue}
+                      onChange={(e) => setEndTimeValue(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHasEndTime(false)
+                        setEndTimeValue("")
+                      }}
+                      className="px-2 text-gray-400 hover:text-red-500"
+                      title="Quitar hora de fin"
+                    >
+                      x
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-gray-500 italic">
+                No hay hora de fin registrada
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Sección 1: Tipo de Alimentación */}
         <div className="space-y-3 mt-4">

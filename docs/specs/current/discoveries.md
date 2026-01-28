@@ -150,3 +150,47 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - El `feedingContext` indica si es durante sueño nocturno o siesta
 
 **Notes:** Build pasa correctamente. Pendiente testing E2E en Fase 8.
+
+---
+
+### Session 4 - 2026-01-27
+
+**Task:** [3.1] - ITEM 6: Agregar endTime a FeedingModal.tsx
+
+**Files modificados:**
+- `components/events/FeedingModal.tsx` - Agregados campos de edición de hora de fin
+
+**Cambios realizados:**
+
+1. **Interface FeedingModalProps.initialData**
+   - Agregado campo opcional `endTime?: string`
+
+2. **Nuevos estados**
+   - `endDate`: fecha de fin (yyyy-MM-dd)
+   - `endTimeValue`: hora de fin (HH:mm)
+   - `hasEndTime`: booleano para controlar visibilidad
+
+3. **Inicialización en useEffect**
+   - Si `initialData.endTime` existe, se parsea y setea los estados
+   - Si no existe, estados se inicializan vacíos
+
+4. **UI condicional en modo edit**
+   - Nueva sección "Hora de fin" visible solo en `mode === "edit"`
+   - Botón "+ Agregar hora de fin" si no existe endTime
+   - Grid de inputs fecha/hora si existe endTime
+   - Botón "x" para quitar hora de fin
+
+5. **handleConfirm modificado**
+   - Ya no fuerza `endTime = getCurrentTime()`
+   - Usa valores editados de `endDate` y `endTimeValue` si `hasEndTime`
+
+6. **handleCancel actualizado**
+   - Restaura estados de endTime en modo edit
+   - Limpia estados de endTime en modo create
+
+**Patterns:**
+- Seguí exactamente el patrón de `SleepDelayModal.tsx:76-90`
+- Usé `buildLocalDate()` y `dateToTimestamp()` de `lib/datetime.ts`
+- Color de acento verde (green-600) para consistencia con el modal de feeding
+
+**Notes:** Build pasa correctamente. Próxima tarea: [3.2] MedicationModal.tsx
