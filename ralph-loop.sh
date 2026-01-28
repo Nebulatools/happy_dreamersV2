@@ -97,14 +97,14 @@ start_server() {
     SERVER_PID=$!
     echo -e "${GREEN}[SERVER] Servidor iniciado (PID: $SERVER_PID)${NC}"
 
-    # Esperar a que el servidor esté listo
-    echo -e "${YELLOW}[SERVER] Esperando que el servidor esté listo...${NC}"
-    for i in $(seq 1 30); do
+    # Esperar a que el servidor responda (max 60s)
+    echo -e "${YELLOW}[SERVER] Esperando respuesta HTTP...${NC}"
+    for i in $(seq 1 60); do
         if curl -s http://localhost:3000 > /dev/null 2>&1; then
             echo -e "${GREEN}[SERVER] ✅ Servidor responde en puerto 3000${NC}"
             break
         fi
-        if [ $i -eq 30 ]; then
+        if [ $i -eq 60 ]; then
             echo -e "${RED}[SERVER] ❌ Timeout esperando servidor${NC}"
             cat /tmp/next-dev.log
             return 1
@@ -112,9 +112,22 @@ start_server() {
         sleep 1
     done
 
-    # Esperar a que Tailwind compile
-    echo -e "${YELLOW}[SERVER] Esperando compilación de CSS (10s)...${NC}"
-    sleep 10
+    # Esperar que el build esté completo (app-paths-manifest.json)
+    echo -e "${YELLOW}[SERVER] Esperando build completo...${NC}"
+    for i in $(seq 1 30); do
+        if [ -f ".next/server/app-paths-manifest.json" ]; then
+            echo -e "${GREEN}[SERVER] ✅ Build completo (manifest encontrado)${NC}"
+            break
+        fi
+        if [ $i -eq 30 ]; then
+            echo -e "${YELLOW}[SERVER] ⚠️ Build posiblemente incompleto, continuando...${NC}"
+        fi
+        sleep 1
+    done
+
+    # Esperar CSS/Tailwind (aumentado de 10 a 15s)
+    echo -e "${YELLOW}[SERVER] Esperando compilación de CSS (15s)...${NC}"
+    sleep 15
     echo -e "${GREEN}[SERVER] ✅ Servidor completamente listo${NC}"
 }
 
@@ -142,6 +155,9 @@ restart_server() {
     echo -e "${YELLOW}[SERVER] ═══ REINICIANDO SERVIDOR ═══${NC}"
     echo "[SERVER] Reinicio solicitado por agente: $(date)" >> "$LOG_FILE"
     kill_server
+    # Limpiar cache de Next.js para evitar builds corruptos
+    echo -e "${YELLOW}[SERVER] Limpiando cache de Next.js...${NC}"
+    rm -rf .next/
     start_server
     echo -e "${GREEN}[SERVER] ═══ SERVIDOR REINICIADO ═══${NC}"
     echo "[SERVER] Reinicio completado: $(date)" >> "$LOG_FILE"
@@ -192,6 +208,9 @@ trap cleanup SIGTERM
 echo -e "${YELLOW}[PRE-CLEANUP] Verificando servidores existentes...${NC}"
 kill_server
 rm -f "$RESTART_SIGNAL"
+# Limpiar cache de Next.js para evitar builds corruptos
+echo -e "${YELLOW}[PRE-CLEANUP] Limpiando cache de Next.js...${NC}"
+rm -rf .next/
 echo -e "${GREEN}[PRE-CLEANUP] ✅ Listo${NC}"
 
 # ═══════════════════════════════════════════════════════════════
