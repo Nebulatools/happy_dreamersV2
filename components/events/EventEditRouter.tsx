@@ -195,7 +195,8 @@ export function EventEditRouter({
           feedingType: event.feedingType,
           feedingAmount: event.feedingType === "bottle" ? mlToOz(event.feedingAmount) : event.feedingAmount,
           feedingDuration: event.feedingDuration,
-          babyState: event.babyState,
+          // Asegurar que babyState siempre tenga un valor (manejar eventos legacy)
+          babyState: event.babyState || (event.eventType === "night_feeding" ? "asleep" : "awake"),
           feedingNotes: event.feedingNotes || event.notes,
           startTime: event.startTime,
           endTime: event.endTime,

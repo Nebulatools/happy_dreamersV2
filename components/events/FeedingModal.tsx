@@ -27,7 +27,7 @@ interface FeedingModalProps {
     feedingType?: FeedingType
     feedingAmount?: number
     feedingDuration?: number
-    babyState?: "awake" | "asleep"
+    babyState: "awake" | "asleep"  // REQUERIDO: siempre debe venir del botón
     feedingNotes?: string
     startTime?: string
     endTime?: string
@@ -59,7 +59,8 @@ export function FeedingModal({
     return 50
   })
   const [feedingDuration, setFeedingDuration] = useState<number>(initialData?.feedingDuration || 15) // Default 15 min
-  const [babyState, setBabyState] = useState<"awake" | "asleep">(initialData?.babyState || "awake")
+  // babyState ahora es inmutable - viene del botón y no se puede cambiar
+  const babyState = initialData?.babyState || "awake"
   const [feedingNotes, setFeedingNotes] = useState<string>(initialData?.feedingNotes || "")
   const [bottleUnit, setBottleUnit] = useState<"oz" | "ml">("oz") // Unidad para biberón
   // Hora de inicio: en create es cuando empezo la alimentacion, en edit es la hora guardada
@@ -103,7 +104,7 @@ export function FeedingModal({
         setFeedingAmount(initialData.feedingType === "breast" ? 15 : initialData.feedingType === "bottle" ? 4 : 50)
       }
       setFeedingDuration(initialData.feedingDuration || 15)
-      setBabyState(initialData.babyState || "awake")
+      // babyState ya no se actualiza - es inmutable desde props
       setFeedingNotes(initialData.feedingNotes || "")
       if (initialData.startTime) {
         setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
@@ -163,11 +164,8 @@ export function FeedingModal({
     },
   ]
 
-  // Estados del bebé durante la alimentación
-  const babyStates = [
-    { value: "awake" as const, label: "Despierto", description: "Alimentación normal" },
-    { value: "asleep" as const, label: "Dormido", description: "Toma nocturna" },
-  ]
+  // Estados del bebé durante la alimentación - YA NO SE USA
+  // babyState ahora viene automáticamente del botón que abrió el modal
 
   // Configuración según tipo de alimentación
   const getAmountConfig = () => {
@@ -259,7 +257,7 @@ export function FeedingModal({
     // Reset para próxima vez
     setFeedingType("breast")
     setFeedingAmount(4)
-    setBabyState("awake")
+    // babyState ya no se resetea - viene de props
     setFeedingNotes("")
   }
 
@@ -270,7 +268,7 @@ export function FeedingModal({
       // En modo edición, restaurar valores iniciales
       setFeedingType(initialData.feedingType || "breast")
       setFeedingAmount(initialData.feedingAmount || 4)
-      setBabyState(initialData.babyState || "awake")
+      // babyState ya no se restaura - es inmutable desde props
       setFeedingNotes(initialData.feedingNotes || "")
       if (initialData.startTime) {
         setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
@@ -290,7 +288,7 @@ export function FeedingModal({
       // En modo creación, limpiar todo
       setFeedingType("breast")
       setFeedingAmount(4)
-      setBabyState("awake")
+      // babyState ya no se limpia - viene de props
       setFeedingNotes("")
       const now = getCurrentTime()
       setEventDate(format(now, "yyyy-MM-dd"))
@@ -441,8 +439,7 @@ export function FeedingModal({
                     if (type.value === "breast") setFeedingAmount(15)
                     else if (type.value === "bottle") setFeedingAmount(4)
                     else setFeedingAmount(50)
-                    // Sólidos: siempre despierto
-                    if (type.value === "solids") setBabyState("awake")
+                    // babyState ya no se modifica - es inmutable desde props
                   }}
                   disabled={isProcessing}
                   className={cn(
@@ -581,40 +578,11 @@ export function FeedingModal({
           )}
         </div>
 
-        {/* Sección 3: Estado del Bebé (solo para pecho y biberón) */}
-        {feedingType !== "solids" && (
-          <div className="space-y-3 border-t pt-4">
-            <div className="text-sm font-medium text-gray-700">
-              Estado de {childName}
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {babyStates.map(state => (
-                <button
-                  key={state.value}
-                  type="button"
-                  onClick={() => setBabyState(state.value)}
-                  disabled={isProcessing}
-                  className={cn(
-                    "p-3 rounded-lg border-2 transition-all text-center",
-                    babyState === state.value
-                      ? "border-green-500 bg-green-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  )}
-                >
-                  <div className={cn(
-                    "font-medium text-sm",
-                    babyState === state.value ? "text-green-700" : "text-gray-700"
-                  )}>
-                    {state.label}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {state.description}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Sección 3: Estado del Bebé - ELIMINADA
+            El estado ahora se determina automáticamente por el botón que abrió el modal:
+            - FeedingButton → babyState: "awake"
+            - NightFeedingButton → babyState: "asleep"
+        */}
 
         {/* Sección 4: Notas adicionales (solo para pecho y biberón) */}
         {feedingType !== "solids" && (

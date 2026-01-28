@@ -190,6 +190,9 @@ export function FeedingButton({
         onClose={handleModalClose}
         onConfirm={handleFeedingConfirm}
         childName={childName}
+        initialData={{
+          babyState: "awake"  // FeedingButton solo se muestra cuando está despierto
+        }}
       />
     </div>
   )
