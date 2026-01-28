@@ -79,3 +79,39 @@ Log de aprendizajes entre sesiones de Ralph Loop.
    - Los colores oscuros (indigo/purple) representan visualmente la noche
 
 **Notes:** Ambos items ya estaban implementados correctamente. Build pasa sin errores. Lint tiene errores pre-existentes no relacionados con estos items.
+
+---
+
+### Session 2 - 2026-01-27
+
+**Task:** [1.1, 1.2, 1.3] - ITEM 9: Estado por Niño (Crítico)
+
+**Files modificados:**
+- `hooks/use-sleep-state.ts` - Eliminado localStorage, solo API via SWR
+- `components/events/SleepButton.tsx` - Eliminados storage keys y useEffects de persistencia
+
+**Cambios realizados:**
+
+1. **use-sleep-state.ts**
+   - Eliminadas interfaces `SleepPending` y `NightWakePending` (ya no se usan)
+   - Eliminados 3 useEffects que cargaban/persistían/polling localStorage
+   - Estado ahora es 100% derivado de `data?.status` del API
+   - SWR sigue con `refreshInterval: 30000` y `revalidateOnFocus: true`
+
+2. **SleepButton.tsx**
+   - Eliminadas constantes `sleepStorageKey` y `nightWakeStorageKey`
+   - Eliminados 3 useEffects de localStorage (cargar, persistir sleep, persistir nightWake)
+   - Estados locales `sleepPending` y `nightWakePending` se mantienen para flujo modal
+   - La diferencia: ya no persisten entre recargas - solo viven durante la sesión
+
+3. **current-sleep-state endpoint**
+   - Verificado: lógica correcta para determinar estado
+   - Eventos `sleep/nap` sin `endTime` → dormido
+   - Eventos con `endTime` o `wake` → despierto
+
+**Patterns:**
+- Estado de sueño ahora sincroniza automáticamente entre dispositivos via API
+- SWR revalida en focus, reconexión, y cada 30 segundos
+- Flujo modal usa estados locales temporales (no persisten)
+
+**Notes:** Build pasa correctamente. Task 1.4 (testing multi-dispositivo) será parte de Fase 8 E2E.

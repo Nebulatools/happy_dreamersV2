@@ -60,8 +60,6 @@ export function SleepButton({
   const [sleepModalConfig, setSleepModalConfig] = useState<{ eventType: "sleep" | "nap"; start: Date } | null>(null)
   const [notesModalConfig, setNotesModalConfig] = useState<{ action: "wake" | "night_wake"; start: Date } | null>(null)
 
-  const sleepStorageKey = `pending_sleep_event_${childId}`
-  const nightWakeStorageKey = `pending_night_wake_${childId}`
   
   // Calcular duración localmente usando tiempo simulado
   useEffect(() => {
@@ -205,52 +203,9 @@ export function SleepButton({
 
   const effectiveStatus = derivedStatusFromPending ?? optimisticStatus ?? sleepState.status
 
-  // Cargar pending desde localStorage para no perder estado tras refresh
-  useEffect(() => {
-    // Cargar sleepPending
-    const storedSleep = localStorage.getItem(sleepStorageKey)
-    if (storedSleep) {
-      try {
-        const parsed = JSON.parse(storedSleep)
-        if (parsed?.type && parsed?.start) {
-          setSleepPending(parsed)
-        }
-      } catch (e) {
-        console.warn("No se pudo parsear sleep pending", e)
-      }
-    }
-
-    // Cargar nightWakePending
-    const storedNightWake = localStorage.getItem(nightWakeStorageKey)
-    if (storedNightWake) {
-      try {
-        const parsed = JSON.parse(storedNightWake)
-        if (parsed?.type && parsed?.start) {
-          setNightWakePending(parsed)
-        }
-      } catch (e) {
-        console.warn("No se pudo parsear night wake pending", e)
-      }
-    }
-  }, [sleepStorageKey, nightWakeStorageKey])
-
-  // Persistir sleepPending en localStorage
-  useEffect(() => {
-    if (sleepPending) {
-      localStorage.setItem(sleepStorageKey, JSON.stringify(sleepPending))
-    } else {
-      localStorage.removeItem(sleepStorageKey)
-    }
-  }, [sleepPending, sleepStorageKey])
-
-  // Persistir nightWakePending en localStorage
-  useEffect(() => {
-    if (nightWakePending) {
-      localStorage.setItem(nightWakeStorageKey, JSON.stringify(nightWakePending))
-    } else {
-      localStorage.removeItem(nightWakeStorageKey)
-    }
-  }, [nightWakePending, nightWakeStorageKey])
+  // Estado ahora viene 100% del API via useSleepState
+  // Los estados locales sleepPending/nightWakePending solo se usan durante la sesion
+  // para el flujo modal (capturar datos antes de enviar al API)
 
   // Sincronizar id abierto desde backend (solo si no hay pending local)
   useEffect(() => {

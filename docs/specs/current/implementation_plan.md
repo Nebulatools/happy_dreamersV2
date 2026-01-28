@@ -21,7 +21,7 @@ Fecha: 2026-01-27
   - Validar: Visual inspection en timeline
   - Referencia: `lib/icons/event-icons.ts` - nap debe usar violet
 
-- [ ] **0.2** Verificar ITEM 7 - Estilos nocturnos
+- [x] **0.2** Verificar ITEM 7 - Estilos nocturnos
   - Comportamiento: Verificar que bloques de sueño nocturno tienen estilo diferenciado
   - Validar: Visual inspection en timeline nocturno (después de 20:00)
   - Referencia: `components/calendar/SleepSessionBlock.tsx`
@@ -34,25 +34,25 @@ Validación Fase 0:
 
 ## Fase 1: Estado por Niño (ITEM 9) - CRÍTICO
 
-- [ ] **1.1** Remover localStorage de use-sleep-state.ts
+- [x] **1.1** Remover localStorage de use-sleep-state.ts
   - Input: `hooks/use-sleep-state.ts`
   - Output: Hook que SOLO usa API, sin localStorage
   - Comportamiento: Eliminar lectura de `pending_sleep_event_*` y `pending_night_wake_*`
   - Referencia: Líneas 49-82 tienen lógica de localStorage a eliminar
 
-- [ ] **1.2** Remover localStorage de SleepButton.tsx
+- [x] **1.2** Remover localStorage de SleepButton.tsx
   - Input: `components/events/SleepButton.tsx`
   - Output: Componente sin sleepStorageKey ni nightWakeStorageKey
   - Comportamiento: Eliminar líneas 63-64 y useEffect que lee localStorage
   - Referencia: Estado viene de useSleepState que usa SWR + API
 
-- [ ] **1.3** Verificar endpoint current-sleep-state
+- [x] **1.3** Verificar endpoint current-sleep-state
   - Input: `app/api/children/[id]/current-sleep-state/route.ts`
   - Output: Endpoint retorna estado calculado desde BD
   - Comportamiento: Verificar lógica de último sleep vs wake
   - Referencia: Líneas 70-156
 
-- [ ] **1.4** Testing multi-dispositivo
+- [ ] **1.4** Testing multi-dispositivo (→ Fase 8 E2E)
   - Comportamiento: Login con padre en 2 browsers, registrar sleep en uno, verificar estado en otro
   - Validar: Ambos ven mismo estado sin refresh manual
 
