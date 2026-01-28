@@ -47,7 +47,7 @@ export function CalendarDayView({
 }: CalendarDayViewProps) {
   
   return (
-    <div className={`flex ${className}`} style={{ height: `${24 * hourHeight + 32}px` }}>
+    <div className={`flex ${className}`}>
       {/* Eje de tiempo */}
       <TimeAxis hourHeight={hourHeight} />
       

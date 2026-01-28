@@ -173,11 +173,11 @@ Validación Fase 4:
   - Comportamiento: Modificadas generateFeedingNarrative() y generateActivityNarrative()
   - **Fix aplicado**: Eliminada duración de alimentación y actividades
 
-- [ ] **5.5** Remover scroll interno de calendario (ITEM 4)
-  - Input: `components/calendar/CalendarMain.tsx`
-  - Output: Calendario sin height fija ni overflow-auto
-  - Comportamiento: Usar height: auto, overflow: visible
-  - Referencia: Buscar estilos de contenedor del calendario
+- [x] **5.5** Remover scroll interno de calendario (ITEM 4)
+  - Input: `components/calendar/CalendarDayView.tsx`, `components/calendar/CalendarWeekView.tsx`
+  - Output: Calendario sin height fija en contenedor principal
+  - Comportamiento: Removida altura inline de 752px, contenedor crece naturalmente
+  - **Fix aplicado**: Removido `style={{ height: '${24 * hourHeight + 32}px' }}` de ambos componentes
 
 Validación Fase 5:
 • `pnpm build` pasa

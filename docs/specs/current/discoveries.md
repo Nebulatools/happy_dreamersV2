@@ -549,3 +549,43 @@ El EventEditRouter no pasaba `endTime` en `initialData` para los modales de edic
 **Notes:**
 - Build pasa correctamente
 - Próxima tarea: [5.5] Remover scroll interno de calendario (ITEM 4)
+
+---
+
+### Session 14 - 2026-01-27
+
+**Task:** [5.5] - Remover scroll interno de calendario (ITEM 4)
+
+**Files modificados:**
+- `components/calendar/CalendarDayView.tsx` - Removida altura fija inline
+- `components/calendar/CalendarWeekView.tsx` - Removida altura fija inline
+
+**Cambios realizados:**
+
+1. **CalendarDayView.tsx (línea 50)**
+   - Antes: `<div className={...} style={{ height: '${24 * hourHeight + 32}px' }}>`
+   - Ahora: `<div className={...}>`
+   - La altura fija de 752px causaba scroll interno en contenedores más pequeños
+
+2. **CalendarWeekView.tsx (línea 95)**
+   - Mismo cambio: removida altura fija inline
+   - El contenedor ahora crece naturalmente según su contenido
+
+**Problema original:**
+- Los calendarios tenían altura fija de 752px (`24 * 30 + 32`)
+- En admin split-screen (50/50), esto generaba scroll interno
+- El spec pedía que el calendario crezca y use scroll de página
+
+**Solución:**
+- Los contenedores hijos (TimeAxis, eventos) ya definen su propia altura
+- El contenedor padre ahora usa altura automática
+- El calendario crece con el contenido, scroll de página en lugar de interno
+
+**Patterns:**
+- Los sub-contenedores tienen `height: ${24 * hourHeight}px` para las 24 horas
+- El header del día tiene `h-8` (32px) fijo
+- El total visual es el mismo, pero sin forzar altura en el contenedor padre
+
+**Notes:**
+- Build pasa correctamente
+- Próxima tarea: [6.1] Crear PlanVsEventsCard.tsx (ITEM 10)
