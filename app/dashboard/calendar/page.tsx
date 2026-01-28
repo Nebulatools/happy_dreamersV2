@@ -500,6 +500,13 @@ export default function CalendarPage() {
   // Función para cambiar la vista y guardar en localStorage
   const handleViewChange = (newView: "month" | "week" | "day") => {
     setView(newView)
+
+    // Para padres (no admin): cambiar a modo calendario cuando seleccionan "Diario"
+    // ya que el toggle Gráfico/Calendario está oculto para ellos
+    if (!isAdminView && newView === "day" && userViewMode === "chart") {
+      setUserViewMode("calendar")
+    }
+
     // Guardar preferencia en localStorage
     if (typeof window !== "undefined") {
       localStorage.setItem("calendar-view-preference", newView)

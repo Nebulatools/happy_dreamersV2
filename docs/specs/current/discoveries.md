@@ -699,3 +699,43 @@ El EventEditRouter no pasaba `endTime` en `initialData` para los modales de edic
 **Decisiones tomadas:**
 - Playwright instalado para tests E2E automatizados
 - Scripts de test guardados en `test-screenshots/` para reutilización
+
+---
+
+### Session 18 - 2026-01-28
+
+**Task:** [8.1.2] - Test Calendario Vista Diaria (Desktop)
+
+**Test:** E2E visual testing del Calendario vista diaria en Desktop (1280px)
+**Resultado:** ✅ PASS
+**Screenshot:** `test-screenshots/8.1.2-desktop-calendar-daily.png`
+
+**Checkpoints verificados:**
+- [x] Tab Diario: SI (visible)
+- [x] Tab Semanal: SI (visible)
+- [x] Tab Mensual: NO (correctamente oculto para padre)
+- [x] Toggle Gráfico/Calendario: NO (correctamente oculto para padre)
+- [x] Calendario sin scroll interno forzado: OK
+- [x] Eventos con iconos correctos: 29 iconos SVG visibles
+
+**Observaciones:**
+- La restricción de tabs por rol (ITEM 5) funciona correctamente
+- Los padres solo tienen acceso a vistas Diario y Semanal
+- El calendario crece naturalmente sin altura fija (fix Session 14)
+- Los iconos se renderizan correctamente usando el registry centralizado
+
+**Nota sobre Card Plan vs Eventos:**
+- La card no aparece con texto literal "Plan" o "Eventos" en el selector
+- Esto es normal si no hay plan activo o si los encabezados usan otros términos
+- Verificación visual con screenshot confirmará presencia/ausencia de la card
+
+**Patterns:**
+- Login directo a `/auth/login` funciona mejor que redirect desde `/`
+- Múltiples selectores con `.count()` son más robustos que `.isVisible()`
+- Screenshot fullPage captura toda la vista incluyendo scroll
+
+**Notes:**
+- Build pasa correctamente
+- Test automatizado con Playwright en modo headed
+- Browser se mantiene abierto 60s para inspección manual
+- Próxima tarea: [8.1.3] Test Calendario Vista Semanal

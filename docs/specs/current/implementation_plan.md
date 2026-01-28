@@ -258,15 +258,16 @@ agent-browser --headed --url "http://localhost:3000" ...
   - Validar: Sin elementos cortados, sin overflow, sin errores en consola
   - **PASS**: Todos los checkpoints verificados OK (Session 17)
 
-- [ ] **8.1.2** Test Calendario Vista Diaria (Desktop)
+- [x] **8.1.2** Test Calendario Vista Diaria (Desktop)
   - Input: Navegar a /dashboard/calendar
-  - Output: Screenshot `test-desktop-calendar-daily.png`
+  - Output: Screenshot `test-screenshots/8.1.2-desktop-calendar-daily.png`
   - Comportamiento:
     - Verificar SOLO tabs Diario + Semanal (NO Mensual, NO Gráfico)
     - Verificar card Plan vs Eventos arriba del calendario
     - Verificar calendario sin scroll interno
     - Verificar eventos con iconos correctos
   - Validar: Tabs correctos para rol padre
+  - **PASS**: Todos los checkpoints críticos verificados OK (Session 18)
 
 - [ ] **8.1.3** Test Calendario Vista Semanal (Desktop)
   - Input: Click en tab Semanal

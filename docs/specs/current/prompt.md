@@ -72,6 +72,7 @@ Terminar sesión. El script iniciará nueva sesión para siguiente tarea.
 
 ## Output Signals
 
+### Signals Generales
 - `RALPH_START:` Inicio de sesión
 - `RALPH_READING:` Leyendo archivo
 - `RALPH_TASK:` Tarea identificada
@@ -82,6 +83,18 @@ Terminar sesión. El script iniciará nueva sesión para siguiente tarea.
 - `RALPH_COMMIT:` Commit realizado
 - `RALPH_COMPLETE:` Tarea completada
 - `RALPH_BLOCKED:` Bloqueado, escalando
+
+### Signals de Testing (Fase 8) - OBLIGATORIOS
+- `RALPH_TEST_START:` Iniciando test [8.X.Y]
+- `RALPH_TEST_CHECKPOINT:` Verificando [descripción]
+- `RALPH_TEST_SCREENSHOT:` Screenshot guardado [ruta]
+- `RALPH_TEST_PASS:` Test [8.X.Y] pasó
+- `RALPH_TEST_FAIL:` Test [8.X.Y] falló - [razón]
+- `RALPH_BUG_FOUND:` Bug encontrado [descripción]
+- `RALPH_BUG_FIX_ATTEMPT:` Intento [N/10] - [approach]
+- `RALPH_BUG_FIXED:` Bug resuelto [solución]
+- `RALPH_MOBILE_FIX:` Ajuste móvil [descripción]
+- `RALPH_TEST_BLOCKED:` Test bloqueado [razón]
 
 ## Bug Auto-Healing
 
@@ -104,46 +117,144 @@ Si verificación falla:
 | Eliminar localStorage | Build + verificar no hay referencias |
 | Bug fix | Build + bug no reproduce |
 
-## Fase 8: E2E Testing - REGLAS CRÍTICAS
+## Fase 8: E2E Testing - PROTOCOLO COMPLETO
 
 **IMPORTANTE**: La Fase 8 es OBLIGATORIA. El sprint NO está completo hasta que TODOS los tests pasen.
 
-### Prioridad MÓVIL (375px)
+### Output Signals para Testing (OBLIGATORIOS)
+
+Usar SIEMPRE estos signals para que el usuario sepa qué está pasando:
+
 ```
+RALPH_TEST_START: [8.X.Y] - [nombre del test]
+RALPH_TEST_CHECKPOINT: [descripción de lo que estás verificando]
+RALPH_TEST_SCREENSHOT: test-screenshots/[nombre].png - [qué muestra]
+RALPH_TEST_PASS: [8.X.Y] - [resumen de verificación]
+RALPH_TEST_FAIL: [8.X.Y] - [qué falló y por qué]
+RALPH_BUG_FOUND: [descripción del bug]
+RALPH_BUG_FIX_ATTEMPT: [N/10] - [qué estás intentando]
+RALPH_BUG_FIXED: [descripción de la solución]
+RALPH_TEST_BLOCKED: [8.X.Y] - [razón del bloqueo]
+```
+
+### Flujo de Testing DETALLADO
+
+Para CADA test en Fase 8, seguir este flujo EXACTO:
+
+#### 1. Anunciar inicio
+```
+RALPH_TEST_START: [8.X.Y] - [nombre del test]
+```
+
+#### 2. Documentar cada checkpoint
+Por cada cosa que verificas, anunciar:
+```
+RALPH_TEST_CHECKPOINT: Verificando que [X] muestre [Y]
+RALPH_TEST_CHECKPOINT: Verificando que botón [X] sea clickeable
+RALPH_TEST_CHECKPOINT: Verificando layout en [viewport]
+```
+
+#### 3. Tomar screenshot con nombre descriptivo
+```bash
+# Guardar SIEMPRE en test-screenshots/
+RALPH_TEST_SCREENSHOT: test-screenshots/8.1.1-desktop-home.png - Vista completa del home
+```
+
+#### 4. Evaluar resultado
+
+**Si PASA:**
+```
+RALPH_TEST_PASS: [8.X.Y] - Todos los checkpoints verificados OK
+- Checkpoint 1: ✓
+- Checkpoint 2: ✓
+- Screenshot: test-screenshots/[nombre].png
+```
+→ Marcar `[x]` en implementation_plan.md
+→ Documentar en discoveries.md
+
+**Si FALLA:**
+```
+RALPH_TEST_FAIL: [8.X.Y] - [descripción específica del problema]
+RALPH_BUG_FOUND: [descripción detallada]
+  - Qué esperaba: [X]
+  - Qué encontré: [Y]
+  - Screenshot del bug: test-screenshots/bug-[descripcion].png
+```
+
+#### 5. Si hay bug, documentar el proceso de fix
+
+```
+RALPH_BUG_FIX_ATTEMPT: [1/10] - Intentando [descripción del approach]
+  - Archivo: [ruta]
+  - Cambio: [descripción]
+
+[hacer el cambio]
+
+RALPH_TEST_CHECKPOINT: Re-verificando después del fix...
+
+[Si funciona]
+RALPH_BUG_FIXED: [descripción de la solución]
+  - Root cause: [qué causaba el bug]
+  - Solución: [qué se cambió]
+  - Archivos modificados: [lista]
+
+[Si no funciona]
+RALPH_BUG_FIX_ATTEMPT: [2/10] - Nuevo approach: [descripción]
+```
+
+#### 6. Documentar en discoveries.md SIEMPRE
+
+Después de cada test (pase o falle), agregar a discoveries.md:
+
+```markdown
+### Test [8.X.Y] - [fecha hora]
+
+**Test:** [nombre del test]
+**Resultado:** ✅ PASS | ❌ FAIL (intento N)
+**Screenshot:** `test-screenshots/[nombre].png`
+
+**Checkpoints verificados:**
+- [x] Checkpoint 1
+- [x] Checkpoint 2
+- [ ] Checkpoint 3 (si falló)
+
+**Bugs encontrados:** (si aplica)
+- Bug: [descripción]
+- Root cause: [causa]
+- Fix: [solución]
+- Archivos: [modificados]
+
+**Decisiones tomadas:** (si aplica)
+- [decisión y razón]
+```
+
+### Prioridad MÓVIL (375px)
+
 Los padres usan MÓVIL. Todo debe verse PERFECTO en 375px.
 
 Si algo se ve mal en móvil, Ralph tiene LIBERTAD de ajustar:
-✓ Paddings y margins
-✓ Font sizes
-✓ Flex direction y wrap
-✓ Grid columns
-✓ Breakpoints
+- ✓ Paddings y margins
+- ✓ Font sizes
+- ✓ Flex direction y wrap
+- ✓ Grid columns
+- ✓ Breakpoints
+
+**DOCUMENTAR cada ajuste móvil:**
+```
+RALPH_MOBILE_FIX: Ajustando [componente] para móvil
+  - Problema: [descripción]
+  - Solución: [cambio CSS/layout]
+  - Archivo: [ruta:linea]
 ```
 
-### Reglas de Testing E2E
+### Reglas Estrictas
 
-1. **MODO HEADED OBLIGATORIO** - Usar `--headed` para que el usuario vea el testing
-2. **NO CERRAR BROWSER** si encuentra bugs
-3. **DOCUMENTAR** bug en discoveries.md con screenshot
-4. **ITERAR Y FIXEAR** antes de continuar
-5. **SOLO MARCAR [x]** cuando test pase completamente
-6. **MAX 10 INTENTOS** por bug → si persiste, RALPH_BLOCKED
-7. **SCREENSHOTS OBLIGATORIOS** para cada test visual
-
-### Flujo de Testing
-
-```
-1. Ejecutar test según implementation_plan.md
-2. Si PASA → screenshot + marcar [x] + siguiente test
-3. Si FALLA:
-   a. Screenshot del bug
-   b. Documentar en discoveries.md
-   c. Analizar root cause
-   d. Implementar fix
-   e. Re-ejecutar test
-   f. Repetir hasta pasar (max 10 intentos)
-4. Al completar TODOS los tests → Sprint DONE
-```
+1. **MODO HEADED** - Usar `--headed` para que el usuario vea
+2. **NO CERRAR BROWSER** si hay bugs - iterar hasta resolver
+3. **DOCUMENTAR TODO** - Cada checkpoint, cada bug, cada decisión
+4. **SCREENSHOTS** en `test-screenshots/` con nombres descriptivos
+5. **MARCAR [x]** solo después de documentar en discoveries.md
+6. **MAX 10 INTENTOS** por bug → si persiste, `RALPH_TEST_BLOCKED`
 
 ### Viewports de Testing
 
@@ -151,6 +262,34 @@ Si algo se ve mal en móvil, Ralph tiene LIBERTAD de ajustar:
 |-------------|-------|-------------|
 | Desktop | 1280px+ | Sí |
 | Móvil | 375px | **CRÍTICO** |
+
+### Ejemplo de Sesión de Testing Correcta
+
+```
+RALPH_TEST_START: [8.1.1] - Test Home Dashboard (Desktop)
+
+RALPH_TEST_CHECKPOINT: Abriendo http://localhost:3000 con viewport 1280px
+RALPH_TEST_CHECKPOINT: Login como padre eljulius@nebulastudios.io
+RALPH_TEST_CHECKPOINT: Verificando saludo "Buenas [tiempo], Julius!"
+RALPH_TEST_CHECKPOINT: Verificando NarrativeTimeline con initialLimit=3
+RALPH_TEST_CHECKPOINT: Verificando botón "Ver más" visible
+RALPH_TEST_CHECKPOINT: Verificando layout side-by-side (narrativa + calendario)
+RALPH_TEST_CHECKPOINT: Verificando botones de eventos (SleepButton visible)
+
+RALPH_TEST_SCREENSHOT: test-screenshots/8.1.1-desktop-home.png - Home completo
+
+RALPH_TEST_PASS: [8.1.1] - Todos los checkpoints OK
+- Saludo: ✓ "¡Buenas noches, Julius!"
+- Narrativa: ✓ 3 eventos visibles
+- Botón expandir: ✓ visible
+- Layout: ✓ side-by-side
+- Botones: ✓ SleepButton, FeedingButton, etc.
+
+[Actualiza implementation_plan.md: - [x] **8.1.1**...]
+[Actualiza discoveries.md con el resultado]
+
+RALPH_COMPLETE: Task [8.1.1] completed
+```
 
 ## Patrones Críticos del Sprint
 
