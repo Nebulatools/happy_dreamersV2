@@ -110,9 +110,10 @@ Validación Fase 2:
   - Comportamiento: Mismo patrón que FeedingModal
   - Referencia: `components/events/SleepDelayModal.tsx:76-90`
 
-- [ ] **3.5** Testing edición hora fin
+- [x] **3.5** Testing edición hora fin
   - Comportamiento: Editar evento en timeline, cambiar hora fin, guardar
   - Validar: Evento actualizado con nueva hora fin
+  - **Fix aplicado**: EventEditRouter ahora pasa endTime a initialData de todos los modales
 
 Validación Fase 3:
 • `pnpm build` pasa

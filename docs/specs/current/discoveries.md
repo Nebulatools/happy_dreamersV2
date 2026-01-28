@@ -344,3 +344,40 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Color indigo para consistencia con theme del modal de despertar nocturno
 
 **Notes:** Build pasa correctamente. Próxima tarea: [3.5] Testing edición hora fin
+
+---
+
+### Session 8 - 2026-01-27
+
+**Task:** [3.5] - Testing edición hora fin
+
+**Files modificados:**
+- `components/events/EventEditRouter.tsx` - Agregado endTime a initialData de todos los modales
+
+**Bug encontrado:**
+El EventEditRouter no pasaba `endTime` en `initialData` para los modales de edición. Los modales tenían la UI implementada (Sessions 4-7) pero el router no les pasaba el valor del evento original.
+
+**Correcciones:**
+1. **MedicationModal** (líneas 121-153):
+   - Cambiado onConfirm para aceptar `EditOptions`
+   - Agregado `endTime: event.endTime` a initialData
+   - Ahora usa `editOptions?.startTime` y `editOptions?.endTime`
+
+2. **FeedingModal** (líneas 194-202):
+   - Agregado `endTime: event.endTime` a initialData
+
+3. **ExtraActivityModal** (líneas 225-233):
+   - Agregado `endTime: event.endTime` a initialData
+
+4. **NightWakingModal** (líneas 293-300):
+   - Agregado `endTime: event.endTime` a initialData
+
+**Patterns:**
+- Todos los modales ya tenían la UI de endTime implementada (Sessions 4-7)
+- El problema era que el router no pasaba el valor inicial al modal
+- Ahora el flujo completo es: API → evento.endTime → initialData → modal → editOptions → updateEvent
+
+**Notes:**
+- Build pasa correctamente
+- Task 3.5 completada con fixes adicionales necesarios
+- Testing E2E completo será en Fase 8
