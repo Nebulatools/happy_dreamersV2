@@ -188,21 +188,10 @@ export function EventsCalendarTabs({
     return iconConfig.label
   }
 
-  // Color de fondo segun tipo
-  const getEventBgColor = (type: string) => {
-    const colors: Record<string, string> = {
-      sleep: "bg-blue-50 border-blue-200",
-      nap: "bg-violet-50 border-violet-200",
-      wake: "bg-green-50 border-green-200",
-      night_waking: "bg-red-50 border-red-200",
-      feeding: "bg-sky-50 border-sky-200",
-      night_feeding: "bg-yellow-50 border-yellow-200",
-      medication: "bg-amber-50 border-amber-200",
-      activity: "bg-teal-50 border-teal-200",
-      extra_activities: "bg-teal-50 border-teal-200",
-      note: "bg-violet-50 border-violet-200",
-    }
-    return colors[type] || "bg-gray-50 border-gray-200"
+  // Color de fondo neutral - Igual que dashboard de padres
+  const getEventBgColor = () => {
+    // Fondo neutral para todos los eventos (solo el icono tiene color)
+    return "bg-white border-gray-200"
   }
 
   // Formatear duracion
@@ -251,7 +240,7 @@ export function EventsCalendarTabs({
   const renderEventCard = (event: Event) => (
     <div
       key={event._id}
-      className={`flex items-start gap-3 p-3 rounded-lg border ${getEventBgColor(event.eventType)} hover:shadow-sm transition-shadow cursor-pointer`}
+      className={`flex items-start gap-3 p-3 rounded-lg border ${getEventBgColor()} hover:bg-gray-50 transition-colors cursor-pointer`}
       onClick={() => onEventClick?.(event)}
     >
       <div className="mt-0.5">{getEventIcon(event)}</div>
