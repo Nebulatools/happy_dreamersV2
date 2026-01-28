@@ -33,9 +33,10 @@ export function useSleepState(childId: string | null, timeZone?: string) {
     childId ? `/api/children/${childId}/current-sleep-state` : null,
     fetcher,
     {
-      refreshInterval: 30000, // Actualizar cada 30 segundos
+      refreshInterval: 5000, // Actualizar cada 5 segundos (para sincronización multi-dispositivo)
       revalidateOnFocus: true,
       revalidateOnReconnect: true,
+      dedupingInterval: 2000, // Evitar requests duplicados en 2 segundos
     }
   )
 
