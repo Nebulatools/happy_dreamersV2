@@ -479,7 +479,7 @@ export default function CalendarPage() {
   const [calendarTab, setCalendarTab] = useState<"calendar" | "stats">("calendar")
   const [isLoading, setIsLoading] = useState(true)
   // Estado para toggle de vista del usuario (grafico vs calendario)
-  const [userViewMode, setUserViewMode] = useState<"chart" | "calendar">("chart")
+  const [userViewMode, setUserViewMode] = useState<"chart" | "calendar">("calendar")
 
   // Solo forzar vista semana cuando el usuario esta en modo grafico
   useEffect(() => {
@@ -1938,7 +1938,7 @@ export default function CalendarPage() {
             </Card>
           ) : (
             /* Vista Calendario (igual que admin) */
-            <Card ref={calendarContainerRef} className="p-4 h-[calc(100vh-280px)] overflow-auto" style={{ minHeight: "450px", maxHeight: "calc(100vh - 250px)" }}>
+            <Card ref={calendarContainerRef} className="p-4 h-[calc(100vh-170px)] overflow-auto" style={{ minHeight: "450px", maxHeight: "calc(100vh - 150px)" }}>
                 <div className="h-full">
                   {isLoading ? (
                     <div className="flex justify-center items-center h-96">
