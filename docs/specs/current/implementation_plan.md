@@ -98,7 +98,7 @@ Validación Fase 2:
   - Comportamiento: Mismo patrón que FeedingModal
   - Referencia: `components/events/SleepDelayModal.tsx:76-90`
 
-- [ ] **3.3** Agregar endTime a ExtraActivityModal.tsx
+- [x] **3.3** Agregar endTime a ExtraActivityModal.tsx
   - Input: `components/events/ExtraActivityModal.tsx`
   - Output: Modal con campos endDate/endTime en modo edit
   - Comportamiento: Mismo patrón que FeedingModal

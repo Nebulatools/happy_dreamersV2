@@ -248,3 +248,49 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Botón de quitar hora de fin posicionado con absolute
 
 **Notes:** Build pasa correctamente. Próxima tarea: [3.3] ExtraActivityModal.tsx
+
+---
+
+### Session 6 - 2026-01-27
+
+**Task:** [3.3] - ITEM 6: Agregar endTime a ExtraActivityModal.tsx
+
+**Files modificados:**
+- `components/events/ExtraActivityModal.tsx` - Agregados campos de edición de hora de fin
+
+**Cambios realizados:**
+
+1. **Imports nuevos**
+   - `Plus`, `X` de lucide-react (iconos para botones)
+
+2. **Interface initialData**
+   - Agregado campo opcional `endTime?: string`
+
+3. **Nuevos estados**
+   - `endDate`: fecha de fin (yyyy-MM-dd)
+   - `endTimeValue`: hora de fin (HH:mm)
+   - `hasEndTime`: booleano para controlar visibilidad
+
+4. **useEffect de inicialización**
+   - Inicializa endDate, endTimeValue, hasEndTime si existe initialData.endTime
+
+5. **resetForm actualizado**
+   - Restaura o limpia estados de endTime según modo
+
+6. **handleConfirm modificado**
+   - Ya NO fuerza `endTime = getCurrentTime()` automáticamente
+   - Construye endTime desde endDate + endTimeValue solo si `hasEndTime`
+
+7. **UI nueva sección "Hora de fin"**
+   - Solo visible en mode === "edit"
+   - Botón "+ Agregar hora de fin" si no existe
+   - Grid de inputs fecha/hora si existe
+   - Botón "x" para quitar hora de fin
+   - Color cyan-600 (consistente con modal de actividades)
+
+**Patterns:**
+- Mismo patrón que FeedingModal y MedicationModal
+- El modal ahora usa editOptions controlados por usuario en vez de auto-calcular endTime
+- Color de acento cyan para consistencia visual con el theme del modal
+
+**Notes:** Build pasa correctamente. Próxima tarea: [3.4] NightWakingModal.tsx
