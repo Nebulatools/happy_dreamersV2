@@ -1823,37 +1823,42 @@ export default function CalendarPage() {
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             {/* Lado izquierdo: Toggle + Tabs de vista (solo en modo calendario) */}
             <div className="flex items-center gap-3 flex-wrap">
-              {/* Toggle Grafico / Calendario */}
-              <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
-                <Button
-                  variant={userViewMode === "chart" ? "default" : "ghost"}
-                  size="sm"
-                  className={userViewMode === "chart" ? "bg-white shadow-sm" : ""}
-                  onClick={() => setUserViewMode("chart")}
-                >
-                  Grafico
-                </Button>
-                <Button
-                  variant={userViewMode === "calendar" ? "default" : "ghost"}
-                  size="sm"
-                  className={userViewMode === "calendar" ? "bg-white shadow-sm" : ""}
-                  onClick={() => setUserViewMode("calendar")}
-                >
-                  Calendario
-                </Button>
-              </div>
-
-              {/* Tabs Mensual/Semanal/Diario - solo visible en modo calendario */}
-              {userViewMode === "calendar" && (
+              {/* Toggle Grafico / Calendario - Solo visible para admin */}
+              {isAdminView && (
                 <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
                   <Button
-                    variant={view === "month" ? "default" : "ghost"}
+                    variant={userViewMode === "chart" ? "default" : "ghost"}
                     size="sm"
-                    className={view === "month" ? "bg-white shadow-sm" : ""}
-                    onClick={() => handleViewChange("month")}
+                    className={userViewMode === "chart" ? "bg-white shadow-sm" : ""}
+                    onClick={() => setUserViewMode("chart")}
                   >
-                    Mensual
+                    Grafico
                   </Button>
+                  <Button
+                    variant={userViewMode === "calendar" ? "default" : "ghost"}
+                    size="sm"
+                    className={userViewMode === "calendar" ? "bg-white shadow-sm" : ""}
+                    onClick={() => setUserViewMode("calendar")}
+                  >
+                    Calendario
+                  </Button>
+                </div>
+              )}
+
+              {/* Tabs de vista - siempre visible en modo calendario */}
+              {(isAdminView ? userViewMode === "calendar" : true) && (
+                <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+                  {/* Tab Mensual - Solo visible para admin */}
+                  {isAdminView && (
+                    <Button
+                      variant={view === "month" ? "default" : "ghost"}
+                      size="sm"
+                      className={view === "month" ? "bg-white shadow-sm" : ""}
+                      onClick={() => handleViewChange("month")}
+                    >
+                      Mensual
+                    </Button>
+                  )}
                   <Button
                     variant={view === "week" ? "default" : "ghost"}
                     size="sm"

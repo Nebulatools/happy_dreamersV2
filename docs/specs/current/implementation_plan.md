@@ -124,19 +124,19 @@ Validación Fase 3:
 
 ## Fase 4: Tabs por Rol (ITEM 5)
 
-- [ ] **4.1** Ocultar tab Mensual para padres
+- [x] **4.1** Ocultar tab Mensual para padres
   - Input: `app/dashboard/calendar/page.tsx`
   - Output: Tab "Mensual" visible SOLO si isAdminView
   - Comportamiento: Envolver botón Mensual en {isAdminView && ...}
   - Referencia: Líneas 1846-1874
 
-- [ ] **4.2** Ocultar toggle Gráfico/Calendario para padres
+- [x] **4.2** Ocultar toggle Gráfico/Calendario para padres
   - Input: `app/dashboard/calendar/page.tsx`
   - Output: Toggle visible SOLO si isAdminView
   - Comportamiento: Envolver toggle en {isAdminView && ...}
   - Referencia: Líneas 1828-1845
 
-- [ ] **4.3** Testing roles
+- [ ] **4.3** Testing roles (→ movido a 8.3.4 E2E)
   - Comportamiento: Login como padre, verificar solo Diario + Semanal. Login como admin, verificar todos los tabs
   - Validar: Tabs correctos por rol
 

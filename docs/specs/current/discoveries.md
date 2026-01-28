@@ -381,3 +381,37 @@ El EventEditRouter no pasaba `endTime` en `initialData` para los modales de edic
 - Build pasa correctamente
 - Task 3.5 completada con fixes adicionales necesarios
 - Testing E2E completo será en Fase 8
+
+---
+
+### Session 9 - 2026-01-27
+
+**Task:** [4.1, 4.2] - ITEM 5: Tabs por Rol
+
+**Files modificados:**
+- `app/dashboard/calendar/page.tsx` - Ocultar toggle Gráfico/Calendario y tab Mensual para padres
+
+**Cambios realizados:**
+
+1. **Toggle Gráfico/Calendario** (líneas 1827-1844)
+   - Envuelto en `{isAdminView && (...)}`
+   - Solo visible para admin/professional
+
+2. **Tab Mensual** (líneas 1848-1856)
+   - Envuelto en `{isAdminView && (...)}` dentro del grupo de tabs
+   - Padres solo ven: Diario + Semanal
+
+3. **Lógica condicional de tabs** (línea 1847)
+   - Cambiado de `{userViewMode === "calendar" && (...)}`
+   - A: `{(isAdminView ? userViewMode === "calendar" : true) && (...)}`
+   - Para padres: tabs siempre visibles (no tienen toggle)
+   - Para admin: tabs visibles solo en modo calendario
+
+**Patterns:**
+- `isAdminView` ya existía: `session?.user?.role === "admin" || session?.user?.role === "professional"`
+- Los padres ahora tienen experiencia simplificada: solo Diario y Semanal
+- El toggle Gráfico/Calendario es funcionalidad de admin para análisis avanzado
+
+**Notes:**
+- Build pasa correctamente
+- Próxima tarea: [4.3] Testing roles (será parte de Fase 8 E2E)
