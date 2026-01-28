@@ -3,6 +3,7 @@
 import React, { useState } from "react"
 import { SleepButton } from "./SleepButton"
 import { FeedingButton } from "./FeedingButton"
+import { NightFeedingButton } from "./NightFeedingButton"
 import { MedicationButton } from "./MedicationButton"
 import { ExtraActivityButton } from "./ExtraActivityButton"
 import { ManualEventModal } from "./ManualEventModal"
@@ -47,16 +48,25 @@ export function EventRegistration({
   const isNightWaking = currentStatus === "night_waking"
 
   // Visibilidad de botones segun estado
-  const showFeedingButton = isAwake || isSleeping || isNightWaking
+  const showFeedingButton = isAwake || isNightWaking // Solo cuando despierto o en despertar nocturno
+  const showNightFeedingButton = isSleeping || isNapping // Solo cuando duerme (nocturno o siesta)
   const showMedicationButton = isAwake || isSleeping || isNightWaking
   const showActivityButton = isAwake // Solo cuando despierto
   const showManualButton = isAwake // Solo cuando despierto
 
   // Determinar si hay botones secundarios visibles
-  const hasSecondaryButtons = showFeedingButton || showMedicationButton || showActivityButton
+  const hasSecondaryButtons = showFeedingButton || showNightFeedingButton || showMedicationButton || showActivityButton
 
   // Numero de columnas para el grid
-  const gridCols = showActivityButton ? 3 : 2
+  // Cuando duerme: NightFeeding + Medication = 2 columnas
+  // Cuando despierto: Feeding + Medication + Activity = 3 columnas
+  const visibleSecondaryCount = [
+    showFeedingButton,
+    showNightFeedingButton,
+    showMedicationButton,
+    showActivityButton
+  ].filter(Boolean).length
+  const gridCols = Math.min(visibleSecondaryCount, 3)
 
   return (
     <div className="p-3 md:p-4 border rounded-lg bg-white">
@@ -80,9 +90,18 @@ export function EventRegistration({
             "grid gap-2 h-14 md:h-16",
             gridCols === 3 ? "grid-cols-3" : "grid-cols-2"
           )}>
-            {/* Boton de alimentacion */}
+            {/* Boton de alimentacion - cuando despierto */}
             {showFeedingButton && (
               <FeedingButton
+                childId={childId}
+                childName={childName}
+                onEventRegistered={onEventRegistered}
+              />
+            )}
+
+            {/* Boton de alimentacion nocturna - cuando duerme */}
+            {showNightFeedingButton && (
+              <NightFeedingButton
                 childId={childId}
                 childName={childName}
                 onEventRegistered={onEventRegistered}

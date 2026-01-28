@@ -115,3 +115,38 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Flujo modal usa estados locales temporales (no persisten)
 
 **Notes:** Build pasa correctamente. Task 1.4 (testing multi-dispositivo) será parte de Fase 8 E2E.
+
+---
+
+### Session 3 - 2026-01-27
+
+**Task:** [2.1, 2.2] - ITEM 11: Alimentación Nocturna
+
+**Files modificados:**
+- `components/events/NightFeedingButton.tsx` - NUEVO componente
+- `components/events/EventRegistration.tsx` - Integración del nuevo botón
+
+**Cambios realizados:**
+
+1. **NightFeedingButton.tsx** (nuevo)
+   - Botón con gradiente indigo→purple (colores nocturnos)
+   - Icono compuesto: Milk + Moon pequeña
+   - Props: `{ childId, childName, onEventRegistered }`
+   - Abre FeedingModal con `babyState: "asleep"` preseleccionado
+   - Registra evento con `isNightFeeding: true` y `feedingContext`
+   - NO cambia el estado de sueño del niño
+
+2. **EventRegistration.tsx**
+   - Import del nuevo NightFeedingButton
+   - Nueva variable `showNightFeedingButton = isSleeping || isNapping`
+   - FeedingButton normal ahora solo visible cuando `isAwake || isNightWaking`
+   - Grid calcula columnas dinámicamente según botones visibles
+   - NightFeedingButton se renderiza condicionalmente
+
+**Patterns:**
+- Separación clara: FeedingButton (despierto) vs NightFeedingButton (dormido)
+- NightFeedingButton NO despierta al niño - solo registra alimentación
+- El flag `isNightFeeding: true` permite analytics y reportes diferenciados
+- El `feedingContext` indica si es durante sueño nocturno o siesta
+
+**Notes:** Build pasa correctamente. Pendiente testing E2E en Fase 8.

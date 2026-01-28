@@ -65,13 +65,13 @@ Validación Fase 1:
 
 ## Fase 2: Alimentación Nocturna (ITEM 11)
 
-- [ ] **2.1** Crear NightFeedingButton.tsx
+- [x] **2.1** Crear NightFeedingButton.tsx
   - Props: `{ childId, childName, onEventRegistered }`
   - Output: Botón que abre FeedingModal con isNightFeeding=true preseleccionado
   - Comportamiento: Click → Modal → Registra feeding sin cambiar estado de sueño
   - Referencia: `components/events/FeedingButton.tsx` para estructura similar
 
-- [ ] **2.2** Integrar en EventRegistration.tsx
+- [x] **2.2** Integrar en EventRegistration.tsx
   - Input: `components/events/EventRegistration.tsx`
   - Output: Botón visible SOLO cuando sleepState.status === 'sleeping' || 'napping'
   - Comportamiento: Renderizar NightFeedingButton condicionalmente
