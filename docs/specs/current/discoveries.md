@@ -194,3 +194,57 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Color de acento verde (green-600) para consistencia con el modal de feeding
 
 **Notes:** Build pasa correctamente. Próxima tarea: [3.2] MedicationModal.tsx
+
+---
+
+### Session 5 - 2026-01-27
+
+**Task:** [3.2] - ITEM 6: Agregar endTime a MedicationModal.tsx
+
+**Files modificados:**
+- `components/events/MedicationModal.tsx` - Agregados campos de edición de hora de fin
+
+**Cambios realizados:**
+
+1. **Imports nuevos**
+   - `X`, `Plus` de lucide-react (iconos para botones)
+   - `useUser` de UserContext
+   - `buildLocalDate`, `dateToTimestamp`, `DEFAULT_TIMEZONE` de datetime
+   - `EditOptions` de types
+
+2. **Interface initialData**
+   - Agregado campo opcional `endTime?: string`
+
+3. **Firma onConfirm actualizada**
+   - Ahora acepta `EditOptions` opcional como segundo parámetro
+
+4. **Nuevos estados**
+   - `endDate`: fecha de fin (yyyy-MM-dd)
+   - `endTimeValue`: hora de fin (HH:mm)
+   - `hasEndTime`: booleano para controlar visibilidad
+   - `timezone`: del UserContext para conversiones
+
+5. **useEffect de inicialización**
+   - Inicializa endDate, endTimeValue, hasEndTime si existe initialData.endTime
+
+6. **resetForm actualizado**
+   - Restaura o limpia estados de endTime según modo
+
+7. **handleConfirm con EditOptions**
+   - Construye startTime desde eventDate + medicationTime
+   - Construye endTime desde endDate + endTimeValue si hasEndTime
+   - Pasa EditOptions al onConfirm
+
+8. **UI nueva sección "Hora de fin"**
+   - Solo visible en mode === "edit"
+   - Botón "+ Agregar hora de fin" si no existe
+   - Grid de inputs fecha/hora si existe
+   - Botón "x" para quitar hora de fin
+   - Color amber (consistente con modal de medicamentos)
+
+**Patterns:**
+- Mismo patrón que FeedingModal (Session 4)
+- Color de acento amber-600 para consistencia con el modal de medicamentos
+- Botón de quitar hora de fin posicionado con absolute
+
+**Notes:** Build pasa correctamente. Próxima tarea: [3.3] ExtraActivityModal.tsx

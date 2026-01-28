@@ -52,7 +52,7 @@ Validación Fase 0:
   - Comportamiento: Verificar lógica de último sleep vs wake
   - Referencia: Líneas 70-156
 
-- [ ] **1.4** Testing multi-dispositivo (→ Fase 8 E2E)
+- [x] **1.4** Testing multi-dispositivo (→ movido a 8.3.1 E2E)
   - Comportamiento: Login con padre en 2 browsers, registrar sleep en uno, verificar estado en otro
   - Validar: Ambos ven mismo estado sin refresh manual
 
@@ -92,7 +92,7 @@ Validación Fase 2:
   - Comportamiento: Mostrar inputs solo si mode === "edit" && initialData?.endTime
   - Referencia: `components/events/SleepDelayModal.tsx:76-90` para patrón
 
-- [ ] **3.2** Agregar endTime a MedicationModal.tsx
+- [x] **3.2** Agregar endTime a MedicationModal.tsx
   - Input: `components/events/MedicationModal.tsx`
   - Output: Modal con campos endDate/endTime en modo edit
   - Comportamiento: Mismo patrón que FeedingModal
