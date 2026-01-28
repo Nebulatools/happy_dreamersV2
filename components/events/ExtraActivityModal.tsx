@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Activity } from "lucide-react"
+import { Activity, Plus, X } from "lucide-react"
 import { format } from "date-fns"
 import { useDevTime } from "@/context/dev-time-context"
 import { useUser } from "@/context/UserContext"
@@ -38,6 +38,7 @@ interface ExtraActivityModalProps {
     activityImpact?: "positive" | "neutral" | "negative"
     activityNotes?: string
     startTime?: string
+    endTime?: string
     eventId?: string
   }
 }
@@ -72,6 +73,22 @@ export function ExtraActivityModal({
     }
     return format(getCurrentTime(), "yyyy-MM-dd")
   })
+  // Estados para hora de fin (endTime) - solo en modo edicion
+  const [endDate, setEndDate] = useState<string>(() => {
+    if (mode === "edit" && initialData?.endTime) {
+      return format(new Date(initialData.endTime), "yyyy-MM-dd")
+    }
+    return format(getCurrentTime(), "yyyy-MM-dd")
+  })
+  const [endTimeValue, setEndTimeValue] = useState<string>(() => {
+    if (mode === "edit" && initialData?.endTime) {
+      return format(new Date(initialData.endTime), "HH:mm")
+    }
+    return ""
+  })
+  const [hasEndTime, setHasEndTime] = useState<boolean>(() => {
+    return mode === "edit" && !!initialData?.endTime
+  })
   const [isProcessing, setIsProcessing] = useState(false)
 
   // Inicializar con datos cuando se abre en modo edición
@@ -82,6 +99,16 @@ export function ExtraActivityModal({
       if (initialData.startTime) {
         setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
         setActivityTime(format(new Date(initialData.startTime), "HH:mm"))
+      }
+      // Inicializar hora de fin si existe
+      if (initialData.endTime) {
+        setEndDate(format(new Date(initialData.endTime), "yyyy-MM-dd"))
+        setEndTimeValue(format(new Date(initialData.endTime), "HH:mm"))
+        setHasEndTime(true)
+      } else {
+        setEndDate(format(getCurrentTime(), "yyyy-MM-dd"))
+        setEndTimeValue("")
+        setHasEndTime(false)
       }
     }
     // En modo create, actualizar la hora al abrir el modal
@@ -100,6 +127,16 @@ export function ExtraActivityModal({
         setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
         setActivityTime(format(new Date(initialData.startTime), "HH:mm"))
       }
+      // Restaurar endTime si existe
+      if (initialData.endTime) {
+        setEndDate(format(new Date(initialData.endTime), "yyyy-MM-dd"))
+        setEndTimeValue(format(new Date(initialData.endTime), "HH:mm"))
+        setHasEndTime(true)
+      } else {
+        setEndDate(format(getCurrentTime(), "yyyy-MM-dd"))
+        setEndTimeValue("")
+        setHasEndTime(false)
+      }
     } else {
       // En modo creación, limpiar todo
       setActivityDescription("")
@@ -107,6 +144,9 @@ export function ExtraActivityModal({
       const now = getCurrentTime()
       setEventDate(format(now, "yyyy-MM-dd"))
       setActivityTime(format(now, "HH:mm"))
+      setEndDate(format(now, "yyyy-MM-dd"))
+      setEndTimeValue("")
+      setHasEndTime(false)
     }
   }
 
@@ -133,14 +173,17 @@ export function ExtraActivityModal({
     }
 
     // Construir editOptions solo en modo edición
-    // En modo edit: startTime = fecha/hora editada, endTime = ahora (momento de guardar)
     let editOptions: EditOptions | undefined
     if (mode === "edit" && eventDate && activityTime) {
       const startDateObj = buildLocalDate(eventDate, activityTime)
-      const endDateObj = getCurrentTime()
       editOptions = {
         startTime: dateToTimestamp(startDateObj, timezone),
-        endTime: dateToTimestamp(endDateObj, timezone)
+      }
+
+      // Construir endTime si existe
+      if (hasEndTime && endTimeValue) {
+        const endDateTime = buildLocalDate(endDate, endTimeValue)
+        editOptions.endTime = dateToTimestamp(endDateTime, timezone)
       }
     }
 
@@ -206,6 +249,70 @@ export function ExtraActivityModal({
                 className="w-full text-lg text-center"
               />
               <p className="text-xs text-gray-500 text-center">Cuando empezo la actividad</p>
+            </div>
+          )}
+
+          {/* Hora de fin - Solo visible en modo edición */}
+          {mode === "edit" && (
+            <div className="space-y-3 pb-4 border-b">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-gray-700">
+                  Hora de fin
+                </div>
+                {!hasEndTime && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHasEndTime(true)
+                      setEndDate(eventDate)
+                      setEndTimeValue(format(getCurrentTime(), "HH:mm"))
+                    }}
+                    className="text-xs text-cyan-600 hover:text-cyan-700 underline flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Agregar hora de fin
+                  </button>
+                )}
+              </div>
+              {hasEndTime ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-xs text-gray-500">Fecha</label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-gray-500">Hora</label>
+                    <div className="flex gap-1">
+                      <input
+                        type="time"
+                        value={endTimeValue}
+                        onChange={(e) => setEndTimeValue(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHasEndTime(false)
+                          setEndTimeValue("")
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                        title="Quitar hora de fin"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400">
+                  Sin hora de fin registrada
+                </p>
+              )}
             </div>
           )}
 

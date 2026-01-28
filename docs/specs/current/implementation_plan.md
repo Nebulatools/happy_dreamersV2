@@ -1,300 +1,475 @@
-# Implementation Plan: Vista Narrativa, Taxonomia Visual y Split Screen
+# Implementation Plan: QA Feedback Sprint 2026-01-26
 
-Generado desde: `docs/dev-qa/SPEC-SPRINT.md`
-Fecha: 2026-01-20
+Generado desde: `docs/specs/current/SPRINT-QA-FEEDBACK-2026-01-26.md`
+Fecha: 2026-01-27
 
 ---
 
-## Credenciales de Testing (Playwright MCP)
+## Credenciales de Testing
 
 | Rol | Email | Password |
 |-----|-------|----------|
-| **Admin** | `mariana@admin.com` | `password` |
-| **Padre** | `eljulius@nebulastudios.io` | `juls0925` |
+| Admin | mariana@admin.com | password |
+| Padre | eljulius@nebulastudios.io | juls0925 |
 
 ---
 
-## Fase 0: Activation & Smoke Test
+## Fase 0: Verificación Pre-Sprint
 
-- [x] **0.1** Crear archivo `lib/icons/event-icons.ts` con estructura base
-  - Output: Archivo exporta `EVENT_ICONS` y `getEventIconType()`
-  - Comportamiento: Retorna config de icono segun eventType + feedingType
-  - Referencia: ver `components/calendar/EventGlobe.tsx:117-134` para mapa actual
+- [x] **0.1** Verificar ITEM 3 - Siestas en lavanda
+  - Comportamiento: Abrir calendario, verificar que NAP usa color violet/lavanda
+  - Validar: Visual inspection en timeline
+  - Referencia: `lib/icons/event-icons.ts` - nap debe usar violet
 
-Validacion Fase 0:
-• `npm run build` pasa
-• Archivo importable sin errores
+- [x] **0.2** Verificar ITEM 7 - Estilos nocturnos
+  - Comportamiento: Verificar que bloques de sueño nocturno tienen estilo diferenciado
+  - Validar: Visual inspection en timeline nocturno (después de 20:00)
+  - Referencia: `components/calendar/SleepSessionBlock.tsx`
+
+Validación Fase 0:
+• Ambos items visualizados correctamente
+• Si hay problemas, documentar en discoveries.md
 
 ---
 
-## Fase 1: Taxonomia Visual - Registry de Iconos
+## Fase 1: Estado por Niño (ITEM 9) - CRÍTICO
 
-- [x] **1.1** Implementar `EVENT_ICONS` record completo
-  - Input: EventType (sleep, nap, wake, feeding, etc.)
-  - Output: `{ icon: LucideIcon, color: string, bgColor: string, label: string }`
+- [x] **1.1** Remover localStorage de use-sleep-state.ts
+  - Input: `hooks/use-sleep-state.ts`
+  - Output: Hook que SOLO usa API, sin localStorage
+  - Comportamiento: Eliminar lectura de `pending_sleep_event_*` y `pending_night_wake_*`
+  - Referencia: Líneas 49-82 tienen lógica de localStorage a eliminar
+
+- [x] **1.2** Remover localStorage de SleepButton.tsx
+  - Input: `components/events/SleepButton.tsx`
+  - Output: Componente sin sleepStorageKey ni nightWakeStorageKey
+  - Comportamiento: Eliminar líneas 63-64 y useEffect que lee localStorage
+  - Referencia: Estado viene de useSleepState que usa SWR + API
+
+- [x] **1.3** Verificar endpoint current-sleep-state
+  - Input: `app/api/children/[id]/current-sleep-state/route.ts`
+  - Output: Endpoint retorna estado calculado desde BD
+  - Comportamiento: Verificar lógica de último sleep vs wake
+  - Referencia: Líneas 70-156
+
+- [x] **1.4** Testing multi-dispositivo (→ movido a 8.3.1 E2E)
+  - Comportamiento: Login con padre en 2 browsers, registrar sleep en uno, verificar estado en otro
+  - Validar: Ambos ven mismo estado sin refresh manual
+
+Validación Fase 1:
+• `pnpm build` pasa
+• Estado sincroniza entre dispositivos
+• No hay referencias a localStorage para sleep state
+
+---
+
+## Fase 2: Alimentación Nocturna (ITEM 11)
+
+- [x] **2.1** Crear NightFeedingButton.tsx
+  - Props: `{ childId, childName, onEventRegistered }`
+  - Output: Botón que abre FeedingModal con isNightFeeding=true preseleccionado
+  - Comportamiento: Click → Modal → Registra feeding sin cambiar estado de sueño
+  - Referencia: `components/events/FeedingButton.tsx` para estructura similar
+
+- [x] **2.2** Integrar en EventRegistration.tsx
+  - Input: `components/events/EventRegistration.tsx`
+  - Output: Botón visible SOLO cuando sleepState.status === 'sleeping' || 'napping'
+  - Comportamiento: Renderizar NightFeedingButton condicionalmente
+  - Referencia: Líneas 43-53 para lógica de visibilidad existente
+
+Validación Fase 2:
+• `pnpm build` pasa
+• Botón aparece solo cuando niño duerme
+• Registrar alimentación nocturna NO despierta al niño
+
+---
+
+## Fase 3: Edición Hora Fin (ITEM 6)
+
+- [x] **3.1** Agregar endTime a FeedingModal.tsx
+  - Input: `components/events/FeedingModal.tsx`
+  - Output: Modal con campos endDate/endTime en modo edit
+  - Comportamiento: Mostrar inputs solo si mode === "edit" && initialData?.endTime
+  - Referencia: `components/events/SleepDelayModal.tsx:76-90` para patrón
+
+- [x] **3.2** Agregar endTime a MedicationModal.tsx
+  - Input: `components/events/MedicationModal.tsx`
+  - Output: Modal con campos endDate/endTime en modo edit
+  - Comportamiento: Mismo patrón que FeedingModal
+  - Referencia: `components/events/SleepDelayModal.tsx:76-90`
+
+- [x] **3.3** Agregar endTime a ExtraActivityModal.tsx
+  - Input: `components/events/ExtraActivityModal.tsx`
+  - Output: Modal con campos endDate/endTime en modo edit
+  - Comportamiento: Mismo patrón que FeedingModal
+  - Referencia: `components/events/SleepDelayModal.tsx:76-90`
+
+- [x] **3.4** Agregar endTime a NightWakingModal.tsx
+  - Input: `components/events/NightWakingModal.tsx`
+  - Output: Modal con campos endDate/endTime en modo edit
+  - Comportamiento: Mismo patrón que FeedingModal
+  - Referencia: `components/events/SleepDelayModal.tsx:76-90`
+
+- [x] **3.5** Testing edición hora fin
+  - Comportamiento: Editar evento en timeline, cambiar hora fin, guardar
+  - Validar: Evento actualizado con nueva hora fin
+  - **Fix aplicado**: EventEditRouter ahora pasa endTime a initialData de todos los modales
+
+Validación Fase 3:
+• `pnpm build` pasa
+• Todos los modales permiten editar hora fin en modo edit
+• API acepta y guarda endTime modificado
+
+---
+
+## Fase 4: Tabs por Rol (ITEM 5)
+
+- [x] **4.1** Ocultar tab Mensual para padres
+  - Input: `app/dashboard/calendar/page.tsx`
+  - Output: Tab "Mensual" visible SOLO si isAdminView
+  - Comportamiento: Envolver botón Mensual en {isAdminView && ...}
+  - Referencia: Líneas 1846-1874
+
+- [x] **4.2** Ocultar toggle Gráfico/Calendario para padres
+  - Input: `app/dashboard/calendar/page.tsx`
+  - Output: Toggle visible SOLO si isAdminView
+  - Comportamiento: Envolver toggle en {isAdminView && ...}
+  - Referencia: Líneas 1828-1845
+
+- [x] **4.3** Testing roles (→ movido a 8.3.4 E2E)
+  - Comportamiento: Login como padre, verificar solo Diario + Semanal. Login como admin, verificar todos los tabs
+  - Validar: Tabs correctos por rol
+
+Validación Fase 4:
+• `pnpm build` pasa
+• Padre ve: Diario, Semanal
+• Admin ve: Diario, Semanal, Mensual, Gráfico
+
+---
+
+## Fase 5: Vista Narrativa Home (ITEM 1, 8, 4)
+
+- [x] **5.1** Cambiar initialLimit a 3 en dashboard
+  - Input: `app/dashboard/page.tsx`
+  - Output: NarrativeTimeline con initialLimit={3}
+  - Comportamiento: Mostrar solo 3 eventos colapsados por default
+  - Referencia: Buscar NarrativeTimeline en el archivo
+
+- [x] **5.2** Asegurar botón expandir siempre visible
+  - Input: `app/dashboard/page.tsx` o `components/narrative/NarrativeTimeline.tsx`
+  - Output: Botón "Ver más" visible aunque haya <=3 eventos
+  - Comportamiento: showExpandButton={true} o prop equivalente
+  - **Fix aplicado**: Nueva prop `alwaysShowExpandButton` con texto contextual "Ver detalles"
+
+- [x] **5.3** Layout responsivo narrativa + calendario
+  - Input: `app/dashboard/page.tsx`
+  - Output: Grid responsive: mobile vertical, desktop side-by-side
+  - Comportamiento: `grid-cols-1 lg:grid-cols-2`
+  - Referencia: Tailwind responsive patterns
+
+- [x] **5.4** Reducir texto en NarrativeTimeline (ITEM 8)
+  - Input: `lib/narrative/generate-narrative.ts`
+  - Output: Formato "biberón 120ml" (sin duración)
+  - Comportamiento: Modificadas generateFeedingNarrative() y generateActivityNarrative()
+  - **Fix aplicado**: Eliminada duración de alimentación y actividades
+
+- [x] **5.5** Remover scroll interno de calendario (ITEM 4)
+  - Input: `components/calendar/CalendarDayView.tsx`, `components/calendar/CalendarWeekView.tsx`
+  - Output: Calendario sin height fija en contenedor principal
+  - Comportamiento: Removida altura inline de 752px, contenedor crece naturalmente
+  - **Fix aplicado**: Removido `style={{ height: '${24 * hourHeight + 32}px' }}` de ambos componentes
+
+Validación Fase 5:
+• `pnpm build` pasa
+• Home muestra 3 eventos colapsados
+• Layout responsivo funciona
+• Texto reducido en eventos
+• Calendario crece sin scroll interno
+
+---
+
+## Fase 6: Card Plan vs Eventos (ITEM 10)
+
+- [x] **6.1** Crear PlanVsEventsCard.tsx
+  - Props: `{ plan, events, selectedDate, timezone }`
+  - Output: Card con 2 columnas (Plan | Eventos)
+  - Comportamiento: Si no hay plan, solo mostrar eventos. Eventos extras se incrustan cronológicamente
+  - Referencia: `components/ui/card.tsx` para estructura base
+  - **Completado**: Componente creado con layout responsive y iconos del registry
+
+- [x] **6.2** Integrar card en calendar page
+  - Input: `app/dashboard/calendar/page.tsx`
+  - Output: PlanVsEventsCard renderizado ARRIBA del calendario
+  - Comportamiento: Visible en vista diaria para ambos roles
+  - Referencia: Ver estructura actual de vista diaria
+  - **Completado**: Integrado en vista admin (SplitScreenBitacora) y padre (NarrativeTimeline)
+
+- [x] **6.3** Testing Plan vs Eventos (→ movido a Fase 8 E2E)
+  - Comportamiento: Verificar card con niño CON plan y SIN plan
+  - Validar: Layout correcto en ambos casos
+
+Validación Fase 6:
+• `pnpm build` pasa
+• Card visible arriba del calendario
+• Funciona con y sin plan activo
+
+---
+
+## Fase 7: Iconos Admin (ITEM 2)
+
+- [x] **7.1** Usar getEventIconConfig en admin child profile
+  - Input: `app/dashboard/patients/child/[childId]/AdminChildDetailClient.tsx`
+  - Output: Tab Eventos usa iconos del registry centralizado
+  - Comportamiento: Importar getEventIconConfig, reemplazar iconos hardcodeados
+  - Referencia: `lib/icons/event-icons.ts`
+  - **Completado**: Switch-case de 25 líneas reemplazado por 3 líneas usando registry
+
+- [x] **7.2** Testing consistencia iconos (→ movido a Fase 8 E2E)
+  - Comportamiento: Comparar iconos en admin vs dashboard de padres
+  - Validar: Mismos iconos en todas las vistas
+
+Validación Fase 7:
+• `pnpm build` pasa
+• Iconos consistentes en toda la app
+
+---
+
+## Fase 8: E2E Testing Exhaustivo con Agent Browser
+
+**IMPORTANTE**: Esta fase es OBLIGATORIA. El sprint NO está completo hasta que TODOS los tests pasen. Los padres usan principalmente MÓVIL, así que el testing móvil es CRÍTICO.
+
+**MODO HEADED (OBLIGATORIO)**: Ejecutar agent-browser en modo `--headed` para que el usuario pueda observar el testing en tiempo real. NO usar modo headless.
+
+```bash
+# Ejemplo de comando con headed mode
+agent-browser --headed --url "http://localhost:3000" ...
+```
+
+### 8.1 Testing Visual Desktop - Vista Padre
+
+- [x] **8.1.1** Test Home Dashboard (Desktop)
+  - Input: Login como padre en http://localhost:3000
+  - Output: Screenshot `test-screenshots/8.1.1-desktop-home.png`
   - Comportamiento:
-    - `feeding_breast` -> Heart (pink)
-    - `feeding_bottle` -> Milk (sky)
-    - `feeding_solids` -> UtensilsCrossed (emerald)
-    - `nap` -> CloudMoon (violet) - diferente a sleep
-  - Referencia: ver mapa de iconos en spec lines 77-89
+    - Verificar narrativa con 3 eventos colapsados
+    - Verificar botón "Ver más" visible
+    - Verificar layout side-by-side (narrativa + calendario)
+    - Verificar botones de eventos (SleepButton, etc.)
+  - Validar: Sin elementos cortados, sin overflow, sin errores en consola
+  - **PASS**: Todos los checkpoints verificados OK (Session 17)
 
-- [x] **1.2** Modificar `EventGlobe.tsx` para usar nuevo registry
-  - Input: Importar `getEventIconType()` y `EVENT_ICONS`
-  - Output: Iconos renderizados con colores correctos
-  - Comportamiento: Reemplazar switch case por lookup en registry
-  - Referencia: `EventGlobe.tsx:117-134` (codigo actual a reemplazar)
-
-- [x] **1.3** Modificar `EventBlock.tsx` para usar nuevo registry
-  - Input: Importar `getEventIconType()` y `EVENT_ICONS`
-  - Output: Iconos consistentes con EventGlobe
-  - Comportamiento: Mismo lookup que EventGlobe
-  - Referencia: `EventBlock.tsx` (buscar getIcon o switch de iconos)
-
-Validacion Fase 1 (Playwright MCP):
-• Login como Padre -> `/dashboard/calendar?view=week`
-• Verificar: feeding-breast=Heart(pink), feeding-bottle=Milk(sky), feeding-solids=UtensilsCrossed(emerald)
-• Verificar: nap=CloudMoon(violet), sleep=Moon(indigo)
-• Screenshot: `taxonomy-icons-phase1.png`
-
----
-
-## Fase 2: Componentes Narrativos - Logica
-
-- [x] **2.1** Crear `lib/narrative/generate-narrative.ts`
-  - Input: `(childName: string, event: NarrativeEvent)`
-  - Output: String con oracion en espanol
+- [x] **8.1.2** Test Calendario Vista Diaria (Desktop)
+  - Input: Navegar a /dashboard/calendar
+  - Output: Screenshot `test-screenshots/8.1.2-desktop-calendar-daily.png`
   - Comportamiento:
-    - `feeding + breast` -> "[nombre] tomo pecho por [X] minutos"
-    - `feeding + bottle` -> "[nombre] tomo [X] ml de biberon"
-    - `sleep` con endTime -> "[nombre] durmio de [hora] a [hora]"
-    - Dato faltante -> omitir (NO placeholder)
-  - Referencia: ver spec lines 52-61
+    - Verificar SOLO tabs Diario + Semanal (NO Mensual, NO Gráfico)
+    - Verificar card Plan vs Eventos arriba del calendario
+    - Verificar calendario sin scroll interno
+    - Verificar eventos con iconos correctos
+  - Validar: Tabs correctos para rol padre
+  - **PASS**: Todos los checkpoints críticos verificados OK (Session 18)
 
-- [x] **2.2** Crear test Jest para `generateNarrative()`
-  - Input: Casos de prueba por tipo de evento
-  - Output: Tests pasan
-  - Comportamiento: Verificar cada formato de narrativa
-  - Referencia: crear en `__tests__/lib/narrative/generate-narrative.test.ts`
-
-Validacion Fase 2:
-• `npm test -- generate-narrative` pasa
-• Todos los casos cubren formatos del spec
-
----
-
-## Fase 3: Componentes Narrativos - UI
-
-- [x] **3.1** Crear `components/narrative/NarrativeCard.tsx`
-  - Props: `{ event, childName, isHighlighted?, onClick?, onEdit? }`
-  - Render: Icono circular + texto narrativo + hora + chevron
-  - Comportamiento: Click en chevron llama `onEdit`, click en card llama `onClick`
-  - Referencia: ver shadcn Card, anatomia en spec lines 36-48
-
-- [x] **3.2** Crear `components/narrative/NarrativeTimeline.tsx`
-  - Props: `{ events, childName, highlightedEventId?, collapsible?, initialLimit? }`
-  - Render: Lista de NarrativeCards ordenadas cronologico inverso
+- [ ] **8.1.3** Test Calendario Vista Semanal (Desktop)
+  - Input: Click en tab Semanal
+  - Output: Screenshot `test-desktop-calendar-weekly.png`
   - Comportamiento:
-    - `collapsible=true` -> muestra boton "Ver todo/Colapsar"
-    - `initialLimit=5` -> muestra solo 5 primeros
-    - Empty state: "No hay eventos registrados hoy"
-  - Referencia: ver spec lines 64-77
+    - Verificar gráfico sin scroll interno
+    - Verificar datos de la semana visibles
+  - Validar: Layout completo sin scroll interno
 
-- [x] **3.3** Agregar skeleton loader y empty state
-  - Input: `isLoading` prop en NarrativeTimeline
-  - Output: Skeleton circular + lineas mientras carga
-  - Comportamiento: Mostrar 5 skeletons por defecto
-  - Referencia: ver shadcn Skeleton
-  - **NOTA**: Ya implementado en tarea 3.2 - NarrativeCardSkeleton + EmptyState
+### 8.2 Testing Móvil - CRÍTICO (375px width)
 
-Validacion Fase 3 (Playwright MCP):
-• Login como Padre -> `/dashboard`
-• Verificar: tarjetas con icono, texto, hora, chevron
-• Verificar: exactamente 5 tarjetas visibles
-• Screenshot: `narrative-cards-structure.png`
+**REGLA**: Los padres usan MÓVIL. Todo debe verse PERFECTO en 375px. Si algo se ve apretado, cortado, o mal alineado, Ralph tiene LIBERTAD de ajustar el layout móvil.
 
----
-
-## Fase 4: Integracion Home Padres
-
-- [x] **4.1** Integrar NarrativeTimeline en dashboard Home
-  - Input: Eventos del dia actual
-  - Output: Feed de narrativa visible en Home
-  - Comportamiento: `collapsible=true, initialLimit=5`
-  - Referencia: ver `app/dashboard/page.tsx` o similar
-
-- [x] **4.2** Implementar "Ver todo" / "Colapsar"
-  - Input: Click en boton
-  - Output: Lista expande/colapsa
-  - Comportamiento: Estado NO persiste (siempre inicia colapsado)
-  - Referencia: spec lines 64-69
-  - **NOTA**: Ya implementado en NarrativeTimeline - solo requiere props `collapsible=true`
-
-Validacion Fase 4 (Playwright MCP):
-• Login como Padre -> `/dashboard`
-• Verificar: 5 tarjetas iniciales
-• Click "Ver todo" -> mas de 5 tarjetas
-• Click "Colapsar" -> 5 tarjetas
-• Refresh -> 5 tarjetas (no persiste)
-• Click chevron -> modal de edicion abre
-• Screenshots: `home-collapsed.png`, `home-expanded.png`
-
----
-
-## Fase 5: Split Screen Context
-
-- [x] **5.1** Crear `context/SplitScreenContext.tsx`
-  - Props: `selectedEventId`, `highlightedEventId`, `selectEvent()`, `clearSelection()`
-  - Render: Provider que envuelve children
+- [ ] **8.2.1** Test Home Dashboard (Móvil 375px)
+  - Input: Resize viewport a 375px width
+  - Output: Screenshot `test-mobile-home.png`
   - Comportamiento:
-    - `selectEvent(id, source)` -> setea highlight + timeout 6s para clear
-    - Click rapido cancela timeout anterior
-  - Referencia: spec lines 135-145
+    - Verificar narrativa ARRIBA, calendario ABAJO (vertical)
+    - Verificar botones de eventos no se salen del viewport
+    - Verificar texto legible, no truncado
+    - Verificar espaciado adecuado (no apretado)
+  - Validar: Usabilidad perfecta con un dedo
+  - **Si hay problemas**: Ralph puede ajustar paddings, font-sizes, flex-wrap
 
-- [x] **5.2** Agregar animacion highlight-fade a Tailwind
-  - Input: Nueva keyframe en tailwind.config.js
-  - Output: Clase `animate-highlight-fade` disponible
-  - Comportamiento: Fade de amarillo a transparente en 6s
-  - Referencia: spec fase 5 lines 644-671
-
-Validacion Fase 5:
-• Build pasa
-• Clase `animate-highlight-fade` existe
-
----
-
-## Fase 6: Split Screen Bitacora Admin
-
-- [x] **6.1** Crear `components/bitacora/SplitScreenBitacora.tsx`
-  - Props: `{ events, sleepSessions, childName, selectedDate }`
-  - Render: Grid 50/50 - Calendario | Narrativa
+- [ ] **8.2.2** Test EventRegistration Botones (Móvil)
+  - Input: Home con niño despierto
+  - Output: Screenshot `test-mobile-buttons-awake.png`
   - Comportamiento:
-    - Desktop (>=1024px): 2 columnas
-    - Tablet (<1024px): stack vertical o tabs
-  - Referencia: spec lines 34-59
+    - Verificar todos los botones visibles sin scroll horizontal
+    - Verificar botones tienen tamaño táctil adecuado (min 44px height)
+    - Click en botón de dormir → verificar modal se ve bien en móvil
+  - Validar: Botones accesibles con pulgar
 
-- [x] **6.2** Implementar mirroring Calendario -> Narrativa
-  - Input: Click en bloque de calendario
-  - Output: Narrativa hace scroll + highlight
-  - Comportamiento: scrollIntoView smooth + clase highlight-fade
-  - Referencia: spec lines 137-139
-
-- [x] **6.3** Implementar mirroring Narrativa -> Calendario
-  - Input: Click en tarjeta de narrativa
-  - Output: Calendario hace scroll + highlight
-  - Comportamiento: scrollIntoView smooth + clase highlight-fade
-  - Referencia: spec lines 141-143
-
-- [x] **6.4** Implementar doble click para editar
-  - Input: Doble click en bloque o tarjeta
-  - Output: Modal de edicion abre
-  - Comportamiento: Reusar EventEditRouter existente
-  - Referencia: `components/events/EventEditRouter.tsx`
-
-- [x] **6.5** Integrar SplitScreenBitacora en pagina admin
-  - Input: Pagina de bitacora de paciente
-  - Output: Split screen visible para admin
-  - Comportamiento: Solo admin ve split screen
-  - Referencia: `/dashboard/patients/child/[id]` o similar
-
-Validacion Fase 6 (Playwright MCP):
-• Login como Admin -> bitacora de paciente
-• Verificar: layout 50/50 en desktop
-• Click bloque calendario -> narrativa scroll + highlight
-• Click tarjeta narrativa -> calendario scroll + highlight
-• Esperar 7s -> highlight desaparece
-• Doble click -> modal de edicion abre
-• Resize 768px -> layout colapsa
-• Screenshots: `split-screen-layout.png`, `mirroring-calendar.png`, `mirroring-narrative.png`
-
----
-
-## Fase 7: Bug Fix - Eventos Fragmentados en Sesiones de Sueno
-
-- [x] **7.1** Agregar campo `overlayEvents` a interface SleepSession
-  - Input: Modificar `lib/utils/sleep-sessions.ts`
-  - Output: Interface tiene `overlayEvents: Event[]`
-  - Referencia: `sleep-sessions.ts:17-27`
-
-- [x] **7.2** Modificar `processSleepSessions()` para detectar overlays
-  - Input: Eventos durante rango de sleep
-  - Output: `overlayEvents` contiene feeding/medication durante sueno
+- [ ] **8.2.3** Test Botón Alimentación Nocturna (Móvil)
+  - Input: Registrar que niño duerme, luego verificar botones
+  - Output: Screenshot `test-mobile-buttons-sleeping.png`
   - Comportamiento:
-    - Filtrar eventos con startTime dentro de [sleep.startTime, sleep.endTime]
-    - Excluir night_waking (ya capturado)
-    - Agregar a session.overlayEvents
-  - Referencia: `sleep-sessions.ts:82-90`
+    - Verificar botón "Alimentación Nocturna" visible
+    - Verificar botón "SE DESPERTÓ" visible
+    - Verificar no hay overflow ni elementos cortados
+  - Validar: Ambos botones accesibles
 
-- [x] **7.3** Crear test Jest para overlayEvents
-  - Input: Mock de eventos con feedings durante sueno
-  - Output: Test verifica que overlayEvents contiene los correctos
-  - Referencia: crear en `__tests__/lib/utils/sleep-sessions.test.ts`
+- [ ] **8.2.4** Test Calendario Vista Diaria (Móvil)
+  - Input: Navegar a /dashboard/calendar en móvil
+  - Output: Screenshot `test-mobile-calendar-daily.png`
+  - Comportamiento:
+    - Verificar tabs Diario + Semanal visibles y clickeables
+    - Verificar card Plan vs Eventos legible
+    - Verificar calendario ocupa ancho completo
+    - Verificar eventos clickeables para editar
+  - Validar: Toda la UI funcional en móvil
 
-- [x] **7.4** Modificar `SleepSessionBlock` para renderizar overlays
-  - Input: `overlayEvents` del session
-  - Output: Eventos renderizados dentro del bloque de sueno
-  - Comportamiento: Overlays con z-index mayor, mismo ancho que bloque base
-  - Referencia: `SleepSessionBlock.tsx`
+- [ ] **8.2.5** Test Modales en Móvil
+  - Input: Click en evento para editar
+  - Output: Screenshot `test-mobile-modal-edit.png`
+  - Comportamiento:
+    - Verificar modal no se sale de pantalla
+    - Verificar campos de fecha/hora accesibles
+    - Verificar botones de confirmar/cancelar visibles
+    - Verificar campos de hora FIN visibles en modo edit
+  - Validar: Modal usable sin scroll excesivo
 
-- [x] **7.5** Excluir overlayEvents de calculateEventColumns
-  - Input: Modificar `CalendarWeekView.tsx`
-  - Output: Eventos durante sueno NO se fragmentan
-  - Comportamiento: Filtrar eventos que ya estan en overlayEvents de alguna sesion
-  - Referencia: `CalendarWeekView.tsx:246-282`
-  - **NOTA**: Ya implementado en 7.2 - processedEventIds excluye overlayEvents de otherEvents
+- [ ] **8.2.6** Test Narrativa Expandida (Móvil)
+  - Input: Click en "Ver más" en narrativa
+  - Output: Screenshot `test-mobile-narrative-expanded.png`
+  - Comportamiento:
+    - Verificar todos los eventos visibles
+    - Verificar texto reducido (tipo + cantidad, sin duración)
+    - Verificar iconos correctos por tipo de evento
+  - Validar: Lista legible y scrolleable
 
-Validacion Fase 7 (Jest + Playwright MCP):
-• `npm test -- sleep-sessions` pasa
-• Login como Padre -> `/dashboard/calendar?view=week`
-• Verificar: eventos durante sueno NO fragmentados en columnas
-• Verificar: overlays alineados verticalmente dentro del bloque
-• Verificar: bloque de sueno base es UNA barra continua
-• Click overlay -> modal de edicion correcto
-• Screenshots: `sleep-overlays-AFTER-fix.png`
+### 8.3 Testing Funcional por Item
+
+- [ ] **8.3.1** Test ITEM 9: Sincronización Multi-Dispositivo
+  - Input: 2 ventanas de browser (simular 2 dispositivos)
+  - Output: Documentar resultado en discoveries.md
+  - Comportamiento:
+    - Browser 1: Login padre, registrar "SE DURMIÓ"
+    - Browser 2: Login mismo padre, verificar estado = dormido SIN refresh
+    - Browser 2: Registrar "SE DESPERTÓ"
+    - Browser 1: Verificar estado = despierto SIN refresh
+  - Validar: Estado sincroniza vía API, NO localStorage
+
+- [ ] **8.3.2** Test ITEM 11: Alimentación Nocturna
+  - Input: Niño en estado dormido
+  - Output: Documentar resultado
+  - Comportamiento:
+    - Verificar botón "Alimentación Nocturna" aparece
+    - Click → Modal → Registrar alimentación
+    - Verificar niño SIGUE DORMIDO después de registrar
+    - Verificar evento tiene isNightFeeding: true
+  - Validar: Estado no cambia, evento se registra correctamente
+
+- [ ] **8.3.3** Test ITEM 6: Edición Hora Fin
+  - Input: Evento existente con endTime
+  - Output: Documentar resultado
+  - Comportamiento:
+    - Click en evento para editar
+    - Verificar campos endDate y endTime visibles
+    - Cambiar hora fin
+    - Guardar y verificar cambio persistió
+  - Validar: Hora fin editable en todos los modales
+
+- [ ] **8.3.4** Test ITEM 5: Tabs por Rol
+  - Input: Login como padre y como admin
+  - Output: Screenshots comparativos
+  - Comportamiento:
+    - Padre: Verificar SOLO Diario + Semanal
+    - Admin: Verificar Diario + Semanal + Mensual + Gráfico
+  - Validar: Tabs correctos por rol
+
+### 8.4 Testing Admin (Desktop)
+
+- [ ] **8.4.1** Test Vista Admin Split Screen
+  - Input: Login como admin, ir a calendario diario
+  - Output: Screenshot `test-admin-split.png`
+  - Comportamiento:
+    - Verificar vista 50/50 (calendario + narrativa)
+    - Verificar calendario sin scroll interno
+    - Verificar todos los tabs visibles
+  - Validar: Layout admin completo
+
+- [ ] **8.4.2** Test Iconos en Admin Child Profile
+  - Input: Navegar a /dashboard/patients/child/[id] → tab Eventos
+  - Output: Screenshot `test-admin-child-events.png`
+  - Comportamiento:
+    - Verificar iconos de alimentación diferenciados (biberón, pecho, sólidos)
+    - Comparar con iconos en dashboard de padre
+  - Validar: Iconos consistentes en toda la app
 
 ---
 
-## Fase 8: QA Final y Regression Testing
+## REGLAS CRÍTICAS DE TESTING
 
-- [x] **8.1** Test suite completo Admin
-  - Verificar: Split screen, mirroring bidireccional, highlight fade, doble click editar
-  - Screenshots: `qa-8.1-split-screen-layout.png`, `qa-8.1-mirroring-narrative-click.png`, `qa-8.1-edit-modal-doubleclick.png`
+**NO TERMINAR HASTA QUE TODO PASE:**
 
-- [x] **8.2** Test suite completo Padre
-  - Verificar: Home feed 5 eventos, Ver todo/Colapsar, click chevron editar
-  - Screenshots: `qa-8.2-home-collapsed-with-ver-todo.png`, `qa-8.2-home-expanded-ver-todo.png`
-  - **NOTA**: Click chevron dispara callback con eventId correctamente (console log confirma). Modal de edicion pendiente de integrar en Home page.
+1. **NO CERRAR BROWSER** si encuentra bugs visuales o funcionales
+2. **DOCUMENTAR** cada bug en discoveries.md con screenshot
+3. **ITERAR Y FIXEAR** antes de continuar al siguiente test
+4. **SOLO MARCAR [x]** cuando el test pase COMPLETAMENTE
+5. **LIBERTAD MÓVIL**: Si algo se ve mal en móvil (apretado, cortado, overflow), Ralph puede ajustar:
+   - Paddings y margins
+   - Font sizes
+   - Flex direction y wrap
+   - Grid columns
+   - Breakpoints
+6. **MAX 10 INTENTOS** por bug - si persiste → RALPH_BLOCKED
+7. **SCREENSHOTS OBLIGATORIOS** para cada test visual
 
-- [x] **8.3** Test suite Responsive
-  - Verificar: Mobile (375px), Tablet (768px), Desktop (1440px)
-  - Screenshots: `qa-8.3-responsive-*.png` (6 screenshots generados)
+**Checklist Final:**
+- [ ] Todos los screenshots guardados
+- [ ] Todos los tests funcionales pasan
+- [ ] Móvil se ve PERFECTO (no solo "funciona")
+- [ ] Sin errores en consola del browser
+- [ ] Documentado en discoveries.md
 
-- [x] **8.4** Test suite Edge Cases
-  - Verificar: Dia sin eventos, evento en progreso, datos incompletos
-  - Screenshots: `qa-8.4-edge-case-empty-day-hoy.png`, `qa-8.4-edge-case-event-in-progress.png`
-  - **VERIFICADO**: Empty state muestra "No hay eventos registrados hoy", contador tiempo real funciona, datos incompletos se omiten correctamente
-
-- [ ] **8.5** Test suite Regression
-  - Verificar: Registro eventos funciona, calendario funciona, edicion funciona
-
-Validacion Fase 8 (Playwright MCP):
-• Todos los tests anteriores pasan
-• Screenshots finales documentan estado completo
-• Build de produccion pasa
+Validación Fase 8:
+• 12+ screenshots guardados en carpeta de proyecto
+• TODOS los tests marcados [x]
+• Móvil 375px usable con un dedo
+• Sin bugs pendientes documentados
+• Browser permanece abierto para inspección manual final
 
 ---
 
 ## Summary
 
-| Fase | Tareas | Descripcion |
-|------|--------|-------------|
-| 0 | 1 | Activation |
-| 1 | 3 | Taxonomia Visual |
-| 2 | 2 | Narrativa Logica + Tests |
-| 3 | 3 | Narrativa UI |
-| 4 | 2 | Home Padres |
-| 5 | 2 | Split Screen Context |
-| 6 | 5 | Split Screen Admin |
-| 7 | 5 | Bug Fix Overlays |
-| 8 | 5 | QA Final |
-| **Total** | **28** | |
+| Fase | Tareas | Descripción | Items |
+|------|--------|-------------|-------|
+| 0 | 2 | Verificación pre-sprint | 3, 7 |
+| 1 | 4 | Estado por niño (crítico) | 9 |
+| 2 | 2 | Alimentación nocturna | 11 |
+| 3 | 5 | Edición hora fin | 6 |
+| 4 | 3 | Tabs por rol | 5 |
+| 5 | 5 | Vista narrativa + scroll | 1, 4, 8 |
+| 6 | 3 | Plan vs Eventos | 10 |
+| 7 | 2 | Iconos admin | 2 |
+| **8** | **14** | **E2E Testing exhaustivo** | **TODOS** |
+| **Total** | **40** | | |
+
+---
+
+## Prioridad de Testing Móvil
+
+```
+CRÍTICO: Los padres usan MÓVIL (375px)
+
+Viewport de testing:
+- Desktop: 1280px+
+- Tablet: 768px (opcional)
+- Móvil: 375px (OBLIGATORIO)
+
+Ralph tiene LIBERTAD de ajustar layouts móviles:
+✓ Cambiar paddings/margins
+✓ Reducir font-sizes
+✓ Cambiar flex-direction
+✓ Apilar elementos verticalmente
+✓ Ajustar breakpoints
+
+Lo que importa: USABILIDAD con un dedo
+```
+
+---
+
+**Última actualización:** 2026-01-27

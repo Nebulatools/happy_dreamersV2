@@ -1,461 +1,258 @@
-# Feature: Mejoras UX/UI Dashboard - Vista Narrativa y Taxonomía Visual
+# ESPECIFICACIÓN TÉCNICA: ÍTEM 4 - PANEL DE DIAGNÓSTICO (ESTADÍSTICAS)
 
 ## Vision
 
-Transformar la experiencia de lectura de la bitacora de eventos de un sistema de "bloques de calendario" dificiles de leer a una **narrativa fluida tipo feed** que permita a admins y padres entender rapidamente "que paso hoy" sin esfuerzo cognitivo.
+Este módulo no es solo un visualizador de gráficas; es un **motor de validación** que cruza la bitácora en tiempo real con las respuestas del cuestionario y las reglas de salud de Happy Dreamers.
 
-**Problema actual:** Los bloques de calendario fragmentan visualmente el sueno nocturno y usan iconografia generica que no diferencia tipos de alimentacion.
+**Audiencia:** Solo Admin (Mariana). Los padres NO deben ver este panel.
 
-**Solucion:** Vista narrativa cronologica + taxonomia visual clara + sincronizacion bidireccional calendario-narrativa.
-
----
-
-## Alcance del Sprint
-
-### MVP (Items 1-3)
-1. **Item 1:** Vista Narrativa de Bitacora (Timeline)
-2. **Item 2:** Taxonomia Visual (Alimentacion y Sueno)
-3. **Item 3:** Vista Dual Split Screen (Admin)
-
-### Diferido (Item 4)
-- Panel de Estadisticas y Diagnostico AI (mas complejo, siguiente sprint)
+**Ubicación:** Dashboard Admin > Estadísticas de Sueño
 
 ---
 
-## Item 1: Vista Narrativa de Bitacora (Timeline) ✅ COMPLETADO
+## Visibilidad por Rol
 
-### Flujo por Tipo de Usuario
+| Componente | Admin | Padres | Ubicación |
+|------------|-------|--------|-----------|
+| Tarjeta Info Paciente (Médica) | Sí | No | Dashboard Admin > Estadísticas |
+| Semáforo G1-G4 (Alertas) | Sí | No | Dashboard Admin > Estadísticas |
+| Resumen "Pasante AI" | Sí | No | Dashboard Admin > Estadísticas |
+| Acciones de Planes (Edit/AI) | Sí | No | Dashboard Admin > Estadísticas |
+| Bitácora Narrativa (Sin Alertas) | Sí | Sí | Admin (Bitácora Diaria) / Padres (Home) |
 
-| Vista | Admin (Mariana) | Padres |
-|-------|-----------------|--------|
-| **Home** | N/A | Ultimos 5 eventos + "Ver todo/Colapsar" |
-| **Bitacora Diaria** | Split Screen (50% calendario, 50% narrativa) | Narrativa completa vertical |
-| **Semanal/Mensual** | Solo bloques (sin narrativa) | Solo bloques (sin narrativa) |
-
-### Anatomia de Tarjeta de Evento
-
-```
-+--------------------------------------------------+
-| [ICONO]  Matias tomo 5 oz de leche materna       |
-|          08:30 AM                          [>]   |
-+--------------------------------------------------+
-```
-
-**Elementos:**
-1. **Icono (izquierda):** Circular, respeta taxonomia Item 2
-2. **Narrativa (centro):** Oracion completa generada automaticamente
-3. **Metadatos (debajo):** Hora o rango (08:30 - 09:15)
-4. **Navegacion (derecha):** `chevron-right` abre edicion
-
-### Reglas de Narrativa (100% automatica)
-
-| Tipo Evento | Formato Narrativa |
-|-------------|-------------------|
-| Alimentacion Pecho | "[Nombre] tomo pecho por [X] minutos" |
-| Alimentacion Biberon | "[Nombre] tomo [X] oz de [formula/leche]" |
-| Alimentacion Solidos | "[Nombre] comio [descripcion]" |
-| Siesta | "[Nombre] durmio una siesta de [X] min" |
-| Sueno Nocturno | "[Nombre] durmio de [hora] a [hora]" |
-| Despertar Nocturno | "[Nombre] desperto a las [hora]" |
-| Medicamento | "[Nombre] tomo [medicamento]" |
-
-**Datos incompletos:** Omitir el dato faltante (no mostrar placeholder).
-
-### Comportamiento Home (Padres)
-
-- **Default:** Muestra 5 eventos mas recientes, colapsado
-- **"Ver todo":** Expande lista completa del dia
-- **"Colapsar":** Vuelve a 5 eventos
-- **Persistencia:** Siempre inicia colapsado (no guarda estado)
-
-### Ordenamiento
-
-**Cronologico Inverso Estricto:** El evento con `timestamp` mayor aparece primero (arriba).
-
-### Edge Case: Dia sin eventos
-
-Mostrar empty state amigable: "No hay eventos registrados hoy"
+**Importante para Front-end:** Aunque el Ítem 1 (Narrativa) es compartido, en la vista de Mariana, los eventos narrativos deben poder mostrar el **badge de alerta rojo** si el motor de validación del Ítem 4 detecta un fallo (ej. despertar fuera del margen de X min).
 
 ---
 
-## Item 2: Taxonomia Visual (Alimentacion y Sueno) ✅ COMPLETADO
+## 1. Cabecera: Perfil Clínico del Paciente
 
-### 2.1 Iconos de Alimentacion
+Ubicada en el `top` de la pantalla de estadísticas. Debe servir para contextualizar el análisis de Mariana.
 
-| Subtipo | Icono Lucide | Contexto |
-|---------|--------------|----------|
-| Solidos | `UtensilsCrossed` | Desayuno, comida, cena, snacks |
-| Biberon | `Baby` (buscar mejor) | Formula, leche extraida |
-| Pecho | Buscar en Lucide el mas cercano | Lactancia directa |
+### Componente
 
-**Regla:** Nunca usar icono generico de "cubiertos" para todo.
+Tarjeta de información persistente.
 
-**Tomas Nocturnas:** Usan el mismo icono que diurnas (biberon/pecho/solidos segun corresponda).
+### Campos Requeridos
 
-### 2.2 Sueno Nocturno (Layering Logic)
+**Generales:**
+- Nombre del niño
+- Edad actual (meses/años)
+- Nombres de los padres y edades
+- Número de hermanos y sus edades
 
-**NOTA:** Revisar implementacion actual - puede que ya este resuelto.
+**Status:**
+- Plan vigente
+- Etapa actual del proceso
 
-- **Capa Base:** Bloque continuo azul oscuro desde `hora_dormir` hasta `hora_despertar_definitivo`
-- **Overlays:** Eventos nocturnos (despertares, tomas) se superponen con `z-index` mayor
-- **El bloque base NUNCA se corta visualmente**
-
-### 2.3 Siestas (Diferenciacion Visual)
-
-- **Paleta:** Tonos morados/azules claros (revisar colores existentes, no repetir)
-- **Prohibido:** Naranja (asociado a alerta/actividad)
-- **Icono:** Diferente al sueno nocturno (elegir el mas apropiado de Lucide)
-
-### Aplicacion por Vista
-
-| Vista | Aplica Taxonomia |
-|-------|------------------|
-| Diaria | Si (bloques + narrativa) |
-| Semanal | Si (solo bloques) |
-| Mensual | Si (solo bloques) |
-
-### Testing Realizado (2026-01-23)
-
-#### Bugs Encontrados y Corregidos
-
-| Bug | Ubicacion | Solucion |
-|-----|-----------|----------|
-| Vista mensual no usaba sistema centralizado | `app/dashboard/calendar/page.tsx` | Reemplazar `getEventTypeColor()` local por `getEventBgClass()` |
-| Iconos no diferenciados en mensual | `app/dashboard/calendar/page.tsx` | Usar `getEventIconConfig()` con feedingType |
-| Iconos sin contraste sobre fondos de color | Multiples archivos | Cambiar a `text-white` en lugar de `config.color` |
-| Color siesta usaba naranja (prohibido) | `globals.css`, `event-colors.ts` | Cambiar a lavanda `#a78bfa` (violet-400) |
-
-#### Archivos Modificados para Color Siesta
-
-| Archivo | Cambio |
-|---------|--------|
-| `app/globals.css` | `--color-nap: 258 89% 78%` (lavanda) |
-| `lib/colors/event-colors.ts` | `hex: "#a78bfa"` |
-| `lib/icons/event-icons.ts` | `color: "#a78bfa"` |
-| `components/calendar/MonthLineChart.tsx` | Colores nap a violeta |
-| `components/calendar/SimpleSleepBarChart.tsx` | NAP_COLOR a violeta |
-| `components/calendar/UserWeeklySleepChart.tsx` | NAP_COLOR a violeta |
-| `components/sleep-statistics/SleepDataStorytellingCard.tsx` | `bg-violet-50`, `text-violet-600` |
-| `components/child-profile/SleepMetricsCombinedChart.tsx` | `hover:ring-violet-300` |
-
-#### Verificacion
-
-| Criterio | Estado |
-|----------|--------|
-| Colores diferenciados por feedingType | PASS |
-| Iconos blancos para contraste | PASS |
-| Consistencia en vistas (mensual/semanal/diaria) | PASS |
-| Color siesta en lavanda (no naranja) | PASS |
-| Sistema centralizado en todas las vistas | PASS |
+**Alertas Críticas (Banderas):**
+Mostrar resaltados los antecedentes médicos:
+- Alergias
+- Reflujo/Cólicos
+- Ferritina
+- Temas de Neuro-desarrollo
 
 ---
 
-## Item 3: Vista Dual Split Screen (Solo Admin) ✅ COMPLETADO
+## 2. Los 4 Grupos de Control (Semaforización)
 
-### Layout
+Implementar 4 tarjetas de resumen que actúen como **indicadores de salud del plan**. Cada una tiene una lógica de validación distinta basada en el Google Sheet provisto y las pizarras.
 
-```
-+------------------------+------------------------+
-|                        |                        |
-|   CALENDARIO (50%)     |   NARRATIVA (50%)      |
-|   Gantt Chart          |   Timeline fluido      |
-|                        |                        |
-|   [Bloques con         |   [Tarjetas apiladas   |
-|    taxonomia Item 2]   |    sin espacios]       |
-|                        |                        |
-+------------------------+------------------------+
-```
+### Grupo 1: Horario (Schedule)
 
-### Logica de Interaccion (Mirroring Bidireccional)
+**Fuente de datos:** Eventos de Sueño en la Bitácora.
 
-**Click en Calendario:**
-1. Click 1: Narrativa hace `scroll-into-view` + highlight con fade gradual (5-7 seg)
-2. Click 2 (doble click): Abre modal de edicion
+**Lógica de validación:**
 
-**Click en Narrativa:**
-1. Click 1: Calendario hace scroll al bloque correspondiente + highlight
-2. Click 2: Abre modal de edicion (o click en chevron)
+1. **Desvío de Despertar:** Si `hora_despertar_real` se desvía más de X min de la `hora_meta`, marcar alerta.
 
-**Highlight:** Fade gradual que se desvanece en 5-7 segundos.
+2. **Límite Inferior:** Si el despertar ocurre **antes de las 06:00 AM**, marcar alerta.
 
-### Padres: Sin Split Screen
+3. **Correlación de Sueño:** Validar la regla: si el niño despierta a las 06:30 AM, su hora de dormir no debe exceder las 19:30 PM para mantener el ciclo.
 
-Los padres ven la narrativa en flujo vertical completo, sin el calendario al lado.
+4. **Ventanas de Sueño:** Comparar la duración de las ventanas de vigilia registradas contra los parámetros ideales por edad.
 
 ---
 
-## UI/UX Estados
+### Grupo 2: Médico
 
-### Loading
-- Skeleton loaders para tarjetas de narrativa
-- Mantener layout estable durante carga
+**Fuente de datos:** Cuestionario (Respuestas con Grupo = 2).
 
-### Error
-- Toast con mensaje en espanol si falla carga de eventos
-- Retry automatico silencioso
+**Lógica de validación:**
 
-### Exito
-- Feedback visual al editar evento (actualizacion inmediata en ambos paneles)
+- Consultar la columna **"Condición"** del Spreadsheet. Ejemplo: Si la respuesta a "Ronca" es "Sí", activar alerta.
+
+- **Caducidad:** Verificar la fecha de respuesta. Si el dato es de una etapa anterior o tiene más de 30 días, marcar como "Dato por actualizar".
 
 ---
 
-## Edge Cases
+### Grupo 3: Alimentación
 
-| Caso | Manejo |
-|------|--------|
-| Dia sin eventos | Empty state: "No hay eventos registrados hoy" |
-| Datos incompletos | Omitir dato faltante en narrativa |
-| Evento en progreso | Revisar implementacion actual, puede que no aplique |
-| Muchos eventos (scroll largo) | Highlight se mantiene hasta fade, scroll suave |
-| Click rapido multiples bloques | Cancelar scroll anterior, hacer nuevo |
+**Fuente de datos:** Bitácora de Sólidos + Cuestionario (Grupo = 3).
 
----
+**Lógica de validación:**
 
-## Exito
+1. **Cumplimiento Nutricional:** Verificar que en el registro diario existan los 4 grupos:
+   - Proteína (Animal/Vegetal)
+   - Grasa
+   - Cereal
+   - Fibra
 
-El feature funciona bien cuando:
+2. **Estructura de Snacks:** El sistema debe validar que los snacks (ej. 9:00 AM) incluyan Cereal + Grasa + Fibra.
 
-1. **Admin (Mariana)** puede leer la bitacora del dia en menos de 30 segundos
-2. **Padres** entienden que paso sin hacer scroll horizontal en calendario
-3. **La taxonomia visual** permite identificar tipo de evento de un vistazo
-4. **El mirroring** nunca pierde sincronizacion entre calendario y narrativa
-5. **Sueno nocturno** se ve como UNA barra continua, no fragmentada
+3. **Lactancia:** Validar si el tipo (Pecho/Biberón) corresponde a lo recomendado por edad.
 
 ---
 
-## Notas de la Entrevista
+### Grupo 4: Ambiental / Emocional
 
-### Decisiones Tomadas
+**Fuente de datos:** Cuestionario (Grupo = 4).
 
-1. **Prioridad:** Items 1-3 son MVP, Item 4 (AI) para siguiente sprint
-2. **Narrativa:** 100% automatica, no editable por usuario
-3. **Iconos:** Usar Lucide, buscar el mas cercano para "pecho"
-4. **Colores siesta:** Usar paleta existente, evitar repetir colores ya usados
-5. **Persistencia "Ver todo":** No guarda estado, siempre inicia colapsado
-6. **Interaccion Split:** Click 1 = highlight, Click 2 = editar
-7. **Mirroring:** Bidireccional (calendario <-> narrativa)
-8. **Highlight:** Fade gradual 5-7 segundos
-9. **Layering sueno nocturno:** Revisar si ya esta implementado
-10. **Eventos en progreso:** Revisar implementacion actual
+**Lógica de validación:**
 
-### Contexto Adicional del Usuario
-
-> "Para que no haya confusion: la vista diaria es donde vive el Item 1 de forma extendida. Para Admin es Split Screen. Para Padres es feed vertical. Las vistas semanal/mensual NO llevan narrativa, solo aplica el rediseno visual (Item 2)."
+Evaluar variables de entorno según las condiciones del Spreadsheet:
+- Temperatura
+- Uso de pantallas
+- Depresión post-parto
+- Dinámica familiar
 
 ---
 
+## 3. Comportamiento de Alertas (UX para Mariana)
+
+### Visual
+
+Si una sola condición dentro de un grupo falla, la tarjeta del grupo debe mostrar un **indicador rojo**.
+
+### Interacción (Deep Linking)
+
+- Al hacer clic en el indicador rojo, se abre un desglose de los **Criterios Fuera de Control**.
+
+- Cada criterio debe tener un link directo que lleve a Mariana a:
+  - La respuesta específica en el cuestionario, O
+  - El evento exacto en la bitácora que disparó la alerta
+
 ---
 
-## Trabajo Previo Completado: Refactorizacion Arquitectural
+## 4. El "Pasante AI" (Resumen Ejecutivo)
 
-**Fecha:** 2026-01-23
-**Objetivo:** Establecer Single Source of Truth para colores y componentes reutilizables antes de implementar Items 1-3.
+Motor de procesamiento de lenguaje natural (LLM) que debe recibir como input:
+- JSON del perfil
+- Alertas de los 4 grupos
+- Eventos de los últimos 7 días
 
-### Archivos Creados
+### Misión
 
-| Archivo | Proposito |
-|---------|-----------|
-| `lib/colors/event-colors.ts` | Sistema centralizado de colores para eventos |
-| `hooks/use-modal-datetime.ts` | Hook reutilizable para fecha/hora en modales |
-| `components/events/shared/DelaySelector.tsx` | Selector de tiempo con +/- y opciones rapidas |
-| `components/events/shared/EmotionalStateSelector.tsx` | Selector de estado emocional (tranquilo/inquieto/alterado) |
-| `components/events/shared/index.ts` | Barrel exports |
+Entregar un resumen que contextualice la falla.
 
-### Archivos Modificados
+### Lógica
 
-| Archivo | Cambios |
-|---------|---------|
-| `components/calendar/EventBlock.tsx` | Usa `getEventBlockClasses()` del sistema centralizado |
-| `components/events/types.ts` | Documentacion mejorada, tipos canonicos |
-| `lib/icons/event-icons.ts` | Importa tipos desde `types.ts` |
-| `components/events/SleepDelayModal.tsx` | Integra `DelaySelector` y `EmotionalStateSelector` |
-| `components/events/NightWakingModal.tsx` | Integra componentes compartidos con `themeColor="red"` |
+- Si no hay eventos de bitácora, la IA analiza solo el cuestionario.
+- Si hay eventos, los interpreta dentro del contexto del cuestionario.
+  - Ejemplo: "El niño despierta temprano porque se detectó reflujo en el cuestionario médico".
 
-### Taxonomia de Colores (Single Source of Truth)
+### Restricción
+
+El resumen debe ser informativo para Mariana, **no debe dar recomendaciones médicas directas**.
+
+---
+
+## 5. Cierre del Ciclo: Gestión de Planes
+
+Al final de la pantalla de Estadísticas, habilitar dos triggers de acción (CTAs contextuales).
+
+**Ubicación:** Estos botones aparecen justo al final, después de que Mariana ha leído el análisis del "Pasante AI". La idea es que Mariana no tenga que salir de la pantalla de Estadísticas para tomar una decisión tras ver el diagnóstico.
+
+### Acción Manual (Editar)
+
+**Botón "Editar Plan Actual"**
+
+- Acceso directo que redirige a Mariana al editor del plan que el niño tiene activo en ese momento.
+- Permite hacer ajustes manuales basándose en el análisis.
+
+### Acción AI (Generar)
+
+**Botón "Generar Nuevo Plan (AI)"**
+
+- Trigger para que la IA proponga un **Plan v2.0**.
+- La IA debe comparar los avances entre el plan anterior y los datos actuales para proponer el ajuste de etapa.
+
+### Contexto en el Dashboard
+
+Aunque en el menú lateral existe la sección general de "Planes", estos botones en la vista de Estadísticas son **atajos contextuales** para cerrar el ciclo de auditoría del niño que se está consultando.
+
+### Flujo de Uso
+
+1. Mariana entra a **Estadísticas**.
+2. Revisa el **Semáforo G1-G4** y el **Pasante AI**.
+3. **Al final de esa misma página**, encuentra los botones para actuar sobre el plan.
+
+---
+
+## Arquitectura de Datos Sugerida
+
+### Colecciones Involucradas
+
+| Colección | Uso en Ítem 4 |
+|-----------|---------------|
+| `children` | Perfil clínico, surveyData |
+| `events` | Bitácora para validaciones G1 y G3 |
+| `childPlans` | Plan vigente, versiones |
+| `users` | Datos de padres |
+
+### Estructura de Validación (Propuesta)
 
 ```typescript
-// lib/colors/event-colors.ts
-EVENT_COLORS = {
-  sleep:           "#7DBFE2"  // Cyan azulado - sueno nocturno
-  nap:             "#a78bfa"  // Lavanda - siesta (violet-400)
-  wake:            "#34D399"  // Verde - despertar
-  night_waking:    "#DC2626"  // ROJO - despertar nocturno
-  feeding_breast:  "#EC4899"  // Rosa - pecho
-  feeding_bottle:  "#0EA5E9"  // Azul cielo - biberon
-  feeding_solids:  "#10B981"  // Esmeralda - solidos
-  medication:      "#f59e0b"  // Ambar/Dorado - medicamentos
-  extra_activities:"#33CCCC"  // Turquesa - actividades
-  note:            "#8B5CF6"  // Violeta - notas
+interface DiagnosticResult {
+  childId: string
+  timestamp: Date
+  groups: {
+    g1_schedule: GroupValidation
+    g2_medical: GroupValidation
+    g3_nutrition: GroupValidation
+    g4_environmental: GroupValidation
+  }
+  aiSummary?: string
+  alerts: Alert[]
+}
+
+interface GroupValidation {
+  status: 'ok' | 'warning' | 'alert'
+  criteria: CriterionResult[]
+}
+
+interface CriterionResult {
+  name: string
+  passed: boolean
+  value?: any
+  expected?: any
+  sourceType: 'survey' | 'event' | 'calculated'
+  sourceId?: string  // Para deep linking
+}
+
+interface Alert {
+  group: 'g1' | 'g2' | 'g3' | 'g4'
+  criterion: string
+  message: string
+  deepLink: {
+    type: 'survey' | 'event'
+    id: string
+    field?: string
+  }
 }
 ```
 
-### Tests Realizados
-
-#### Test 1: SleepDelayModal (Color Azul) - PASSED
-- Selector de tiempo: Fondo azul claro, borde azul, texto azul
-- Boton seleccionado: Azul solido
-- Estado emocional: Borde azul cuando seleccionado
-- **Screenshot:** `/tmp/test-1-siesta-modal.png`
-
-#### Test 2: NightWakingModal (Color Rojo) - PENDIENTE
-- Modal actualizado para usar `themeColor="red"`
-- Consistente con `night_waking` en calendario (#DC2626)
-
-#### Test 3: Registro Manual - VERIFICADO
-- Formulario funcional con campos de fecha/hora
-- **Screenshot:** `/tmp/test-2-registro-manual.png`
-
-### Reduccion de Codigo
-
-| Fase | Lineas Eliminadas | Lineas Creadas | Neto |
-|------|-------------------|----------------|------|
-| Colores centralizados | ~80 | ~80 | 0 |
-| Hook useModalDatetime | ~150 | ~60 | -90 |
-| DelaySelector | ~160 | ~45 | -115 |
-| EmotionalStateSelector | ~140 | ~55 | -85 |
-| **Total** | **~530** | **~240** | **-290** |
-
-### Builds Verificados
-
-- [x] `npm run build` exitoso despues de cada fase
-- [x] Sin errores de TypeScript relacionados con los cambios
-- [x] Componentes compartidos compilan correctamente
-
 ---
 
----
+## Endpoints API Sugeridos
 
-## Fix: Eventos Dentro de Bloques de Sueno (2026-01-23)
-
-### Problema
-
-Eventos (night_waking, feeding, medication) que ocurren DURANTE un bloque de sueno nocturno se "aplastaban" visualmente - se solapaban en lugar de mostrarse en columnas separadas.
-
-### Causa Raiz
-
-`SleepSessionBlock.tsx` renderizaba `nightWakings` y `overlayEvents` por separado, sin calcular columnas. Todos usaban `column=0, totalColumns=1` (100% ancho).
-
-### Solucion Implementada
-
-1. **Crear funcion compartida** - `lib/utils/calculate-event-columns.ts`
-   - Algoritmo de 2 pasadas para calcular columnas de eventos superpuestos
-   - Tipado generico `<T extends BaseEvent>` para preservar propiedades
-   - Incluye `filterVisibleEvents()` para limitar a 3 columnas max
-
-2. **Modificar SleepSessionBlock.tsx**
-   - Combinar `nightWakings` + `overlayEvents` en `allInternalEvents`
-   - Usar `calculateEventColumns()` para calcular columnas juntas
-   - Eventos simultaneos ahora se muestran lado a lado (50%, 33%, etc.)
-
-3. **Refactor DRY** - CalendarWeekView y CalendarDayView
-   - Eliminar ~80 lineas de codigo duplicado de cada archivo
-   - Importar funcion compartida desde `lib/utils/`
-
-4. **UI: Solo iconos** - Quitar texto de eventos dentro de bloques de sueno
-   - Consistente con el resto del calendario
-
-### Archivos Modificados
-
-| Archivo | Cambio |
-|---------|--------|
-| `lib/utils/calculate-event-columns.ts` | NUEVO - Funcion compartida |
-| `components/calendar/SleepSessionBlock.tsx` | Usar columnas para eventos internos |
-| `components/calendar/CalendarWeekView.tsx` | Importar funcion compartida |
-| `components/calendar/CalendarDayView.tsx` | Importar funcion compartida |
-
-### Verificacion
-
-| Criterio | Estado |
-|----------|--------|
-| Eventos dentro de sleep se muestran en columnas | PASS |
-| nightWaking + feeding simultaneos lado a lado | PASS |
-| Solo iconos (sin texto) dentro de sleep blocks | PASS |
-| Vista semanal y diaria funcionan correctamente | PASS |
-
----
-
-## Item 3: Implementacion Completada (2026-01-25)
-
-### Cambio Arquitectural
-
-El `SplitScreenBitacora` estaba ubicado incorrectamente en `/dashboard/patients/child/[childId]/` (seccion de detalle de pacientes admin). Segun el spec, debia estar en la **vista Diaria del calendario** (`/dashboard/calendar`).
-
-### Cambios Realizados
-
-| Archivo | Cambio | Lineas |
-|---------|--------|--------|
-| `app/dashboard/calendar/page.tsx` | Integrar SplitScreenBitacora (admin) y NarrativeTimeline (parent) | +47 |
-| `app/dashboard/patients/child/[childId]/AdminChildDetailClient.tsx` | Remover SplitScreen y simplificar tab eventos | -121 |
-
-### Flujo Implementado
-
-```
-/dashboard/calendar (vista Diario):
-├── Admin → SplitScreenBitacora (50% calendario + 50% narrativa)
-└── Parent → NarrativeTimeline (solo narrativa vertical)
-
-/dashboard/patients/child/[id] (tab Eventos):
-└── Todos → EventsCalendarTabs (lista simplificada)
-```
-
-### Codigo Clave Agregado
-
-**calendar/page.tsx - Admin:**
-```typescript
-{view === "day" ? (
-  <SplitScreenBitacora
-    events={events}
-    childName={activeChildName}
-    selectedDate={date}
-    timezone={userTimeZone}
-    onEventUpdate={invalidateEvents}
-    onDayNavigateBack={navigateOneDayBack}
-    onDayNavigateForward={navigateOneDayForward}
-  />
-) : (
-  <CalendarMain ... />
-)}
-```
-
-**calendar/page.tsx - Parent:**
-```typescript
-{view === "day" ? (
-  <NarrativeTimeline
-    events={dayEvents as unknown as NarrativeTimelineEvent[]}
-    childName={activeChildName}
-    timezone={userTimeZone}
-    isLoading={isLoading}
-    onEventEdit={(eventId) => {
-      const ev = dayEvents.find(e => e._id === eventId)
-      if (ev) handleEventClick(ev)
-    }}
-    emptyMessage="No hay eventos registrados hoy"
-  />
-) : (
-  <CalendarMain ... />
-)}
-```
-
-### Testing Visual Realizado
-
-| Test | Usuario | Resultado | Screenshot |
-|------|---------|-----------|------------|
-| Vista Diaria Admin | mariana@admin.com | Split Screen visible (50/50) | `/tmp/test-admin-split-screen.png` |
-| Vista Diaria Parent | eljulius@nebulastudios.io | Narrativa vertical centrada | `/tmp/test-parent-narrative.png` |
-
-### Verificacion
-
-| Criterio | Estado |
-|----------|--------|
-| Admin ve Split Screen en vista Diario | PASS |
-| Parent ve Narrativa vertical en vista Diario | PASS |
-| Patients sin Split Screen (tab eventos simplificado) | PASS |
-| Build exitoso (`npm run build`) | PASS |
-| Mirroring bidireccional (calendario <-> narrativa) | PASS (componente existente) |
-| Empty state correcto | PASS |
+| Endpoint | Método | Descripción |
+|----------|--------|-------------|
+| `/api/admin/diagnostics/[childId]` | GET | Obtener diagnóstico completo |
+| `/api/admin/diagnostics/[childId]/validate` | POST | Forzar revalidación |
+| `/api/admin/diagnostics/[childId]/ai-summary` | POST | Generar resumen AI |
 
 ---
 
 ## Siguiente Paso
 
-**Items 1, 2 y 3 completados.** Sprint MVP finalizado. Listo para QA.
+Definir los validadores específicos para cada criterio de los grupos G1-G4, basándose en el Google Sheet de reglas de Happy Dreamers.

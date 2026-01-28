@@ -97,33 +97,28 @@ function formatDuration(minutes: number): string {
 
 /**
  * Genera narrativa para alimentacion
+ * ITEM 8: Formato reducido - tipo + cantidad, sin duracion
  */
 function generateFeedingNarrative(childName: string, event: NarrativeEvent): string {
-  const { feedingType, feedingAmount, feedingDuration } = event
+  const { feedingType, feedingAmount } = event
 
   if (feedingType === "breast") {
-    // "[nombre] tomo pecho por [X] minutos"
-    if (feedingDuration) {
-      return `${childName} tomo pecho por ${feedingDuration} minutos`
-    }
+    // "[nombre] tomo pecho" (sin duracion)
     return `${childName} tomo pecho`
   }
 
   if (feedingType === "bottle") {
-    // "[nombre] tomo [X] ml de biberon"
+    // "[nombre] tomo biberon [X]ml"
     if (feedingAmount) {
-      return `${childName} tomo ${feedingAmount} ml de biberon`
-    }
-    if (feedingDuration) {
-      return `${childName} tomo biberon por ${feedingDuration} minutos`
+      return `${childName} tomo biberon ${feedingAmount}ml`
     }
     return `${childName} tomo biberon`
   }
 
   if (feedingType === "solids") {
-    // "[nombre] comio [descripcion]" o "[nombre] comio solidos"
+    // "[nombre] comio [X]gr"
     if (feedingAmount) {
-      return `${childName} comio ${feedingAmount} gr de solidos`
+      return `${childName} comio solidos ${feedingAmount}gr`
     }
     return `${childName} comio solidos`
   }
@@ -262,20 +257,13 @@ function generateMedicationNarrative(childName: string, event: NarrativeEvent): 
 
 /**
  * Genera narrativa para actividades extra
+ * ITEM 8: Formato reducido - solo descripcion, sin duracion
  */
 function generateActivityNarrative(childName: string, event: NarrativeEvent): string {
-  const { activityDescription, activityDuration } = event
-
-  if (activityDescription && activityDuration) {
-    return `${childName} hizo ${activityDescription} por ${activityDuration} minutos`
-  }
+  const { activityDescription } = event
 
   if (activityDescription) {
     return `${childName} hizo ${activityDescription}`
-  }
-
-  if (activityDuration) {
-    return `${childName} realizo una actividad de ${activityDuration} minutos`
   }
 
   return `${childName} realizo una actividad`
@@ -289,9 +277,9 @@ function generateNoteNarrative(childName: string, event: NarrativeEvent): string
   const text = noteText || notes
 
   if (text) {
-    // Truncar si es muy largo
+    // Truncar si es muy largo - mostrar solo el contenido sin prefijo
     const truncated = text.length > 100 ? text.substring(0, 97) + "..." : text
-    return `Nota: ${truncated}`
+    return truncated
   }
 
   return `Nota sobre ${childName}`

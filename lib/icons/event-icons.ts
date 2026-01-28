@@ -17,7 +17,7 @@
  * @see lib/colors/event-colors.ts para sistema de colores
  */
 
-import { LucideIcon, Moon, Sun, Baby, UtensilsCrossed, Pill, Activity, Clock, Heart, Milk, CloudMoon } from "lucide-react"
+import { LucideIcon, Moon, Sun, Baby, UtensilsCrossed, Pill, Activity, Clock, Heart, Milk, CloudMoon, StickyNote } from "lucide-react"
 import type { EventType, FeedingType } from "@/components/events/types"
 
 /**
@@ -36,6 +36,7 @@ export type EventIconType =
   | "feeding_solids"
   | "medication"
   | "extra_activities"
+  | "note"
   | "default"
 
 // Configuracion de un icono de evento
@@ -114,6 +115,12 @@ export const EVENT_ICONS: Record<EventIconType, EventIconConfig> = {
     color: "#f97316",      // orange-500
     bgColor: "bg-extra-activities",
     label: "Actividad Extra",
+  },
+  note: {
+    icon: StickyNote,
+    color: "#374151",      // gray-700 (oscuro para contraste)
+    bgColor: "bg-violet-100",
+    label: "Nota",
   },
   default: {
     icon: Clock,

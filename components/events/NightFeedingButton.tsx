@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import { UtensilsCrossed, Loader2 } from "lucide-react"
+import { Moon, Loader2, Milk } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { EventData, FeedingModalData } from "./types"
@@ -13,89 +13,69 @@ import { useSleepState } from "@/hooks/use-sleep-state"
 import { useUser } from "@/context/UserContext"
 import { format } from "date-fns"
 
-interface FeedingButtonProps {
+interface NightFeedingButtonProps {
   childId: string
   childName: string
   onEventRegistered?: () => void
 }
 
 /**
- * Botón para registrar eventos de alimentación
- * VERSION 1.0 - Registro directo con modal
- * 
- * LÓGICA DE EVENTOS:
- * - ALIMENTACIÓN: Modal PRIMERO → Confirmar datos → ENTONCES crear evento
- * - CANCELAR MODAL: NO crea evento (operación cancelada)
- * 
- * FLUJO:
- * 1. Click "ALIMENTACIÓN" → Modal FeedingModal
- * 2. Confirmar datos → Crear evento con todos los detalles
- * 3. Cerrar modal → NO crear evento
+ * Boton para registrar alimentacion nocturna
+ * VERSION 1.0 - Visible SOLO cuando el nino duerme
+ *
+ * LOGICA:
+ * - Visible solo cuando sleepState.status === "sleeping" || "napping"
+ * - Abre FeedingModal con babyState="asleep" preseleccionado
+ * - Registra evento con isNightFeeding=true
+ * - NO cambia el estado de sueno del nino
  */
-export function FeedingButton({ 
-  childId, 
+export function NightFeedingButton({
+  childId,
   childName,
-  onEventRegistered, 
-}: FeedingButtonProps) {
+  onEventRegistered,
+}: NightFeedingButtonProps) {
   const { toast } = useToast()
   const [isProcessing, setIsProcessing] = useState(false)
   const { getCurrentTime } = useDevTime()
   const [showFeedingModal, setShowFeedingModal] = useState(false)
   const { userData } = useUser()
-  const { sleepState } = useSleepState(childId, userData.timezone)
-  
-  // Configuración del botón
-  const getButtonConfig = () => {
-    return {
-      text: "ALIMENTACIÓN",
-      icon: UtensilsCrossed,
-      color: "from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600",
-    }
-  }
-  
-  const config = getButtonConfig()
-  const Icon = config.icon
-  
-  // Manejar confirmación del modal de alimentación
+  const { sleepState } = useSleepState(childId, userData?.timezone)
+
+  // Manejar confirmacion del modal de alimentacion
   const handleFeedingConfirm = async (feedingData: FeedingModalData) => {
     try {
       setIsProcessing(true)
 
       const now = getCurrentTime()
 
-      // Detectar si el bebé está dormido actualmente
-      const isBabySleeping = sleepState.status === "sleeping" || sleepState.status === "napping"
-      const isLiquid = feedingData.feedingType === "breast" || feedingData.feedingType === "bottle"
-      const normalizedBabyState = feedingData.feedingType === "solids" ? "awake" : feedingData.babyState
-
-      // Determinar si es alimentación nocturna y el contexto
-      const isNightFeeding = isBabySleeping && isLiquid
+      // Determinar contexto segun estado actual
       const feedingContext = sleepState.status === "sleeping"
         ? "during_sleep"
         : sleepState.status === "napping"
           ? "during_nap"
           : "awake"
 
-      // NUEVO PATRON: startTime = hora ingresada, endTime = ahora (momento de guardar)
+      // Construir startTime y endTime
       const todayDate = format(now, "yyyy-MM-dd")
       const startTimeDate = buildLocalDate(todayDate, feedingData.feedingTime)
       const endTimeDate = now
 
-      // Crear UN SOLO evento de alimentación con flag isNightFeeding
+      // Crear evento de alimentacion nocturna
+      // isNightFeeding=true indica que es alimentacion durante el sueno
       const eventData: Partial<EventData> = {
         childId,
         eventType: "feeding",
-        startTime: dateToTimestamp(startTimeDate, userData.timezone),
-        endTime: dateToTimestamp(endTimeDate, userData.timezone),
+        startTime: dateToTimestamp(startTimeDate, userData?.timezone),
+        endTime: dateToTimestamp(endTimeDate, userData?.timezone),
         feedingType: feedingData.feedingType,
         feedingSubtype: feedingData.feedingType,
-        feedingAmount: feedingData.feedingAmount, // Solo para bottle
-        babyState: normalizedBabyState,
+        feedingAmount: feedingData.feedingAmount,
+        babyState: "asleep", // Siempre asleep para alimentacion nocturna
         feedingNotes: feedingData.feedingNotes,
         notes: feedingData.feedingNotes,
-        emotionalState: "neutral", // Por defecto neutral para alimentación
-        // Nuevos campos para alimentación nocturna (reemplaza eventType: "night_feeding")
-        isNightFeeding,
+        emotionalState: "neutral",
+        // Flags de alimentacion nocturna
+        isNightFeeding: true,
         feedingContext,
       }
 
@@ -106,16 +86,16 @@ export function FeedingButton({
       })
 
       if (!response.ok) {
-        throw new Error("Error al registrar evento de alimentación")
+        throw new Error("Error al registrar alimentacion nocturna")
       }
 
-      // Preparar mensaje personalizado según tipo
+      // Mensaje de confirmacion
       const getTypeText = (type: string) => {
         switch (type) {
         case "breast": return "pecho"
-        case "bottle": return "biberón"
-        case "solids": return "sólidos"
-        default: return "alimentación"
+        case "bottle": return "biberon"
+        case "solids": return "solidos"
+        default: return "alimentacion"
         }
       }
 
@@ -126,43 +106,41 @@ export function FeedingButton({
         return ""
       }
 
-      // Mostrar confirmación personalizada
       toast({
-        title: isNightFeeding ? "Alimentación nocturna registrada" : "Alimentación registrada",
-        description: `${childName}: ${getTypeText(feedingData.feedingType)}${getAmountText(feedingData.feedingType, feedingData.feedingAmount)}${isNightFeeding ? " (durante el sueño)" : ""}`,
+        title: "Alimentacion nocturna registrada",
+        description: `${childName}: ${getTypeText(feedingData.feedingType)}${getAmountText(feedingData.feedingType, feedingData.feedingAmount)} (durante el sueno)`,
       })
-      
-      // Cerrar modal y limpiar
+
+      // Cerrar modal
       setShowFeedingModal(false)
-      
+
       // Notificar al padre para actualizar datos
+      // NOTA: NO cambiamos el estado de sueno del nino
       onEventRegistered?.()
-      
+
     } catch (error) {
-      console.error("Error registrando alimentación:", error)
+      console.error("Error registrando alimentacion nocturna:", error)
       toast({
         title: "Error",
-        description: "No se pudo registrar la alimentación",
+        description: "No se pudo registrar la alimentacion nocturna",
         variant: "destructive",
       })
     } finally {
       setIsProcessing(false)
     }
   }
-  
-  // Manejar cuando se cierra el modal sin confirmar
+
+  // Manejar cierre del modal sin confirmar
   const handleModalClose = () => {
-    // NO crear evento - simplemente cancelar la operación
     setShowFeedingModal(false)
     setIsProcessing(false)
   }
-  
-  // Manejar click del botón
+
+  // Manejar click del boton
   const handleClick = async () => {
-    // Mostrar modal directamente
     setShowFeedingModal(true)
   }
-  
+
   return (
     <div className="w-full h-full">
       <Button
@@ -172,26 +150,30 @@ export function FeedingButton({
           "w-full h-full min-h-[44px] text-xs md:text-sm font-bold text-white shadow-lg",
           "transform transition-all duration-200 hover:scale-[1.02]",
           "bg-gradient-to-r",
-          config.color,
+          "from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600",
           "flex flex-col items-center justify-center gap-1 p-2"
         )}
       >
         {isProcessing ? (
           <Loader2 className="w-5 h-5 animate-spin" />
         ) : (
-          <Icon className="w-5 h-5" />
+          <div className="relative">
+            <Milk className="w-5 h-5" />
+            <Moon className="w-3 h-3 absolute -top-1 -right-2" />
+          </div>
         )}
-        <span className="text-xs">{config.text}</span>
+        <span className="text-xs">ALIMENTACION</span>
+        <span className="text-[10px] opacity-80">NOCTURNA</span>
       </Button>
-      
-      {/* Modal para capturar datos de alimentación */}
+
+      {/* Modal de alimentacion con babyState="asleep" preseleccionado */}
       <FeedingModal
         open={showFeedingModal}
         onClose={handleModalClose}
         onConfirm={handleFeedingConfirm}
         childName={childName}
         initialData={{
-          babyState: "awake"  // FeedingButton solo se muestra cuando está despierto
+          babyState: "asleep", // Preseleccionar dormido
         }}
       />
     </div>

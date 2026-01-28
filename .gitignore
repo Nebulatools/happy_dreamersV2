@@ -43,3 +43,6 @@ package-lock.json
 **/playwright-report/
 **/__screenshots__/ralph-log.txt
 docs/dev-qa/screenshots/
+
+# Test screenshots from E2E testing
+test-screenshots/

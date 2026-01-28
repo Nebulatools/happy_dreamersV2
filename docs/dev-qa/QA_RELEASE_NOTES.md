@@ -1,249 +1,259 @@
 # QA Release Notes - Sprint Actual
 
-**Fecha:** 2026-01-25
-**Sprint:** Mejoras UX/UI Dashboard - Vista Narrativa y Taxonomia Visual
+**Fecha:** 2026-01-28
+**Sprint:** Mejoras UX Calendario, Edicion de Eventos, Sync y Orden Cronologico
 **URL:** http://localhost:3000
 
 ---
 
-## Resumen de Cambios (SPEC-SPRINT)
+## Resumen de Cambios
 
 | Item | Descripcion | Estado |
 |------|-------------|--------|
-| Item 1 | Vista Narrativa en Home (padres) con collapsible | COMPLETADO |
-| Item 2 | Taxonomia Visual (colores por tipo alimentacion, siestas lavanda) | COMPLETADO |
-| Item 3 | Split Screen Admin / Narrativa Parent en vista Diaria | COMPLETADO |
-| Fix | Eventos dentro de bloques de sueno en columnas | COMPLETADO |
-| UI | Estilos nocturnos oscuros para bloques de sueno | COMPLETADO |
+| Item 1 | Home: NarrativeTimeline con limite 3, grid responsive, boton expandir siempre visible | COMPLETADO |
+| Item 2 | Iconos centralizados en perfil admin del nino | COMPLETADO |
+| Item 4 | Eliminar scroll interno fijo en calendario | COMPLETADO |
+| Item 5 | Ocultar tab Mensual y toggle Grafico/Calendario para padres | COMPLETADO |
+| Item 6 | Edicion de endTime en todos los modales (Feeding, Medication, ExtraActivity, NightWaking) | COMPLETADO |
+| Item 8 | Reducir texto en NarrativeTimeline | COMPLETADO |
+| Item 9 | Eliminar localStorage para sleep state, usar solo API | COMPLETADO |
+| Item 10 | Card Plan vs Eventos comparativa en vista diaria | COMPLETADO |
+| Item 11 | Boton NightFeeding para alimentacion durante sueno | COMPLETADO |
+| Fix | Vista por defecto = Calendario (no Eventos) para padres | COMPLETADO |
+| Fix | Altura del contenedor calendario corregida para padres | COMPLETADO |
+| Fix | Fondos neutros en tabs EventsCalendarTabs | COMPLETADO |
+| Fix | Iconos estandarizados en EventsCalendarTabs | COMPLETADO |
+| Fix | Eliminar selector redundante de baby state en FeedingModal | COMPLETADO |
+| Fix | Sync instantaneo de eventos sleep/nap entre navegadores | COMPLETADO |
+| Fix | Orden cronologico ascendente en NarrativeTimeline del calendario | COMPLETADO |
 
 ---
 
-## TEST 1: Vista Narrativa en Home (Padres) - Item 1
+## TEST 1: Home - NarrativeTimeline con limite 3 y grid responsive
 
 **Ruta:** `/dashboard` (Home del padre)
-
-**Descripcion:** Los padres ven los ultimos eventos del dia en formato narrativo con opcion de expandir/colapsar.
 
 ### Pasos
 
 1. Login como USUARIO/PADRE (eljulius@nebulastudios.io / juls0925)
 2. Ir al Dashboard principal (Home)
-3. Localizar la seccion de eventos/bitacora
+3. Localizar la seccion de eventos narrativos
 
-### Verificar Estado Inicial (Colapsado)
+### Verificar
 
-- [ ] Por defecto muestra maximo 5 eventos
-- [ ] Eventos en formato narrativo (tarjetas con texto)
-- [ ] Cada tarjeta tiene: icono + texto narrativo + hora
-- [ ] Existe boton "Ver todo" (si hay mas de 5 eventos)
-
-### Verificar Expandir/Colapsar
-
-- [ ] Click en "Ver todo" expande la lista completa del dia
-- [ ] Click en "Colapsar" vuelve a mostrar solo 5 eventos
-- [ ] Al recargar pagina, vuelve a estado colapsado (no guarda estado)
-
-### Verificar Formato de Narrativa
-
-| Tipo | Formato Esperado |
-|------|------------------|
-| Alimentacion pecho | "[Nombre] tomo pecho por [X] minutos" |
-| Alimentacion biberon | "[Nombre] tomo [X] oz de leche" |
-| Siesta | "[Nombre] durmio una siesta de [X] min" |
-| Sueno nocturno | "[Nombre] durmio de [hora] a [hora]" |
-| Despertar nocturno | "[Nombre] desperto a las [hora]" |
-| Medicamento | "[Nombre] tomo [medicamento]" |
-
-### Verificar Ordenamiento
-
-- [ ] Eventos ordenados cronologicamente inverso (mas reciente arriba)
-
-### Verificar Edge Case
-
-- [ ] Si no hay eventos del dia: mostrar "No hay eventos registrados hoy"
-
-### Verificar Navegacion
-
-- [ ] Click en chevron (>) de una tarjeta abre modal de edicion
+- [ ] Muestra maximo 3 eventos por defecto (no 5)
+- [ ] Boton "Ver todo" SIEMPRE visible (aunque haya menos de 3 eventos)
+- [ ] Layout responsive: narrativa + calendario lado a lado en desktop
+- [ ] Click en "Ver todo" expande la lista completa
+- [ ] Click en "Colapsar" vuelve a mostrar solo 3
+- [ ] Eventos ordenados cronologicamente INVERSO (mas reciente primero)
 
 ---
 
-## TEST 2: Taxonomia Visual - Colores por Tipo de Alimentacion
+## TEST 2: Ocultar tabs para padres en Calendario
 
 **Ruta:** `/dashboard/calendar`
 
-**Descripcion:** Los eventos de alimentacion ahora tienen colores diferenciados segun el tipo.
-
-### Colores Esperados
-
-| Tipo | Color | Icono |
-|------|-------|-------|
-| Pecho (breast) | Rosa (#EC4899) | Icono pecho |
-| Biberon (bottle) | Azul cielo (#0EA5E9) | Icono biberon |
-| Solidos (solids) | Esmeralda (#10B981) | Cubiertos cruzados |
-
 ### Pasos
 
-1. Login como usuario (eljulius@nebulastudios.io / juls0925)
+1. Login como USUARIO/PADRE
 2. Ir a Calendario
-3. Verificar eventos de alimentacion en vistas Dia, Semana, Mes
 
 ### Verificar
 
-- [ ] Alimentacion pecho = color ROSA
-- [ ] Alimentacion biberon = color AZUL CIELO
-- [ ] Alimentacion solidos = color ESMERALDA/VERDE
-- [ ] Iconos son BLANCOS sobre el fondo de color
-- [ ] Colores consistentes en vista Diaria, Semanal y Mensual
+- [ ] Tab "Mensual" NO visible para padres
+- [ ] Toggle "Grafico/Calendario" NO visible para padres
+- [ ] Vista por defecto es "Calendario" (NO "Eventos")
+- [ ] Tabs "Dia" y "Semana" SI visibles
 
----
-
-## TEST 3: Taxonomia Visual - Siestas en Lavanda
-
-**Ruta:** `/dashboard/calendar`
-
-**Descripcion:** Las siestas (nap) ahora usan color lavanda claro para diferenciarse del sueno nocturno.
-
-### Colores Esperados
-
-| Tipo | Color |
-|------|-------|
-| Siesta (nap) | Lavanda (#a78bfa / violet-400) - CLARO |
-| Sueno nocturno (sleep) | Indigo-purpura OSCURO |
-
-### Pasos
-
-1. Login como usuario
-2. Ir a Calendario > Vista Diaria
-3. Localizar eventos de siesta y sueno nocturno
-
-### Verificar
-
-- [ ] Siestas tienen color LAVANDA CLARO (no naranja)
-- [ ] Sueno nocturno tiene color INDIGO/PURPURA OSCURO
-- [ ] Diferencia visual clara entre siesta y sueno nocturno
-- [ ] Graficos de barras usan mismos colores (consistencia)
-
----
-
-## TEST 4: Split Screen para Admin (Vista Diaria)
-
-**Ruta:** `/dashboard/calendar` > Vista "Dia"
-
-**Descripcion:** Admins ven layout 50/50 con calendario a la izquierda y narrativa a la derecha.
-
-### Pasos
+### Verificar como Admin
 
 1. Login como ADMIN (mariana@admin.com / password)
 2. Ir a Calendario
-3. Seleccionar vista "Dia"
 
-### Verificar Layout
-
-- [ ] Pantalla dividida 50% / 50%
-- [ ] Lado IZQUIERDO = Calendario (bloques de tiempo)
-- [ ] Lado DERECHO = Narrativa (tarjetas de texto)
-- [ ] Ambos paneles muestran los mismos eventos
-
-### Verificar Mirroring Bidireccional
-
-- [ ] Click en evento del CALENDARIO -> Narrativa hace scroll + highlight
-- [ ] Click en evento de NARRATIVA -> Calendario hace scroll + highlight
-- [ ] Highlight se desvanece gradualmente (5-7 segundos)
-- [ ] Doble click abre modal de edicion
+- [ ] Tab "Mensual" SI visible para admin
+- [ ] Toggle "Grafico/Calendario" SI visible para admin
 
 ---
 
-## TEST 5: Narrativa Vertical para Padres (Vista Diaria)
+## TEST 3: Edicion de endTime en todos los modales
 
-**Ruta:** `/dashboard/calendar` > Vista "Dia"
-
-**Descripcion:** Padres ven narrativa vertical completa (sin split screen).
-
-### Pasos
-
-1. Login como USUARIO/PADRE (eljulius@nebulastudios.io / juls0925)
-2. Ir a Calendario
-3. Seleccionar vista "Dia"
-
-### Verificar
-
-- [ ] NO hay split screen (pantalla completa)
-- [ ] Se muestra narrativa vertical (timeline de tarjetas)
-- [ ] Cada evento tiene: icono + texto narrativo + hora
-- [ ] Click en chevron (>) abre modal de edicion
-- [ ] Eventos ordenados cronologicamente
-
-### Formato de Narrativa Esperado
-
-| Tipo | Ejemplo |
-|------|---------|
-| Alimentacion pecho | "[Nombre] tomo pecho por [X] minutos" |
-| Alimentacion biberon | "[Nombre] tomo [X] oz de leche" |
-| Siesta | "[Nombre] durmio una siesta de [X] min" |
-| Sueno nocturno | "[Nombre] durmio de [hora] a [hora]" |
-
----
-
-## TEST 6: Eventos Dentro de Bloques de Sueno en Columnas
-
-**Ruta:** `/dashboard/calendar` > Vista Diaria o Semanal
-
-**Descripcion:** Eventos que ocurren DURANTE un bloque de sueno (despertares, alimentacion nocturna) se muestran en columnas lado a lado.
+**Ruta:** `/dashboard/calendar` > Click en evento > Editar
 
 ### Pasos
 
 1. Login como usuario
-2. Ir a Calendario
-3. Localizar un bloque de sueno nocturno que tenga eventos internos
+2. Ir a Calendario > Vista Dia
+3. Click en un evento de alimentacion para editarlo
 
-### Verificar
+### Verificar por tipo de evento
 
-- [ ] Despertares nocturnos (night_waking) visibles DENTRO del bloque de sueno
-- [ ] Alimentaciones nocturnas visibles DENTRO del bloque de sueno
-- [ ] Si hay 2+ eventos simultaneos, se muestran LADO A LADO (columnas)
-- [ ] Eventos internos solo muestran ICONO (sin texto)
-- [ ] Click en evento interno abre sus detalles
-- [ ] Maximo 3 columnas visibles ("+N mas" si hay mas)
+#### Alimentacion (Feeding)
+
+- [ ] Al editar, aparece campo de fecha/hora de inicio
+- [ ] Al editar, aparece campo de fecha/hora de fin (endTime)
+- [ ] Al guardar, se actualiza correctamente el startTime
+- [ ] Al guardar, se actualiza correctamente el endTime
+
+#### Medicamento (Medication)
+
+- [ ] Al editar, aparece campo de fecha/hora de inicio
+- [ ] Al editar, aparece campo de fecha/hora de fin (endTime)
+- [ ] Al guardar, se actualizan ambos timestamps
+
+#### Actividad Extra (ExtraActivity)
+
+- [ ] Al editar, aparece campo de fecha/hora de inicio
+- [ ] Al editar, aparece campo de fecha/hora de fin (endTime)
+- [ ] Al guardar, se actualizan ambos timestamps
+
+#### Despertar Nocturno (NightWaking)
+
+- [ ] Al editar, aparece campo de fecha/hora de inicio
+- [ ] Al editar, aparece campo de fecha/hora de fin (endTime)
+- [ ] Al guardar, se actualizan ambos timestamps
 
 ---
 
-## TEST 7: Estilos Nocturnos en Bloques de Sueno
+## TEST 4: Card Plan vs Eventos
+
+**Ruta:** `/dashboard/calendar` > Vista Dia
+
+### Pasos
+
+1. Login como usuario con un nino que tenga plan activo
+2. Ir a Calendario > Vista Dia
+3. Localizar la card "Plan vs Eventos"
+
+### Verificar
+
+- [ ] Card visible arriba de la narrativa en vista diaria
+- [ ] Muestra los eventos del plan (horario meta) a la izquierda
+- [ ] Muestra los eventos reales registrados a la derecha
+- [ ] Comparacion visual clara entre plan y realidad
+- [ ] Si no hay plan activo, la card no se muestra (o muestra mensaje)
+
+---
+
+## TEST 5: Boton NightFeeding durante sueno
+
+**Ruta:** `/dashboard` (Home)
+
+### Pasos
+
+1. Login como usuario
+2. Registrar que el bebe se durmio (boton "DORMIR")
+3. Verificar que aparece opcion de alimentacion nocturna
+
+### Verificar
+
+- [ ] Mientras el bebe duerme, hay boton para registrar alimentacion nocturna
+- [ ] Al registrar, el evento se crea con `isNightFeeding: true`
+- [ ] El evento aparece como tipo "feeding" (NO como tipo separado "night_feeding")
+- [ ] En calendario, el evento se muestra dentro del bloque de sueno
+
+---
+
+## TEST 6: Sync instantaneo de sleep/nap entre navegadores
+
+**Ruta:** `/dashboard` (Home)
+
+### Pasos
+
+1. Login como usuario en 2 navegadores/tabs diferentes
+2. En el navegador A, registrar que el bebe se durmio
+3. Observar el navegador B
+
+### Verificar
+
+- [ ] El estado de sueno se actualiza en el navegador B sin recargar
+- [ ] No hay dependencia de localStorage (solo API)
+- [ ] Al despertar en navegador A, el navegador B refleja el cambio
+
+---
+
+## TEST 7: Eliminar selector redundante en FeedingModal
+
+**Ruta:** `/dashboard` > Registrar alimentacion
+
+### Pasos
+
+1. Login como usuario
+2. Click en boton de alimentacion (icono cubiertos)
+
+### Verificar
+
+- [ ] NO aparece selector redundante de "estado del bebe" (awake/asleep) si ya se determina automaticamente
+- [ ] Modal funciona correctamente sin el selector eliminado
+- [ ] El campo `babyState` se asigna automaticamente segun el contexto
+
+---
+
+## TEST 8: Orden cronologico en NarrativeTimeline del calendario
+
+**Ruta:** `/dashboard/calendar` > Vista Dia
+
+### Pasos
+
+1. Login como USUARIO/PADRE
+2. Ir a Calendario > Vista Dia
+3. Verificar el orden de eventos en la lista narrativa
+
+### Verificar como Padre
+
+- [ ] Eventos en orden ASCENDENTE (cronologico: 8:00, 10:30, 13:00...)
+- [ ] El primer evento del dia aparece ARRIBA
+- [ ] El ultimo evento del dia aparece ABAJO
+
+### Verificar como Admin (Split Screen)
+
+1. Login como ADMIN
+2. Ir a Calendario > Vista Dia
+
+- [ ] Panel derecho (narrativa) en orden ASCENDENTE
+- [ ] Orden consistente con el calendario visual (panel izquierdo)
+
+### Verificar Home (NO debe cambiar)
+
+1. Login como usuario
+2. Ir a Dashboard Home
+
+- [ ] Eventos en orden DESCENDENTE (mas reciente primero) - SIN CAMBIO
+
+---
+
+## TEST 9: Fondos neutros y iconos estandarizados en tabs
 
 **Ruta:** `/dashboard/calendar`
 
-**Descripcion:** Los bloques de sueno nocturno tienen colores oscuros (indigo/purpura) para dar sensacion de "noche".
-
-### Cambios Visuales
-
-| Elemento | Valor |
-|----------|-------|
-| Gradiente fondo | Indigo-700 -> Purple-800 -> Purple-900 |
-| Iconos Moon/Sun | BLANCO con sombra negra |
-| Opacidad | Alta (0.45+) - NO tenue |
-
 ### Pasos
 
 1. Login como usuario
-2. Ir a Calendario > Vista Diaria
-3. Localizar bloque de sueno nocturno completado
+2. Ir a Calendario
+3. Observar los tabs de Eventos y Calendario
 
-### Verificar Sueno Completado
+### Verificar
 
-- [ ] Gradiente azul-purpura OSCURO visible
-- [ ] Icono Moon (arriba) es BLANCO
-- [ ] Icono Sun (abajo) es BLANCO
-- [ ] Buen contraste - se ve claramente
+- [ ] Fondos de tabs son neutros (no colores fuertes)
+- [ ] Iconos en tabs son consistentes con el sistema de iconos centralizado
+- [ ] No hay conflictos visuales entre tabs activos/inactivos
 
-### Verificar Sueno en Progreso
+---
 
-1. Registrar un nuevo sueno (boton "DORMIR")
-2. Verificar en calendario:
+## TEST 10: Altura del contenedor calendario para padres
 
-- [ ] Header tiene gradiente SOLIDO (indigo-purpura)
-- [ ] Icono Moon es BLANCO
-- [ ] Fade hacia abajo es purpura oscuro
-- [ ] Puntos animados son BLANCOS
+**Ruta:** `/dashboard/calendar`
+
+### Pasos
+
+1. Login como USUARIO/PADRE
+2. Ir a Calendario > Vista Dia
+
+### Verificar
+
+- [ ] El contenedor del calendario ocupa el alto correcto (no cortado)
+- [ ] No hay scroll interno innecesario dentro del calendario
+- [ ] El contenido es visible sin tener que hacer scroll dentro del componente
 
 ---
 
@@ -260,15 +270,17 @@
 
 | Archivo | Cambio |
 |---------|--------|
-| `lib/colors/event-colors.ts` | Sistema centralizado de colores |
-| `lib/icons/event-icons.ts` | Iconos por tipo de evento |
-| `components/calendar/SleepSessionBlock.tsx` | Estilos nocturnos, columnas internas |
-| `components/calendar/CalendarDayView.tsx` | Usa sistema centralizado |
-| `components/calendar/CalendarWeekView.tsx` | Usa sistema centralizado |
-| `components/bitacora/SplitScreenBitacora.tsx` | Split screen admin |
-| `components/narrative/NarrativeTimeline.tsx` | Narrativa vertical |
-| `app/dashboard/calendar/page.tsx` | Integra Split/Narrativa segun rol |
-| `app/globals.css` | Color siesta lavanda |
+| `components/narrative/NarrativeTimeline.tsx` | Prop sortOrder, limite 3, texto reducido |
+| `app/dashboard/calendar/page.tsx` | sortOrder="asc", ocultar tabs padre, vista default calendario, altura |
+| `components/bitacora/SplitScreenBitacora.tsx` | sortOrder="asc" |
+| `components/events/FeedingModal.tsx` | Edicion endTime, eliminar selector babyState redundante |
+| `components/events/MedicationModal.tsx` | Edicion endTime |
+| `components/events/ExtraActivityModal.tsx` | Edicion endTime |
+| `components/events/NightWakingModal.tsx` | Edicion endTime |
+| `components/events/EventEditRouter.tsx` | Pasar endTime a todos los modales |
+| `components/events/EventsCalendarTabs.tsx` | Fondos neutros, iconos estandarizados |
+| `components/calendar/PlanVsEventsCard.tsx` | Card comparativa plan vs eventos |
+| `hooks/use-sleep-state.ts` | Sync API-only, sin localStorage |
 
 ---
 

@@ -438,13 +438,12 @@ export default function DashboardPage() {
     .slice(-5)
     .reverse()
 
-  // Eventos del dia actual para NarrativeTimeline (excluir notas, ya tienen su seccion)
+  // Eventos del dia actual para NarrativeTimeline
   const todayNarrativeEvents: NarrativeTimelineEvent[] = useMemo(() => {
     const today = new Date()
     return events
       .filter(e => {
         if (!e.startTime) return false
-        if (e.eventType === "note") return false // Las notas tienen seccion separada
         return isSameDay(parseISO(e.startTime), today)
       })
       .map(e => ({
@@ -559,8 +558,61 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Resumen visual de calendario */}
-        {activeChildId && (
+        {/* Layout responsivo: Narrativa + Calendario */}
+        {/* Mobile: vertical (1 col), Desktop: side-by-side (2 cols) */}
+        {activeChildId && child && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            {/* Feed narrativo de eventos del dia - Fase 4 */}
+            <Card className="bg-white shadow-sm border-0">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-[#2F2F2F]">Hoy</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <NarrativeTimeline
+                  events={todayNarrativeEvents}
+                  childName={child.firstName}
+                  collapsible={true}
+                  initialLimit={3}
+                  alwaysShowExpandButton={true}
+                  isLoading={isLoading}
+                  emptyMessage="No hay eventos registrados hoy"
+                  onEventEdit={(eventId) => {
+                    const eventToEdit = events.find(e => e._id === eventId)
+                    if (eventToEdit) {
+                      setEditingEvent(eventToEdit)
+                    }
+                  }}
+                />
+
+                {/* Modal de edicion de eventos */}
+                <EventEditRouter
+                  event={editingEvent}
+                  open={!!editingEvent}
+                  onClose={() => setEditingEvent(null)}
+                  onUpdate={loadChildData}
+                  childName={child.firstName}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Resumen visual de calendario */}
+            <Suspense fallback={
+              <div className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
+                <div className="h-64 bg-gray-200 rounded"></div>
+              </div>
+            }>
+              <SleepMetricsCombinedChart
+                childId={activeChildId}
+                dateRange="7-days"
+                showExtendedRange={isAdmin}
+                cardMode7Days={!isAdmin}
+              />
+            </Suspense>
+          </div>
+        )}
+
+        {/* Fallback: Solo calendario si no hay child pero sí activeChildId */}
+        {activeChildId && !child && (
           <Suspense fallback={
             <div className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
               <div className="h-64 bg-gray-200 rounded"></div>
@@ -573,42 +625,6 @@ export default function DashboardPage() {
               cardMode7Days={!isAdmin}
             />
           </Suspense>
-        )}
-
-        {/* Registro de eventos ya se muestra al inicio para padres */}
-
-        {/* Feed narrativo de eventos del dia - Fase 4 */}
-        {activeChildId && child && (
-          <Card className="bg-white shadow-sm border-0">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-[#2F2F2F]">Hoy</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <NarrativeTimeline
-                events={todayNarrativeEvents}
-                childName={child.firstName}
-                collapsible={true}
-                initialLimit={5}
-                isLoading={isLoading}
-                emptyMessage="No hay eventos registrados hoy"
-                onEventEdit={(eventId) => {
-                  const eventToEdit = events.find(e => e._id === eventId)
-                  if (eventToEdit) {
-                    setEditingEvent(eventToEdit)
-                  }
-                }}
-              />
-
-              {/* Modal de edicion de eventos */}
-              <EventEditRouter
-                event={editingEvent}
-                open={!!editingEvent}
-                onClose={() => setEditingEvent(null)}
-                onUpdate={loadChildData}
-                childName={child.firstName}
-              />
-            </CardContent>
-          </Card>
         )}
 
         {/* Grid de contenido principal (ocultar widgets avanzados para padre) */}

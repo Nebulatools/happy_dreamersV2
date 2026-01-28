@@ -43,6 +43,7 @@ import {
   CalendarMain,
   SimpleSleepBarChart,
   UserWeeklySleepChart,
+  PlanVsEventsCard,
 } from "@/components/calendar"
 import { SplitScreenBitacora } from "@/components/bitacora/SplitScreenBitacora"
 import { NarrativeTimeline, type NarrativeTimelineEvent } from "@/components/narrative/NarrativeTimeline"
@@ -478,7 +479,7 @@ export default function CalendarPage() {
   const [calendarTab, setCalendarTab] = useState<"calendar" | "stats">("calendar")
   const [isLoading, setIsLoading] = useState(true)
   // Estado para toggle de vista del usuario (grafico vs calendario)
-  const [userViewMode, setUserViewMode] = useState<"chart" | "calendar">("chart")
+  const [userViewMode, setUserViewMode] = useState<"chart" | "calendar">("calendar")
 
   // Solo forzar vista semana cuando el usuario esta en modo grafico
   useEffect(() => {
@@ -499,6 +500,13 @@ export default function CalendarPage() {
   // Función para cambiar la vista y guardar en localStorage
   const handleViewChange = (newView: "month" | "week" | "day") => {
     setView(newView)
+
+    // Para padres (no admin): cambiar a modo calendario cuando seleccionan "Diario"
+    // ya que el toggle Gráfico/Calendario está oculto para ellos
+    if (!isAdminView && newView === "day" && userViewMode === "chart") {
+      setUserViewMode("calendar")
+    }
+
     // Guardar preferencia en localStorage
     if (typeof window !== "undefined") {
       localStorage.setItem("calendar-view-preference", newView)
@@ -1207,11 +1215,14 @@ export default function CalendarPage() {
   }, [isAdminView, date, userViewMode])
 
   // Usa sistema centralizado de iconos con soporte para feedingType
-  // Color blanco para mejor contraste sobre fondos de color
+  // Color blanco para fondos oscuros, color del config para fondos claros (ej: note)
   const getEventTypeIcon = (type: string, feedingType?: "breast" | "bottle" | "solids") => {
     const config = getEventIconConfig(type, feedingType)
     const IconComponent = config.icon
-    return <IconComponent className="w-3 h-3 text-white" />
+    // Notas tienen fondo claro, necesitan icono oscuro
+    const isLightBackground = type === "note"
+    const colorStyle = isLightBackground ? { color: config.color } : { color: "white" }
+    return <IconComponent className="w-3 h-3" style={colorStyle} />
   }
 
   // Usa sistema centralizado de colores con soporte para feedingType
@@ -1691,16 +1702,24 @@ export default function CalendarPage() {
                       </div>
                     </div>
                   ) : view === "day" ? (
-                    // Vista diaria admin: Split Screen (calendario + narrativa)
-                    <SplitScreenBitacora
-                      events={events}
-                      childName={activeChildName}
-                      selectedDate={date}
-                      timezone={userTimeZone}
-                      onEventUpdate={invalidateEvents}
-                      onDayNavigateBack={navigateOneDayBack}
-                      onDayNavigateForward={navigateOneDayForward}
-                    />
+                    // Vista diaria admin: Plan vs Eventos + Split Screen
+                    <div className="space-y-4">
+                      <PlanVsEventsCard
+                        plan={activePlan}
+                        events={dayEvents}
+                        selectedDate={date}
+                        timezone={userTimeZone}
+                      />
+                      <SplitScreenBitacora
+                        events={events}
+                        childName={activeChildName}
+                        selectedDate={date}
+                        timezone={userTimeZone}
+                        onEventUpdate={invalidateEvents}
+                        onDayNavigateBack={navigateOneDayBack}
+                        onDayNavigateForward={navigateOneDayForward}
+                      />
+                    </div>
                   ) : (
                     // Vista semanal/mensual: CalendarMain normal
                     <CalendarMain
@@ -1820,37 +1839,42 @@ export default function CalendarPage() {
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             {/* Lado izquierdo: Toggle + Tabs de vista (solo en modo calendario) */}
             <div className="flex items-center gap-3 flex-wrap">
-              {/* Toggle Grafico / Calendario */}
-              <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
-                <Button
-                  variant={userViewMode === "chart" ? "default" : "ghost"}
-                  size="sm"
-                  className={userViewMode === "chart" ? "bg-white shadow-sm" : ""}
-                  onClick={() => setUserViewMode("chart")}
-                >
-                  Grafico
-                </Button>
-                <Button
-                  variant={userViewMode === "calendar" ? "default" : "ghost"}
-                  size="sm"
-                  className={userViewMode === "calendar" ? "bg-white shadow-sm" : ""}
-                  onClick={() => setUserViewMode("calendar")}
-                >
-                  Calendario
-                </Button>
-              </div>
-
-              {/* Tabs Mensual/Semanal/Diario - solo visible en modo calendario */}
-              {userViewMode === "calendar" && (
+              {/* Toggle Grafico / Calendario - Solo visible para admin */}
+              {isAdminView && (
                 <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
                   <Button
-                    variant={view === "month" ? "default" : "ghost"}
+                    variant={userViewMode === "chart" ? "default" : "ghost"}
                     size="sm"
-                    className={view === "month" ? "bg-white shadow-sm" : ""}
-                    onClick={() => handleViewChange("month")}
+                    className={userViewMode === "chart" ? "bg-white shadow-sm" : ""}
+                    onClick={() => setUserViewMode("chart")}
                   >
-                    Mensual
+                    Grafico
                   </Button>
+                  <Button
+                    variant={userViewMode === "calendar" ? "default" : "ghost"}
+                    size="sm"
+                    className={userViewMode === "calendar" ? "bg-white shadow-sm" : ""}
+                    onClick={() => setUserViewMode("calendar")}
+                  >
+                    Calendario
+                  </Button>
+                </div>
+              )}
+
+              {/* Tabs de vista - siempre visible en modo calendario */}
+              {(isAdminView ? userViewMode === "calendar" : true) && (
+                <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+                  {/* Tab Mensual - Solo visible para admin */}
+                  {isAdminView && (
+                    <Button
+                      variant={view === "month" ? "default" : "ghost"}
+                      size="sm"
+                      className={view === "month" ? "bg-white shadow-sm" : ""}
+                      onClick={() => handleViewChange("month")}
+                    >
+                      Mensual
+                    </Button>
+                  )}
                   <Button
                     variant={view === "week" ? "default" : "ghost"}
                     size="sm"
@@ -1914,7 +1938,7 @@ export default function CalendarPage() {
             </Card>
           ) : (
             /* Vista Calendario (igual que admin) */
-            <Card ref={calendarContainerRef} className="p-4 h-[calc(100vh-280px)] overflow-auto" style={{ minHeight: "450px", maxHeight: "calc(100vh - 250px)" }}>
+            <Card ref={calendarContainerRef} className="p-4 h-[calc(100vh-170px)] overflow-auto" style={{ minHeight: "450px", maxHeight: "calc(100vh - 150px)" }}>
                 <div className="h-full">
                   {isLoading ? (
                     <div className="flex justify-center items-center h-96">
@@ -1924,13 +1948,20 @@ export default function CalendarPage() {
                       </div>
                     </div>
                   ) : view === "day" ? (
-                    // Vista diaria padres: Narrativa vertical
+                    // Vista diaria padres: Plan vs Eventos + Narrativa vertical
                     <div className="space-y-4">
+                      <PlanVsEventsCard
+                        plan={activePlan}
+                        events={dayEvents}
+                        selectedDate={date}
+                        timezone={userTimeZone}
+                      />
                       <NarrativeTimeline
                         events={dayEvents as unknown as NarrativeTimelineEvent[]}
                         childName={activeChildName}
                         timezone={userTimeZone}
                         isLoading={isLoading}
+                        sortOrder="asc"
                         onEventEdit={(eventId) => {
                           const ev = dayEvents.find(e => e._id === eventId)
                           if (ev) handleEventClick(ev)

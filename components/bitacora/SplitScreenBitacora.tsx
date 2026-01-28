@@ -240,6 +240,7 @@ function SplitScreenBitacoraInner({
           events={narrativeEvents}
           childName={childName}
           timezone={timezone}
+          sortOrder="asc"
           highlightedEventId={
             selectionSource === "calendar" ? highlightedEventId : null
           }

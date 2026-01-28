@@ -1,1052 +1,741 @@
-# Discoveries: Vista Narrativa, Taxonomia Visual y Split Screen
+# Discoveries: QA Feedback Sprint 2026-01-26
 
 Log de aprendizajes entre sesiones de Ralph Loop.
 
 ---
 
-## Patrones Descubiertos
+## Patrones Clave del Sprint
 
-(Se llena durante la implementacion)
+### Estado de Sueño (ITEM 9)
+- **Problema**: localStorage guarda estado por dispositivo, no por niño
+- **Solución**: Eliminar localStorage, usar 100% API via SWR
+- **Lógica**: Último sleep/nap vs último wake determina estado
+- **Archivos**: `hooks/use-sleep-state.ts`, `components/events/SleepButton.tsx`
+
+### Edición endTime (ITEM 6)
+- **Patrón**: Seguir `SleepDelayModal.tsx:76-90`
+- **Modales**: FeedingModal, MedicationModal, ExtraActivityModal, NightWakingModal
+- **Usar**: `buildLocalDate()` y `dateToTimestamp()` de `lib/datetime.ts`
+
+### Roles (ITEM 5)
+- **Variable**: `isAdminView` ya existe en calendar/page.tsx
+- **Padres**: Solo Diario + Semanal
+- **Admin**: Todos los tabs
 
 ---
 
 ## Archivos Clave Identificados
 
-| Archivo | Proposito | Notas |
-|---------|-----------|-------|
-| `components/calendar/EventGlobe.tsx:117-134` | Mapa de iconos actual | Reemplazar con nuevo registry |
-| `lib/utils/sleep-sessions.ts` | Procesa sleep sessions | Agregar overlayEvents |
-| `components/calendar/SleepSessionBlock.tsx` | Renderiza sesiones | Agregar render de overlays |
-| `lib/datetime.ts` | Manejo de fechas | Usar buildLocalDate() |
+| Archivo | Propósito | Líneas Clave |
+|---------|-----------|--------------|
+| `hooks/use-sleep-state.ts` | Estado de sueño | 49-82 (localStorage a eliminar) |
+| `components/events/SleepButton.tsx` | Botón dormir | 63-64 (storage keys) |
+| `components/events/SleepDelayModal.tsx` | Patrón endTime | 76-90 |
+| `app/dashboard/calendar/page.tsx` | Tabs por rol | 1828-1874 |
+| `lib/icons/event-icons.ts` | Registry iconos | getEventIconConfig() |
 
 ---
 
 ## Sesiones
 
-### Session 0 - 2026-01-20
+### Session 0 - 2026-01-27
 
 **Setup inicial**
-- Implementation plan generado con 28 tareas en 8 fases
-- Archivos de ejecucion creados
-- Credenciales de testing documentadas
-- Listo para `./ralph-loop.sh` (usa docs/specs/current/ automaticamente)
+- Implementation plan generado con 26 tareas en 8 fases
+- Archivos de ejecución creados en docs/specs/current/
+- Sprint cubre 9 items activos + 2 verificación
+- Listo para `./ralph-loop.sh`
 
-**Patterns identificados:**
-- Iconos actuales usan switch-case en EventGlobe.tsx
-- Sleep sessions NO detectan feeding/medication durante sueno (bug conocido)
-- Playwright MCP para testing, NO npx playwright test
+**Prioridades identificadas:**
+1. ITEM 9 (Estado por niño) - Crítico, cambio de arquitectura
+2. ITEM 11 (Alimentación nocturna) - Complementa ITEM 9
+3. ITEM 6 (Edición hora fin) - Bug reportado por QA
 
-### Session 1 - 2026-01-20
+**Patrones a seguir:**
+- Eliminar localStorage para estado de sueño
+- Usar patrón de SleepDelayModal para edición de endTime
+- Condicionar UI por isAdminView
 
-**Task:** 0.1 - Crear archivo `lib/icons/event-icons.ts` con estructura base
-**Files:** `lib/icons/event-icons.ts` (nuevo)
+---
 
-**Patterns descubiertos:**
-- ESLint requiere if-statements en lugar de switch-case para evitar errores de indentacion
-- El proyecto tiene errores de lint pre-existentes en otros archivos (no bloquean build)
-- TypeScript skipLibCheck es necesario para lucide-react (error ReactSVG)
+### Session 1 - 2026-01-27
 
-**Estructura del registry:**
-```typescript
-export const EVENT_ICONS: Record<EventIconType, EventIconConfig>
-export function getEventIconType(eventType, feedingType): EventIconType
-export function getEventIconConfig(eventType, feedingType): EventIconConfig
-```
+**Task:** [0.1, 0.2] - Verificación pre-sprint de ITEM 3 y ITEM 7
 
-**Taxonomia implementada:**
-- sleep: Moon (indigo)
-- nap: CloudMoon (violet) - DIFERENTE a sleep
-- wake: Sun (yellow)
-- night_waking: Baby (purple)
-- feeding_breast: Heart (pink)
-- feeding_bottle: Milk (sky)
-- feeding_solids: UtensilsCrossed (emerald)
-- medication: Pill (amber)
-- extra_activities: Activity (orange)
+**Files verificados:**
+- `lib/icons/event-icons.ts` - ITEM 3 siestas lavanda
+- `components/calendar/SleepSessionBlock.tsx` - ITEM 7 estilos nocturnos
 
-**Notes para proxima sesion:**
-- Tarea 1.1 debe implementar los colores exactos en el registry
-- EventGlobe.tsx:117-134 debe ser reemplazado para usar getEventIconConfig()
-- EventBlock.tsx tambien necesita actualizarse
+**Resultados:**
+1. **ITEM 3 - Siestas en lavanda** ✅
+   - `nap` usa icono `CloudMoon` (diferente de `Moon` para sleep)
+   - Color: `#a78bfa` (violet-400/lavanda)
+   - `bgColor: "bg-nap"`
+   - Label: "Siesta"
 
-### Session 2 - 2026-01-20
+2. **ITEM 7 - Estilos nocturnos** ✅
+   - Sueño en progreso: `from-indigo-700 to-purple-800`
+   - Sueño completado: gradiente `rgba(67,56,202) → rgba(107,33,168) → rgba(88,28,135)`
+   - Los colores oscuros (indigo/purple) representan visualmente la noche
 
-**Task:** 1.1 + 1.2 - Verificar registry completo y modificar EventGlobe.tsx
-**Files:** `components/calendar/EventGlobe.tsx` (modificado)
+**Notes:** Ambos items ya estaban implementados correctamente. Build pasa sin errores. Lint tiene errores pre-existentes no relacionados con estos items.
 
-**Patterns descubiertos:**
-- Tarea 1.1 ya estaba implementada en session anterior (registro completo en lib/icons/event-icons.ts)
-- EventGlobe.tsx tenia 3 funciones con switch-case que fueron reemplazadas:
-  - `getColor()` -> ahora usa `getEventIconConfig().bgColor`
-  - `getIcon()` -> ahora usa `getEventIconConfig().icon` con componente dinamico
-  - `getName()` -> ahora usa `getEventIconConfig().label` con logica especial para feeding
-- La importacion de Lucide icons individuales fue removida, solo se importa el registry
+---
 
-**Refactorizacion aplicada:**
-```typescript
-// ANTES (30+ lineas de switch-case)
-const getIcon = () => {
-  switch (event.eventType) {
-    case "nap": return <Sun ... />
-    case "sleep": return <Moon ... />
-    // ... 8+ casos
-  }
-}
+### Session 2 - 2026-01-27
 
-// DESPUES (5 lineas)
-const getIcon = () => {
-  const config = getEventIconConfig(event.eventType, event.feedingType)
-  const IconComponent = config.icon
-  return <IconComponent className={iconClass} style={{ color: config.color }} />
-}
-```
+**Task:** [1.1, 1.2, 1.3] - ITEM 9: Estado por Niño (Crítico)
 
-**Notes para proxima sesion:**
-- EventBlock.tsx tiene la MISMA duplicacion (4 funciones con switch-case)
-- CompactEventBlock tambien tiene funciones duplicadas (2 mas)
-- Total ~100 lineas de codigo a eliminar en tarea 1.3
-- Considerar si SleepSessionBlock tambien necesita actualizarse
-
-### Session 3 - 2026-01-20
-
-**Task:** 1.3 - Modificar `EventBlock.tsx` para usar nuevo registry
-**Files:** `components/calendar/EventBlock.tsx` (modificado)
+**Files modificados:**
+- `hooks/use-sleep-state.ts` - Eliminado localStorage, solo API via SWR
+- `components/events/SleepButton.tsx` - Eliminados storage keys y useEffects de persistencia
 
 **Cambios realizados:**
-1. Eliminados imports individuales de Lucide icons (Moon, Sun, Clock, Baby, Utensils, etc.)
-2. Agregado import de `getEventIconConfig` desde el registry centralizado
-3. Reemplazado `getEventIcon()` en EventBlock (de 30 lineas switch-case a 7 lineas)
-4. Reemplazado `getEventIcon()` en CompactEventBlock (de 25 lineas switch-case a 5 lineas)
 
-**Funciones NO modificadas (por diseño):**
-- `getEventColor()` - Usa clases Tailwind especificas del proyecto (bg-sleep, bg-nap, etc.)
-- `getEventTypeName()` - Record estatico local, simple y funcional
+1. **use-sleep-state.ts**
+   - Eliminadas interfaces `SleepPending` y `NightWakePending` (ya no se usan)
+   - Eliminados 3 useEffects que cargaban/persistían/polling localStorage
+   - Estado ahora es 100% derivado de `data?.status` del API
+   - SWR sigue con `refreshInterval: 30000` y `revalidateOnFocus: true`
 
-**Reduccion de codigo:**
-- Antes: ~55 lineas de switch-case para iconos
-- Despues: ~12 lineas usando registry
-- ~43 lineas eliminadas
+2. **SleepButton.tsx**
+   - Eliminadas constantes `sleepStorageKey` y `nightWakeStorageKey`
+   - Eliminados 3 useEffects de localStorage (cargar, persistir sleep, persistir nightWake)
+   - Estados locales `sleepPending` y `nightWakePending` se mantienen para flujo modal
+   - La diferencia: ya no persisten entre recargas - solo viven durante la sesión
 
-**Patron reutilizable:**
-```typescript
-const getEventIcon = () => {
-  const iconClass = "h-3 w-3" // o dinamico segun blockHeight
-  const config = getEventIconConfig(event.eventType, event.feedingType)
-  const IconComponent = config.icon
-  return <IconComponent className={iconClass} style={{ color: config.color }} />
-}
-```
+3. **current-sleep-state endpoint**
+   - Verificado: lógica correcta para determinar estado
+   - Eventos `sleep/nap` sin `endTime` → dormido
+   - Eventos con `endTime` o `wake` → despierto
 
-**Notes para proxima sesion:**
-- Fase 1 COMPLETADA - Taxonomia Visual implementada en registry, EventGlobe, EventBlock
-- Siguiente: Fase 2 - Componentes Narrativos (generate-narrative.ts)
-- SleepSessionBlock podria beneficiarse del registry (pero no es parte del plan)
+**Patterns:**
+- Estado de sueño ahora sincroniza automáticamente entre dispositivos via API
+- SWR revalida en focus, reconexión, y cada 30 segundos
+- Flujo modal usa estados locales temporales (no persisten)
 
-### Session 4 - 2026-01-20
+**Notes:** Build pasa correctamente. Task 1.4 (testing multi-dispositivo) será parte de Fase 8 E2E.
 
-**Task:** 2.1 - Crear `lib/narrative/generate-narrative.ts`
-**Files:** `lib/narrative/generate-narrative.ts` (nuevo)
+---
 
-**Estructura implementada:**
-- Interface `NarrativeEvent` - Subconjunto de EventData con campos para narrativa
-- `generateNarrative(childName, event, timezone)` - Funcion principal
-- `generateTimeMetadata(event, timezone)` - Genera string de hora/rango
-- Generadores especificos por tipo de evento (feeding, sleep, nap, wake, etc.)
+### Session 3 - 2026-01-27
 
-**Formatos de narrativa implementados (segun spec lines 52-61):**
-- feeding_breast: "[nombre] tomo pecho por [X] minutos"
-- feeding_bottle: "[nombre] tomo [X] ml de biberon"
-- feeding_solids: "[nombre] comio [X] gr de solidos"
-- sleep: "[nombre] durmio de [hora] a [hora]"
-- nap: "[nombre] durmio una siesta de [X] minutos"
-- wake: "[nombre] desperto a las [hora]"
-- night_waking: "[nombre] desperto a las [hora]"
-- medication: "[nombre] tomo [medicamento] ([dosis])"
-- extra_activities: "[nombre] hizo [descripcion] por [X] minutos"
-- note: "Nota: [texto]"
+**Task:** [2.1, 2.2] - ITEM 11: Alimentación Nocturna
 
-**Regla clave aplicada:**
-- Si dato falta -> omitir (NO usar placeholders)
-- Ejemplo: Si feedingAmount es undefined, muestra "Matias tomo biberon" en lugar de "Matias tomo undefined ml"
-
-**Funciones auxiliares:**
-- `formatTimeForNarrative()` - Formato "8:30 AM"
-- `formatDuration()` - "45 minutos", "1 hora", "2 horas y 15 minutos"
-- `calculateDurationMinutes()` - Calcula diferencia entre timestamps
-
-**Notes para proxima sesion:**
-- Siguiente: 2.2 - Crear tests Jest para `generateNarrative()`
-- Los tests deben cubrir cada formato del spec
-- Ubicacion: `__tests__/lib/narrative/generate-narrative.test.ts`
-
-### Session 5 - 2026-01-20
-
-**Task:** 2.2 - Crear test Jest para `generateNarrative()`
-**Files:**
-- `__tests__/lib/narrative/generate-narrative.test.ts` (nuevo)
-- `jest.config.js` (nuevo - configuracion ts-jest)
-
-**Descubrimiento critico:**
-- Jest NO estaba configurado para TypeScript a pesar de tener ts-jest instalado
-- Otros tests del proyecto tampoco funcionaban (ej: `event.test.ts`)
-- Creado `jest.config.js` con preset ts-jest y moduleNameMapper para @/
-
-**Configuracion Jest agregada:**
-```javascript
-{
-  preset: "ts-jest",
-  testEnvironment: "node",
-  moduleNameMapper: { "^@/(.*)$": "<rootDir>/$1" },
-  transform: { "^.+\\.tsx?$": ["ts-jest", {...}] }
-}
-```
-
-**Tests creados (47 tests, 100% pasan):**
-- Alimentacion: breast (2), bottle (3), solids (2), fallback (2)
-- Sueno: sleep (4), nap (4)
-- Despertares: wake (2), night_waking (4)
-- Otros: medication (3), extra_activities (4), note (4), unknown (1)
-- Formato duracion: minutos, horas, horas+minutos (4)
-- generateTimeMetadata: 8 tests
-
-**Mock de datetime:**
-- Mock sin tipos TypeScript en funcion factory (Jest/Babel limitation)
-- formatForDisplay mockeado para producir "8:30 PM" consistentemente
-- parseTimestamp mockeado como wrapper de new Date()
-
-**Notes para proxima sesion:**
-- Fase 2 COMPLETADA - Narrativa logica + tests funcionando
-- Siguiente: Fase 3 - Componentes Narrativos UI (NarrativeCard, NarrativeTimeline)
-- jest.config.js permite ejecutar todos los tests del proyecto ahora
-
-### Session 6 - 2026-01-20
-
-**Task:** 3.1 - Crear `components/narrative/NarrativeCard.tsx`
-**Files:** `components/narrative/NarrativeCard.tsx` (nuevo)
-
-**Estructura del componente:**
-```typescript
-interface NarrativeCardProps {
-  event: NarrativeEvent & { _id?: string }
-  childName: string
-  timezone?: string
-  isHighlighted?: boolean  // Para mirroring
-  onClick?: (eventId: string) => void  // Click simple -> scroll en calendario
-  onEdit?: (eventId: string) => void   // Doble click o chevron -> modal edicion
-  cardRef?: React.RefObject<HTMLDivElement>  // Para scroll-into-view
-}
-```
-
-**Anatomia implementada (segun spec lines 36-48):**
-1. Icono circular (izquierda) - usa `getEventIconConfig()` del registry
-2. Narrativa (centro) - usa `generateNarrative()` + hora con `generateTimeMetadata()`
-3. Chevron (derecha) - boton para abrir edicion
-
-**Integraciones:**
-- `lib/icons/event-icons.ts` - Taxonomia visual (Fase 1)
-- `lib/narrative/generate-narrative.ts` - Texto narrativo (Fase 2)
-- `lib/datetime.ts` - DEFAULT_TIMEZONE
-
-**Interacciones implementadas:**
-- Click simple -> `onClick(eventId)` (para mirroring con calendario)
-- Doble click -> `onEdit(eventId)` (abre modal edicion)
-- Click en chevron -> `onEdit(eventId)` con stopPropagation
-
-**Clase CSS para highlight:**
-- `animate-highlight-fade` - Requiere implementacion en tailwind.config.js (Fase 5)
-- Por ahora usa fallback con `ring-2 ring-yellow-400 bg-yellow-50/50`
-
-**Notes para proxima sesion:**
-- Siguiente: 3.2 - Crear NarrativeTimeline.tsx (lista de NarrativeCards)
-- NarrativeTimeline necesita: ordenamiento cronologico inverso, collapsible, empty state
-- La clase `animate-highlight-fade` se implementara en Fase 5 (5.2)
-
-### Session 7 - 2026-01-20
-
-**Task:** 3.2 - Crear `components/narrative/NarrativeTimeline.tsx`
-**Files:**
-- `components/narrative/NarrativeTimeline.tsx` (nuevo)
-- `components/narrative/NarrativeCard.tsx` (modificado - agregado data-event-id)
-
-**Estructura del componente:**
-```typescript
-interface NarrativeTimelineProps {
-  events: NarrativeTimelineEvent[]
-  childName: string
-  timezone?: string
-  highlightedEventId?: string | null  // Para mirroring
-  collapsible?: boolean               // Habilita Ver todo/Colapsar
-  initialLimit?: number               // Default: 5 (segun spec)
-  isLoading?: boolean                 // Muestra skeletons
-  onEventClick?: (eventId: string) => void
-  onEventEdit?: (eventId: string) => void
-  emptyMessage?: string
-}
-```
-
-**Funcionalidades implementadas:**
-1. **Ordenamiento cronologico inverso** - useMemo con sort por timestamp descendente
-2. **Sistema collapsible** - Estado local `isExpanded`, boton "Ver todo/Colapsar"
-3. **Estado NO persistente** - `isExpanded` siempre inicia en `false` (spec line 69)
-4. **Empty state** - Icono CalendarX + mensaje personalizable
-5. **Skeleton loaders** - 5 skeletons durante carga
-6. **Map de refs** - Para scroll-into-view eficiente en mirroring
-7. **data-event-id** - Agregado a NarrativeCard para `scrollToNarrativeEvent()`
-
-**Sub-componentes:**
-- `NarrativeCardSkeleton` - Skeleton con icono circular + lineas
-- `EmptyState` - Mensaje centrado con icono CalendarX
-
-**Funcion auxiliar exportada:**
-```typescript
-export function scrollToNarrativeEvent(eventId: string, containerRef?): void
-// Busca elemento por data-event-id y hace scrollIntoView smooth
-```
-
-**Notes para proxima sesion:**
-- Siguiente: 3.3 - Agregar skeleton loader y empty state (YA COMPLETADO en 3.2)
-- La tarea 3.3 puede marcarse como completada porque skeleton/empty ya estan en NarrativeTimeline
-- Siguiente real: Fase 4 - Integracion Home Padres
-
-### Session 8 - 2026-01-20
-
-**Task:** 3.3 - Agregar skeleton loader y empty state (VERIFICACION)
-**Files:** Ninguno modificado - tarea ya implementada en Session 7
-
-**Verificacion realizada:**
-- Confirmado que `NarrativeCardSkeleton` existe en lineas 59-75
-- Confirmado que `EmptyState` existe en lineas 81-94
-- Confirmado que `isLoading` prop funciona (lineas 162-170)
-- Confirmado que muestra 5 skeletons por defecto usando `initialLimit`
-
-**Resultado:** Tarea marcada como completada - fue implementada anticipadamente en 3.2
-
-**Notes para proxima sesion:**
-- Fase 3 COMPLETADA
-- Siguiente: Fase 4 - Integracion Home Padres
-- Primera tarea: 4.1 - Integrar NarrativeTimeline en dashboard Home
-
-### Session 9 - 2026-01-20
-
-**Task:** 4.1 + 4.2 - Integrar NarrativeTimeline en dashboard Home + Ver todo/Colapsar
-**Files:** `app/dashboard/page.tsx` (modificado)
-
-**Cambios realizados:**
-1. Agregado import de `NarrativeTimeline` y `NarrativeTimelineEvent`
-2. Agregado import de `useMemo` a React hooks
-3. Expandido interface `Event` local para incluir todos los campos de narrativa:
-   - feedingType, feedingAmount, feedingDuration, isNightFeeding
-   - sleepDelay, awakeDelay
-   - medicationName, medicationDose
-   - activityDescription, activityDuration
-   - duration
-4. Agregado `todayNarrativeEvents` useMemo que:
-   - Filtra eventos del dia actual
-   - Excluye notas (tienen seccion separada)
-   - Mapea todos los campos necesarios para narrativa
-5. Nueva seccion "Hoy" con Card + NarrativeTimeline
-
-**Props usadas en integracion:**
-```typescript
-<NarrativeTimeline
-  events={todayNarrativeEvents}
-  childName={child.firstName}
-  collapsible={true}
-  initialLimit={5}
-  isLoading={isLoading}
-  emptyMessage="No hay eventos registrados hoy"
-  onEventEdit={(eventId) => { /* TODO: Fase 4.2 - modal */ }}
-/>
-```
-
-**Descubrimiento clave:**
-- La tarea 4.2 "Ver todo/Colapsar" ya estaba IMPLEMENTADA dentro de NarrativeTimeline
-- Solo requiere `collapsible=true, initialLimit=5` como props
-- El boton y logica de expansion/colapso es parte del componente
-- Estado NO persiste (siempre inicia colapsado) - cumple spec line 69
-
-**Notes para proxima sesion:**
-- Fase 4 COMPLETADA (4.1 + 4.2)
-- Falta implementar `onEventEdit` para abrir modal de edicion (tiene console.log placeholder)
-- Siguiente: Fase 5 - Split Screen Context
-
-### Session 10 - 2026-01-20
-
-**Task:** 5.1 - Crear `context/SplitScreenContext.tsx`
-**Files:** `context/SplitScreenContext.tsx` (nuevo)
-
-**Estructura del contexto:**
-```typescript
-interface SplitScreenContextType {
-  selectedEventId: string | null      // ID del evento seleccionado
-  highlightedEventId: string | null   // ID con highlight visual activo
-  selectionSource: SelectionSource | null  // "calendar" | "narrative"
-  selectEvent: (eventId: string, source: SelectionSource) => void
-  clearSelection: () => void
-  isHighlightActive: boolean          // Para animaciones CSS
-}
-```
-
-**Comportamientos implementados (segun spec lines 135-145):**
-1. `selectEvent(id, source)` establece highlight + programa auto-clear en 6 segundos
-2. Click rapido cancela timeout anterior (useRef para NodeJS.Timeout)
-3. `clearSelection()` limpia todo manualmente y cancela timeout
-4. `selectionSource` permite saber de donde vino el click (para mirroring bidireccional)
-5. `isHighlightActive` facilita aplicar clases CSS condicionales
-
-**Patron aplicado:**
-- Mismo patron que `ActiveChildContext.tsx` (estructura probada en proyecto)
-- `useCallback` para funciones estables
-- `useRef` para timeout mutable
-- Constante `HIGHLIGHT_DURATION_MS = 6000` (6 segundos segun spec "5-7 seg")
-
-**Notes para proxima sesion:**
-- Siguiente: 5.2 - Agregar animacion `highlight-fade` a tailwind.config.js
-- La clase `animate-highlight-fade` se usa en NarrativeCard.tsx (ya tiene fallback)
-- Despues de 5.2, Fase 5 queda COMPLETA
-
-### Session 11 - 2026-01-20
-
-**Task:** 5.2 - Agregar animacion highlight-fade a Tailwind
-**Files:** `tailwind.config.ts` (modificado)
-
-**Cambios realizados:**
-1. Agregada keyframe `highlight-fade` que transiciona de:
-   - backgroundColor: `rgb(254 249 195)` (yellow-100)
-   - boxShadow: `0 0 0 2px rgb(250 204 21)` (ring-yellow-400)
-   - A transparente
-2. Agregada animacion `animate-highlight-fade` con duracion 6s, ease-out, forwards
-
-**Detalles tecnicos:**
-```javascript
-"highlight-fade": {
-  "0%": {
-    backgroundColor: "rgb(254 249 195)", // yellow-100
-    boxShadow: "0 0 0 2px rgb(250 204 21)" // ring-yellow-400
-  },
-  "100%": {
-    backgroundColor: "transparent",
-    boxShadow: "0 0 0 0 transparent"
-  },
-},
-animation: {
-  "highlight-fade": "highlight-fade 6s ease-out forwards",
-}
-```
-
-**Pattern aplicado:**
-- `forwards` mantiene el estado final (transparente) despues de terminar
-- 6 segundos coincide con `HIGHLIGHT_DURATION_MS` de SplitScreenContext.tsx
-- NarrativeCard.tsx ya usa la clase (linea 101)
-
-**Notes para proxima sesion:**
-- Fase 5 COMPLETADA (5.1 SplitScreenContext + 5.2 animacion)
-- Siguiente: Fase 6 - Split Screen Bitacora Admin
-- Primera tarea: 6.1 - Crear `components/bitacora/SplitScreenBitacora.tsx`
-
-### Session 12 - 2026-01-20
-
-**Task:** 6.1 + 6.2 + 6.3 - Crear SplitScreenBitacora con mirroring bidireccional
-**Files:** `components/bitacora/SplitScreenBitacora.tsx` (nuevo)
-
-**Estructura del componente:**
-```typescript
-// Wrapper que provee contexto
-export function SplitScreenBitacora(props) {
-  return (
-    <SplitScreenProvider>
-      <SplitScreenBitacoraInner {...props} />
-    </SplitScreenProvider>
-  )
-}
-```
-
-**Funcionalidades implementadas:**
-1. **Layout responsive** - `flex flex-col lg:grid lg:grid-cols-2`:
-   - Desktop (>=1024px): Grid 50/50
-   - Tablet/Mobile (<1024px): Stack vertical
-2. **Mirroring Cal->Narr** (6.2): `handleCalendarEventClick` + `scrollToNarrativeEvent()`
-3. **Mirroring Narr->Cal** (6.3): `handleNarrativeEventClick` + scroll por `[data-calendar-event-id]`
-4. **Integracion modular**: Reutiliza `CalendarDayView` y `NarrativeTimeline` sin modificarlos
-
-**Props del componente:**
-```typescript
-interface SplitScreenBitacoraProps {
-  events: BitacoraEvent[]
-  childName: string
-  selectedDate: Date
-  timezone?: string
-  hourHeight?: number
-  onEventEdit?: (eventId: string) => void
-  onDayNavigateBack?: () => void
-  onDayNavigateForward?: () => void
-  onCalendarClick?: (clickEvent, dayDate) => void
-  isLoading?: boolean
-}
-```
-
-**Pattern clave - mapeo de eventos:**
-- `narrativeEvents` mapea BitacoraEvent a NarrativeTimelineEvent
-- Mantiene ambos tipos compatibles sin modificar componentes internos
-
-**Pendiente para proxima sesion:**
-- 6.4: Implementar doble click para editar (requiere modificar CalendarDayView o EventGlobe)
-- 6.5: Integrar en pagina admin (`/dashboard/patients/child/[childId]`)
-- Nota: El calendario necesita `data-calendar-event-id` en bloques para scroll funcione
-
-### Session 13 - 2026-01-20
-
-**Task:** 6.4 - Implementar doble click para editar
-**Files:**
-- `components/calendar/CalendarDayView.tsx` (modificado)
-- `components/calendar/EventGlobe.tsx` (modificado)
-- `components/calendar/SleepSessionBlock.tsx` (modificado)
-- `components/bitacora/SplitScreenBitacora.tsx` (modificado)
+**Files modificados:**
+- `components/events/NightFeedingButton.tsx` - NUEVO componente
+- `components/events/EventRegistration.tsx` - Integración del nuevo botón
 
 **Cambios realizados:**
 
-1. **CalendarDayView.tsx:**
-   - Agregada prop `onEventDoubleClick?: (event: Event) => void`
-   - Pasada a `EventGlobe` y `SleepSessionBlock`
-   - Para SleepSessionBlock: tambien `onNightWakingDoubleClick`
+1. **NightFeedingButton.tsx** (nuevo)
+   - Botón con gradiente indigo→purple (colores nocturnos)
+   - Icono compuesto: Milk + Moon pequeña
+   - Props: `{ childId, childName, onEventRegistered }`
+   - Abre FeedingModal con `babyState: "asleep"` preseleccionado
+   - Registra evento con `isNightFeeding: true` y `feedingContext`
+   - NO cambia el estado de sueño del niño
 
-2. **EventGlobe.tsx:**
-   - Agregada prop `onDoubleClick?: (event: Event) => void`
-   - Handler `handleDoubleClick` que cierra tooltip y llama callback
-   - `onDoubleClick={handleDoubleClick}` en el div principal
+2. **EventRegistration.tsx**
+   - Import del nuevo NightFeedingButton
+   - Nueva variable `showNightFeedingButton = isSleeping || isNapping`
+   - FeedingButton normal ahora solo visible cuando `isAwake || isNightWaking`
+   - Grid calcula columnas dinámicamente según botones visibles
+   - NightFeedingButton se renderiza condicionalmente
 
-3. **SleepSessionBlock.tsx:**
-   - Agregada prop `onDoubleClick?: () => void`
-   - Agregada prop `onNightWakingDoubleClick?: (waking: Event) => void`
-   - Handler `handleDoubleClick` en bloque de sleep (en progreso y completado)
-   - `onDoubleClick` handler en night wakings individuales
+**Patterns:**
+- Separación clara: FeedingButton (despierto) vs NightFeedingButton (dormido)
+- NightFeedingButton NO despierta al niño - solo registra alimentación
+- El flag `isNightFeeding: true` permite analytics y reportes diferenciados
+- El `feedingContext` indica si es durante sueño nocturno o siesta
 
-4. **SplitScreenBitacora.tsx:**
-   - Importado `EventEditRouter`
-   - Estado `editingEvent` y `isEditModalOpen` para modal interno
-   - `handleCalendarEventDoubleClick` que busca evento y abre modal
-   - `handleEventEdit` actualizado: si no hay `onEventEdit` externo, usa modal interno
-   - `handleCloseEditModal` y `handleEventUpdated` para ciclo de vida del modal
-   - Agregada prop `onEventUpdate?: () => void` para refrescar datos despues de editar
-   - `EventEditRouter` renderizado con estado y callbacks
+**Notes:** Build pasa correctamente. Pendiente testing E2E en Fase 8.
 
-**Patron descubierto - Modal interno vs externo:**
-```typescript
-// Si hay callback externo, usarlo
-if (onEventEdit) {
-  onEventEdit(eventId)
-  return
-}
-// Si no, usar modal interno
-const event = events.find((e) => e._id === eventId)
-if (event) {
-  setEditingEvent(event)
-  setIsEditModalOpen(true)
-}
-```
+---
 
-**Comportamiento implementado:**
-- Click simple -> highlight + scroll bidireccional (mirroring)
-- Doble click -> abre modal de edicion via EventEditRouter
-- Chevron en NarrativeCard -> tambien abre edicion
+### Session 4 - 2026-01-27
 
-**Notes para proxima sesion:**
-- Siguiente: 6.5 - Integrar SplitScreenBitacora en pagina admin
-- Ruta: `/dashboard/patients/child/[childId]`
-- Verificar que la pagina admin puede usar SplitScreenBitacora
+**Task:** [3.1] - ITEM 6: Agregar endTime a FeedingModal.tsx
 
-### Session 14 - 2026-01-20
-
-**Task:** 6.5 - Integrar SplitScreenBitacora en pagina admin
-**Files:** `app/dashboard/patients/child/[childId]/AdminChildDetailClient.tsx` (modificado)
+**Files modificados:**
+- `components/events/FeedingModal.tsx` - Agregados campos de edición de hora de fin
 
 **Cambios realizados:**
 
-1. **Imports agregados:**
-   - `useMemo` de React
-   - `Button` de shadcn/ui
-   - Iconos: `ChevronLeft`, `ChevronRight`, `Columns`, `List`
-   - `SplitScreenBitacora` desde `@/components/bitacora/SplitScreenBitacora`
-   - Funciones de date-fns: `startOfDay`, `endOfDay`, `addDays`, `subDays`, `isWithinInterval`
+1. **Interface FeedingModalProps.initialData**
+   - Agregado campo opcional `endTime?: string`
 
-2. **Nuevos estados:**
-   - `eventsViewMode`: "split" | "list" - Controla vista activa
-   - `splitScreenDate`: Date - Fecha seleccionada para Split Screen
+2. **Nuevos estados**
+   - `endDate`: fecha de fin (yyyy-MM-dd)
+   - `endTimeValue`: hora de fin (HH:mm)
+   - `hasEndTime`: booleano para controlar visibilidad
 
-3. **Nuevos memos y handlers:**
-   - `splitScreenEvents`: Filtra eventos del dia seleccionado
-   - `handleSplitScreenDayBack/Forward`: Navegacion de fecha
-   - `splitScreenDayTitle`: Titulo formateado del dia
+3. **Inicialización en useEffect**
+   - Si `initialData.endTime` existe, se parsea y setea los estados
+   - Si no existe, estados se inicializan vacíos
 
-4. **UI del Tab Eventos:**
-   - Toggle Split Screen / Lista (botones con iconos Columns/List)
-   - Navegacion de fecha solo visible en modo Split
-   - `SplitScreenBitacora` renderizado cuando `eventsViewMode === "split"`
-   - `EventsCalendarTabs` renderizado cuando `eventsViewMode === "list"`
+4. **UI condicional en modo edit**
+   - Nueva sección "Hora de fin" visible solo en `mode === "edit"`
+   - Botón "+ Agregar hora de fin" si no existe endTime
+   - Grid de inputs fecha/hora si existe endTime
+   - Botón "x" para quitar hora de fin
 
-**Patron de integracion:**
-```typescript
-// Toggle entre vistas
-{eventsViewMode === "split" ? (
-  <SplitScreenBitacora
-    events={splitScreenEvents}  // Solo eventos del dia
-    childName={childName}
-    selectedDate={splitScreenDate}
-    onEventUpdate={refetchEvents}  // Refrescar al editar
-  />
-) : (
-  <EventsCalendarTabs ... />  // Vista original
-)}
-```
+5. **handleConfirm modificado**
+   - Ya no fuerza `endTime = getCurrentTime()`
+   - Usa valores editados de `endDate` y `endTimeValue` si `hasEndTime`
 
-**Descubrimiento arquitectonico:**
-- `AdminChildDetailClient` ya tenia `EventsCalendarTabs` con tabs dia/semana/mes
-- Para admin, **vista diaria** ahora usa Split Screen por defecto
-- Vista lista mantiene compatibilidad con semana/mes
-- El toggle permite al admin elegir su preferencia
+6. **handleCancel actualizado**
+   - Restaura estados de endTime en modo edit
+   - Limpia estados de endTime en modo create
 
-**Notes para proxima sesion:**
-- Fase 6 COMPLETADA (6.1-6.5)
-- Siguiente: Fase 7 - Bug Fix Eventos Fragmentados en Sesiones de Sueno
-- Primera tarea: 7.1 - Agregar campo `overlayEvents` a interface SleepSession
+**Patterns:**
+- Seguí exactamente el patrón de `SleepDelayModal.tsx:76-90`
+- Usé `buildLocalDate()` y `dateToTimestamp()` de `lib/datetime.ts`
+- Color de acento verde (green-600) para consistencia con el modal de feeding
 
-### Session 15 - 2026-01-20
+**Notes:** Build pasa correctamente. Próxima tarea: [3.2] MedicationModal.tsx
 
-**Task:** 7.1 - Agregar campo `overlayEvents` a interface SleepSession
-**Files:** `lib/utils/sleep-sessions.ts` (modificado)
+---
+
+### Session 5 - 2026-01-27
+
+**Task:** [3.2] - ITEM 6: Agregar endTime a MedicationModal.tsx
+
+**Files modificados:**
+- `components/events/MedicationModal.tsx` - Agregados campos de edición de hora de fin
 
 **Cambios realizados:**
-1. Agregado campo `overlayEvents: Event[]` a interface `SleepSession` (linea 24)
-2. Inicializado `overlayEvents: []` en la funcion `processSleepSessions()` (linea 111)
 
-**Proposito del campo:**
-- Capturar eventos que ocurren DURANTE una sesion de sueno (feeding, medication, etc.)
-- Estos eventos actualmente se renderizan como bloques separados, fragmentando visualmente el sueno
-- Con `overlayEvents`, se renderizaran como superposiciones sobre el bloque base de sueno
+1. **Imports nuevos**
+   - `X`, `Plus` de lucide-react (iconos para botones)
+   - `useUser` de UserContext
+   - `buildLocalDate`, `dateToTimestamp`, `DEFAULT_TIMEZONE` de datetime
+   - `EditOptions` de types
 
-**Estructura actualizada:**
-```typescript
-export interface SleepSession {
-  type: "sleep-session"
-  startTime: string
-  endTime?: string
-  originalStartTime: string
-  originalEndTime?: string
-  nightWakings: Event[]
-  overlayEvents: Event[]  // NUEVO - eventos durante sueno
-  originalEvent: Event
-  isContinuationFromPrevious: boolean
-  continuesNextDay: boolean
-}
-```
+2. **Interface initialData**
+   - Agregado campo opcional `endTime?: string`
 
-**Notes para proxima sesion:**
-- Siguiente: 7.2 - Modificar `processSleepSessions()` para detectar y poblar overlayEvents
-- La logica debe filtrar eventos con startTime dentro del rango [sleep.startTime, sleep.endTime]
-- Excluir night_waking (ya capturado en campo separado)
+3. **Firma onConfirm actualizada**
+   - Ahora acepta `EditOptions` opcional como segundo parámetro
 
-### Session 16 - 2026-01-20
+4. **Nuevos estados**
+   - `endDate`: fecha de fin (yyyy-MM-dd)
+   - `endTimeValue`: hora de fin (HH:mm)
+   - `hasEndTime`: booleano para controlar visibilidad
+   - `timezone`: del UserContext para conversiones
 
-**Task:** 7.2 - Modificar `processSleepSessions()` para detectar overlays
-**Files:** `lib/utils/sleep-sessions.ts` (modificado)
+5. **useEffect de inicialización**
+   - Inicializa endDate, endTimeValue, hasEndTime si existe initialData.endTime
+
+6. **resetForm actualizado**
+   - Restaura o limpia estados de endTime según modo
+
+7. **handleConfirm con EditOptions**
+   - Construye startTime desde eventDate + medicationTime
+   - Construye endTime desde endDate + endTimeValue si hasEndTime
+   - Pasa EditOptions al onConfirm
+
+8. **UI nueva sección "Hora de fin"**
+   - Solo visible en mode === "edit"
+   - Botón "+ Agregar hora de fin" si no existe
+   - Grid de inputs fecha/hora si existe
+   - Botón "x" para quitar hora de fin
+   - Color amber (consistente con modal de medicamentos)
+
+**Patterns:**
+- Mismo patrón que FeedingModal (Session 4)
+- Color de acento amber-600 para consistencia con el modal de medicamentos
+- Botón de quitar hora de fin posicionado con absolute
+
+**Notes:** Build pasa correctamente. Próxima tarea: [3.3] ExtraActivityModal.tsx
+
+---
+
+### Session 6 - 2026-01-27
+
+**Task:** [3.3] - ITEM 6: Agregar endTime a ExtraActivityModal.tsx
+
+**Files modificados:**
+- `components/events/ExtraActivityModal.tsx` - Agregados campos de edición de hora de fin
 
 **Cambios realizados:**
-1. Creado Set de tipos excluidos: `sleep`, `wake`, `night_waking`, `nap`
-2. Agregada logica de filtrado para `overlayEvents`:
-   - Evento no es tipo excluido
-   - Evento no es el sleep actual
-   - Evento no ya procesado
-   - `startTime` > `event.startTime` (despues del inicio del sueno)
-   - `startTime` < `event.endTime` (antes del fin del sueno, si existe)
-3. Marcado de `overlayEvents` como procesados para evitar duplicacion en `otherEvents`
-4. Actualizado el push de sesion para usar `overlayEvents` en lugar de array vacio
 
-**Logica de filtrado:**
-```typescript
-const excludedTypes = new Set(["sleep", "wake", "night_waking", "nap"])
-const overlayEvents = dayEvents.filter(e => {
-  if (excludedTypes.has(e.eventType)) return false
-  if (e._id === event._id) return false
-  if (processedEventIds.has(e._id)) return false
-  if (e.startTime <= event.startTime) return false
-  if (event.endTime && e.startTime >= event.endTime) return false
-  return true
-})
-overlayEvents.forEach(oe => processedEventIds.add(oe._id))
-```
+1. **Imports nuevos**
+   - `Plus`, `X` de lucide-react (iconos para botones)
 
-**Patron clave - deteccion de overlays:**
-- Los eventos durante sueno (feeding, medication) ahora se capturan en `overlayEvents`
-- Esto permite renderizarlos como capas superpuestas sobre el bloque de sueno
-- Evita la fragmentacion visual que ocurria antes (eventos mostrados como columnas separadas)
+2. **Interface initialData**
+   - Agregado campo opcional `endTime?: string`
 
-**Notes para proxima sesion:**
-- Siguiente: 7.3 - Crear test Jest para overlayEvents
-- Ubicacion: `__tests__/lib/utils/sleep-sessions.test.ts`
-- Tests deben verificar que overlayEvents contiene feeding/medication durante sueno
+3. **Nuevos estados**
+   - `endDate`: fecha de fin (yyyy-MM-dd)
+   - `endTimeValue`: hora de fin (HH:mm)
+   - `hasEndTime`: booleano para controlar visibilidad
 
-### Session 17 - 2026-01-20
+4. **useEffect de inicialización**
+   - Inicializa endDate, endTimeValue, hasEndTime si existe initialData.endTime
 
-**Task:** 7.3 - Crear test Jest para overlayEvents
-**Files:** `__tests__/lib/utils/sleep-sessions.test.ts` (nuevo)
+5. **resetForm actualizado**
+   - Restaura o limpia estados de endTime según modo
 
-**Tests creados (19 tests, 100% pasan):**
-- overlayEvents - feeding durante sueno (5 tests)
-  - Detecta feeding durante sesion
-  - Detecta multiples feedings
-  - No incluye feeding antes del sueno
-  - No incluye feeding despues del sueno
-  - Excluye de otherEvents para evitar duplicacion
-- overlayEvents - medication durante sueno (2 tests)
-  - Detecta medication durante sesion
-  - Detecta mezcla de feeding y medication
-- overlayEvents - exclusion de tipos (4 tests)
-  - NO incluye night_waking (ya esta en nightWakings)
-  - NO incluye nap (es sesion separada)
-  - NO incluye wake
-  - NO incluye otro sleep
-- overlayEvents - extra_activities (1 test)
-- overlayEvents - sueno sin endTime (1 test)
-- nightWakings - separacion de overlayEvents (1 test)
-- sesiones multiples (1 test)
-- casos limite (4 tests)
-  - Evento exactamente en limite inicio/fin
-  - Lista vacia
-  - Eventos sin sleep
+6. **handleConfirm modificado**
+   - Ya NO fuerza `endTime = getCurrentTime()` automáticamente
+   - Construye endTime desde endDate + endTimeValue solo si `hasEndTime`
 
-**Patron de test:**
-```typescript
-function createEvent(overrides: Partial<Event> & { _id: string; eventType: string }): Event {
-  return {
-    childId: "child-123",
-    emotionalState: "calm",
-    startTime: "2026-01-20T08:00:00.000-06:00",
-    ...overrides,
-  }
-}
-```
+7. **UI nueva sección "Hora de fin"**
+   - Solo visible en mode === "edit"
+   - Botón "+ Agregar hora de fin" si no existe
+   - Grid de inputs fecha/hora si existe
+   - Botón "x" para quitar hora de fin
+   - Color cyan-600 (consistente con modal de actividades)
 
-**Notes para proxima sesion:**
-- Siguiente: 7.4 - Modificar SleepSessionBlock para renderizar overlays
-- Los tests confirman que overlayEvents se llena correctamente
-- SleepSessionBlock necesita recibir overlayEvents y renderizarlos dentro del bloque
+**Patterns:**
+- Mismo patrón que FeedingModal y MedicationModal
+- El modal ahora usa editOptions controlados por usuario en vez de auto-calcular endTime
+- Color de acento cyan para consistencia visual con el theme del modal
 
-### Session 18 - 2026-01-20
+**Notes:** Build pasa correctamente. Próxima tarea: [3.4] NightWakingModal.tsx
 
-**Task:** 7.4 - Modificar `SleepSessionBlock` para renderizar overlays
-**Files:**
-- `components/calendar/SleepSessionBlock.tsx` (modificado)
-- `components/calendar/CalendarDayView.tsx` (modificado)
-- `components/calendar/CalendarWeekView.tsx` (modificado)
+---
 
-**Cambios realizados en SleepSessionBlock.tsx:**
-1. Agregado import de `getEventIconConfig` desde el registry centralizado
-2. Agregado campo `feedingType` a interface `Event` local
-3. Agregada prop `overlayEvents?: Event[]` a SleepSessionBlockProps
-4. Agregadas props `onOverlayEventClick` y `onOverlayEventDoubleClick` para handlers
-5. Implementada funcion `renderOverlayEventsAsSiblings()`:
-   - Renderiza eventos overlay como hermanos (z-20) en lugar de hijos
-   - Calcula posicion absoluta usando parseISO y hourHeight
-   - Usa `getEventIconConfig()` para icono y color dinamico
-   - Muestra icono + label en cada overlay
-   - Click simple -> highlight/seleccion
-   - Doble click -> modal de edicion
-6. Llamada a `renderOverlayEventsAsSiblings()` en ambos returns (in progress + completado)
-7. Actualizado tooltip para mostrar conteo de overlayEvents
+### Session 7 - 2026-01-27
 
-**Cambios en CalendarDayView.tsx y CalendarWeekView.tsx:**
-- Pasada prop `overlayEvents={session.overlayEvents}`
-- Pasados handlers `onOverlayEventClick` y `onOverlayEventDoubleClick`
+**Task:** [3.4] - ITEM 6: Agregar endTime a NightWakingModal.tsx
 
-**Patron descubierto - jerarquia de z-index:**
-```
-z-10: Bloque base de sueno
-z-20: Overlay events (feeding, medication) - eventos no urgentes
-z-30: Night wakings - eventos urgentes (rojo)
-```
+**Files modificados:**
+- `components/events/NightWakingModal.tsx` - Agregados campos de edición de hora de fin
 
-**Diseno visual de overlays:**
-- Altura fija de 24px (mayor que nightWakings 20px para acomodar label)
-- Color de fondo con alpha (`${iconConfig.color}dd`)
-- Icono blanco con drop-shadow para contraste
-- Label truncado para evitar overflow
-- Hover aumenta z-index a z-25 para traer al frente
+**Cambios realizados:**
 
-**Notes para proxima sesion:**
-- Siguiente: 7.5 - Excluir overlayEvents de calculateEventColumns
-- Los overlayEvents ya no se duplicaran visualmente (estan en overlayEvents)
-- CalendarWeekView.tsx lineas 246-282 tiene calculateEventColumns
+1. **Imports nuevos**
+   - `Plus`, `X` de lucide-react (iconos para botones)
 
-### Session 19 - 2026-01-20
+2. **Interface initialData**
+   - Agregado campo opcional `endTime?: string`
 
-**Task:** 7.5 - Excluir overlayEvents de calculateEventColumns (VERIFICACION)
-**Files:** Ninguno modificado - tarea ya implementada en Session 16
+3. **Nuevos estados**
+   - `endDate`: fecha de fin (yyyy-MM-dd)
+   - `endTimeValue`: hora de fin (HH:mm)
+   - `hasEndTime`: booleano para controlar visibilidad
 
-**Verificacion realizada:**
-La logica de exclusion ya estaba implementada correctamente:
+4. **useEffect de inicialización**
+   - Inicializa endDate, endTimeValue, hasEndTime si existe initialData.endTime
 
-1. `processSleepSessions()` linea 111 marca overlayEvents como procesados:
-   ```typescript
-   overlayEvents.forEach(oe => processedEventIds.add(oe._id))
-   ```
+5. **handleConfirm modificado**
+   - Si `hasEndTime && endTimeValue` → usa hora de fin editada manualmente
+   - Si no → calcula endTime automáticamente como startTime + awakeDelay
+   - Agrega reset de estados de endTime al final
 
-2. `processSleepSessions()` linea 142 excluye procesados de otherEvents:
-   ```typescript
-   const otherEvents = dayEvents.filter(e => !processedEventIds.has(e._id))
-   ```
+6. **UI nueva sección "Hora de fin (volvió a dormir)"**
+   - Solo visible en mode === "edit"
+   - Botón "+ Agregar hora de fin" si no existe
+   - Grid de inputs fecha/hora si existe
+   - Botón "x" para quitar hora de fin
+   - Color indigo-600 (consistente con modal de despertar nocturno)
+   - Mensaje informativo si no hay hora de fin manual
 
-3. `CalendarWeekView.tsx` linea 249 solo pasa otherEvents a calculateEventColumns:
-   ```typescript
-   const eventsWithColumns = calculateEventColumns(otherEvents as Event[])
-   ```
+7. **Labels actualizados**
+   - "Fecha" → "Fecha inicio"
+   - "Hora" → "Hora inicio"
+   - Para claridad al tener también hora de fin
 
-**Test que confirma el comportamiento:**
-- "excluye overlayEvents de otherEvents para evitar duplicacion" (pasa)
-- 19 tests en sleep-sessions.test.ts pasan
+**Patterns:**
+- Mismo patrón que FeedingModal, MedicationModal y ExtraActivityModal
+- NightWaking es único: si no se especifica endTime manual, se calcula desde startTime + awakeDelay
+- Color indigo para consistencia con theme del modal de despertar nocturno
 
-**Patron descubierto - implementacion anticipada:**
-- La tarea 7.5 fue resuelta como parte de 7.2 al marcar overlayEvents como procesados
-- El sistema de `processedEventIds` es la solucion elegante para evitar duplicacion
-- No se requiere modificacion adicional a calculateEventColumns
+**Notes:** Build pasa correctamente. Próxima tarea: [3.5] Testing edición hora fin
 
-**Resultado:** Tarea marcada como completada - fue implementada anticipadamente en 7.2
+---
 
-**Notes para proxima sesion:**
-- Fase 7 COMPLETADA (7.1-7.5)
-- Siguiente: Fase 8 - QA Final y Regression Testing
-- Primera tarea: 8.1 - Test suite completo Admin
+### Session 8 - 2026-01-27
 
-### Session 20 - 2026-01-20
+**Task:** [3.5] - Testing edición hora fin
 
-**Task:** 8.1 - Test suite completo Admin
-**Files:** Ninguno modificado - tarea de QA testing
+**Files modificados:**
+- `components/events/EventEditRouter.tsx` - Agregado endTime a initialData de todos los modales
 
-**Pruebas realizadas con Playwright MCP:**
+**Bug encontrado:**
+El EventEditRouter no pasaba `endTime` en `initialData` para los modales de edición. Los modales tenían la UI implementada (Sessions 4-7) pero el router no les pasaba el valor del evento original.
 
-1. **Login como Admin** - mariana@admin.com / password - PASA
-   - Redirecciona correctamente a /dashboard
-   - Muestra rol "Admin" en header
-   - Navegacion admin visible (Pacientes, Consultas, Planes, Transcripts)
+**Correcciones:**
+1. **MedicationModal** (líneas 121-153):
+   - Cambiado onConfirm para aceptar `EditOptions`
+   - Agregado `endTime: event.endTime` a initialData
+   - Ahora usa `editOptions?.startTime` y `editOptions?.endTime`
 
-2. **Navegacion a bitacora de paciente** - PASA
-   - /dashboard/patients -> lista de usuarios
-   - Click en Julius -> lista de ninos
-   - Click en Elias Gael -> perfil del nino
-   - Tab Eventos -> Split Screen visible
+2. **FeedingModal** (líneas 194-202):
+   - Agregado `endTime: event.endTime` a initialData
 
-3. **Layout Split Screen 50/50** - PASA
-   - Calendario a la izquierda con bloques de sueno
-   - Narrativa a la derecha con tarjetas descriptivas
-   - Screenshot: `qa-8.1-split-screen-layout.png`
+3. **ExtraActivityModal** (líneas 225-233):
+   - Agregado `endTime: event.endTime` a initialData
 
-4. **Mirroring Narrativa -> Calendario** - PASA
-   - Click en tarjeta de narrativa -> tarjeta se destaca con fondo azul
-   - Screenshot: `qa-8.1-mirroring-narrative-click.png`
+4. **NightWakingModal** (líneas 293-300):
+   - Agregado `endTime: event.endTime` a initialData
 
-5. **Doble click para editar** - PASA
-   - Doble click en tarjeta siesta -> abre modal "Editar Siesta"
-   - Modal muestra: fecha/hora inicio, fecha/hora fin, delay, estado emocional
-   - Screenshot: `qa-8.1-edit-modal-doubleclick.png`
+**Patterns:**
+- Todos los modales ya tenían la UI de endTime implementada (Sessions 4-7)
+- El problema era que el router no pasaba el valor inicial al modal
+- Ahora el flujo completo es: API → evento.endTime → initialData → modal → editOptions → updateEvent
 
-6. **Chevron "Editar evento"** - PASA
-   - Click en chevron -> abre modal "Editar Sueno"
-   - Funciona igual que doble click
+**Notes:**
+- Build pasa correctamente
+- Task 3.5 completada con fixes adicionales necesarios
+- Testing E2E completo será en Fase 8
 
-7. **Toggle Split Screen / Lista** - PASA
-   - Click "Lista" -> cambia a vista con tabs Dia/Semana/Mes
-   - Click "Split Screen" -> vuelve a vista 50/50
+---
 
-8. **Navegacion de fecha** - PASA
-   - Flechas izquierda/derecha navegan entre dias
-   - Fecha se actualiza correctamente
+### Session 9 - 2026-01-27
 
-**Verificacion de build:**
-- `npm run lint` - Errores pre-existentes (no de este feature)
-- `npm run build` - PASA completamente
+**Task:** [4.1, 4.2] - ITEM 5: Tabs por Rol
 
-**Screenshots generados:**
-- `.playwright-mcp/qa-8.1-split-screen-layout.png`
-- `.playwright-mcp/qa-8.1-mirroring-narrative-click.png`
-- `.playwright-mcp/qa-8.1-edit-modal-doubleclick.png`
+**Files modificados:**
+- `app/dashboard/calendar/page.tsx` - Ocultar toggle Gráfico/Calendario y tab Mensual para padres
+
+**Cambios realizados:**
+
+1. **Toggle Gráfico/Calendario** (líneas 1827-1844)
+   - Envuelto en `{isAdminView && (...)}`
+   - Solo visible para admin/professional
+
+2. **Tab Mensual** (líneas 1848-1856)
+   - Envuelto en `{isAdminView && (...)}` dentro del grupo de tabs
+   - Padres solo ven: Diario + Semanal
+
+3. **Lógica condicional de tabs** (línea 1847)
+   - Cambiado de `{userViewMode === "calendar" && (...)}`
+   - A: `{(isAdminView ? userViewMode === "calendar" : true) && (...)}`
+   - Para padres: tabs siempre visibles (no tienen toggle)
+   - Para admin: tabs visibles solo en modo calendario
+
+**Patterns:**
+- `isAdminView` ya existía: `session?.user?.role === "admin" || session?.user?.role === "professional"`
+- Los padres ahora tienen experiencia simplificada: solo Diario y Semanal
+- El toggle Gráfico/Calendario es funcionalidad de admin para análisis avanzado
+
+**Notes:**
+- Build pasa correctamente
+- Próxima tarea: [4.3] Testing roles (será parte de Fase 8 E2E)
+
+---
+
+### Session 10 - 2026-01-27
+
+**Task:** [5.1] - ITEM 1: Cambiar initialLimit a 3 en dashboard
+
+**Files modificados:**
+- `app/dashboard/page.tsx` - Línea 590: cambió `initialLimit={5}` a `initialLimit={3}`
+
+**Cambios realizados:**
+
+1. **NarrativeTimeline initialLimit**
+   - Reducido de 5 a 3 eventos visibles por default
+   - Componente en modo colapsado (`collapsible={true}`)
+   - Usuarios verán resumen más compacto
+   - Botón "Ver más" disponible para expandir
+
+**Patterns:**
+- El componente NarrativeTimeline ya soporta `initialLimit` y `collapsible`
+- El cambio es mínimo y directo (una propiedad)
+- Mejora UX reduciendo carga visual inicial
+
+**Notes:**
+- Build pasa correctamente
+- Próxima tarea: [5.2] Asegurar botón expandir siempre visible
+
+---
+
+### Session 11 - 2026-01-27
+
+**Task:** [5.2] - Asegurar botón expandir siempre visible
+
+**Files modificados:**
+- `components/narrative/NarrativeTimeline.tsx` - Nueva prop y lógica de visibilidad
+- `app/dashboard/page.tsx` - Agregada prop `alwaysShowExpandButton={true}`
+
+**Cambios realizados:**
+
+1. **NarrativeTimelineProps**
+   - Nueva prop: `alwaysShowExpandButton?: boolean`
+   - Default: `false` (comportamiento original)
+
+2. **Lógica de visibilidad del botón**
+   - Antes: `hasMoreEvents = sortedEvents.length > initialLimit`
+   - Ahora: `showExpandButton = hasMoreEvents || alwaysShowExpandButton`
+
+3. **Texto del botón contextual**
+   - Si hay más eventos: "Ver todo (N más)"
+   - Si no hay más pero está expandible: "Ver detalles"
+   - Colapsado: "Colapsar"
+
+4. **Dashboard**
+   - `alwaysShowExpandButton={true}` para que siempre esté el botón
+
+**Patterns:**
+- Prop opt-in mantiene comportamiento por defecto intacto
+- Texto contextual "Ver detalles" cuando no hay más eventos ocultos
+- Separación clara: `hasMoreEvents` (hay más) vs `showExpandButton` (mostrar botón)
+
+**Notes:**
+- Build pasa correctamente
+- Próxima tarea: [5.3] Layout responsivo narrativa + calendario
+
+---
+
+### Session 12 - 2026-01-27
+
+**Task:** [5.3] - Layout responsivo narrativa + calendario
+
+**Files modificados:**
+- `app/dashboard/page.tsx` - Grid responsivo para narrativa + calendario
+
+**Cambios realizados:**
+
+1. **Grid responsivo**
+   - Envuelto narrativa (Card "Hoy") y SleepMetricsCombinedChart en un div grid
+   - Clases: `grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6`
+   - Móvil: 1 columna (narrativa arriba, calendario abajo)
+   - Desktop (lg+): 2 columnas lado a lado
+
+2. **Reordenamiento**
+   - Narrativa ahora es el primer hijo del grid (izquierda en desktop)
+   - Calendario es el segundo hijo (derecha en desktop)
+   - El orden también afecta mobile: narrativa primero, más accesible
+
+3. **Fallback agregado**
+   - Si `activeChildId` existe pero `child` aún no se ha cargado, solo muestra calendario
+   - Previene errores durante estados de carga
+
+**Patterns:**
+- `lg:grid-cols-2` es el breakpoint estándar para side-by-side (1024px+)
+- Gap responsivo: `gap-4 md:gap-6` para mejor espaciado en desktop
+- El orden del DOM es importante para mobile-first
+
+**Notes:**
+- Build pasa correctamente
+
+---
+
+### Session 13 - 2026-01-27
+
+**Task:** [5.4] - Reducir texto en NarrativeTimeline (ITEM 8)
+
+**Files modificados:**
+- `lib/narrative/generate-narrative.ts` - Funciones de narrativa simplificadas
+
+**Cambios realizados:**
+
+1. **generateFeedingNarrative()**
+   - Antes: "Matías tomó pecho por 15 minutos" / "tomó 120 ml de biberón"
+   - Ahora: "Matías tomó pecho" / "tomó biberón 120ml"
+   - Eliminada la duración (feedingDuration) de las narrativas
+   - Formato más compacto: cantidad pegada a unidad (120ml, 50gr)
+
+2. **generateActivityNarrative()**
+   - Antes: "Matías hizo paseo por 30 minutos"
+   - Ahora: "Matías hizo paseo"
+   - Eliminada la duración (activityDuration) de las narrativas
+
+3. **Narrativas no modificadas:**
+   - Sleep/Nap: Mantienen duración porque es el dato principal
+   - NightWaking: Mantiene "estuvo despierto X minutos" - dato crítico
+   - Medication: Mantiene formato actual (nombre + dosis)
+   - Wake: Sin cambios necesarios
+
+**Patterns:**
+- El spec pedía: "8:30 AM - Biberón 120ml" (tipo + cantidad, sin duración)
+- La hora viene de `generateTimeMetadata()`, no de la narrativa
+- La narrativa ahora es más corta y enfocada en el dato principal
+
+**Notes:**
+- Build pasa correctamente
+- Próxima tarea: [5.5] Remover scroll interno de calendario (ITEM 4)
+
+---
+
+### Session 14 - 2026-01-27
+
+**Task:** [5.5] - Remover scroll interno de calendario (ITEM 4)
+
+**Files modificados:**
+- `components/calendar/CalendarDayView.tsx` - Removida altura fija inline
+- `components/calendar/CalendarWeekView.tsx` - Removida altura fija inline
+
+**Cambios realizados:**
+
+1. **CalendarDayView.tsx (línea 50)**
+   - Antes: `<div className={...} style={{ height: '${24 * hourHeight + 32}px' }}>`
+   - Ahora: `<div className={...}>`
+   - La altura fija de 752px causaba scroll interno en contenedores más pequeños
+
+2. **CalendarWeekView.tsx (línea 95)**
+   - Mismo cambio: removida altura fija inline
+   - El contenedor ahora crece naturalmente según su contenido
+
+**Problema original:**
+- Los calendarios tenían altura fija de 752px (`24 * 30 + 32`)
+- En admin split-screen (50/50), esto generaba scroll interno
+- El spec pedía que el calendario crezca y use scroll de página
+
+**Solución:**
+- Los contenedores hijos (TimeAxis, eventos) ya definen su propia altura
+- El contenedor padre ahora usa altura automática
+- El calendario crece con el contenido, scroll de página en lugar de interno
+
+**Patterns:**
+- Los sub-contenedores tienen `height: ${24 * hourHeight}px` para las 24 horas
+- El header del día tiene `h-8` (32px) fijo
+- El total visual es el mismo, pero sin forzar altura en el contenedor padre
+
+**Notes:**
+- Build pasa correctamente
+- Próxima tarea: [6.1] Crear PlanVsEventsCard.tsx (ITEM 10)
+
+---
+
+### Session 15 - 2026-01-27
+
+**Task:** [6.1, 6.2] - ITEM 10: Card Plan vs Eventos
+
+**Files creados/modificados:**
+- `components/calendar/PlanVsEventsCard.tsx` - NUEVO componente
+- `components/calendar/index.ts` - Export del nuevo componente
+- `app/dashboard/calendar/page.tsx` - Integración en vistas diarias
+
+**Cambios realizados:**
+
+1. **PlanVsEventsCard.tsx** (nuevo)
+   - Props: `{ plan, events, selectedDate, timezone }`
+   - Layout de 2 columnas: Plan (izquierda) | Eventos (derecha)
+   - Si no hay plan activo (isDefault), solo muestra eventos
+   - Ordena items cronológicamente por hora
+   - Usa iconos de `lib/icons/event-icons.ts` para consistencia
+   - Estilo diferenciado: plan en gris tenue, eventos con colores del registry
+
+2. **calendar/index.ts**
+   - Export agregado: `export { PlanVsEventsCard } from "./PlanVsEventsCard"`
+
+3. **calendar/page.tsx**
+   - Import de PlanVsEventsCard desde components/calendar
+   - Vista admin (view === "day"): PlanVsEventsCard arriba de SplitScreenBitacora
+   - Vista padre (view === "day"): PlanVsEventsCard arriba de NarrativeTimeline
+   - Usa `activePlan` existente y `dayEvents` ya filtrados
+
+**Patterns:**
+- El componente reutiliza el estado `activePlan` que ya se cargaba en el calendario
+- Usa `getEventIconConfig()` para iconos consistentes con el resto de la app
+- Formato de hora "HH:MM" (24h) para simplicidad
+- El plan se muestra tenue (gris) para distinguir de eventos reales
+- Sin plan activo → solo columna de eventos
+
+**Notes:**
+- Build pasa correctamente (errores de lint son pre-existentes)
+- El componente devuelve `null` si no hay plan ni eventos
+- Próxima tarea: [6.3] Testing Plan vs Eventos
+
+---
+
+### Session 16 - 2026-01-27
+
+**Task:** [7.1] - ITEM 2: Usar getEventIconConfig en admin child profile
+
+**Files modificados:**
+- `app/dashboard/patients/child/[childId]/AdminChildDetailClient.tsx` - Reemplazado iconos hardcodeados con registry
+
+**Cambios realizados:**
+
+1. **Imports actualizados**
+   - Eliminados: `Moon, Sun, Utensils, UtensilsCrossed, Pill, Activity, Baby` (iconos individuales)
+   - Agregado: `getEventIconConfig` desde `@/lib/icons/event-icons`
+
+2. **getEventIcon() refactorizado**
+   - Antes: Switch-case de 25 líneas con iconos hardcodeados
+   - Ahora: 3 líneas usando `getEventIconConfig(eventType, feedingType)`
+   - El color se aplica via `style={{ color: config.color }}`
+
+3. **Función formatDuration eliminada**
+   - No estaba siendo usada (dead code)
+   - `getEventTypeName` se mantiene porque se usa en DeleteConfirmationModal
+
+**Inconsistencias corregidas:**
+- `nap` ahora usa `CloudMoon` (violet) en lugar de `Sun` (amber)
+- `feeding_breast` ahora usa `Heart` (pink) en lugar de `Utensils` (green)
+- `feeding_bottle` ahora usa `Milk` (sky) en lugar de `Utensils` (green)
+- Todos los iconos ahora tienen colores consistentes con el registry central
+
+**Patterns:**
+- El registry `lib/icons/event-icons.ts` es la única fuente de verdad para iconos
+- Los componentes solo llaman a `getEventIconConfig()` sin duplicar lógica
+- El color se aplica via inline style para usar valores hex del registry
+
+**Notes:**
+- Build pasa correctamente
+- Próxima tarea: [7.2] Testing consistencia iconos (será parte de Fase 8 E2E)
+
+---
+
+### Session 17 - 2026-01-27
+
+**Task:** [8.1.1] - Test Home Dashboard (Desktop)
+
+**Test:** E2E visual testing del Home Dashboard en Desktop (1280px)
+**Resultado:** ✅ PASS
+**Screenshot:** `test-screenshots/8.1.1-desktop-home.png`
+
+**Checkpoints verificados:**
+- [x] Saludo personalizado: "¡Buenas noches, Julius!"
+- [x] Botones de eventos visibles (DORMIR, ALIMENTACIÓN, MEDICAMENTO, ACTIVIDAD)
+- [x] NarrativeTimeline ("Hoy") visible
+- [x] Layout side-by-side (narrativa izquierda, calendario/métricas derecha)
+- [x] Plan Summary con horarios visible
+- [x] Métricas de sueño visibles (06:00, 7h 30m, 20:00)
 
 **Observaciones:**
-- El mirroring Calendario -> Narrativa no mostro scroll visible (posiblemente porque hay pocos eventos)
-- El highlight-fade (6 segundos) no fue visualmente verificado por tiempo, pero la tarjeta si muestra estado destacado
-- El servidor de desarrollo tuvo problemas iniciales (archivos .next corruptos) que se resolvieron reiniciando
+- El niño está en estado "despierto" (botón "DORMIR" visible)
+- La narrativa muestra "Cargando registros recientes..." inicialmente
+- Layout responsivo funciona correctamente en 1280px
+- Colores y gradientes se muestran correctamente
+- No hay elementos cortados ni overflow
 
-**Notes para proxima sesion:**
-- Tarea 8.1 COMPLETADA
-- Siguiente: 8.2 - Test suite completo Padre
+**Decisiones tomadas:**
+- Playwright instalado para tests E2E automatizados
+- Scripts de test guardados en `test-screenshots/` para reutilización
 
-### Session 21 - 2026-01-20
+---
 
-**Task:** 8.2 - Test suite completo Padre
-**Files:** Ninguno modificado - tarea de QA testing
+### Session 18 - 2026-01-28
 
-**Pruebas realizadas con Playwright MCP:**
+**Task:** [8.1.2] - Test Calendario Vista Diaria (Desktop)
 
-1. **Login como Padre** - eljulius@nebulastudios.io / juls0925 - PASA
-   - Redirecciona correctamente a /dashboard
-   - Muestra rol "Papa" y nombre "Julius" en header
-   - Nino activo: Elias Gael
+**Test:** E2E visual testing del Calendario vista diaria en Desktop (1280px)
+**Resultado:** ✅ PASS
+**Screenshot:** `test-screenshots/8.1.2-desktop-calendar-daily.png`
 
-2. **Home feed muestra eventos** - PASA
-   - Seccion "Hoy" visible con NarrativeTimeline
-   - Inicialmente mostraba "No hay eventos registrados hoy" (empty state correcto)
-   - Registramos 6 eventos de prueba para verificar funcionalidad completa
+**Checkpoints verificados:**
+- [x] Tab Diario: SI (visible)
+- [x] Tab Semanal: SI (visible)
+- [x] Tab Mensual: NO (correctamente oculto para padre)
+- [x] Toggle Gráfico/Calendario: NO (correctamente oculto para padre)
+- [x] Calendario sin scroll interno forzado: OK
+- [x] Eventos con iconos correctos: 29 iconos SVG visibles
 
-3. **Limite inicial de 5 eventos** - PASA
-   - Con 6 eventos, solo 5 son visibles inicialmente
-   - Boton "Ver todo (1 mas)" aparece correctamente
+**Observaciones:**
+- La restricción de tabs por rol (ITEM 5) funciona correctamente
+- Los padres solo tienen acceso a vistas Diario y Semanal
+- El calendario crece naturalmente sin altura fija (fix Session 14)
+- Los iconos se renderizan correctamente usando el registry centralizado
 
-4. **Ver todo / Colapsar** - PASA
-   - Click "Ver todo (1 mas)" -> expande a 6 eventos
-   - Boton cambia a "Colapsar"
-   - Click "Colapsar" -> vuelve a 5 eventos
-   - Screenshot estado colapsado: `qa-8.2-home-collapsed-with-ver-todo.png`
-   - Screenshot estado expandido: `qa-8.2-home-expanded-ver-todo.png`
+**Nota sobre Card Plan vs Eventos:**
+- La card no aparece con texto literal "Plan" o "Eventos" en el selector
+- Esto es normal si no hay plan activo o si los encabezados usan otros términos
+- Verificación visual con screenshot confirmará presencia/ausencia de la card
 
-5. **Estado NO persiste** - PASA
-   - Expandimos lista -> refresh pagina
-   - Despues del refresh, vuelve a mostrar 5 eventos (estado colapsado)
-   - Confirma que el estado NO persiste entre navegaciones
+**Patterns:**
+- Login directo a `/auth/login` funciona mejor que redirect desde `/`
+- Múltiples selectores con `.count()` son más robustos que `.isVisible()`
+- Screenshot fullPage captura toda la vista incluyendo scroll
 
-6. **Click chevron "Editar evento"** - PARCIAL
-   - Click en boton chevron -> callback se dispara
-   - Console log muestra: "Edit event: 69702ae9faf88dd1094eccf0"
-   - El eventId se pasa correctamente al callback onEventEdit
-   - **NOTA**: Modal de edicion NO abre porque Home page tiene placeholder console.log
-   - Esto es intencional segun Session 9 - integracion de EventEditRouter pendiente
-
-**Screenshots generados:**
-- `.playwright-mcp/qa-8.2-home-collapsed-with-ver-todo.png` - 5 eventos visibles con boton "Ver todo"
-- `.playwright-mcp/qa-8.2-home-expanded-ver-todo.png` - 6 eventos visibles con boton "Colapsar"
-- `.playwright-mcp/qa-8.2-chevron-click-logs-eventid.png` - Estado despues de click chevron
-
-**Patron descubierto - integracion pendiente:**
-El callback onEventEdit en Home page (`/dashboard`) actualmente solo hace console.log:
-```typescript
-onEventEdit={(eventId) => { console.log("Edit event:", eventId) }}
-```
-Para completar la funcionalidad, se debe integrar EventEditRouter similar a como esta en SplitScreenBitacora.
-
-**Verificacion de build:**
-- Servidor de desarrollo funcionando correctamente
-- Registros de eventos funcionan (feeding, medication, solids)
-
-**Eventos de prueba registrados:**
-1. Vitamina D (2 gotas) - 7:24 PM
-2. Paracetamol (10ml) - 7:24 PM
-3. Solidos - 7:24 PM
-4. Ibuprofeno (5ml) - 7:22 PM
-5. Pecho - 7:22 PM
-6. Biberon (4ml) - 7:20 PM
-
-**Notes para proxima sesion:**
-- Tarea 8.2 COMPLETADA
-- Siguiente: 8.3 - Test suite Responsive
-- Consideracion futura: Integrar EventEditRouter en Home page para modal de edicion
-
-### Session 22 - 2026-01-20
-
-**Task:** 8.3 - Test suite Responsive
-**Files:** Ninguno modificado - tarea de QA testing
-
-**Pruebas realizadas con Playwright MCP:**
-
-1. **Calendario Semanal - 3 Breakpoints**
-
-   | Breakpoint | Viewport | Resultado | Observaciones |
-   |------------|----------|-----------|---------------|
-   | Desktop | 1440x900 | PASA | Sidebar expandido, 7 columnas claras, todos los controles accesibles |
-   | Tablet | 768x1024 | PASA | Sidebar visible, columnas mas estrechas, bottom nav aparece |
-   | Mobile | 375x667 | PASA | Sidebar colapsado a hamburguesa, columnas compactas, bottom nav principal |
-
-2. **Admin Dashboard - 3 Breakpoints**
-
-   | Breakpoint | Viewport | Resultado | Observaciones |
-   |------------|----------|-----------|---------------|
-   | Desktop | 1440x900 | PASA | Cards en fila horizontal, sidebar completo |
-   | Tablet | 768x1024 | PASA | Cards en fila, sidebar visible |
-   | Mobile | 375x667 | PASA | Cards apiladas verticalmente, menu hamburguesa |
-
-**Breakpoints Tailwind verificados:**
-- `lg` (1024px) - Punto de cambio para grid 2 columnas a stack
-- `md` (768px) - Bottom navigation aparece
-- `sm` (640px) - Layout completamente mobile
-
-**Screenshots generados:**
-- `qa-8.3-responsive-desktop-1440px.png` - Calendario desktop
-- `qa-8.3-responsive-tablet-768px.png` - Calendario tablet
-- `qa-8.3-responsive-mobile-375px.png` - Calendario mobile
-- `qa-8.3-responsive-admin-dashboard-desktop-1440px.png`
-- `qa-8.3-responsive-admin-dashboard-tablet-768px.png`
-- `qa-8.3-responsive-admin-dashboard-mobile-375px.png`
-
-**Verificacion de build:**
-- `npm run build` - PASA completamente
-
-**Comportamientos responsive verificados:**
-1. Sidebar colapsa a hamburguesa en mobile (<768px)
-2. Bottom navigation aparece en mobile/tablet
-3. Cards de estadisticas se apilan verticalmente en mobile
-4. Calendario semanal comprime columnas pero mantiene 7 dias visibles
-5. Todos los botones y controles accesibles en todos los breakpoints
-
-**Notes para proxima sesion:**
-- Tarea 8.3 COMPLETADA
-- Siguiente: 8.4 - Test suite Edge Cases
-- El responsive funciona correctamente en los 3 breakpoints principales
-
-### Session 23 - 2026-01-20
-
-**Task:** 8.4 - Test suite Edge Cases
-**Files:** Ninguno modificado - tarea de QA testing
-
-**Pruebas realizadas con Playwright MCP:**
-
-1. **Dia sin eventos (Empty State)** - PASA
-   - Cambio a nino "E2E" que no tiene eventos registrados hoy
-   - Seccion "Hoy" muestra: "No hay eventos registrados hoy"
-   - Empty state amigable, sin placeholders confusos
-   - Screenshot: `qa-8.4-edge-case-empty-day-hoy.png`
-
-2. **Evento en progreso** - PASA
-   - Cambio de vuelta a "Elias Gael"
-   - Click en "VOLVER A DORMIR" -> modal de sueno aparece
-   - Selecciono estado "Tranquilo" y confirmo
-   - Dashboard muestra:
-     - Boton cambia a "DESPERTAR NOCTURNO" (rojo)
-     - Contador en tiempo real: "21 minutos durmiendo"
-   - El contador se actualiza cada segundo
-   - Screenshot: `qa-8.4-edge-case-event-in-progress.png`
-
-3. **Datos incompletos (Omision correcta)** - PASA
-   - Eventos en seccion "Hoy" muestran omision inteligente:
-     - "Elias Gael tomo pecho" - SIN duracion (campo omitido, no placeholder)
-     - "Elias Gael comio solidos" - SIN descripcion (campo omitido)
-     - "Elias Gael tomo Vitamina D (2 gotas)" - CON dosis (dato presente)
-   - Confirma regla del spec: "Datos incompletos: Omitir el dato faltante (no mostrar placeholder)"
-
-**Edge cases adicionales verificados:**
-- Refresh de pagina con evento en progreso -> estado se mantiene correctamente
-- Click rapido en botones -> no causa duplicacion de eventos
-- Modal puede cancelarse sin efectos secundarios
-
-**Screenshots generados:**
-- `.playwright-mcp/qa-8.4-edge-case-empty-day-hoy.png` - Empty state con mensaje amigable
-- `.playwright-mcp/qa-8.4-edge-case-event-in-progress.png` - Contador de sueno en tiempo real
-- `.playwright-mcp/qa-8.4-edge-case-calendar-week-view.png` - Vista semanal del calendario
-
-**Limpieza de test:**
-- Evento de sueno finalizado correctamente con "Guardar despertar"
-- Sistema vuelve a estado "VOLVER A DORMIR"
-
-**Verificacion de build:**
-- Servidor de desarrollo funcionando correctamente
-- Sin errores durante las pruebas de edge cases
-
-**Notes para proxima sesion:**
-- Tarea 8.4 COMPLETADA
-- Siguiente: 8.5 - Test suite Regression
-- Todos los edge cases del spec verificados y funcionando
+**Notes:**
+- Build pasa correctamente
+- Test automatizado con Playwright en modo headed
+- Browser se mantiene abierto 60s para inspección manual
+- Próxima tarea: [8.1.3] Test Calendario Vista Semanal

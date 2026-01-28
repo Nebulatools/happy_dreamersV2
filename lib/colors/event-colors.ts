@@ -152,12 +152,12 @@ export const EVENT_COLORS: Record<EventColorType, EventColorConfig> = {
     text: "text-white",
   },
   note: {
-    bg: "bg-note",
-    bgLight: "bg-note/10",
-    border: "border-note",
-    hex: "#8B5CF6",
-    hexAlpha: "rgba(139, 92, 246, 0.5)",
-    text: "text-white",
+    bg: "bg-violet-100",       // Lavanda claro para consistencia con NarrativeCard
+    bgLight: "bg-violet-50",
+    border: "border-violet-300",
+    hex: "#ede9fe",            // violet-100
+    hexAlpha: "rgba(237, 233, 254, 0.5)",
+    text: "text-gray-700",     // Texto oscuro para contraste sobre fondo claro
   },
 }
 

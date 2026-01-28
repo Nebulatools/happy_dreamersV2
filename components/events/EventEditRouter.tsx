@@ -123,19 +123,15 @@ export function EventEditRouter({
       <MedicationModal
         open={open}
         onClose={onClose}
-        onConfirm={async (data) => {
-          // Construir fecha/hora completa si se proporciono
-          let startTime = event.startTime
-          if (data.medicationTime) {
-            const date = new Date(event.startTime)
-            const [hours, minutes] = data.medicationTime.split(":")
-            date.setHours(parseInt(hours), parseInt(minutes))
-            startTime = dateToTimestamp(date, timezone)
-          }
+        onConfirm={async (data, editOptions?: EditOptions) => {
+          // Usar startTime y endTime editados si existen, sino usar los originales
+          const startTime = editOptions?.startTime || event.startTime
+          const endTime = editOptions?.endTime ?? event.endTime
 
           await updateEvent({
             ...data,
             startTime,
+            endTime,
             notes: data.medicationNotes,
           })
         }}
@@ -147,6 +143,7 @@ export function EventEditRouter({
           medicationTime: event.medicationTime,
           medicationNotes: event.medicationNotes || event.notes,
           startTime: event.startTime,
+          endTime: event.endTime,
           eventId: event._id,
         }}
       />
@@ -198,9 +195,11 @@ export function EventEditRouter({
           feedingType: event.feedingType,
           feedingAmount: event.feedingType === "bottle" ? mlToOz(event.feedingAmount) : event.feedingAmount,
           feedingDuration: event.feedingDuration,
-          babyState: event.babyState,
+          // Asegurar que babyState siempre tenga un valor (manejar eventos legacy)
+          babyState: event.babyState || (event.eventType === "night_feeding" ? "asleep" : "awake"),
           feedingNotes: event.feedingNotes || event.notes,
           startTime: event.startTime,
+          endTime: event.endTime,
           eventId: event._id,
         }}
       />
@@ -231,6 +230,7 @@ export function EventEditRouter({
           activityImpact: event.activityImpact,
           activityNotes: event.activityNotes || event.notes,
           startTime: event.startTime,
+          endTime: event.endTime,
           eventId: event._id,
         }}
       />
@@ -298,6 +298,7 @@ export function EventEditRouter({
           emotionalState: event.emotionalState,
           notes: event.notes,
           startTime: event.startTime,
+          endTime: event.endTime,
           eventId: event._id,
         }}
       />
