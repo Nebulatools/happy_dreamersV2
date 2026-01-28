@@ -294,3 +294,53 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Color de acento cyan para consistencia visual con el theme del modal
 
 **Notes:** Build pasa correctamente. Próxima tarea: [3.4] NightWakingModal.tsx
+
+---
+
+### Session 7 - 2026-01-27
+
+**Task:** [3.4] - ITEM 6: Agregar endTime a NightWakingModal.tsx
+
+**Files modificados:**
+- `components/events/NightWakingModal.tsx` - Agregados campos de edición de hora de fin
+
+**Cambios realizados:**
+
+1. **Imports nuevos**
+   - `Plus`, `X` de lucide-react (iconos para botones)
+
+2. **Interface initialData**
+   - Agregado campo opcional `endTime?: string`
+
+3. **Nuevos estados**
+   - `endDate`: fecha de fin (yyyy-MM-dd)
+   - `endTimeValue`: hora de fin (HH:mm)
+   - `hasEndTime`: booleano para controlar visibilidad
+
+4. **useEffect de inicialización**
+   - Inicializa endDate, endTimeValue, hasEndTime si existe initialData.endTime
+
+5. **handleConfirm modificado**
+   - Si `hasEndTime && endTimeValue` → usa hora de fin editada manualmente
+   - Si no → calcula endTime automáticamente como startTime + awakeDelay
+   - Agrega reset de estados de endTime al final
+
+6. **UI nueva sección "Hora de fin (volvió a dormir)"**
+   - Solo visible en mode === "edit"
+   - Botón "+ Agregar hora de fin" si no existe
+   - Grid de inputs fecha/hora si existe
+   - Botón "x" para quitar hora de fin
+   - Color indigo-600 (consistente con modal de despertar nocturno)
+   - Mensaje informativo si no hay hora de fin manual
+
+7. **Labels actualizados**
+   - "Fecha" → "Fecha inicio"
+   - "Hora" → "Hora inicio"
+   - Para claridad al tener también hora de fin
+
+**Patterns:**
+- Mismo patrón que FeedingModal, MedicationModal y ExtraActivityModal
+- NightWaking es único: si no se especifica endTime manual, se calcula desde startTime + awakeDelay
+- Color indigo para consistencia con theme del modal de despertar nocturno
+
+**Notes:** Build pasa correctamente. Próxima tarea: [3.5] Testing edición hora fin

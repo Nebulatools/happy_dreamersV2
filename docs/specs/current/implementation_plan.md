@@ -104,7 +104,7 @@ Validación Fase 2:
   - Comportamiento: Mismo patrón que FeedingModal
   - Referencia: `components/events/SleepDelayModal.tsx:76-90`
 
-- [ ] **3.4** Agregar endTime a NightWakingModal.tsx
+- [x] **3.4** Agregar endTime a NightWakingModal.tsx
   - Input: `components/events/NightWakingModal.tsx`
   - Output: Modal con campos endDate/endTime en modo edit
   - Comportamiento: Mismo patrón que FeedingModal

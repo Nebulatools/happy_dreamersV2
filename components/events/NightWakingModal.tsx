@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Moon } from "lucide-react"
+import { Moon, Plus, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { buildLocalDate, dateToTimestamp } from "@/lib/datetime"
 import { useDevTime } from "@/context/dev-time-context"
@@ -32,6 +32,7 @@ interface NightWakingModalProps {
     emotionalState?: string
     notes?: string
     startTime?: string
+    endTime?: string
     eventId?: string
   }
 }
@@ -66,6 +67,22 @@ export function NightWakingModal({
     }
     return format(getCurrentTime(), "HH:mm")
   })
+  // Estados para hora de fin (endTime) - solo en modo edicion
+  const [endDate, setEndDate] = useState<string>(() => {
+    if (mode === "edit" && initialData?.endTime) {
+      return format(new Date(initialData.endTime), "yyyy-MM-dd")
+    }
+    return format(getCurrentTime(), "yyyy-MM-dd")
+  })
+  const [endTimeValue, setEndTimeValue] = useState<string>(() => {
+    if (mode === "edit" && initialData?.endTime) {
+      return format(new Date(initialData.endTime), "HH:mm")
+    }
+    return ""
+  })
+  const [hasEndTime, setHasEndTime] = useState<boolean>(() => {
+    return mode === "edit" && !!initialData?.endTime
+  })
   const [isProcessing, setIsProcessing] = useState(false)
 
   // Inicializar con datos cuando se abre en modo edición
@@ -78,8 +95,18 @@ export function NightWakingModal({
         setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
         setEventTime(format(new Date(initialData.startTime), "HH:mm"))
       }
+      // Inicializar hora de fin si existe
+      if (initialData.endTime) {
+        setEndDate(format(new Date(initialData.endTime), "yyyy-MM-dd"))
+        setEndTimeValue(format(new Date(initialData.endTime), "HH:mm"))
+        setHasEndTime(true)
+      } else {
+        setEndDate(format(getCurrentTime(), "yyyy-MM-dd"))
+        setEndTimeValue("")
+        setHasEndTime(false)
+      }
     }
-  }, [open, mode, initialData])
+  }, [open, mode, initialData, getCurrentTime])
 
   // NOTA: quickOptions, adjustDelay, formatDelayText y emotionalStates
   // ahora vienen de los componentes compartidos DelaySelector y EmotionalStateSelector
@@ -91,15 +118,22 @@ export function NightWakingModal({
       // En modo edicion, solo llamar al callback (el PUT lo maneja EventEditRouter)
       if (mode === "edit") {
         // Construir editOptions con fecha/hora editados
-        // Opción B: endTime = startTime + awakeDelay (duración automática)
         let editOptions: EditOptions | undefined
         if (eventDate && eventTime) {
           const startDateObj = buildLocalDate(eventDate, eventTime)
-          // Calcular endTime sumando awakeDelay minutos al startTime
-          const endDateObj = new Date(startDateObj.getTime() + (selectedDelay * 60 * 1000))
           editOptions = {
             startTime: dateToTimestamp(startDateObj, userData?.timezone),
-            endTime: dateToTimestamp(endDateObj, userData?.timezone)
+          }
+
+          // Construir endTime si existe (manual o calculado)
+          if (hasEndTime && endTimeValue) {
+            // Usar hora de fin editada manualmente
+            const endDateTime = buildLocalDate(endDate, endTimeValue)
+            editOptions.endTime = dateToTimestamp(endDateTime, userData?.timezone)
+          } else {
+            // Calcular endTime sumando awakeDelay minutos al startTime
+            const endDateObj = new Date(startDateObj.getTime() + (selectedDelay * 60 * 1000))
+            editOptions.endTime = dateToTimestamp(endDateObj, userData?.timezone)
           }
         }
 
@@ -109,6 +143,8 @@ export function NightWakingModal({
         setSelectedDelay(15)
         setEmotionalState("tranquilo" as EmotionalState)
         setNotes("")
+        setHasEndTime(false)
+        setEndTimeValue("")
         return
       }
 
@@ -225,12 +261,12 @@ export function NightWakingModal({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Fecha y hora - Solo visible en modo edición */}
+        {/* Fecha y hora inicio - Solo visible en modo edición */}
         {mode === "edit" && (
           <div className="grid grid-cols-2 gap-2 pb-4 border-b">
             <div className="space-y-2">
               <Label htmlFor="waking-date">
-                Fecha
+                Fecha inicio
               </Label>
               <Input
                 id="waking-date"
@@ -242,7 +278,7 @@ export function NightWakingModal({
             </div>
             <div className="space-y-2">
               <Label htmlFor="waking-time">
-                Hora
+                Hora inicio
               </Label>
               <Input
                 id="waking-time"
@@ -252,6 +288,70 @@ export function NightWakingModal({
                 className="w-full"
               />
             </div>
+          </div>
+        )}
+
+        {/* Hora de fin - Solo visible en modo edición */}
+        {mode === "edit" && (
+          <div className="space-y-3 pb-4 border-b">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-gray-700">
+                Hora de fin (volvió a dormir)
+              </div>
+              {!hasEndTime && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHasEndTime(true)
+                    setEndDate(eventDate)
+                    setEndTimeValue(format(getCurrentTime(), "HH:mm"))
+                  }}
+                  className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700 underline"
+                >
+                  <Plus className="h-3 w-3" />
+                  Agregar hora de fin
+                </button>
+              )}
+            </div>
+            {hasEndTime ? (
+              <div className="relative grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs text-gray-500">Fecha</label>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-gray-500">Hora</label>
+                  <div className="flex gap-1">
+                    <Input
+                      type="time"
+                      value={endTimeValue}
+                      onChange={(e) => setEndTimeValue(e.target.value)}
+                      className="w-full focus:ring-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHasEndTime(false)
+                        setEndTimeValue("")
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                      title="Quitar hora de fin"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500 italic">
+                Si no se especifica, se calculará automáticamente según el tiempo despierto
+              </p>
+            )}
           </div>
         )}
 
