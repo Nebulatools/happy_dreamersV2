@@ -42,6 +42,8 @@ export interface NarrativeTimelineProps {
   collapsible?: boolean
   /** Limite inicial de eventos a mostrar (solo si collapsible=true) */
   initialLimit?: number
+  /** Mostrar boton de expandir siempre, incluso si no hay mas eventos */
+  alwaysShowExpandButton?: boolean
   /** Estado de carga */
   isLoading?: boolean
   /** Callback al hacer click en una tarjeta (para mirroring) */
@@ -104,6 +106,7 @@ export function NarrativeTimeline({
   highlightedEventId = null,
   collapsible = false,
   initialLimit = 5,
+  alwaysShowExpandButton = false,
   isLoading = false,
   onEventClick,
   onEventEdit,
@@ -132,8 +135,10 @@ export function NarrativeTimeline({
     return sortedEvents.slice(0, initialLimit)
   }, [sortedEvents, collapsible, isExpanded, initialLimit])
 
-  // Determinar si hay mas eventos ocultos
+  // Determinar si mostrar boton de expandir
+  // Se muestra si: hay mas eventos que el limite O si alwaysShowExpandButton=true
   const hasMoreEvents = collapsible && sortedEvents.length > initialLimit
+  const showExpandButton = collapsible && (hasMoreEvents || alwaysShowExpandButton)
 
   // Obtener o crear ref para un evento
   const getCardRef = (eventId: string): React.RefObject<HTMLDivElement> => {
@@ -192,7 +197,7 @@ export function NarrativeTimeline({
       ))}
 
       {/* Boton Ver todo / Colapsar */}
-      {hasMoreEvents && (
+      {showExpandButton && (
         <div className="pt-2">
           <Button
             variant="ghost"
@@ -208,10 +213,15 @@ export function NarrativeTimeline({
                 <ChevronUp className="h-4 w-4" />
                 Colapsar
               </>
-            ) : (
+            ) : hasMoreEvents ? (
               <>
                 <ChevronDown className="h-4 w-4" />
                 Ver todo ({sortedEvents.length - initialLimit} mas)
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-4 w-4" />
+                Ver detalles
               </>
             )}
           </Button>

@@ -588,6 +588,7 @@ export default function DashboardPage() {
                 childName={child.firstName}
                 collapsible={true}
                 initialLimit={3}
+                alwaysShowExpandButton={true}
                 isLoading={isLoading}
                 emptyMessage="No hay eventos registrados hoy"
                 onEventEdit={(eventId) => {

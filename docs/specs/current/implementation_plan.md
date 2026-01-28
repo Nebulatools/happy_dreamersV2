@@ -155,10 +155,11 @@ Validación Fase 4:
   - Comportamiento: Mostrar solo 3 eventos colapsados por default
   - Referencia: Buscar NarrativeTimeline en el archivo
 
-- [ ] **5.2** Asegurar botón expandir siempre visible
+- [x] **5.2** Asegurar botón expandir siempre visible
   - Input: `app/dashboard/page.tsx` o `components/narrative/NarrativeTimeline.tsx`
   - Output: Botón "Ver más" visible aunque haya <=3 eventos
   - Comportamiento: showExpandButton={true} o prop equivalente
+  - **Fix aplicado**: Nueva prop `alwaysShowExpandButton` con texto contextual "Ver detalles"
 
 - [ ] **5.3** Layout responsivo narrativa + calendario
   - Input: `app/dashboard/page.tsx`

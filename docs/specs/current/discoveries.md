@@ -441,3 +441,40 @@ El EventEditRouter no pasaba `endTime` en `initialData` para los modales de edic
 **Notes:**
 - Build pasa correctamente
 - Próxima tarea: [5.2] Asegurar botón expandir siempre visible
+
+---
+
+### Session 11 - 2026-01-27
+
+**Task:** [5.2] - Asegurar botón expandir siempre visible
+
+**Files modificados:**
+- `components/narrative/NarrativeTimeline.tsx` - Nueva prop y lógica de visibilidad
+- `app/dashboard/page.tsx` - Agregada prop `alwaysShowExpandButton={true}`
+
+**Cambios realizados:**
+
+1. **NarrativeTimelineProps**
+   - Nueva prop: `alwaysShowExpandButton?: boolean`
+   - Default: `false` (comportamiento original)
+
+2. **Lógica de visibilidad del botón**
+   - Antes: `hasMoreEvents = sortedEvents.length > initialLimit`
+   - Ahora: `showExpandButton = hasMoreEvents || alwaysShowExpandButton`
+
+3. **Texto del botón contextual**
+   - Si hay más eventos: "Ver todo (N más)"
+   - Si no hay más pero está expandible: "Ver detalles"
+   - Colapsado: "Colapsar"
+
+4. **Dashboard**
+   - `alwaysShowExpandButton={true}` para que siempre esté el botón
+
+**Patterns:**
+- Prop opt-in mantiene comportamiento por defecto intacto
+- Texto contextual "Ver detalles" cuando no hay más eventos ocultos
+- Separación clara: `hasMoreEvents` (hay más) vs `showExpandButton` (mostrar botón)
+
+**Notes:**
+- Build pasa correctamente
+- Próxima tarea: [5.3] Layout responsivo narrativa + calendario

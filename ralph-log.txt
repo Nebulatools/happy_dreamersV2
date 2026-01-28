@@ -577,3 +577,15 @@ RALPH_COMPLETE: Task [4.1, 4.2] completed
 
 ═══ ITERACIÓN 9 - 18:35:17 ═══
 Tarea: - [ ] **4.3** Testing roles (→ movido a 8.3.4 E2E)
+RALPH_COMPLETE: Task [5.1] completed
+
+La tarea 5.1 ha sido completada exitosamente. El componente NarrativeTimeline en el dashboard ahora muestra solo 3 eventos colapsados por default en lugar de 5.
+
+**Resumen:**
+- **Archivo modificado:** `app/dashboard/page.tsx` línea 590
+- **Cambio:** `initialLimit={5}` → `initialLimit={3}`
+- **Build:** Pasa correctamente
+- **Commit:** `21d106e`
+
+═══ ITERACIÓN 10 - 18:37:28 ═══
+Tarea: - [ ] **4.3** Testing roles (→ movido a 8.3.4 E2E)
