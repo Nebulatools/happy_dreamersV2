@@ -1831,7 +1831,7 @@ export default function CalendarPage() {
           )}
         </>
       ) : (
-        <div className="space-y-6 px-4 pt-4 pb-10 md:px-6">
+        <div className="space-y-4 px-4 pt-2 pb-4 md:space-y-6 md:pt-4 md:pb-10 md:px-6">
           {/* Header con mes */}
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">{monthLabel}</p>
 
@@ -1938,7 +1938,7 @@ export default function CalendarPage() {
             </Card>
           ) : (
             /* Vista Calendario (igual que admin) */
-            <Card ref={calendarContainerRef} className="p-4 h-[calc(100vh-170px)] overflow-auto" style={{ minHeight: "450px", maxHeight: "calc(100vh - 150px)" }}>
+            <Card ref={calendarContainerRef} className="p-4 h-auto md:h-[calc(100vh-170px)] overflow-visible md:overflow-auto" style={{ minHeight: "450px" }}>
                 <div className="h-full">
                   {isLoading ? (
                     <div className="flex justify-center items-center h-96">

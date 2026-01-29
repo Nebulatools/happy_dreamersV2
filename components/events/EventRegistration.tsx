@@ -49,7 +49,7 @@ export function EventRegistration({
 
   // Visibilidad de botones segun estado
   const showFeedingButton = isAwake || isNightWaking // Solo cuando despierto o en despertar nocturno
-  const showNightFeedingButton = isSleeping || isNapping // Solo cuando duerme (nocturno o siesta)
+  const showNightFeedingButton = isSleeping // Solo durante sueno nocturno (no siestas)
   const showMedicationButton = isAwake || isSleeping || isNightWaking
   const showActivityButton = isAwake // Solo cuando despierto
   const showManualButton = isAwake // Solo cuando despierto
