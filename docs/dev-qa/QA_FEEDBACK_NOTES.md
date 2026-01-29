@@ -1,52 +1,42 @@
 # Notas de testing en QA - Happy Dreamers
 
-**Fecha:** 2026-01-26
+**Fecha:** 2026-01-28
 
-## TEST 1: Vista Narrativa en Home (Padres)
+## TEST 1: Home - NarrativeTimeline con limite 3 y grid responsive
 
-- En dashboard reemplazar los gráficos igual que en bitácora
+## TEST 2: Ocultar tabs para padres en Calendario
 
-- Cambiar el orden de cards, primero mostrar 'diario' en texto y luego el calendario con los eventos de hoy
+## TEST 3: Edicion de endTime en todos los modales
 
-- No se visualiza la opción/botón de Expandir/Colapsar
+## TEST 4: Card Plan vs Eventos
 
-## TEST 2: Taxonomia Visual - Colores por Tipo de Alimentación
+## TEST 5: Boton NightFeeding durante sueno
 
-- La nueva iconifización sólo está en las vistas de Dashboard/Bitácora/Calendario pero
-en la **Ruta:** `/dashboard/patient/child/[id] ` en el tab Eventos todas las alimentaciones
-siguen usando un mismo ícono (confirmar primero si así lo pidió Mariana o hay que ajustarlo también)
+- Error en lógica que de repente el botón de "despertar nocturno" ahora aparecía como "dormir" y no se sabe por qué se cambió de estatus durante la madrugada.
 
-## TEST 3: Taxonomia Visual - Siestas en Lavanda
+## TEST 6: Sync instantaneo de sleep/nap entre navegadores
 
-## TEST 4: Split Screen para Admin (Vista Diaria)
+- Sí hace sync exitoso, pero en el test le puse una "siesta" al hijo y apareció el botón de nightFeeding
+cuando ese botón sólo debería aparecer cuando el padre hace clic en el botón "dormir" (sueño nocturno).
 
-- Vista 50/50 está bien, sólo también hacer calendario completo hacia abajo hasta donde ya no tenga scroll
+## TEST 7: Eliminar selector redundante en FeedingModal
 
-## TEST 5: Narrativa Vertical para Padres (Vista Diaria)
+## TEST 8: Orden cronologico en NarrativeTimeline del calendario
 
-- Se requiere quitar el tab 'gráfico' de sueño y despertares nocturnos en barras
-y el tab 'calendario' será lo único de vista en esa URL
+## TEST 9: Fondos neutros y iconos estandarizados en tabs
 
-- También quitar el tab 'mensual' al menos de la vista de padres
+## TEST 10: Altura del contenedor calendario para padres
 
-- Que al gráfico del tab 'semanal' se ajuste la UI y no tenga scroll dentro del gráfico
-(que sólo exista el scroll del navegador en desktop, y en mobile el card más alto para que quepa al 100)
-
-- En el tab 'diario' que se agregue como primer evento del día el despertar
-
-## TEST 6: Eventos Dentro de Bloques de Sueno en Columnas
-
-- La edición de los horarios de eventos sólo dejan editar hora inicio no hora fin (para admin y users)
-
-## TEST 7: Estilos Nocturnos en Bloques de Sueno
+- En mobile sí persiste el scroll interno del gráfico (tanto en semanal como diario)
 
 
-# REVISIÓN CON MARIANA & FEEDBACK PT. 2
 
-- Reducir el detalle en el texto de los eventos en Bitácora, más parecido a el tab eventos del perfil del niño
-(que sólo traiga 1 palabra o 2 en cada evento)
 
-- Cambio en lógica, la visualización del estado de los botones de eventos rápidos reflejen estatus actual
-en función del niño y no en función de la sesión del dispositivo logueado o del usuario cuidador que captura.
 
-- Ajuste de UX en acomodo visual de eventos diarios (íconos de la rutina del plan lado izquierdo y los eventos que se van capturando vs. plan del lado derecho)
+## TEST 5: Boton NightFeeding durante sueno
+
+- [ ] Mientras el bebe duerme, hay boton para registrar alimentacion nocturna
+- [ ] Al registrar, el evento se crea con `isNightFeeding: true`
+- [ ] El evento aparece como tipo "feeding" (NO como tipo separado "night_feeding")
+- [ ] En calendario, el evento se muestra dentro del bloque de sueno
+
