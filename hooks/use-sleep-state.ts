@@ -24,14 +24,28 @@ interface SleepStateResponse {
   duration: number | null
 }
 
-const fetcher = (url: string) => fetch(url).then(res => res.json())
+// Lee el tiempo simulado de dev desde localStorage (solo en desarrollo)
+function getDevSimulatedTime(): string | null {
+  if (process.env.NODE_ENV !== 'development' || typeof window === 'undefined') return null
+  return window.localStorage.getItem('devSimulatedTime')
+}
+
+// Fetcher que envia el dev time simulado como header
+const devTimeFetcher = (url: string) => {
+  const headers: HeadersInit = {}
+  const devTime = getDevSimulatedTime()
+  if (devTime) {
+    headers['X-Dev-Time'] = devTime
+  }
+  return fetch(url, { headers }).then(res => res.json())
+}
 
 export function useSleepState(childId: string | null, timeZone?: string) {
   const { getTimeContext } = useChildPlan(childId, timeZone)
 
   const { data, error, isLoading, mutate } = useSWR<SleepStateResponse>(
     childId ? `/api/children/${childId}/current-sleep-state` : null,
-    fetcher,
+    devTimeFetcher,
     {
       refreshInterval: 5000, // Actualizar cada 5 segundos (para sincronización multi-dispositivo)
       revalidateOnFocus: true,
