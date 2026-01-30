@@ -1,0 +1,176 @@
+===============================================
+  HAPPY DREAMERS - NOTAS DE ACTUALIZACION
+  Fecha: 28 de enero de 2026
+===============================================
+
+
+1. RESUMEN DE EVENTOS MAS COMPACTO EN INICIO
+---------------------------------------------
+Ruta: /dashboard
+Navegacion: Menu lateral > Inicio
+
+Descripcion:
+La lista de eventos recientes en la pantalla de inicio ahora
+muestra solo los 3 eventos mas recientes con un boton "Ver todo"
+siempre visible para expandir la lista completa.
+
+Como validar:
+  1. Iniciar sesion como padre
+  2. Ir a la pantalla de Inicio
+  3. Verificar que se muestran maximo 3 eventos
+  4. Hacer clic en "Ver todo" para ver todos los eventos
+  5. Hacer clic en "Colapsar" para volver a ver solo 3
+
+
+2. VISTA DE CALENDARIO SIMPLIFICADA PARA PADRES
+------------------------------------------------
+Ruta: /dashboard/calendar
+Navegacion: Menu lateral > Bitacora
+
+Descripcion:
+La seccion de Bitacora ahora abre directamente en la vista de
+Calendario. Se ocultaron opciones avanzadas que solo necesitan
+los profesionales (vista Mensual y el selector Grafico/Calendario).
+
+Como validar:
+  1. Iniciar sesion como padre
+  2. Ir a Menu lateral > Bitacora
+  3. Verificar que la vista por defecto es "Calendario"
+  4. Verificar que solo se ven las pestanas "Dia" y "Semana"
+  5. Verificar que no aparece la pestana "Mensual"
+
+
+3. EDICION DE HORA DE FIN EN TODOS LOS EVENTOS
+-----------------------------------------------
+Ruta: /dashboard/calendar
+Navegacion: Menu lateral > Bitacora > Vista Dia > clic en un evento > Editar
+
+Descripcion:
+Ahora al editar cualquier evento (alimentacion, medicamento,
+actividad extra o despertar nocturno) se puede modificar tanto
+la hora de inicio como la hora de fin del evento.
+
+Como validar:
+  1. Iniciar sesion como padre
+  2. Ir a Bitacora > Vista Dia
+  3. Hacer clic en cualquier evento registrado
+  4. Seleccionar "Editar"
+  5. Verificar que aparecen los campos de hora de inicio y hora de fin
+  6. Cambiar ambas horas y guardar
+  7. Verificar que los cambios se reflejan correctamente
+
+
+4. COMPARACION PLAN VS EVENTOS REALES
+--------------------------------------
+Ruta: /dashboard/calendar (Vista Dia)
+Navegacion: Menu lateral > Bitacora > Vista Dia
+
+Descripcion:
+Si el nino tiene un plan de sueno activo, ahora aparece una
+tarjeta comparativa que muestra lado a lado el horario meta
+del plan y los eventos reales registrados del dia.
+
+Como validar:
+  1. Iniciar sesion como padre (el nino debe tener plan activo)
+  2. Ir a Bitacora > Vista Dia
+  3. Buscar la tarjeta "Plan vs Eventos" en la parte superior
+  4. Verificar que a la izquierda se muestra el plan y a la derecha los eventos reales
+  5. Si el nino no tiene plan, la tarjeta no debe aparecer
+
+
+5. ALIMENTACION NOCTURNA DURANTE EL SUENO
+------------------------------------------
+Ruta: /dashboard
+Navegacion: Menu lateral > Inicio
+
+Descripcion:
+Cuando el bebe esta dormido, ahora aparece un boton para
+registrar una alimentacion nocturna sin necesidad de registrar
+que se desperto. El evento queda marcado automaticamente como
+alimentacion durante el sueno.
+
+Como validar:
+  1. Iniciar sesion como padre
+  2. Registrar que el bebe se durmio (boton "DORMIR")
+  3. Verificar que aparece el boton de alimentacion nocturna
+  4. Registrar una alimentacion nocturna
+  5. Ir a Bitacora y verificar que el evento aparece como alimentacion
+
+
+6. SINCRONIZACION ENTRE DISPOSITIVOS
+-------------------------------------
+Ruta: /dashboard
+Navegacion: Menu lateral > Inicio
+
+Descripcion:
+El estado de sueno del bebe ahora se sincroniza automaticamente
+entre diferentes dispositivos o pestanas del navegador. Si un
+padre registra que el bebe se durmio en su celular, la pareja
+vera el cambio reflejado en su dispositivo sin necesidad de
+recargar la pagina.
+
+Como validar:
+  1. Abrir la aplicacion en dos pestanas o dispositivos diferentes
+  2. Iniciar sesion con la misma cuenta en ambos
+  3. En uno de ellos, registrar que el bebe se durmio
+  4. Verificar que el otro dispositivo muestra el cambio automaticamente
+  5. Registrar despertar y verificar que tambien se sincroniza
+
+
+7. REGISTRO DE ALIMENTACION SIMPLIFICADO
+-----------------------------------------
+Ruta: /dashboard
+Navegacion: Menu lateral > Inicio > Boton de alimentacion
+
+Descripcion:
+Se simplifico el formulario de registro de alimentacion eliminando
+un selector que era redundante. La aplicacion ahora detecta
+automaticamente si el bebe esta despierto o dormido.
+
+Como validar:
+  1. Iniciar sesion como padre
+  2. Hacer clic en el boton de alimentacion
+  3. Verificar que el formulario no pregunta si el bebe esta despierto o dormido
+  4. Completar el registro normalmente
+
+
+8. ORDEN CRONOLOGICO EN BITACORA
+---------------------------------
+Ruta: /dashboard/calendar (Vista Dia)
+Navegacion: Menu lateral > Bitacora > Vista Dia
+
+Descripcion:
+Los eventos en la vista diaria de la Bitacora ahora se muestran
+en orden cronologico (del mas temprano al mas reciente), facilitando
+la lectura como una linea de tiempo del dia.
+
+Como validar:
+  1. Iniciar sesion como padre
+  2. Ir a Bitacora > Vista Dia
+  3. Verificar que el primer evento del dia aparece arriba
+  4. Verificar que el ultimo evento del dia aparece abajo
+  5. En Inicio, los eventos siguen mostrando el mas reciente primero
+
+
+9. MEJORAS VISUALES EN BITACORA
+--------------------------------
+Ruta: /dashboard/calendar
+Navegacion: Menu lateral > Bitacora
+
+Descripcion:
+Se mejoro el aspecto visual de las pestanas de la Bitacora con
+fondos mas neutros, iconos mas claros y se corrigio la altura
+del calendario para que todo el contenido sea visible sin
+necesidad de hacer scroll innecesario dentro del componente.
+
+Como validar:
+  1. Iniciar sesion como padre
+  2. Ir a Bitacora
+  3. Verificar que las pestanas tienen un aspecto limpio y consistente
+  4. Verificar que el calendario se muestra completo sin recortes
+  5. Verificar que no hay scroll innecesario dentro del calendario
+
+
+===============================================
+  FIN DE LAS NOTAS DE ACTUALIZACION
+===============================================
