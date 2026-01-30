@@ -6,14 +6,19 @@
 import { useState, useCallback, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle, Clock, FileText, TrendingUp, Loader2, Moon, Sun, Utensils, UtensilsCrossed, Pill, Activity, Baby } from "lucide-react"
+import {
+  AlertCircle,
+  Clock,
+  FileText,
+  TrendingUp,
+  Loader2,
+} from "lucide-react"
+import { getEventIconConfig } from "@/lib/icons/event-icons"
 import { SurveyResponseViewer } from "@/components/survey/SurveyResponseViewer"
 import { EventDetailsModal } from "@/components/events/EventDetailsModal"
 import { EventEditRouter } from "@/components/events/EventEditRouter"
 import { EventsCalendarTabs } from "@/components/events/EventsCalendarTabs"
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal"
-import { format } from "date-fns"
-import { es } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
 import type { SurveyData, Event } from "@/types/models"
 
@@ -125,31 +130,11 @@ export function AdminChildDetailClient({
     }
   }
 
-  // Helper para obtener icono segun tipo de evento - Sin emojis, solo iconos Lucide
+  // Helper para obtener icono segun tipo de evento - Usa registry centralizado
   const getEventIcon = (event: Event) => {
-    switch (event.eventType) {
-    case "sleep":
-      return <Moon className="h-4 w-4 text-indigo-500" />
-    case "nap":
-      return <Sun className="h-4 w-4 text-amber-500" />
-    case "wake":
-      return <Sun className="h-4 w-4 text-yellow-500" />
-    case "night_waking":
-      return <Baby className="h-4 w-4 text-purple-500" />
-    case "feeding":
-    case "night_feeding":
-      // Solidos = icono diferente, liquidos (breast/bottle) = mismo icono
-      if (event.feedingType === "solids") {
-        return <UtensilsCrossed className="h-4 w-4 text-green-500" />
-      }
-      return <Utensils className="h-4 w-4 text-green-500" /> // breast y bottle
-    case "medication":
-      return <Pill className="h-4 w-4 text-blue-500" />
-    case "extra_activities":
-      return <Activity className="h-4 w-4 text-orange-500" />
-    default:
-      return <Clock className="h-4 w-4 text-gray-500" />
-    }
+    const config = getEventIconConfig(event.eventType, event.feedingType)
+    const IconComponent = config.icon
+    return <IconComponent className="h-4 w-4" style={{ color: config.color }} />
   }
 
   // Helper para nombre legible del tipo de evento
@@ -165,16 +150,6 @@ export function AdminChildDetailClient({
       extra_activities: "Actividad extra",
     }
     return names[eventType] || eventType
-  }
-
-  // Helper para formatear duracion
-  const formatDuration = (minutes: number | undefined | null) => {
-    if (!minutes) return null
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    if (hours === 0) return `${mins} min`
-    if (mins === 0) return `${hours}h`
-    return `${hours}h ${mins}min`
   }
 
   // Callback para refrescar datos despues de editar
@@ -304,7 +279,7 @@ export function AdminChildDetailClient({
         )}
       </TabsContent>
 
-      {/* Tab Eventos - Vista calendarizada con tabs dia/semana/mes */}
+      {/* Tab Eventos */}
       <TabsContent value="eventos">
         <EventsCalendarTabs
           events={events}

@@ -9,16 +9,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Moon, Plus, Minus } from "lucide-react"
+import { Moon, Plus, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { buildLocalDate, dateToTimestamp } from "@/lib/datetime"
 import { useDevTime } from "@/context/dev-time-context"
-import { EventData, EditOptions } from "./types"
+import { EventData, EditOptions, EmotionalState } from "./types"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { format } from "date-fns"
 import { useUser } from "@/context/UserContext"
+import { DelaySelector, EmotionalStateSelector } from "@/components/events/shared"
 
 interface NightWakingModalProps {
   open: boolean
@@ -32,6 +32,7 @@ interface NightWakingModalProps {
     emotionalState?: string
     notes?: string
     startTime?: string
+    endTime?: string
     eventId?: string
   }
 }
@@ -52,7 +53,7 @@ export function NightWakingModal({
   const { getCurrentTime } = useDevTime()
   const { userData } = useUser()
   const [selectedDelay, setSelectedDelay] = useState<number>(initialData?.awakeDelay || 15) // Default 15 min
-  const [emotionalState, setEmotionalState] = useState<string>(initialData?.emotionalState || "tranquilo")
+  const [emotionalState, setEmotionalState] = useState<EmotionalState>((initialData?.emotionalState as EmotionalState) || "tranquilo")
   const [notes, setNotes] = useState<string>(initialData?.notes || "")
   const [eventDate, setEventDate] = useState<string>(() => {
     if (mode === "edit" && initialData?.startTime) {
@@ -66,47 +67,49 @@ export function NightWakingModal({
     }
     return format(getCurrentTime(), "HH:mm")
   })
+  // Estados para hora de fin (endTime) - solo en modo edicion
+  const [endDate, setEndDate] = useState<string>(() => {
+    if (mode === "edit" && initialData?.endTime) {
+      return format(new Date(initialData.endTime), "yyyy-MM-dd")
+    }
+    return format(getCurrentTime(), "yyyy-MM-dd")
+  })
+  const [endTimeValue, setEndTimeValue] = useState<string>(() => {
+    if (mode === "edit" && initialData?.endTime) {
+      return format(new Date(initialData.endTime), "HH:mm")
+    }
+    return ""
+  })
+  const [hasEndTime, setHasEndTime] = useState<boolean>(() => {
+    return mode === "edit" && !!initialData?.endTime
+  })
   const [isProcessing, setIsProcessing] = useState(false)
 
   // Inicializar con datos cuando se abre en modo edición
   useEffect(() => {
     if (open && mode === "edit" && initialData) {
       setSelectedDelay(initialData.awakeDelay || 15)
-      setEmotionalState(initialData.emotionalState || "tranquilo")
+      setEmotionalState((initialData.emotionalState as EmotionalState) || "tranquilo")
       setNotes(initialData.notes || "")
       if (initialData.startTime) {
         setEventDate(format(new Date(initialData.startTime), "yyyy-MM-dd"))
         setEventTime(format(new Date(initialData.startTime), "HH:mm"))
       }
+      // Inicializar hora de fin si existe
+      if (initialData.endTime) {
+        setEndDate(format(new Date(initialData.endTime), "yyyy-MM-dd"))
+        setEndTimeValue(format(new Date(initialData.endTime), "HH:mm"))
+        setHasEndTime(true)
+      } else {
+        setEndDate(format(getCurrentTime(), "yyyy-MM-dd"))
+        setEndTimeValue("")
+        setHasEndTime(false)
+      }
     }
-  }, [open, mode, initialData])
+  }, [open, mode, initialData, getCurrentTime])
 
-  // Opciones rápidas predefinidas para despertares nocturnos
-  const quickOptions = [5, 15, 30, 45]
-  
-  // Incrementar/decrementar en pasos de 5 minutos
-  const adjustDelay = (increment: number) => {
-    setSelectedDelay(prev => {
-      const newValue = prev + increment
-      // Limitar entre 1 y 180 minutos (3 horas)
-      return Math.max(1, Math.min(180, newValue))
-    })
-  }
-  
-  // Formatear el texto del tiempo
-  const formatDelayText = (minutes: number): string => {
-    if (minutes < 5) return "Muy poco tiempo"
-    if (minutes === 60) return "1 hora"
-    if (minutes > 60) return `${Math.floor(minutes/60)}h ${minutes%60}min`
-    return `${minutes} minutos`
-  }
-
-  // Estados emocionales disponibles para despertares nocturnos
-  const emotionalStates = [
-    { value: "tranquilo", label: "Tranquilo", description: "Se calmó fácilmente" },
-    { value: "inquieto", label: "Inquieto", description: "Costó calmarlo" },
-    { value: "alterado", label: "Alterado", description: "Muy difícil de calmar" },
-  ]
+  // NOTA: quickOptions, adjustDelay, formatDelayText y emotionalStates
+  // ahora vienen de los componentes compartidos DelaySelector y EmotionalStateSelector
 
   const handleConfirm = async () => {
     setIsProcessing(true)
@@ -115,15 +118,22 @@ export function NightWakingModal({
       // En modo edicion, solo llamar al callback (el PUT lo maneja EventEditRouter)
       if (mode === "edit") {
         // Construir editOptions con fecha/hora editados
-        // Opción B: endTime = startTime + awakeDelay (duración automática)
         let editOptions: EditOptions | undefined
         if (eventDate && eventTime) {
           const startDateObj = buildLocalDate(eventDate, eventTime)
-          // Calcular endTime sumando awakeDelay minutos al startTime
-          const endDateObj = new Date(startDateObj.getTime() + (selectedDelay * 60 * 1000))
           editOptions = {
             startTime: dateToTimestamp(startDateObj, userData?.timezone),
-            endTime: dateToTimestamp(endDateObj, userData?.timezone)
+          }
+
+          // Construir endTime si existe (manual o calculado)
+          if (hasEndTime && endTimeValue) {
+            // Usar hora de fin editada manualmente
+            const endDateTime = buildLocalDate(endDate, endTimeValue)
+            editOptions.endTime = dateToTimestamp(endDateTime, userData?.timezone)
+          } else {
+            // Calcular endTime sumando awakeDelay minutos al startTime
+            const endDateObj = new Date(startDateObj.getTime() + (selectedDelay * 60 * 1000))
+            editOptions.endTime = dateToTimestamp(endDateObj, userData?.timezone)
           }
         }
 
@@ -131,8 +141,10 @@ export function NightWakingModal({
         setIsProcessing(false)
         // Reset para proxima vez
         setSelectedDelay(15)
-        setEmotionalState("tranquilo")
+        setEmotionalState("tranquilo" as EmotionalState)
         setNotes("")
+        setHasEndTime(false)
+        setEndTimeValue("")
         return
       }
 
@@ -175,7 +187,7 @@ export function NightWakingModal({
     setIsProcessing(false)
     // Reset para proxima vez
     setSelectedDelay(15)
-    setEmotionalState("tranquilo")
+    setEmotionalState("tranquilo" as EmotionalState)
     setNotes("")
   }
 
@@ -223,7 +235,7 @@ export function NightWakingModal({
     setIsProcessing(false)
     // Reset
     setSelectedDelay(15)
-    setEmotionalState("tranquilo")
+    setEmotionalState("tranquilo" as EmotionalState)
     setNotes("")
   }
 
@@ -249,12 +261,12 @@ export function NightWakingModal({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Fecha y hora - Solo visible en modo edición */}
+        {/* Fecha y hora inicio - Solo visible en modo edición */}
         {mode === "edit" && (
           <div className="grid grid-cols-2 gap-2 pb-4 border-b">
             <div className="space-y-2">
               <Label htmlFor="waking-date">
-                Fecha
+                Fecha inicio
               </Label>
               <Input
                 id="waking-date"
@@ -266,7 +278,7 @@ export function NightWakingModal({
             </div>
             <div className="space-y-2">
               <Label htmlFor="waking-time">
-                Hora
+                Hora inicio
               </Label>
               <Input
                 id="waking-time"
@@ -279,100 +291,93 @@ export function NightWakingModal({
           </div>
         )}
 
-        {/* Sección 1: Selector de Tiempo con Flechas */}
-        <div className="space-y-4 mt-4">
-          <div className="text-sm font-medium text-gray-700">
-            Tiempo que estuvo despierto
-          </div>
-          
-          {/* Control principal con flechas */}
-          <div className="flex items-center justify-center gap-4 py-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => adjustDelay(-5)}
-              disabled={isProcessing || selectedDelay <= 1}
-              className="h-10 w-10 rounded-full"
-            >
-              <Minus className="h-4 w-4" />
-            </Button>
-            
-            <div className="bg-indigo-50 border-2 border-indigo-200 rounded-xl px-6 py-3 min-w-[180px] text-center">
-              <div className="text-2xl font-bold text-indigo-600">
-                {formatDelayText(selectedDelay)}
+        {/* Hora de fin - Solo visible en modo edición */}
+        {mode === "edit" && (
+          <div className="space-y-3 pb-4 border-b">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-gray-700">
+                Hora de fin (volvió a dormir)
               </div>
-              <div className="text-xs text-indigo-500 mt-1">
-                estuvo despierto
-              </div>
+              {!hasEndTime && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHasEndTime(true)
+                    setEndDate(eventDate)
+                    setEndTimeValue(format(getCurrentTime(), "HH:mm"))
+                  }}
+                  className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700 underline"
+                >
+                  <Plus className="h-3 w-3" />
+                  Agregar hora de fin
+                </button>
+              )}
             </div>
-            
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => adjustDelay(5)}
-              disabled={isProcessing || selectedDelay >= 180}
-              className="h-10 w-10 rounded-full"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+            {hasEndTime ? (
+              <div className="relative grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs text-gray-500">Fecha</label>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-gray-500">Hora</label>
+                  <div className="flex gap-1">
+                    <Input
+                      type="time"
+                      value={endTimeValue}
+                      onChange={(e) => setEndTimeValue(e.target.value)}
+                      className="w-full focus:ring-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHasEndTime(false)
+                        setEndTimeValue("")
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                      title="Quitar hora de fin"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500 italic">
+                Si no se especifica, se calculará automáticamente según el tiempo despierto
+              </p>
+            )}
           </div>
-          
-          {/* Opciones rápidas */}
-          <div className="flex justify-center gap-2">
-            <span className="text-xs text-gray-500">Opciones rápidas:</span>
-            {quickOptions.map(minutes => (
-              <button
-                key={minutes}
-                type="button"
-                onClick={() => setSelectedDelay(minutes)}
-                disabled={isProcessing}
-                className={cn(
-                  "px-3 py-1 rounded-full text-xs font-medium transition-colors",
-                  selectedDelay === minutes
-                    ? "bg-indigo-500 text-white"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                )}
-              >
-                {minutes}min
-              </button>
-            ))}
-          </div>
-        </div>
+        )}
 
-        {/* Sección 2: Estado Emocional */}
-        <div className="space-y-3 border-t pt-4">
-          <div className="text-sm font-medium text-gray-700">
-            ¿Cómo estaba {childName} durante el despertar?
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {emotionalStates.map(state => (
-              <button
-                key={state.value}
-                type="button"
-                onClick={() => setEmotionalState(state.value)}
-                disabled={isProcessing}
-                className={cn(
-                  "p-3 rounded-lg border-2 transition-all text-center",
-                  emotionalState === state.value
-                    ? "border-indigo-500 bg-indigo-50"
-                    : "border-gray-200 hover:border-gray-300"
-                )}
-              >
-                <div className={cn(
-                  "font-medium text-sm",
-                  emotionalState === state.value ? "text-indigo-700" : "text-gray-700"
-                )}>
-                  {state.label}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {state.description}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Sección 1: Selector de Tiempo - Usa componente compartido */}
+        <DelaySelector
+          label="Tiempo que estuvo despierto"
+          value={selectedDelay}
+          onChange={setSelectedDelay}
+          min={1}
+          max={180}
+          quickOptions={[5, 15, 30, 45]}
+          disabled={isProcessing}
+          zeroLabel="Muy poco tiempo"
+          themeColor="red"
+          className="mt-4"
+        />
+
+        {/* Sección 2: Estado Emocional - Usa componente compartido */}
+        <EmotionalStateSelector
+          label={`¿Cómo estaba ${childName} durante el despertar?`}
+          value={emotionalState}
+          onChange={setEmotionalState}
+          disabled={isProcessing}
+          themeColor="red"
+          className="border-t pt-4"
+        />
 
         {/* Sección 3: Notas sobre el despertar */}
         <div className="space-y-2 border-t pt-4">

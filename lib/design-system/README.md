@@ -46,7 +46,7 @@ Obtiene el color apropiado para un tipo de evento de sueño:
 import { getEventColor } from '@/lib/design-system'
 
 const sleepColor = getEventColor('sleep') // '#7DBFE2'
-const napColor = getEventColor('nap') // '#F5A623'
+const napColor = getEventColor('nap') // '#a78bfa' (lavanda)
 ```
 
 ### getMoodColor(mood)

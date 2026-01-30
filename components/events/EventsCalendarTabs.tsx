@@ -6,16 +6,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import {
   ChevronLeft,
   ChevronRight,
-  Moon,
-  Sun,
-  Baby,
-  Utensils,
-  Pill,
-  Activity,
   Clock,
-  FileText,
-  AlertCircle,
 } from "lucide-react"
+import { getEventIconConfig } from "@/lib/icons/event-icons"
 import {
   format,
   startOfDay,
@@ -176,64 +169,29 @@ export function EventsCalendarTabs({
     }
   }
 
-  // Iconos por tipo de evento
+  // Iconos por tipo de evento - Usa el registry centralizado
   const getEventIcon = (event: Event) => {
-    switch (event.eventType) {
-    case "sleep":
-      return <Moon className="h-4 w-4 text-blue-500" />
-    case "nap":
-      return <Sun className="h-4 w-4 text-amber-500" />
-    case "wake":
-      return <Sun className="h-4 w-4 text-green-500" />
-    case "night_waking":
-      return <AlertCircle className="h-4 w-4 text-red-500" />
-    case "feeding":
-    case "night_feeding":
-      return <Utensils className="h-4 w-4 text-sky-500" />
-    case "medication":
-      return <Pill className="h-4 w-4 text-purple-500" />
-    case "extra_activities":
-    case "activity":
-      return <Activity className="h-4 w-4 text-teal-500" />
-    case "note":
-      return <FileText className="h-4 w-4 text-violet-500" />
-    default:
-      return <Clock className="h-4 w-4 text-gray-500" />
-    }
+    const iconConfig = getEventIconConfig(event.eventType, event.feedingType)
+    const IconComponent = iconConfig.icon
+
+    return (
+      <IconComponent
+        className="h-4 w-4"
+        style={{ color: iconConfig.color }}
+      />
+    )
   }
 
-  // Nombre del tipo de evento
-  const getEventTypeName = (type: string) => {
-    const types: Record<string, string> = {
-      sleep: "Dormir",
-      nap: "Siesta",
-      wake: "Despertar",
-      night_waking: "Despertar nocturno",
-      feeding: "Alimentacion",
-      night_feeding: "Alimentacion nocturna",
-      medication: "Medicamento",
-      activity: "Actividad",
-      extra_activities: "Actividad Extra",
-      note: "Nota",
-    }
-    return types[type] || type
+  // Nombre del tipo de evento - Usa el label del registry
+  const getEventLabel = (event: Event): string => {
+    const iconConfig = getEventIconConfig(event.eventType, event.feedingType)
+    return iconConfig.label
   }
 
-  // Color de fondo segun tipo
-  const getEventBgColor = (type: string) => {
-    const colors: Record<string, string> = {
-      sleep: "bg-blue-50 border-blue-200",
-      nap: "bg-amber-50 border-amber-200",
-      wake: "bg-green-50 border-green-200",
-      night_waking: "bg-red-50 border-red-200",
-      feeding: "bg-sky-50 border-sky-200",
-      night_feeding: "bg-yellow-50 border-yellow-200",
-      medication: "bg-purple-50 border-purple-200",
-      activity: "bg-teal-50 border-teal-200",
-      extra_activities: "bg-teal-50 border-teal-200",
-      note: "bg-violet-50 border-violet-200",
-    }
-    return colors[type] || "bg-gray-50 border-gray-200"
+  // Color de fondo neutral - Igual que dashboard de padres
+  const getEventBgColor = () => {
+    // Fondo neutral para todos los eventos (solo el icono tiene color)
+    return "bg-white border-gray-200"
   }
 
   // Formatear duracion
@@ -282,13 +240,13 @@ export function EventsCalendarTabs({
   const renderEventCard = (event: Event) => (
     <div
       key={event._id}
-      className={`flex items-start gap-3 p-3 rounded-lg border ${getEventBgColor(event.eventType)} hover:shadow-sm transition-shadow cursor-pointer`}
+      className={`flex items-start gap-3 p-3 rounded-lg border ${getEventBgColor()} hover:bg-gray-50 transition-colors cursor-pointer`}
       onClick={() => onEventClick?.(event)}
     >
       <div className="mt-0.5">{getEventIcon(event)}</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium text-sm">{getEventTypeName(event.eventType)}</span>
+          <span className="font-medium text-sm">{getEventLabel(event)}</span>
           <span className="text-xs text-muted-foreground">
             {format(new Date(event.startTime), "HH:mm")}
             {event.endTime && ` - ${format(new Date(event.endTime), "HH:mm")}`}

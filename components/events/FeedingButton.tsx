@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import { Baby, Loader2 } from "lucide-react"
+import { UtensilsCrossed, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { EventData, FeedingModalData } from "./types"
@@ -48,7 +48,7 @@ export function FeedingButton({
   const getButtonConfig = () => {
     return {
       text: "ALIMENTACIÓN",
-      icon: Baby,
+      icon: UtensilsCrossed,
       color: "from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600",
     }
   }
@@ -190,6 +190,9 @@ export function FeedingButton({
         onClose={handleModalClose}
         onConfirm={handleFeedingConfirm}
         childName={childName}
+        initialData={{
+          babyState: "awake"  // FeedingButton solo se muestra cuando está despierto
+        }}
       />
     </div>
   )

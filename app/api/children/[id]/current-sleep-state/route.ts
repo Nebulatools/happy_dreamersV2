@@ -8,7 +8,7 @@ import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { differenceInMinutes } from "date-fns"
 import { resolveChildAccess, ChildAccessError } from "@/lib/api/child-access"
-import { getTimePartsInTimezone, getStartOfDayAsDate, DEFAULT_TIMEZONE } from "@/lib/datetime"
+import { getTimePartsInTimezone, DEFAULT_TIMEZONE } from "@/lib/datetime"
 
 export type SleepStatus = "awake" | "sleeping" | "napping" | "night_waking"
 
@@ -63,14 +63,22 @@ export async function GET(
       wakeTime: "07:00",
     }
 
-    // Obtener los eventos del nino desde la coleccion 'events' (fuente de verdad)
-    const startOfToday = getStartOfDayAsDate(new Date(), userTimeZone)
+    // En desarrollo, permitir tiempo simulado via header X-Dev-Time
+    const devTimeHeader = req.headers.get("X-Dev-Time")
+    const now = (process.env.NODE_ENV === "development" && devTimeHeader)
+      ? new Date(devTimeHeader)
+      : new Date()
 
-    // Obtener los últimos eventos del día desde la colección 'events'
+    // Obtener los eventos del nino desde la coleccion 'events' (fuente de verdad)
+    // Buscar ultimas 48 horas para cubrir sueno que cruza medianoche
+    const queryStart = new Date(now.getTime())
+    queryStart.setHours(queryStart.getHours() - 48)
+
+    // Obtener los ultimos eventos recientes desde la coleccion 'events'
     const recentEvents = await db.collection("events")
       .find({
         childId: new ObjectId(childId),
-        createdAt: { $gte: startOfToday.toISOString() },
+        createdAt: { $gte: queryStart.toISOString() },
       })
       .sort({ createdAt: -1 })
       .limit(10)
@@ -98,7 +106,6 @@ export async function GET(
 
     if (openNightWaking) {
       // Hay un despertar nocturno activo
-      const now = new Date()
       const eventTime = new Date(openNightWaking.startTime || openNightWaking.createdAt)
       duration = differenceInMinutes(now, eventTime)
       
@@ -109,7 +116,6 @@ export async function GET(
       
     } else if (openSleepEvent) {
       // Hay un evento de sueño abierto
-      const now = new Date()
       const eventTime = new Date(openSleepEvent.startTime || openSleepEvent.createdAt)
       duration = differenceInMinutes(now, eventTime)
       
@@ -140,7 +146,6 @@ export async function GET(
       
     } else if (lastEvent) {
       // No hay evento abierto, usar el último evento
-      const now = new Date()
       const eventTime = new Date(lastEvent.endTime || lastEvent.createdAt)
       duration = differenceInMinutes(now, eventTime)
       

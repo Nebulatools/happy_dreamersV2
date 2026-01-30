@@ -38,12 +38,12 @@ import { Moon, Sun, Utensils, Pill, Activity, Baby } from "lucide-react"
 | Tipo | Icono | Color |
 |------|-------|-------|
 | sleep | Moon | indigo-500 |
-| nap | Sun | amber-500 |
+| nap | CloudMoon | violet-400 |
 | wake | Sun | yellow-500 |
 | night_waking | Baby | purple-500 |
 | feeding (liquids) | Utensils | green-500 |
 | feeding (solids) | UtensilsCrossed | green-500 |
-| medication | Pill | blue-500 |
+| medication | Pill | amber-500 |
 | extra_activities | Activity | orange-500 |
 
 ### Contraste de Iconos
