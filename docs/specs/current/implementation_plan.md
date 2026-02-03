@@ -21,7 +21,7 @@ Fecha: 2026-02-03
   - Comportamiento: Muestra "Panel de Diagnostico - Selecciona un paciente" con icono
   - Referencia: ver `app/dashboard/consultas/page.tsx` lineas 325-352 (estado vacio)
 
-- [ ] **0.2** Agregar verificacion admin-only
+- [x] **0.2** Agregar verificacion admin-only
   - Input: session.user.role
   - Output: Redirige a dashboard si no es admin
   - Referencia: ver `app/dashboard/consultas/page.tsx` lineas 46-56, 161-173
@@ -35,7 +35,7 @@ Validacion Fase 0:
 
 ## Fase 1: Tipos e Interfaces
 
-- [ ] **1.1** Crear archivo de tipos `/lib/diagnostic/types.ts`
+- [x] **1.1** Crear archivo de tipos `/lib/diagnostic/types.ts`
   - Output: Interfaces DiagnosticResult, GroupValidation, CriterionResult, Alert, NutritionClassification
   - Comportamiento: Exporta StatusLevel, SourceType, MedicalCondition, NutritionGroup
   - Referencia: ver `types/models.ts` para patron de interfaces
