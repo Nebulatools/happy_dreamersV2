@@ -77,7 +77,7 @@ Validacion Fase 2:
 
 ## Fase 3: Motor de Validacion G1 (Horario)
 
-- [ ] **3.1** Crear validador de horario `/lib/diagnostic/rules/schedule-rules.ts`
+- [x] **3.1** Crear validador de horario `/lib/diagnostic/rules/schedule-rules.ts`
   - Input: { events, plan, childAgeMonths }
   - Output: GroupValidation con array de CriterionResult
   - Comportamiento: Valida despertar +-15min, limite 6AM, duracion noche, siestas

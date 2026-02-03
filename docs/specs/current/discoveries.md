@@ -205,3 +205,29 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Lista para Fase 3: Motor de Validación G1 (Horario)
 
 ---
+
+### Session 7 - 2026-02-03
+**Task:** 3.1 - Crear validador de horario `/lib/diagnostic/rules/schedule-rules.ts`
+**Files:** `lib/diagnostic/rules/schedule-rules.ts`
+**Patterns:**
+- Motor de validación con 6 criterios: wakeMinimum, wakeDeviation, nightDuration, napCount, napDuration, bedtime
+- Patrón de tolerancia progresiva: ±15min → OK, ±30min → Warning, >30min → Alert
+- Funciones helpers puras: `timeToMinutes()`, `getTimeDeviationMinutes()`, `getStatusFromDeviation()`
+- Usa helpers existentes de `sleep-calculations.ts`: `calculateMorningWakeTime()`, `aggregateDailySleep()`, `processSleepStatistics()`
+- Usa constantes de `age-schedules.ts`: `getScheduleRuleForAge()`, `getNightDurationForAge()`, `WAKE_TOLERANCE_MINUTES`
+- Interface extendida `ScheduleValidationResult` con wakeTime, nightDuration, napCount detallados
+- Manejo de datos faltantes: retorna `dataAvailable: false` con status warning
+**Criterios implementados:**
+1. `g1_wake_minimum` - Despertar >= 6AM
+2. `g1_wake_deviation` - Desviación vs plan ±15min
+3. `g1_night_duration` - Duración noche vs esperada por edad (±1hr ok, ±2hr warning, >2hr alert)
+4. `g1_nap_count` - Cantidad siestas vs esperada (±1 ok/warning, >1 alert)
+5. `g1_nap_duration` - Duración siestas vs máximo por edad
+6. `g1_bedtime` - Hora acostarse vs plan ±15min
+**Notes:**
+- Build pasa correctamente
+- Errores lint pre-existentes no afectan este archivo
+- Fase 3: 1/2 tareas completadas
+- Siguiente: 3.2 - Agregar lógica de ventanas de sueño
+
+---
