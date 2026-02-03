@@ -297,3 +297,30 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Lista para Fase 5: Motor de Validación G3 (Alimentación)
 
 ---
+
+### Session 11 - 2026-02-03
+**Task:** 5.1 - Crear validador de alimentación `/lib/diagnostic/rules/nutrition-rules.ts`
+**Files:** `lib/diagnostic/rules/nutrition-rules.ts` (nuevo, 363 líneas)
+**Patterns:**
+- Sigue el patrón de schedule-rules.ts y medical-rules.ts
+- Input: `NutritionValidationInput { events, childAgeMonths, aiClassifications? }`
+- Output: `NutritionGroupValidation` con 5 criterios evaluados
+- Usa helpers existentes de nutrition-requirements.ts
+- `getTodayFeedingEvents()` - Filtra eventos de feeding del día actual
+- `countMilkFeedings()` y `countSolidFeedings()` - Separa breast/bottle de solids
+**Criterios implementados:**
+1. `g3_milk_count` - Conteo tomas de leche vs requerido por edad
+2. `g3_milk_limit` - Límite de onzas (solo 12+ meses, máx 16 oz)
+3. `g3_solid_count` - Conteo comidas sólidas vs requerido
+4. `g3_feeding_gap` - Intervalo máximo entre comidas (máx 5 hrs)
+5. `g3_nutrition_groups` - Grupos nutricionales cubiertos (requiere AI)
+**Helpers públicos:**
+- `validateNutrition(input)` - Validación completa
+- `getNutritionSummary(events, age)` - Resumen de conteos
+- `validateSingleMeal(groups, age, isSnack)` - Validar una comida
+**Notes:**
+- Build pasa correctamente
+- Fase 5: 1/3 tareas completadas
+- Próxima: 5.2 - Clasificador AI de alimentos
+
+---

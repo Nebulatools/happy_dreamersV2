@@ -115,7 +115,7 @@ Validacion Fase 4:
 
 ## Fase 5: Motor de Validacion G3 (Alimentacion)
 
-- [ ] **5.1** Crear validador de alimentacion `/lib/diagnostic/rules/nutrition-rules.ts`
+- [x] **5.1** Crear validador de alimentacion `/lib/diagnostic/rules/nutrition-rules.ts`
   - Input: { feedingEvents, childAgeMonths }
   - Output: GroupValidation con frecuencia y grupos nutricionales
   - Comportamiento: Valida tomas de leche, solidos, grupos segun edad
