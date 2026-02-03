@@ -113,3 +113,22 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Fase 1 completada
 
 ---
+
+### Session 3 - 2026-02-03
+**Task:** 2.1 - Crear constantes de horarios por edad `/lib/diagnostic/age-schedules.ts`
+**Files:** `lib/diagnostic/age-schedules.ts`
+**Patterns:**
+- Array de AgeScheduleRule ordenado por edad ascendente
+- Cada regla tiene ageMinMonths/ageMaxMonths para buscar por rango
+- Valores especiales: -1 indica "variable/sin restricción" (ej: bebés <4m)
+- Helper `getScheduleRuleForAge(ageMonths)` para obtener regla por edad
+- Helper `getNightDurationForAge(ageMonths)` para duración de noche
+- Constantes fijas: WAKE_TOLERANCE_MINUTES (15), MINIMUM_WAKE_TIME ("06:00")
+**Rangos implementados:**
+- 0-3m, 4-6m, 6m, 7m, 8-9m, 9-11m, 11-12m, 12m, 15-18m, 18m-2a, 2-2.5a, 2.5a, 2.9-3.3a, 3-3.5a, 3.5a+
+**Notes:**
+- Build pasa correctamente (errores lint son pre-existentes en otros archivos)
+- Tabla basada en "Tabla Resumen de Validación G1" (SPEC-SPRINT.md líneas 398-414)
+- Fase 2 iniciada (1/4 tareas completadas)
+
+---

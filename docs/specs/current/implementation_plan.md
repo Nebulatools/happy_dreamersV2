@@ -48,7 +48,7 @@ Validacion Fase 1:
 
 ## Fase 2: Constantes y Reglas Base
 
-- [ ] **2.1** Crear constantes de horarios por edad `/lib/diagnostic/age-schedules.ts`
+- [x] **2.1** Crear constantes de horarios por edad `/lib/diagnostic/age-schedules.ts`
   - Output: Objeto AGE_SCHEDULE_RULES indexado por rango de edad
   - Comportamiento: Contiene siestas, ventanas, limites, pre-bedtime por edad
   - Referencia: ver SPEC-SPRINT.md tabla "Tabla Resumen de Validacion G1"
