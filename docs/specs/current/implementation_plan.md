@@ -96,7 +96,7 @@ Validacion Fase 3:
 
 ## Fase 4: Motor de Validacion G2 (Medico)
 
-- [ ] **4.1** Crear validador medico `/lib/diagnostic/rules/medical-rules.ts`
+- [x] **4.1** Crear validador medico `/lib/diagnostic/rules/medical-rules.ts`
   - Input: { surveyData, events }
   - Output: GroupValidation con indicadores agrupados por condicion
   - Comportamiento: Evalua reflujo, apnea, restless leg (1 indicador = alerta)

@@ -254,3 +254,29 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Lista para Fase 4: Motor de Validación G2 (Médico)
 
 ---
+
+### Session 9 - 2026-02-03
+**Task:** 4.1 - Crear validador médico `/lib/diagnostic/rules/medical-rules.ts`
+**Files:** `lib/diagnostic/rules/medical-rules.ts`
+**Patterns:**
+- Función principal `validateMedicalIndicators(input)` retorna `MedicalGroupValidation`
+- Evalúa 3 condiciones: reflujo (10 indicadores), apnea (12), restless_leg (6)
+- Indicadores híbridos: surveyField (datos del survey) o eventCheck (función evaluadora de eventos)
+- Función `evaluateIndicator()` detecta valores truthy con lógica flexible:
+  - Booleans: true = detectado
+  - Strings: no vacío y no en ["no", "ninguno", "none", "nunca", "false", "0"]
+  - Numbers: > 0
+- MEDICAL_ALERT_THRESHOLD = 1: con 1 indicador detectado ya es alerta
+- Status progresivo: ok → warning (muchos pendientes) → alert (indicador detectado)
+- `conditionToCriteria()` convierte evaluación a CriterionResult para UI
+- Helper público `getMedicalIndicatorCounts()` para mostrar "X de Y disponibles"
+**Interfaces usadas:**
+- MedicalValidationInput: surveyData + events
+- ConditionEvaluation: resultado intermedio por condición
+- MedicalGroupValidation: resultado final con indicadores agrupados
+**Notes:**
+- Build pasa correctamente
+- Fase 4: 1/2 tareas completadas
+- Próxima tarea 4.2: Agregar contador de datos pendientes (dataCompleteness)
+
+---
