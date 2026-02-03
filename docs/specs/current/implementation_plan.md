@@ -270,12 +270,12 @@ Validacion Fase 11:
 
 ## Fase 12: UI - Pasante AI y CTAs
 
-- [ ] **12.1** Crear PasanteAISection `/components/diagnostic/AIAnalysis/PasanteAISection.tsx`
+- [x] **12.1** Crear PasanteAISection `/components/diagnostic/AIAnalysis/PasanteAISection.tsx`
   - Props: { childId, diagnosticResult }
   - Render: Card con boton "Analizar" + area de resultado
   - Comportamiento: Click llama API, muestra loading, muestra resultado
 
-- [ ] **12.2** Crear EditPlanButton y GenerateNewPlanButton
+- [x] **12.2** Crear EditPlanButton y GenerateNewPlanButton
   - Props: { childId, planId }
   - Render: 2 botones en fila al final del panel
   - Comportamiento: Navegan a `/dashboard/consultas?tab=plan` con context

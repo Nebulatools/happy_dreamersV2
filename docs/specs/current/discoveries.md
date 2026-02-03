@@ -636,3 +636,32 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Próxima: 11.2 - Implementar deep linking en criterios (YA IMPLEMENTADO en este modal)
 
 ---
+
+### Session 24 - 2026-02-03
+**Task:** 12.1 + 12.2 - Crear PasanteAISection y CTAs
+**Files:**
+- `components/diagnostic/AIAnalysis/PasanteAISection.tsx` (nuevo, ~175 líneas)
+- `components/diagnostic/DiagnosticCTAs.tsx` (nuevo, ~110 líneas)
+**Patterns:**
+- **On-demand AI**: Análisis se solicita solo cuando el usuario hace click en "Analizar"
+- **RequestState machine**: idle → loading → success|error (patrón de estados de petición)
+- **Query params navigation**: CTAs usan URLSearchParams para pasar contexto a /dashboard/consultas
+- **Retry pattern**: Botón "Reintentar" en estado error y "Regenerar" en estado success
+- **Gradient background**: Card usa bg-gradient-to-br para diferenciar visualmente del resto
+**PasanteAISection exports:**
+- `PasanteAISection` - Componente principal con botón Analizar y área de resultado
+- Props: childId, childName, childAgeMonths, diagnosticResult, planVersion?, planStatus?
+**DiagnosticCTAs exports:**
+- `EditPlanButton` - Navega a /dashboard/consultas?tab=plan&childId=X
+- `GenerateNewPlanButton` - Navega a /dashboard/consultas?tab=analysis&action=new-plan
+- `DiagnosticCTAs` - Agrupa ambos botones en fila responsiva
+**Navegación de CTAs:**
+- EditPlan: `/dashboard/consultas?childId=X&tab=plan&planId=Y`
+- GenerateNewPlan: `/dashboard/consultas?childId=X&tab=analysis&action=new-plan`
+**Notes:**
+- Build pasa correctamente
+- Carpeta AIAnalysis creada para organizar componentes de AI
+- Fase 12 COMPLETADA (2/2 tareas)
+- Lista para Fase 13: Página Completa
+
+---
