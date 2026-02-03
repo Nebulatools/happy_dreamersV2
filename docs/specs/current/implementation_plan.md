@@ -1,7 +1,7 @@
-# Implementation Plan: QA Feedback Sprint 2026-01-26
+# Implementation Plan: Panel de Diagnostico (Estadisticas)
 
-Generado desde: `docs/specs/current/SPRINT-QA-FEEDBACK-2026-01-26.md`
-Fecha: 2026-01-27
+Generado desde: `docs/plans/2026-02-03-feat-diagnostic-panel-estadisticas-plan.md`
+Fecha: 2026-02-03
 
 ---
 
@@ -14,462 +14,432 @@ Fecha: 2026-01-27
 
 ---
 
-## Fase 0: Verificación Pre-Sprint
+## Fase 0: Activation & Smoke Test
 
-- [x] **0.1** Verificar ITEM 3 - Siestas en lavanda
-  - Comportamiento: Abrir calendario, verificar que NAP usa color violet/lavanda
-  - Validar: Visual inspection en timeline
-  - Referencia: `lib/icons/event-icons.ts` - nap debe usar violet
+- [ ] **0.1** Crear ruta base `/dashboard/diagnosticos`
+  - Output: Pagina accesible en `/dashboard/diagnosticos`
+  - Comportamiento: Muestra "Panel de Diagnostico - Selecciona un paciente" con icono
+  - Referencia: ver `app/dashboard/consultas/page.tsx` lineas 325-352 (estado vacio)
 
-- [x] **0.2** Verificar ITEM 7 - Estilos nocturnos
-  - Comportamiento: Verificar que bloques de sueño nocturno tienen estilo diferenciado
-  - Validar: Visual inspection en timeline nocturno (después de 20:00)
-  - Referencia: `components/calendar/SleepSessionBlock.tsx`
+- [ ] **0.2** Agregar verificacion admin-only
+  - Input: session.user.role
+  - Output: Redirige a dashboard si no es admin
+  - Referencia: ver `app/dashboard/consultas/page.tsx` lineas 46-56, 161-173
 
-Validación Fase 0:
-• Ambos items visualizados correctamente
-• Si hay problemas, documentar en discoveries.md
-
----
-
-## Fase 1: Estado por Niño (ITEM 9) - CRÍTICO
-
-- [x] **1.1** Remover localStorage de use-sleep-state.ts
-  - Input: `hooks/use-sleep-state.ts`
-  - Output: Hook que SOLO usa API, sin localStorage
-  - Comportamiento: Eliminar lectura de `pending_sleep_event_*` y `pending_night_wake_*`
-  - Referencia: Líneas 49-82 tienen lógica de localStorage a eliminar
-
-- [x] **1.2** Remover localStorage de SleepButton.tsx
-  - Input: `components/events/SleepButton.tsx`
-  - Output: Componente sin sleepStorageKey ni nightWakeStorageKey
-  - Comportamiento: Eliminar líneas 63-64 y useEffect que lee localStorage
-  - Referencia: Estado viene de useSleepState que usa SWR + API
-
-- [x] **1.3** Verificar endpoint current-sleep-state
-  - Input: `app/api/children/[id]/current-sleep-state/route.ts`
-  - Output: Endpoint retorna estado calculado desde BD
-  - Comportamiento: Verificar lógica de último sleep vs wake
-  - Referencia: Líneas 70-156
-
-- [x] **1.4** Testing multi-dispositivo (→ movido a 8.3.1 E2E)
-  - Comportamiento: Login con padre en 2 browsers, registrar sleep en uno, verificar estado en otro
-  - Validar: Ambos ven mismo estado sin refresh manual
-
-Validación Fase 1:
-• `pnpm build` pasa
-• Estado sincroniza entre dispositivos
-• No hay referencias a localStorage para sleep state
+Validacion Fase 0:
+• `npm run build` pasa
+• Pagina accesible en `/dashboard/diagnosticos`
+• Usuarios no-admin ven mensaje de acceso denegado
 
 ---
 
-## Fase 2: Alimentación Nocturna (ITEM 11)
+## Fase 1: Tipos e Interfaces
 
-- [x] **2.1** Crear NightFeedingButton.tsx
-  - Props: `{ childId, childName, onEventRegistered }`
-  - Output: Botón que abre FeedingModal con isNightFeeding=true preseleccionado
-  - Comportamiento: Click → Modal → Registra feeding sin cambiar estado de sueño
-  - Referencia: `components/events/FeedingButton.tsx` para estructura similar
+- [ ] **1.1** Crear archivo de tipos `/lib/diagnostic/types.ts`
+  - Output: Interfaces DiagnosticResult, GroupValidation, CriterionResult, Alert, NutritionClassification
+  - Comportamiento: Exporta StatusLevel, SourceType, MedicalCondition, NutritionGroup
+  - Referencia: ver `types/models.ts` para patron de interfaces
 
-- [x] **2.2** Integrar en EventRegistration.tsx
-  - Input: `components/events/EventRegistration.tsx`
-  - Output: Botón visible SOLO cuando sleepState.status === 'sleeping' || 'napping'
-  - Comportamiento: Renderizar NightFeedingButton condicionalmente
-  - Referencia: Líneas 43-53 para lógica de visibilidad existente
-
-Validación Fase 2:
-• `pnpm build` pasa
-• Botón aparece solo cuando niño duerme
-• Registrar alimentación nocturna NO despierta al niño
+Validacion Fase 1:
+• Build pasa sin errores de TypeScript
+• Tipos importables desde otros archivos
 
 ---
 
-## Fase 3: Edición Hora Fin (ITEM 6)
+## Fase 2: Constantes y Reglas Base
 
-- [x] **3.1** Agregar endTime a FeedingModal.tsx
-  - Input: `components/events/FeedingModal.tsx`
-  - Output: Modal con campos endDate/endTime en modo edit
-  - Comportamiento: Mostrar inputs solo si mode === "edit" && initialData?.endTime
-  - Referencia: `components/events/SleepDelayModal.tsx:76-90` para patrón
+- [ ] **2.1** Crear constantes de horarios por edad `/lib/diagnostic/age-schedules.ts`
+  - Output: Objeto AGE_SCHEDULE_RULES indexado por rango de edad
+  - Comportamiento: Contiene siestas, ventanas, limites, pre-bedtime por edad
+  - Referencia: ver SPEC-SPRINT.md tabla "Tabla Resumen de Validacion G1"
 
-- [x] **3.2** Agregar endTime a MedicationModal.tsx
-  - Input: `components/events/MedicationModal.tsx`
-  - Output: Modal con campos endDate/endTime en modo edit
-  - Comportamiento: Mismo patrón que FeedingModal
-  - Referencia: `components/events/SleepDelayModal.tsx:76-90`
+- [ ] **2.2** Crear constantes de requisitos nutricionales `/lib/diagnostic/nutrition-requirements.ts`
+  - Output: Objeto NUTRITION_RULES por rango de edad
+  - Comportamiento: Contiene lecheMin, solidosRegla, gruposRequeridos
+  - Referencia: ver SPEC-SPRINT.md seccion G3 "Requisitos por Edad"
 
-- [x] **3.3** Agregar endTime a ExtraActivityModal.tsx
-  - Input: `components/events/ExtraActivityModal.tsx`
-  - Output: Modal con campos endDate/endTime en modo edit
-  - Comportamiento: Mismo patrón que FeedingModal
-  - Referencia: `components/events/SleepDelayModal.tsx:76-90`
+- [ ] **2.3** Crear constantes de indicadores medicos `/lib/diagnostic/medical-indicators.ts`
+  - Output: Arrays REFLUX_INDICATORS, APNEA_INDICATORS, RESTLESS_LEG_INDICATORS
+  - Comportamiento: Cada indicador tiene { name, surveyField, available, description }
+  - Referencia: ver SPEC-SPRINT.md seccion G2 tablas de indicadores
 
-- [x] **3.4** Agregar endTime a NightWakingModal.tsx
-  - Input: `components/events/NightWakingModal.tsx`
-  - Output: Modal con campos endDate/endTime en modo edit
-  - Comportamiento: Mismo patrón que FeedingModal
-  - Referencia: `components/events/SleepDelayModal.tsx:76-90`
+- [ ] **2.4** Crear constantes ambientales `/lib/diagnostic/environmental-rules.ts`
+  - Output: Constantes de umbrales y arrays de keywords
+  - Comportamiento: SCREEN_RULES, TEMP_RANGE, HUMIDITY_RANGE, CHANGE_KEYWORDS
+  - Referencia: ver SPEC-SPRINT.md seccion G4
 
-- [x] **3.5** Testing edición hora fin
-  - Comportamiento: Editar evento en timeline, cambiar hora fin, guardar
-  - Validar: Evento actualizado con nueva hora fin
-  - **Fix aplicado**: EventEditRouter ahora pasa endTime a initialData de todos los modales
-
-Validación Fase 3:
-• `pnpm build` pasa
-• Todos los modales permiten editar hora fin en modo edit
-• API acepta y guarda endTime modificado
+Validacion Fase 2:
+• Build pasa
+• Constantes exportables e importables
+• No hay magic numbers en el codigo
 
 ---
 
-## Fase 4: Tabs por Rol (ITEM 5)
+## Fase 3: Motor de Validacion G1 (Horario)
 
-- [x] **4.1** Ocultar tab Mensual para padres
-  - Input: `app/dashboard/calendar/page.tsx`
-  - Output: Tab "Mensual" visible SOLO si isAdminView
-  - Comportamiento: Envolver botón Mensual en {isAdminView && ...}
-  - Referencia: Líneas 1846-1874
+- [ ] **3.1** Crear validador de horario `/lib/diagnostic/rules/schedule-rules.ts`
+  - Input: { events, plan, childAgeMonths }
+  - Output: GroupValidation con array de CriterionResult
+  - Comportamiento: Valida despertar +-15min, limite 6AM, duracion noche, siestas
+  - Referencia: usar helpers de `lib/sleep-calculations.ts`
 
-- [x] **4.2** Ocultar toggle Gráfico/Calendario para padres
-  - Input: `app/dashboard/calendar/page.tsx`
-  - Output: Toggle visible SOLO si isAdminView
-  - Comportamiento: Envolver toggle en {isAdminView && ...}
-  - Referencia: Líneas 1828-1845
+- [ ] **3.2** Agregar logica de ventanas de sueno
+  - Input: eventos del dia, edad del nino
+  - Output: CriterionResult para cada ventana evaluada
+  - Comportamiento: Calcula gaps entre wake/sleep, compara con AGE_SCHEDULE_RULES
 
-- [x] **4.3** Testing roles (→ movido a 8.3.4 E2E)
-  - Comportamiento: Login como padre, verificar solo Diario + Semanal. Login como admin, verificar todos los tabs
-  - Validar: Tabs correctos por rol
-
-Validación Fase 4:
-• `pnpm build` pasa
-• Padre ve: Diario, Semanal
-• Admin ve: Diario, Semanal, Mensual, Gráfico
+Validacion Fase 3:
+• Build pasa
+• Funcion retorna GroupValidation valido
 
 ---
 
-## Fase 5: Vista Narrativa Home (ITEM 1, 8, 4)
+## Fase 4: Motor de Validacion G2 (Medico)
 
-- [x] **5.1** Cambiar initialLimit a 3 en dashboard
-  - Input: `app/dashboard/page.tsx`
-  - Output: NarrativeTimeline con initialLimit={3}
-  - Comportamiento: Mostrar solo 3 eventos colapsados por default
-  - Referencia: Buscar NarrativeTimeline en el archivo
+- [ ] **4.1** Crear validador medico `/lib/diagnostic/rules/medical-rules.ts`
+  - Input: { surveyData, events }
+  - Output: GroupValidation con indicadores agrupados por condicion
+  - Comportamiento: Evalua reflujo, apnea, restless leg (1 indicador = alerta)
+  - Referencia: usar optional chaining para campos que no existen en survey
 
-- [x] **5.2** Asegurar botón expandir siempre visible
-  - Input: `app/dashboard/page.tsx` o `components/narrative/NarrativeTimeline.tsx`
-  - Output: Botón "Ver más" visible aunque haya <=3 eventos
-  - Comportamiento: showExpandButton={true} o prop equivalente
-  - **Fix aplicado**: Nueva prop `alwaysShowExpandButton` con texto contextual "Ver detalles"
+- [ ] **4.2** Agregar contador de datos pendientes
+  - Input: indicadores medicos evaluados
+  - Output: dataCompleteness { available, total, pending[] }
+  - Comportamiento: Cuenta indicadores con dataAvailable: false
 
-- [x] **5.3** Layout responsivo narrativa + calendario
-  - Input: `app/dashboard/page.tsx`
-  - Output: Grid responsive: mobile vertical, desktop side-by-side
-  - Comportamiento: `grid-cols-1 lg:grid-cols-2`
-  - Referencia: Tailwind responsive patterns
-
-- [x] **5.4** Reducir texto en NarrativeTimeline (ITEM 8)
-  - Input: `lib/narrative/generate-narrative.ts`
-  - Output: Formato "biberón 120ml" (sin duración)
-  - Comportamiento: Modificadas generateFeedingNarrative() y generateActivityNarrative()
-  - **Fix aplicado**: Eliminada duración de alimentación y actividades
-
-- [x] **5.5** Remover scroll interno de calendario (ITEM 4)
-  - Input: `components/calendar/CalendarDayView.tsx`, `components/calendar/CalendarWeekView.tsx`
-  - Output: Calendario sin height fija en contenedor principal
-  - Comportamiento: Removida altura inline de 752px, contenedor crece naturalmente
-  - **Fix aplicado**: Removido `style={{ height: '${24 * hourHeight + 32}px' }}` de ambos componentes
-
-Validación Fase 5:
-• `pnpm build` pasa
-• Home muestra 3 eventos colapsados
-• Layout responsivo funciona
-• Texto reducido en eventos
-• Calendario crece sin scroll interno
+Validacion Fase 4:
+• Build pasa
+• Datos faltantes reportados en dataCompleteness.pending
 
 ---
 
-## Fase 6: Card Plan vs Eventos (ITEM 10)
+## Fase 5: Motor de Validacion G3 (Alimentacion)
 
-- [x] **6.1** Crear PlanVsEventsCard.tsx
-  - Props: `{ plan, events, selectedDate, timezone }`
-  - Output: Card con 2 columnas (Plan | Eventos)
-  - Comportamiento: Si no hay plan, solo mostrar eventos. Eventos extras se incrustan cronológicamente
-  - Referencia: `components/ui/card.tsx` para estructura base
-  - **Completado**: Componente creado con layout responsive y iconos del registry
+- [ ] **5.1** Crear validador de alimentacion `/lib/diagnostic/rules/nutrition-rules.ts`
+  - Input: { feedingEvents, childAgeMonths }
+  - Output: GroupValidation con frecuencia y grupos nutricionales
+  - Comportamiento: Valida tomas de leche, solidos, grupos segun edad
 
-- [x] **6.2** Integrar card en calendar page
-  - Input: `app/dashboard/calendar/page.tsx`
-  - Output: PlanVsEventsCard renderizado ARRIBA del calendario
-  - Comportamiento: Visible en vista diaria para ambos roles
-  - Referencia: Ver estructura actual de vista diaria
-  - **Completado**: Integrado en vista admin (SplitScreenBitacora) y padre (NarrativeTimeline)
+- [ ] **5.2** Crear clasificador AI de alimentos `/lib/diagnostic/ai-food-classifier.ts`
+  - Input: feedingNotes (texto libre)
+  - Output: { nutritionGroups[], aiClassified, confidence }
+  - Comportamiento: Usa OpenAI GPT-4, fallback a aiClassified:false si falla
+  - Referencia: ver `lib/rag/chat-agent.ts` para patron OpenAI
 
-- [x] **6.3** Testing Plan vs Eventos (→ movido a Fase 8 E2E)
-  - Comportamiento: Verificar card con niño CON plan y SIN plan
-  - Validar: Layout correcto en ambos casos
+- [ ] **5.3** Crear endpoint de clasificacion `/api/admin/diagnostics/classify-food/route.ts`
+  - Input: POST { feedingNotes }
+  - Output: JSON { nutritionGroups, aiClassified, confidence }
+  - Comportamiento: Llama ai-food-classifier, maneja errores, admin-only
 
-Validación Fase 6:
-• `pnpm build` pasa
-• Card visible arriba del calendario
-• Funciona con y sin plan activo
+Validacion Fase 5:
+• Build pasa
+• Endpoint responde con clasificacion o fallback
 
 ---
 
-## Fase 7: Iconos Admin (ITEM 2)
+## Fase 6: Motor de Validacion G4 (Ambiental)
 
-- [x] **7.1** Usar getEventIconConfig en admin child profile
-  - Input: `app/dashboard/patients/child/[childId]/AdminChildDetailClient.tsx`
-  - Output: Tab Eventos usa iconos del registry centralizado
-  - Comportamiento: Importar getEventIconConfig, reemplazar iconos hardcodeados
-  - Referencia: `lib/icons/event-icons.ts`
-  - **Completado**: Switch-case de 25 líneas reemplazado por 3 líneas usando registry
+- [ ] **6.1** Crear validador ambiental `/lib/diagnostic/rules/environmental-rules.ts`
+  - Input: { surveyData, recentEventNotes, chatMessages }
+  - Output: GroupValidation con factores ambientales evaluados
+  - Comportamiento: Valida pantallas, temperatura, depresion, colecho, cambios
 
-- [x] **7.2** Testing consistencia iconos (→ movido a Fase 8 E2E)
-  - Comportamiento: Comparar iconos en admin vs dashboard de padres
-  - Validar: Mismos iconos en todas las vistas
+- [ ] **6.2** Implementar detector de keywords
+  - Input: array de strings (notas de eventos + chats ultimos 14 dias)
+  - Output: string[] de keywords detectadas
+  - Comportamiento: Busqueda simple case-insensitive de CHANGE_KEYWORDS
 
-Validación Fase 7:
-• `pnpm build` pasa
-• Iconos consistentes en toda la app
-
----
-
-## Fase 8: E2E Testing Exhaustivo con Agent Browser
-
-**IMPORTANTE**: Esta fase es OBLIGATORIA. El sprint NO está completo hasta que TODOS los tests pasen. Los padres usan principalmente MÓVIL, así que el testing móvil es CRÍTICO.
-
-**MODO HEADED (OBLIGATORIO)**: Ejecutar agent-browser en modo `--headed` para que el usuario pueda observar el testing en tiempo real. NO usar modo headless.
-
-```bash
-# Ejemplo de comando con headed mode
-agent-browser --headed --url "http://localhost:3000" ...
-```
-
-### 8.1 Testing Visual Desktop - Vista Padre
-
-- [x] **8.1.1** Test Home Dashboard (Desktop)
-  - Input: Login como padre en http://localhost:3000
-  - Output: Screenshot `test-screenshots/8.1.1-desktop-home.png`
-  - Comportamiento:
-    - Verificar narrativa con 3 eventos colapsados
-    - Verificar botón "Ver más" visible
-    - Verificar layout side-by-side (narrativa + calendario)
-    - Verificar botones de eventos (SleepButton, etc.)
-  - Validar: Sin elementos cortados, sin overflow, sin errores en consola
-  - **PASS**: Todos los checkpoints verificados OK (Session 17)
-
-- [x] **8.1.2** Test Calendario Vista Diaria (Desktop)
-  - Input: Navegar a /dashboard/calendar
-  - Output: Screenshot `test-screenshots/8.1.2-desktop-calendar-daily.png`
-  - Comportamiento:
-    - Verificar SOLO tabs Diario + Semanal (NO Mensual, NO Gráfico)
-    - Verificar card Plan vs Eventos arriba del calendario
-    - Verificar calendario sin scroll interno
-    - Verificar eventos con iconos correctos
-  - Validar: Tabs correctos para rol padre
-  - **PASS**: Todos los checkpoints críticos verificados OK (Session 18)
-
-- [ ] **8.1.3** Test Calendario Vista Semanal (Desktop)
-  - Input: Click en tab Semanal
-  - Output: Screenshot `test-desktop-calendar-weekly.png`
-  - Comportamiento:
-    - Verificar gráfico sin scroll interno
-    - Verificar datos de la semana visibles
-  - Validar: Layout completo sin scroll interno
-
-### 8.2 Testing Móvil - CRÍTICO (375px width)
-
-**REGLA**: Los padres usan MÓVIL. Todo debe verse PERFECTO en 375px. Si algo se ve apretado, cortado, o mal alineado, Ralph tiene LIBERTAD de ajustar el layout móvil.
-
-- [ ] **8.2.1** Test Home Dashboard (Móvil 375px)
-  - Input: Resize viewport a 375px width
-  - Output: Screenshot `test-mobile-home.png`
-  - Comportamiento:
-    - Verificar narrativa ARRIBA, calendario ABAJO (vertical)
-    - Verificar botones de eventos no se salen del viewport
-    - Verificar texto legible, no truncado
-    - Verificar espaciado adecuado (no apretado)
-  - Validar: Usabilidad perfecta con un dedo
-  - **Si hay problemas**: Ralph puede ajustar paddings, font-sizes, flex-wrap
-
-- [ ] **8.2.2** Test EventRegistration Botones (Móvil)
-  - Input: Home con niño despierto
-  - Output: Screenshot `test-mobile-buttons-awake.png`
-  - Comportamiento:
-    - Verificar todos los botones visibles sin scroll horizontal
-    - Verificar botones tienen tamaño táctil adecuado (min 44px height)
-    - Click en botón de dormir → verificar modal se ve bien en móvil
-  - Validar: Botones accesibles con pulgar
-
-- [ ] **8.2.3** Test Botón Alimentación Nocturna (Móvil)
-  - Input: Registrar que niño duerme, luego verificar botones
-  - Output: Screenshot `test-mobile-buttons-sleeping.png`
-  - Comportamiento:
-    - Verificar botón "Alimentación Nocturna" visible
-    - Verificar botón "SE DESPERTÓ" visible
-    - Verificar no hay overflow ni elementos cortados
-  - Validar: Ambos botones accesibles
-
-- [ ] **8.2.4** Test Calendario Vista Diaria (Móvil)
-  - Input: Navegar a /dashboard/calendar en móvil
-  - Output: Screenshot `test-mobile-calendar-daily.png`
-  - Comportamiento:
-    - Verificar tabs Diario + Semanal visibles y clickeables
-    - Verificar card Plan vs Eventos legible
-    - Verificar calendario ocupa ancho completo
-    - Verificar eventos clickeables para editar
-  - Validar: Toda la UI funcional en móvil
-
-- [ ] **8.2.5** Test Modales en Móvil
-  - Input: Click en evento para editar
-  - Output: Screenshot `test-mobile-modal-edit.png`
-  - Comportamiento:
-    - Verificar modal no se sale de pantalla
-    - Verificar campos de fecha/hora accesibles
-    - Verificar botones de confirmar/cancelar visibles
-    - Verificar campos de hora FIN visibles en modo edit
-  - Validar: Modal usable sin scroll excesivo
-
-- [ ] **8.2.6** Test Narrativa Expandida (Móvil)
-  - Input: Click en "Ver más" en narrativa
-  - Output: Screenshot `test-mobile-narrative-expanded.png`
-  - Comportamiento:
-    - Verificar todos los eventos visibles
-    - Verificar texto reducido (tipo + cantidad, sin duración)
-    - Verificar iconos correctos por tipo de evento
-  - Validar: Lista legible y scrolleable
-
-### 8.3 Testing Funcional por Item
-
-- [ ] **8.3.1** Test ITEM 9: Sincronización Multi-Dispositivo
-  - Input: 2 ventanas de browser (simular 2 dispositivos)
-  - Output: Documentar resultado en discoveries.md
-  - Comportamiento:
-    - Browser 1: Login padre, registrar "SE DURMIÓ"
-    - Browser 2: Login mismo padre, verificar estado = dormido SIN refresh
-    - Browser 2: Registrar "SE DESPERTÓ"
-    - Browser 1: Verificar estado = despierto SIN refresh
-  - Validar: Estado sincroniza vía API, NO localStorage
-
-- [ ] **8.3.2** Test ITEM 11: Alimentación Nocturna
-  - Input: Niño en estado dormido
-  - Output: Documentar resultado
-  - Comportamiento:
-    - Verificar botón "Alimentación Nocturna" aparece
-    - Click → Modal → Registrar alimentación
-    - Verificar niño SIGUE DORMIDO después de registrar
-    - Verificar evento tiene isNightFeeding: true
-  - Validar: Estado no cambia, evento se registra correctamente
-
-- [ ] **8.3.3** Test ITEM 6: Edición Hora Fin
-  - Input: Evento existente con endTime
-  - Output: Documentar resultado
-  - Comportamiento:
-    - Click en evento para editar
-    - Verificar campos endDate y endTime visibles
-    - Cambiar hora fin
-    - Guardar y verificar cambio persistió
-  - Validar: Hora fin editable en todos los modales
-
-- [ ] **8.3.4** Test ITEM 5: Tabs por Rol
-  - Input: Login como padre y como admin
-  - Output: Screenshots comparativos
-  - Comportamiento:
-    - Padre: Verificar SOLO Diario + Semanal
-    - Admin: Verificar Diario + Semanal + Mensual + Gráfico
-  - Validar: Tabs correctos por rol
-
-### 8.4 Testing Admin (Desktop)
-
-- [ ] **8.4.1** Test Vista Admin Split Screen
-  - Input: Login como admin, ir a calendario diario
-  - Output: Screenshot `test-admin-split.png`
-  - Comportamiento:
-    - Verificar vista 50/50 (calendario + narrativa)
-    - Verificar calendario sin scroll interno
-    - Verificar todos los tabs visibles
-  - Validar: Layout admin completo
-
-- [ ] **8.4.2** Test Iconos en Admin Child Profile
-  - Input: Navegar a /dashboard/patients/child/[id] → tab Eventos
-  - Output: Screenshot `test-admin-child-events.png`
-  - Comportamiento:
-    - Verificar iconos de alimentación diferenciados (biberón, pecho, sólidos)
-    - Comparar con iconos en dashboard de padre
-  - Validar: Iconos consistentes en toda la app
+Validacion Fase 6:
+• Build pasa
+• Keywords detectadas en texto de prueba
 
 ---
 
-## REGLAS CRÍTICAS DE TESTING
+## Fase 7: API de Diagnostico
 
-**NO TERMINAR HASTA QUE TODO PASE:**
+- [ ] **7.1** Crear endpoint principal `/api/admin/diagnostics/[childId]/route.ts`
+  - Input: GET con childId en params
+  - Output: DiagnosticResult completo con los 4 grupos
+  - Comportamiento: Verifica admin, verifica plan activo, ejecuta 4 validadores
+  - Referencia: ver `app/api/consultas/analyze/route.ts` para patron admin
 
-1. **NO CERRAR BROWSER** si encuentra bugs visuales o funcionales
-2. **DOCUMENTAR** cada bug en discoveries.md con screenshot
-3. **ITERAR Y FIXEAR** antes de continuar al siguiente test
-4. **SOLO MARCAR [x]** cuando el test pase COMPLETAMENTE
-5. **LIBERTAD MÓVIL**: Si algo se ve mal en móvil (apretado, cortado, overflow), Ralph puede ajustar:
-   - Paddings y margins
-   - Font sizes
-   - Flex direction y wrap
-   - Grid columns
-   - Breakpoints
-6. **MAX 10 INTENTOS** por bug - si persiste → RALPH_BLOCKED
-7. **SCREENSHOTS OBLIGATORIOS** para cada test visual
+- [ ] **7.2** Agregar logica de prerequisito (plan activo)
+  - Input: childId
+  - Output: 400 con mensaje si no hay plan activo
+  - Comportamiento: Query childPlans donde status === "active"
+  - Referencia: ver `lib/rag/plan-context-builder.ts` getActivePlan()
 
-**Checklist Final:**
-- [ ] Todos los screenshots guardados
-- [ ] Todos los tests funcionales pasan
-- [ ] Móvil se ve PERFECTO (no solo "funciona")
-- [ ] Sin errores en consola del browser
-- [ ] Documentado en discoveries.md
+Validacion Fase 7:
+• Build pasa
+• Endpoint retorna 401 para no-admin
+• Endpoint retorna 400 sin plan activo
+• Endpoint retorna DiagnosticResult con plan activo
 
-Validación Fase 8:
-• 12+ screenshots guardados en carpeta de proyecto
-• TODOS los tests marcados [x]
-• Móvil 375px usable con un dedo
-• Sin bugs pendientes documentados
-• Browser permanece abierto para inspección manual final
+---
+
+## Fase 8: Pasante AI
+
+- [ ] **8.1** Crear prompt del Pasante AI `/lib/diagnostic/pasante-ai-prompt.ts`
+  - Output: Funcion getPasanteSystemPrompt(context) que retorna string
+  - Comportamiento: Prompt descriptivo + recomendaciones generales, NO medicas
+  - Referencia: ver `lib/rag/sleep-coach-personality.ts` para patron
+
+- [ ] **8.2** Crear endpoint de resumen AI `/api/admin/diagnostics/ai-summary/route.ts`
+  - Input: POST { childId, diagnosticResult }
+  - Output: { aiSummary: string }
+  - Comportamiento: On-demand, usa GPT-4, max_tokens 400
+  - Referencia: ver `lib/rag/chat-agent.ts` para patron OpenAI
+
+Validacion Fase 8:
+• Build pasa
+• Endpoint genera resumen coherente en espanol
+
+---
+
+## Fase 9: UI - Componentes Base
+
+- [ ] **9.1** Crear componente ProfileHeader `/components/diagnostic/ProfileHeader.tsx`
+  - Props: { child, plan, surveyData }
+  - Render: Card con nombre, edad, plan vigente, alertas criticas visibles
+  - Referencia: ver `components/dashboard/AdminStatistics.tsx` Cards
+
+- [ ] **9.2** Crear componente StatusIndicator `/components/diagnostic/StatusIndicator.tsx`
+  - Props: { status: StatusLevel, showLabel?, size? }
+  - Render: Icono CheckCircle/AlertTriangle/AlertCircle con color
+  - Comportamiento: ok=verde, warning=amarillo, alert=rojo
+
+- [ ] **9.3** Crear componente generico ValidationGroupCard `/components/diagnostic/ValidationGroupCard.tsx`
+  - Props: { title, icon, status, criteria[], dataCompleteness?, onCriterionClick }
+  - Render: Card con header, lista de criterios, mensaje de datos pendientes
+  - Referencia: ver pattern de Cards en AdminStatistics.tsx
+
+Validacion Fase 9:
+• Build pasa
+• Componentes renderizan sin errores
+
+---
+
+## Fase 10: UI - Grupos de Validacion
+
+- [ ] **10.1** Crear G1ScheduleValidation `/components/diagnostic/ValidationGroups/G1ScheduleValidation.tsx`
+  - Props: { validation: GroupValidation, onCriterionClick }
+  - Render: Usa ValidationGroupCard con icono Clock
+  - Comportamiento: Muestra criterios de horario con status individual
+
+- [ ] **10.2** Crear G2MedicalValidation `/components/diagnostic/ValidationGroups/G2MedicalValidation.tsx`
+  - Props: { validation: GroupValidation, onCriterionClick }
+  - Render: Card con indicadores agrupados por condicion (reflujo, apnea, restless)
+  - Comportamiento: Muestra "X de Y indicadores detectados" + "Z pendientes"
+
+- [ ] **10.3** Crear G3NutritionValidation `/components/diagnostic/ValidationGroups/G3NutritionValidation.tsx`
+  - Props: { validation: GroupValidation, onCriterionClick }
+  - Render: Card con frecuencia comidas y grupos nutricionales
+  - Comportamiento: Muestra grupos cubiertos vs requeridos por edad
+
+- [ ] **10.4** Crear G4EnvironmentalValidation `/components/diagnostic/ValidationGroups/G4EnvironmentalValidation.tsx`
+  - Props: { validation: GroupValidation, onCriterionClick }
+  - Render: Card con factores ambientales y keywords detectadas
+  - Comportamiento: Lista factores con status individual
+
+Validacion Fase 10:
+• Build pasa
+• 4 componentes renderizan con datos mock
+
+---
+
+## Fase 11: UI - Modal y Deep Linking
+
+- [ ] **11.1** Crear AlertDetailModal `/components/diagnostic/Modals/AlertDetailModal.tsx`
+  - Props: { open, onClose, groupTitle, criteria[] }
+  - Render: Dialog overlay con lista de criterios y sus valores
+  - Comportamiento: Solo lectura, cada criterio tiene link
+  - Referencia: ver `components/ui/dialog.tsx` para Dialog pattern
+
+- [ ] **11.2** Implementar deep linking en criterios
+  - Input: criterio con sourceType ('survey' | 'event') y sourceId
+  - Output: Link a `/dashboard/children/[id]?tab=survey&field=X` o calendario
+  - Comportamiento: Click navega a fuente del dato
+
+Validacion Fase 11:
+• Build pasa
+• Modal abre y cierra correctamente
+• Links navegan a destino
+
+---
+
+## Fase 12: UI - Pasante AI y CTAs
+
+- [ ] **12.1** Crear PasanteAISection `/components/diagnostic/AIAnalysis/PasanteAISection.tsx`
+  - Props: { childId, diagnosticResult }
+  - Render: Card con boton "Analizar" + area de resultado
+  - Comportamiento: Click llama API, muestra loading, muestra resultado
+
+- [ ] **12.2** Crear EditPlanButton y GenerateNewPlanButton
+  - Props: { childId, planId }
+  - Render: 2 botones en fila al final del panel
+  - Comportamiento: Navegan a `/dashboard/consultas?tab=plan` con context
+
+Validacion Fase 12:
+• Build pasa
+• Boton Analizar genera resumen AI
+• CTAs navegan a consultas
+
+---
+
+## Fase 13: Pagina Completa
+
+- [ ] **13.1** Crear DiagnosticPanelClient `/app/dashboard/diagnosticos/[childId]/DiagnosticPanelClient.tsx`
+  - Props: { childId }
+  - Render: ProfileHeader + grid 2x2 de ValidationGroups + PasanteAI + CTAs
+  - Comportamiento: Fetch diagnostico, maneja loading/error/bloqueado states
+  - Referencia: ver `app/dashboard/consultas/page.tsx` para estructura
+
+- [ ] **13.2** Crear pagina con childId `/app/dashboard/diagnosticos/[childId]/page.tsx`
+  - Output: Server component que verifica session y renderiza Client
+  - Comportamiento: Admin check, pasa childId a DiagnosticPanelClient
+
+- [ ] **13.3** Actualizar pagina base para lista/seleccion de ninos
+  - Input: useActiveChild context o lista de ninos
+  - Output: Grid de cards de ninos clickeables
+  - Comportamiento: Click navega a `/dashboard/diagnosticos/[childId]`
+
+Validacion Fase 13:
+• Build pasa
+• Flujo: lista ninos -> click -> ver diagnostico completo
+
+---
+
+## Fase 14: Integracion Final
+
+- [ ] **14.1** Agregar link en navegacion admin (opcional)
+  - Output: Item "Diagnosticos" en sidebar para admins
+  - Referencia: ver config de navegacion en sidebar
+
+- [ ] **14.2** Testing E2E del flujo completo
+  - Comportamiento: Login admin -> seleccionar nino con plan -> ver 4 grupos -> analizar AI
+  - Validar: Todo funciona, no hay errores consola
+
+Validacion Fase 14:
+• Build pasa
+• Flujo E2E funciona
+• No hay errores en consola
+
+---
+
+## Fase 15: E2E Testing Visual (Agent Browser)
+
+**OBLIGATORIO**: Usar `/agent-browser` en modo headed para testing visual completo.
+
+### Desktop Testing (1280px)
+
+- [ ] **15.1** Test acceso admin al panel de diagnosticos
+  - Viewport: 1280x800
+  - Flujo: Login admin -> `/dashboard/diagnosticos` -> verificar acceso
+  - Checkpoints: Pagina carga, lista de ninos visible, sin errores consola
+  - Screenshot: `test-screenshots/15.1-desktop-diagnosticos-list.png`
+
+- [ ] **15.2** Test panel de diagnostico completo (Desktop)
+  - Viewport: 1280x800
+  - Flujo: Click en nino con plan activo -> ver panel completo
+  - Checkpoints:
+    - ProfileHeader con datos del nino
+    - 4 cards de validacion (G1, G2, G3, G4) visibles
+    - Semaforos de status con colores correctos
+    - Boton "Analizar" del Pasante AI visible
+    - CTAs (Editar Plan, Generar Nuevo) visibles
+  - Screenshot: `test-screenshots/15.2-desktop-diagnostic-panel.png`
+
+- [ ] **15.3** Test Pasante AI (Desktop)
+  - Viewport: 1280x800
+  - Flujo: Click en "Analizar" -> esperar respuesta AI
+  - Checkpoints: Loading state, resultado AI visible, texto coherente
+  - Screenshot: `test-screenshots/15.3-desktop-pasante-ai.png`
+
+- [ ] **15.4** Test modal de detalle de alerta (Desktop)
+  - Viewport: 1280x800
+  - Flujo: Click en criterio con alerta -> ver modal
+  - Checkpoints: Modal abre, detalles visibles, link a fuente funciona
+  - Screenshot: `test-screenshots/15.4-desktop-alert-modal.png`
+
+- [ ] **15.5** Test acceso denegado para padre (Desktop)
+  - Viewport: 1280x800
+  - Flujo: Login padre -> intentar acceder a `/dashboard/diagnosticos`
+  - Checkpoints: Mensaje de acceso denegado, NO redirect, NO panel visible
+  - Screenshot: `test-screenshots/15.5-desktop-access-denied.png`
+
+### Mobile Testing (375px) - CRITICO
+
+- [ ] **15.6** Test panel de diagnostico (Mobile)
+  - Viewport: 375x667 (iPhone SE)
+  - Flujo: Login admin -> `/dashboard/diagnosticos/[childId]`
+  - Checkpoints:
+    - ProfileHeader responsivo (no overflow)
+    - Cards de validacion stack vertical
+    - Texto legible sin scroll horizontal
+    - Botones touch-friendly (min 44px)
+  - Screenshot: `test-screenshots/15.6-mobile-diagnostic-panel.png`
+  - **Si hay problemas**: Aplicar fixes de CSS y re-testear
+
+- [ ] **15.7** Test grupos de validacion (Mobile)
+  - Viewport: 375x667
+  - Flujo: Scroll por cada grupo de validacion
+  - Checkpoints:
+    - G1 Horario: criterios visibles, iconos correctos
+    - G2 Medico: indicadores agrupados, mensaje de pendientes
+    - G3 Alimentacion: grupos nutricionales, clasificacion AI
+    - G4 Ambiental: factores listados correctamente
+  - Screenshot: `test-screenshots/15.7-mobile-validation-groups.png`
+  - **Si hay problemas**: Ajustar padding, font-size, flex-direction
+
+- [ ] **15.8** Test modal en mobile
+  - Viewport: 375x667
+  - Flujo: Tap en criterio -> ver modal
+  - Checkpoints: Modal fullscreen o casi, contenido scrolleable, boton cerrar accesible
+  - Screenshot: `test-screenshots/15.8-mobile-modal.png`
+
+- [ ] **15.9** Test Pasante AI (Mobile)
+  - Viewport: 375x667
+  - Flujo: Tap "Analizar" -> ver resultado
+  - Checkpoints: Boton visible sin scroll, resultado legible, no overflow
+  - Screenshot: `test-screenshots/15.9-mobile-pasante-ai.png`
+
+### Protocolo de Fixes
+
+Si algun test falla:
+1. `RALPH_MOBILE_FIX:` o `RALPH_DESKTOP_FIX:` - Documentar el problema
+2. Aplicar fix de CSS/layout
+3. Re-ejecutar test
+4. Repetir hasta pasar (max 10 intentos)
+5. Documentar solucion en discoveries.md
+
+Validacion Fase 15:
+• Todos los screenshots guardados en `test-screenshots/`
+• Desktop: 5 tests pasados
+• Mobile: 4 tests pasados
+• No hay overflow horizontal en mobile
+• Todos los elementos son touch-friendly
+• Documentado en discoveries.md
 
 ---
 
 ## Summary
 
-| Fase | Tareas | Descripción | Items |
-|------|--------|-------------|-------|
-| 0 | 2 | Verificación pre-sprint | 3, 7 |
-| 1 | 4 | Estado por niño (crítico) | 9 |
-| 2 | 2 | Alimentación nocturna | 11 |
-| 3 | 5 | Edición hora fin | 6 |
-| 4 | 3 | Tabs por rol | 5 |
-| 5 | 5 | Vista narrativa + scroll | 1, 4, 8 |
-| 6 | 3 | Plan vs Eventos | 10 |
-| 7 | 2 | Iconos admin | 2 |
-| **8** | **14** | **E2E Testing exhaustivo** | **TODOS** |
-| **Total** | **40** | | |
-
----
-
-## Prioridad de Testing Móvil
-
-```
-CRÍTICO: Los padres usan MÓVIL (375px)
-
-Viewport de testing:
-- Desktop: 1280px+
-- Tablet: 768px (opcional)
-- Móvil: 375px (OBLIGATORIO)
-
-Ralph tiene LIBERTAD de ajustar layouts móviles:
-✓ Cambiar paddings/margins
-✓ Reducir font-sizes
-✓ Cambiar flex-direction
-✓ Apilar elementos verticalmente
-✓ Ajustar breakpoints
-
-Lo que importa: USABILIDAD con un dedo
-```
-
----
-
-**Última actualización:** 2026-01-27
+| Fase | Tareas | Descripcion |
+|------|--------|-------------|
+| 0 | 2 | Activation & admin check |
+| 1 | 1 | Tipos e interfaces |
+| 2 | 4 | Constantes y reglas |
+| 3 | 2 | Motor G1 Horario |
+| 4 | 2 | Motor G2 Medico |
+| 5 | 3 | Motor G3 Alimentacion + AI |
+| 6 | 2 | Motor G4 Ambiental |
+| 7 | 2 | API diagnostico |
+| 8 | 2 | Pasante AI |
+| 9 | 3 | UI componentes base |
+| 10 | 4 | UI grupos validacion |
+| 11 | 2 | Modal y deep linking |
+| 12 | 2 | AI section y CTAs |
+| 13 | 3 | Pagina completa |
+| 14 | 2 | Integracion final |
+| 15 | 9 | **E2E Testing Visual (Agent Browser)** |
+| **Total** | **45** | |

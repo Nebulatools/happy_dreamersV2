@@ -12,29 +12,74 @@ Este módulo es un **motor de validación** que cruza la bitácora en tiempo rea
 
 ---
 
-## Visibilidad por Rol
-
-| Componente | Admin | Padres | Ubicación |
-|------------|-------|--------|-----------|
-| Tarjeta Info Paciente (Médica) | Sí | No | Dashboard Admin > Estadísticas |
-| Semáforo G1-G4 (Alertas) | Sí | No | Dashboard Admin > Estadísticas |
-| Resumen "Pasante AI" | Sí | No | Dashboard Admin > Estadísticas |
-| Acciones de Planes (Edit/AI) | Sí | No | Dashboard Admin > Estadísticas |
-| Bitácora Narrativa (Sin Alertas) | Sí | Sí | Admin (Bitácora Diaria) / Padres (Home) |
-
-**Importante para Front-end:** En la vista de Mariana, los eventos narrativos deben poder mostrar el **badge de alerta rojo** si el motor de validación detecta un fallo (ej. despertar fuera del margen de 15 min).
-
----
-
 ## Decisiones de Entrevista
 
 | Decisión | Valor | Fuente |
 |----------|-------|--------|
-| Tolerancia desvío horario | +/- 15 minutos | Feedback doctora |
-| UX al clickear alerta | Modal overlay | Entrevista usuario |
+| Tolerancia desvío horario | ±15 min (sleep, wake, siestas) | Feedback doctora + entrevista |
+| UX al clickear alerta | Modal overlay (solo lectura + navegación) | Entrevista usuario |
 | Frecuencia resumen AI | On-demand (botón) | Entrevista usuario |
 | Acceso sin plan activo | Bloqueado | Entrevista usuario |
 | Despertar mínimo | 6:00 AM para todos | Feedback doctora |
+| Visibilidad del panel | Solo admin | Entrevista usuario |
+| Umbral alerta G2 | 1 solo indicador dispara | Entrevista usuario |
+| Clasificación alimentos G3 | AI en tiempo real (texto libre) | Entrevista usuario |
+| Fallback AI clasificación | Guardar sin clasificar | Entrevista usuario |
+| Alcance AI Pasante | Descriptivo + recomendaciones generales | Entrevista usuario |
+| Permisos campos médicos | Editables por padres y admin desde survey | Entrevista usuario |
+
+---
+
+## Estrategia de Implementación Progresiva
+
+### Este Sprint (Item 4):
+Implementar el **panel completo** con toda la lógica de validación usando **validación defensiva**:
+
+```typescript
+// Ejemplo de validación defensiva
+function validateReflujo(surveyData) {
+  const indicadores = []
+
+  // Campos que YA existen en el survey
+  if (surveyData.reflujoColicos === true) indicadores.push('reflujo')
+  if (surveyData.percentilBajo === true) indicadores.push('peso_bajo')
+  if (surveyData.congestioNasal === true) indicadores.push('congestion')
+
+  // Campos que AÚN NO existen (será undefined, no afecta validación)
+  if (surveyData.posicionVertical === true) indicadores.push('posicion_vertical')
+  if (surveyData.vomitaFrecuente === true) indicadores.push('vomito')
+
+  return {
+    alert: indicadores.length >= 1,  // Con 1 ya alerta
+    indicadores,
+    pendientes: 6  // Indicadores que esperan datos del survey
+  }
+}
+```
+
+### Lo que se obtiene en este sprint:
+- ✅ **Panel funcional al 100%** con datos actuales
+- ✅ **G1 (Horario)**: Totalmente funcional (100% de datos disponibles)
+- ✅ **G2 (Médico)**: Funcional parcial (~70% de indicadores disponibles)
+- ✅ **G3 (Alimentación)**: Clasificación AI + validación básica de frecuencias
+- ✅ **G4 (Ambiental)**: Casi completo (90% de datos disponibles)
+- ✅ **Pasante AI**: Funciona con datos disponibles
+- ✅ **Deep linking**: Navega hacia eventos y survey existente
+
+### UI del Panel mostrará:
+```
+G2 - MÉDICO
+├─ Reflujo: ⚠️ 3 de 9 indicadores detectados
+│  └─ ℹ️ 6 indicadores pendientes de datos del survey
+├─ Apnea: ✅ Datos completos, sin alertas
+└─ Restless Leg: ⚠️ 2 de 6 indicadores detectados
+   └─ ℹ️ 4 indicadores pendientes
+```
+
+### Sprint Posterior (Item 4B - Survey):
+- Agregar los **11 campos faltantes** al survey
+- **No requiere cambios en el panel** - automáticamente empezará a usarlos
+- Solo actualizar el mensaje "X indicadores pendientes" → desaparece
 
 ---
 
@@ -48,23 +93,23 @@ Tarjeta de información persistente en el `top` de la pantalla. Contextualiza el
 - Nombre del niño
 - Edad actual (meses/años)
 - Nombres de los padres y edades
-- Número de hermanos y **edades individuales** de cada uno
+- Número de hermanos y **edades individuales** de cada uno ⚠️ *Pendiente sprint 4B*
 
 **Status:**
 - Plan vigente y versión
 - Etapa actual del proceso
 
 **Alertas Críticas (Banderas Rojas):**
-- Última consulta médica y qué se hizo
-- Temas médicos (último update)
-- Alergias
-- Reflujo/Cólicos
-- Ferritina
-- Temas de Neuro-desarrollo
+- Última consulta médica y qué se hizo ⚠️ *Pendiente definir ubicación*
+- Temas médicos (último update) ⚠️ *Pendiente definir ubicación*
+- Alergias ✅ *Ya existe en survey*
+- Reflujo/Cólicos ✅ *Ya existe en survey*
+- Ferritina ⚠️ *Pendiente sprint 4B*
+- Temas de Neuro-desarrollo ✅ *Ya existe en survey*
 
 ### Nota para Desarrollo: Registro Médico Admin
 
-> Se necesita un espacio donde las doctoras puedan registrar pruebas y consultas médicas realizadas. Esto alimenta las "banderas rojas" del perfil. **Pendiente definir**: ¿campo libre en el detalle del niño? ¿sección nueva en admin?
+> Se necesita un espacio donde las doctoras puedan registrar pruebas y consultas médicas realizadas. Esto alimenta las "banderas rojas" del perfil. **Pendiente definir**: ¿campo libre en el detalle del niño? ¿sección nueva en admin? ¿timeline de notas médicas?
 
 ---
 
@@ -78,9 +123,12 @@ Tarjeta de información persistente en el `top` de la pantalla. Contextualiza el
 
 **Fuente de datos:** Eventos de sueño/siesta/wake en la Bitácora + Plan activo del niño.
 
+**Disponibilidad de datos:** ✅ 100% (todos los datos existen)
+
 #### Reglas Generales
 
-- El horario puede variar **+/- 15 minutos** — fuera de ese margen es alerta
+- El horario puede variar **±15 minutos** — fuera de ese margen es alerta
+- Tolerancia aplica a: `sleep`, `wake`, `nap` (eventos de dormir)
 - La noche dura **11 horas** hasta los 2.5 años (regulada por la hora de despertar)
 - La noche disminuye **30 min por año** a partir de los 3 años
 - **Nunca** proponer un despertar antes de las **6:00 AM**
@@ -100,7 +148,7 @@ Tarjeta de información persistente en el `top` de la pantalla. Contextualiza el
 
 #### Lógica de Validación
 
-1. **Desvío de Despertar:** Si `hora_despertar_real` se desvía más de **15 min** de la `hora_meta` del plan, marcar alerta.
+1. **Desvío de Despertar:** Si `hora_despertar_real` se desvía más de **±15 min** de la `hora_meta` del plan, marcar alerta.
 
 2. **Límite Inferior:** Si el despertar ocurre **antes de las 6:00 AM**, marcar alerta. Es fijo para todos.
 
@@ -370,108 +418,204 @@ Tarjeta de información persistente en el `top` de la pantalla. Contextualiza el
 
 **Fuente de datos:** Cuestionario (surveyData) + bitácora de eventos para patrones de sueño.
 
+**Disponibilidad de datos:** ⚠️ ~70% (7 de 11 indicadores faltantes en survey)
+
 G2 no evalúa campos aislados sino **patrones diagnósticos**. Varios síntomas se comparten entre condiciones pero en distintos contextos (ej: "inquieto en la noche" aparece en apneas Y restless leg, pero en diferentes partes de la noche).
+
+#### Umbral de Activación
+
+**Con 1 solo indicador presente ya se dispara la alerta.** Esto permite detectar temprano patrones médicos que requieren atención.
 
 #### 2.1 Indicadores de Reflujo
 
-Alertar si el survey o la bitácora muestran **2 o más** de:
+**Campos disponibles en survey actual:** ✅ 4 de 9
 
-- Solo tolera estar en posición vertical
-- Llora al despertar y nada lo calma más que el pecho
-- Vomita frecuentemente
-- Tomas de pecho muy frecuentes día y/o noche (cada 45-60 min constantemente)
-- No sube de peso o percentil bajo de peso
-- Irritable frecuentemente
-- Congestión nasal
-- Dermatitis (eczema)
-- Factor hereditario: un padre con alergia = 60% probabilidad; ambos padres = 90%
+Alertar si el survey o la bitácora muestran **1 o más** de:
+
+- ✅ Reflujo/cólicos (línea 74 CSV)
+- ✅ Percentil bajo de peso (línea 39 CSV)
+- ✅ Congestión nasal (línea 83 CSV)
+- ✅ Dermatitis/eczema (línea 84 CSV)
+- ⚠️ Solo tolera estar en posición vertical *Pendiente sprint 4B*
+- ⚠️ Llora al despertar y nada lo calma más que el pecho *Pendiente sprint 4B*
+- ⚠️ Vomita frecuentemente *Pendiente sprint 4B*
+- ⚠️ Tomas de pecho muy frecuentes (cada 45-60 min) *Pendiente sprint 4B*
+- ✅ Irritable frecuentemente (línea 90 CSV, genérica)
+- ✅ Factor hereditario: alergias de padres (líneas 12, 23 CSV)
 
 #### 2.2 Indicadores de Apneas / Alergias
 
-Alertar si el survey o la bitácora muestran **2 o más** de:
+**Campos disponibles en survey actual:** ✅ 10 de 12
 
-- Congestión nasal
-- Infecciones de oído frecuentes
-- Ronca
-- Dermatitis / eczema
-- Respira por la boca
-- Inquieto durante la noche (**sobre todo en la segunda parte de la noche**)
-- Sudoración nocturna
-- Mucha pipí en la noche (se para a hacer pipí o pañales mojados; debería durar toda la noche)
-- Insomnio
-- Despertares aumentan en frecuencia en **segunda parte de la noche**
-- Despierta asustado
-- Respira por la boca
+Alertar si el survey o la bitácora muestran **1 o más** de:
+
+- ✅ Congestión nasal (línea 83 CSV)
+- ✅ Infecciones de oído frecuentes (línea 80 CSV)
+- ✅ Ronca (línea 68 CSV)
+- ✅ Dermatitis/eczema (línea 84 CSV)
+- ✅ Respira por la boca (línea 69 CSV)
+- ✅ Inquieto durante la noche en **segunda parte** (línea 72 CSV)
+- ✅ Sudoración nocturna (línea 73 CSV)
+- ✅ Mucha pipí en la noche (línea 66 CSV)
+- ⚠️ Insomnio *Detectar de eventos de la bitácora*
+- ✅ Despertares aumentan en frecuencia en **segunda parte de la noche** *Detectar de eventos*
+- ⚠️ Despierta asustado *Pendiente sprint 4B*
+- ✅ Pesadillas al final de la noche (línea 76 CSV)
 
 #### 2.3 Indicadores de Restless Leg Syndrome
 
-Alertar si el survey o la bitácora muestran **2 o más** de:
+**Campos disponibles en survey actual:** ✅ 3 de 6
 
-- Siestas desorganizadas (cortas o batallan para un horario predecible)
-- Inquieto en la **primera parte de la noche**
-- Terrores nocturnos
-- Batallan en bedtime (tarda más de 30 min en dormirse)
-- Patalea al dormirse
-- Busca actividad física en bedtime (caminar, gatear, pararse)
+Alertar si el survey o la bitácora muestran **1 o más** de:
+
+- ⚠️ Siestas desorganizadas (cortas o sin horario predecible) *Calcular de eventos*
+- ✅ Inquieto en la **primera parte de la noche** (línea 71 CSV)
+- ✅ Terrores nocturnos (línea 76 CSV, "al principio de la noche")
+- ✅ Tarda más de 30 min en dormirse (línea 109 CSV)
+- ⚠️ Patalea al dormirse *Pendiente sprint 4B*
+- ⚠️ Busca actividad física en bedtime (caminar, gatear, pararse) *Pendiente sprint 4B*
+
+#### Campos Faltantes (Sprint 4B)
+
+Total: **7 campos** a agregar al survey
+
+**G2 - Reflujo (4):**
+1. Solo tolera estar en posición vertical
+2. Llora al despertar y nada lo calma más que el pecho
+3. Vomita frecuentemente
+4. Tomas de pecho muy frecuentes (cada 45-60 min)
+
+**G2 - Apnea (1):**
+5. Despierta asustado
+
+**G2 - Restless Leg (2):**
+6. Patalea al dormirse
+7. Busca actividad física en bedtime
 
 #### Caducidad de Datos
 
 Verificar la fecha de respuesta del survey. Si el dato tiene más de **30 días**, marcar como "Dato por actualizar".
 
-#### Nota: Síntomas Compartidos
+#### Nota: Diferenciación Primera vs Segunda Parte de Noche
 
-Algunos síntomas aparecen en múltiples condiciones. La diferenciación clave es **en qué parte de la noche** ocurren:
-
-| Síntoma | Reflujo | Apneas | Restless Leg |
-|---------|---------|--------|--------------|
-| Inquieto en la noche | - | 2da parte | 1ra parte |
-| Congestión nasal | Sí | Sí | - |
-| Dermatitis/eczema | Sí | Sí | - |
-| Despertares frecuentes | - | 2da parte | - |
+**Pendiente definir:** ¿Cómo determinar "primera" vs "segunda" parte de la noche?
+- Opción 1: Antes/después de medianoche
+- Opción 2: Primeras 4 horas vs resto
+- Opción 3: Primeras 50% de la duración total vs últimas 50%
 
 ---
 
 ### Grupo 3: Alimentación
 
-**Fuente de datos:** Eventos de feeding en la Bitácora + Edad del niño.
+**Fuente de datos:** Eventos de feeding en la Bitácora + Edad del niño + Clasificación AI.
+
+**Disponibilidad de datos:** ✅ 90% (falta campos de oz y frecuencia detallada)
+
+#### Clasificación AI de Alimentos (Texto Libre)
+
+Los padres escriben **texto libre** al registrar eventos de sólidos. La AI clasifica **en tiempo real** los alimentos en los 4 grupos nutricionales.
+
+**Flujo de clasificación:**
+
+```typescript
+// Cuando el padre registra: "Pollo con arroz y brócoli"
+1. POST /api/children/events con feedingNotes: "Pollo con arroz y brócoli"
+2. Backend llama a AI para clasificar:
+   - "Pollo" → Proteína
+   - "Arroz" → Carbohidrato
+   - "Brócoli" → Fibra
+3. Backend guarda en evento:
+   {
+     feedingType: "solids",
+     feedingNotes: "Pollo con arroz y brócoli",
+     nutritionGroups: ["proteina", "carbohidrato", "fibra"],
+     aiClassified: true
+   }
+4. Si AI no puede clasificar (ej: "papilla comercial"):
+   {
+     feedingType: "solids",
+     feedingNotes: "papilla comercial",
+     nutritionGroups: [],
+     aiClassified: false  // Se guardó sin clasificar
+   }
+```
+
+**Los 4 Grupos Nutricionales:**
+1. **Proteína** (carne, pollo, pescado, huevo, legumbres)
+2. **Carbohidrato** (arroz, pasta, pan, tortilla, papa)
+3. **Grasa** (aguacate, aceite, mantequilla, nueces)
+4. **Fibra** (verduras, frutas)
+
+**Nota del survey CSV línea 60:** Los 4 grupos nutricionales ya están documentados en el diseño del survey como "proteína, grasa, cereal, fibra".
 
 #### Tabla de Requisitos por Edad
 
-| Edad | Tomas Leche (mín) | Intervalo Leche | Sólidos (mín) | Oz Totales (biberón) |
-|------|-------------------|-----------------|---------------|---------------------|
-| 6 m | 5 | cada 3 hrs | 2 | 22-24 oz |
-| 7 m | 4 | cada 4 hrs | 3 | 22-24 oz |
-| 8-9 m | 3-4 | cada 4 hrs | 3-4 | 16-24 oz |
-| 9-11 m | 3 | cada 5 hrs | 4 | 16-24 oz |
-| 11-12 m | 2 | - | 5 | máx 16 oz |
-| 12+ m | Opcional | - | 5 | máx 16 oz |
+##### Bebidas (Leche/Pecho/Biberón)
+
+| Edad | Tomas Leche (mín) | Intervalo Leche | Oz Totales (biberón) |
+|------|-------------------|-----------------|---------------------|
+| 6 m | 5 | cada 3 hrs | 22-24 oz |
+| 7 m | 4 | cada 4 hrs | 22-24 oz |
+| 8-9 m | 3-4 | cada 4 hrs | 16-24 oz |
+| 9-11 m | 3 | cada 5 hrs | 16-24 oz |
+| 11-12 m | 2 | - | máx 16 oz |
+| 12+ m | Opcional | - | máx 16 oz |
 
 **Notas:**
-- Aplica igual para pecho o biberón. Es el mínimo necesario de leche en el día.
-- Para **pecho**, se valida cantidad de **tomas** (no oz).
-- Para **biberón**, se valida **oz totales** del día.
-- A partir de los 12 meses la alimentación no cambia.
+- Aplica igual para pecho o biberón
+- Para **pecho**: validar cantidad de **tomas** (no oz)
+- Para **biberón**: validar **oz totales** del día
+- A partir de los 12 meses la alimentación no cambia
+
+##### Sólidos (Comidas + Snacks)
+
+**De 6-9 meses (comidas):**
+- Cada comida debe tener: **Proteína + Fibra + (Grasa O Carbohidrato)**
+- Mínimo de comidas: 2 (6m), 3 (7m), 3-4 (8-9m)
+
+**De 9+ meses (comidas):**
+- Cada comida debe tener: **Proteína + Grasa + Carbohidrato + Fibra** (los 4 grupos)
+- Mínimo de comidas: 4 (9-11m), 5 (11-12m), 5 (12m+)
+
+**De 9+ meses (snacks):**
+- Cada snack debe tener: **Fibra + (Grasa O Carbohidrato)**
+- Los snacks NO requieren proteína
 
 #### Lógica de Validación
 
 1. **Frecuencia de Leche:** Validar que el número de tomas de leche (pecho o biberón) cumpla el mínimo según edad.
 
-2. **Cantidad de Leche (solo biberón):** Sumar oz del día y validar contra el rango por edad.
+2. **Cantidad de Leche (solo biberón):** Sumar oz del día y validar contra el rango por edad. ⚠️ *Campo `feedingAmount` en oz pendiente de capturar consistentemente*
 
-3. **Frecuencia de Sólidos:** Validar que el número de eventos de sólidos cumpla el mínimo según edad.
+3. **Frecuencia de Sólidos:** Validar que el número de eventos de sólidos (comidas + snacks) cumpla el mínimo según edad.
 
-4. **Intervalo entre Tomas:** Alertar si pasan más horas de las indicadas entre tomas de leche.
+4. **Grupos Nutricionales en Comidas:** Validar que cada comida de sólidos contenga los grupos requeridos según edad (ver tabla arriba).
 
-5. **Muchas Horas sin Comer:** Alertar si hay gaps prolongados sin ningún evento de alimentación.
+5. **Grupos Nutricionales en Snacks:** Validar que cada snack contenga Fibra + (Grasa O Carbo).
 
-6. **Leche NO Sustituye Sólido:** Alertar si hay una toma de leche en horario de comida sólida sin el sólido correspondiente.
+6. **Intervalo entre Tomas:** Alertar si pasan más horas de las indicadas entre tomas de leche.
 
-7. **Bandera Roja 12+ Meses:** Si toma más de 16 oz de leche en 24 hrs.
+7. **Muchas Horas sin Comer:** Alertar si hay gaps prolongados sin ningún evento de alimentación.
+
+8. **Leche NO Sustituye Sólido:** Alertar si hay una toma de leche en horario de comida sólida sin el sólido correspondiente.
+
+9. **Bandera Roja 12+ Meses:** Si toma más de 16 oz de leche en 24 hrs.
 
 #### Reglas Importantes
 
-- **Tomas nocturnas:** Son INDEPENDIENTES del conteo diurno. No afectan las validaciones del día.
-- **Snacks:** Son parte del conteo de sólidos, no se relacionan con la leche.
+- **Tomas nocturnas:** Son INDEPENDIENTES del conteo diurno. No afectan las validaciones del día. Se detectan con el flag `isNightFeeding === true` que ya existe en los eventos.
+- **Snacks:** Son parte del conteo de sólidos. A partir de 9 meses se validan con reglas propias (Fibra + Grasa/Carbo).
+- **Alertas:** Solo visibles para admin. Validación se ejecuta **por día** (no por evento individual).
+
+#### Campos Faltantes (Sprint 4B)
+
+Total: **2 áreas** a mejorar
+
+**G3 - Bebidas (1):**
+1. Captura consistente de oz en eventos de biberón (campo `feedingAmount` existe pero no siempre se usa)
+
+**G3 - Sólidos (1):**
+2. El sistema de clasificación AI de grupos nutricionales es completamente nuevo
 
 ---
 
@@ -479,26 +623,42 @@ Algunos síntomas aparecen en múltiples condiciones. La diferenciación clave e
 
 **Fuente de datos:** Cuestionario (surveyData) + Notas de eventos + Chat.
 
+**Disponibilidad de datos:** ✅ 90% (solo falta campo de humedad)
+
 #### Reglas de Alerta
 
-| Factor | Condición de Alerta | Tipo |
-|--------|---------------------|------|
-| Pantallas | Más de 1 hr en el día **y/o** 2 hrs antes de bedtime | Alerta |
-| Temperatura | Fuera de rango **22-25°C** | Alerta |
-| Humedad | Fuera de rango **40-60%** | Sugerencia (revisar) |
-| Depresión post-parto | Siempre | Alerta (referir a profesional) |
-| Colecho | Siempre | Informativo (enviar recomendaciones de seguridad y prevención del SIDS) |
-| Comparte cuarto | Si comparte con alguien más | Informativo |
-| Cambios importantes recientes | Hermanito, kínder, mudanza, etc. | Alerta |
+| Factor | Condición de Alerta | Tipo | Disponible |
+|--------|---------------------|------|------------|
+| Pantallas | Más de 1 hr en el día **y/o** 2 hrs antes de bedtime | Alerta | ✅ Línea 87 CSV |
+| Temperatura | Fuera de rango **22-25°C** | Alerta | ✅ Línea 102 CSV |
+| Humedad | Fuera de rango **40-60%** | Sugerencia (revisar) | ⚠️ Falta campo |
+| Depresión post-parto | Siempre | Alerta (referir) | ✅ Líneas 24-26 CSV |
+| Colecho | Siempre | Informativo (SIDS) | ✅ Línea 106 CSV |
+| Comparte cuarto | Si comparte con alguien más | Informativo | ✅ Línea 107 CSV |
+| Cambios importantes recientes | Hermanito, kínder, mudanza, etc. | Alerta | ✅ Línea 126 CSV |
 
 #### Detección de Cambios en Texto Libre
 
 > **Importante:** Hay que considerar las notas que agregan en texto dentro de los eventos y en la ventana de chat para captar temas como cambio de año, kínder, hermano nuevo, mudanza, etc.
 
-Esto implica:
-- Escanear campo `notes` de eventos recientes
-- Escanear mensajes de chat recientes
-- Buscar palabras clave: "kínder", "escuela", "hermano", "hermanito", "mudanza", "cambio", "nuevo", "separación", etc.
+**Estrategia de detección:** Búsqueda de **keywords** en:
+- Campo `notes` de eventos recientes (últimos 7-14 días)
+- Mensajes de chat recientes
+
+**Keywords a buscar:**
+- Kínder/guardería: "kinder", "guarderia", "escuela", "preescolar"
+- Hermanitos: "hermano", "hermanito", "hermana", "bebé nuevo", "nacimiento"
+- Mudanza: "mudanza", "cambio de casa", "nueva casa", "mudarnos"
+- Otros: "separación", "divorcio", "viaje", "vacaciones", "enfermedad"
+
+**Nota:** Se implementa con búsqueda de keywords simple (no LLM) para MVP. Es más rápido, predecible y suficiente para detectar menciones explícitas.
+
+#### Campos Faltantes (Sprint 4B)
+
+Total: **1 campo**
+
+**G4 - Ambiental (1):**
+1. Humedad del cuarto (40-60%)
 
 ---
 
@@ -508,12 +668,21 @@ Esto implica:
 
 Si una sola condición dentro de un grupo falla, la tarjeta del grupo muestra **indicador rojo**.
 
+En grupos con datos parciales (G2, G3, G4), mostrar también un **mensaje informativo**:
+
+```
+⚠️ 3 de 9 indicadores detectados
+ℹ️ 6 indicadores pendientes de datos del survey
+```
+
 ### Interacción (Modal Overlay)
 
 - Al hacer clic en el indicador rojo, se abre un **modal overlay** con el desglose de los **Criterios Fuera de Control**.
-- Cada criterio tiene un link directo que lleva a Mariana a:
+- El modal es **solo lectura** - NO permite editar datos
+- Cada criterio tiene un **link de navegación** que lleva a Mariana a:
   - La respuesta específica en el cuestionario, O
   - El evento exacto en la bitácora que disparó la alerta
+  - Esto permite analizar todo el contexto desde el calendario o el survey
 
 ### Niveles de Severidad
 
@@ -534,17 +703,32 @@ Motor LLM que recibe como input:
 
 ### Misión
 
-Entregar un resumen que **contextualice las fallas** cruzando datos de grupos diferentes.
+Entregar un resumen **descriptivo + recomendaciones generales** que contextualice las fallas cruzando datos de grupos diferentes.
+
+### Estilo de Respuesta
+
+**Descriptivo + Recomendaciones Generales:**
+- Explica QUÉ está pasando y POR QUÉ
+- Sugiere acciones generales
+- NO da recomendaciones médicas directas
+- NO da ajustes específicos del plan (eso es trabajo de Mariana)
+
+**Ejemplo:**
+```
+El niño presenta patrón de siestas cortas (<45 min) y despertares frecuentes
+en la segunda parte de la noche. Se detectaron también indicadores de reflujo
+(vómito frecuente, congestión nasal).
+
+Recomendaciones generales:
+- Considera revisar ventanas de vigilia (actualmente 2.5 hrs, podrían ser cortas)
+- El reflujo podría estar afectando la calidad del sueño nocturno
+- Evaluar si el patrón de alimentación nocturna está relacionado con el reflujo
+```
 
 ### Lógica
 
 - Si no hay eventos de bitácora, la IA analiza solo el cuestionario.
 - Si hay eventos, los interpreta dentro del contexto del cuestionario.
-  - Ejemplo: "El niño despierta temprano y se detectaron indicadores de reflujo (vómito frecuente, congestión nasal). Esto podría estar afectando la segunda parte de la noche."
-
-### Restricción
-
-El resumen debe ser **informativo para Mariana**, no debe dar recomendaciones médicas directas.
 
 ### Frecuencia
 
@@ -608,6 +792,11 @@ interface DiagnosticResult {
 interface GroupValidation {
   status: 'ok' | 'warning' | 'alert'
   criteria: CriterionResult[]
+  dataCompleteness?: {
+    available: number
+    total: number
+    pending: string[]  // Lista de indicadores pendientes
+  }
 }
 
 interface CriterionResult {
@@ -618,6 +807,7 @@ interface CriterionResult {
   sourceType: 'survey' | 'event' | 'calculated' | 'chat'
   sourceId?: string  // Para deep linking
   condition?: 'reflux' | 'apnea_allergy' | 'restless_leg'  // Solo G2
+  dataAvailable: boolean  // True si el campo existe en el survey/eventos
 }
 
 interface Alert {
@@ -631,6 +821,14 @@ interface Alert {
     field?: string
   }
 }
+
+interface NutritionClassification {
+  eventId: string
+  feedingNotes: string
+  nutritionGroups: ('proteina' | 'carbohidrato' | 'grasa' | 'fibra')[]
+  aiClassified: boolean  // False si AI no pudo clasificar
+  classifiedAt: Date
+}
 ```
 
 ### Datos de Referencia (Constantes)
@@ -642,6 +840,7 @@ Las tablas de horarios por edad, requisitos de alimentación y reglas de validac
 // lib/diagnostics/nutrition-rules.ts
 // lib/diagnostics/medical-indicators.ts
 // lib/diagnostics/environmental-rules.ts
+// lib/diagnostics/ai-classifier.ts  // Para clasificación de alimentos
 ```
 
 ---
@@ -653,37 +852,123 @@ Las tablas de horarios por edad, requisitos de alimentación y reglas de validac
 | `/api/admin/diagnostics/[childId]` | GET | Obtener diagnóstico completo (los 4 grupos) |
 | `/api/admin/diagnostics/[childId]/validate` | POST | Forzar revalidación |
 | `/api/admin/diagnostics/[childId]/ai-summary` | POST | Generar resumen AI (on-demand) |
+| `/api/admin/diagnostics/classify-food` | POST | Clasificar alimento en grupos nutricionales (tiempo real) |
 
 ---
 
-## Cambios Necesarios al Survey
+## Cambios Necesarios al Survey (Sprint 4B)
 
-Campos que posiblemente faltan o necesitan actualizarse en el cuestionario para alimentar G2 y G4:
+Total de **11 campos** identificados como faltantes:
 
-1. **Reflujo:** Posición vertical, vómito frecuente, percentil de peso
-2. **Apneas:** Respiración bucal, sudoración nocturna, pipí nocturna, despierta asustado
-3. **Restless Leg:** Pataleo al dormirse, busca actividad física en bedtime
-4. **Ambiental:** Humedad del cuarto, si comparte cuarto con alguien
-5. **Cambios recientes:** Campo abierto para eventos importantes (hermanito, kínder, mudanza)
-6. **Hermanos:** Agregar campo de edades individuales (actualmente solo hay `cantidadHijos`)
-7. **Registro médico admin:** Espacio para que las doctoras registren pruebas y consultas médicas realizadas
+### G2 - Indicadores Médicos (7 campos)
+
+**Reflujo (4):**
+1. Solo tolera estar en posición vertical
+2. Llora al despertar y nada lo calma más que el pecho
+3. Vomita frecuentemente
+4. Tomas de pecho muy frecuentes (cada 45-60 min constantemente)
+
+**Apnea (1):**
+5. Despierta asustado
+
+**Restless Leg (2):**
+6. Patalea al dormirse
+7. Busca actividad física en bedtime (caminar, gatear, pararse)
+
+### G3 - Alimentación (0 campos)
+
+Los grupos nutricionales ya están documentados en el survey (línea 60 CSV). Solo falta implementar el sistema de clasificación AI.
+
+### G4 - Ambiental (1 campo)
+
+8. Humedad del cuarto (40-60%)
+
+### Perfil del Paciente (2 campos)
+
+9. Edades individuales de hermanos (actualmente solo existe `cantidadHijos`)
+10. Ferritina como campo separado y numérico
+
+### Registro Médico Admin (1 funcionalidad)
+
+11. Espacio para que doctoras registren pruebas y consultas médicas
+
+**Pendiente definir ubicación:** ¿Campo libre en detalle del niño? ¿Sección nueva? ¿Timeline de notas médicas?
+
+---
+
+## Campos del Survey que YA EXISTEN
+
+Basado en análisis del CSV del cuestionario:
+
+### G2 - Médico (Muy completo ~70%)
+
+**Reflujo:**
+- ✅ Reflujo/cólicos directo (línea 74)
+- ✅ Percentil bajo peso (línea 39)
+- ✅ Congestión nasal (línea 83)
+- ✅ Dermatitis/eczema (línea 84)
+- ✅ Alergias de padres (líneas 12, 23)
+- ✅ Irritabilidad (línea 90)
+
+**Apneas/Alergias:**
+- ✅ Ronca (línea 68)
+- ✅ Respira por boca (línea 69)
+- ✅ Inquieto segunda parte noche (línea 72)
+- ✅ Sudoración (línea 73)
+- ✅ Mucha pipí noche (línea 66)
+- ✅ Infecciones oído (línea 80)
+- ✅ Pesadillas al final (línea 76)
+
+**Restless Leg:**
+- ✅ Inquieto primera parte noche (línea 71)
+- ✅ Terrores nocturnos (línea 76)
+- ✅ Tarda >30min dormirse (línea 109)
+
+### G3 - Alimentación
+
+- ✅ Grupos nutricionales documentados (línea 60: "proteína, grasa, cereal, fibra")
+- ✅ Tipo de alimentación (línea 58)
+- ✅ Percentil (línea 39)
+
+### G4 - Ambiental (~90%)
+
+- ✅ Pantallas (línea 87)
+- ✅ Temperatura cuarto (línea 102)
+- ✅ Depresión post-parto (líneas 24-26)
+- ✅ Dónde duerme/colecho (línea 106)
+- ✅ Comparte cuarto (línea 107)
+- ✅ Cambios recientes (línea 126)
+
+### Perfil
+
+- ✅ Medicamentos genérico (línea 50: "tratamiento médico")
 
 ---
 
 ## Dudas Pendientes
 
-### Confirmadas pero requieren precisión
+### Resueltas en Entrevista
 
-1. **G2 - Umbral de activación:** El spec define los indicadores de cada condición médica, pero **¿cuántos indicadores deben estar presentes para disparar la alerta?** (Asumí 2 o más — confirmar con doctora).
+1. ✅ **Tolerancia horario:** ±15 min aplica a sleep, wake, siestas
+2. ✅ **UX alertas:** Modal overlay solo lectura + navegación
+3. ✅ **Resumen AI:** On-demand, descriptivo + recomendaciones generales
+4. ✅ **Acceso sin plan:** Bloqueado
+5. ✅ **G2 Umbral:** 1 solo indicador ya dispara alerta
+6. ✅ **G3 Clasificación:** AI en tiempo real (texto libre)
+7. ✅ **G3 Fallback AI:** Guardar sin clasificar
+8. ✅ **G3 Grupos:** Proteína, Carbo, Grasa, Fibra (confirmado)
+9. ✅ **G3 Reglas por edad:**
+   - 6-9m: Proteína + Fibra + (Grasa O Carbo)
+   - 9+m comidas: Proteína + Grasa + Carbo + Fibra
+   - 9+m snacks: Fibra + (Grasa O Carbo)
+10. ✅ **Visibilidad:** Panel completo solo admin
+11. ✅ **Campos médicos:** Vienen del survey, editables por padres y admin
+12. ✅ **Medicamentos:** Usar lógica actual, no más complejo
 
-2. **G2 - Ferritina:** Aparece en las banderas del perfil clínico pero NO en los indicadores de G2. **¿Hay un umbral numérico para ferritina?** ¿Se captura en el survey?
+### Aún Pendientes
 
-3. **G2 - Primera vs segunda parte de la noche:** Para diferenciar apneas (2da parte) de restless leg (1ra parte), **¿cómo definimos "primera" y "segunda" parte?** ¿Antes/después de medianoche? ¿Primeras 4 horas vs resto?
+1. **G2 - Primera vs segunda parte de la noche:** ¿Cómo definir? ¿Antes/después medianoche? ¿Primeras 4h vs resto? ¿50% duración vs 50%?
 
-4. **G3 - Grupos nutricionales:** El spec original mencionaba validar 4 grupos (Proteína, Grasa, Cereal, Fibra). La doctora no confirmó esto — se enfocó en frecuencia y cantidad. **¿Se implementa la validación de grupos nutricionales o solo frecuencia/cantidad?**
+2. **Perfil - Registro médico admin:** ¿Dónde vive? ¿Campo en detalle del niño? ¿Sección nueva? ¿Timeline de notas médicas?
 
-5. **G4 - NLP en notas y chat:** La doctora indica revisar texto libre de eventos y chat para detectar cambios ambientales. **¿Implementar como búsqueda de keywords simple o con LLM?** Keywords es más rápido y predecible para MVP.
-
-6. **Perfil - Registro médico admin:** La doctora necesita un espacio para registrar pruebas y consultas. **¿Dónde vive esto?** ¿Campo en el detalle del niño? ¿Sección nueva? ¿Timeline de notas médicas?
-
-7. **Survey - Campos nuevos:** Se identificaron 7 áreas donde faltan campos en el survey. **¿Se agregan en este sprint o en uno posterior?** Impacta el alcance significativamente.
+3. **G2 - Ferritina:** ¿Hay umbral numérico? ¿Cómo se valida?
