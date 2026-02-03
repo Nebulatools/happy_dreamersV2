@@ -436,3 +436,27 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Próxima: 7.2 - Agregar lógica de prerequisito (plan activo) - YA IMPLEMENTADA
 
 ---
+
+### Session 16 - 2026-02-03
+**Task:** 8.1 - Crear prompt del Pasante AI `/lib/diagnostic/pasante-ai-prompt.ts`
+**Files:** `lib/diagnostic/pasante-ai-prompt.ts` (nuevo, ~195 líneas)
+**Patterns:**
+- Sigue el patrón de `sleep-coach-personality.ts` con función `getPasanteSystemPrompt(context)`
+- Interface `PasanteContext` estructura los datos del niño y diagnóstico
+- Helper `buildDiagnosticContext()` formatea las alertas de los 4 grupos para el prompt
+- Configuración exportada `PASANTE_AI_CONFIG` centraliza model, maxTokens, temperature
+- Restricciones explícitas: NO recomendaciones médicas, NO ajustes específicos del plan
+- SI permite: describir situación, sugerir que la doctora "considere revisar" algo
+- Ejemplo de buena respuesta incluido en el prompt para guiar formato
+**Exports públicos:**
+- `PasanteContext` - Interface del contexto
+- `getPasanteSystemPrompt(context)` - Genera system prompt completo
+- `getPasanteUserPrompt(additionalContext?)` - Genera user prompt
+- `PASANTE_AI_CONFIG` - Configuración OpenAI (gpt-4, 400 tokens, temp 0.7)
+**Notes:**
+- Build pasa correctamente
+- Errores lint pre-existentes en otros archivos (no relacionados)
+- Fase 8: 1/2 tareas completadas
+- Próxima: 8.2 - Crear endpoint `/api/admin/diagnostics/ai-summary/route.ts`
+
+---

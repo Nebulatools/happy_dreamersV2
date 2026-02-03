@@ -179,7 +179,7 @@ Validacion Fase 7:
 
 ## Fase 8: Pasante AI
 
-- [ ] **8.1** Crear prompt del Pasante AI `/lib/diagnostic/pasante-ai-prompt.ts`
+- [x] **8.1** Crear prompt del Pasante AI `/lib/diagnostic/pasante-ai-prompt.ts`
   - Output: Funcion getPasanteSystemPrompt(context) que retorna string
   - Comportamiento: Prompt descriptivo + recomendaciones generales, NO medicas
   - Referencia: ver `lib/rag/sleep-coach-personality.ts` para patron
