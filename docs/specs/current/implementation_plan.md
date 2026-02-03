@@ -157,13 +157,13 @@ Validacion Fase 6:
 
 ## Fase 7: API de Diagnostico
 
-- [ ] **7.1** Crear endpoint principal `/api/admin/diagnostics/[childId]/route.ts`
+- [x] **7.1** Crear endpoint principal `/api/admin/diagnostics/[childId]/route.ts`
   - Input: GET con childId en params
   - Output: DiagnosticResult completo con los 4 grupos
   - Comportamiento: Verifica admin, verifica plan activo, ejecuta 4 validadores
   - Referencia: ver `app/api/consultas/analyze/route.ts` para patron admin
 
-- [ ] **7.2** Agregar logica de prerequisito (plan activo)
+- [x] **7.2** Agregar logica de prerequisito (plan activo)
   - Input: childId
   - Output: 400 con mensaje si no hay plan activo
   - Comportamiento: Query childPlans donde status === "active"

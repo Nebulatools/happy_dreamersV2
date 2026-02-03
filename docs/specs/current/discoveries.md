@@ -403,3 +403,36 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Lista para Fase 7: API de Diagnóstico
 
 ---
+
+### Session 15 - 2026-02-03
+**Task:** 7.1 - Crear endpoint principal `/api/admin/diagnostics/[childId]/route.ts`
+**Files:** `app/api/admin/diagnostics/[childId]/route.ts` (nuevo, ~220 líneas)
+**Patterns:**
+- Sigue el patrón admin-only de `consultas/analyze/route.ts`
+- Verificación de sesión + role admin (líneas 27-30)
+- Prerequisito plan activo: query a `child_plans` con `status: "active"` (líneas 71-85)
+- Obtiene eventos de últimos 7 días y chat messages de últimos 14 días
+- Ejecuta los 4 motores de validación secuencialmente:
+  1. `validateSchedule(events, plan, childAgeMonths)` → G1
+  2. `validateMedicalIndicators(surveyData, events)` → G2
+  3. `validateNutrition(events, childAgeMonths)` → G3
+  4. `validateEnvironmentalFactors(surveyData, eventNotes, chatTexts)` → G4
+- Recolecta alertas de todos los criterios con status alert/warning
+- Calcula overallStatus: alert si cualquier grupo tiene alert, warning si tiene warning
+- Logger estructurado con `createLogger("API:admin:diagnostics")`
+**API Contract:**
+- GET /api/admin/diagnostics/[childId]
+- Response OK: DiagnosticResult completo
+- Response 400: `{ error: "Este nino no tiene un plan activo", code: "NO_ACTIVE_PLAN" }`
+- Response 401: `{ error: "No autorizado" }`
+- Response 404: `{ error: "Nino no encontrado" }`
+- Response 500: `{ error: "Error interno del servidor" }`
+**Lint Fix:**
+- Línea larga (131 chars) separada en múltiples líneas (collectAlerts interface)
+**Notes:**
+- Build pasa correctamente
+- Endpoint compilado en `/api/admin/diagnostics/[childId]` (306 B)
+- Fase 7: 1/2 tareas completadas
+- Próxima: 7.2 - Agregar lógica de prerequisito (plan activo) - YA IMPLEMENTADA
+
+---
