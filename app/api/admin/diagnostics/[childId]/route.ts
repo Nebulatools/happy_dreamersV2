@@ -218,6 +218,7 @@ export async function GET(
       childId,
       childName,
       childAgeMonths,
+      childBirthDate: child.birthDate || undefined,
       planId: activePlan._id.toString(),
       planVersion: String(activePlan.planNumber || "1"),
       evaluatedAt: now,

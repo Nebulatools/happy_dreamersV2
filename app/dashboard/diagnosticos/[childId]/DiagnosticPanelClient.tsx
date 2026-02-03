@@ -108,7 +108,7 @@ export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClient
           _id: childId,
           firstName: data.childName.split(" ")[0] || data.childName,
           lastName: data.childName.split(" ").slice(1).join(" ") || undefined,
-          birthDate: undefined, // No viene en el resultado, se calcula desde ageMonths
+          birthDate: data.childBirthDate, // Ahora viene del API
           parentId: "", // No necesario para mostrar
         })
 
@@ -272,11 +272,11 @@ export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClient
       <div className="container py-8 space-y-6">
         {/* Header del nino */}
         <ProfileHeader
-          child={{
+          child={childData || {
             _id: childId,
             firstName: diagnosticResult.childName.split(" ")[0] || diagnosticResult.childName,
             lastName: diagnosticResult.childName.split(" ").slice(1).join(" ") || undefined,
-            birthDate: undefined,
+            birthDate: diagnosticResult.childBirthDate,
           }}
           plan={planData || undefined}
           surveyDataAvailable={surveyDataAvailable}
