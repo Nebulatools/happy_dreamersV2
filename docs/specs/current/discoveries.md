@@ -607,3 +607,32 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Lista para Fase 11: UI - Modal y Deep Linking
 
 ---
+
+### Session 23 - 2026-02-03
+**Task:** 11.1 - Crear AlertDetailModal `/components/diagnostic/Modals/AlertDetailModal.tsx`
+**Files:** `components/diagnostic/Modals/AlertDetailModal.tsx` (nuevo, ~210 líneas)
+**Patterns:**
+- Usa Dialog de shadcn/ui (DialogContent, DialogHeader, DialogTitle, DialogDescription)
+- Carpeta Modals creada para organizar modales del diagnóstico
+- Lista scrolleable de criterios con overflow-y-auto y max-h-[80vh]
+- Ordenamiento por severidad: alert → warning → ok
+- Colores de fondo por status: red-50, yellow-50, gray-50
+- StatusIndicator reutilizado para iconos de semáforo
+**Deep Linking implementado:**
+- `survey`: `/dashboard/children/[id]?tab=survey&field=X`
+- `event`: `/dashboard/calendar?eventId=X&childId=Y`
+- `chat`: `/dashboard/assistant?childId=X`
+- `plan`: `/dashboard/planes?childId=X`
+- `calculated`: sin link (datos derivados)
+**Iconos por fuente:**
+- survey: FileText
+- event: Calendar
+- chat: MessageSquare
+- plan: ClipboardList
+**Notes:**
+- Build pasa correctamente
+- Modal responsivo con max-w-md sm:max-w-lg
+- Fase 11: 1/2 tareas completadas
+- Próxima: 11.2 - Implementar deep linking en criterios (YA IMPLEMENTADO en este modal)
+
+---

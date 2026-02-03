@@ -249,16 +249,17 @@ Validacion Fase 10:
 
 ## Fase 11: UI - Modal y Deep Linking
 
-- [ ] **11.1** Crear AlertDetailModal `/components/diagnostic/Modals/AlertDetailModal.tsx`
+- [x] **11.1** Crear AlertDetailModal `/components/diagnostic/Modals/AlertDetailModal.tsx`
   - Props: { open, onClose, groupTitle, criteria[] }
   - Render: Dialog overlay con lista de criterios y sus valores
   - Comportamiento: Solo lectura, cada criterio tiene link
   - Referencia: ver `components/ui/dialog.tsx` para Dialog pattern
 
-- [ ] **11.2** Implementar deep linking en criterios
+- [x] **11.2** Implementar deep linking en criterios
   - Input: criterio con sourceType ('survey' | 'event') y sourceId
   - Output: Link a `/dashboard/children/[id]?tab=survey&field=X` o calendario
   - Comportamiento: Click navega a fuente del dato
+  - Nota: Implementado en AlertDetailModal función getSourceLink()
 
 Validacion Fase 11:
 • Build pasa
