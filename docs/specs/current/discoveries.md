@@ -529,3 +529,27 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Próxima: 10.2 - Crear G2MedicalValidation
 
 ---
+
+### Session 20 - 2026-02-03
+**Task:** 10.2 - Crear G2MedicalValidation `/components/diagnostic/ValidationGroups/G2MedicalValidation.tsx`
+**Files:** `components/diagnostic/ValidationGroups/G2MedicalValidation.tsx` (nuevo, ~155 líneas)
+**Patterns:**
+- A diferencia de G1, G2 NO es un simple wrapper sobre ValidationGroupCard
+- G2 tiene estructura adicional: sección de resumen por condición médica
+- Usa `MedicalGroupValidation` (extends GroupValidation) con campos específicos:
+  - `indicators` agrupados por condición (reflujo, apnea, restless_leg)
+  - `detectedCount` por condición
+  - `pendingCount` por condición
+- Componente auxiliar `ConditionSummary` muestra:
+  - Icono de alerta (rojo) o check (verde) según detectado > 0
+  - Badge "X detectados" si hay indicadores positivos
+  - Badge "Y pendientes" si hay datos faltantes
+- Icono: `Stethoscope` de Lucide para identificar el grupo Médico
+- Colores por condición: reflujo=naranja, apnea=púrpura, restless_leg=azul
+**Notes:**
+- Build pasa correctamente
+- Errores lint pre-existentes en otros archivos (no relacionados)
+- Fase 10: 2/4 tareas completadas
+- Próxima: 10.3 - Crear G3NutritionValidation
+
+---

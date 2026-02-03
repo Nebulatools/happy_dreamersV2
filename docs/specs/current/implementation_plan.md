@@ -226,7 +226,7 @@ Validacion Fase 9:
   - Render: Usa ValidationGroupCard con icono Clock
   - Comportamiento: Muestra criterios de horario con status individual
 
-- [ ] **10.2** Crear G2MedicalValidation `/components/diagnostic/ValidationGroups/G2MedicalValidation.tsx`
+- [x] **10.2** Crear G2MedicalValidation `/components/diagnostic/ValidationGroups/G2MedicalValidation.tsx`
   - Props: { validation: GroupValidation, onCriterionClick }
   - Render: Card con indicadores agrupados por condicion (reflujo, apnea, restless)
   - Comportamiento: Muestra "X de Y indicadores detectados" + "Z pendientes"
