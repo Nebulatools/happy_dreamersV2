@@ -236,7 +236,7 @@ Validacion Fase 9:
   - Render: Card con frecuencia comidas y grupos nutricionales
   - Comportamiento: Muestra grupos cubiertos vs requeridos por edad
 
-- [ ] **10.4** Crear G4EnvironmentalValidation `/components/diagnostic/ValidationGroups/G4EnvironmentalValidation.tsx`
+- [x] **10.4** Crear G4EnvironmentalValidation `/components/diagnostic/ValidationGroups/G4EnvironmentalValidation.tsx`
   - Props: { validation: GroupValidation, onCriterionClick }
   - Render: Card con factores ambientales y keywords detectadas
   - Comportamiento: Lista factores con status individual

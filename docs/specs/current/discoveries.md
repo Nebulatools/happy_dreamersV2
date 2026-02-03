@@ -579,3 +579,31 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Próxima: 10.4 - Crear G4EnvironmentalValidation
 
 ---
+
+### Session 22 - 2026-02-03
+**Task:** 10.4 - Crear G4EnvironmentalValidation `/components/diagnostic/ValidationGroups/G4EnvironmentalValidation.tsx`
+**Files:** `components/diagnostic/ValidationGroups/G4EnvironmentalValidation.tsx` (nuevo, ~310 líneas)
+**Patterns:**
+- Estructura más compleja que G1/G2/G3: tiene 3 secciones visuales diferenciadas
+- Usa `EnvironmentalGroupValidation` (extends GroupValidation) con campos específicos:
+  - `detectedKeywords` array de strings de cambios detectados
+  - `factors` objeto con 7 CriterionResult (screenTime, temperature, humidity, etc.)
+- Componente auxiliar `FactorSummary` para cada factor ambiental:
+  - Iconos específicos por factor (Tv, Thermometer, Droplets, Baby, Users, etc.)
+  - Estado "Pendiente" con border dashed para datos no disponibles (ej: humidity Sprint 4B)
+  - Click handler para abrir modal de detalle
+- Componente auxiliar `KeywordsDetected` para mostrar cambios recientes:
+  - Grid de badges coloreados por categoría (school=azul, sibling=rosa, moving=naranja, etc.)
+  - Mensaje verde "No se detectaron cambios" si array vacío
+  - Agrupación visual de keywords por categoría inferida del texto
+- Componente auxiliar `FactorStatusSummary` para header:
+  - Conteo rápido: "X OK, Y alertas, Z pendientes"
+- Ordenamiento de factores: alertas → warnings → ok → pendientes
+- Iconos: `Cloud` principal, iconos específicos por cada factor
+**Notes:**
+- Build pasa correctamente
+- Errores lint pre-existentes en otros archivos (no relacionados)
+- Fase 10 COMPLETADA (4/4 tareas)
+- Lista para Fase 11: UI - Modal y Deep Linking
+
+---
