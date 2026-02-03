@@ -65,3 +65,16 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Tipos exportables desde lib/diagnostic/types.ts
 
 ---
+
+### Session 1 - 2026-02-03
+**Task:** 0.1 - Crear ruta base `/dashboard/diagnosticos`
+**Files:** `app/dashboard/diagnosticos/page.tsx`
+**Patterns:**
+- Seguí el patrón de `consultas/page.tsx` para admin-only + estado vacío
+- useEffect para toast de acceso denegado + early return con Card de bloqueo
+- Estado vacío con Card centrado, icono `ClipboardList` y flecha animada
+**Notes:**
+- El build genera 2.37 kB para la ruta
+- Errores de lint pre-existentes en otros archivos (no bloqueantes)
+
+---

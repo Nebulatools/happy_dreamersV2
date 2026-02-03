@@ -16,7 +16,7 @@ Fecha: 2026-02-03
 
 ## Fase 0: Activation & Smoke Test
 
-- [ ] **0.1** Crear ruta base `/dashboard/diagnosticos`
+- [x] **0.1** Crear ruta base `/dashboard/diagnosticos`
   - Output: Pagina accesible en `/dashboard/diagnosticos`
   - Comportamiento: Muestra "Panel de Diagnostico - Selecciona un paciente" con icono
   - Referencia: ver `app/dashboard/consultas/page.tsx` lineas 325-352 (estado vacio)
