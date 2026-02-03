@@ -103,6 +103,23 @@ export async function POST(req: NextRequest) {
     const systemPrompt = getPasanteSystemPrompt(pasanteContext)
     const userPrompt = getPasanteUserPrompt(body.additionalContext)
 
+    // Validar API key antes de intentar la llamada
+    if (!process.env.OPENAI_API_KEY) {
+      logger.error("OPENAI_API_KEY no configurada")
+      return NextResponse.json(
+        { error: "Servicio AI no configurado" },
+        { status: 503 }
+      )
+    }
+
+    // Log de debug antes de la llamada
+    logger.info("Pasante AI request", {
+      childId: body.childId,
+      systemPromptLength: systemPrompt.length,
+      userPromptLength: userPrompt.length,
+      model: PASANTE_AI_CONFIG.model,
+    })
+
     // Inicializar OpenAI
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
@@ -141,14 +158,32 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ aiSummary })
   } catch (error) {
-    logger.error("Error en ai-summary:", error)
+    logger.error("Error en ai-summary:", {
+      error: error instanceof Error ? error.message : "Unknown",
+      stack: error instanceof Error ? error.stack : undefined,
+      childId: "unknown",
+    })
 
-    // Manejar error de API key
-    if (error instanceof Error && error.message.includes("API key")) {
-      return NextResponse.json(
-        { error: "Error de configuracion del servicio AI" },
-        { status: 503 }
-      )
+    // Errores especificos de OpenAI
+    if (error instanceof Error) {
+      if (error.message.includes("API key")) {
+        return NextResponse.json(
+          { error: "Error de configuracion del servicio AI" },
+          { status: 503 }
+        )
+      }
+      if (error.message.includes("context length") || error.message.includes("maximum")) {
+        return NextResponse.json(
+          { error: "Diagnostico demasiado extenso para analizar" },
+          { status: 400 }
+        )
+      }
+      if (error.message.includes("model")) {
+        return NextResponse.json(
+          { error: "Modelo AI no disponible" },
+          { status: 503 }
+        )
+      }
     }
 
     return NextResponse.json(

@@ -56,56 +56,76 @@ function formatCriterion(criterion: CriterionResult): string {
   const availability = criterion.dataAvailable
     ? ""
     : " (datos no disponibles)"
-  return `${statusIcon} ${criterion.label}: ${criterion.value}${availability}`
+  return `${statusIcon} ${criterion.name}: ${criterion.value}${availability}`
 }
 
 /**
  * Construye el contexto de diagnostico para el prompt
+ * Accede a result.groups.G1, G2, G3, G4 segun el tipo DiagnosticResult
  */
 function buildDiagnosticContext(result: DiagnosticResult): string {
   const sections: string[] = []
 
+  // Verificar que groups existe
+  if (!result.groups) {
+    return "No hay datos de diagnostico disponibles."
+  }
+
   // G1 - Horario
-  const g1Alerts = extractAlertCriteria(result.g1Schedule.criteria)
-  if (g1Alerts.length > 0) {
-    sections.push(
-      `## G1 - Horario (${result.g1Schedule.status.toUpperCase()}):\n` +
-      g1Alerts.map(c => `- ${formatCriterion(c)}`).join("\n")
-    )
+  const g1 = result.groups.G1
+  if (g1?.criteria) {
+    const g1Alerts = extractAlertCriteria(g1.criteria)
+    if (g1Alerts.length > 0) {
+      sections.push(
+        `## G1 - Horario (${g1.status.toUpperCase()}):\n` +
+        g1Alerts.map(c => `- ${formatCriterion(c)}`).join("\n")
+      )
+    }
   }
 
   // G2 - Medico
-  const g2Alerts = extractAlertCriteria(result.g2Medical.criteria)
-  if (g2Alerts.length > 0 || result.g2Medical.dataCompleteness.pending.length > 0) {
-    let g2Section = `## G2 - Medico (${result.g2Medical.status.toUpperCase()}):\n`
-    if (g2Alerts.length > 0) {
-      g2Section += g2Alerts.map(c => `- ${formatCriterion(c)}`).join("\n")
+  const g2 = result.groups.G2
+  if (g2?.criteria) {
+    const g2Alerts = extractAlertCriteria(g2.criteria)
+    const hasPendingData = g2.dataCompleteness?.pending?.length > 0
+    if (g2Alerts.length > 0 || hasPendingData) {
+      let g2Section = `## G2 - Medico (${g2.status.toUpperCase()}):\n`
+      if (g2Alerts.length > 0) {
+        g2Section += g2Alerts.map(c => `- ${formatCriterion(c)}`).join("\n")
+      }
+      if (hasPendingData) {
+        g2Section += `\n- Datos pendientes: ${g2.dataCompleteness.pending.length} indicadores sin recolectar`
+      }
+      sections.push(g2Section)
     }
-    if (result.g2Medical.dataCompleteness.pending.length > 0) {
-      g2Section += `\n- Datos pendientes: ${result.g2Medical.dataCompleteness.pending.length} indicadores sin recolectar`
-    }
-    sections.push(g2Section)
   }
 
   // G3 - Alimentacion
-  const g3Alerts = extractAlertCriteria(result.g3Nutrition.criteria)
-  if (g3Alerts.length > 0) {
-    sections.push(
-      `## G3 - Alimentacion (${result.g3Nutrition.status.toUpperCase()}):\n` +
-      g3Alerts.map(c => `- ${formatCriterion(c)}`).join("\n")
-    )
+  const g3 = result.groups.G3
+  if (g3?.criteria) {
+    const g3Alerts = extractAlertCriteria(g3.criteria)
+    if (g3Alerts.length > 0) {
+      sections.push(
+        `## G3 - Alimentacion (${g3.status.toUpperCase()}):\n` +
+        g3Alerts.map(c => `- ${formatCriterion(c)}`).join("\n")
+      )
+    }
   }
 
   // G4 - Ambiental
-  const g4Alerts = extractAlertCriteria(result.g4Environmental.criteria)
-  if (g4Alerts.length > 0) {
-    let g4Section = `## G4 - Ambiental (${result.g4Environmental.status.toUpperCase()}):\n`
-    g4Section += g4Alerts.map(c => `- ${formatCriterion(c)}`).join("\n")
-    if (result.g4Environmental.detectedKeywords &&
-        result.g4Environmental.detectedKeywords.length > 0) {
-      g4Section += `\n- Cambios recientes detectados: ${result.g4Environmental.detectedKeywords.join(", ")}`
+  const g4 = result.groups.G4
+  if (g4?.criteria) {
+    const g4Alerts = extractAlertCriteria(g4.criteria)
+    if (g4Alerts.length > 0) {
+      let g4Section = `## G4 - Ambiental (${g4.status.toUpperCase()}):\n`
+      g4Section += g4Alerts.map(c => `- ${formatCriterion(c)}`).join("\n")
+      // detectedKeywords solo existe en EnvironmentalGroupValidation
+      const g4WithKeywords = g4 as { detectedKeywords?: string[] }
+      if (g4WithKeywords.detectedKeywords && g4WithKeywords.detectedKeywords.length > 0) {
+        g4Section += `\n- Cambios recientes detectados: ${g4WithKeywords.detectedKeywords.join(", ")}`
+      }
+      sections.push(g4Section)
     }
-    sections.push(g4Section)
   }
 
   // Si no hay alertas en ningun grupo
@@ -187,11 +207,12 @@ export function getPasanteUserPrompt(
 
 /**
  * Configuracion recomendada para la llamada a OpenAI
+ * Usa gpt-4o-mini que es el mismo modelo del sistema RAG que funciona correctamente
  */
 export const PASANTE_AI_CONFIG = {
-  model: "gpt-4" as const,
+  model: "gpt-4o-mini" as const,
   maxTokens: 400,
-  temperature: 0.7, // Balance entre creatividad y consistencia
+  temperature: 0.7,
   presencePenalty: 0.1,
   frequencyPenalty: 0.1,
 }
