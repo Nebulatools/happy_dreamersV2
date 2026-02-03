@@ -198,17 +198,17 @@ Validacion Fase 8:
 
 ## Fase 9: UI - Componentes Base
 
-- [ ] **9.1** Crear componente ProfileHeader `/components/diagnostic/ProfileHeader.tsx`
+- [x] **9.1** Crear componente ProfileHeader `/components/diagnostic/ProfileHeader.tsx`
   - Props: { child, plan, surveyData }
   - Render: Card con nombre, edad, plan vigente, alertas criticas visibles
   - Referencia: ver `components/dashboard/AdminStatistics.tsx` Cards
 
-- [ ] **9.2** Crear componente StatusIndicator `/components/diagnostic/StatusIndicator.tsx`
+- [x] **9.2** Crear componente StatusIndicator `/components/diagnostic/StatusIndicator.tsx`
   - Props: { status: StatusLevel, showLabel?, size? }
   - Render: Icono CheckCircle/AlertTriangle/AlertCircle con color
   - Comportamiento: ok=verde, warning=amarillo, alert=rojo
 
-- [ ] **9.3** Crear componente generico ValidationGroupCard `/components/diagnostic/ValidationGroupCard.tsx`
+- [x] **9.3** Crear componente generico ValidationGroupCard `/components/diagnostic/ValidationGroupCard.tsx`
   - Props: { title, icon, status, criteria[], dataCompleteness?, onCriterionClick }
   - Render: Card con header, lista de criterios, mensaje de datos pendientes
   - Referencia: ver pattern de Cards en AdminStatistics.tsx
