@@ -133,6 +133,7 @@ export interface DiagnosticResult {
   childName: string
   childAgeMonths: number
   childBirthDate?: string // ISO date string para calcular edad en UI
+  parentId?: string // ID del padre para sincronizacion de contexto
   planId: string
   planVersion: string
   evaluatedAt: string

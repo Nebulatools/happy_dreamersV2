@@ -259,7 +259,7 @@ export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClient
               Este nino no tiene un plan de sueno activo.
               Para ver el diagnostico, primero genera un plan.
             </p>
-            <DiagnosticCTAs childId={childId} />
+            <DiagnosticCTAs childId={childId} parentId={childData?.parentId} />
           </CardContent>
         </Card>
       </div>
@@ -336,6 +336,7 @@ export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClient
           <DiagnosticCTAs
             childId={childId}
             planId={diagnosticResult.planId}
+            parentId={diagnosticResult.parentId}
           />
         </div>
 

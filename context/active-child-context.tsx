@@ -12,6 +12,8 @@ interface ActiveChildContextType {
   setActiveUserName: Dispatch<SetStateAction<string | null>>;
   isInitialized: boolean;
   clearSelection: () => void;
+  // Helper para establecer toda la selección de una vez
+  setActiveChild: (childId: string, userId: string, userName: string) => void;
 }
 
 // 2. Crear el Contexto con un valor por defecto (o undefined si prefieres manejar el caso nulo explícitamente)
@@ -82,16 +84,24 @@ export const ActiveChildProvider: React.FC<ActiveChildProviderProps> = ({ childr
     localStorage.removeItem('admin_selected_user_name');
   };
 
+  // Función helper para establecer toda la selección de una vez
+  const setActiveChild = (childId: string, userId: string, userName: string) => {
+    setActiveChildId(childId);
+    setActiveUserId(userId);
+    setActiveUserName(userName);
+  };
+
   return (
-    <ActiveChildContext.Provider value={{ 
-      activeChildId, 
-      setActiveChildId, 
+    <ActiveChildContext.Provider value={{
+      activeChildId,
+      setActiveChildId,
       activeUserId,
       setActiveUserId,
       activeUserName,
       setActiveUserName,
       isInitialized,
-      clearSelection
+      clearSelection,
+      setActiveChild
     }}>
       {children}
     </ActiveChildContext.Provider>

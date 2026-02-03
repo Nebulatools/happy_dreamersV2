@@ -4,10 +4,13 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Edit, FilePlus } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useActiveChild } from "@/context/active-child-context"
 
 interface DiagnosticCTAsProps {
   childId: string
   planId?: string
+  parentId?: string
+  parentName?: string
   className?: string
 }
 
@@ -16,27 +19,41 @@ interface DiagnosticCTAsProps {
  *
  * Redirige a la pagina de consultas con el tab de plan seleccionado
  * y el contexto del nino para continuar la edicion.
+ * Sincroniza el contexto antes de navegar para evitar desincronizacion.
  *
  * @example
- * <EditPlanButton childId="abc123" planId="plan456" />
+ * <EditPlanButton childId="abc123" planId="plan456" parentId="user789" />
  */
 export function EditPlanButton({
   childId,
   planId,
+  parentId,
+  parentName,
   className,
 }: {
   childId: string
   planId?: string
+  parentId?: string
+  parentName?: string
   className?: string
 }) {
   const router = useRouter()
+  const { setActiveChild } = useActiveChild()
 
   const handleClick = () => {
+    // Sincronizar contexto antes de navegar (si tenemos parentId)
+    if (parentId) {
+      setActiveChild(childId, parentId, parentName || "")
+    }
+
     const params = new URLSearchParams()
     params.set("childId", childId)
     params.set("tab", "plan")
     if (planId) {
       params.set("planId", planId)
+    }
+    if (parentId) {
+      params.set("parentId", parentId)
     }
     router.push(`/dashboard/consultas?${params.toString()}`)
   }
@@ -59,26 +76,39 @@ export function EditPlanButton({
 /**
  * GenerateNewPlanButton - Navega a generar un nuevo plan
  *
- * Redirige a la pagina de consultas con el tab de analisis
- * para iniciar el proceso de generacion de un nuevo plan.
+ * Redirige a la pagina de consultas con el tab de transcript (para ingresar nuevo transcript)
+ * y luego generar un plan. Sincroniza el contexto antes de navegar.
  *
  * @example
- * <GenerateNewPlanButton childId="abc123" />
+ * <GenerateNewPlanButton childId="abc123" parentId="user789" />
  */
 export function GenerateNewPlanButton({
   childId,
+  parentId,
+  parentName,
   className,
 }: {
   childId: string
+  parentId?: string
+  parentName?: string
   className?: string
 }) {
   const router = useRouter()
+  const { setActiveChild } = useActiveChild()
 
   const handleClick = () => {
+    // Sincronizar contexto antes de navegar (si tenemos parentId)
+    if (parentId) {
+      setActiveChild(childId, parentId, parentName || "")
+    }
+
     const params = new URLSearchParams()
     params.set("childId", childId)
-    params.set("tab", "analysis")
+    params.set("tab", "transcript")
     params.set("action", "new-plan")
+    if (parentId) {
+      params.set("parentId", parentId)
+    }
     router.push(`/dashboard/consultas?${params.toString()}`)
   }
 
@@ -103,11 +133,13 @@ export function GenerateNewPlanButton({
  * en una fila responsiva al final del panel de diagnostico.
  *
  * @example
- * <DiagnosticCTAs childId="abc123" planId="plan456" />
+ * <DiagnosticCTAs childId="abc123" planId="plan456" parentId="user789" />
  */
 export function DiagnosticCTAs({
   childId,
   planId,
+  parentId,
+  parentName,
   className,
 }: DiagnosticCTAsProps) {
   return (
@@ -117,8 +149,17 @@ export function DiagnosticCTAs({
         className
       )}
     >
-      <EditPlanButton childId={childId} planId={planId} />
-      <GenerateNewPlanButton childId={childId} />
+      <EditPlanButton
+        childId={childId}
+        planId={planId}
+        parentId={parentId}
+        parentName={parentName}
+      />
+      <GenerateNewPlanButton
+        childId={childId}
+        parentId={parentId}
+        parentName={parentName}
+      />
     </div>
   )
 }
