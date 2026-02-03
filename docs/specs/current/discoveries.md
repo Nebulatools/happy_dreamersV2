@@ -132,3 +132,28 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Fase 2 iniciada (1/4 tareas completadas)
 
 ---
+
+### Session 4 - 2026-02-03
+**Task:** 2.2 - Crear constantes de requisitos nutricionales `/lib/diagnostic/nutrition-requirements.ts`
+**Files:** `lib/diagnostic/nutrition-requirements.ts`
+**Patterns:**
+- Array NUTRITION_RULES ordenado por edad (6m, 7m, 8-9m, 9-11m, 11-12m, 12m+)
+- Cada regla tiene: milkMinCount, milkMaxOz, solidMinCount, mealRequiredGroups, snackRequiredGroups
+- MEAL_REQUIREMENTS separados por etapa: EARLY_STAGE (6-9m) y FULL_STAGE (9m+)
+- SNACK_REQUIREMENTS: Fibra + (Grasa O Carbohidrato) - solo desde 9m
+- Helper `getNutritionRuleForAge(ageMonths)` para obtener regla por edad
+- Helper `validateMealGroups(groups, ageMonths, isSnack)` para validar grupos en comidas
+- Helper `checkMilkLimit(totalOz, ageMonths)` para verificar límite de onzas
+**Constantes exportadas:**
+- ALL_NUTRITION_GROUPS: proteina, carbohidrato, grasa, fibra
+- MEAL_REQUIREMENTS: EARLY_STAGE y FULL_STAGE
+- SNACK_REQUIREMENTS: requisitos para snacks
+- NUTRITION_RULES: array de NutritionRule por edad
+- MILK_INTERVALS: horas entre tomas por edad
+- RED_FLAGS: MAX_MILK_OZ_12_PLUS (16), MAX_FEEDING_GAP_HOURS (5)
+**Notes:**
+- Build pasa correctamente
+- Errores lint son pre-existentes en otros archivos (no relacionados)
+- Fase 2: 2/4 tareas completadas
+
+---

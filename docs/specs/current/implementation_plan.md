@@ -53,7 +53,7 @@ Validacion Fase 1:
   - Comportamiento: Contiene siestas, ventanas, limites, pre-bedtime por edad
   - Referencia: ver SPEC-SPRINT.md tabla "Tabla Resumen de Validacion G1"
 
-- [ ] **2.2** Crear constantes de requisitos nutricionales `/lib/diagnostic/nutrition-requirements.ts`
+- [x] **2.2** Crear constantes de requisitos nutricionales `/lib/diagnostic/nutrition-requirements.ts`
   - Output: Objeto NUTRITION_RULES por rango de edad
   - Comportamiento: Contiene lecheMin, solidosRegla, gruposRequeridos
   - Referencia: ver SPEC-SPRINT.md seccion G3 "Requisitos por Edad"
