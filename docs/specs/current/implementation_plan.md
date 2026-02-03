@@ -102,7 +102,7 @@ Validacion Fase 3:
   - Comportamiento: Evalua reflujo, apnea, restless leg (1 indicador = alerta)
   - Referencia: usar optional chaining para campos que no existen en survey
 
-- [ ] **4.2** Agregar contador de datos pendientes
+- [x] **4.2** Agregar contador de datos pendientes
   - Input: indicadores medicos evaluados
   - Output: dataCompleteness { available, total, pending[] }
   - Comportamiento: Cuenta indicadores con dataAvailable: false
