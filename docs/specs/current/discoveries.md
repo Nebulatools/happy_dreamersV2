@@ -511,3 +511,21 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Lista para Fase 10: UI - Grupos de Validación
 
 ---
+
+### Session 19 - 2026-02-03
+**Task:** 10.1 - Crear G1ScheduleValidation `/components/diagnostic/ValidationGroups/G1ScheduleValidation.tsx`
+**Files:** `components/diagnostic/ValidationGroups/G1ScheduleValidation.tsx` (nuevo, ~50 líneas)
+**Patterns:**
+- Carpeta ValidationGroups creada para agrupar los 4 componentes de validación
+- G1ScheduleValidation es un wrapper simple sobre ValidationGroupCard
+- Usa icono Clock de Lucide para identificar visualmente el grupo de Horario
+- Props tipadas: `{ validation: GroupValidation, onCriterionClick?, className? }`
+- No contiene lógica extra, delega todo a ValidationGroupCard
+- Documenta los 7 criterios que evalúa G1 en JSDoc para referencia
+**Notes:**
+- Build pasa correctamente
+- Errores lint pre-existentes en otros archivos (no relacionados)
+- Fase 10: 1/4 tareas completadas
+- Próxima: 10.2 - Crear G2MedicalValidation
+
+---

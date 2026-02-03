@@ -221,7 +221,7 @@ Validacion Fase 9:
 
 ## Fase 10: UI - Grupos de Validacion
 
-- [ ] **10.1** Crear G1ScheduleValidation `/components/diagnostic/ValidationGroups/G1ScheduleValidation.tsx`
+- [x] **10.1** Crear G1ScheduleValidation `/components/diagnostic/ValidationGroups/G1ScheduleValidation.tsx`
   - Props: { validation: GroupValidation, onCriterionClick }
   - Render: Usa ValidationGroupCard con icono Clock
   - Comportamiento: Muestra criterios de horario con status individual
