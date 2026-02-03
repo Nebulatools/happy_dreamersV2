@@ -15,6 +15,7 @@ import {
   WAKE_TOLERANCE_MINUTES,
   MINIMUM_WAKE_TIME,
 } from "../age-schedules"
+import type { AgeScheduleRule } from "../types"
 import {
   processSleepStatistics,
   aggregateDailySleep,
@@ -48,6 +49,11 @@ export interface ScheduleValidationResult extends GroupValidation {
   napCount: {
     actual: number
     expected: number
+    status: StatusLevel
+  }
+  sleepWindows: {
+    actual: number[] // Ventanas reales en horas
+    expected: number[] // Ventanas esperadas en horas
     status: StatusLevel
   }
 }
@@ -424,6 +430,245 @@ function validateBedtime(
   }
 }
 
+// ============================================================================
+// VENTANAS DE SUENO (Window Validation) - Tarea 3.2
+// ============================================================================
+
+/**
+ * Extrae la hora de un timestamp ISO o string de tiempo.
+ * Retorna formato HH:MM.
+ */
+function extractTimeFromEvent(event: SleepEvent): string {
+  if (!event.startTime) return "--:--"
+  try {
+    const date = parseISO(event.startTime)
+    return format(date, "HH:mm")
+  } catch {
+    return "--:--"
+  }
+}
+
+/**
+ * Obtiene eventos de un dia especifico ordenados cronologicamente.
+ * Para validar ventanas usamos el dia logico (considerando que madrugada pertenece al dia anterior).
+ */
+function getDayEvents(events: SleepEvent[], targetDate: Date): SleepEvent[] {
+  const dayStart = new Date(targetDate)
+  dayStart.setHours(4, 0, 0, 0) // Dia logico empieza a las 4 AM
+
+  const dayEnd = new Date(targetDate)
+  dayEnd.setDate(dayEnd.getDate() + 1)
+  dayEnd.setHours(3, 59, 59, 999) // Dia logico termina a las 3:59 AM del dia siguiente
+
+  return events
+    .filter((e) => {
+      if (!e.startTime) return false
+      const eventTime = parseISO(e.startTime)
+      return eventTime >= dayStart && eventTime <= dayEnd
+    })
+    .sort((a, b) => {
+      const timeA = parseISO(a.startTime!)
+      const timeB = parseISO(b.startTime!)
+      return timeA.getTime() - timeB.getTime()
+    })
+}
+
+/**
+ * Calcula las ventanas de vigilia de un dia.
+ * Retorna array de gaps en horas entre eventos de sueno.
+ *
+ * Secuencia esperada: WAKE -> (gap1) -> NAP1 -> (gap2) -> NAP2? -> (gap3) -> SLEEP
+ */
+function calculateDayWindows(dayEvents: SleepEvent[]): number[] {
+  const windows: number[] = []
+
+  // Filtrar solo eventos relevantes: wake, nap, sleep
+  const sleepEvents = dayEvents.filter((e) =>
+    ["wake", "nap", "sleep"].includes(e.eventType)
+  )
+
+  if (sleepEvents.length < 2) return windows
+
+  for (let i = 0; i < sleepEvents.length - 1; i++) {
+    const current = sleepEvents[i]
+    const next = sleepEvents[i + 1]
+
+    // Solo calcular gap si el siguiente evento es siesta o dormir
+    // (gap entre despertar y primera siesta, entre siestas, o entre ultima actividad y dormir)
+    if (!current.startTime || !next.startTime) continue
+
+    // Si el evento actual es wake o termina una siesta
+    // y el siguiente es inicio de siesta o sleep
+    const currentEnd = current.endTime
+      ? parseISO(current.endTime)
+      : parseISO(current.startTime)
+    const nextStart = parseISO(next.startTime)
+
+    // Calcular gap en horas
+    const gapMinutes = differenceInMinutes(nextStart, currentEnd)
+    const gapHours = gapMinutes / 60
+
+    // Solo agregar gaps positivos y razonables (entre 0.5 y 14 horas)
+    if (gapHours > 0.5 && gapHours < 14) {
+      windows.push(gapHours)
+    }
+  }
+
+  return windows
+}
+
+/**
+ * Compara ventanas reales contra las esperadas por edad.
+ * Retorna status basado en la desviacion.
+ */
+function compareWindows(
+  actualWindows: number[],
+  rule: AgeScheduleRule
+): { status: StatusLevel; deviations: number[] } {
+  const expectedWindows = rule.windows
+  const deviations: number[] = []
+
+  // Si no hay ventanas reales o esperadas, warning
+  if (actualWindows.length === 0 || expectedWindows.length === 0) {
+    return { status: "warning", deviations: [] }
+  }
+
+  // Comparar cada ventana real con la esperada
+  // Tomamos el minimo de ambos arrays para comparar
+  const compareCount = Math.min(actualWindows.length, expectedWindows.length)
+
+  for (let i = 0; i < compareCount; i++) {
+    const actual = actualWindows[i]
+    const expected = expectedWindows[i]
+    const deviation = Math.abs(actual - expected)
+    deviations.push(deviation)
+  }
+
+  // Calcular status basado en desviaciones
+  // Tolerancia: ±30 min (0.5 hrs) = ok, ±1 hr = warning, >1 hr = alert
+  const maxDeviation = Math.max(...deviations)
+
+  if (maxDeviation <= 0.5) return { status: "ok", deviations }
+  if (maxDeviation <= 1) return { status: "warning", deviations }
+  return { status: "alert", deviations }
+}
+
+/**
+ * Valida las ventanas de sueno del dia contra las esperadas por edad.
+ * Calcula gaps entre wake->nap->sleep y compara con AGE_SCHEDULE_RULES.windows
+ */
+function validateSleepWindows(
+  events: SleepEvent[],
+  childAgeMonths: number
+): CriterionResult {
+  const rule = getScheduleRuleForAge(childAgeMonths)
+
+  // Si no hay regla o las ventanas son variables (bebes muy pequenos)
+  if (!rule || rule.windows.length === 0 || rule.windows[0] === 0) {
+    return {
+      id: "g1_sleep_windows",
+      name: "Ventanas de sueno",
+      status: "ok",
+      value: "Variable",
+      expected: "Variable",
+      message: "Patron de ventanas variable normal para esta edad",
+      sourceType: "calculated",
+      dataAvailable: true,
+    }
+  }
+
+  // Obtener eventos de los ultimos 7 dias
+  const now = new Date()
+  const allWindows: number[][] = []
+
+  for (let i = 0; i < 7; i++) {
+    const targetDate = new Date(now)
+    targetDate.setDate(targetDate.getDate() - i)
+    const dayEvents = getDayEvents(events, targetDate)
+    const dayWindows = calculateDayWindows(dayEvents)
+
+    if (dayWindows.length > 0) {
+      allWindows.push(dayWindows)
+    }
+  }
+
+  // Si no hay datos suficientes
+  if (allWindows.length === 0) {
+    return {
+      id: "g1_sleep_windows",
+      name: "Ventanas de sueno",
+      status: "warning",
+      value: null,
+      expected: `${rule.windows.map((w) => w + "h").join(", ")}`,
+      message: "Sin datos suficientes para calcular ventanas de sueno",
+      sourceType: "calculated",
+      dataAvailable: false,
+    }
+  }
+
+  // Calcular promedio de ventanas por posicion
+  const avgWindows: number[] = []
+  const maxWindowCount = Math.max(...allWindows.map((w) => w.length))
+
+  for (let pos = 0; pos < maxWindowCount; pos++) {
+    const windowsAtPos = allWindows
+      .filter((w) => w[pos] !== undefined)
+      .map((w) => w[pos])
+
+    if (windowsAtPos.length > 0) {
+      const avg = windowsAtPos.reduce((a, b) => a + b, 0) / windowsAtPos.length
+      avgWindows.push(Math.round(avg * 10) / 10) // Redondear a 1 decimal
+    }
+  }
+
+  // Comparar con reglas
+  const { status, deviations } = compareWindows(avgWindows, rule)
+
+  // Formatear valores para mostrar
+  const actualStr = avgWindows.map((w) => w.toFixed(1) + "h").join(", ")
+  const expectedStr = rule.windows.map((w) => w + "h").join(", ")
+
+  let message: string
+  if (status === "ok") {
+    message = `Ventanas de sueno dentro de lo esperado para ${rule.ageRange}`
+  } else if (status === "warning") {
+    message = `Ventanas de sueno con ligera desviacion (${actualStr} vs esperado ${expectedStr})`
+  } else {
+    const maxDev = Math.max(...deviations)
+    message = `Ventanas de sueno desviadas ${maxDev.toFixed(1)} hrs del optimo (${actualStr} vs ${expectedStr})`
+  }
+
+  return {
+    id: "g1_sleep_windows",
+    name: "Ventanas de sueno",
+    status,
+    value: actualStr,
+    expected: expectedStr,
+    message,
+    sourceType: "calculated",
+    dataAvailable: true,
+  }
+}
+
+/**
+ * Parsea las ventanas desde el valor del criterio.
+ * El valor puede ser "1.5h, 2.0h, 2.5h" o "Variable" o null
+ */
+function parseWindowsFromValue(
+  value: string | number | boolean | null
+): number[] {
+  if (!value || value === "Variable" || typeof value !== "string") {
+    return []
+  }
+
+  // Parsear formato "1.5h, 2.0h, 2.5h"
+  return value
+    .split(",")
+    .map((v) => v.trim().replace("h", ""))
+    .map((v) => parseFloat(v))
+    .filter((v) => !isNaN(v))
+}
+
 /**
  * Calcula el peor status de un array de criterios.
  */
@@ -471,6 +716,7 @@ export function validateSchedule(
   const napCountResult = validateNapCount(events, childAgeMonths)
   const napDurationResult = validateNapDuration(events, childAgeMonths)
   const bedtimeResult = validateBedtime(events, plan)
+  const sleepWindowsResult = validateSleepWindows(events, childAgeMonths)
 
   const criteria: CriterionResult[] = [
     wakeMinimumResult,
@@ -479,6 +725,7 @@ export function validateSchedule(
     napCountResult,
     napDurationResult,
     bedtimeResult,
+    sleepWindowsResult,
   ]
 
   const status = getWorstStatus(criteria)
@@ -525,6 +772,11 @@ export function validateSchedule(
           : 0,
       expected: rule?.napCount ?? -1,
       status: napCountResult.status,
+    },
+    sleepWindows: {
+      actual: parseWindowsFromValue(sleepWindowsResult.value),
+      expected: rule?.windows ?? [],
+      status: sleepWindowsResult.status,
     },
   }
 }

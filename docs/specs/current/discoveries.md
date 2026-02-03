@@ -228,6 +228,29 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Build pasa correctamente
 - Errores lint pre-existentes no afectan este archivo
 - Fase 3: 1/2 tareas completadas
-- Siguiente: 3.2 - Agregar lógica de ventanas de sueño
+
+---
+
+### Session 8 - 2026-02-03
+**Task:** 3.2 - Agregar lógica de ventanas de sueño
+**Files:** `lib/diagnostic/rules/schedule-rules.ts`
+**Patterns:**
+- Día lógico: 4:00 AM a 3:59 AM del siguiente día (para manejar eventos de madrugada)
+- Funciones añadidas:
+  - `extractTimeFromEvent()` - Extrae hora de evento ISO
+  - `getDayEvents()` - Obtiene eventos de un día lógico ordenados
+  - `calculateDayWindows()` - Calcula gaps entre wake→nap→sleep
+  - `compareWindows()` - Compara ventanas reales vs esperadas
+  - `validateSleepWindows()` - Criterio completo de validación
+  - `parseWindowsFromValue()` - Parsea ventanas del formato "1.5h, 2.0h"
+- Tolerancia de ventanas: ±0.5h = OK, ±1h = Warning, >1h = Alert
+- Se agregan al array de criterios existentes (ahora 7 criterios en G1)
+- Interface `ScheduleValidationResult` extendida con `sleepWindows`
+**Criterio implementado:**
+7. `g1_sleep_windows` - Ventanas de vigilia vs esperadas por edad
+**Notes:**
+- Build pasa correctamente
+- Fase 3 COMPLETADA (2/2 tareas)
+- Lista para Fase 4: Motor de Validación G2 (Médico)
 
 ---

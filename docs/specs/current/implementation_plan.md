@@ -83,7 +83,7 @@ Validacion Fase 2:
   - Comportamiento: Valida despertar +-15min, limite 6AM, duracion noche, siestas
   - Referencia: usar helpers de `lib/sleep-calculations.ts`
 
-- [ ] **3.2** Agregar logica de ventanas de sueno
+- [x] **3.2** Agregar logica de ventanas de sueno
   - Input: eventos del dia, edad del nino
   - Output: CriterionResult para cada ventana evaluada
   - Comportamiento: Calcula gaps entre wake/sleep, compara con AGE_SCHEDULE_RULES
