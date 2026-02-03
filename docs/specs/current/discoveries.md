@@ -695,3 +695,22 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Lista para Fase 14: Integración Final
 
 ---
+
+### Session 26 - 2026-02-03
+**Task:** 14.1 - Agregar link en navegación admin
+**Files:** `components/dashboard/sidebar.tsx`
+**Patterns:**
+- La navegación usa array `sidebarNavItems` con objetos {href, title, icon, role?}
+- Patrón admin-only: `role: ["admin"]` muestra el ítem solo a admins
+- Importé icono `Activity` de Lucide para representar Diagnósticos
+- Posicioné el ítem después de "Consultas" y antes de "Planes" para flujo lógico
+**Cambios:**
+- Línea 35: Agregado import `Activity` en los imports de lucide-react
+- Línea 140-144: Agregado ítem "Diagnósticos" con href="/dashboard/diagnosticos" y role: ["admin"]
+**Notes:**
+- Build pasa correctamente
+- Errores lint son pre-existentes en otros archivos (no relacionados)
+- Fase 14: 1/2 tareas completadas
+- Próxima: 14.2 - Testing E2E del flujo completo
+
+---

@@ -312,7 +312,7 @@ Validacion Fase 13:
 
 ## Fase 14: Integracion Final
 
-- [ ] **14.1** Agregar link en navegacion admin (opcional)
+- [x] **14.1** Agregar link en navegacion admin (opcional)
   - Output: Item "Diagnosticos" en sidebar para admins
   - Referencia: ver config de navegacion en sidebar
 
