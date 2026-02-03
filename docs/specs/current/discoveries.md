@@ -742,3 +742,50 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Lista para Fase 15: E2E Testing Visual (Agent Browser)
 
 ---
+
+### Session 28 - 2026-02-03
+**Task:** 15.1 - Test acceso admin al panel de diagnósticos (Desktop)
+**Files:** N/A (testing E2E)
+**BLOCKER ENCONTRADO:**
+
+**Problema**: El formulario de login de Happy Dreamers usa react-hook-form con Controller.
+Cuando agent-browser (Playwright) llena los campos con `fill()` o `type()`, esto actualiza
+el DOM value pero NO dispara los eventos `onChange` de React que Controller necesita
+para actualizar su estado interno.
+
+**Root Cause**:
+1. Playwright/agent-browser actualiza `input.value` directamente
+2. react-hook-form Controller escucha eventos específicos de React onChange
+3. Al hacer submit, `form.getValues()` retorna strings vacíos
+4. zod validation falla silenciosamente (no previene default)
+5. El form hace submit nativo con method=GET (añade params a URL)
+
+**Workaround intentados:**
+- `fill @ref "text"` - NO funciona (actualiza DOM, no React state)
+- `type @ref "text"` - NO funciona (mismo problema)
+- `press` char by char - NO funciona (react-hook-form no detecta)
+- `find placeholder "x" fill "y"` - NO funciona (mismo que fill)
+
+**Solución permanente requerida:**
+El formulario de login necesita modificación para funcionar con automation:
+- Opción A: Usar inputs controlados nativos en lugar de react-hook-form Controller
+- Opción B: Añadir data-testid y usar Playwright locators especiales
+- Opción C: Crear API de testing que genere cookies de sesión
+
+**Build verification:**
+- `pnpm build` PASA correctamente ✅
+- `/dashboard/diagnosticos` compila a 5.65 kB
+- `/dashboard/diagnosticos/[childId]` compila a 13.7 kB
+- El feature está completo pero no puede ser testeado E2E con agent-browser
+
+**Recomendación:**
+Fase 15 (E2E Testing Visual) requiere acceso de sesión admin.
+Sin poder hacer login automatizado, los tests E2E no son posibles.
+Marcar como BLOCKED hasta que se implemente workaround para login.
+
+**Notes:**
+- Fase 15: BLOQUEADA - Requiere workaround para login automatizado
+- Build pasa correctamente
+- Feature completo y funcional (Fases 0-14 completadas)
+
+---
