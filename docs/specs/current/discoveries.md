@@ -374,3 +374,32 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Lista para Fase 6: Motor de Validación G4 (Ambiental)
 
 ---
+
+### Session 14 - 2026-02-03
+**Task:** 6.1 + 6.2 - Crear validador ambiental y detector de keywords
+**Files:** `lib/diagnostic/rules/environmental-rules.ts` (nuevo, ~505 líneas)
+**Patterns:**
+- Sigue el patrón de medical-rules.ts: interface de Input, helpers privados, función principal
+- Evalúa 7 factores: screenTime, temperature, humidity, postpartumDepression, cosleeping, roomSharing, recentChanges
+- Cada factor tiene su propia función evaluadora que retorna CriterionResult
+- El detector de keywords (`detectChangeKeywords`) ya existía en `environmental-rules.ts` (constantes) desde sesión 6
+- Motor importa y usa `detectChangeKeywords` en `evaluateRecentChanges()` para buscar en notas y chats
+**Factores evaluados:**
+1. `g4_screen_time` - Tiempo de pantalla vs límite 60 min/día
+2. `g4_temperature` - Temperatura vs rango 22-25°C
+3. `g4_humidity` - Humedad vs rango 40-60% (pendiente Sprint 4B)
+4. `g4_postpartum_depression` - Indicadores de depresión post-parto
+5. `g4_cosleeping` - Colecho detectado en arreglo de sueño
+6. `g4_room_sharing` - Comparte cuarto con otros
+7. `g4_recent_changes` - Cambios importantes en notas/chat (usa detectChangeKeywords)
+**Helpers públicos:**
+- `validateEnvironmentalFactors(input)` - Validación completa → EnvironmentalGroupValidation
+- `detectChangeKeywords` (re-exportado) - Buscar keywords en textos
+- `getEnvironmentalFactorCounts()` - Conteo de factores disponibles/pendientes
+**Notes:**
+- Build pasa correctamente
+- Tarea 6.2 ya estaba implementada en constantes (detectChangeKeywords)
+- Fase 6 COMPLETADA (2/2 tareas)
+- Lista para Fase 7: API de Diagnóstico
+
+---

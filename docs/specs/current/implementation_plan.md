@@ -139,12 +139,12 @@ Validacion Fase 5:
 
 ## Fase 6: Motor de Validacion G4 (Ambiental)
 
-- [ ] **6.1** Crear validador ambiental `/lib/diagnostic/rules/environmental-rules.ts`
+- [x] **6.1** Crear validador ambiental `/lib/diagnostic/rules/environmental-rules.ts`
   - Input: { surveyData, recentEventNotes, chatMessages }
   - Output: GroupValidation con factores ambientales evaluados
   - Comportamiento: Valida pantallas, temperatura, depresion, colecho, cambios
 
-- [ ] **6.2** Implementar detector de keywords
+- [x] **6.2** Implementar detector de keywords
   - Input: array de strings (notas de eventos + chats ultimos 14 dias)
   - Output: string[] de keywords detectadas
   - Comportamiento: Busqueda simple case-insensitive de CHANGE_KEYWORDS
