@@ -120,7 +120,7 @@ Validacion Fase 4:
   - Output: GroupValidation con frecuencia y grupos nutricionales
   - Comportamiento: Valida tomas de leche, solidos, grupos segun edad
 
-- [ ] **5.2** Crear clasificador AI de alimentos `/lib/diagnostic/ai-food-classifier.ts`
+- [x] **5.2** Crear clasificador AI de alimentos `/lib/diagnostic/ai-food-classifier.ts`
   - Input: feedingNotes (texto libre)
   - Output: { nutritionGroups[], aiClassified, confidence }
   - Comportamiento: Usa OpenAI GPT-4, fallback a aiClassified:false si falla
