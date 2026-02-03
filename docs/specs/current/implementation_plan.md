@@ -58,7 +58,7 @@ Validacion Fase 1:
   - Comportamiento: Contiene lecheMin, solidosRegla, gruposRequeridos
   - Referencia: ver SPEC-SPRINT.md seccion G3 "Requisitos por Edad"
 
-- [ ] **2.3** Crear constantes de indicadores medicos `/lib/diagnostic/medical-indicators.ts`
+- [x] **2.3** Crear constantes de indicadores medicos `/lib/diagnostic/medical-indicators.ts`
   - Output: Arrays REFLUX_INDICATORS, APNEA_INDICATORS, RESTLESS_LEG_INDICATORS
   - Comportamiento: Cada indicador tiene { name, surveyField, available, description }
   - Referencia: ver SPEC-SPRINT.md seccion G2 tablas de indicadores

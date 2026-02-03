@@ -157,3 +157,24 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Fase 2: 2/4 tareas completadas
 
 ---
+
+### Session 5 - 2026-02-03
+**Task:** 2.3 - Crear constantes de indicadores medicos `/lib/diagnostic/medical-indicators.ts`
+**Files:** `lib/diagnostic/medical-indicators.ts`
+**Patterns:**
+- 3 arrays principales: REFLUX_INDICATORS (10), APNEA_INDICATORS (12), RESTLESS_LEG_INDICATORS (6)
+- Cada indicador tiene: id, name, description, condition, surveyField/eventCheck, available
+- `available: false` para indicadores pendientes de sprint 4B (7 total)
+- MEDICAL_ALERT_THRESHOLD = 1 (con 1 indicador ya se dispara alerta)
+- SURVEY_DATA_EXPIRY_DAYS = 30 (caducidad de datos)
+- Helpers: getIndicatorsForCondition(), getAvailableIndicators(), getPendingIndicators(), getAllMedicalIndicators(), isSurveyDataExpired()
+- EventCheck functions para indicadores calculados de eventos (insomnio, despertares segunda parte, siestas desorganizadas)
+**Lint Fix:**
+- Indentación de switch/case: cambiar de 4 a 2 espacios (proyecto usa 2)
+- Return type de getAllMedicalIndicators: quitar indentación de 2 en propiedades
+**Notes:**
+- Build pasa correctamente
+- Campos de survey referenciados: líneas 74, 39, 83, 84, 90, 12/23, 80, 68, 69, 72, 73, 66, 76, 71, 109 del CSV
+- Fase 2: 3/4 tareas completadas
+
+---
