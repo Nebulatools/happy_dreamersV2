@@ -184,7 +184,7 @@ Validacion Fase 7:
   - Comportamiento: Prompt descriptivo + recomendaciones generales, NO medicas
   - Referencia: ver `lib/rag/sleep-coach-personality.ts` para patron
 
-- [ ] **8.2** Crear endpoint de resumen AI `/api/admin/diagnostics/ai-summary/route.ts`
+- [x] **8.2** Crear endpoint de resumen AI `/api/admin/diagnostics/ai-summary/route.ts`
   - Input: POST { childId, diagnosticResult }
   - Output: { aiSummary: string }
   - Comportamiento: On-demand, usa GPT-4, max_tokens 400

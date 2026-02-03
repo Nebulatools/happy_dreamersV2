@@ -460,3 +460,31 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Próxima: 8.2 - Crear endpoint `/api/admin/diagnostics/ai-summary/route.ts`
 
 ---
+
+### Session 17 - 2026-02-03
+**Task:** 8.2 - Crear endpoint de resumen AI `/api/admin/diagnostics/ai-summary/route.ts`
+**Files:** `app/api/admin/diagnostics/ai-summary/route.ts` (nuevo, ~155 líneas)
+**Patterns:**
+- Sigue el patrón admin-only de `classify-food/route.ts`
+- POST endpoint con body estructurado (AISummaryRequestBody interface)
+- Usa getPasanteSystemPrompt() y getPasanteUserPrompt() del prompt module
+- Usa PASANTE_AI_CONFIG para configuración de OpenAI (gpt-4, 400 tokens, temp 0.7)
+- Instancia OpenAI directamente (no singleton) para on-demand summary
+- Validación de campos requeridos: childId, childName, childAgeMonths, diagnosticResult
+- Campos opcionales con defaults: planVersion="1", planStatus="active", recentEventsCount=0, surveyDataAvailable=false
+- Manejo de errores específico para API key (status 503)
+**API Contract:**
+- POST /api/admin/diagnostics/ai-summary
+- Body: AISummaryRequestBody (childId, childName, childAgeMonths, planVersion?, planStatus?, diagnosticResult, recentEventsCount?, surveyDataAvailable?, additionalContext?)
+- Response OK: `{ aiSummary: string }`
+- Response 400: `{ error: "campo es requerido" }`
+- Response 401: `{ error: "No autorizado" }`
+- Response 500: `{ error: "Error interno del servidor" }`
+- Response 503: `{ error: "Error de configuracion del servicio AI" }`
+**Notes:**
+- Build pasa correctamente
+- Endpoint compilado en `/api/admin/diagnostics/ai-summary` (308 B)
+- Fase 8 COMPLETADA (2/2 tareas)
+- Lista para Fase 9: UI - Componentes Base
+
+---
