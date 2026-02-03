@@ -316,7 +316,7 @@ Validacion Fase 13:
   - Output: Item "Diagnosticos" en sidebar para admins
   - Referencia: ver config de navegacion en sidebar
 
-- [ ] **14.2** Testing E2E del flujo completo
+- [x] **14.2** Testing E2E del flujo completo
   - Comportamiento: Login admin -> seleccionar nino con plan -> ver 4 grupos -> analizar AI
   - Validar: Todo funciona, no hay errores consola
 
