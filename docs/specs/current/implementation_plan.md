@@ -289,17 +289,17 @@ Validacion Fase 12:
 
 ## Fase 13: Pagina Completa
 
-- [ ] **13.1** Crear DiagnosticPanelClient `/app/dashboard/diagnosticos/[childId]/DiagnosticPanelClient.tsx`
+- [x] **13.1** Crear DiagnosticPanelClient `/app/dashboard/diagnosticos/[childId]/DiagnosticPanelClient.tsx`
   - Props: { childId }
   - Render: ProfileHeader + grid 2x2 de ValidationGroups + PasanteAI + CTAs
   - Comportamiento: Fetch diagnostico, maneja loading/error/bloqueado states
   - Referencia: ver `app/dashboard/consultas/page.tsx` para estructura
 
-- [ ] **13.2** Crear pagina con childId `/app/dashboard/diagnosticos/[childId]/page.tsx`
+- [x] **13.2** Crear pagina con childId `/app/dashboard/diagnosticos/[childId]/page.tsx`
   - Output: Server component que verifica session y renderiza Client
   - Comportamiento: Admin check, pasa childId a DiagnosticPanelClient
 
-- [ ] **13.3** Actualizar pagina base para lista/seleccion de ninos
+- [x] **13.3** Actualizar pagina base para lista/seleccion de ninos
   - Input: useActiveChild context o lista de ninos
   - Output: Grid de cards de ninos clickeables
   - Comportamiento: Click navega a `/dashboard/diagnosticos/[childId]`
