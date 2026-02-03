@@ -50,3 +50,188 @@ El script reiniciará Claude para la siguiente tarea **2.2** (crear constantes d
 
 ═══ ITERACIÓN 4 - 01:06:35 ═══
 Tarea: - [ ] **2.2** Crear constantes de requisitos nutricionales `/lib/diagnostic/nutrition-requirements.ts`
+`★ Insight ─────────────────────────────────────`
+**Arquitectura de requisitos nutricionales:**
+1. Las reglas están separadas en `MEAL_REQUIREMENTS` (comidas principales) y `SNACK_REQUIREMENTS` (meriendas)
+2. A los 9 meses ocurre un cambio importante: las comidas pasan de requerir 3 grupos (Proteína + Fibra + uno de Grasa/Carbo) a requerir los 4 grupos completos
+3. Los helpers como `validateMealGroups()` encapsulan la lógica para que el motor G3 no tenga que manejar estos detalles
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task [2.2] completed
+
+La tarea 2.2 ha sido completada exitosamente:
+- **Archivo creado:** `lib/diagnostic/nutrition-requirements.ts`
+- **Contenido:** 
+  - `NUTRITION_RULES` con 6 rangos de edad (6m hasta 12m+)
+  - `MEAL_REQUIREMENTS` y `SNACK_REQUIREMENTS` para grupos nutricionales
+  - `MILK_INTERVALS` y `RED_FLAGS` como constantes
+  - 4 helpers: `getNutritionRuleForAge()`, `getMilkIntervalForAge()`, `validateMealGroups()`, `checkMilkLimit()`
+- **Build:** Pasa correctamente
+- **Commit:** `c939ea6`
+
+Próxima tarea pendiente: **2.3** - Crear constantes de indicadores médicos `/lib/diagnostic/medical-indicators.ts`
+
+═══ ITERACIÓN 5 - 01:09:40 ═══
+Tarea: - [ ] **2.3** Crear constantes de indicadores medicos `/lib/diagnostic/medical-indicators.ts`
+`★ Insight ─────────────────────────────────────`
+**Diseño de Indicadores Médicos**:
+1. Los `eventCheck` son funciones que calculan indicadores a partir de eventos en lugar de datos del survey - esto permite detectar patrones como "insomnio" analizando tiempos de despertar
+2. El campo `available: false` marca indicadores pendientes para sprint 4B - esto permite que el UI muestre "X pendientes de datos" sin romper la funcionalidad actual
+3. El umbral de 1 indicador para alerta es intencional - en medicina, un solo síntoma justifica investigación adicional
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task [2.3] completed
+
+---
+
+**Resumen de la sesión:**
+- **Tarea ejecutada:** 2.3 - Crear constantes de indicadores médicos
+- **Archivo creado:** `/lib/diagnostic/medical-indicators.ts`
+- **Contenido:**
+  - 10 indicadores de Reflujo (6 disponibles, 4 pendientes)
+  - 12 indicadores de Apnea/Alergias (10 disponibles, 2 pendientes)
+  - 6 indicadores de Restless Leg Syndrome (4 disponibles, 2 pendientes)
+  - 3 funciones `eventCheck` para indicadores calculados de eventos
+  - Helpers para obtener indicadores por condición
+  - Constantes: `MEDICAL_ALERT_THRESHOLD = 1`, `SURVEY_DATA_EXPIRY_DAYS = 30`
+- **Commit:** `42a2d26`
+
+**Próxima tarea:** 2.4 - Crear constantes ambientales `/lib/diagnostic/environmental-rules.ts`
+
+═══ ITERACIÓN 6 - 01:13:41 ═══
+Tarea: - [ ] **2.4** Crear constantes ambientales `/lib/diagnostic/environmental-rules.ts`
+RALPH_COMPLETE: Task [2.4] completed
+
+---
+
+`★ Insight ─────────────────────────────────────`
+**Patrones descubiertos en esta sesión:**
+
+1. **Keyword Detection Pattern**: La búsqueda de keywords para detectar cambios importantes (mudanza, kinder, hermanito) usa una estrategia de categorización. Cada keyword pertenece a una categoría (`school`, `sibling`, `moving`, etc.) lo que permite generar insights más específicos. El helper `detectChangeKeywords()` retorna no solo el match sino también la categoría y el contexto donde se encontró.
+
+2. **Available Flag Pattern**: Similar a `medical-indicators.ts`, los factores ambientales tienen un flag `available` que indica si el campo existe en el survey actual. Esto permite mostrar "X de Y indicadores pendientes" en la UI y planificar qué campos agregar en sprints futuros (como `humidity` en Sprint 4B).
+
+3. **AlertType Differentiation**: Los factores ambientales distinguen entre `alert` (rojo, problema crítico) y `warning` (amarillo, informativo). Por ejemplo, `cosleeping` es solo informativo (SIDS awareness) mientras que `temperature` fuera de rango es una alerta.
+`─────────────────────────────────────────────────`
+
+**Resumen de la sesión:**
+- **Tarea completada:** 2.4 - Constantes ambientales para G4
+- **Archivo creado:** `lib/diagnostic/environmental-rules.ts` (247 líneas)
+- **Fase 2 COMPLETADA:** Las 4 tareas de constantes y reglas base están listas
+- **Siguiente:** Fase 3 - Motor de Validación G1 (Horario)
+
+═══ ITERACIÓN 7 - 01:17:30 ═══
+Tarea: - [ ] **3.1** Crear validador de horario `/lib/diagnostic/rules/schedule-rules.ts`
+`★ Insight ─────────────────────────────────────`
+**Arquitectura del Motor G1:**
+- **Composición funcional**: Cada criterio es una función pura que retorna `CriterionResult`
+- **Agregación de status**: La función `getWorstStatus()` toma el peor status de todos los criterios
+- **Reutilización**: Aprovecha helpers existentes de `sleep-calculations.ts` evitando duplicación
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task [3.1] completed
+
+---
+
+**Resumen de la sesión:**
+- ✅ Creado motor de validación G1 en `lib/diagnostic/rules/schedule-rules.ts`
+- ✅ 6 criterios de validación implementados con patrón de tolerancia progresiva
+- ✅ Build y lint pasan correctamente
+- ✅ Documentación actualizada en discoveries.md
+- ✅ Commit realizado: `1a99a91`
+
+**Próxima tarea:** 3.2 - Agregar lógica de ventanas de sueño
+
+═══ ITERACIÓN 8 - 01:21:03 ═══
+Tarea: - [ ] **3.2** Agregar logica de ventanas de sueno
+RALPH_COMPLETE: Task [3.2] completed
+
+**Resumen de la sesión:**
+- ✅ Implementada la lógica de ventanas de sueño (`g1_sleep_windows`)
+- ✅ 7 criterios ahora en validación G1 (despertar mínimo, desviación, duración noche, cantidad siestas, duración siestas, hora dormir, **ventanas de sueño**)
+- ✅ Fase 3 completada (2/2 tareas)
+- ✅ Build pasa correctamente
+- ✅ Commit realizado
+
+**Próxima tarea:** 4.1 - Crear validador médico `/lib/diagnostic/rules/medical-rules.ts`
+
+═══ ITERACIÓN 9 - 01:24:55 ═══
+Tarea: - [ ] **4.1** Crear validador medico `/lib/diagnostic/rules/medical-rules.ts`
+`★ Insight ─────────────────────────────────────`
+**Patrón de evaluación de indicadores médicos:**
+1. **Indicadores híbridos**: El motor soporta tanto `surveyField` (datos directos del cuestionario) como `eventCheck` (funciones que analizan eventos). Esto permite detectar condiciones como "insomnio" que no se preguntan directamente pero se infieren de despertares nocturnos > 30 min.
+2. **Tolerancia en valores string**: En cuestionarios, respuestas como "Sí", "A veces", o cualquier texto no vacío que no sea negación explícita ("no", "ninguno") se consideran positivas - esto captura respuestas de usuarios que no siempre escriben "sí" literal.
+3. **DataCompleteness tracking**: El sistema calcula cuántos indicadores están "available" vs "pending" para que la UI pueda mostrar "3 de 10 datos recolectados" - crucial para que Mariana sepa qué campos faltan en el cuestionario.
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task [4.1] completed
+
+---
+
+**Resumen de la sesión:**
+- **Tarea:** 4.1 - Crear validador médico `/lib/diagnostic/rules/medical-rules.ts`
+- **Archivos creados:** `lib/diagnostic/rules/medical-rules.ts`
+- **Funcionalidad:** Motor de validación G2 que evalúa 28 indicadores médicos agrupados en 3 condiciones (reflujo, apnea, piernas inquietas)
+- **Build:** Pasa correctamente
+- **Commit:** `755add2`
+
+La siguiente tarea es **4.2**: Agregar contador de datos pendientes (dataCompleteness). Esta funcionalidad ya está implementada dentro de la tarea 4.1 - la función `calculateMedicalDataCompleteness()` ya existe y se incluye en el resultado. El script debe iniciar nueva sesión para evaluar si 4.2 necesita trabajo adicional o ya está cubierta.
+
+═══ ITERACIÓN 10 - 01:27:33 ═══
+Tarea: - [ ] **4.2** Agregar contador de datos pendientes
+`★ Insight ─────────────────────────────────────`
+**Patrón: Implementación Anticipada**
+- A veces una tarea posterior es implementada junto con una anterior
+- Es importante verificar si ya existe antes de duplicar trabajo
+- En este caso, `dataCompleteness` fue implementado en sesión 9 como parte del motor G2
+`─────────────────────────────────────────────────`
+
+RALPH_COMPLETE: Task [4.2] completed
+
+**Resumen de la sesión:**
+- **Tarea:** 4.2 - Agregar contador de datos pendientes (dataCompleteness)
+- **Estado:** Verificado como ya implementado en sesión anterior
+- **Archivos:** `lib/diagnostic/rules/medical-rules.ts` (líneas 181-200)
+- **Función:** `calculateMedicalDataCompleteness()` retorna `{ available, total, pending[] }`
+- **Build:** ✅ Pasa correctamente
+- **Fase 4:** COMPLETADA (2/2 tareas)
+
+**Próxima tarea:** 5.1 - Crear validador de alimentación `/lib/diagnostic/rules/nutrition-rules.ts`
+
+═══ ITERACIÓN 11 - 01:29:21 ═══
+Tarea: - [ ] **5.1** Crear validador de alimentacion `/lib/diagnostic/rules/nutrition-rules.ts`
+RALPH_COMPLETE: Task [5.1] completed
+
+---
+
+## Resumen de Sesión 11
+
+**Tarea completada:** 5.1 - Crear validador de alimentación `/lib/diagnostic/rules/nutrition-rules.ts`
+
+**Archivo creado:** `lib/diagnostic/rules/nutrition-rules.ts` (363 líneas)
+
+**Criterios de validación G3 implementados:**
+1. `g3_milk_count` - Tomas de leche vs mínimo por edad
+2. `g3_milk_limit` - Límite de onzas (12+ meses)
+3. `g3_solid_count` - Comidas sólidas vs requerido
+4. `g3_feeding_gap` - Intervalo máximo entre comidas
+5. `g3_nutrition_groups` - Grupos nutricionales (requiere AI)
+
+**Próxima tarea:** 5.2 - Crear clasificador AI de alimentos `/lib/diagnostic/ai-food-classifier.ts`
+
+═══ ITERACIÓN 12 - 01:32:18 ═══
+Tarea: - [ ] **5.2** Crear clasificador AI de alimentos `/lib/diagnostic/ai-food-classifier.ts`
+RALPH_COMPLETE: Task [5.2] completed
+
+**Resumen de la sesión:**
+- **Tarea:** 5.2 - Crear clasificador AI de alimentos
+- **Archivo creado:** `lib/diagnostic/ai-food-classifier.ts` (185 líneas)
+- **Exports:** `FoodClassifier`, `getFoodClassifier()`, `classifyFood()`, `classifyFoodBatch()`
+- **Patrón:** Singleton con fallback robusto, temperatura baja para consistencia
+- **Build:** ✅ Pasa correctamente
+- **Commit:** `06baf4e`
+
+**Próxima tarea:** 5.3 - Crear endpoint de clasificación `/api/admin/diagnostics/classify-food/route.ts`
+
+═══ ITERACIÓN 13 - 01:34:55 ═══
+Tarea: - [ ] **5.3** Crear endpoint de clasificacion `/api/admin/diagnostics/classify-food/route.ts`

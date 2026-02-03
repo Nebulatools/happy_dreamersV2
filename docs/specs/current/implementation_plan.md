@@ -126,7 +126,7 @@ Validacion Fase 4:
   - Comportamiento: Usa OpenAI GPT-4, fallback a aiClassified:false si falla
   - Referencia: ver `lib/rag/chat-agent.ts` para patron OpenAI
 
-- [ ] **5.3** Crear endpoint de clasificacion `/api/admin/diagnostics/classify-food/route.ts`
+- [x] **5.3** Crear endpoint de clasificacion `/api/admin/diagnostics/classify-food/route.ts`
   - Input: POST { feedingNotes }
   - Output: JSON { nutritionGroups, aiClassified, confidence }
   - Comportamiento: Llama ai-food-classifier, maneja errores, admin-only

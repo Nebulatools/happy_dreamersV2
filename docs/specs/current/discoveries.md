@@ -348,3 +348,29 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Próxima: 5.3 - Endpoint de clasificación `/api/admin/diagnostics/classify-food/route.ts`
 
 ---
+
+### Session 13 - 2026-02-03
+**Task:** 5.3 - Crear endpoint de clasificación `/api/admin/diagnostics/classify-food/route.ts`
+**Files:** `app/api/admin/diagnostics/classify-food/route.ts` (nuevo, ~80 líneas)
+**Patterns:**
+- Sigue el patrón admin-only de `consultas/analyze/route.ts`
+- Verificación de sesión: `session?.user?.role !== "admin"` → 401
+- Validación de input: `feedingNotes` debe ser string no vacío
+- Usa `classifyFood()` helper de `ai-food-classifier.ts`
+- Logger estructurado con `createLogger("API:admin:diagnostics:classify-food")`
+- Respuesta simplificada: `{ nutritionGroups, aiClassified, confidence }` (sin rawText)
+**API Contract:**
+- POST /api/admin/diagnostics/classify-food
+- Body: `{ feedingNotes: string }`
+- Response OK: `{ nutritionGroups: string[], aiClassified: boolean, confidence?: number }`
+- Response 400: `{ error: "feedingNotes debe ser un string" }`
+- Response 401: `{ error: "No autorizado" }`
+- Response 500: `{ error: "Error interno del servidor" }`
+**Notes:**
+- Build pasa correctamente
+- Endpoint compilado en `/api/admin/diagnostics/classify-food` (304 B)
+- Errores lint pre-existentes en otros archivos (no bloqueantes)
+- Fase 5 COMPLETADA (3/3 tareas)
+- Lista para Fase 6: Motor de Validación G4 (Ambiental)
+
+---
