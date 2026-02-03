@@ -231,7 +231,7 @@ Validacion Fase 9:
   - Render: Card con indicadores agrupados por condicion (reflujo, apnea, restless)
   - Comportamiento: Muestra "X de Y indicadores detectados" + "Z pendientes"
 
-- [ ] **10.3** Crear G3NutritionValidation `/components/diagnostic/ValidationGroups/G3NutritionValidation.tsx`
+- [x] **10.3** Crear G3NutritionValidation `/components/diagnostic/ValidationGroups/G3NutritionValidation.tsx`
   - Props: { validation: GroupValidation, onCriterionClick }
   - Render: Card con frecuencia comidas y grupos nutricionales
   - Comportamiento: Muestra grupos cubiertos vs requeridos por edad
