@@ -63,7 +63,7 @@ Validacion Fase 1:
   - Comportamiento: Cada indicador tiene { name, surveyField, available, description }
   - Referencia: ver SPEC-SPRINT.md seccion G2 tablas de indicadores
 
-- [ ] **2.4** Crear constantes ambientales `/lib/diagnostic/environmental-rules.ts`
+- [x] **2.4** Crear constantes ambientales `/lib/diagnostic/environmental-rules.ts`
   - Output: Constantes de umbrales y arrays de keywords
   - Comportamiento: SCREEN_RULES, TEMP_RANGE, HUMIDITY_RANGE, CHANGE_KEYWORDS
   - Referencia: ver SPEC-SPRINT.md seccion G4

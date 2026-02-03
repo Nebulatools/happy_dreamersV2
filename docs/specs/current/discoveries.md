@@ -178,3 +178,30 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - Fase 2: 3/4 tareas completadas
 
 ---
+
+### Session 6 - 2026-02-03
+**Task:** 2.4 - Crear constantes ambientales `/lib/diagnostic/environmental-rules.ts`
+**Files:** `lib/diagnostic/environmental-rules.ts`
+**Patterns:**
+- SCREEN_RULES: maxDailyMinutes (60), noScreenBeforeBedtimeHours (2)
+- TEMP_RANGE: 22-25°C (fuera del rango = alerta)
+- HUMIDITY_RANGE: 40-60% (pendiente Sprint 4B, available: false)
+- CHANGE_KEYWORDS: 6 categorías (school, sibling, moving, family, travel, health)
+- ENVIRONMENTAL_FACTORS: 7 factores con alertType (alert|warning) y available flag
+- Helpers: isTemperatureInRange(), isHumidityInRange(), exceedsScreenLimit()
+- detectChangeKeywords(): busca keywords en array de textos y retorna matches con categoría
+- getAvailableEnvironmentalFactors() y getPendingEnvironmentalFactors()
+- RECENT_EVENTS_WINDOW_DAYS (14) y RECENT_CHAT_WINDOW_DAYS (14)
+**Survey Fields Referenciados:**
+- Línea 87: screenTime
+- Línea 102: roomTemperature
+- Líneas 24-26: postpartumDepression
+- Línea 106: sleepingArrangement (colecho)
+- Línea 107: sharesRoom
+- Línea 126: recentChanges
+**Notes:**
+- Build pasa correctamente
+- Fase 2 COMPLETADA (4/4 tareas)
+- Lista para Fase 3: Motor de Validación G1 (Horario)
+
+---
