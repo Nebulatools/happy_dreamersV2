@@ -197,6 +197,23 @@ export interface SurveyData {
     problemasMedicosDetalle?: string // Detalle de problemas médicos o del desarrollo
     descripcionInquieto?: string // Detalle cuando es muy inquieto para dormir
     reflujoColicosDetalle?: string // Detalle cuando tiene reflujo y/o cólicos
+
+    // G2 Reflujo - Detalles condicionales (cuando reflujo está marcado en problemasHijo)
+    reflujoDetails?: {
+      vomitaFrecuente?: boolean      // Vomita frecuentemente después de comer
+      arqueaEspalda?: boolean        // Arquea la espalda al comer o después
+      lloraAlComer?: boolean         // Llora o se queja al comer
+    }
+
+    // G2 Síndrome de Piernas Inquietas (Restless Leg Syndrome)
+    restlessLegSyndrome?: {
+      pataleoNocturno?: boolean           // Patalea mucho durante la noche
+      piernasInquietas?: boolean          // Mueve las piernas constantemente al dormir
+      despiertaQuejandosePiernas?: boolean // Se despierta quejándose de las piernas
+    }
+
+    // G2 Nivel de Ferritina (indicador para RLS pediátrico, alerta si < 50 ng/mL)
+    nivelFerritina?: number // ng/mL
     pesadillasDetalle?: string // Detalle sobre las pesadillas
     alergiaAlimenticiaDetalle?: string // Detalles de alergia alimenticia (condicional)
     alergiaAmbientalDetalle?: string // Detalles de alergia ambiental (condicional)
@@ -254,6 +271,7 @@ export interface SurveyData {
     ruidoBlanco?: boolean // ¿Usan ruido blanco?
     usaRuidoBlanco?: boolean // Legacy
     temperaturaCuarto?: string // Temperatura del cuarto
+    humedadHabitacion?: "seca" | "normal" | "humeda" // G4 Humedad del cuarto (no obligatorio)
     tipoPiyama?: string // Tipo de pijama que usa
     tipoPijama?: string // Variante de escritura
     usaSaco?: boolean // ¿Usa saco para dormir?

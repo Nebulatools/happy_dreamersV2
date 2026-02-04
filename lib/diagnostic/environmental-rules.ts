@@ -37,16 +37,19 @@ export const TEMP_RANGE = {
 // ============================================================================
 
 /**
- * Rango optimo de humedad del cuarto (en porcentaje)
- * Fuera del rango dispara sugerencia (no alerta critica)
- * NOTA: Este campo aun no existe en el survey (pendiente Sprint 4B)
+ * Rango optimo de humedad del cuarto
+ * Valores: "seca", "normal", "humeda"
+ * Sprint 4B: Campo habilitado como select (no numerico)
  */
 export const HUMIDITY_RANGE = {
-  min: 40, // %
-  max: 60, // %
-  unit: "%" as const,
-  surveyField: "roomHumidity", // Pendiente Sprint 4B
-  available: false, // Campo no disponible aun
+  optimal: "normal" as const,
+  surveyField: "humedadHabitacion", // Sprint 4B - select en RoutineHabitsStep
+  available: true, // Habilitado Sprint 4B
+  values: {
+    seca: { level: "warning", message: "La habitacion es seca, puede afectar las vias respiratorias" },
+    normal: { level: "ok", message: "Humedad adecuada" },
+    humeda: { level: "warning", message: "La habitacion es humeda, puede favorecer alergias y acaros" },
+  },
 } as const
 
 // ============================================================================
@@ -192,9 +195,9 @@ export const ENVIRONMENTAL_FACTORS = {
     id: "humidity",
     name: "Humedad del cuarto",
     description: "Humedad relativa donde duerme",
-    surveyField: "roomHumidity", // Pendiente Sprint 4B
+    surveyField: "humedadHabitacion", // Sprint 4B - campo habilitado
     alertType: "warning" as const, // Sugerencia, no alerta critica
-    available: false, // Campo no disponible aun
+    available: true, // Habilitado Sprint 4B
   },
   postpartumDepression: {
     id: "postpartumDepression",
@@ -247,12 +250,19 @@ export function isTemperatureInRange(tempCelsius: number): boolean {
 }
 
 /**
- * Valida si la humedad esta dentro del rango optimo
- * @param humidityPercent Humedad en porcentaje
- * @returns true si esta dentro del rango, false si no
+ * Valida la humedad de la habitacion
+ * @param humidityValue Valor del select: "seca" | "normal" | "humeda"
+ * @returns Objeto con level (ok/warning) y mensaje
  */
-export function isHumidityInRange(humidityPercent: number): boolean {
-  return humidityPercent >= HUMIDITY_RANGE.min && humidityPercent <= HUMIDITY_RANGE.max
+export function evaluateHumidity(humidityValue: string): {
+  level: "ok" | "warning"
+  message: string
+} {
+  const config = HUMIDITY_RANGE.values[humidityValue as keyof typeof HUMIDITY_RANGE.values]
+  if (!config) {
+    return { level: "ok", message: "Humedad no especificada" }
+  }
+  return config
 }
 
 /**

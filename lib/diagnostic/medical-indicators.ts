@@ -69,16 +69,51 @@ export const REFLUX_INDICATORS: MedicalIndicatorConfig[] = [
     name: "Vomita frecuentemente",
     description: "Vomita con frecuencia después de comer",
     condition: "reflujo" as MedicalCondition,
-    surveyField: "vomitaFrecuente",
-    available: false, // Pendiente sprint 4B
+    surveyField: "reflujoDetails.vomitaFrecuente",
+    available: true, // Sprint 4B - sub-checkbox de reflujo
+  },
+  {
+    id: "reflux_arquea_espalda",
+    name: "Arquea la espalda",
+    description: "Arquea la espalda al comer o después de comer",
+    condition: "reflujo" as MedicalCondition,
+    surveyField: "reflujoDetails.arqueaEspalda",
+    available: true, // Sprint 4B - sub-checkbox de reflujo
+  },
+  {
+    id: "reflux_llora_al_comer",
+    name: "Llora al comer",
+    description: "Llora o se queja mientras come",
+    condition: "reflujo" as MedicalCondition,
+    surveyField: "reflujoDetails.lloraAlComer",
+    available: true, // Sprint 4B - sub-checkbox de reflujo
   },
   {
     id: "reflux_tomas_frecuentes",
     name: "Tomas muy frecuentes",
     description: "Tomas de pecho muy frecuentes (cada 45-60 min)",
     condition: "reflujo" as MedicalCondition,
-    surveyField: "tomasFrecuentes",
-    available: false, // Pendiente sprint 4B
+    // Este se calcula de eventos de feeding - analizar frecuencia
+    eventCheck: (events: Record<string, unknown>[]) => {
+      const feedings = events.filter((e) => e.eventType === "feeding")
+      if (feedings.length < 3) return false
+
+      // Buscar feedings con menos de 1.5h de diferencia
+      const sortedFeedings = feedings
+        .filter((f) => f.startTime)
+        .sort((a, b) => new Date(a.startTime as string).getTime() - new Date(b.startTime as string).getTime())
+
+      let frequentCount = 0
+      for (let i = 1; i < sortedFeedings.length; i++) {
+        const diff = new Date(sortedFeedings[i].startTime as string).getTime() -
+                     new Date(sortedFeedings[i-1].startTime as string).getTime()
+        const diffMinutes = diff / (1000 * 60)
+        if (diffMinutes < 90) frequentCount++
+      }
+
+      return frequentCount >= 2 // Al menos 2 feedings muy cercanos
+    },
+    available: true, // Calculado de eventos
   },
   {
     id: "reflux_irritable",
@@ -290,19 +325,40 @@ export const RESTLESS_LEG_INDICATORS: MedicalIndicatorConfig[] = [
   },
   {
     id: "restless_patalea",
-    name: "Patalea al dormirse",
-    description: "Patalea mientras intenta dormirse",
+    name: "Patalea durante la noche",
+    description: "Patalea mucho durante la noche",
     condition: "restless_leg" as MedicalCondition,
-    surveyField: "pataleaDormirse",
-    available: false, // Pendiente sprint 4B
+    surveyField: "restlessLegSyndrome.pataleoNocturno",
+    available: true, // Sprint 4B - checkbox RLS
   },
   {
-    id: "restless_actividad_bedtime",
-    name: "Busca actividad física en bedtime",
-    description: "Busca caminar, gatear o pararse en bedtime",
+    id: "restless_piernas_inquietas",
+    name: "Piernas inquietas al dormir",
+    description: "Mueve las piernas constantemente al dormir",
     condition: "restless_leg" as MedicalCondition,
-    surveyField: "actividadBedtime",
-    available: false, // Pendiente sprint 4B
+    surveyField: "restlessLegSyndrome.piernasInquietas",
+    available: true, // Sprint 4B - checkbox RLS
+  },
+  {
+    id: "restless_quejandose_piernas",
+    name: "Despierta quejándose de piernas",
+    description: "Se despierta quejándose de las piernas",
+    condition: "restless_leg" as MedicalCondition,
+    surveyField: "restlessLegSyndrome.despiertaQuejandosePiernas",
+    available: true, // Sprint 4B - checkbox RLS
+  },
+  {
+    id: "restless_ferritina_baja",
+    name: "Ferritina baja (<50 ng/mL)",
+    description: "Nivel de ferritina por debajo del umbral recomendado",
+    condition: "restless_leg" as MedicalCondition,
+    surveyField: "nivelFerritina",
+    // Evaluar si el valor es menor a 50
+    evaluator: (value: unknown) => {
+      if (typeof value !== "number") return false
+      return value < 50
+    },
+    available: true, // Sprint 4B - campo ferritina
   },
 ]
 

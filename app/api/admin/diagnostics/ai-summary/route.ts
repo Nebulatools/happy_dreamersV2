@@ -27,6 +27,11 @@ interface AISummaryRequestBody {
   recentEventsCount?: number
   surveyDataAvailable?: boolean
   additionalContext?: string
+  // Sprint 4B: Texto libre para analisis extendido
+  freeTextData?: {
+    eventNotes: string[]     // Notas de eventos de los ultimos 14 dias
+    chatMessages: string[]   // Mensajes de chat de los ultimos 14 dias
+  }
 }
 
 /**
@@ -97,6 +102,17 @@ export async function POST(req: NextRequest) {
       diagnosticResult: body.diagnosticResult,
       recentEventsCount: body.recentEventsCount ?? 0,
       surveyDataAvailable: body.surveyDataAvailable ?? false,
+      // Sprint 4B: Incluir texto libre si viene en el request
+      freeTextData: body.freeTextData,
+    }
+
+    // Log de texto libre si hay
+    if (body.freeTextData) {
+      logger.info("Pasante AI con texto libre", {
+        childId: body.childId,
+        eventNotesCount: body.freeTextData.eventNotes?.length ?? 0,
+        chatMessagesCount: body.freeTextData.chatMessages?.length ?? 0,
+      })
     }
 
     // Generar prompts

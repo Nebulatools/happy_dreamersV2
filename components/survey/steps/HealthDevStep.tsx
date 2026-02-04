@@ -495,13 +495,16 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
               checked={data.problemasHijo?.includes("reflujo") || false}
               onCheckedChange={(checked) => {
                 const isChecked = checked === true
-                updateProblemaHijo("reflujo", checked, isChecked ? {} : { reflujoColicosDetalle: "" })
+                updateProblemaHijo("reflujo", checked, isChecked ? {} : {
+                  reflujoColicosDetalle: "",
+                  reflujoDetails: undefined
+                })
               }}
             />
             <Label htmlFor="prob-reflujo">Tiene o ha tenido reflujo y/o cólicos</Label>
           </div>
           {data.problemasHijo?.includes("reflujo") && (
-            <div className="ml-6 mt-2">
+            <div className="ml-6 mt-2 space-y-3">
               <Label htmlFor="reflujo-detalle" className="text-sm text-gray-600">
                 Describe el reflujo y/o cólicos que presenta
               </Label>
@@ -512,6 +515,58 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
                 placeholder="Ej: Desde qué edad, síntomas, frecuencia..."
                 className="max-w-md mt-1"
               />
+
+              {/* G2 Reflujo - Sub-checkboxes condicionales */}
+              <div className="mt-3 space-y-2">
+                <Label className="text-sm font-medium text-gray-700">
+                  Selecciona los síntomas que presenta:
+                </Label>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="reflujo-vomita"
+                    checked={data.reflujoDetails?.vomitaFrecuente || false}
+                    onCheckedChange={(checked) => {
+                      updateField("reflujoDetails", {
+                        ...data.reflujoDetails,
+                        vomitaFrecuente: checked === true
+                      })
+                    }}
+                  />
+                  <Label htmlFor="reflujo-vomita" className="text-sm">
+                    Vomita frecuentemente después de comer
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="reflujo-arquea"
+                    checked={data.reflujoDetails?.arqueaEspalda || false}
+                    onCheckedChange={(checked) => {
+                      updateField("reflujoDetails", {
+                        ...data.reflujoDetails,
+                        arqueaEspalda: checked === true
+                      })
+                    }}
+                  />
+                  <Label htmlFor="reflujo-arquea" className="text-sm">
+                    Arquea la espalda al comer o después
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="reflujo-llora"
+                    checked={data.reflujoDetails?.lloraAlComer || false}
+                    onCheckedChange={(checked) => {
+                      updateField("reflujoDetails", {
+                        ...data.reflujoDetails,
+                        lloraAlComer: checked === true
+                      })
+                    }}
+                  />
+                  <Label htmlFor="reflujo-llora" className="text-sm">
+                    Llora o se queja al comer
+                  </Label>
+                </div>
+              </div>
             </div>
           )}
           
@@ -541,6 +596,75 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             </div>
           )}
         </div>
+      </div>
+
+      {/* G2 Síndrome de Piernas Inquietas (Restless Leg Syndrome) */}
+      <div>
+        <Label>Síndrome de Piernas Inquietas</Label>
+        <p className="text-sm text-gray-500 mb-2">
+          Estos síntomas pueden indicar el síndrome de piernas inquietas, que afecta la calidad del sueño.
+        </p>
+        <div className="space-y-3 mt-2">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="rls-pataleo"
+              checked={data.restlessLegSyndrome?.pataleoNocturno || false}
+              onCheckedChange={(checked) => {
+                updateField("restlessLegSyndrome", {
+                  ...data.restlessLegSyndrome,
+                  pataleoNocturno: checked === true
+                })
+              }}
+            />
+            <Label htmlFor="rls-pataleo">Patalea mucho durante la noche</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="rls-inquietas"
+              checked={data.restlessLegSyndrome?.piernasInquietas || false}
+              onCheckedChange={(checked) => {
+                updateField("restlessLegSyndrome", {
+                  ...data.restlessLegSyndrome,
+                  piernasInquietas: checked === true
+                })
+              }}
+            />
+            <Label htmlFor="rls-inquietas">Mueve las piernas constantemente al dormir</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="rls-quejandose"
+              checked={data.restlessLegSyndrome?.despiertaQuejandosePiernas || false}
+              onCheckedChange={(checked) => {
+                updateField("restlessLegSyndrome", {
+                  ...data.restlessLegSyndrome,
+                  despiertaQuejandosePiernas: checked === true
+                })
+              }}
+            />
+            <Label htmlFor="rls-quejandose">Se despierta quejándose de las piernas</Label>
+          </div>
+        </div>
+      </div>
+
+      {/* Nivel de Ferritina */}
+      <div>
+        <Label htmlFor="nivel-ferritina">
+          Nivel de Ferritina (ng/mL)
+        </Label>
+        <p className="text-sm text-gray-500 mb-2">
+          Un nivel menor a 50 ng/mL puede contribuir al síndrome de piernas inquietas en niños.
+        </p>
+        <Input
+          id="nivel-ferritina"
+          type="number"
+          min="0"
+          max="500"
+          value={data.nivelFerritina || ""}
+          onChange={(e) => updateField("nivelFerritina", e.target.value ? Number(e.target.value) : undefined)}
+          placeholder="Ej: 45"
+          className="max-w-xs"
+        />
       </div>
 
       {/* 10. ¿Ha tenido algunas de las siguientes situaciones? */}

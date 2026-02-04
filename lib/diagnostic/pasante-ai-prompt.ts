@@ -24,6 +24,11 @@ export interface PasanteContext {
   diagnosticResult: DiagnosticResult
   recentEventsCount: number
   surveyDataAvailable: boolean
+  // Sprint 4B: Texto libre para analisis extendido
+  freeTextData?: {
+    eventNotes: string[]     // Notas de eventos de los ultimos 14 dias
+    chatMessages: string[]   // Mensajes de chat de los ultimos 14 dias
+  }
 }
 
 /**
@@ -137,6 +142,48 @@ function buildDiagnosticContext(result: DiagnosticResult): string {
 }
 
 /**
+ * Sprint 4B: Construye el contexto de texto libre para analisis LLM extendido
+ * Combina notas de eventos y mensajes de chat para que el LLM extraiga informacion
+ */
+function buildFreeTextContext(freeTextData?: PasanteContext["freeTextData"]): string {
+  if (!freeTextData) return ""
+
+  const sections: string[] = []
+
+  // Notas de eventos (ultimos 14 dias)
+  if (freeTextData.eventNotes && freeTextData.eventNotes.length > 0) {
+    const filteredNotes = freeTextData.eventNotes
+      .filter(note => note && note.trim().length > 0)
+      .slice(0, 20) // Limitar a 20 notas mas recientes
+
+    if (filteredNotes.length > 0) {
+      sections.push(
+        `## NOTAS DE EVENTOS (${filteredNotes.length} notas de los ultimos 14 dias):\n` +
+        filteredNotes.map((note, i) => `${i + 1}. "${note}"`).join("\n")
+      )
+    }
+  }
+
+  // Mensajes de chat (ultimos 14 dias)
+  if (freeTextData.chatMessages && freeTextData.chatMessages.length > 0) {
+    const filteredMessages = freeTextData.chatMessages
+      .filter(msg => msg && msg.trim().length > 0)
+      .slice(0, 15) // Limitar a 15 mensajes
+
+    if (filteredMessages.length > 0) {
+      sections.push(
+        `## MENSAJES DE CHAT (${filteredMessages.length} mensajes de los ultimos 14 dias):\n` +
+        filteredMessages.map((msg, i) => `${i + 1}. "${msg}"`).join("\n")
+      )
+    }
+  }
+
+  if (sections.length === 0) return ""
+
+  return "\n\nTEXTO LIBRE PARA ANALISIS:\n" + sections.join("\n\n")
+}
+
+/**
  * Genera el system prompt para el Pasante AI
  *
  * @param context - Contexto estructurado del nino y su diagnostico
@@ -145,6 +192,10 @@ function buildDiagnosticContext(result: DiagnosticResult): string {
 export function getPasanteSystemPrompt(context: PasanteContext): string {
   const ageFormatted = formatAge(context.childAgeMonths)
   const diagnosticContext = buildDiagnosticContext(context.diagnosticResult)
+  const freeTextContext = buildFreeTextContext(context.freeTextData)
+  const hasFreeText = context.freeTextData &&
+    ((context.freeTextData.eventNotes?.length || 0) > 0 ||
+     (context.freeTextData.chatMessages?.length || 0) > 0)
 
   return `Eres el Pasante AI de Happy Dreamers, un asistente que ayuda a la Dra. Mariana
 a interpretar el diagnostico de sueno de los ninos.
@@ -158,11 +209,17 @@ PERFIL DEL PACIENTE:
 
 DIAGNOSTICO ACTUAL:
 ${diagnosticContext}
+${freeTextContext}
 
 TU MISION:
 1. Genera un RESUMEN DESCRIPTIVO que explique QUE esta pasando y POR QUE
 2. Cruza informacion entre los 4 grupos para encontrar patrones
 3. Ofrece RECOMENDACIONES GENERALES de accion
+${hasFreeText ? `4. IMPORTANTE: Analiza el TEXTO LIBRE (notas y chat) para detectar:
+   - Sintomas medicos mencionados (vomitos, llanto al comer, piernas inquietas, etc.)
+   - Cambios recientes en la familia (mudanza, hermanito, guarderia, viaje)
+   - Patrones emocionales o de comportamiento
+   - Cualquier informacion relevante para los 4 grupos de validacion` : ""}
 
 REGLAS ESTRICTAS:
 - NO des recomendaciones medicas directas (ej: "debe tomar X medicamento")
@@ -170,11 +227,13 @@ REGLAS ESTRICTAS:
 - NO uses lenguaje tecnico complejo
 - SI puedes sugerir que la doctora "considere revisar" o "evalue" algo
 - SI puedes explicar correlaciones entre grupos (ej: reflujo afecta sueno nocturno)
-- Maximo 200 palabras
+${hasFreeText ? `- SI encontraste algo relevante en el texto libre, mencionalo como "hallazgo del texto"` : ""}
+- Maximo 300 palabras
 
 FORMATO DE RESPUESTA:
 Escribe en parrafos cortos (2-3 maximo).
 Primero describe la situacion.
+${hasFreeText ? `Si hay hallazgos del texto libre, mencionalos en una seccion aparte: "Hallazgos del texto libre:"` : ""}
 Luego ofrece 2-3 recomendaciones generales como lista.
 
 EJEMPLO DE BUENA RESPUESTA:
@@ -182,7 +241,11 @@ EJEMPLO DE BUENA RESPUESTA:
 frecuentes en la segunda parte de la noche. Se detectaron indicadores de reflujo
 (vomito frecuente, congestion nasal) que podrian estar afectando la calidad del sueno.
 
-Recomendaciones generales:
+${hasFreeText ? `Hallazgos del texto libre:
+- La mama menciona que "vomita despues de cada biberon" (indicador de reflujo)
+- Se detecto mencion de "empezamos en guarderia" (cambio reciente relevante)
+
+` : ""}Recomendaciones generales:
 - Considera revisar las ventanas de vigilia, actualmente podrian ser cortas para su edad
 - El reflujo podria estar relacionado con los despertares nocturnos
 - Evalua si el patron de alimentacion nocturna esta conectado con los sintomas de reflujo"
@@ -208,10 +271,13 @@ export function getPasanteUserPrompt(
 /**
  * Configuracion recomendada para la llamada a OpenAI
  * Usa gpt-4o-mini que es el mismo modelo del sistema RAG que funciona correctamente
+ *
+ * Sprint 4B: Aumentado maxTokens de 400 a 800 para acomodar
+ * el analisis extendido de texto libre
  */
 export const PASANTE_AI_CONFIG = {
   model: "gpt-4o-mini" as const,
-  maxTokens: 400,
+  maxTokens: 800, // Sprint 4B: Aumentado para analisis de texto libre
   temperature: 0.7,
   presencePenalty: 0.1,
   frequencyPenalty: 0.1,

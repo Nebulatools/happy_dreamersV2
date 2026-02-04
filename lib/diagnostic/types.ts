@@ -197,5 +197,7 @@ export interface MedicalIndicatorConfig {
   condition: MedicalCondition
   surveyField?: string
   eventCheck?: (events: Record<string, unknown>[]) => boolean
+  // Evaluador personalizado para campos que no son booleanos (ej: ferritina < 50)
+  evaluator?: (value: unknown) => boolean
   available: boolean // Si el campo existe en el survey actual
 }

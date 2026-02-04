@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Moon } from "lucide-react"
 import type { SurveyStepProps } from "../types/survey.types"
 
@@ -327,6 +328,29 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
           onChange={(e) => updateField("temperaturaCuarto", e.target.value)}
           placeholder="Ej: 22°C, fresco, templado..."
         />
+      </div>
+
+      {/* G4 Humedad del cuarto */}
+      <div>
+        <Label htmlFor="humedad-habitacion">
+          ¿Cómo describirías la humedad de la habitación donde duerme?
+        </Label>
+        <p className="text-sm text-gray-500 mb-2">
+          La humedad puede afectar la calidad del sueño y las alergias respiratorias.
+        </p>
+        <Select
+          value={data.humedadHabitacion || ""}
+          onValueChange={(value) => updateField("humedadHabitacion", value)}
+        >
+          <SelectTrigger id="humedad-habitacion" className="max-w-xs">
+            <SelectValue placeholder="Selecciona una opción" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="seca">Seca (poca humedad)</SelectItem>
+            <SelectItem value="normal">Normal</SelectItem>
+            <SelectItem value="humeda">Húmeda (mucha humedad)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* 12. Tipo de pijama */}

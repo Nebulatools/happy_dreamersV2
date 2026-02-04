@@ -17,6 +17,7 @@ import {
   detectChangeKeywords,
   isTemperatureInRange,
   exceedsScreenLimit,
+  evaluateHumidity,
   ChangeCategory,
 } from "../environmental-rules"
 
@@ -124,54 +125,53 @@ function evaluateTemperature(
   }
 }
 
-// Evaluar humedad del cuarto (pendiente Sprint 4B)
-function evaluateHumidity(
+// Evaluar humedad del cuarto (Sprint 4B - ahora como select: seca/normal/humeda)
+function evaluateHumidityFactor(
   surveyData: Record<string, unknown>
 ): CriterionResult {
   const factor = ENVIRONMENTAL_FACTORS.humidity
 
-  // Campo no disponible aun
+  // Campo no disponible (fallback si por alguna razon no esta)
   if (!factor.available) {
     return {
       id: "g4_humidity",
       name: factor.name,
       status: "warning",
       value: null,
-      expected: `${HUMIDITY_RANGE.min}-${HUMIDITY_RANGE.max}${HUMIDITY_RANGE.unit}`,
-      message: "Campo pendiente de implementación (Sprint 4B)",
+      expected: "normal",
+      message: "Campo pendiente de implementación",
       sourceType: "survey",
       sourceField: factor.surveyField,
       dataAvailable: false,
     }
   }
 
-  const value = surveyData?.[factor.surveyField] as number | undefined
+  const value = surveyData?.[factor.surveyField] as string | undefined
 
-  if (value === undefined || value === null) {
+  if (value === undefined || value === null || value === "") {
     return {
       id: "g4_humidity",
       name: factor.name,
-      status: "warning",
+      status: "ok", // Si no hay dato, no alertar (campo no obligatorio)
       value: null,
-      expected: `${HUMIDITY_RANGE.min}-${HUMIDITY_RANGE.max}${HUMIDITY_RANGE.unit}`,
-      message: "Dato de humedad no disponible",
+      expected: "normal",
+      message: "Humedad no especificada",
       sourceType: "survey",
       sourceField: factor.surveyField,
       dataAvailable: false,
     }
   }
 
-  const inRange = value >= HUMIDITY_RANGE.min && value <= HUMIDITY_RANGE.max
+  // Usar la funcion evaluateHumidity importada que maneja la logica
+  const evaluation = evaluateHumidity(value)
 
   return {
     id: "g4_humidity",
     name: factor.name,
-    status: inRange ? "ok" : "warning", // Solo warning, no alert
-    value: `${value}${HUMIDITY_RANGE.unit}`,
-    expected: `${HUMIDITY_RANGE.min}-${HUMIDITY_RANGE.max}${HUMIDITY_RANGE.unit}`,
-    message: inRange
-      ? "Humedad dentro del rango óptimo"
-      : `Humedad fuera del rango óptimo`,
+    status: evaluation.level as StatusLevel,
+    value: value,
+    expected: "normal",
+    message: evaluation.message,
     sourceType: "survey",
     sourceField: factor.surveyField,
     dataAvailable: true,
@@ -439,7 +439,7 @@ export function validateEnvironmentalFactors(
   // Evaluar cada factor
   const screenTime = evaluateScreenTime(surveyData)
   const temperature = evaluateTemperature(surveyData)
-  const humidity = evaluateHumidity(surveyData)
+  const humidity = evaluateHumidityFactor(surveyData)
   const postpartumDepression = evaluatePostpartumDepression(surveyData)
   const cosleeping = evaluateCosleeping(surveyData)
   const roomSharing = evaluateRoomSharing(surveyData)

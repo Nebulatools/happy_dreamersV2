@@ -18,6 +18,11 @@ interface PasanteAISectionProps {
   recentEventsCount?: number
   surveyDataAvailable?: boolean
   className?: string
+  // Sprint 4B: Texto libre para analisis extendido
+  freeTextData?: {
+    eventNotes: string[]     // Notas de eventos de los ultimos 14 dias
+    chatMessages: string[]   // Mensajes de chat de los ultimos 14 dias
+  }
 }
 
 type RequestState = "idle" | "loading" | "success" | "error"
@@ -52,6 +57,7 @@ export function PasanteAISection({
   recentEventsCount = 0,
   surveyDataAvailable = false,
   className,
+  freeTextData,
 }: PasanteAISectionProps) {
   const [requestState, setRequestState] = useState<RequestState>("idle")
   const [aiSummary, setAiSummary] = useState<string | null>(null)
@@ -76,6 +82,8 @@ export function PasanteAISection({
           diagnosticResult,
           recentEventsCount,
           surveyDataAvailable,
+          // Sprint 4B: Incluir texto libre si esta disponible
+          freeTextData,
         }),
       })
 
@@ -113,6 +121,11 @@ export function PasanteAISection({
         </div>
         <p className="text-xs text-gray-500 mt-1">
           Resumen descriptivo basado en el diagnostico actual
+          {freeTextData && (freeTextData.eventNotes?.length > 0 || freeTextData.chatMessages?.length > 0) && (
+            <span className="text-purple-600 ml-1">
+              (incluye analisis de texto libre)
+            </span>
+          )}
         </p>
       </CardHeader>
 
