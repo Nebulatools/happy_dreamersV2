@@ -4,7 +4,12 @@
       "Bash(npm run type-check:*)",
       "Bash(git diff:*)",
       "Bash(git push:*)",
-      "Bash(gh pr create:*)"
+      "Bash(gh pr create:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next build:*)",
+      "WebFetch(domain:happy-dreamers-qa.vercel.app)",
+      "Bash(node -e:*)",
+      "Bash(npm view:*)"
     ],
     "deny": [],
     "ask": []
