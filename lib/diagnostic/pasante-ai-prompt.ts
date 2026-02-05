@@ -270,15 +270,18 @@ export function getPasanteUserPrompt(
 
 /**
  * Configuracion recomendada para la llamada a OpenAI
- * Usa gpt-4o-mini que es el mismo modelo del sistema RAG que funciona correctamente
  *
- * Sprint 4B: Aumentado maxTokens de 400 a 800 para acomodar
- * el analisis extendido de texto libre
+ * Sprint 4B: Actualizado a gpt-5
+ * - Mejor modelo de OpenAI para analisis medico
+ * - "Consistently outperforms all baselines in medical QA"
+ * - Contexto de 400k tokens
+ * - Costo estimado: ~$0.05/analisis con 8000 tokens
+ * - On-demand (solo cuando admin hace click)
+ *
+ * Nota: GPT-5 usa reasoning tokens internamente, necesita mas tokens
+ * para tener espacio tanto para razonamiento como para respuesta
  */
 export const PASANTE_AI_CONFIG = {
-  model: "gpt-4o-mini" as const,
-  maxTokens: 800, // Sprint 4B: Aumentado para analisis de texto libre
-  temperature: 0.7,
-  presencePenalty: 0.1,
-  frequencyPenalty: 0.1,
+  model: "gpt-5" as const,
+  maxTokens: 8000, // GPT-5 necesita mas tokens (reasoning + respuesta)
 }

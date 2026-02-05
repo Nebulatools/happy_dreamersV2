@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Sparkles, Loader2, AlertCircle, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { DiagnosticResult } from "@/lib/diagnostic/types"
@@ -110,15 +109,10 @@ export function PasanteAISection({
   return (
     <Card className={cn("bg-gradient-to-br from-purple-50 to-indigo-50", className)}>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-purple-600" />
-            Analisis del Pasante AI
-          </CardTitle>
-          <Badge variant="outline" className="bg-white/80 text-purple-700 border-purple-200">
-            GPT-4
-          </Badge>
-        </div>
+        <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-purple-600" />
+          Analisis del Pasante AI
+        </CardTitle>
         <p className="text-xs text-gray-500 mt-1">
           Resumen descriptivo basado en el diagnostico actual
           {freeTextData && (freeTextData.eventNotes?.length > 0 || freeTextData.chatMessages?.length > 0) && (

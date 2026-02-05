@@ -142,16 +142,28 @@ export async function POST(req: NextRequest) {
     })
 
     // Llamar a OpenAI con la configuracion del Pasante
+    // Nota: GPT-5 usa max_completion_tokens y solo soporta temperature=1
     const completion = await openai.chat.completions.create({
       model: PASANTE_AI_CONFIG.model,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      max_tokens: PASANTE_AI_CONFIG.maxTokens,
-      temperature: PASANTE_AI_CONFIG.temperature,
-      presence_penalty: PASANTE_AI_CONFIG.presencePenalty,
-      frequency_penalty: PASANTE_AI_CONFIG.frequencyPenalty,
+      max_completion_tokens: PASANTE_AI_CONFIG.maxTokens,
+    })
+
+    // Debug: Log completo de la respuesta para GPT-5
+    logger.info("OpenAI response debug", {
+      childId: body.childId,
+      hasChoices: !!completion.choices,
+      choicesLength: completion.choices?.length,
+      firstChoice: completion.choices?.[0] ? {
+        finishReason: completion.choices[0].finish_reason,
+        hasMessage: !!completion.choices[0].message,
+        messageRole: completion.choices[0].message?.role,
+        contentLength: completion.choices[0].message?.content?.length,
+        contentPreview: completion.choices[0].message?.content?.substring(0, 100),
+      } : null,
     })
 
     const aiSummary = completion.choices[0]?.message?.content
@@ -159,6 +171,7 @@ export async function POST(req: NextRequest) {
     if (!aiSummary) {
       logger.error("OpenAI no retorno contenido", {
         childId: body.childId,
+        fullResponse: JSON.stringify(completion, null, 2).substring(0, 500),
       })
       return NextResponse.json(
         { error: "No se pudo generar el resumen AI" },
