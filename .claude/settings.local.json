@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npm run type-check:*)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)"
     ],
     "deny": [],
     "ask": []
