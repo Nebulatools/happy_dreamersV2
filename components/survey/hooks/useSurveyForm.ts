@@ -28,7 +28,7 @@ const defaultFormData: Partial<SurveyData> = {
     },
     primaryCaregiver: "father",
   },
-  dinamicaFamiliar: {},
+  dinamicaFamiliar: { hijosInfo: [] },
   historial: {},
   desarrolloSalud: {},
   actividadFisica: {},

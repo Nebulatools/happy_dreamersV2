@@ -1,7 +1,7 @@
-# QA Release Notes - Sprint 4A + 4B
+# QA Release Notes - Sprint 4A + 4B (Actualizado con Fixes)
 
-**Fecha:** 2026-02-04
-**Sprint:** Panel de Diagnostico + Mejoras Survey + Pasante AI Extendido
+**Fecha:** 2026-02-09 (actualizado)
+**Sprint:** Panel de Diagnostico + Mejoras Survey + Pasante AI Extendido + Fixes QA
 **URL:** http://localhost:3000
 
 ---
@@ -546,6 +546,309 @@ Si el nino NO tiene notas ni chat:
 
 ---
 
+---
+
+# FIXES QA - Ajustes Post-Testing (2026-02-09)
+
+Estos tests validan los ajustes realizados en base al feedback de QA documentado en `QA_FEEDBACK_NOTES.md`.
+
+## FIX-TEST 1: Criterios expandibles en G1 y G4
+
+**Ruta:** `/dashboard/diagnosticos/[childId]`
+**Fix:** El texto "+X criterios mas" en las tarjetas G1 y G4 ahora es clickeable y expande/colapsa los criterios ocultos.
+
+### Pasos
+
+1. Login como ADMIN (mariana@admin.com / password)
+2. Ir al panel de diagnostico de un nino con plan activo
+3. Localizar la tarjeta G1 (Validacion de Horario)
+4. Verificar que muestra los primeros 5 criterios
+5. Buscar el texto "+X criterios mas" debajo de la lista
+
+### Verificar Expandir
+
+- [ ] El texto "+X criterios mas" tiene cursor pointer (mano) al hacer hover
+- [ ] El texto tiene color azul y feedback visual de hover (fondo azul claro)
+- [ ] Al hacer click, se muestran TODOS los criterios del grupo
+- [ ] Aparece boton "Mostrar menos" despues de expandir
+- [ ] Al hacer click en "Mostrar menos", se colapsa a 5 criterios de nuevo
+
+### Verificar en G4
+
+1. Localizar la tarjeta G4 (Factores Ambientales)
+2. Si tiene mas de 5 criterios, repetir los pasos anteriores
+
+- [ ] G4 tambien tiene boton expandible si tiene >5 criterios
+- [ ] El comportamiento es identico al de G1
+
+### Verificar que G2 y G3 no se afectan
+
+- [ ] Si G2 o G3 tienen <=5 criterios, NO muestran boton de expandir
+- [ ] Si tienen >5, el boton funciona correctamente tambien
+
+---
+
+## FIX-TEST 2: Crash resuelto en Dinamica Familiar del Survey
+
+**Ruta:** Survey > Paso de Dinamica Familiar
+**Fix:** Se corrigio un crash (ErrorBoundary "Algo salio mal") al navegar a la seccion de Dinamica Familiar, causado por `hijosInfo` sin inicializar en surveys existentes.
+
+### Pasos con Survey Existente (SIN hermanos previos)
+
+1. Login como USUARIO/PADRE (eljulius@nebulastudios.io / juls0925)
+2. Ir al survey de un nino que ya tenia survey ANTES de este fix
+3. Navegar al paso "Dinamica Familiar"
+
+### Verificar
+
+- [ ] La pagina carga sin error (NO muestra "Algo salio mal")
+- [ ] La seccion de hermanos se muestra vacia (sin hermanos)
+- [ ] El boton "Agregar" hermano esta visible y funcional
+
+### Pasos con Survey Nuevo
+
+1. Crear un nino nuevo O iniciar survey desde cero
+2. Navegar al paso "Dinamica Familiar"
+
+### Verificar
+
+- [ ] La pagina carga sin error
+- [ ] La seccion de hermanos se muestra vacia
+
+### Pasos para Agregar Hermanos
+
+1. Click en area de agregar hermano
+2. Ingresar nombre: "Sofia"
+3. Ingresar fecha de nacimiento
+4. Click en "Agregar"
+
+### Verificar
+
+- [ ] El hermano aparece en la lista
+- [ ] La edad se calcula automaticamente
+- [ ] Se puede agregar un segundo hermano
+- [ ] Se puede eliminar un hermano con el boton trash
+- [ ] Al guardar survey, los hermanos persisten
+- [ ] Al volver a entrar al survey, los hermanos siguen ahi
+
+---
+
+## FIX-TEST 3: Ferritina correctamente detectada en G2
+
+**Ruta:** Survey > Desarrollo y Salud + Panel de Diagnostico G2
+**Fix:** El evaluador custom de ferritina ahora se ejecuta correctamente. Antes, el motor de validacion usaba logica generica (`valor > 0`) en lugar del umbral correcto (`valor < 50`).
+
+### Pasos - Ferritina BAJA (debe alertar)
+
+1. Login como USUARIO/PADRE
+2. Ir al survey del nino
+3. Navegar al paso "Desarrollo y Salud"
+4. Localizar el campo "Nivel de ferritina (ng/mL)"
+5. Ingresar valor: **35**
+6. Guardar survey
+7. Logout
+8. Login como ADMIN (mariana@admin.com / password)
+9. Ir a `/dashboard/diagnosticos/[childId]` del mismo nino
+
+### Verificar
+
+- [ ] G2 muestra alerta en seccion "Sindrome de Piernas Inquietas"
+- [ ] Aparece criterio "Ferritina baja (<50 ng/mL)" con status rojo/alerta
+- [ ] El mensaje indica el valor detectado
+
+### Pasos - Ferritina NORMAL (no debe alertar)
+
+1. Login como USUARIO/PADRE
+2. Cambiar ferritina a: **75**
+3. Guardar survey
+4. Login como ADMIN
+5. Ir al panel de diagnostico
+
+### Verificar
+
+- [ ] G2 NO muestra alerta de ferritina
+- [ ] El criterio de ferritina muestra status verde/ok
+
+### Pasos - Ferritina VACIA
+
+1. Login como USUARIO/PADRE
+2. Borrar el campo de ferritina (dejarlo vacio)
+3. Guardar survey
+4. Login como ADMIN
+5. Ir al panel de diagnostico
+
+### Verificar
+
+- [ ] G2 NO crashea
+- [ ] El criterio de ferritina muestra "Dato no disponible" o status pendiente
+
+---
+
+## FIX-TEST 4: Datos del Survey llegan correctamente al Diagnostico
+
+**Ruta:** Survey (todos los pasos) + Panel de Diagnostico (G2 + G4)
+**Fix:** Se descubrio y corrigio un problema critico donde TODOS los datos del survey estaban inaccesibles para el motor de diagnostico. El survey guarda datos anidados por seccion pero el diagnostico los buscaba de forma plana. Se agrego una funcion `flattenSurveyData()` que resuelve el mapeo.
+
+### IMPORTANTE: Este es el fix mas critico. Si este falla, G2 y G4 no pueden leer ningun dato del survey.
+
+### Pasos - Verificar G2 (Indicadores Medicos)
+
+1. Login como USUARIO/PADRE
+2. Ir al survey del nino, paso "Desarrollo y Salud"
+3. Marcar los siguientes checkboxes:
+   - [x] Reflujo/colicos
+   - [x] Congestion nasal
+   - [x] Ronca
+4. Guardar survey
+5. Logout
+6. Login como ADMIN
+7. Ir a `/dashboard/diagnosticos/[childId]`
+
+### Verificar G2
+
+- [ ] G2 muestra indicadores de Reflujo detectados (reflujo, congestion)
+- [ ] G2 muestra indicadores de Apnea detectados (congestion, ronca)
+- [ ] Los indicadores tienen status rojo/alerta (al menos 1 detectado)
+- [ ] El resumen del grupo menciona las condiciones detectadas
+
+### Pasos - Verificar G4 (Factores Ambientales)
+
+1. Login como USUARIO/PADRE
+2. Ir al survey del nino, paso "Rutina y Habitos"
+3. Configurar:
+   - Humedad: seleccionar "Seca"
+   - Temperatura: ingresar "28" (fuera de rango 22-25)
+   - Donde duerme: seleccionar opciones que incluyan "cama padres" (colecho)
+   - Comparte habitacion: seleccionar "Si"
+4. Ir al paso "Informacion Familiar"
+5. En seccion de la mama, marcar "Pensamientos negativos": Si
+6. Guardar survey
+7. Login como ADMIN
+8. Ir al panel de diagnostico
+
+### Verificar G4
+
+- [ ] G4 muestra warning de humedad seca
+- [ ] G4 muestra alerta de temperatura fuera de rango (28 > 25)
+- [ ] G4 muestra warning de colecho detectado
+- [ ] G4 muestra warning de comparte cuarto
+- [ ] G4 muestra alerta de depresion post-parto
+- [ ] Cada factor tiene su mensaje descriptivo
+
+### Pasos - Verificar G2 sub-checkboxes (Reflujo Details)
+
+1. Login como USUARIO/PADRE
+2. Ir al survey, paso "Desarrollo y Salud"
+3. Marcar "Reflujo/colicos" (si no esta marcado)
+4. Marcar sub-checkboxes que aparecen:
+   - [x] Vomita frecuentemente
+   - [x] Arquea la espalda
+5. Guardar survey
+6. Login como ADMIN
+7. Ir al panel de diagnostico
+
+### Verificar Sub-checkboxes en G2
+
+- [ ] G2 seccion Reflujo detecta "Vomita frecuentemente"
+- [ ] G2 seccion Reflujo detecta "Arquea la espalda"
+- [ ] El conteo de indicadores aumenta correctamente
+
+### Pasos - Verificar G2 RLS sub-checkboxes
+
+1. Login como USUARIO/PADRE
+2. Ir al survey, paso "Desarrollo y Salud"
+3. Marcar checkboxes de Sindrome de Piernas Inquietas:
+   - [x] Pataleo nocturno
+   - [x] Piernas inquietas
+4. Ingresar ferritina: 30
+5. Guardar survey
+6. Login como ADMIN
+7. Ir al panel de diagnostico
+
+### Verificar RLS en G2
+
+- [ ] G2 seccion Piernas Inquietas detecta "Pataleo nocturno"
+- [ ] G2 seccion Piernas Inquietas detecta "Piernas inquietas"
+- [ ] G2 seccion Piernas Inquietas detecta "Ferritina baja"
+- [ ] Status del grupo es alerta (rojo)
+
+---
+
+## FIX-TEST 5: Pasante AI integra notas de Bitacora
+
+**Ruta:** Panel de Diagnostico > Seccion Pasante AI
+**Fix:** Se corrigio el pipeline de datos: la API ahora retorna `freeTextData` (notas de eventos + mensajes de chat) y el componente lo pasa al Pasante AI para incluirlo en el analisis.
+
+### Prerrequisito
+
+El nino debe tener:
+- Eventos con notas en los ultimos 14 dias (ej: "Hoy vomito despues del biberon")
+- Y/O mensajes de chat en los ultimos 14 dias
+
+### Pasos para Crear Notas
+
+1. Login como USUARIO/PADRE
+2. Registrar un evento (ej: alimentacion) con notas descriptivas
+   - Ejemplo nota: "Vomito despues de la leche, estuvo inquieto toda la noche"
+3. Guardar el evento
+
+### Pasos para Verificar
+
+1. Login como ADMIN
+2. Ir a `/dashboard/diagnosticos/[childId]`
+3. Scroll hasta la seccion "Analisis del Pasante AI"
+4. Verificar que indica "(incluye analisis de texto libre)" si hay notas
+5. Click en "Analizar"
+
+### Verificar
+
+- [ ] Antes de analizar, indica "(incluye analisis de texto libre)" si hay notas disponibles
+- [ ] El resumen AI menciona hallazgos del texto libre
+- [ ] Si la nota dice "vomito", el resumen lo relaciona con reflujo/alimentacion
+- [ ] Si la nota menciona "guarderia" o "mudanza", detecta cambio de vida
+- [ ] El resumen NO inventa informacion que no esta en las notas
+
+### Sin Notas
+
+Si el nino NO tiene notas ni mensajes de chat recientes:
+
+- [ ] NO muestra "(incluye analisis de texto libre)"
+- [ ] El resumen se genera normalmente sin seccion de texto libre
+- [ ] No hay error ni crash
+
+---
+
+## FIX-TEST 6: Survey Existente sin Campos Nuevos No Causa Error
+
+**Ruta:** Panel de Diagnostico
+**Fix:** Validacion defensiva en todo el pipeline: surveys antiguos que no tienen los campos nuevos (ferritina, humedad, reflujoDetails, hermanos) no causan crash.
+
+### Pasos
+
+1. Usar un nino que tenga survey completado ANTES de los cambios de Sprint 4B
+2. NO editar su survey
+3. Login como ADMIN
+4. Ir a `/dashboard/diagnosticos/[childId]`
+
+### Verificar
+
+- [ ] El panel de diagnostico carga sin errores
+- [ ] G2 muestra los indicadores que SI existian antes (reflujo como checkbox, congestion, etc.)
+- [ ] Indicadores nuevos (ferritina, RLS sub-checkboxes) muestran "Dato no disponible" o "Pendiente"
+- [ ] G4 humedad muestra "No especificada" (sin error ni alerta)
+- [ ] Pasante AI funciona correctamente aunque falten datos nuevos
+
+### Verificar Survey Dinamica Familiar
+
+1. Login como USUARIO/PADRE
+2. Ir al survey del nino (SIN campos nuevos)
+3. Navegar a "Dinamica Familiar"
+
+- [ ] La pagina carga sin crash (el fix de hijosInfo previene el error)
+- [ ] La seccion de hermanos esta vacia pero funcional
+
+---
+
 ## Credenciales de Testing
 
 | Rol | Email | Password |
@@ -605,4 +908,19 @@ Si encuentras un bug, documenta en `QA_FEEDBACK_NOTES.md`:
 
 ---
 
-*Generado el 2026-02-04 - Sprint 4A + 4B*
+### Fixes QA (2026-02-09)
+
+| Archivo | Cambio | Fix |
+|---------|--------|-----|
+| `components/diagnostic/ValidationGroupCard.tsx` | Expand/collapse con useState para criterios ocultos | FIX-TEST 1 |
+| `components/survey/hooks/useSurveyForm.ts` | Inicializacion `dinamicaFamiliar: { hijosInfo: [] }` | FIX-TEST 2 |
+| `components/survey/steps/FamilyDynamicsStep.tsx` | `Array.isArray()` defensivo para hijosInfo | FIX-TEST 2 |
+| `components/survey/SiblingsList.tsx` | Validacion defensiva de rawValue en componente | FIX-TEST 2 |
+| `lib/diagnostic/rules/medical-rules.ts` | Llamada a evaluator custom + getNestedValue() dot-notation | FIX-TEST 3, 4 |
+| `app/api/admin/diagnostics/[childId]/route.ts` | flattenSurveyData() + freeTextData en response | FIX-TEST 4, 5 |
+| `lib/diagnostic/types.ts` | Campo freeTextData en interfaz DiagnosticResult | FIX-TEST 5 |
+| `app/dashboard/diagnosticos/[childId]/DiagnosticPanelClient.tsx` | Prop freeTextData a PasanteAISection | FIX-TEST 5 |
+
+---
+
+*Generado el 2026-02-04 - Sprint 4A + 4B | Actualizado 2026-02-09 con Fixes QA*

@@ -49,7 +49,7 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
       {/* Lista de Hermanos */}
       <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
         <SiblingsList
-          value={(data.hijosInfo as SiblingInfo[]) || []}
+          value={Array.isArray(data.hijosInfo) ? (data.hijosInfo as SiblingInfo[]) : []}
           onChange={(siblings) => {
             onChange({
               ...data,

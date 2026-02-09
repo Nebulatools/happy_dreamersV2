@@ -146,6 +146,10 @@ export interface DiagnosticResult {
   alerts: Alert[]
   overallStatus: StatusLevel
   summary?: string // Resumen del Pasante AI (on-demand)
+  freeTextData?: {
+    eventNotes: string[]
+    chatMessages: string[]
+  }
 }
 
 // Input para validadores

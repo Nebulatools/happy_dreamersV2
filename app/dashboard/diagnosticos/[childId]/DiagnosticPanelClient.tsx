@@ -329,6 +329,7 @@ export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClient
           planStatus="active"
           recentEventsCount={diagnosticResult.groups.G1.criteria.length}
           surveyDataAvailable={surveyDataAvailable}
+          freeTextData={diagnosticResult.freeTextData}
         />
 
         {/* CTAs finales */}

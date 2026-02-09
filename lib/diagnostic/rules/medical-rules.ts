@@ -43,6 +43,16 @@ interface ConditionEvaluation {
 // HELPERS
 // ─────────────────────────────────────────────────────────
 
+// Acceso con dot-notation para campos anidados (ej: "reflujoDetails.vomitaFrecuente")
+function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
+  return path.split(".").reduce<unknown>((acc, key) => {
+    if (acc && typeof acc === "object") {
+      return (acc as Record<string, unknown>)[key]
+    }
+    return undefined
+  }, obj)
+}
+
 // Evaluar si un indicador esta detectado
 function evaluateIndicator(
   config: {
@@ -52,6 +62,7 @@ function evaluateIndicator(
     condition: MedicalCondition
     surveyField?: string
     eventCheck?: (events: Record<string, unknown>[]) => boolean
+    evaluator?: (value: unknown) => boolean
     available: boolean
   },
   surveyData: Record<string, unknown>,
@@ -61,12 +72,15 @@ function evaluateIndicator(
 
   // Si tiene surveyField, buscar en survey
   if (config.surveyField && config.available) {
-    const value = surveyData?.[config.surveyField]
-    // Considerar detectado si:
-    // - Es true
-    // - Es un string no vacio que no sea "no", "ninguno", "none", "nunca"
-    // - Es un numero > 0
-    if (typeof value === "boolean") {
+    // Soporte dot-notation para campos anidados (ej: reflujoDetails.vomitaFrecuente)
+    const value = config.surveyField.includes(".")
+      ? getNestedValue(surveyData, config.surveyField)
+      : surveyData?.[config.surveyField]
+
+    // Si hay evaluator custom (ej: ferritina < 50), usarlo primero
+    if (config.evaluator && value !== undefined && value !== null) {
+      detected = config.evaluator(value)
+    } else if (typeof value === "boolean") {
       detected = value
     } else if (typeof value === "string") {
       const normalized = value.toLowerCase().trim()

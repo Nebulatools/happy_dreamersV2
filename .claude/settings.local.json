@@ -9,7 +9,8 @@
       "Bash(npx next build:*)",
       "WebFetch(domain:happy-dreamers-qa.vercel.app)",
       "Bash(node -e:*)",
-      "Bash(npm view:*)"
+      "Bash(npm view:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

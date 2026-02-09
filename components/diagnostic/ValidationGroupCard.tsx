@@ -1,9 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { StatusIndicator, StatusBadge } from "./StatusIndicator"
-import { Info, ChevronRight } from "lucide-react"
+import { Info, ChevronRight, ChevronDown, ChevronUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type {
   StatusLevel,
@@ -151,6 +152,8 @@ export function ValidationGroupCard({
   onCriterionClick,
   className,
 }: ValidationGroupCardProps) {
+  const [expanded, setExpanded] = useState(false)
+
   // Separar criterios por status para mostrar primero los problematicos
   const alertCriteria = criteria.filter((c) => c.status === "alert")
   const warningCriteria = criteria.filter((c) => c.status === "warning")
@@ -159,9 +162,11 @@ export function ValidationGroupCard({
   // Ordenar: alertas primero, luego warnings, luego ok
   const sortedCriteria = [...alertCriteria, ...warningCriteria, ...okCriteria]
 
-  // Limitar a 5 criterios visibles, mostrar "ver mas" si hay mas
-  const visibleCriteria = sortedCriteria.slice(0, 5)
-  const hiddenCount = sortedCriteria.length - 5
+  // Limitar a 5 criterios visibles, o mostrar todos si expandido
+  const maxVisible = 5
+  const hasHidden = sortedCriteria.length > maxVisible
+  const visibleCriteria = expanded ? sortedCriteria : sortedCriteria.slice(0, maxVisible)
+  const hiddenCount = sortedCriteria.length - maxVisible
 
   return (
     <Card
@@ -218,11 +223,25 @@ export function ValidationGroupCard({
           ))}
         </div>
 
-        {/* Indicador de mas criterios */}
-        {hiddenCount > 0 && (
-          <p className="text-xs text-gray-500 text-center py-1">
-            +{hiddenCount} criterio{hiddenCount !== 1 ? "s" : ""} mas
-          </p>
+        {/* Boton expandir/colapsar criterios */}
+        {hasHidden && (
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            className="w-full flex items-center justify-center gap-1 text-xs text-blue-600 hover:text-blue-800 py-1.5 rounded-md hover:bg-blue-50 transition-colors"
+          >
+            {expanded ? (
+              <>
+                <ChevronUp className="h-3.5 w-3.5" />
+                Mostrar menos
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-3.5 w-3.5" />
+                +{hiddenCount} criterio{hiddenCount !== 1 ? "s" : ""} mas
+              </>
+            )}
+          </button>
         )}
 
         {/* Mensaje de completitud de datos */}

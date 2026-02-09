@@ -59,7 +59,9 @@ function formatAge(fechaNacimiento: string): string {
   return `${years} ${years === 1 ? "año" : "años"}`
 }
 
-export function SiblingsList({ value = [], onChange, childName }: SiblingsListProps) {
+export function SiblingsList({ value: rawValue, onChange, childName }: SiblingsListProps) {
+  // Validacion defensiva: surveys existentes pueden tener hijosInfo como null/undefined
+  const value = Array.isArray(rawValue) ? rawValue : []
   const [newSibling, setNewSibling] = useState<Partial<SiblingInfo>>({
     nombre: "",
     fechaNacimiento: "",

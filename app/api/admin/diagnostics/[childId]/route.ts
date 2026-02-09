@@ -16,6 +16,70 @@ import { validateEnvironmentalFactors } from "@/lib/diagnostic/rules/environment
 
 const logger = createLogger("API:admin:diagnostics")
 
+// Aplanar surveyData: los datos se guardan anidados por seccion
+// (ej: surveyData.desarrolloSalud.reflujoColicos) pero los motores
+// de validacion acceden de forma plana (ej: surveyData.reflujoColicos).
+// Esta funcion merge todas las secciones y agrega mappings especiales.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function flattenSurveyData(raw: Record<string, any>): Record<string, any> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const flat: Record<string, any> = {}
+
+  // Secciones del survey wizard
+  const sections = [
+    "informacionFamiliar",
+    "dinamicaFamiliar",
+    "historial",
+    "desarrolloSalud",
+    "actividadFisica",
+    "rutinaHabitos",
+  ]
+
+  for (const section of sections) {
+    if (raw[section] && typeof raw[section] === "object" && !Array.isArray(raw[section])) {
+      Object.assign(flat, raw[section])
+    }
+  }
+
+  // Mappings especiales para G4 (nombres de campo distintos al form)
+  // roomTemperature <- temperaturaCuarto
+  if (flat.temperaturaCuarto !== undefined) {
+    const parsed = parseFloat(flat.temperaturaCuarto)
+    if (!isNaN(parsed)) flat.roomTemperature = parsed
+  }
+
+  // sleepingArrangement <- dondeDuerme (puede ser string o array)
+  if (flat.dondeDuerme !== undefined) {
+    flat.sleepingArrangement = Array.isArray(flat.dondeDuerme)
+      ? flat.dondeDuerme.join(", ")
+      : flat.dondeDuerme
+  }
+
+  // sharesRoom <- comparteHabitacion
+  if (flat.comparteHabitacion !== undefined) {
+    flat.sharesRoom = flat.comparteHabitacion
+  }
+
+  // recentChanges <- principalPreocupacion (texto libre)
+  if (flat.principalPreocupacion !== undefined) {
+    flat.recentChanges = flat.principalPreocupacion
+  }
+
+  // postpartumDepression <- informacionFamiliar.mama.pensamientosNegativos
+  if (raw.informacionFamiliar?.mama?.pensamientosNegativos !== undefined) {
+    flat.postpartumDepression = raw.informacionFamiliar.mama.pensamientosNegativos
+  }
+
+  // alergiasPadres <- papa.tieneAlergias OR mama.tieneAlergias
+  const papaAlergias = raw.informacionFamiliar?.papa?.tieneAlergias
+  const mamaAlergias = raw.informacionFamiliar?.mama?.tieneAlergias
+  if (papaAlergias || mamaAlergias) {
+    flat.alergiasPadres = true
+  }
+
+  return flat
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ childId: string }> }
@@ -132,7 +196,8 @@ export async function GET(
       .map((e) => e.notes as string)
 
     // 8. Ejecutar los 4 motores de validacion
-    const surveyData = child.surveyData || {}
+    // Aplanar surveyData anidado para que los motores accedan por nombre plano
+    const surveyData = flattenSurveyData(child.surveyData || {})
 
     // G1: Horario
     const g1Result = validateSchedule({
@@ -231,6 +296,10 @@ export async function GET(
       },
       alerts,
       overallStatus,
+      freeTextData: {
+        eventNotes,
+        chatMessages: chatTexts,
+      },
     }
 
     const processingTime = Date.now() - startTime
