@@ -1,9 +1,10 @@
 // Cliente de la pagina de diagnosticos
-// Maneja la redireccion al panel del nino activo usando contexto client-side
+// Muestra pantalla de seleccion y redirige solo cuando el admin
+// selecciona un paciente activamente (no por persistencia de localStorage)
 
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { useActiveChild } from "@/context/active-child-context"
@@ -16,10 +17,22 @@ import {
 export default function DiagnosticosClient() {
   const router = useRouter()
   const { activeChildId, isInitialized } = useActiveChild()
+  // Ref para ignorar el valor persistido de localStorage al montar
+  const hasInitializedRef = useRef(false)
 
-  // Redirigir al panel del nino activo si hay uno seleccionado
+  // Solo redirigir cuando el admin selecciona un nino DESPUES de montar
+  // (no auto-redirigir con el valor persistido en localStorage)
   useEffect(() => {
-    if (isInitialized && activeChildId) {
+    if (!isInitialized) return
+
+    // Primera vez: registrar estado inicial sin redirigir
+    if (!hasInitializedRef.current) {
+      hasInitializedRef.current = true
+      return
+    }
+
+    // Cambios posteriores: redirigir al panel del nino seleccionado
+    if (activeChildId) {
       router.push(`/dashboard/diagnosticos/${activeChildId}`)
     }
   }, [activeChildId, isInitialized, router])
@@ -38,21 +51,8 @@ export default function DiagnosticosClient() {
     )
   }
 
-  // Si hay nino activo, mostramos loading mientras redirige
-  if (activeChildId) {
-    return (
-      <div className="container py-8">
-        <Card className="max-w-md mx-auto">
-          <CardContent className="py-16 text-center">
-            <Loader2 className="h-12 w-12 mx-auto text-indigo-500 animate-spin mb-4" />
-            <p className="text-gray-600">Abriendo panel de diagnostico...</p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  // Estado: No hay nino seleccionado - pedir que seleccione uno
+  // Siempre mostrar pantalla de seleccion al entrar a /diagnosticos
+  // La redireccion ocurre solo cuando el admin cambia la seleccion
   return (
     <div className="container py-8">
       {/* Header */}
