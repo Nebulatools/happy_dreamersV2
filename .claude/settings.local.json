@@ -10,7 +10,8 @@
       "WebFetch(domain:happy-dreamers-qa.vercel.app)",
       "Bash(node -e:*)",
       "Bash(npm view:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git fetch:*)"
     ],
     "deny": [],
     "ask": []
