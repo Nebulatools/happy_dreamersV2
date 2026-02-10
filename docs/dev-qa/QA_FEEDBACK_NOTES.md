@@ -1,5 +1,6 @@
 # QA Feedback Notes
 
-**Fecha:** 2026-01-30
+**Fecha:** 2026-02-05
+**Sprint:** Ajustes de Diagnóstico + Cuestionario
 
-Todo OK - Pase a Main
+Todo OK.

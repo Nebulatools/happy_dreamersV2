@@ -134,6 +134,57 @@ export async function POST(req: NextRequest) {
 }
 ```
 
+## Patron Pagina Admin-Only (Server + Client Component)
+
+### BUG CONOCIDO: useSession() retorna undefined en Vercel
+
+`useSession()` de next-auth puede retornar `undefined` en paginas nuevas
+desplegadas en Vercel con Next.js 15 + React 19 (problema de hidratacion/streaming).
+Esto causa `TypeError: Cannot destructure property 'data'` y el ErrorBoundary
+captura el crash mostrando "Ups! Algo salio mal".
+
+**Detalle completo**: `.claude/docs/solutions/auth-bugs/useSession-undefined-crash.md`
+
+### SOLUCION: Usar server component para auth
+
+Para rutas que requieren verificacion de rol (admin-only, etc):
+
+```typescript
+// page.tsx — SERVER COMPONENT (sin "use client")
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
+import { redirect } from "next/navigation"
+import PageClient from "./PageClient"
+
+export default async function Page() {
+  const session = await getServerSession(authOptions)
+  if (!session?.user) redirect("/auth/login")
+  if (session.user.role !== "admin") redirect("/dashboard")
+  return <PageClient />
+}
+```
+
+```typescript
+// PageClient.tsx — CLIENT COMPONENT
+"use client"
+// Solo logica que necesita hooks: useActiveChild, useRouter, etc.
+// NO usar useSession() para auth gating
+```
+
+### Cuando SI usar useSession()
+
+- En componentes INTERIORES que ya estan protegidos por un server component padre
+- Para obtener datos reactivos de sesion (nombre, email) en UI
+- NUNCA para decidir si mostrar o bloquear una pagina completa
+
+### Ejemplos de referencia
+
+| Archivo | Patron |
+|---------|--------|
+| `app/dashboard/diagnosticos/page.tsx` | Server component + redirect |
+| `app/dashboard/diagnosticos/DiagnosticosClient.tsx` | Client con useActiveChild |
+| `app/dashboard/diagnosticos/[childId]/page.tsx` | Server component + getServerSession |
+
 ## Dia Logico para Planes
 
 Los planes de sueno deben ordenarse por el ciclo del nino, no cronologicamente.

@@ -3,7 +3,8 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
@@ -22,6 +23,10 @@ import { ConsultasErrorBoundary } from "@/components/consultas/ConsultasErrorBou
 
 const logger = createLogger("page")
 
+// Tabs validos para la pagina de consultas
+const VALID_TABS = ["transcript", "plan", "analysis", "history"] as const
+type ValidTab = typeof VALID_TABS[number]
+
 
 interface Child {
   _id: string
@@ -31,17 +36,51 @@ interface Child {
   birthDate?: string
 }
 
-export default function ConsultasPage() {
+// Componente interno que usa useSearchParams (requiere Suspense)
+function ConsultasPageContent() {
   const { data: session } = useSession()
   const { toast } = useToast()
-  const { activeUserId, activeUserName, activeChildId } = useActiveChild()
-  
-  const [activeTab, setActiveTab] = useState("transcript")
+  const searchParams = useSearchParams()
+  const { activeUserId, activeUserName, activeChildId, setActiveChild } = useActiveChild()
+
+  // Leer tab inicial desde URL params
+  const getInitialTab = (): ValidTab => {
+    const tabParam = searchParams?.get("tab")
+    if (tabParam && VALID_TABS.includes(tabParam as ValidTab)) {
+      return tabParam as ValidTab
+    }
+    return "transcript"
+  }
+
+  const [activeTab, setActiveTab] = useState<ValidTab>(getInitialTab)
   const [transcript, setTranscript] = useState("")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<any>(null)
   const [childData, setChildData] = useState<Child | null>(null)
   const [loadingChild, setLoadingChild] = useState(true)
+
+  // Sincronizar contexto desde URL params al cargar la pagina
+  useEffect(() => {
+    const childIdParam = searchParams?.get("childId")
+    const parentIdParam = searchParams?.get("parentId")
+
+    // Si hay childId en params y es diferente al activo, sincronizar
+    if (childIdParam && parentIdParam && childIdParam !== activeChildId) {
+      logger.debug("Sincronizando contexto desde URL params", {
+        childId: childIdParam,
+        parentId: parentIdParam,
+      })
+      setActiveChild(childIdParam, parentIdParam, "")
+    }
+  }, [searchParams, activeChildId, setActiveChild])
+
+  // Sincronizar tab cuando cambian los params (navegacion interna)
+  useEffect(() => {
+    const tabParam = searchParams?.get("tab")
+    if (tabParam && VALID_TABS.includes(tabParam as ValidTab)) {
+      setActiveTab(tabParam as ValidTab)
+    }
+  }, [searchParams])
 
   // Verificar que el usuario es admin
   useEffect(() => {
@@ -349,5 +388,22 @@ export default function ConsultasPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+// Componente principal que envuelve con Suspense para useSearchParams
+export default function ConsultasPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container py-8">
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        </div>
+      }
+    >
+      <ConsultasPageContent />
+    </Suspense>
   )
 }

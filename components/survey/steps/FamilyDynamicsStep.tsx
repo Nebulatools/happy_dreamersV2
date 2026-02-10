@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { Home } from "lucide-react"
 import type { SurveyStepProps } from "../types/survey.types"
+import { SiblingsList, type SiblingInfo } from "../SiblingsList"
 
 export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepProps) {
   const updateField = (field: string, value: any) => {
@@ -34,7 +35,7 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
       {/* 1. ¿Quiénes más viven en la casa? */}
       <div>
         <Label htmlFor="otros-residentes">
-          1. ¿Quiénes más viven en la casa?
+          1. ¿Quienes mas viven en la casa?
         </Label>
         <Textarea
           id="otros-residentes"
@@ -42,6 +43,20 @@ export function FamilyDynamicsStep({ data, onChange, errors = {} }: SurveyStepPr
           onChange={(e) => updateField("otrosResidentes", e.target.value)}
           placeholder="Describe quiénes más viven en la casa..."
           rows={2}
+        />
+      </div>
+
+      {/* Lista de Hermanos */}
+      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+        <SiblingsList
+          value={Array.isArray(data.hijosInfo) ? (data.hijosInfo as SiblingInfo[]) : []}
+          onChange={(siblings) => {
+            onChange({
+              ...data,
+              hijosInfo: siblings,
+              cantidadHijos: siblings.length
+            })
+          }}
         />
       </div>
 

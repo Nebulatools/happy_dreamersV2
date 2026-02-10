@@ -31,6 +31,7 @@ import {
   Cloud,
   ChevronLeft,
   ChevronRight,
+  Activity,
 } from "lucide-react"
 import { useEventsInvalidation } from "@/hooks/use-events-cache"
 import { useToast } from "@/hooks/use-toast"
@@ -131,6 +132,12 @@ export function Sidebar({ className }: { className?: string }) {
       title: "Consultas",
       href: "/dashboard/consultas",
       icon: <Stethoscope className="h-5 w-5" />,
+      role: ["admin"],
+    },
+    {
+      title: "Diagnósticos",
+      href: "/dashboard/diagnosticos",
+      icon: <Activity className="h-5 w-5" />,
       role: ["admin"],
     },
     {

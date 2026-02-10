@@ -1,7 +1,7 @@
 # Mapa Estructural del Codebase - Happy Dreamers
 
 > **Proposito**: Referencia rapida para evitar confusiones sobre modulos, terminologia y ubicacion de codigo.
-> **Ultima actualizacion**: 2026-01-14
+> **Ultima actualizacion**: 2026-02-05
 
 ---
 
@@ -43,6 +43,8 @@ DASHBOARD - ADMIN ONLY
 /dashboard/patients/[id]         Detalle de un usuario
 /dashboard/patients/child/[id]   Detalle de un nino (vista admin)
 /dashboard/consultas             Analisis AI con RAG + transcripts
+/dashboard/diagnosticos          Panel de diagnostico (server component + redirect)
+/dashboard/diagnosticos/[childId] Panel de diagnostico por nino (server + client)
 /dashboard/transcripts           Gestion de transcripts Zoom
 
 
@@ -84,6 +86,7 @@ DASHBOARD - COMPARTIDO (Usuario + Admin)
 | **Sesion** | Evento de tipo sleep/nap CON duracion calculada | UI: 100% ancho en timeline |
 | **Plan** | Horario personalizado de sueno para un nino | `/api/consultas/plans`, coleccion `childPlans` |
 | **Consulta** | Analisis AI de datos del nino | `/dashboard/consultas` (admin) |
+| **Diagnostico** | Validacion clinica cruzando eventos, survey y reglas por edad | `/dashboard/diagnosticos` (admin) |
 | **Survey** | Cuestionario inicial sobre el nino/familia | `/dashboard/survey`, campo `child.surveyData` |
 
 ### Sinonimos Admin vs Usuario
@@ -136,6 +139,13 @@ DASHBOARD - COMPARTIDO (Usuario + Admin)
 | Sidebar/navegacion | `components/ui/sidebar.tsx` |
 | Selector de nino activo | `components/dashboard/child-selector.tsx` |
 | Estadisticas admin | `components/dashboard/AdminStatistics.tsx` |
+| Panel diagnostico (pagina) | `app/dashboard/diagnosticos/page.tsx` (server) + `DiagnosticosClient.tsx` (client) |
+| Panel diagnostico por nino | `app/dashboard/diagnosticos/[childId]/DiagnosticPanelClient.tsx` |
+| Header del diagnostico | `components/diagnostic/ProfileHeader.tsx` |
+| Grupos de validacion G1-G4 | `components/diagnostic/ValidationGroups/G{1-4}*.tsx` |
+| Modal de detalle de alerta | `components/diagnostic/Modals/AlertDetailModal.tsx` |
+| Seccion Pasante AI | `components/diagnostic/AIAnalysis/PasanteAISection.tsx` |
+| CTAs del diagnostico | `components/diagnostic/DiagnosticCTAs.tsx` |
 
 ### "Donde esta...?" - Logica/Lib
 
@@ -151,6 +161,12 @@ DASHBOARD - COMPARTIDO (Usuario + Admin)
 | Control de acceso | `lib/db/user-child-access.ts` |
 | Chat agent (RAG) | `lib/rag/chat-agent.ts` |
 | Vector store | `lib/rag/vector-store-mongodb.ts` |
+| Tipos de diagnostico | `lib/diagnostic/types.ts` |
+| Reglas G1 Horario | `lib/diagnostic/rules/schedule-rules.ts` |
+| Reglas G2 Medico | `lib/diagnostic/rules/medical-rules.ts` |
+| Reglas G3 Nutricion | `lib/diagnostic/rules/nutrition-rules.ts` |
+| Reglas G4 Ambiental | `lib/diagnostic/rules/environmental-rules.ts` |
+| Reglas por edad | `lib/diagnostic/age-schedules.ts` |
 
 ### "Donde esta...?" - APIs
 
@@ -163,6 +179,8 @@ DASHBOARD - COMPARTIDO (Usuario + Admin)
 | Gestion de invitaciones | `app/api/invitation/route.ts` |
 | Metricas admin | `app/api/admin/dashboard-metrics/route.ts` |
 | Perfil de usuario | `app/api/user/profile/route.ts` |
+| Diagnostico de nino | `app/api/admin/diagnostics/[childId]/route.ts` |
+| Resumen AI diagnostico | `app/api/admin/diagnostics/ai-summary/route.ts` |
 
 ### "Donde esta...?" - Contextos/Hooks
 

@@ -1,150 +1,85 @@
-# Sprint: QA Feedback 2026-01-26
+# Panel de Diagnóstico (Estadísticas) - ÍTEM 4
 
 ## Visión
 
-Resolver el feedback completo de QA para mejorar la experiencia de usuario en Happy Dreamers, incluyendo correcciones de UI, cambios de lógica de negocio, y ajustes de UX solicitados por Mariana.
+Este módulo es un **motor de validación** que cruza la bitácora en tiempo real con las respuestas del cuestionario y las reglas clínicas de Happy Dreamers. Permite a Mariana auditar el progreso de cada niño y tomar decisiones informadas sobre su plan de sueño.
+
+**Audiencia:** Solo Admin (Mariana). Los padres NO deben ver este panel.
+
+**Ubicación:** Dashboard Admin > `/dashboard/diagnosticos`
+
+**Prerequisito:** El niño debe tener un **plan activo**. Sin plan, el panel está bloqueado.
 
 ---
 
-## Items del Sprint (9 activos + 2 verificación)
+## Los 4 Grupos de Validación
 
-### ITEM 9: Estado de Botones por Niño (CRÍTICO)
+### G1: Horario (Schedule)
+- **Fuente:** Eventos de sueño/siesta/wake + Plan activo
+- **Criterios:** Desvío ±15min, límite 6AM, duración noche, ventanas de sueño, siestas
+- **Disponibilidad:** 100%
 
-**Problema:** Estado de sueño guardado en localStorage por dispositivo. Papá registra "se durmió" → mamá no lo ve en su celular.
+### G2: Médico
+- **Fuente:** Survey + Eventos
+- **Criterios:** Indicadores de reflujo, apnea, restless leg (1 indicador = alerta)
+- **Disponibilidad:** ~70%
 
-**Solución:** Estado viene 100% de BD, calculado por último evento sleep/nap vs wake.
+### G3: Alimentación
+- **Fuente:** Eventos de feeding + Survey
+- **Criterios:** Frecuencia leche, sólidos, grupos nutricionales
+- **AI:** Clasificación de alimentos con GPT-4
 
-**Lógica:**
-```
-Si último 'sleep/nap' es MÁS RECIENTE que último 'wake' → DORMIDO
-Si último 'wake' es MÁS RECIENTE que último 'sleep/nap' → DESPIERTO
-```
-
-**Archivos:**
-- `hooks/use-sleep-state.ts` - Eliminar localStorage, solo API
-- `components/events/SleepButton.tsx` - Remover sleepStorageKey
-
----
-
-### ITEM 11: Botón Alimentación Nocturna
-
-**Problema:** Bebé come "medio dormido" pero sistema obliga registrar wake primero.
-
-**Solución:** Nuevo botón visible SOLO cuando niño duerme. Marca `isNightFeeding: true`. NO cambia estado del niño.
-
-**Archivos:**
-- CREAR: `components/events/NightFeedingButton.tsx`
-- MODIFICAR: `components/events/EventRegistration.tsx`
+### G4: Ambiental
+- **Fuente:** Survey + Eventos + Chat
+- **Criterios:** Pantallas, temperatura, colecho, cambios recientes
+- **Disponibilidad:** ~90%
 
 ---
 
-### ITEM 6: Edición Hora Fin (BUG)
+## Arquitectura
 
-**Problema:** Solo se puede editar hora inicio, no hora fin en timeline.
+### API Endpoints
+- `GET /api/admin/diagnostics/[childId]` - DiagnosticResult completo
+- `POST /api/admin/diagnostics/classify-food` - Clasificación AI de alimentos
+- `POST /api/admin/diagnostics/ai-summary` - Resumen del Pasante AI
 
-**Solución:** Agregar campos endDate/endTime a modales en modo edit. Seguir patrón de `SleepDelayModal.tsx:76-90`.
-
-**Archivos (4 modales):**
-- `components/events/FeedingModal.tsx`
-- `components/events/MedicationModal.tsx`
-- `components/events/ExtraActivityModal.tsx`
-- `components/events/NightWakingModal.tsx`
-
----
-
-### ITEM 5: Tabs por Rol
-
-**Problema:** Padres ven tabs que no deberían (Mensual, Gráfico).
-
-**Solución:** Condicionar renderizado: Padres solo ven Diario + Semanal. Admin mantiene todo.
-
-**Archivo:** `app/dashboard/calendar/page.tsx` (líneas 1828-1874)
+### Componentes UI
+- `ProfileHeader` - Cabecera con datos del niño
+- `StatusIndicator` - Semáforo (ok/warning/alert)
+- `ValidationGroupCard` - Card genérica de grupo
+- `G1ScheduleValidation` - Validación de horario
+- `G2MedicalValidation` - Validación médica
+- `G3NutritionValidation` - Validación nutricional
+- `G4EnvironmentalValidation` - Validación ambiental
+- `AlertDetailModal` - Modal con detalles y deep linking
+- `PasanteAISection` - Sección de análisis AI
 
 ---
 
-### ITEM 1: Vista Narrativa Home
+## Reglas de Negocio
 
-**Problema:** Home muestra gráficos en lugar de narrativa.
+### Tolerancias
+- Desvío horario: ±15 minutos
+- Despertar mínimo: 6:00 AM (fijo para todos)
+- Umbral alerta G2: 1 indicador dispara alerta
 
-**Solución:**
-- `initialLimit={3}` (colapsado por default)
-- Botón expandir visible SIEMPRE
-- Layout: Mobile vertical | Web side-by-side
-- Día = despertar a despertar (no 24hrs)
+### Duración de Noche por Edad
+| Edad | Duración |
+|------|----------|
+| Hasta 2.5 años | 11 hrs |
+| 3 años | 11.5-12 hrs |
+| 4 años | 11-11.5 hrs |
+| 5 años | 10.5-11 hrs |
+| 6 años | 10-10.5 hrs |
 
-**Archivo:** `app/dashboard/page.tsx`
-
----
-
-### ITEM 8: Reducir Texto Bitácora
-
-**Formato actual:** `8:30 AM - Alimentación: Biberón 120ml, 15 min`
-**Formato nuevo:** `8:30 AM - Biberón 120ml` (tipo + cantidad, sin duración)
-
-**Archivo:** `components/narrative/NarrativeTimeline.tsx`
-
----
-
-### ITEM 4: Calendario sin Scroll
-
-**Problema:** Calendario tiene scroll interno en admin split-screen.
-
-**Solución:** Remover height fija y overflow. Calendario crece, scroll de página.
-
-**Archivo:** `components/calendar/CalendarMain.tsx`
-
----
-
-### ITEM 10: Card Plan vs Eventos
-
-**Diseño:**
-```
-| PLAN (izq)      | EVENTOS (der)    |
-| 07:00 Despertar | 07:15 Despertó   |
-| 09:00 Siesta    | 09:30 Siesta     |
-```
-
-**Comportamiento:**
-- Nueva card ARRIBA del calendario
-- Aplica para AMBOS roles
-- Sin plan: solo muestra eventos
-- Eventos extras se incrustan cronológicamente
-
-**Archivos:**
-- CREAR: `components/calendar/PlanVsEventsCard.tsx`
-- MODIFICAR: `app/dashboard/calendar/page.tsx`
-
----
-
-### ITEM 2: Iconos Consistentes Admin
-
-**Problema:** Iconos de alimentación no están en admin `/dashboard/patients/child/[id]`
-
-**Solución:** Usar `getEventIconConfig()` de `lib/icons/event-icons.ts`
-
-**Archivo:** `app/dashboard/patients/child/[id]/page.tsx`
-
----
-
-### Items Ya Implementados (Solo Verificar)
-
-- **ITEM 3:** Siestas en lavanda
-- **ITEM 7:** Estilos nocturnos en bloques de sueño
-
----
-
-## Credenciales de Testing
-
-| Rol | Email | Password |
-|-----|-------|----------|
-| Admin | mariana@admin.com | password |
-| Padre | eljulius@nebulastudios.io | juls0925 |
+### Clasificación AI de Alimentos
+- Modelo: GPT-4
+- Fallback: `aiClassified: false` si falla
+- Grupos: Proteínas, Carbohidratos, Frutas, Verduras, Lácteos, Grasas
 
 ---
 
 ## Referencias
 
-- Patrones de eventos: `.claude/rules/events.md`
-- Patrones de modales: `.claude/rules/patterns.md`
-- Manejo de fechas: `.claude/rules/datetime.md`
-- Patrón endTime edit: `components/events/SleepDelayModal.tsx:76-90`
+- Spec completo: `docs/dev-qa/SPEC-SPRINT.md`
+- Plan técnico: `docs/plans/2026-02-03-feat-diagnostic-panel-estadisticas-plan.md`

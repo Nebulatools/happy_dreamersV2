@@ -1,423 +1,444 @@
 # Reporte de Feedback QA para Desarrollo
 
-**Fecha de Generacion:** 2026-01-12
-**Release Evaluado:** Commits 9b787c2, 6184b1e (2026-01-09)
-**Tester:** QA Team
+**Fecha de Generacion:** 2026-02-09
+**Release Evaluado:** Sprint 4A + 4B (Panel Diagnostico + Mejoras Survey + Pasante AI)
+**Branch:** QA
+**Tester:** Julio
 **Analista:** Claude AI
 
 ---
 
 ## Resumen Ejecutivo
 
-Se identificaron **6 tickets** de ajuste derivados de las pruebas de QA sobre la release de estandarizacion de `endTime`. Los issues estan categorizados por prioridad y componente afectado.
+Se identificaron **7 tickets** de ajuste derivados de las pruebas de QA sobre el Sprint 4A+4B. **Todos son bloqueantes** para el merge a main.
 
 | Prioridad | Cantidad | Descripcion |
 |-----------|----------|-------------|
-| Alta | 1 | UX critico - campos parecen bloqueados |
-| Media | 3 | Mejoras de UX y clarificacion |
-| Baja | 2 | Ajustes visuales y de texto |
+| Critica | 3 | Bugs funcionales confirmados (ferritina, crash survey, Pasante AI) |
+| Alta | 2 | Funcionalidad faltante o no visible (reflujo survey, humedad G4) |
+| Media | 2 | UX - criterios no expandibles (G1/G4) |
 
 ---
 
-## TICKET #1: Columnas de tabla ocultas en vista mobile
+## TICKET #1: Criterios ocultos en G1 y G4 no son expandibles
 
 **Prioridad:** Media
-**Componente:** `app/dashboard/children/[id]/events/page.tsx`
-**Tipo:** UI/UX - Responsive Design
+**Tests QA:** TEST 3 (G1), TEST 6 (G4)
+**Componente:** `components/diagnostic/ValidationGroupCard.tsx`
+**Tipo:** UX - Funcionalidad faltante
 
 ### Descripcion del Issue
 
-El tester reporta que las columnas adicionales agregadas en la tabla de eventos ("Mis Eventos") solo son visibles en vista desktop. En dispositivos moviles, las columnas de **Duracion**, **Estado** y **Notas** no aparecen.
+En G1 (Validacion de Horario) despues de "Duracion de siestas" y en G4 (Factores Ambientales) despues de "Comparte cuarto", se muestra una leyenda "+2 criterios mas" que parece un link clickeable pero no responde al click. El usuario espera poder expandir y ver los criterios ocultos.
 
 ### Analisis Tecnico
 
-Las columnas utilizan clases de Tailwind para ocultar en breakpoints menores:
+`ValidationGroupCard.tsx` tiene un limite hardcodeado de 5 criterios visibles:
 
-```tsx
-// Linea 531 - Duracion
-<th className="... hidden sm:table-cell">Duracion</th>
+```typescript
+// Linea 162-164
+const visibleCriteria = sortedCriteria.slice(0, 5)  // Solo muestra primeros 5
+const hiddenCount = sortedCriteria.length - 5
 
-// Linea 533 - Estado
-<th className="... hidden md:table-cell">Estado</th>
-
-// Linea 534 - Notas
-<th className="... hidden lg:table-cell">Notas</th>
+// Linea 221-226 - Renderiza como <p> plano (no clickeable)
+{hiddenCount > 0 && (
+  <p className="text-xs text-gray-500 text-center py-1">
+    +{hiddenCount} criterio{hiddenCount !== 1 ? "s" : ""} mas
+  </p>
+)}
 ```
-
-**Comportamiento actual:**
-- `sm:` (640px+): Muestra Duracion
-- `md:` (768px+): Muestra Estado
-- `lg:` (1024px+): Muestra Notas
-
-### Opciones de Solucion
-
-1. **Opcion A (Recomendada):** Mantener el comportamiento responsive actual pero agregar un **indicador visual** en mobile que muestre "Ver mas detalles" al hacer clic en la fila, ya que actualmente el clic abre el modal de detalles donde se ve toda la informacion.
-
-2. **Opcion B:** Mostrar al menos la columna **Duracion** en todos los breakpoints (es la mas relevante para el usuario).
-
-3. **Opcion C:** Crear una vista alternativa tipo "card" para mobile que muestre toda la informacion en formato vertical.
-
-### Archivos a Modificar
-
-- `app/dashboard/children/[id]/events/page.tsx` (lineas 531-534, 587-616)
-
-### Criterios de Aceptacion
-
-- [ ] En mobile, el usuario puede ver la duracion del evento sin necesidad de abrir el modal
-- [ ] O bien, existe un indicador visual claro de que puede hacer clic para ver mas detalles
-
----
-
-## TICKET #2: Modal de registro manual no muestra campos de fecha/hora de termino
-
-**Prioridad:** Media
-**Componente:** `components/events/ManualEventModal.tsx`
-**Tipo:** Feature Request - UX
-
-### Descripcion del Issue
-
-En el modal de registro manual de eventos, no se muestra la captura de fecha y hora de termino del evento. El tester indica que solo en el caso de **Siesta** aparece un checkbox opcional para agregar hora de fin.
-
-### Analisis Tecnico
-
-El modal evalua si mostrar campos de hora fin basandose en la configuracion del tipo de evento:
-
-```tsx
-// Linea 193-194
-const currentEventType = getEventType(eventType)
-const hasEndTime = currentEventType?.hasEndTime ?? false
-```
-
-Para eventos como `feeding`, `extra_activities`, `medication`, la propiedad `hasEndTime` esta en `false` porque el sistema calcula automaticamente el `endTime` basado en la duracion (lineas 244-255):
-
-```tsx
-// Para feeding: endTime = startTime + feedingDuration
-// Para extra_activities: endTime = startTime + activityDuration
-// Para night_waking: endTime = startTime + awakeDelay
-```
-
-### Comportamiento Actual vs Esperado
-
-| Tipo de Evento | Muestra hora fin | Comportamiento |
-|----------------|------------------|----------------|
-| sleep | Si (obligatorio) | Correcto |
-| nap | Si (checkbox opcional) | Correcto |
-| feeding | No | Calculo automatico |
-| extra_activities | No | Calculo automatico |
-| medication | No | Sin duracion |
-| night_waking | No | Calculo automatico |
-
-### Opciones de Solucion
-
-1. **Opcion A:** Mantener el calculo automatico pero mostrar un **preview** de la hora de fin calculada (solo lectura) para que el usuario vea que hora quedara registrada.
-
-2. **Opcion B:** Agregar un checkbox "Especificar hora de fin manualmente" que permita al usuario sobreescribir el calculo automatico.
-
-3. **Opcion C (Recomendada):** Agregar un texto informativo debajo de los campos de duracion indicando: "La hora de fin se calculara automaticamente: [hora calculada]"
-
-### Archivos a Modificar
-
-- `components/events/ManualEventModal.tsx` (lineas 480-522)
-- Opcionalmente `lib/event-types.ts` para configurar comportamiento
-
-### Criterios de Aceptacion
-
-- [ ] El usuario puede ver cual sera la hora de fin del evento antes de guardar
-- [ ] El comportamiento es consistente entre todos los tipos de evento
-
----
-
-## TICKET #3: Cambio de texto "Hora de dormir" a "Hora de acostarse"
-
-**Prioridad:** Baja
-**Componente:** `components/events/SleepDelayModal.tsx`
-**Tipo:** UI/UX - Texto/Copy
-
-### Descripcion del Issue
-
-El tester solicita cambiar el texto del modal de dormir/siesta. Actualmente dice "Hora de dormir" y deberia decir "Hora de acostarse" para ser mas preciso semanticamente.
-
-### Analisis Tecnico
-
-El texto actual se encuentra en la linea 227:
-
-```tsx
-<div className="text-sm font-medium text-gray-700">
-  Hora de dormir
-</div>
-```
-
-### Contexto Semantico
-
-- **"Hora de dormir"** = Momento en que el nino se queda dormido (impreciso, depende de la latencia)
-- **"Hora de acostarse"** = Momento en que se acuesta en la cama (mas preciso, es lo que se registra)
-
-El campo captura el momento en que se inicia el proceso de dormir, no cuando efectivamente se duerme (eso se calcula con el `sleepDelay`).
 
 ### Solucion Propuesta
 
-Cambiar el texto en la linea 227:
-
-```tsx
-// Antes
-Hora de dormir
-
-// Despues
-Hora de acostarse
-```
+1. Agregar estado `expanded` al componente
+2. Cambiar `<p>` por `<button>` con cursor pointer
+3. Cuando expanded=true, mostrar todos los criterios (`sortedCriteria` completo)
+4. Agregar boton "Ver menos" cuando esta expandido
 
 ### Archivos a Modificar
 
-- `components/events/SleepDelayModal.tsx` (linea 227)
+- `components/diagnostic/ValidationGroupCard.tsx` (lineas 162-226)
 
 ### Criterios de Aceptacion
 
-- [ ] El label muestra "Hora de acostarse" en lugar de "Hora de dormir"
-- [ ] El cambio aplica tanto para sleep como para nap
+- [ ] Click en "+X criterios mas" expande y muestra todos los criterios
+- [ ] Aparece opcion "Ver menos" para colapsar
+- [ ] El texto tiene cursor pointer y feedback visual de hover
+- [ ] Funciona tanto en G1 como en G4 (y cualquier grupo con >5 criterios)
 
 ---
 
-## TICKET #4: Duracion default de 15 minutos en alimentacion por biberon
-
-**Prioridad:** Baja
-**Componente:** `components/events/FeedingModal.tsx`, `components/events/ManualEventModal.tsx`
-**Tipo:** UX - Default Values
-
-### Descripcion del Issue
-
-El tester observa que la captura de alimentacion por biberon asume una duracion default de 15 minutos. Se requiere validar si este es el valor correcto o si deberia ser configurable.
-
-### Analisis Tecnico
-
-El valor default se encuentra en multiples ubicaciones:
-
-```tsx
-// FeedingModal.tsx - linea 60
-const [feedingDuration, setFeedingDuration] = useState<number>(
-  initialData?.feedingDuration || 15
-)
-
-// ManualEventModal.tsx - linea 177
-const [feedingDuration, setFeedingDuration] = useState(15)
-
-// FeedingButton.tsx - linea 69 (registro en vivo)
-const durationToSend = feedingData.feedingDuration ||
-  (feedingData.feedingType === "breast" ? feedingData.feedingAmount : 15)
-```
-
-### Consideraciones
-
-- 15 minutos es un valor razonable para una toma de biberon promedio
-- Para pecho, la duracion es variable (5-45 min)
-- El usuario puede modificar el valor en el formulario
-
-### Opciones de Solucion
-
-1. **Opcion A:** Mantener 15 min como default (valor clinicamente razonable)
-
-2. **Opcion B:** Hacer el default configurable por usuario en sus preferencias
-
-3. **Opcion C:** Calcular dinamicamente basado en el historial del nino
-
-### Recomendacion
-
-Mantener el valor actual de 15 minutos ya que:
-- Es clinicamente razonable
-- El usuario puede modificarlo facilmente
-- Evita complejidad innecesaria
-
-Si el stakeholder confirma que debe cambiar, documentar el nuevo valor requerido.
-
-### Archivos a Modificar (si aplica)
-
-- `components/events/FeedingModal.tsx` (linea 60)
-- `components/events/ManualEventModal.tsx` (linea 177)
-- `components/events/FeedingButton.tsx` (linea 69)
-
-### Criterios de Aceptacion
-
-- [ ] Confirmar con stakeholder el valor default correcto
-- [ ] Documentar la decision tomada
-
----
-
-## TICKET #5: Clarificar semantica de hora en registro rapido de eventos
-
-**Prioridad:** Media
-**Componente:** Documentacion / UX
-**Tipo:** UX - Clarificacion
-
-### Descripcion del Issue
-
-El tester solicita clarificar como se interpreta la hora capturada en un "evento rapido":
-- Se toma como hora de inicio?
-- Se toma como hora de fin?
-- Deberia preguntarse al usuario cual es?
-
-### Analisis Tecnico - Comportamiento Actual
-
-**Registro en vivo (botones en dashboard):**
-- La hora actual (`getCurrentTime()`) se toma como `startTime`
-- El `endTime` se calcula automaticamente: `endTime = startTime + duracion`
-
-**Registro manual (modal "+"):**
-- El usuario selecciona fecha y hora de inicio
-- El `endTime` se calcula automaticamente segun el tipo de evento
-
-### Flujo Actual
-
-```
-[Usuario presiona boton "Alimentacion"]
-     |
-     v
-[Hora actual = startTime]
-     |
-     v
-[Usuario selecciona duracion (ej: 15 min)]
-     |
-     v
-[Sistema calcula: endTime = startTime + 15 min]
-     |
-     v
-[Evento guardado con startTime y endTime]
-```
-
-### Opciones de Solucion
-
-1. **Opcion A (Recomendada):** Agregar **texto informativo** en el modal explicando: "La hora del evento sera: [hora actual] (inicio) - [hora calculada] (fin)"
-
-2. **Opcion B:** Agregar un selector "Esta hora es: [Inicio] [Fin]" con radio buttons
-
-3. **Opcion C:** Mantener el comportamiento actual (siempre es hora de inicio) y documentarlo claramente en el onboarding o tooltips
-
-### Recomendacion
-
-La convencion de usar la hora actual como `startTime` es la mas intuitiva y comun en apps de tracking. Se recomienda mantener el comportamiento actual y agregar un texto informativo o tooltip que lo aclare.
-
-### Archivos a Modificar
-
-- `components/events/FeedingModal.tsx` - agregar texto informativo
-- `components/events/ExtraActivityModal.tsx` - agregar texto informativo
-- `components/events/NightWakingModal.tsx` - agregar texto informativo
-
-### Criterios de Aceptacion
-
-- [ ] El usuario entiende que la hora capturada es la hora de inicio
-- [ ] Se muestra claramente la hora de fin calculada antes de confirmar
-
----
-
-## TICKET #6: Campos de fecha/hora en edicion aparecen en color gris (parecen bloqueados)
+## TICKET #2: Seccion de Reflujo no visible en Survey (Desarrollo y Salud)
 
 **Prioridad:** Alta
-**Componente:** `components/events/FeedingModal.tsx` y otros modales de edicion
-**Tipo:** UI/UX - Accesibilidad Visual
+**Tests QA:** TEST 10, TEST 16
+**Componente:** `components/survey/steps/HealthDevStep.tsx`
+**Tipo:** Bug - Funcionalidad no visible
 
 ### Descripcion del Issue
 
-El tester reporta que los campos de fecha y hora en el modo edicion de eventos aparecen en color gris, lo cual hace pensar que estan bloqueados y no se pueden editar. Los campos **SI son editables**, pero visualmente no lo parece.
+Al editar el survey de un nino, en la seccion "Desarrollo y Salud" no aparece la pregunta/checkbox de "Reflujo" ni sus sub-checkboxes condicionales (vomita frecuentemente, arquea espalda, llora al comer). Confirmado en TEST 16 con un nino nuevo.
 
 ### Analisis Tecnico
 
-Los campos de input en `FeedingModal.tsx` (lineas 278-292) usan estilos estandar:
+El codigo SI esta implementado en `HealthDevStep.tsx` lineas 492-571:
 
-```tsx
-<input
-  type="date"
-  value={eventDate}
-  onChange={(e) => setEventDate(e.target.value)}
-  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+```typescript
+// Linea 492-505: Checkbox principal
+<Checkbox
+  id="prob-reflujo"
+  checked={data.problemasHijo?.includes("reflujo") || false}
+  onCheckedChange={(checked) => {
+    updateProblemaHijo("reflujo", checked, ...)
+  }}
 />
+
+// Linea 506-571: Sub-checkboxes condicionales
+// reflujoDetails.vomitaFrecuente
+// reflujoDetails.arqueaEspalda
+// reflujoDetails.lloraAlComer
 ```
 
-El problema puede deberse a:
-1. El estilo default de los inputs `type="date"` y `type="time"` en algunos navegadores
-2. Falta de contraste visual suficiente
-3. El texto del input puede tener color gris por defecto del navegador
+**Posibles causas:**
+1. El checkbox esta en la posicion 9 de una lista larga - podria estar fuera del viewport visible
+2. Error de renderizado condicional que oculta la seccion
+3. Problema con la inicializacion de `problemasHijo` en surveys existentes
+4. Cache del navegador mostrando version antigua del componente
+
+### Investigacion Requerida
+
+- Verificar si el checkbox se renderiza en el DOM (DevTools > Elements)
+- Verificar si hay CSS que lo oculta
+- Verificar si `problemasHijo` se inicializa correctamente como array
+
+### Archivos a Investigar
+
+- `components/survey/steps/HealthDevStep.tsx` (lineas 490-575)
+- `hooks/useSurveyForm.ts` (inicializacion de datos)
+
+### Criterios de Aceptacion
+
+- [ ] Checkbox "Tiene o ha tenido reflujo y/o colicos" visible en seccion Desarrollo y Salud
+- [ ] Al marcarlo, aparecen 3 sub-checkboxes (vomita, arquea espalda, llora)
+- [ ] Al desmarcarlo, sub-checkboxes desaparecen y se limpian
+- [ ] Datos persisten al guardar
+- [ ] Funciona tanto en surveys nuevos como existentes
+
+---
+
+## TICKET #3: Ferritina guardada no se refleja en G2
+
+**Prioridad:** Critica
+**Test QA:** TEST 12
+**Componente:** `lib/diagnostic/rules/medical-rules.ts`
+**Tipo:** Bug - Logica de evaluacion rota
+
+### Descripcion del Issue
+
+Se actualizo el survey de Elias con ferritina=35 (deberia disparar alerta porque <50 ng/mL). Como admin, G2 no mostro la alerta de ferritina baja.
+
+### Analisis Tecnico - Bug Confirmado
+
+El `evaluator` custom definido en `medical-indicators.ts` **nunca es llamado** por `medical-rules.ts`.
+
+**En `medical-indicators.ts` (linea 351-362):**
+```typescript
+{
+  id: "restless_ferritina_baja",
+  name: "Ferritina baja (<50 ng/mL)",
+  surveyField: "nivelFerritina",
+  evaluator: (value: unknown) => {
+    if (typeof value !== "number") return false
+    return value < 50  // Logica correcta: alerta si < 50
+  },
+  available: true,
+}
+```
+
+**En `medical-rules.ts` (lineas 62-78) - EL BUG:**
+```typescript
+if (config.surveyField && config.available) {
+  const value = surveyData?.[config.surveyField]
+  if (typeof value === "boolean") {
+    detected = value
+  } else if (typeof value === "number") {
+    detected = value > 0  // GENERICO: Solo checa si > 0, IGNORA el evaluator
+  }
+}
+// El evaluator NUNCA se llama
+```
+
+**Resultado:** Con ferritina=35, la logica generica evalua `35 > 0 = true` pero no usa el umbral correcto de `<50`. El indicador se marca como "detectado" pero sin la semantica correcta, o puede que no se muestre por como se interpreta el resultado.
 
 ### Solucion Propuesta
 
-Agregar estilos explicitos para asegurar que los campos se vean como editables:
+En `medical-rules.ts`, agregar llamada al `evaluator` cuando existe:
 
-```tsx
-className="w-full px-3 py-2 border rounded-lg text-sm
-  bg-white text-gray-900
-  focus:outline-none focus:ring-2 focus:ring-green-500
-  hover:border-gray-400"
+```typescript
+if (config.evaluator) {
+  detected = config.evaluator(value)
+} else if (typeof value === "boolean") {
+  detected = value
+} else if (typeof value === "number") {
+  detected = value > 0
+}
 ```
 
 ### Archivos a Modificar
 
-- `components/events/FeedingModal.tsx` (lineas 278-292)
-- `components/events/ExtraActivityModal.tsx` (campos similares)
-- `components/events/NightWakingModal.tsx` (campos similares)
-- `components/events/SleepDelayModal.tsx` (lineas 234-253, 285-304)
-- `components/events/ManualEventModal.tsx` (lineas 463-478)
+- `lib/diagnostic/rules/medical-rules.ts` (lineas 62-78)
 
 ### Criterios de Aceptacion
 
-- [ ] Los campos de fecha/hora tienen fondo blanco explicito (`bg-white`)
-- [ ] El texto de los campos es claramente legible (no gris)
-- [ ] Al pasar el mouse sobre los campos, hay feedback visual (hover state)
-- [ ] Los campos tienen el mismo estilo en todos los modales de edicion
-
-### Ejemplo de Implementacion
-
-```tsx
-// Antes
-<input
-  type="date"
-  value={eventDate}
-  onChange={(e) => setEventDate(e.target.value)}
-  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-/>
-
-// Despues
-<input
-  type="date"
-  value={eventDate}
-  onChange={(e) => setEventDate(e.target.value)}
-  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
-    bg-white text-gray-900
-    hover:border-gray-400
-    focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-/>
-```
+- [ ] Con ferritina < 50, G2 muestra alerta "Ferritina baja"
+- [ ] Con ferritina >= 50, G2 NO muestra alerta
+- [ ] Con ferritina vacia/undefined, no causa error
+- [ ] Otros indicadores medicos siguen funcionando correctamente
 
 ---
 
-## Resumen de Archivos Afectados
+## TICKET #4: Humedad del survey no se refleja en G4
+
+**Prioridad:** Alta
+**Test QA:** TEST 13
+**Componente:** `lib/diagnostic/rules/environmental-rules.ts` / Survey
+**Tipo:** Bug - Datos no llegan al diagnostico
+
+### Descripcion del Issue
+
+Se actualizo el survey de Elias para seleccionar "poca humedad en cuarto" y como admin G4 no lo mostro.
+
+### Analisis Tecnico
+
+El codigo de validacion ambiental parece correcto:
+- Survey guarda en campo `humedadHabitacion` (`RoutineHabitsStep.tsx:342`)
+- Reglas ambientales leen de `humedadHabitacion` (`environmental-rules.ts:198`)
+- Evaluador espera valores: `"seca"`, `"normal"`, `"humeda"`
+
+**Posible causa:** Mismatch entre el valor que guarda el survey y lo que espera la regla. El tester reporta "poca humedad" - si el select usa labels como "Poca humedad" pero el value guardado es diferente, o si el valor no se mapea correctamente a "seca", la regla no lo detectaria.
+
+### Investigacion Requerida
+
+- Verificar que valor exacto guarda el survey cuando se selecciona "poca humedad"
+- Verificar en MongoDB el campo `surveyData.humedadHabitacion` del nino Elias
+- Comparar con los valores que espera `evaluateHumidity()`: "seca", "normal", "humeda"
+
+### Archivos a Investigar
+
+- `components/survey/steps/RoutineHabitsStep.tsx` (campo de humedad, ~linea 342)
+- `lib/diagnostic/rules/environmental-rules.ts` (lineas 129-179)
+- `lib/diagnostic/environmental-rules.ts` (lineas 44-53)
+
+### Criterios de Aceptacion
+
+- [ ] Seleccionar "Seca" en survey → G4 muestra warning
+- [ ] Seleccionar "Humeda" en survey → G4 muestra warning
+- [ ] Seleccionar "Normal" → G4 no muestra warning
+- [ ] Sin seleccion → G4 no muestra error
+
+---
+
+## TICKET #5: Crash al navegar a Dinamica Familiar del cuestionario
+
+**Prioridad:** Critica
+**Test QA:** TEST 14
+**Componente:** `components/survey/steps/FamilyDynamicsStep.tsx`, `components/survey/SiblingsList.tsx`
+**Tipo:** Bug - Crash (ErrorBoundary)
+
+### Descripcion del Issue
+
+Al intentar navegar a la seccion "Dinamica Familiar" del cuestionario, aparece "Algo salio mal" (ErrorBoundary). El tester no pudo completar la prueba de agregar hermanos.
+
+### Analisis Tecnico - Bug Confirmado
+
+Cadena de fallo:
+
+1. **`useSurveyForm.ts:31`** inicializa `dinamicaFamiliar: {}` (sin campo `hijosInfo`)
+2. **`FamilyDynamicsStep.tsx:52`** pasa `data.hijosInfo` a SiblingsList con type assertion
+3. **`SiblingsList.tsx:127`** intenta hacer `.map()` sobre `value` que puede ser `undefined`
+
+```typescript
+// FamilyDynamicsStep.tsx:52
+<SiblingsList
+  value={(data.hijosInfo as SiblingInfo[]) || []}  // Si hijosInfo es null, || [] no atrapa
+  onChange={...}
+/>
+
+// SiblingsList.tsx:127
+{value.map((sibling, index) => (  // Crash si value es undefined/null
+```
+
+**Escenario:** Surveys existentes (antes de Sprint 4B) no tienen `hijosInfo` en su `dinamicaFamiliar`. Cuando se carga ese step, `data.hijosInfo` es `undefined` o `null`, el fallback `|| []` no siempre atrapa `null`, y `.map()` lanza TypeError.
+
+### Solucion Propuesta
+
+1. Inicializar `hijosInfo: []` en `useSurveyForm.ts` default data
+2. Agregar fallback defensivo en `SiblingsList.tsx`: `const safeValue = Array.isArray(value) ? value : []`
+3. Validar que `FamilyDynamicsStep.tsx` pase array seguro
+
+### Archivos a Modificar
+
+- `hooks/useSurveyForm.ts` (linea 31 - agregar hijosInfo: [])
+- `components/survey/SiblingsList.tsx` (linea 62 - validacion defensiva)
+- `components/survey/steps/FamilyDynamicsStep.tsx` (linea 52 - fallback seguro)
+
+### Criterios de Aceptacion
+
+- [ ] Navegar a Dinamica Familiar NO causa crash
+- [ ] Surveys existentes (sin hijosInfo) cargan correctamente con lista vacia
+- [ ] Surveys nuevos permiten agregar hermanos sin error
+- [ ] Los datos de hermanos persisten al guardar
+
+---
+
+## TICKET #6: Pasante AI no integra notas de Bitacora en el analisis
+
+**Prioridad:** Critica
+**Test QA:** TEST 15
+**Componente:** `app/dashboard/diagnosticos/[childId]/DiagnosticPanelClient.tsx`
+**Tipo:** Bug - Datos no pasan al componente AI
+
+### Descripcion del Issue
+
+Al hacer click en "Analizar" en la seccion Pasante AI del diagnostico, el resumen generado no menciona ni integra las notas de la Bitacora (notas de eventos de padres + notas del dashboard). El tester tenia notas dadas de alta pero no aparecieron en el analisis.
+
+### Analisis Tecnico - Bug Confirmado
+
+La cadena de datos esta rota en un punto intermedio:
+
+```
+API diagnostics/[childId] → Extrae notas ✅
+                          → Las usa para G4 ✅
+                          → PERO NO las retorna al frontend ❌
+
+DiagnosticPanelClient → Recibe diagnosticResult (sin notas)
+                      → Renderiza PasanteAISection SIN freeTextData ❌
+
+PasanteAISection → Espera prop freeTextData (undefined)
+                 → Envia undefined al API ai-summary ❌
+
+API ai-summary → Recibe freeTextData: undefined
+              → Prompt se genera sin seccion de texto libre ❌
+```
+
+**Puntos especificos del bug:**
+
+1. `app/api/admin/diagnostics/[childId]/route.ts` (lineas 125-132): Extrae `eventNotes` y `chatTexts` pero no los incluye en la respuesta JSON
+2. `DiagnosticPanelClient.tsx` (lineas 323-332): No pasa `freeTextData` prop a `PasanteAISection`
+3. `PasanteAISection.tsx` (linea 20-25): Define el prop como opcional, recibe `undefined`
+
+### Solucion Propuesta
+
+1. **API diagnostics/[childId]**: Incluir `freeTextData: { eventNotes, chatMessages: chatTexts }` en el JSON de respuesta
+2. **DiagnosticResult type** (`lib/diagnostic/types.ts`): Agregar campo `freeTextData` a la interfaz
+3. **DiagnosticPanelClient**: Extraer `freeTextData` del resultado y pasarlo como prop a PasanteAISection
+
+### Archivos a Modificar
+
+- `app/api/admin/diagnostics/[childId]/route.ts` (agregar freeTextData al response)
+- `lib/diagnostic/types.ts` (agregar campo a interfaz)
+- `app/dashboard/diagnosticos/[childId]/DiagnosticPanelClient.tsx` (pasar prop)
+
+### Criterios de Aceptacion
+
+- [ ] Si el nino tiene notas de eventos (ultimos 14 dias), se incluyen en el analisis AI
+- [ ] Si tiene notas de Bitacora del dashboard, tambien se incluyen
+- [ ] El resumen AI menciona hallazgos del texto libre cuando hay notas
+- [ ] Sin notas, el analisis funciona normalmente (sin seccion de texto libre)
+- [ ] El indicador "(incluye analisis de texto libre)" aparece cuando hay notas
+
+---
+
+## TICKET #7: Verificar integracion Survey → Diagnostico (Reflujo + Humedad)
+
+**Prioridad:** Alta
+**Tests QA:** TEST 12, TEST 13, TEST 16
+**Componente:** Pipeline Survey → API Diagnostics
+**Tipo:** Integracion - Verificar flujo completo
+
+### Descripcion del Issue
+
+Los tickets #2, #3 y #4 comparten una causa comun potencial: los datos del survey no llegan correctamente al panel de diagnostico. Ademas de los bugs individuales, se necesita verificar el flujo completo de datos.
+
+### Verificacion Requerida
+
+1. **Survey guarda correctamente**: Verificar en MongoDB que los campos nuevos (`reflujoDetails`, `nivelFerritina`, `humedadHabitacion`) se guardan con los valores esperados
+2. **API lee correctamente**: Verificar que la API de diagnostico lee estos campos del survey
+3. **Reglas evaluan correctamente**: Verificar que las reglas de cada grupo procesan los valores
+
+### Criterios de Aceptacion
+
+- [ ] Flujo completo: Survey → MongoDB → API Diagnostico → Panel muestra datos correctos
+- [ ] Campos nuevos de Sprint 4B se guardan y leen sin error
+- [ ] Surveys existentes (sin campos nuevos) no causan errores en el diagnostico
+
+---
+
+## Orden de Implementacion Recomendado
+
+| Orden | Ticket | Prioridad | Estimacion |
+|-------|--------|-----------|------------|
+| 1 | #5 - Crash Dinamica Familiar | Critica | Rapido (defensivo) |
+| 2 | #3 - Ferritina evaluator | Critica | Rapido (agregar llamada a evaluator) |
+| 3 | #6 - Pasante AI freeTextData | Critica | Medio (3 archivos, pipeline de datos) |
+| 4 | #2 - Reflujo survey visible | Alta | Investigar primero |
+| 5 | #4 - Humedad G4 | Alta | Investigar (posible mismatch de valores) |
+| 6 | #7 - Verificar integracion | Alta | Verificacion post-fix |
+| 7 | #1 - G1/G4 expandir criterios | Media | Medio (estado expand/collapse) |
+
+---
+
+## Archivos Afectados (Resumen)
 
 | Archivo | Tickets |
 |---------|---------|
-| `app/dashboard/children/[id]/events/page.tsx` | #1 |
-| `components/events/ManualEventModal.tsx` | #2, #4, #6 |
-| `components/events/SleepDelayModal.tsx` | #3, #6 |
-| `components/events/FeedingModal.tsx` | #4, #6 |
-| `components/events/FeedingButton.tsx` | #4 |
-| `components/events/ExtraActivityModal.tsx` | #5, #6 |
-| `components/events/NightWakingModal.tsx` | #5, #6 |
+| `components/diagnostic/ValidationGroupCard.tsx` | #1 |
+| `components/survey/steps/HealthDevStep.tsx` | #2 |
+| `lib/diagnostic/rules/medical-rules.ts` | #3 |
+| `lib/diagnostic/rules/environmental-rules.ts` | #4 |
+| `components/survey/steps/RoutineHabitsStep.tsx` | #4 |
+| `hooks/useSurveyForm.ts` | #5 |
+| `components/survey/SiblingsList.tsx` | #5 |
+| `components/survey/steps/FamilyDynamicsStep.tsx` | #5 |
+| `app/api/admin/diagnostics/[childId]/route.ts` | #6 |
+| `lib/diagnostic/types.ts` | #6 |
+| `app/dashboard/diagnosticos/[childId]/DiagnosticPanelClient.tsx` | #6 |
 
 ---
 
-## Orden Recomendado de Implementacion
-
-1. **TICKET #6** (Alta) - Arreglar estilos de campos para que no parezcan bloqueados
-2. **TICKET #2** (Media) - Mostrar preview de hora de fin calculada
-3. **TICKET #5** (Media) - Agregar texto clarificando semantica de hora
-4. **TICKET #1** (Media) - Mejorar visibilidad de datos en mobile
-5. **TICKET #3** (Baja) - Cambiar texto "Hora de dormir" -> "Hora de acostarse"
-6. **TICKET #4** (Baja) - Confirmar/documentar duracion default
-
 ---
 
-## Notas Adicionales
+## Estado de Resolucion
 
-- Los tests A, B, C y D del QA_RELEASE_NOTES.md fueron validados como funcionando correctamente
-- El fix de duraciones negativas esta funcionando segun lo esperado
-- El fix de UTC en edicion esta funcionando correctamente
-- Los issues reportados son principalmente de UX/UI, no de funcionalidad core
+| Ticket | Status | Resolucion |
+|--------|--------|------------|
+| #1 - G1/G4 expandir criterios | RESUELTO | Agregado expand/collapse con useState en ValidationGroupCard.tsx |
+| #2 - Reflujo survey visible | NO ES BUG | El checkbox existe en HealthDevStep.tsx:492-571. QA_RELEASE_NOTES no era claro sobre ubicacion |
+| #3 - Ferritina evaluator | RESUELTO | Agregado llamada a `config.evaluator` antes de logica generica en medical-rules.ts |
+| #4 - Humedad G4 | RESUELTO | Root cause: surveyData anidado por seccion, diagnostico accedia plano. Agregado `flattenSurveyData()` en API |
+| #5 - Crash Dinamica Familiar | RESUELTO | 3 archivos: inicializacion hijosInfo, Array.isArray defensivo en FamilyDynamicsStep y SiblingsList |
+| #6 - Pasante AI freeTextData | RESUELTO | Pipeline roto en 3 puntos: API no retornaba datos, tipo no incluia campo, client no pasaba prop |
+| #7 - Integracion Survey-Diag | RESUELTO | Cubierto por fix #4: flattenSurveyData() resuelve el mapping de TODOS los campos survey a diagnostico |
 
----
+### Descubrimiento Critico durante Fix #4
 
-*Documento generado automaticamente basado en QA_FEEDBACK_NOTES.md y analisis de codigo*
+La investigacion de humedad revelo un problema mayor: **TODOS los campos del survey estaban inaccesibles** para el motor de diagnostico. El survey guarda datos anidados por seccion (`surveyData.desarrolloSalud.reflujoColicos`) pero las reglas de validacion accedian de forma plana (`surveyData["reflujoColicos"]`).
+
+**Solucion implementada:**
+1. **`flattenSurveyData()`** en `app/api/admin/diagnostics/[childId]/route.ts`: Merge todas las secciones en un objeto plano + mappings especiales para G4 (roomTemperature, postpartumDepression, sleepingArrangement, sharesRoom, alergiasPadres)
+2. **`getNestedValue()`** en `lib/diagnostic/rules/medical-rules.ts`: Soporte dot-notation para campos como `reflujoDetails.vomitaFrecuente` y `restlessLegSyndrome.pataleoNocturno`
+
+### Archivos Modificados
+
+| Archivo | Tickets Resueltos | Cambio |
+|---------|-------------------|--------|
+| `hooks/useSurveyForm.ts` | #5 | `dinamicaFamiliar: { hijosInfo: [] }` |
+| `components/survey/steps/FamilyDynamicsStep.tsx` | #5 | `Array.isArray()` defensivo |
+| `components/survey/SiblingsList.tsx` | #5 | Validacion defensiva de `rawValue` |
+| `lib/diagnostic/rules/medical-rules.ts` | #3, #4 | evaluator call + getNestedValue() |
+| `lib/diagnostic/types.ts` | #6 | Campo `freeTextData` en DiagnosticResult |
+| `app/api/admin/diagnostics/[childId]/route.ts` | #4, #6 | flattenSurveyData() + freeTextData en response |
+| `app/dashboard/diagnosticos/[childId]/DiagnosticPanelClient.tsx` | #6 | freeTextData prop a PasanteAISection |
+| `components/diagnostic/ValidationGroupCard.tsx` | #1 | expand/collapse con useState |
+
+*Documento actualizado el 2026-02-09 con resoluciones implementadas*
