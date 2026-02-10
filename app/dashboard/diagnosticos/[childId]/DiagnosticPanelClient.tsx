@@ -1,10 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { Loader2, AlertCircle, ClipboardList } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
+import { useActiveChild } from "@/context/active-child-context"
 
 // Componentes del panel de diagnostico
 import ProfileHeader from "@/components/diagnostic/ProfileHeader"
@@ -63,6 +65,31 @@ interface PlanData {
  */
 export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClientProps) {
   const { toast } = useToast()
+  const router = useRouter()
+  const { activeChildId, isInitialized } = useActiveChild()
+  const hasInitializedRef = useRef(false)
+
+  // Si el admin limpia la seleccion o cambia de nino, redirigir
+  useEffect(() => {
+    if (!isInitialized) return
+
+    // Saltar el valor inicial (persistido de localStorage)
+    if (!hasInitializedRef.current) {
+      hasInitializedRef.current = true
+      return
+    }
+
+    // Seleccion limpiada → volver a pantalla de seleccion
+    if (!activeChildId) {
+      router.push("/dashboard/diagnosticos")
+      return
+    }
+
+    // Cambio a otro nino → navegar a su panel
+    if (activeChildId !== childId) {
+      router.push(`/dashboard/diagnosticos/${activeChildId}`)
+    }
+  }, [activeChildId, isInitialized, router, childId])
 
   // Estados
   const [viewState, setViewState] = useState<ViewState>("loading")
