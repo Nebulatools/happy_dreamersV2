@@ -48,13 +48,20 @@ interface SurveyWizardProps {
   childId: string
   initialData?: Partial<SurveyData>
   isExisting?: boolean
+  initialStep?: number
 }
 
-export function SurveyWizard({ childId, initialData, isExisting = false }: SurveyWizardProps) {
+export function SurveyWizard({ childId, initialData, isExisting = false, initialStep }: SurveyWizardProps) {
   const router = useRouter()
   const { data: session } = useSession()
   const { toast } = useToast()
-  const [currentStep, setCurrentStep] = useState(1)
+  const [currentStep, setCurrentStep] = useState(() => {
+    // Si viene de deep link con paso especifico y hay datos existentes
+    if (initialStep !== undefined && (initialData || isExisting)) {
+      return Math.min(Math.max(initialStep, 1), 6)
+    }
+    return 1
+  })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSaveIndicator, setShowSaveIndicator] = useState(false)
   const [userProfile, setUserProfile] = useState<any>(null)
@@ -240,7 +247,8 @@ export function SurveyWizard({ childId, initialData, isExisting = false }: Surve
         ...prev,
         ...savedData.formData,
       }))
-      if (savedData.currentStep) {
+      if (savedData.currentStep && initialStep === undefined) {
+        // Solo restaurar step de localStorage si NO viene de deep link
         setCurrentStep(savedData.currentStep)
       }
       toast({

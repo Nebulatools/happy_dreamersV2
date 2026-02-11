@@ -21,9 +21,12 @@ export default function SurveyPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const urlChildId = searchParams.get("childId")
-  const { activeChildId } = useActiveChild()
+  const { activeChildId, setActiveChildId } = useActiveChild()
   const { toast } = useToast()
   
+  const stepParam = searchParams.get("step")
+  const initialStep = stepParam ? parseInt(stepParam, 10) : undefined
+
   // Usar childId de URL si está disponible, sino usar el del contexto
   const childId = urlChildId || activeChildId
   const [isLoading, setIsLoading] = useState(true)
@@ -37,12 +40,20 @@ export default function SurveyPage() {
     showNotifications: true,
   })
 
-  // Sincronizar el cambio de niño en el selector con la URL
+  // Sincronizar cambio de niño entre contexto y URL
+  // Si hay deep link (step param), el URL manda: sincronizar contexto al URL
+  // Si no hay deep link, el selector manda: sincronizar URL al contexto
   useEffect(() => {
-    if (activeChildId && activeChildId !== urlChildId) {
+    if (!activeChildId || activeChildId === urlChildId) return
+
+    if (stepParam && urlChildId) {
+      // Deep link: el URL tiene prioridad, sincronizar contexto al child de la URL
+      setActiveChildId(urlChildId)
+    } else {
+      // Cambio de selector: sincronizar URL al child activo
       router.push(`/dashboard/survey?childId=${activeChildId}`)
     }
-  }, [activeChildId, urlChildId, router])
+  }, [activeChildId, urlChildId, router, stepParam, setActiveChildId])
 
   useEffect(() => {
     if (!childId) {
@@ -110,7 +121,7 @@ export default function SurveyPage() {
         // Solo mostrar como completada si tiene el flag completed === true
         // Si es guardado parcial (isPartial: true) o no tiene completed, permitir edición
         const isCompleted = serverSurvey.completed === true && !serverSurvey.isPartial
-        setIsViewMode(isCompleted)
+        setIsViewMode(isCompleted && !stepParam)
         logger.info("Encuesta existente cargada", {
           childId,
           isCompleted,
@@ -237,6 +248,7 @@ export default function SurveyPage() {
           childId={childId}
           initialData={existingSurvey || undefined}
           isExisting={!!existingSurvey}
+          initialStep={initialStep}
         />
       )}
     </div>
