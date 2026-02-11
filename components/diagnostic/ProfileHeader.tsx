@@ -32,35 +32,48 @@ interface ProfileHeaderProps {
   overallStatus?: StatusLevel
 }
 
-// Helper para calcular edad en meses
+// Helper para calcular meses completados (metodo pediatrico)
+// Resta 1 mes si aun no se llega al dia de nacimiento en el mes actual
 function calculateAgeMonths(birthDate?: string): number {
   if (!birthDate) return 0
   try {
     const birth = new Date(birthDate)
     const now = new Date()
-    const months = (now.getFullYear() - birth.getFullYear()) * 12 +
+    let months = (now.getFullYear() - birth.getFullYear()) * 12 +
       (now.getMonth() - birth.getMonth())
+    if (now.getDate() < birth.getDate()) {
+      months--
+    }
     return Math.max(0, months)
   } catch {
     return 0
   }
 }
 
-// Helper para formatear edad
+// Helper para formatear edad usando meses completados
 function formatAge(birthDate?: string): string {
   if (!birthDate) return "Edad no disponible"
   try {
     const birth = new Date(birthDate)
+    const now = new Date()
     const diffDays = Math.floor((Date.now() - birth.getTime()) / (1000 * 60 * 60 * 24))
-    if (diffDays < 30) return `${diffDays} días`
-    if (diffDays < 365) {
-      const months = Math.floor(diffDays / 30)
-      return `${months} ${months === 1 ? "mes" : "meses"}`
+    if (diffDays < 30) return `${diffDays} dias`
+
+    // Calcular meses completados (mismo metodo que calculateAgeMonths)
+    let totalMonths = (now.getFullYear() - birth.getFullYear()) * 12 +
+      (now.getMonth() - birth.getMonth())
+    if (now.getDate() < birth.getDate()) {
+      totalMonths--
     }
-    const years = Math.floor(diffDays / 365)
-    const months = Math.floor((diffDays % 365) / 30)
-    if (months > 0) {
-      return `${years} ${years === 1 ? "año" : "años"} ${months} ${months === 1 ? "mes" : "meses"}`
+    totalMonths = Math.max(0, totalMonths)
+
+    if (totalMonths < 12) {
+      return `${totalMonths} ${totalMonths === 1 ? "mes" : "meses"}`
+    }
+    const years = Math.floor(totalMonths / 12)
+    const remainingMonths = totalMonths % 12
+    if (remainingMonths > 0) {
+      return `${years} ${years === 1 ? "año" : "años"} ${remainingMonths} ${remainingMonths === 1 ? "mes" : "meses"}`
     }
     return `${years} ${years === 1 ? "año" : "años"}`
   } catch {
@@ -151,7 +164,7 @@ export default function ProfileHeader({
                   <User className="h-4 w-4" />
                   {ageText}
                 </span>
-                {ageMonths > 0 && (
+                {ageMonths >= 12 && (
                   <span className="text-xs text-[#999999]">
                     ({ageMonths} meses)
                   </span>

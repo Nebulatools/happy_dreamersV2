@@ -38,6 +38,9 @@ export interface NutritionValidationInput {
   childAgeMonths: number
   // Clasificaciones AI obtenidas externamente (opcional)
   aiClassifications?: NutritionClassification[]
+  // Survey data para baseline nutricional cuando no hay eventos
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  surveyData?: Record<string, any>
 }
 
 // ─────────────────────────────────────────────────────────
@@ -337,6 +340,168 @@ function validateNutritionGroups(
 }
 
 // ─────────────────────────────────────────────────────────
+// CRITERIOS DE SURVEY (Baseline nutricional)
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Evalua tipo de alimentacion desde el survey (leche materna, formula, mixta)
+ */
+function validateFeedingType(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  surveyData: Record<string, any>
+): CriterionResult {
+  const alimentacion = surveyData?.alimentacion
+
+  if (!alimentacion) {
+    return {
+      id: "g3_feeding_type",
+      name: "Tipo de alimentacion",
+      status: "warning",
+      value: null,
+      expected: "Registrado en encuesta",
+      message: "Sin dato de tipo de alimentacion en la encuesta",
+      sourceType: "survey",
+      sourceField: "alimentacion",
+      dataAvailable: false,
+    }
+  }
+
+  return {
+    id: "g3_feeding_type",
+    name: "Tipo de alimentacion",
+    status: "ok",
+    value: alimentacion,
+    expected: "Registrado en encuesta",
+    message: `Alimentacion: ${alimentacion}`,
+    sourceType: "survey",
+    sourceField: "alimentacion",
+    dataAvailable: true,
+  }
+}
+
+/**
+ * Evalua si el nino come solidos segun el survey
+ */
+function validateSolidsFromSurvey(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  surveyData: Record<string, any>,
+  childAgeMonths: number
+): CriterionResult {
+  const comeSolidos = surveyData?.comeSolidos
+
+  // Menores de 6 meses no requieren solidos
+  if (childAgeMonths < 6) {
+    return {
+      id: "g3_solids_survey",
+      name: "Solidos (encuesta)",
+      status: "ok",
+      value: "No aplica",
+      expected: "No aplica antes de 6 meses",
+      message: "Solidos no requeridos antes de 6 meses",
+      sourceType: "survey",
+      sourceField: "comeSolidos",
+      dataAvailable: true,
+    }
+  }
+
+  if (comeSolidos === undefined || comeSolidos === null) {
+    return {
+      id: "g3_solids_survey",
+      name: "Solidos (encuesta)",
+      status: "warning",
+      value: null,
+      expected: "Si (a partir de 6 meses)",
+      message: "Sin dato de solidos en la encuesta",
+      sourceType: "survey",
+      sourceField: "comeSolidos",
+      dataAvailable: false,
+    }
+  }
+
+  const eatssolids = comeSolidos === true || comeSolidos === "si" || comeSolidos === "Si"
+  const shouldEatSolids = childAgeMonths >= 6
+
+  return {
+    id: "g3_solids_survey",
+    name: "Solidos (encuesta)",
+    status: shouldEatSolids && !eatssolids ? "alert" : "ok",
+    value: eatssolids ? "Si" : "No",
+    expected: shouldEatSolids ? "Si" : "No aplica",
+    message: shouldEatSolids && !eatssolids
+      ? `El nino tiene ${childAgeMonths} meses y no come solidos segun la encuesta`
+      : eatssolids
+        ? "Come solidos segun la encuesta"
+        : "No come solidos (normal para su edad)",
+    sourceType: "survey",
+    sourceField: "comeSolidos",
+    dataAvailable: true,
+  }
+}
+
+/**
+ * Evalua peso y percentil del nino como indicador nutricional
+ */
+function validateWeightStatus(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  surveyData: Record<string, any>
+): CriterionResult {
+  const peso = surveyData?.pesoHijo
+  const percentil = surveyData?.percentilPeso
+
+  if (!peso && !percentil) {
+    return {
+      id: "g3_weight_status",
+      name: "Estado nutricional (peso)",
+      status: "warning",
+      value: null,
+      expected: "Peso registrado",
+      message: "Sin datos de peso en la encuesta",
+      sourceType: "survey",
+      sourceField: "pesoHijo",
+      dataAvailable: false,
+    }
+  }
+
+  // Si hay percentil, evaluar
+  let status: StatusLevel = "ok"
+  let message = ""
+
+  if (percentil !== undefined && percentil !== null) {
+    const p = typeof percentil === "string" ? parseFloat(percentil) : percentil
+    if (!isNaN(p)) {
+      if (p < 3) {
+        status = "alert"
+        message = `Percentil de peso ${p} (bajo peso severo)`
+      } else if (p < 10) {
+        status = "warning"
+        message = `Percentil de peso ${p} (bajo peso)`
+      } else if (p > 97) {
+        status = "warning"
+        message = `Percentil de peso ${p} (sobrepeso)`
+      } else {
+        message = `Percentil de peso ${p} (normal)`
+      }
+    }
+  }
+
+  if (!message && peso) {
+    message = `Peso registrado: ${peso} kg`
+  }
+
+  return {
+    id: "g3_weight_status",
+    name: "Estado nutricional (peso)",
+    status,
+    value: percentil ? `P${percentil}` : `${peso} kg`,
+    expected: "P10-P90",
+    message: message || "Peso registrado sin percentil calculado",
+    sourceType: "survey",
+    sourceField: "pesoHijo",
+    dataAvailable: true,
+  }
+}
+
+// ─────────────────────────────────────────────────────────
 // VALIDADOR PRINCIPAL
 // ─────────────────────────────────────────────────────────
 
@@ -348,7 +513,7 @@ function validateNutritionGroups(
 export function validateNutrition(
   input: NutritionValidationInput
 ): NutritionGroupValidation {
-  const { events, childAgeMonths, aiClassifications = [] } = input
+  const { events, childAgeMonths, aiClassifications = [], surveyData } = input
   const rule = getNutritionRuleForAge(childAgeMonths)
 
   // Filtrar eventos de feeding del dia
@@ -361,7 +526,7 @@ export function validateNutrition(
   // Grupos nutricionales cubiertos (de clasificaciones AI)
   const coveredGroups = extractCoveredGroups(aiClassifications)
 
-  // Evaluar criterios
+  // Evaluar criterios de eventos
   const criteria: CriterionResult[] = [
     validateMilkCount(todayFeedings, childAgeMonths),
     validateMilkLimit(todayFeedings, childAgeMonths),
@@ -369,6 +534,13 @@ export function validateNutrition(
     validateFeedingGap(todayFeedings),
     validateNutritionGroups(childAgeMonths, coveredGroups),
   ]
+
+  // Agregar criterios de survey si hay datos disponibles
+  if (surveyData && Object.keys(surveyData).length > 0) {
+    criteria.push(validateFeedingType(surveyData))
+    criteria.push(validateSolidsFromSurvey(surveyData, childAgeMonths))
+    criteria.push(validateWeightStatus(surveyData))
+  }
 
   // Determinar status general (el peor de los criterios)
   let overallStatus: StatusLevel = "ok"

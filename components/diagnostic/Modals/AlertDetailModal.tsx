@@ -38,6 +38,63 @@ const sourceLabels: Record<SourceType, string> = {
 }
 
 /**
+ * Mapea campos del survey al paso correspondiente del SurveyWizard (1-indexed)
+ * Pasos: 1=FamilyInfo, 2=FamilyDynamics, 3=ChildHistory, 4=HealthDev, 5=PhysicalActivity, 6=RoutineHabits
+ */
+function mapFieldToSurveyStep(sourceField?: string): number | null {
+  if (!sourceField) return null
+
+  const fieldToStep: Record<string, number> = {
+    // Paso 1 - Informacion Familiar
+    postpartumDepression: 1,
+    pensamientosNegativos: 1,
+    tieneAlergias: 1,
+    alergiasPadres: 1,
+    maternalSleep: 1,
+    puedeDormir: 1,
+
+    // Paso 2 - Dinamica Familiar
+    nighttimeSupport: 2,
+    quienAtiende: 2,
+    householdMembers: 2,
+    otrosResidentes: 2,
+
+    // Paso 3 - Historial
+    principalPreocupacion: 3,
+    recentChanges: 3,
+    pesoHijo: 3,
+    percentilPeso: 3,
+
+    // Paso 4 - Desarrollo y Salud
+    reflujoColicos: 4,
+    ronquidos: 4,
+    piernasInquietas: 4,
+    congestionNasal: 4,
+    alimentacion: 4,
+    comeSolidos: 4,
+
+    // Paso 5 - Actividad Fisica
+    screenTime: 5,
+    vePantallas: 5,
+
+    // Paso 6 - Rutina y Habitos
+    horaDormir: 6,
+    horaDespertar: 6,
+    temperaturaCuarto: 6,
+    roomTemperature: 6,
+    humedadHabitacion: 6,
+    sleepingArrangement: 6,
+    dondeDuerme: 6,
+    comparteHabitacion: 6,
+    sharesRoom: 6,
+    usaChupete: 6,
+    despiertaNoche: 6,
+  }
+
+  return fieldToStep[sourceField] ?? null
+}
+
+/**
  * Genera la URL de deep linking segun el tipo de fuente
  */
 function getSourceLink(
@@ -47,13 +104,14 @@ function getSourceLink(
   if (!childId) return null
 
   switch (criterion.sourceType) {
-  case "survey":
-    // Link a la tab de encuesta del perfil del nino
-    // sourceField indica el campo especifico
-    if (criterion.sourceField) {
-      return `/dashboard/children/${childId}?tab=survey&field=${criterion.sourceField}`
+  case "survey": {
+    // Link a la ruta del survey con paso especifico
+    const step = mapFieldToSurveyStep(criterion.sourceField)
+    if (step !== null) {
+      return `/dashboard/survey?childId=${childId}&step=${step}`
     }
-    return `/dashboard/children/${childId}?tab=survey`
+    return `/dashboard/survey?childId=${childId}`
+  }
 
   case "event":
     // Link al calendario filtrado por el evento

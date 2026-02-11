@@ -1,5 +1,6 @@
 // API para obtener diagnostico completo de un nino
-// Solo accesible por admins, requiere plan activo
+// Solo accesible por admins
+// Corre con la minima data disponible (survey, eventos, plan)
 
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
@@ -77,6 +78,21 @@ function flattenSurveyData(raw: Record<string, any>): Record<string, any> {
     flat.alergiasPadres = true
   }
 
+  // maternalSleep <- informacionFamiliar.mama.puedeDormir
+  if (raw.informacionFamiliar?.mama?.puedeDormir !== undefined) {
+    flat.maternalSleep = raw.informacionFamiliar.mama.puedeDormir
+  }
+
+  // nighttimeSupport <- dinamicaFamiliar.quienAtiende
+  if (flat.quienAtiende !== undefined) {
+    flat.nighttimeSupport = flat.quienAtiende
+  }
+
+  // householdMembers <- dinamicaFamiliar.otrosResidentes
+  if (flat.otrosResidentes !== undefined) {
+    flat.householdMembers = flat.otrosResidentes
+  }
+
   return flat
 }
 
@@ -140,20 +156,14 @@ export async function GET(
       }
     )
 
-    if (!activePlan) {
-      return NextResponse.json(
-        {
-          error: "Este nino no tiene un plan activo",
-          code: "NO_ACTIVE_PLAN",
-        },
-        { status: 400 }
-      )
+    if (activePlan) {
+      logger.info("Plan activo encontrado", {
+        planId: activePlan._id.toString(),
+        planNumber: activePlan.planNumber,
+      })
+    } else {
+      logger.info("Sin plan activo, diagnostico con datos disponibles", { childId })
     }
-
-    logger.info("Plan activo encontrado", {
-      planId: activePlan._id.toString(),
-      planNumber: activePlan.planNumber,
-    })
 
     // 5. Obtener eventos recientes (ultimos 7 dias)
     const sevenDaysAgo = new Date()
@@ -195,27 +205,53 @@ export async function GET(
       .filter((e) => e.notes && typeof e.notes === "string")
       .map((e) => e.notes as string)
 
-    // 8. Ejecutar los 4 motores de validacion
-    // Aplanar surveyData anidado para que los motores accedan por nombre plano
+    // 8. Aplanar surveyData y calcular nivel de datos disponible
     const surveyData = flattenSurveyData(child.surveyData || {})
+    const hasSurvey = Object.keys(surveyData).length > 0
+    const hasEvents = events.length > 0
+    const hasPlan = !!activePlan
 
-    // G1: Horario
+    // Minimo requerido: al menos survey O eventos
+    if (!hasSurvey && !hasEvents) {
+      return NextResponse.json(
+        {
+          error: "No hay datos para el diagnostico. Se requiere al menos la encuesta o eventos registrados.",
+          code: "NO_DATA_AVAILABLE",
+        },
+        { status: 400 }
+      )
+    }
+
+    // Calcular nivel de datos y fuentes faltantes
+    const dataLevel = hasPlan ? "full" : hasEvents ? "survey_events" : "survey_only"
+    const missingDataSources: string[] = []
+    if (!hasSurvey) missingDataSources.push("Encuesta del nino")
+    if (!hasEvents) missingDataSources.push("Eventos registrados (ultimos 7 dias)")
+    if (!hasPlan) missingDataSources.push("Plan de sueno activo")
+
+    logger.info("Nivel de datos", { dataLevel, missingDataSources })
+
+    // 9. Ejecutar los 4 motores de validacion
+
+    // G1: Horario (plan puede ser null, surveyData como fallback)
     const g1Result = validateSchedule({
       events,
-      plan: activePlan,
+      plan: activePlan || null,
       childAgeMonths,
+      surveyData,
     })
 
-    // G2: Medico
+    // G2: Medico (usa surveyData para indicadores)
     const g2Result = validateMedicalIndicators({
       surveyData,
       events,
     })
 
-    // G3: Nutricion
+    // G3: Nutricion (usa surveyData para baseline nutricional)
     const g3Result = validateNutrition({
       events,
       childAgeMonths,
+      surveyData,
     })
 
     // G4: Ambiental
@@ -285,8 +321,8 @@ export async function GET(
       childAgeMonths,
       childBirthDate: child.birthDate || undefined,
       parentId,
-      planId: activePlan._id.toString(),
-      planVersion: String(activePlan.planNumber || "1"),
+      planId: activePlan?._id?.toString(),
+      planVersion: activePlan ? String(activePlan.planNumber || "1") : undefined,
       evaluatedAt: now,
       groups: {
         G1: g1Result,
@@ -296,10 +332,14 @@ export async function GET(
       },
       alerts,
       overallStatus,
+      dataLevel,
+      missingDataSources,
       freeTextData: {
         eventNotes,
         chatMessages: chatTexts,
       },
+      // Survey completo para que el Pasante AI tenga acceso a TODOS los campos
+      surveyData: hasSurvey ? surveyData : undefined,
     }
 
     const processingTime = Date.now() - startTime

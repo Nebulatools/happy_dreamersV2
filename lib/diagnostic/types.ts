@@ -124,8 +124,14 @@ export interface EnvironmentalGroupValidation extends GroupValidation {
     cosleeping: CriterionResult
     roomSharing: CriterionResult
     recentChanges: CriterionResult
+    maternalSleep: CriterionResult
+    nighttimeSupport: CriterionResult
+    householdMembers: CriterionResult
   }
 }
+
+// Nivel de datos disponible para el diagnostico
+export type DataLevel = "survey_only" | "survey_events" | "full"
 
 // Resultado completo del diagnostico
 export interface DiagnosticResult {
@@ -134,8 +140,8 @@ export interface DiagnosticResult {
   childAgeMonths: number
   childBirthDate?: string // ISO date string para calcular edad en UI
   parentId?: string // ID del padre para sincronizacion de contexto
-  planId: string
-  planVersion: string
+  planId?: string // Opcional - puede no haber plan activo
+  planVersion?: string // Opcional - puede no haber plan activo
   evaluatedAt: string
   groups: {
     G1: GroupValidation
@@ -145,11 +151,16 @@ export interface DiagnosticResult {
   }
   alerts: Alert[]
   overallStatus: StatusLevel
+  dataLevel: DataLevel // Nivel de datos disponible
+  missingDataSources: string[] // Fuentes de datos faltantes
   summary?: string // Resumen del Pasante AI (on-demand)
   freeTextData?: {
     eventNotes: string[]
     chatMessages: string[]
   }
+  // Survey completo aplanado para que el Pasante AI tenga acceso a TODOS los campos
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  surveyData?: Record<string, any>
 }
 
 // Input para validadores
@@ -161,7 +172,7 @@ export interface ValidationInput {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   events: Record<string, any>[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  plan: Record<string, any>
+  plan?: Record<string, any> | null
   chatMessages?: string[]
 }
 

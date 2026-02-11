@@ -231,6 +231,30 @@ export const ENVIRONMENTAL_FACTORS = {
     alertType: "alert" as const,
     available: true,
   },
+  maternalSleep: {
+    id: "maternalSleep",
+    name: "Sueno materno",
+    description: "Si la mama puede dormir cuando el bebe duerme",
+    surveyField: "maternalSleep", // mama.puedeDormir del survey
+    alertType: "alert" as const,
+    available: true,
+  },
+  nighttimeSupport: {
+    id: "nighttimeSupport",
+    name: "Soporte nocturno",
+    description: "Quien atiende al bebe en la noche",
+    surveyField: "nighttimeSupport", // quienAtiende del survey
+    alertType: "warning" as const,
+    available: true,
+  },
+  householdMembers: {
+    id: "householdMembers",
+    name: "Miembros del hogar",
+    description: "Otras personas que viven en la casa",
+    surveyField: "householdMembers", // otrosResidentes del survey
+    alertType: "warning" as const,
+    available: true,
+  },
 } as const
 
 // Tipo para IDs de factores ambientales

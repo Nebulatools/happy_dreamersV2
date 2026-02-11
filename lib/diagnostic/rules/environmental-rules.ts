@@ -319,6 +319,119 @@ function evaluateRoomSharing(
   }
 }
 
+// Evaluar si la mama puede dormir cuando el bebe duerme (estres materno)
+function evaluateMaternalSleep(
+  surveyData: Record<string, unknown>
+): CriterionResult {
+  const factor = ENVIRONMENTAL_FACTORS.maternalSleep
+  const value = surveyData?.[factor.surveyField]
+
+  if (value === undefined || value === null) {
+    return {
+      id: "g4_maternal_sleep",
+      name: factor.name,
+      status: "warning",
+      value: null,
+      expected: "Si",
+      message: "Dato de sueno materno no disponible",
+      sourceType: "survey",
+      sourceField: factor.surveyField,
+      dataAvailable: false,
+    }
+  }
+
+  // Detectar si la mama NO puede dormir (indicador de estres)
+  let canSleep = true
+  if (typeof value === "boolean") {
+    canSleep = value
+  } else if (typeof value === "string") {
+    const normalized = value.toLowerCase().trim()
+    canSleep = !["no", "false", "0", "nunca"].includes(normalized)
+  }
+
+  return {
+    id: "g4_maternal_sleep",
+    name: factor.name,
+    status: canSleep ? "ok" : "alert",
+    value: canSleep ? "Si puede dormir" : "No puede dormir",
+    expected: "Si",
+    message: canSleep
+      ? "La mama puede dormir cuando el bebe duerme"
+      : "La mama NO puede dormir cuando el bebe duerme. Indicador de estres/agotamiento materno.",
+    sourceType: "survey",
+    sourceField: factor.surveyField,
+    dataAvailable: true,
+  }
+}
+
+// Evaluar soporte nocturno (quien atiende al bebe en la noche)
+function evaluateNighttimeSupport(
+  surveyData: Record<string, unknown>
+): CriterionResult {
+  const factor = ENVIRONMENTAL_FACTORS.nighttimeSupport
+  const value = surveyData?.[factor.surveyField]
+
+  if (!value || (typeof value === "string" && value.trim() === "")) {
+    return {
+      id: "g4_nighttime_support",
+      name: factor.name,
+      status: "warning",
+      value: null,
+      expected: "Registrado",
+      message: "Sin dato de quien atiende al bebe de noche",
+      sourceType: "survey",
+      sourceField: factor.surveyField,
+      dataAvailable: false,
+    }
+  }
+
+  return {
+    id: "g4_nighttime_support",
+    name: factor.name,
+    status: "ok",
+    value: String(value),
+    expected: "Registrado",
+    message: `Atencion nocturna: ${value}`,
+    sourceType: "survey",
+    sourceField: factor.surveyField,
+    dataAvailable: true,
+  }
+}
+
+// Evaluar miembros del hogar (potenciales disrupciones)
+function evaluateHouseholdMembers(
+  surveyData: Record<string, unknown>
+): CriterionResult {
+  const factor = ENVIRONMENTAL_FACTORS.householdMembers
+  const value = surveyData?.[factor.surveyField]
+
+  if (!value || (typeof value === "string" && value.trim() === "")) {
+    return {
+      id: "g4_household_members",
+      name: factor.name,
+      status: "ok",
+      value: null,
+      expected: "Registrado",
+      message: "Sin dato de otros residentes",
+      sourceType: "survey",
+      sourceField: factor.surveyField,
+      dataAvailable: false,
+    }
+  }
+
+  return {
+    id: "g4_household_members",
+    name: factor.name,
+    status: "ok",
+    value: String(value),
+    expected: "Registrado",
+    message: `Otros residentes: ${value}`,
+    sourceType: "survey",
+    sourceField: factor.surveyField,
+    dataAvailable: true,
+  }
+}
+
 // Evaluar cambios importantes recientes
 function evaluateRecentChanges(
   surveyData: Record<string, unknown>,
@@ -448,6 +561,9 @@ export function validateEnvironmentalFactors(
     recentEventNotes,
     chatMessages
   )
+  const maternalSleep = evaluateMaternalSleep(surveyData)
+  const nighttimeSupport = evaluateNighttimeSupport(surveyData)
+  const householdMembers = evaluateHouseholdMembers(surveyData)
 
   // Agrupar factores
   const factors = {
@@ -458,6 +574,9 @@ export function validateEnvironmentalFactors(
     cosleeping,
     roomSharing,
     recentChanges,
+    maternalSleep,
+    nighttimeSupport,
+    householdMembers,
   }
 
   // Construir array de criterios

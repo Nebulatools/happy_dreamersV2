@@ -27,8 +27,10 @@ import {
 export interface ScheduleValidationInput {
   events: SleepEvent[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  plan: Record<string, any>
+  plan: Record<string, any> | null
   childAgeMonths: number
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  surveyData?: Record<string, any> // Fallback para horaDormir/horaDespertar si no hay plan
 }
 
 // Resultado de validacion G1
@@ -144,23 +146,32 @@ function validateMinimumWakeTime(wakeTime: string): CriterionResult {
 function validateWakeDeviation(
   actualWakeTime: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  plan: Record<string, any>
+  plan: Record<string, any> | null,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  surveyData?: Record<string, any>
 ): CriterionResult {
   // Extraer hora de despertar del plan (puede estar en diferentes campos)
-  const planWakeTime =
+  let expectedWakeTime =
     plan?.schedule?.wakeTime ||
     plan?.wakeTime ||
     plan?.morningWake ||
     plan?.despierta
 
-  if (!planWakeTime) {
+  // Fallback: usar horaDespertar del survey si no hay plan
+  let sourceLabel = "plan"
+  if (!expectedWakeTime && surveyData?.horaDespertar) {
+    expectedWakeTime = surveyData.horaDespertar
+    sourceLabel = "encuesta"
+  }
+
+  if (!expectedWakeTime) {
     return {
       id: "g1_wake_deviation",
-      name: "Desviacion despertar vs plan",
+      name: "Desviacion despertar vs referencia",
       status: "warning",
       value: actualWakeTime,
       expected: null,
-      message: "No hay hora de despertar definida en el plan",
+      message: "No hay hora de despertar definida en el plan ni en la encuesta",
       sourceType: "plan",
       dataAvailable: false,
     }
@@ -169,29 +180,30 @@ function validateWakeDeviation(
   if (!actualWakeTime || actualWakeTime === "--:--") {
     return {
       id: "g1_wake_deviation",
-      name: "Desviacion despertar vs plan",
+      name: "Desviacion despertar vs referencia",
       status: "warning",
       value: null,
-      expected: planWakeTime,
+      expected: expectedWakeTime,
       message: "Sin datos de despertar registrados",
       sourceType: "calculated",
       dataAvailable: false,
     }
   }
 
-  const deviationMinutes = getTimeDeviationMinutes(actualWakeTime, planWakeTime)
+  const deviationMinutes = getTimeDeviationMinutes(actualWakeTime, expectedWakeTime)
   const status = getStatusFromDeviation(deviationMinutes)
+  const refLabel = sourceLabel === "encuesta" ? "encuesta" : "plan"
 
   return {
     id: "g1_wake_deviation",
-    name: "Desviacion despertar vs plan",
+    name: "Desviacion despertar vs referencia",
     status,
     value: actualWakeTime,
-    expected: planWakeTime,
+    expected: expectedWakeTime,
     message:
       deviationMinutes <= WAKE_TOLERANCE_MINUTES
-        ? `Despertar dentro de tolerancia (±${WAKE_TOLERANCE_MINUTES} min)`
-        : `Desviacion de ${deviationMinutes} min respecto al plan (${planWakeTime})`,
+        ? `Despertar dentro de tolerancia (±${WAKE_TOLERANCE_MINUTES} min, ref: ${refLabel})`
+        : `Desviacion de ${deviationMinutes} min respecto al ${refLabel} (${expectedWakeTime})`,
     sourceType: "calculated",
     dataAvailable: true,
   }
@@ -376,24 +388,33 @@ function validateNapDuration(
 function validateBedtime(
   events: SleepEvent[],
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  plan: Record<string, any>
+  plan: Record<string, any> | null,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  surveyData?: Record<string, any>
 ): CriterionResult {
   // Extraer hora de bedtime del plan
-  const planBedtime =
+  let expectedBedtime =
     plan?.schedule?.bedtime || plan?.bedtime || plan?.acostarse
+
+  // Fallback: usar horaDormir del survey si no hay plan
+  let sourceLabel = "plan"
+  if (!expectedBedtime && surveyData?.horaDormir) {
+    expectedBedtime = surveyData.horaDormir
+    sourceLabel = "encuesta"
+  }
 
   // Obtener hora promedio de acostarse de los eventos
   const stats = processSleepStatistics(events)
   const actualBedtime = stats.avgBedtime
 
-  if (!planBedtime) {
+  if (!expectedBedtime) {
     return {
       id: "g1_bedtime",
-      name: "Hora de acostarse",
+      name: "Hora de acostarse vs referencia",
       status: "warning",
       value: actualBedtime,
       expected: null,
-      message: "No hay hora de acostarse definida en el plan",
+      message: "No hay hora de acostarse definida en el plan ni en la encuesta",
       sourceType: "plan",
       dataAvailable: false,
     }
@@ -402,29 +423,30 @@ function validateBedtime(
   if (!actualBedtime || actualBedtime === "--:--") {
     return {
       id: "g1_bedtime",
-      name: "Hora de acostarse",
+      name: "Hora de acostarse vs referencia",
       status: "warning",
       value: null,
-      expected: planBedtime,
+      expected: expectedBedtime,
       message: "Sin datos de hora de acostarse",
       sourceType: "calculated",
       dataAvailable: false,
     }
   }
 
-  const deviationMinutes = getTimeDeviationMinutes(actualBedtime, planBedtime)
+  const deviationMinutes = getTimeDeviationMinutes(actualBedtime, expectedBedtime)
   const status = getStatusFromDeviation(deviationMinutes, WAKE_TOLERANCE_MINUTES)
+  const refLabel = sourceLabel === "encuesta" ? "encuesta" : "plan"
 
   return {
     id: "g1_bedtime",
-    name: "Hora de acostarse",
+    name: "Hora de acostarse vs referencia",
     status,
     value: actualBedtime,
-    expected: planBedtime,
+    expected: expectedBedtime,
     message:
       deviationMinutes <= WAKE_TOLERANCE_MINUTES
-        ? `Hora de acostarse dentro de tolerancia`
-        : `Desviacion de ${deviationMinutes} min respecto al plan (${planBedtime})`,
+        ? `Hora de acostarse dentro de tolerancia (ref: ${refLabel})`
+        : `Desviacion de ${deviationMinutes} min respecto al ${refLabel} (${expectedBedtime})`,
     sourceType: "calculated",
     dataAvailable: true,
   }
@@ -704,18 +726,18 @@ function calculateDataCompleteness(
 export function validateSchedule(
   input: ScheduleValidationInput
 ): ScheduleValidationResult {
-  const { events, plan, childAgeMonths } = input
+  const { events, plan, childAgeMonths, surveyData } = input
 
   // Calcular hora de despertar promedio
   const actualWakeTime = calculateMorningWakeTime(events)
 
   // Ejecutar todas las validaciones
   const wakeMinimumResult = validateMinimumWakeTime(actualWakeTime)
-  const wakeDeviationResult = validateWakeDeviation(actualWakeTime, plan)
+  const wakeDeviationResult = validateWakeDeviation(actualWakeTime, plan, surveyData)
   const nightDurationResult = validateNightDuration(events, childAgeMonths)
   const napCountResult = validateNapCount(events, childAgeMonths)
   const napDurationResult = validateNapDuration(events, childAgeMonths)
-  const bedtimeResult = validateBedtime(events, plan)
+  const bedtimeResult = validateBedtime(events, plan, surveyData)
   const sleepWindowsResult = validateSleepWindows(events, childAgeMonths)
 
   const criteria: CriterionResult[] = [
@@ -737,6 +759,7 @@ export function validateSchedule(
     plan?.wakeTime ||
     plan?.morningWake ||
     plan?.despierta ||
+    surveyData?.horaDespertar ||
     "--:--"
 
   const deviationMinutes = getTimeDeviationMinutes(actualWakeTime, planWakeTime)

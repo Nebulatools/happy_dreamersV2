@@ -31,6 +31,85 @@ export interface PasanteContext {
   }
 }
 
+// Etiquetas legibles para campos del survey (espanol)
+// Permite que el AI vea nombres descriptivos en lugar de keys programaticos
+const SURVEY_FIELD_LABELS: Record<string, string> = {
+  // Informacion familiar
+  nombrePapa: "Nombre del papa",
+  nombreMama: "Nombre de la mama",
+  edadPapa: "Edad del papa",
+  edadMama: "Edad de la mama",
+  ocupacionPapa: "Ocupacion del papa",
+  ocupacionMama: "Ocupacion de la mama",
+  tieneAlergias: "Tiene alergias",
+  detalleAlergias: "Detalle de alergias",
+  alergiasPadres: "Alergias en los padres",
+  pensamientosNegativos: "Pensamientos negativos (mama)",
+  postpartumDepression: "Indicador depresion post-parto",
+  puedeDormir: "Mama puede dormir cuando bebe duerme",
+  maternalSleep: "Sueno materno",
+
+  // Dinamica familiar
+  quienAtiende: "Quien atiende al bebe en la noche",
+  nighttimeSupport: "Soporte nocturno",
+  otrosResidentes: "Otros residentes en la casa",
+  householdMembers: "Miembros del hogar",
+  redApoyo: "Red de apoyo",
+  quienCuida: "Quien cuida al bebe normalmente",
+
+  // Historial
+  problemaSueno: "Problema principal de sueno",
+  desdeEdad: "Desde que edad tiene el problema",
+  intentosPrevios: "Intentos previos de solucion",
+  principalPreocupacion: "Principal preocupacion",
+  recentChanges: "Cambios importantes recientes",
+
+  // Desarrollo y salud
+  reflujoColicos: "Reflujo o colicos",
+  ronquidos: "Ronca al dormir",
+  piernasInquietas: "Piernas inquietas",
+  congestionNasal: "Congestion nasal frecuente",
+  alergias: "Alergias del nino",
+  medicamentos: "Medicamentos actuales",
+  pesoHijo: "Peso del nino (kg)",
+  percentilPeso: "Percentil de peso",
+  tallaHijo: "Talla del nino",
+
+  // Alimentacion
+  alimentacion: "Tipo de alimentacion (pecho/biberon/mixta)",
+  comeSolidos: "Come solidos",
+  edadInicioSolidos: "Edad de inicio de solidos",
+  comeVerduras: "Come verduras",
+  comeFrutas: "Come frutas",
+  comeProteinas: "Come proteinas",
+  comeCarbohidratos: "Come carbohidratos",
+
+  // Actividad fisica
+  actividadFisica: "Nivel de actividad fisica",
+  tiempoAireLibre: "Tiempo al aire libre",
+  screenTime: "Tiempo de pantalla (min/dia)",
+
+  // Rutina y habitos
+  horaDormir: "Hora de dormir habitual",
+  horaDespertar: "Hora de despertar habitual",
+  rutinaNocturna: "Tiene rutina nocturna",
+  detalleRutina: "Detalle de la rutina",
+  dondeDuerme: "Donde duerme",
+  sleepingArrangement: "Arreglo para dormir",
+  comparteHabitacion: "Comparte habitacion",
+  sharesRoom: "Comparte cuarto",
+  temperaturaCuarto: "Temperatura del cuarto",
+  roomTemperature: "Temperatura del cuarto (C)",
+  humedadHabitacion: "Humedad de la habitacion",
+  usaChupete: "Usa chupete/chupetero",
+  objetoTransicional: "Objeto de transicion",
+  numSiestas: "Numero de siestas",
+  duracionSiesta: "Duracion promedio de siesta",
+  despiertaNoche: "Se despierta en la noche",
+  vecesDespierta: "Veces que despierta por noche",
+  comoSeCalma: "Como se calma para dormir",
+}
+
 /**
  * Formatea la edad del nino para el prompt
  */
@@ -184,6 +263,92 @@ function buildFreeTextContext(freeTextData?: PasanteContext["freeTextData"]): st
 }
 
 /**
+ * Construye el contexto del survey completo para el prompt del AI
+ * Formatea los campos del survey con etiquetas legibles para que el modelo
+ * pueda analizar TODA la informacion del cuestionario, no solo alertas.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildSurveyContext(surveyData?: Record<string, any>): string {
+  if (!surveyData || Object.keys(surveyData).length === 0) {
+    return ""
+  }
+
+  const lines: string[] = []
+
+  for (const [key, value] of Object.entries(surveyData)) {
+    // Saltar valores nulos, undefined o vacios
+    if (value === null || value === undefined || value === "") continue
+
+    // Saltar objetos anidados complejos (ya fueron aplanados por flattenSurveyData)
+    if (typeof value === "object" && !Array.isArray(value)) continue
+
+    // Obtener etiqueta legible o usar el key como fallback
+    const label = SURVEY_FIELD_LABELS[key] || key
+
+    // Formatear el valor
+    let displayValue: string
+    if (Array.isArray(value)) {
+      displayValue = value.join(", ")
+    } else if (typeof value === "boolean") {
+      displayValue = value ? "Si" : "No"
+    } else {
+      displayValue = String(value)
+    }
+
+    lines.push(`- ${label}: ${displayValue}`)
+  }
+
+  if (lines.length === 0) return ""
+
+  return `\n\nDATOS COMPLETOS DEL CUESTIONARIO (${lines.length} campos):\n` + lines.join("\n")
+}
+
+/**
+ * Construye un resumen de TODOS los criterios evaluados (ok + warning + alert)
+ * para dar al AI la imagen completa, no solo las alertas
+ */
+function buildAllCriteriaContext(result: DiagnosticResult): string {
+  if (!result.groups) return ""
+
+  const sections: string[] = []
+  const groupNames: Record<string, string> = {
+    G1: "Horario",
+    G2: "Medico",
+    G3: "Alimentacion",
+    G4: "Ambiental",
+  }
+
+  for (const [groupId, groupName] of Object.entries(groupNames)) {
+    const group = result.groups[groupId as keyof typeof result.groups]
+    if (!group?.criteria || group.criteria.length === 0) continue
+
+    const statusIcons: Record<string, string> = {
+      ok: "[OK]",
+      warning: "[ATENCION]",
+      alert: "[ALERTA]",
+    }
+
+    const lines = group.criteria.map(c => {
+      const icon = statusIcons[c.status] || "[?]"
+      const available = c.dataAvailable ? "" : " (sin datos)"
+      return `  ${icon} ${c.name}: ${c.value ?? "N/A"}${available}`
+    })
+
+    const completeness = group.dataCompleteness
+      ? ` - Completitud: ${group.dataCompleteness.available}/${group.dataCompleteness.total}`
+      : ""
+
+    sections.push(
+      `${groupId} - ${groupName} (${group.status.toUpperCase()})${completeness}:\n${lines.join("\n")}`
+    )
+  }
+
+  if (sections.length === 0) return ""
+
+  return sections.join("\n\n")
+}
+
+/**
  * Genera el system prompt para el Pasante AI
  *
  * @param context - Contexto estructurado del nino y su diagnostico
@@ -191,11 +356,22 @@ function buildFreeTextContext(freeTextData?: PasanteContext["freeTextData"]): st
  */
 export function getPasanteSystemPrompt(context: PasanteContext): string {
   const ageFormatted = formatAge(context.childAgeMonths)
-  const diagnosticContext = buildDiagnosticContext(context.diagnosticResult)
+  const allCriteriaContext = buildAllCriteriaContext(context.diagnosticResult)
+  const diagnosticAlerts = buildDiagnosticContext(context.diagnosticResult)
+  const surveyContext = buildSurveyContext(context.diagnosticResult.surveyData)
   const freeTextContext = buildFreeTextContext(context.freeTextData)
   const hasFreeText = context.freeTextData &&
     ((context.freeTextData.eventNotes?.length || 0) > 0 ||
      (context.freeTextData.chatMessages?.length || 0) > 0)
+  const hasSurvey = !!surveyContext
+
+  // Nivel de datos disponible
+  const dataLevel = context.diagnosticResult.dataLevel
+  const dataLevelLabel = dataLevel === "full"
+    ? "Completo (encuesta + eventos + plan)"
+    : dataLevel === "survey_events"
+    ? "Parcial (encuesta + eventos, sin plan)"
+    : "Minimo (solo encuesta)"
 
   return `Eres el Pasante AI de Happy Dreamers, un asistente que ayuda a la Dra. Mariana
 a interpretar el diagnostico de sueno de los ninos.
@@ -205,17 +381,29 @@ PERFIL DEL PACIENTE:
 - Edad: ${ageFormatted}
 - Plan activo: Version ${context.planVersion} (${context.planStatus})
 - Eventos registrados: ${context.recentEventsCount} en los ultimos 7 dias
-- Datos de cuestionario: ${context.surveyDataAvailable ? "Disponibles" : "No disponibles"}
+- Nivel de datos: ${dataLevelLabel}
+${context.diagnosticResult.missingDataSources?.length > 0
+    ? `- Datos faltantes: ${context.diagnosticResult.missingDataSources.join(", ")}`
+    : "- Todos los datos disponibles"}
 
-DIAGNOSTICO ACTUAL:
-${diagnosticContext}
+EVALUACION COMPLETA POR GRUPO (todos los criterios evaluados):
+${allCriteriaContext}
+
+${diagnosticAlerts !== "No se detectaron alertas significativas en ninguno de los 4 grupos de validacion."
+    ? `\nALERTAS Y ADVERTENCIAS:\n${diagnosticAlerts}`
+    : "\nNo se detectaron alertas significativas."}
+${surveyContext}
 ${freeTextContext}
 
 TU MISION:
 1. Genera un RESUMEN DESCRIPTIVO que explique QUE esta pasando y POR QUE
-2. Cruza informacion entre los 4 grupos para encontrar patrones
+2. Cruza informacion entre los 4 grupos Y los datos del cuestionario para encontrar patrones
 3. Ofrece RECOMENDACIONES GENERALES de accion
-${hasFreeText ? `4. IMPORTANTE: Analiza el TEXTO LIBRE (notas y chat) para detectar:
+${hasSurvey ? `4. Usa los DATOS DEL CUESTIONARIO para enriquecer tu analisis:
+   - Correlaciona respuestas del cuestionario con alertas de los grupos
+   - Identifica factores de riesgo que los validadores automaticos no detectan
+   - Presta atencion a la dinamica familiar, red de apoyo, e historial del problema` : ""}
+${hasFreeText ? `${hasSurvey ? "5" : "4"}. IMPORTANTE: Analiza el TEXTO LIBRE (notas y chat) para detectar:
    - Sintomas medicos mencionados (vomitos, llanto al comer, piernas inquietas, etc.)
    - Cambios recientes en la familia (mudanza, hermanito, guarderia, viaje)
    - Patrones emocionales o de comportamiento
@@ -227,28 +415,16 @@ REGLAS ESTRICTAS:
 - NO uses lenguaje tecnico complejo
 - SI puedes sugerir que la doctora "considere revisar" o "evalue" algo
 - SI puedes explicar correlaciones entre grupos (ej: reflujo afecta sueno nocturno)
+${hasSurvey ? `- SI puedes mencionar datos relevantes del cuestionario que los validadores no capturan` : ""}
 ${hasFreeText ? `- SI encontraste algo relevante en el texto libre, mencionalo como "hallazgo del texto"` : ""}
-- Maximo 300 palabras
+- Maximo 400 palabras
 
 FORMATO DE RESPUESTA:
-Escribe en parrafos cortos (2-3 maximo).
-Primero describe la situacion.
+Escribe en parrafos cortos (2-4 maximo).
+Primero describe la situacion general.
+${hasSurvey ? `Si hay datos del cuestionario relevantes, integralos en tu analisis.` : ""}
 ${hasFreeText ? `Si hay hallazgos del texto libre, mencionalos en una seccion aparte: "Hallazgos del texto libre:"` : ""}
-Luego ofrece 2-3 recomendaciones generales como lista.
-
-EJEMPLO DE BUENA RESPUESTA:
-"El nino presenta un patron de siestas cortas (<45 min) combinado con despertares
-frecuentes en la segunda parte de la noche. Se detectaron indicadores de reflujo
-(vomito frecuente, congestion nasal) que podrian estar afectando la calidad del sueno.
-
-${hasFreeText ? `Hallazgos del texto libre:
-- La mama menciona que "vomita despues de cada biberon" (indicador de reflujo)
-- Se detecto mencion de "empezamos en guarderia" (cambio reciente relevante)
-
-` : ""}Recomendaciones generales:
-- Considera revisar las ventanas de vigilia, actualmente podrian ser cortas para su edad
-- El reflujo podria estar relacionado con los despertares nocturnos
-- Evalua si el patron de alimentacion nocturna esta conectado con los sintomas de reflujo"
+Luego ofrece 2-4 recomendaciones generales como lista.
 
 Responde en espanol. Se conciso y util.`
 }

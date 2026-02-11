@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, AlertCircle, ClipboardList } from "lucide-react"
+import { Loader2, AlertCircle, Info } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
@@ -30,7 +30,7 @@ interface DiagnosticPanelClientProps {
 }
 
 // Estados posibles del componente
-type ViewState = "loading" | "error" | "blocked" | "success"
+type ViewState = "loading" | "error" | "success"
 
 interface ChildData {
   _id: string
@@ -60,8 +60,7 @@ interface PlanData {
  * Estados:
  * - loading: cargando datos del diagnostico
  * - error: error al cargar (red de error, etc)
- * - blocked: nino sin plan activo
- * - success: diagnostico cargado correctamente
+ * - success: diagnostico cargado correctamente (parcial o completo)
  */
 export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClientProps) {
   const { toast } = useToast()
@@ -115,15 +114,6 @@ export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClient
 
         if (!response.ok) {
           const data = await response.json()
-
-          // Caso especial: sin plan activo
-          if (data.code === "NO_ACTIVE_PLAN") {
-            // Intentar cargar datos basicos del nino para mostrar algo
-            await fetchChildBasicData()
-            setViewState("blocked")
-            return
-          }
-
           throw new Error(data.error || "Error al cargar diagnostico")
         }
 
@@ -139,12 +129,16 @@ export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClient
           parentId: "", // No necesario para mostrar
         })
 
-        setPlanData({
-          planId: data.planId,
-          planVersion: data.planVersion,
-          status: "active",
-          startDate: undefined,
-        })
+        if (data.planId) {
+          setPlanData({
+            planId: data.planId,
+            planVersion: data.planVersion,
+            status: "active",
+            startDate: undefined,
+          })
+        } else {
+          setPlanData(null)
+        }
 
         // Determinar si tiene datos de survey
         // Basado en completeness de G2 y G4 que usan survey
@@ -162,25 +156,6 @@ export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClient
 
     fetchDiagnostic()
   }, [childId])
-
-  // Cargar datos basicos del nino (cuando no hay plan activo)
-  const fetchChildBasicData = async () => {
-    try {
-      // Intentar obtener datos basicos del nino
-      const response = await fetch(`/api/children/${childId}`)
-      if (response.ok) {
-        const data = await response.json()
-        setChildData(data.child || data)
-      }
-    } catch {
-      // Si falla, usar datos minimos
-      setChildData({
-        _id: childId,
-        firstName: "Nino",
-        parentId: "",
-      })
-    }
-  }
 
   // Handler para abrir modal de detalle
   const handleCriterionClick = (criterion: CriterionResult, groupTitle: string) => {
@@ -261,38 +236,6 @@ export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClient
     )
   }
 
-  // Estado: Blocked (sin plan activo)
-  if (viewState === "blocked") {
-    return (
-      <div className="container py-8 space-y-6">
-        {/* Header con datos basicos del nino */}
-        {childData && (
-          <ProfileHeader
-            child={childData}
-            plan={undefined}
-            surveyDataAvailable={false}
-            overallStatus="warning"
-          />
-        )}
-
-        {/* Mensaje de bloqueo */}
-        <Card className="max-w-lg mx-auto border-yellow-200 bg-yellow-50">
-          <CardContent className="py-12 text-center">
-            <ClipboardList className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
-            <h3 className="text-lg font-semibold text-yellow-800 mb-2">
-              Sin plan activo
-            </h3>
-            <p className="text-yellow-700 mb-6">
-              Este nino no tiene un plan de sueno activo.
-              Para ver el diagnostico, primero genera un plan.
-            </p>
-            <DiagnosticCTAs childId={childId} parentId={childData?.parentId} />
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   // Estado: Success (diagnostico cargado)
   if (viewState === "success" && diagnosticResult) {
     return (
@@ -310,6 +253,27 @@ export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClient
           criticalAlerts={criticalAlerts}
           overallStatus={diagnosticResult.overallStatus}
         />
+
+        {/* Banner de datos faltantes (diagnostico parcial) */}
+        {diagnosticResult.missingDataSources && diagnosticResult.missingDataSources.length > 0 && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="py-4">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-blue-800">
+                    Diagnostico parcial - Datos faltantes:
+                  </p>
+                  <ul className="mt-1 text-sm text-blue-700 list-disc list-inside">
+                    {diagnosticResult.missingDataSources.map((source: string, i: number) => (
+                      <li key={i}>{source}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Grid de grupos de validacion (2x2) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -352,8 +316,8 @@ export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClient
           childName={diagnosticResult.childName}
           childAgeMonths={diagnosticResult.childAgeMonths}
           diagnosticResult={diagnosticResult}
-          planVersion={diagnosticResult.planVersion}
-          planStatus="active"
+          planVersion={diagnosticResult.planVersion || "sin plan"}
+          planStatus={diagnosticResult.planId ? "active" : "sin plan"}
           recentEventsCount={diagnosticResult.groups.G1.criteria.length}
           surveyDataAvailable={surveyDataAvailable}
           freeTextData={diagnosticResult.freeTextData}
