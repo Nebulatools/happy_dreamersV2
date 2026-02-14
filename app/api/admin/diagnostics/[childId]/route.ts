@@ -42,6 +42,11 @@ function flattenSurveyData(raw: Record<string, any>): Record<string, any> {
     }
   }
 
+  // Pregunta 10 (problemasHijo) -> flag directo para validacion de reflujo
+  if (Array.isArray(flat.problemasHijo)) {
+    flat.reflujoColicos = flat.problemasHijo.includes("reflujo")
+  }
+
   // Mappings especiales para G4 (nombres de campo distintos al form)
   // roomTemperature <- temperaturaCuarto
   if (flat.temperaturaCuarto !== undefined) {

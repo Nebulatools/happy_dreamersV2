@@ -118,6 +118,26 @@ function evaluateCondition(
   surveyData: Record<string, unknown>,
   events: Record<string, unknown>[]
 ): ConditionEvaluation {
+  if (condition === "reflujo") {
+    const reflujoFlag = surveyData?.reflujoColicos
+    const reflujoExplicitNo = reflujoFlag === false ||
+      (typeof reflujoFlag === "string" && ["no", "ninguno", "false", "0"].includes(reflujoFlag.toLowerCase().trim()))
+    const reflujoDetails = surveyData?.reflujoDetails
+    const hasReflujoDetails = typeof reflujoDetails === "object" && reflujoDetails !== null &&
+      Object.values(reflujoDetails as Record<string, unknown>).some((value) => value === true)
+
+    if (reflujoExplicitNo && !hasReflujoDetails) {
+      return {
+        condition,
+        indicators: [],
+        detectedCount: 0,
+        pendingCount: 0,
+        availableCount: 0,
+        status: "ok",
+      }
+    }
+  }
+
   const configs = getIndicatorsForCondition(condition)
   const indicators: MedicalIndicator[] = []
   let detectedCount = 0
