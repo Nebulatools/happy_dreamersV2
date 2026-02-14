@@ -339,6 +339,69 @@ function validateNutritionGroups(
   }
 }
 
+function buildNoEventCriteria(
+  childAgeMonths: number
+): CriterionResult[] {
+  const rule = getNutritionRuleForAge(childAgeMonths)
+  const isFullStage = childAgeMonths >= 9
+  const requirements = isFullStage
+    ? MEAL_REQUIREMENTS.FULL_STAGE
+    : MEAL_REQUIREMENTS.EARLY_STAGE
+
+  return [
+    {
+      id: "g3_milk_count",
+      name: "Tomas de leche",
+      status: "warning",
+      value: null,
+      expected: rule.milkMinCount,
+      message: "Sin eventos de alimentacion del dia para validar conteo de leche",
+      sourceType: "event",
+      dataAvailable: false,
+    },
+    {
+      id: "g3_milk_limit",
+      name: "Limite de leche",
+      status: "warning",
+      value: null,
+      expected: rule.milkMaxOz,
+      message: "Sin eventos de alimentacion del dia para validar limite de leche",
+      sourceType: "calculated",
+      dataAvailable: false,
+    },
+    {
+      id: "g3_solid_count",
+      name: "Comidas solidas",
+      status: "warning",
+      value: null,
+      expected: rule.solidMinCount,
+      message: "Sin eventos de alimentacion del dia para validar comidas solidas",
+      sourceType: "event",
+      dataAvailable: false,
+    },
+    {
+      id: "g3_feeding_gap",
+      name: "Intervalo entre comidas",
+      status: "warning",
+      value: null,
+      expected: RED_FLAGS.MAX_FEEDING_GAP_HOURS,
+      message: "Sin eventos de alimentacion del dia para validar intervalos",
+      sourceType: "calculated",
+      dataAvailable: false,
+    },
+    {
+      id: "g3_nutrition_groups",
+      name: "Grupos nutricionales",
+      status: "warning",
+      value: null,
+      expected: `${requirements.required.join(", ")}${requirements.oneOf.length > 0 ? ` + (${requirements.oneOf.join(" o ")})` : ""}`,
+      message: "Sin eventos con clasificacion nutricional para validar grupos",
+      sourceType: "calculated",
+      dataAvailable: false,
+    },
+  ]
+}
+
 // ─────────────────────────────────────────────────────────
 // CRITERIOS DE SURVEY (Baseline nutricional)
 // ─────────────────────────────────────────────────────────
@@ -525,15 +588,19 @@ export function validateNutrition(
 
   // Grupos nutricionales cubiertos (de clasificaciones AI)
   const coveredGroups = extractCoveredGroups(aiClassifications)
+  const hasTodayFeedings = todayFeedings.length > 0
 
-  // Evaluar criterios de eventos
-  const criteria: CriterionResult[] = [
-    validateMilkCount(todayFeedings, childAgeMonths),
-    validateMilkLimit(todayFeedings, childAgeMonths),
-    validateSolidCount(todayFeedings, childAgeMonths),
-    validateFeedingGap(todayFeedings),
-    validateNutritionGroups(childAgeMonths, coveredGroups),
-  ]
+  // Evaluar criterios de eventos.
+  // Si no hay eventos del dia, degradar a warning/no data para evitar contradicciones con survey.
+  const criteria: CriterionResult[] = hasTodayFeedings
+    ? [
+      validateMilkCount(todayFeedings, childAgeMonths),
+      validateMilkLimit(todayFeedings, childAgeMonths),
+      validateSolidCount(todayFeedings, childAgeMonths),
+      validateFeedingGap(todayFeedings),
+      validateNutritionGroups(childAgeMonths, coveredGroups),
+    ]
+    : buildNoEventCriteria(childAgeMonths)
 
   // Agregar criterios de survey si hay datos disponibles
   if (surveyData && Object.keys(surveyData).length > 0) {
@@ -549,7 +616,7 @@ export function validateNutrition(
       overallStatus = "alert"
       break
     }
-    if (criterion.status === "warning" && overallStatus !== "alert") {
+    if (criterion.status === "warning" && overallStatus === "ok") {
       overallStatus = "warning"
     }
   }
@@ -580,8 +647,12 @@ export function validateNutrition(
   }
 
   // Status de leche y solidos
-  const milkStatus = getCountStatus(milkCount, rule.milkMinCount)
-  const solidStatus = getCountStatus(solidCount, rule.solidMinCount)
+  const milkStatus = hasTodayFeedings
+    ? getCountStatus(milkCount, rule.milkMinCount)
+    : "warning"
+  const solidStatus = hasTodayFeedings
+    ? getCountStatus(solidCount, rule.solidMinCount)
+    : "warning"
 
   return {
     groupId: "G3",

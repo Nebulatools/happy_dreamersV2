@@ -17,6 +17,76 @@ import { validateEnvironmentalFactors } from "@/lib/diagnostic/rules/environment
 
 const logger = createLogger("API:admin:diagnostics")
 
+function hasToken(values: unknown, token: string): boolean {
+  if (!Array.isArray(values)) return false
+  const normalizedToken = token.toLowerCase().trim()
+  return values.some((value) => (
+    typeof value === "string" && value.toLowerCase().trim() === normalizedToken
+  ))
+}
+
+function clockPartsToMinutes(
+  rawHour: string | undefined,
+  rawMinute: string | undefined,
+  rawMeridiem: string | undefined
+): number | undefined {
+  if (!rawHour) return undefined
+  const hourValue = Number(rawHour)
+  const minuteValue = rawMinute ? Number(rawMinute) : 0
+  if (!Number.isFinite(hourValue) || !Number.isFinite(minuteValue)) return undefined
+
+  let hour = hourValue
+  const meridiem = rawMeridiem?.toLowerCase()
+  if (meridiem === "pm" && hour < 12) hour += 12
+  if (meridiem === "am" && hour === 12) hour = 0
+  if (hour < 0 || hour > 23 || minuteValue < 0 || minuteValue > 59) return undefined
+
+  return hour * 60 + minuteValue
+}
+
+function parseMinutesFromText(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
+    return Math.round(value)
+  }
+  if (typeof value !== "string") return undefined
+
+  const text = value.trim().toLowerCase()
+  if (!text) return undefined
+  const normalized = text.replace(/,/g, ".")
+
+  const numericOnly = normalized.match(/^(\d+(?:\.\d+)?)$/)
+  if (numericOnly) {
+    const parsed = Number(numericOnly[1])
+    if (!Number.isFinite(parsed)) return undefined
+    return Math.round(parsed > 12 ? parsed : parsed * 60)
+  }
+
+  let minutes = 0
+  const hourMatches = normalized.matchAll(/(\d+(?:\.\d+)?)\s*(h|hr|hrs|hora|horas)\b/g)
+  for (const match of hourMatches) {
+    minutes += Math.round(Number(match[1]) * 60)
+  }
+  const minuteMatches = normalized.matchAll(/(\d+)\s*(m|min|mins|minuto|minutos)\b/g)
+  for (const match of minuteMatches) {
+    minutes += Number(match[1])
+  }
+  if (minutes > 0) return minutes
+
+  const rangeMatch = normalized.match(
+    /(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:a|hasta|-)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/
+  )
+  if (!rangeMatch) return undefined
+
+  const startMinutes = clockPartsToMinutes(rangeMatch[1], rangeMatch[2], rangeMatch[3])
+  const endMinutes = clockPartsToMinutes(rangeMatch[4], rangeMatch[5], rangeMatch[6] ?? rangeMatch[3])
+  if (startMinutes === undefined || endMinutes === undefined) return undefined
+
+  let diff = endMinutes - startMinutes
+  if (diff <= 0) diff += 24 * 60
+  if (diff <= 0 || diff > 16 * 60) return undefined
+  return diff
+}
+
 // Aplanar surveyData: los datos se guardan anidados por seccion
 // (ej: surveyData.desarrolloSalud.reflujoColicos) pero los motores
 // de validacion acceden de forma plana (ej: surveyData.reflujoColicos).
@@ -45,6 +115,60 @@ function flattenSurveyData(raw: Record<string, any>): Record<string, any> {
   // Pregunta 10 (problemasHijo) -> flag directo para validacion de reflujo
   if (Array.isArray(flat.problemasHijo)) {
     flat.reflujoColicos = flat.problemasHijo.includes("reflujo")
+  }
+
+  // Normalizacion de campos medicos desde checkboxes tokenizados del survey
+  // Evita falsos negativos por mismatch entre tokens (survey) y campos canónicos (diagnostico).
+  if (flat.ronca === undefined && hasToken(flat.problemasHijo, "ronca")) {
+    flat.ronca = true
+  }
+  if (flat.respiraBoca === undefined && hasToken(flat.problemasHijo, "respira-boca")) {
+    flat.respiraBoca = true
+  }
+  if (flat.sudoracionNocturna === undefined && hasToken(flat.problemasHijo, "transpira")) {
+    flat.sudoracionNocturna = true
+  }
+  if (flat.muchaPipiNoche === undefined && hasToken(flat.problemasHijo, "moja-cama")) {
+    flat.muchaPipiNoche = true
+  }
+  if (flat.pesadillasFinNoche === undefined && hasToken(flat.problemasHijo, "pesadillas")) {
+    flat.pesadillasFinNoche = true
+  }
+
+  if (flat.infeccionesOido === undefined && hasToken(flat.situacionesHijo, "infecciones-oido")) {
+    flat.infeccionesOido = true
+  }
+  if (
+    flat.congestionNasal === undefined &&
+    (hasToken(flat.situacionesHijo, "nariz-tapada") || hasToken(flat.situacionesHijo, "rinitis"))
+  ) {
+    flat.congestionNasal = true
+  }
+  if (flat.dermatitisEczema === undefined && hasToken(flat.situacionesHijo, "dermatitis")) {
+    flat.dermatitisEczema = true
+  }
+  if (flat.irritable === undefined && raw.actividadFisica?.signosIrritabilidad !== undefined) {
+    flat.irritable = raw.actividadFisica.signosIrritabilidad === true
+  }
+
+  // Campos derivados desde texto cuando no hay captura estructurada explícita.
+  if (flat.tardaDormirse === undefined) {
+    const sleepOnsetMinutes = parseMinutesFromText(flat.tiempoDormir)
+    if (sleepOnsetMinutes !== undefined) {
+      flat.tardaDormirse = sleepOnsetMinutes > 30
+    }
+  }
+
+  if (flat.screenTime === undefined) {
+    const legacyMinutes = parseMinutesFromText(flat.pantallasTiempo)
+    const detailMinutes = parseMinutesFromText(flat.pantallasDetalle)
+    if (legacyMinutes !== undefined) {
+      flat.screenTime = legacyMinutes
+    } else if (detailMinutes !== undefined) {
+      flat.screenTime = detailMinutes
+    } else if (flat.vePantallas === false) {
+      flat.screenTime = 0
+    }
   }
 
   // Mappings especiales para G4 (nombres de campo distintos al form)

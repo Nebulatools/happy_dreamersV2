@@ -36,7 +36,19 @@ interface ConditionEvaluation {
   detectedCount: number
   pendingCount: number
   availableCount: number
+  missingDataNames: string[]
   status: StatusLevel
+}
+
+interface IndicatorConfig {
+  id: string
+  name: string
+  description: string
+  condition: MedicalCondition
+  surveyField?: string
+  eventCheck?: (events: Record<string, unknown>[]) => boolean
+  evaluator?: (value: unknown) => boolean
+  available: boolean
 }
 
 // ─────────────────────────────────────────────────────────
@@ -55,16 +67,7 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
 
 // Evaluar si un indicador esta detectado
 function evaluateIndicator(
-  config: {
-    id: string
-    name: string
-    description: string
-    condition: MedicalCondition
-    surveyField?: string
-    eventCheck?: (events: Record<string, unknown>[]) => boolean
-    evaluator?: (value: unknown) => boolean
-    available: boolean
-  },
+  config: IndicatorConfig,
   surveyData: Record<string, unknown>,
   events: Record<string, unknown>[]
 ): MedicalIndicator {
@@ -112,6 +115,40 @@ function evaluateIndicator(
   }
 }
 
+function hasSurveyValue(
+  config: IndicatorConfig,
+  surveyData: Record<string, unknown>
+): boolean {
+  if (!config.surveyField) return false
+
+  const value = config.surveyField.includes(".")
+    ? getNestedValue(surveyData, config.surveyField)
+    : surveyData?.[config.surveyField]
+
+  if (value === undefined || value === null) return false
+  if (typeof value === "string") return value.trim().length > 0
+  if (Array.isArray(value)) return value.length > 0
+  return true
+}
+
+function hasDataForIndicator(
+  config: IndicatorConfig,
+  surveyData: Record<string, unknown>,
+  events: Record<string, unknown>[]
+): boolean {
+  if (!config.available) return false
+
+  const surveyAvailable = hasSurveyValue(config, surveyData)
+  const eventAvailable = !!config.eventCheck && events.length > 0
+
+  if (config.surveyField && config.eventCheck) {
+    return surveyAvailable || eventAvailable
+  }
+  if (config.surveyField) return surveyAvailable
+  if (config.eventCheck) return eventAvailable
+  return false
+}
+
 // Evaluar todos los indicadores de una condicion
 function evaluateCondition(
   condition: MedicalCondition,
@@ -133,6 +170,7 @@ function evaluateCondition(
         detectedCount: 0,
         pendingCount: 0,
         availableCount: 0,
+        missingDataNames: [],
         status: "ok",
       }
     }
@@ -143,18 +181,27 @@ function evaluateCondition(
   let detectedCount = 0
   let pendingCount = 0
   let availableCount = 0
+  const missingDataNames: string[] = []
 
   for (const config of configs) {
     const indicator = evaluateIndicator(config, surveyData, events)
     indicators.push(indicator)
 
-    if (indicator.available) {
-      availableCount++
-      if (indicator.detected) {
-        detectedCount++
-      }
-    } else {
+    if (!indicator.available) {
       pendingCount++
+      continue
+    }
+
+    const hasData = hasDataForIndicator(config, surveyData, events)
+    if (!hasData) {
+      pendingCount++
+      missingDataNames.push(indicator.name)
+      continue
+    }
+
+    availableCount++
+    if (indicator.detected) {
+      detectedCount++
     }
   }
 
@@ -173,6 +220,7 @@ function evaluateCondition(
     detectedCount,
     pendingCount,
     availableCount,
+    missingDataNames,
     status,
   }
 }
@@ -217,20 +265,20 @@ function calculateMedicalDataCompleteness(
 ): DataCompleteness {
   let available = 0
   let total = 0
-  const pending: string[] = []
+  const pending = new Set<string>()
 
   for (const evaluation of evaluations) {
     for (const indicator of evaluation.indicators) {
       total++
-      if (indicator.available) {
-        available++
-      } else {
-        pending.push(indicator.name)
-      }
+      if (!indicator.available) pending.add(indicator.name)
+    }
+    available += evaluation.availableCount
+    for (const missingDataName of evaluation.missingDataNames) {
+      pending.add(missingDataName)
     }
   }
 
-  return { available, total, pending }
+  return { available, total, pending: Array.from(pending) }
 }
 
 // Determinar status general del grupo
@@ -329,12 +377,14 @@ export function validateMedicalIndicators(
 // HELPERS PUBLICOS
 // ─────────────────────────────────────────────────────────
 
-// Obtener conteo de indicadores por condicion (para UI)
-export function getMedicalIndicatorCounts(): {
+type MedicalIndicatorCounts = {
   reflujo: { available: number; total: number }
   apnea: { available: number; total: number }
   restless_leg: { available: number; total: number }
-} {
+}
+
+// Obtener conteo de indicadores por condicion (para UI)
+export function getMedicalIndicatorCounts(): MedicalIndicatorCounts {
   return {
     reflujo: {
       available: REFLUX_INDICATORS.filter((i) => i.available).length,
