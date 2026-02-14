@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+import { withSentryConfig } from "@sentry/nextjs"
+
 const nativeMongoDeps = [
   "snappy",
   "@mongodb-js/zstd",
@@ -110,4 +112,15 @@ const nextConfig = {
   },
 }
 
-export default nextConfig
+const sentryWebpackPluginOptions = {
+  silent: true,
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+}
+
+export default withSentryConfig(nextConfig, sentryWebpackPluginOptions, {
+  widenClientFileUpload: true,
+  hideSourceMaps: true,
+  disableLogger: true,
+  automaticVercelMonitors: true,
+})

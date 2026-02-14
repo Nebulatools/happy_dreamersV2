@@ -55,6 +55,7 @@
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "1.1.6",
     "@react-pdf/renderer": "^4.3.0",
+    "@sentry/nextjs": "^10.38.0",
     "@types/mongoose": "^5.11.96",
     "@types/multer": "^1.4.12",
     "adm-zip": "^0.5.16",

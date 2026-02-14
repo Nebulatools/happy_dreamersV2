@@ -1,6 +1,8 @@
 // Servicio de logging profesional para reemplazar console.log
 // Previene la exposición de información sensible en producción
 
+import * as Sentry from "@sentry/nextjs"
+
 type LogLevel = "debug" | "info" | "warn" | "error"
 
 interface LogEntry {
@@ -86,7 +88,17 @@ class Logger {
       const logEntry = this.formatMessage("warn", message, this.sanitizeData(data))
       // eslint-disable-next-line no-console
       console.warn(`[${logEntry.timestamp}] [${logEntry.context}] WARN:`, message, data || "")
-      // TODO: Enviar a servicio de monitoreo en producción
+      if (!this.isDevelopment) {
+        Sentry.withScope((scope) => {
+          scope.setTag("logger.context", this.context)
+          scope.setLevel("warning")
+          scope.setContext("logger", {
+            message,
+            data: this.sanitizeData(data),
+          })
+          Sentry.captureMessage(message, "warning")
+        })
+      }
     }
   }
 
@@ -112,10 +124,21 @@ class Logger {
         // eslint-disable-next-line no-console
         console.error(`[${logEntry.timestamp}] [${logEntry.context}] ERROR:`, message, errorData || "")
         
-        // TODO: En producción, enviar a servicio de monitoreo (Sentry, etc.)
-        // if (!this.isDevelopment && typeof window === 'undefined') {
-        //   // Enviar a servicio de logging
-        // }
+        if (!this.isDevelopment) {
+          Sentry.withScope((scope) => {
+            scope.setTag("logger.context", this.context)
+            scope.setLevel("error")
+            scope.setContext("logger", {
+              message,
+              error: this.sanitizeData(errorData),
+            })
+            if (error instanceof Error) {
+              Sentry.captureException(error)
+            } else {
+              Sentry.captureMessage(message, "error")
+            }
+          })
+        }
       } catch (loggerError) {
         // Ultimate fallback if logger itself fails
         // eslint-disable-next-line no-console

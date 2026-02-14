@@ -4,7 +4,7 @@
 "use client"
 
 import Link from "next/link"
-import { useSession } from "next-auth/react"
+import { signOut, useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -25,15 +25,15 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { useRouter, usePathname } from "next/navigation"
-import { signOut } from "next-auth/react"
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { ChildSelector } from "@/components/dashboard/child-selector"
+import { BugCenter } from "@/components/support/BugCenter"
 import { usePageHeader } from "@/context/page-header-context"
 import { ChildAgeFromContext } from "@/components/ui/child-age-badge"
 import { Icons } from "@/components/icons"
-import { Video, FileText, Search, User, Baby, Loader2 } from "lucide-react"
+import { Video, Search, User, Baby, Loader2 } from "lucide-react"
 import { useActiveChild } from "@/context/active-child-context"
 import { useToast } from "@/hooks/use-toast"
 
@@ -511,6 +511,7 @@ export function Header() {
             </div>
 
             <div className="flex items-center justify-end gap-2 md:gap-3 w-full sm:w-auto sm:ml-auto">
+              <BugCenter />
               {notificationButton}
               {profileMenu}
             </div>

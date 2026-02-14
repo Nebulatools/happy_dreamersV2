@@ -4,6 +4,7 @@
 "use client"
 
 import React, { Component, ErrorInfo, ReactNode } from "react"
+import * as Sentry from "@sentry/nextjs"
 import { AlertTriangle, RefreshCw, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -173,10 +174,19 @@ class ErrorBoundary extends Component<Props, State> {
       onError(error, errorInfo)
     }
     
-    // En producción, aquí enviaríamos a un servicio de monitoreo como Sentry
+    // Reportar también a Sentry en producción para correlación y debugging remoto
     if (process.env.NODE_ENV === "production") {
-      // TODO: Integrar con servicio de monitoreo
-      // Sentry.captureException(error, { contexts: { react: errorInfo } })
+      Sentry.withScope((scope) => {
+        scope.setTag("feature", "error-boundary")
+        scope.setContext("react", {
+          componentStack: errorInfo.componentStack,
+        })
+        scope.setContext("boundary", {
+          context,
+          errorCount: this.state.errorCount + 1,
+        })
+        Sentry.captureException(error)
+      })
     }
   }
 
