@@ -4,14 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import * as Sentry from "@sentry/nextjs"
 import { useSession } from "next-auth/react"
 import { usePathname } from "next/navigation"
-import { AlertCircle, Bug, Camera, ClipboardCopy, RefreshCw, Send } from "lucide-react"
+import { Bug, Send } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Dialog,
   DialogContent,
@@ -374,19 +372,19 @@ export function BugCenter() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="max-w-2xl w-[95vw] max-h-[85vh] flex flex-col">
+        <DialogHeader className="shrink-0">
+          <DialogTitle className="flex items-center gap-2 text-base">
             <Bug className="h-5 w-5" /> Bug Center
           </DialogTitle>
-          <DialogDescription>
-            Describe el problema y comparte este diagnóstico. No necesitas abrir consola.
+          <DialogDescription className="text-xs">
+            Describe el problema. El contexto tecnico se adjunta automaticamente.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="bug-title">Qué pasó</Label>
+        <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+          <div className="space-y-1.5">
+            <Label htmlFor="bug-title" className="text-sm">Que paso</Label>
             <Input
               id="bug-title"
               placeholder="Ej. No aparecen transcripciones de Zoom"
@@ -395,98 +393,25 @@ export function BugCenter() {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="bug-description">Detalles</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="bug-description" className="text-sm">Detalles</Label>
             <Textarea
               id="bug-description"
-              placeholder="¿Qué esperabas que ocurriera y qué pasó realmente?"
+              placeholder="Que esperabas que ocurriera y que paso realmente?"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
-              className="min-h-24"
+              className="min-h-20 max-h-28 resize-none"
             />
           </div>
 
-          <div className="rounded-md border p-3 text-sm">
-            <p className="font-medium">Contexto automático</p>
-            <p className="text-muted-foreground mt-1">Ruta: {pathname || "unknown"}</p>
-            <p className="text-muted-foreground">Rol: {role || "unknown"}</p>
-            <p className="text-muted-foreground">Usuario: {session?.user?.id || "unknown"}</p>
-            <p className="text-muted-foreground">TraceIds detectados: {allTraceIds.length || 0}</p>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Diagnóstico técnico</Label>
-              <Button variant="outline" size="sm" onClick={() => void loadServerContext()} disabled={loadingContext}>
-                <RefreshCw className={`h-4 w-4 mr-1 ${loadingContext ? "animate-spin" : ""}`} />
-                Refrescar
-              </Button>
-            </div>
-
-            <ScrollArea className="h-64 rounded-md border p-2">
-              <div className="space-y-2">
-                {serverLogs.slice(0, MAX_SERVER_LOGS).map((log) => (
-                  <div key={log._id} className="rounded border p-2 text-xs">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">{log.source}</Badge>
-                      <Badge variant={log.level === "error" ? "destructive" : "secondary"}>{log.level}</Badge>
-                      <span className="text-muted-foreground">{new Date(log.createdAt).toLocaleString("es-ES")}</span>
-                    </div>
-                    <p className="mt-1 font-medium">{log.message}</p>
-                    <p className="text-muted-foreground">traceId: {log.traceId}</p>
-                    {(log.endpoint || log.statusCode) && (
-                      <p className="text-muted-foreground">
-                        {log.endpoint || "(sin endpoint)"} {log.statusCode ? `· ${log.statusCode}` : ""}
-                      </p>
-                    )}
-                  </div>
-                ))}
-
-                {clientLogs.slice(0, MAX_CLIENT_ERRORS).map((log) => (
-                  <div key={log.id} className="rounded border border-amber-300 p-2 text-xs bg-amber-50/40">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">client</Badge>
-                      <Badge variant="secondary">{log.type}</Badge>
-                      <span className="text-muted-foreground">{new Date(log.timestamp).toLocaleString("es-ES")}</span>
-                    </div>
-                    <p className="mt-1 font-medium">{log.message}</p>
-                    {log.traceId && <p className="text-muted-foreground">traceId: {log.traceId}</p>}
-                    {(log.endpoint || log.statusCode) && (
-                      <p className="text-muted-foreground">
-                        {log.endpoint || "(sin endpoint)"} {log.statusCode ? `· ${log.statusCode}` : ""}
-                      </p>
-                    )}
-                  </div>
-                ))}
-
-                {serverLogs.length === 0 && clientLogs.length === 0 && (
-                  <p className="text-sm text-muted-foreground p-2">No hay errores recientes en el buffer.</p>
-                )}
-              </div>
-            </ScrollArea>
-          </div>
-
-          <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900 flex gap-2">
-            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-            <p>
-              Recomendación: toma screenshot de este modal y envía también el texto copiado con el botón{" "}
-              <strong>Copiar diagnóstico</strong>.
-            </p>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            Se adjuntara informacion tecnica automaticamente para ayudar a resolver el problema.
+          </p>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-2">
-          <Button variant="outline" onClick={copyDiagnostic}>
-            <ClipboardCopy className="h-4 w-4 mr-2" /> Copiar diagnóstico
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => toast({ title: "Captura", description: "Toma screenshot de este modal y compártelo en soporte." })}
-          >
-            <Camera className="h-4 w-4 mr-2" /> Capturar pantalla
-          </Button>
-          <Button onClick={() => void submitReport()} disabled={submitting}>
-            <Send className="h-4 w-4 mr-2" /> {submitting ? "Enviando..." : "Enviar reporte"}
+        <DialogFooter className="shrink-0 pt-3 border-t">
+          <Button className="w-full" onClick={() => void submitReport()} disabled={submitting}>
+            <Send className="h-4 w-4 mr-1.5" /> {submitting ? "Enviando..." : "Enviar reporte"}
           </Button>
         </DialogFooter>
       </DialogContent>
