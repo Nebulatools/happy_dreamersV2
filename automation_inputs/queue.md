@@ -1,0 +1,1743 @@
+# HD Task Queue Snapshot
+
+- generated_at: 2026-02-14T21:21:59.818Z
+- tasks_count: 14
+- snapshot_dir: /Users/rogelioguz/Documents/Code House/Activos/Mira/automation_exports/hd_queue/2026-02-14T21-21-51-468Z
+- evidence_dir: /Users/rogelioguz/Documents/Code House/Activos/Mira/automation_exports/hd_queue/2026-02-14T21-21-51-468Z/evidence
+
+## Machine Queue JSON
+
+```json
+{
+  "version": 1,
+  "generated_at": "2026-02-14T21:21:59.818Z",
+  "source": "mira",
+  "exporter": "scripts/automation/hd-task-export.js",
+  "snapshot_dir": "/Users/rogelioguz/Documents/Code House/Activos/Mira/automation_exports/hd_queue/2026-02-14T21-21-51-468Z",
+  "evidence_dir": "/Users/rogelioguz/Documents/Code House/Activos/Mira/automation_exports/hd_queue/2026-02-14T21-21-51-468Z/evidence",
+  "tasks": [
+    {
+      "id": "9bb611d9-7fd6-4a8c-a2ab-1951a5a76fa4",
+      "queue_status": "pending",
+      "current_status": "backlog",
+      "title": "HD - Alucinacion y lenguaje en analisis de pasante",
+      "description": "# [TIPO: Bug/Refactor] Ajuste de precisión y terminología en el Análisis del Pasante\n\n## 🎯 Objetivo / User Story\nComo Administradora, quiero que el análisis generado por la IA sea técnicamente preciso, use los títulos profesionales correctos y no invente síntomas médicos (falsos positivos) para mantener la credibilidad del diagnóstico.\n\n## Ubicación Exacta \nMódulo de Análisis Automático (Pasante de IA) - Sección de \"Situación General\" y \"Cruce por Grupos\".\n\n## 📋 Criterios de Aceptación (DoD)\n- [ ] **Precisión de Conceptos:** Diferenciar claramente entre:\n    - **Despertares al inicio de la noche:** (Primeras horas tras acostarse).\n    - **Early Rising:** (Despertares muy temprano por la mañana, ej. 5:00 AM).\n    - *Acción:* El pasante debe ser específico y no usar términos ambiguos como \"despertares tempranos\".\n- [ ] **Corrección de Título Profesional:** - *Acción:* Eliminar el término \"Dra.\" o \"Doctora\" asociado a Mariana. Sustituir por \"Mariana\" o el título profesional correspondiente (ej. Especialista en Sueño).\n- [ ] **Eliminación de Falsos Positivos Médicos (Reflujo):**\n    - *Problema:* El pasante indica síntomas de reflujo que no están en el cuestionario (ver `image_f52603.jpg` donde marca 1 alerta de reflujo).\n    - *Acción:* Revisar el mapeo de la Pregunta 10 del cuestionario de salud. Si el usuario no marcó \"Reflujo\", el pasante NO debe mencionarlo ni sugerir sospechas.\n- [ ] **Validación de Datos Reales:** Asegurar que el pasante reconozca que \"3 comidas\" es el dato correcto si así se indicó, en lugar de marcar \"Sólidos 0\".\n\n## ⚙️ Notas Técnicas / Contexto\n* **Imagen de Referencia:** En `image_f53126.jpg` se resalta el texto confuso sobre despertares. \n* Es fundamental ajustar el *system prompt* de la IA para que sea más conservador: si no hay evidencia directa en el cuestionario, no debe inferir condiciones médicas como el reflujo.",
+      "area": "desarrollo",
+      "assignee_id": "user_38JfBDoDDUokHOKqc9qRnBmZ02i",
+      "assignee_name": "Rogelio Guzmán",
+      "assignee_email": "roger@ezyai.pro",
+      "creator_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+      "creator_name": "Andres Treviño",
+      "creator_email": "atz@ezyai.pro",
+      "is_critical": false,
+      "progress": 0,
+      "blocker_reason": null,
+      "completion_notes": null,
+      "completion_links": [],
+      "mentions": [],
+      "due_date": null,
+      "started_at": null,
+      "completed_at": null,
+      "created_at": "2026-02-14T04:42:54.714Z",
+      "updated_at": "2026-02-14T04:42:54.714Z",
+      "parent_task_id": null,
+      "attachments": [
+        {
+          "id": "2231b2c1-5906-476b-91b5-4398854c2798",
+          "task_id": "9bb611d9-7fd6-4a8c-a2ab-1951a5a76fa4",
+          "drive_file_id": "1vxWBZq4pMiqj0HNcw0wKMLeCN8zmcr0Z",
+          "name": "WhatsApp Image 2026-02-12 at 13.54.22.jpeg",
+          "mime_type": "image/jpeg",
+          "size_bytes": 249549,
+          "uploaded_by": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "uploaded_by_name": "Andres Treviño",
+          "uploaded_by_email": "atz@ezyai.pro",
+          "uploaded_at": "2026-02-14T04:42:57.648Z",
+          "evidence_relative_path": "evidence/9bb611d9-7fd6-4a8c-a2ab-1951a5a76fa4/2231b2c1-5906-476b-91b5-4398854c2798-WhatsApp_Image_2026-02-12_at_13.54.22.jpeg"
+        }
+      ],
+      "activity": [
+        {
+          "id": "f16fcda0-ec9c-4069-ab1f-894d41a56c1e",
+          "task_id": "9bb611d9-7fd6-4a8c-a2ab-1951a5a76fa4",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "created",
+          "metadata": {
+            "title": "HD - Alucinacion y lenguaje en analisis de pasante",
+            "mentions": null,
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-14T04:42:54.714Z"
+        },
+        {
+          "id": "73d305a1-5fd0-43f2-b72f-7e644579dcfc",
+          "task_id": "9bb611d9-7fd6-4a8c-a2ab-1951a5a76fa4",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "assigned",
+          "metadata": {
+            "taskTitle": "HD - Alucinacion y lenguaje en analisis de pasante",
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-14T04:42:54.714Z"
+        }
+      ]
+    },
+    {
+      "id": "5bc11180-7ba4-4c43-ab3b-89668aa56eb7",
+      "queue_status": "pending",
+      "current_status": "backlog",
+      "title": "HD - UX de detalle desplegable",
+      "description": "# [TIPO: UI/UX] Desglose de síntomas mediante Acordeón en Dashboard\n\n## 🎯 Objetivo / User Story\nComo Administradora, quiero poder desplegar el detalle de cada sección del diagnóstico (Horario, Alimentación, Salud, etc.) para ver exactamente qué respuestas del cuestionario o de la bitácora están activando las alertas o avisos.\n\n## Ubicación Exacta \nTarjetas de indicadores en el Dashboard de Diagnóstico (ejemplo: `image_f4d008.jpg`).\n\n## 📋 Criterios de Aceptación (DoD)\n- [ ] **Interacción de Acordeón:** Al hacer clic en el encabezado de una tarjeta (ej: \"Alimentación\"), esta debe expandirse hacia abajo con una animación fluida.\n- [ ] **Desglose de Síntomas:** Dentro del área expandida, se deben enlistar los \"síntomas\" o respuestas específicas. \n    - Ejemplo en Salud: Mostrar \"Patalea mucho\", \"Mueve las piernas\", \"Nivel de Ferritina: 45 (10/02/26)\".\n- [ ] **Estado Visual:** Mantener los iconos de alerta (rojo) o aviso (amarillo) junto a cada síntoma individual para identificar rápidamente el problema.\n- [ ] **Cierre automático:** Opcional: Al abrir un acordeón, se puede configurar para que se cierre el anterior y mantener la pantalla limpia.\n- [ ] **Consistencia:** Este comportamiento debe ser igual para todas las secciones del diagnóstico.\n\n## ⚙️ Notas Técnicas / Contexto\n* Los datos deben ser \"vivos\"; es decir, si Mariana edita una respuesta en el cuestionario, el detalle del acordeón debe reflejar el cambio.\n* Evitar que el despliegue del acordeón empuje elementos fuera de la pantalla de forma brusca; usar `transition: max-height`.",
+      "area": "desarrollo",
+      "assignee_id": "user_38JfBDoDDUokHOKqc9qRnBmZ02i",
+      "assignee_name": "Rogelio Guzmán",
+      "assignee_email": "roger@ezyai.pro",
+      "creator_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+      "creator_name": "Andres Treviño",
+      "creator_email": "atz@ezyai.pro",
+      "is_critical": false,
+      "progress": 0,
+      "blocker_reason": null,
+      "completion_notes": null,
+      "completion_links": [],
+      "mentions": [],
+      "due_date": null,
+      "started_at": null,
+      "completed_at": null,
+      "created_at": "2026-02-14T04:38:11.369Z",
+      "updated_at": "2026-02-14T04:38:24.949Z",
+      "parent_task_id": null,
+      "attachments": [
+        {
+          "id": "7774bdc2-aaec-4fbd-a363-3ba0035b6166",
+          "task_id": "5bc11180-7ba4-4c43-ab3b-89668aa56eb7",
+          "drive_file_id": "1cMOLcrjfZWQW4spywsqB6AEsC5FBRRuE",
+          "name": "WhatsApp Image 2026-02-12 at 13.50.35.jpeg",
+          "mime_type": "image/jpeg",
+          "size_bytes": 199000,
+          "uploaded_by": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "uploaded_by_name": "Andres Treviño",
+          "uploaded_by_email": "atz@ezyai.pro",
+          "uploaded_at": "2026-02-14T04:38:14.311Z",
+          "evidence_relative_path": "evidence/5bc11180-7ba4-4c43-ab3b-89668aa56eb7/7774bdc2-aaec-4fbd-a363-3ba0035b6166-WhatsApp_Image_2026-02-12_at_13.50.35.jpeg"
+        },
+        {
+          "id": "e428f540-b422-44d0-8b5a-67f1bb348deb",
+          "task_id": "5bc11180-7ba4-4c43-ab3b-89668aa56eb7",
+          "drive_file_id": "1hH7ZW6whK42-f6R1Wq15LR2rw1ljc2qW",
+          "name": "WhatsApp Image 2026-02-12 at 13.51.05.jpeg",
+          "mime_type": "image/jpeg",
+          "size_bytes": 177377,
+          "uploaded_by": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "uploaded_by_name": "Andres Treviño",
+          "uploaded_by_email": "atz@ezyai.pro",
+          "uploaded_at": "2026-02-14T04:38:16.404Z",
+          "evidence_relative_path": "evidence/5bc11180-7ba4-4c43-ab3b-89668aa56eb7/e428f540-b422-44d0-8b5a-67f1bb348deb-WhatsApp_Image_2026-02-12_at_13.51.05.jpeg"
+        }
+      ],
+      "activity": [
+        {
+          "id": "ad6a2fa7-4109-4d3d-aee2-2feb65c87d4d",
+          "task_id": "5bc11180-7ba4-4c43-ab3b-89668aa56eb7",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "created",
+          "metadata": {
+            "title": "HD - UX de detalle desplegable",
+            "mentions": null,
+            "assigneeId": null
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-14T04:38:11.369Z"
+        },
+        {
+          "id": "4fbeae85-e8e0-42c6-b31c-8d0f7560d3c8",
+          "task_id": "5bc11180-7ba4-4c43-ab3b-89668aa56eb7",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "assigned",
+          "metadata": {
+            "taskTitle": "HD - UX de detalle desplegable",
+            "newAssigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i",
+            "oldAssigneeId": null
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-14T04:38:24.948Z"
+        }
+      ]
+    },
+    {
+      "id": "570e444c-3b82-457a-882a-6451b7d09cac",
+      "queue_status": "pending",
+      "current_status": "backlog",
+      "title": "HD - Interpretacion logica de caso Lennon hijo de Jaanai",
+      "description": "# [TIPO: Bug / Lógica de Negocio] Vinculación de respuestas del cuestionario con Diagnóstico (Caso Lennon)\n\n## 🎯 Objetivo / User Story\nComo Administradora, quiero que los indicadores de diagnóstico (Despertar regular, Cantidad de siestas, Duración, etc.) se validen automáticamente con las respuestas del cuestionario inicial, para evitar que aparezcan como \"Pendientes\" o con \"Alertas\" falsas cuando la información ya fue proporcionada.\n\n## Ubicación Exacta \nDashboard de Diagnóstico del Paciente (Sección de Horarios y Siestas). Ejemplo específico: Paciente Lennon.\n\n## 🖼️ Referencia Visual\n> **⚠️ PARA ANDRÉS:** Adjunta las imágenes `image_f4d008.jpg` (donde se ven las alertas) y `image_d96f58.jpg` (donde están las respuestas reales del cuestionario).\n* **Evidencia:** El cuestionario muestra una hora de despertar (07:00 AM) y datos de siestas, pero el Dashboard (`image_f4d008.jpg`) indica \"0/7 datos disponibles\".\n\n## 📋 Criterios de Aceptación (DoD)\n- [ ] **Mapeo de Datos:** Vincular los campos del cuestionario (Preguntas 17, 18, 19, 21 y 26) con los indicadores del Dashboard de Diagnóstico.\n- [ ] **Validación de Indicadores:** - Si el cuestionario tiene hora de despertar y es constante, marcar \"Despertar regular\" como correcto.\n    - Si el número de siestas reportado coincide con lo esperado para la edad (12m), marcar \"Cantidad de siestas\" como correcto.\n- [ ] **Eliminación de Falsos Positivos:** El sistema no debe mostrar alertas de \"Sin datos\" si el usuario ya respondió esas preguntas en el formulario de ingreso.\n- [ ] **Actualización Automática:** Al completar o modificar el cuestionario, los indicadores del Dashboard deben actualizarse en tiempo real.\n\n## ⚙️ Notas Técnicas / Contexto\n* Actualmente, parece que el Dashboard solo busca datos en la \"Bitácora diaria\" y no toma en cuenta el \"Cuestionario inicial\".\n* Para el caso de Lennon (12 meses), Mariana confirma que los datos son correctos; el algoritmo debe reflejar este criterio clínico.",
+      "area": "desarrollo",
+      "assignee_id": "user_38JfBDoDDUokHOKqc9qRnBmZ02i",
+      "assignee_name": "Rogelio Guzmán",
+      "assignee_email": "roger@ezyai.pro",
+      "creator_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+      "creator_name": "Andres Treviño",
+      "creator_email": "atz@ezyai.pro",
+      "is_critical": false,
+      "progress": 0,
+      "blocker_reason": null,
+      "completion_notes": null,
+      "completion_links": [],
+      "mentions": [],
+      "due_date": null,
+      "started_at": null,
+      "completed_at": null,
+      "created_at": "2026-02-14T04:33:56.627Z",
+      "updated_at": "2026-02-14T04:33:56.627Z",
+      "parent_task_id": null,
+      "attachments": [
+        {
+          "id": "42eae7a4-ed8c-4a2a-a068-873938cf3302",
+          "task_id": "570e444c-3b82-457a-882a-6451b7d09cac",
+          "drive_file_id": "1S4-JvGeMPr0TFi8ILWSRY_XGwY7CqtGg",
+          "name": "WhatsApp Image 2026-02-12 at 13.49.32.jpeg",
+          "mime_type": "image/jpeg",
+          "size_bytes": 224197,
+          "uploaded_by": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "uploaded_by_name": "Andres Treviño",
+          "uploaded_by_email": "atz@ezyai.pro",
+          "uploaded_at": "2026-02-14T04:33:59.899Z",
+          "evidence_relative_path": "evidence/570e444c-3b82-457a-882a-6451b7d09cac/42eae7a4-ed8c-4a2a-a068-873938cf3302-WhatsApp_Image_2026-02-12_at_13.49.32.jpeg"
+        }
+      ],
+      "activity": [
+        {
+          "id": "64ed9ad6-7d3d-404f-a1f8-15dab19cc538",
+          "task_id": "570e444c-3b82-457a-882a-6451b7d09cac",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "created",
+          "metadata": {
+            "title": "HD - Interpretacion logica de caso Lennon hijo de Jaanai",
+            "mentions": null,
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-14T04:33:56.627Z"
+        },
+        {
+          "id": "6dbf5691-bb33-4a17-93fb-3588e3164d77",
+          "task_id": "570e444c-3b82-457a-882a-6451b7d09cac",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "assigned",
+          "metadata": {
+            "taskTitle": "HD - Interpretacion logica de caso Lennon hijo de Jaanai",
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-14T04:33:56.627Z"
+        }
+      ]
+    },
+    {
+      "id": "c6d77533-cebe-46bd-8379-7cc5533ba010",
+      "queue_status": "pending",
+      "current_status": "backlog",
+      "title": "HD - UX Writing en planes",
+      "description": "tivo / User Story\nComo Administradora, quiero que los planes generados para los pacientes utilicen un vocabulario diverso para referirse a la ingesta de alimentos, evitando la repetición excesiva de la palabra \"comida\" y mejorando así la calidad editorial del documento.\n\n## Ubicación Exacta \nMódulo de generación de planes (backend/algoritmo) y plantillas de texto para el Plan de Sueño y Alimentación.\n\n## 📋 Criterios de Aceptación (DoD)\n- [ ] **Sinonimia y Contexto:** Configurar el generador de texto para que alterne el uso de términos según el momento del día o el tipo de ingesta.\n- [ ] **Vocabulario Permitido:** Utilizar de forma balanceada las siguientes palabras:\n    - **Alimento / Alimentos:** Para términos generales.\n    - **Sólidos:** Para referirse a la introducción de alimentación complementaria.\n    - **Desayuno / Comida / Cena:** Según el horario del bloque de alimentación.\n    - **Snack / Merienda / Colación:** Para ingestas menores entre comidas principales.\n- [ ] **Regla de No-Repetición:** Evitar que la palabra \"comida\" aparezca más de dos veces en un mismo párrafo o bloque de recomendaciones.\n\n## ⚙️ Notas Técnicas / Contexto\n* Este ajuste aplica principalmente al motor de lenguaje que redacta las recomendaciones personalizadas.\n* Si se utiliza una IA o un sistema de plantillas, se deben actualizar los *prompts* o los *strings* estáticos para reflejar este cambio.\n* El objetivo es que el plan se lea más natural y específico a la rutina del bebé.",
+      "area": "desarrollo",
+      "assignee_id": "user_38JfBDoDDUokHOKqc9qRnBmZ02i",
+      "assignee_name": "Rogelio Guzmán",
+      "assignee_email": "roger@ezyai.pro",
+      "creator_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+      "creator_name": "Andres Treviño",
+      "creator_email": "atz@ezyai.pro",
+      "is_critical": false,
+      "progress": 0,
+      "blocker_reason": null,
+      "completion_notes": null,
+      "completion_links": [],
+      "mentions": [],
+      "due_date": null,
+      "started_at": null,
+      "completed_at": null,
+      "created_at": "2026-02-14T04:30:37.704Z",
+      "updated_at": "2026-02-14T04:30:37.704Z",
+      "parent_task_id": null,
+      "attachments": [
+        {
+          "id": "78601465-841f-4a44-b3a5-98bf9d6d8541",
+          "task_id": "c6d77533-cebe-46bd-8379-7cc5533ba010",
+          "drive_file_id": "1lRu-VXnA7KvhWFyUmD8Bz5XJQyGtvvMu",
+          "name": "WhatsApp Image 2026-02-12 at 13.44.06.jpeg",
+          "mime_type": "image/jpeg",
+          "size_bytes": 184275,
+          "uploaded_by": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "uploaded_by_name": "Andres Treviño",
+          "uploaded_by_email": "atz@ezyai.pro",
+          "uploaded_at": "2026-02-14T04:30:42.016Z",
+          "evidence_relative_path": "evidence/c6d77533-cebe-46bd-8379-7cc5533ba010/78601465-841f-4a44-b3a5-98bf9d6d8541-WhatsApp_Image_2026-02-12_at_13.44.06.jpeg"
+        }
+      ],
+      "activity": [
+        {
+          "id": "222cad7b-502f-4ed5-b997-a29daee13ddb",
+          "task_id": "c6d77533-cebe-46bd-8379-7cc5533ba010",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "assigned",
+          "metadata": {
+            "taskTitle": "HD - UX Writing en planes",
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-14T04:30:37.704Z"
+        },
+        {
+          "id": "b4ac45ed-85b8-431a-ae2a-028c32db0f59",
+          "task_id": "c6d77533-cebe-46bd-8379-7cc5533ba010",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "created",
+          "metadata": {
+            "title": "HD - UX Writing en planes",
+            "mentions": null,
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-14T04:30:37.704Z"
+        }
+      ]
+    },
+    {
+      "id": "29b2e766-20d5-43e4-baf1-4546b6874420",
+      "queue_status": "pending",
+      "current_status": "backlog",
+      "title": "HD - Buscador de pacientes rapido en orden alfabetico y solo activos",
+      "description": "# [TIPO: Optimización/UI] Ordenamiento y Filtrado en Buscador de Pacientes\n\n## 🎯 Objetivo / User Story\nComo Administradora, quiero que el buscador rápido de pacientes muestre solo a los usuarios activos y los organice alfabéticamente para agilizar la navegación y el acceso a los diagnósticos.\n\n## Ubicación Exacta \nComponente de búsqueda de pacientes en el Header/Sidebar del Dashboard (referencia: `image_d97e3f.jpg`).\n\n## 🖼️ Referencia Visual\n> **⚠️ PARA ANDRÉS:** Adjunta la imagen `image_d97e3f.jpg` en este ticket.\n* **Análisis de la imagen:** El dropdown actual muestra a los pacientes en el orden en que fueron creados o de forma aleatoria. Se debe intervenir la consulta que alimenta este componente.\n\n## 📋 Criterios de Aceptación (DoD)\n- [ ] **Filtro de Estado:** Solo deben aparecer en la lista los pacientes cuyo estatus sea \"Activo\". Los pacientes archivados o inactivos deben excluirse de este buscador rápido.\n- [ ] **Orden Alfabético:** La lista debe ordenarse de la A a la Z basándose en el nombre del paciente.\n- [ ] **Mantenimiento de Funcionalidad:** El buscador debe seguir permitiendo la búsqueda por nombre o email, pero siempre sobre el universo de pacientes activos y ordenados.\n- [ ] **Rendimiento:** Asegurar que el ordenamiento se haga desde el backend o a través de una función eficiente en el frontend para no afectar la velocidad de carga.\n\n## ⚙️ Notas Técnicas / Contexto\n* Se define como \"Paciente Activo\" a aquel que tiene un proceso de diagnóstico o plan de sueño vigente (validar con el campo `status` en la base de datos).\n* Este cambio ayuda a evitar confusiones cuando existen varios pacientes con nombres similares (como \"María Fernanda\" y \"María\" en la imagen de referencia).",
+      "area": "desarrollo",
+      "assignee_id": "user_38JfBDoDDUokHOKqc9qRnBmZ02i",
+      "assignee_name": "Rogelio Guzmán",
+      "assignee_email": "roger@ezyai.pro",
+      "creator_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+      "creator_name": "Andres Treviño",
+      "creator_email": "atz@ezyai.pro",
+      "is_critical": false,
+      "progress": 0,
+      "blocker_reason": null,
+      "completion_notes": null,
+      "completion_links": [],
+      "mentions": [],
+      "due_date": null,
+      "started_at": null,
+      "completed_at": null,
+      "created_at": "2026-02-13T23:27:24.273Z",
+      "updated_at": "2026-02-13T23:27:24.273Z",
+      "parent_task_id": null,
+      "attachments": [
+        {
+          "id": "35bfe55a-51d7-4064-a2c8-abb21c037380",
+          "task_id": "29b2e766-20d5-43e4-baf1-4546b6874420",
+          "drive_file_id": "1AACuQp3Q49WRaPn7eeEkEgGm96tssqlc",
+          "name": "WhatsApp Image 2026-02-12 at 13.40.40.jpeg",
+          "mime_type": "image/jpeg",
+          "size_bytes": 178420,
+          "uploaded_by": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "uploaded_by_name": "Andres Treviño",
+          "uploaded_by_email": "atz@ezyai.pro",
+          "uploaded_at": "2026-02-13T23:27:28.227Z",
+          "evidence_relative_path": "evidence/29b2e766-20d5-43e4-baf1-4546b6874420/35bfe55a-51d7-4064-a2c8-abb21c037380-WhatsApp_Image_2026-02-12_at_13.40.40.jpeg"
+        }
+      ],
+      "activity": [
+        {
+          "id": "0ed2bb5a-a3a3-4cac-bb5c-407cf154c562",
+          "task_id": "29b2e766-20d5-43e4-baf1-4546b6874420",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "created",
+          "metadata": {
+            "title": "HD - Buscador de pacientes rapido en orden alfabetico y solo activos",
+            "mentions": null,
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T23:27:24.273Z"
+        },
+        {
+          "id": "4d13194c-a4e2-4a77-864d-9ea74df01541",
+          "task_id": "29b2e766-20d5-43e4-baf1-4546b6874420",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "assigned",
+          "metadata": {
+            "taskTitle": "HD - Buscador de pacientes rapido en orden alfabetico y solo activos",
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T23:27:24.273Z"
+        }
+      ]
+    },
+    {
+      "id": "00b195ab-039d-41a4-a1be-cd4234d143f9",
+      "queue_status": "pending",
+      "current_status": "backlog",
+      "title": "HD - Cambiar de orden preguntascambiar",
+      "description": "Aquí tienes el ticket con el formato exacto para el equipo de desarrollo, Andrés:\n\nMarkdown\n\n# [TIPO: Refactor] Re-ordenamiento y re-numeración de sección Siestas/Viajes\n\n## 🎯 Objetivo / User Story\nComo Administradora/Paciente, quiero que el cuestionario tenga un flujo lógico donde primero se pregunte por los hábitos cotidianos (siestas) y luego por las excepciones (viajes), asegurando que la numeración sea consecutiva y correcta.\n\n## Ubicación Exacta \nCuestionario de Sueño, bloque de preguntas 28 y 29.\n\n## 🖼️ Referencia Visual\n> **⚠️ PARA ANDRÉS:** Asegúrate de adjuntar la imagen `image_d976da.jpg` en este ticket.\n* **Estado Actual:** * 28. Pregunta sobre viajes (Radio + Texto).\n    * 29. Pregunta sobre lugar de siestas (Texto abierto).\n* **Estado Deseado:** Invertir el orden de estos dos bloques.\n\n## 📋 Criterios de Aceptación (DoD)\n- [ ] **Intercambio de posición:** La pregunta \"¿Dónde toma las siestas?\" debe aparecer antes que la pregunta \"Cuando viajas...\".\n- [ ] **Re-numeración Correcta:** * La nueva **Pregunta 28** será: \"¿Dónde toma las siestas?\".\n    * La nueva **Pregunta 29** será: \"Cuando viajas, ¿sientes que tu hijo duerme mejor, peor o igual? ¿Dónde duerme en los viajes?\".\n- [ ] **Consecutividad:** Validar que la pregunta 30 (\"¿Cuál es tu principal preocupación...\") mantenga su número y que no existan saltos en la secuencia numérica del 1 al 30.\n- [ ] **Lógica de Guardado:** Asegurar que los IDs de respuesta en la base de datos se actualicen o mapeen correctamente al nuevo orden para no perder información de usuarios que ya respondieron.\n\n## ⚙️ Notas Técnicas / Contexto\n* Este cambio mejora la narrativa del cuestionario, pasando de lo general (rutina diaria de siestas) a lo particular (viajes).\n* Se debe aplicar el cambio tanto en la interfaz de administración como en la aplicación móvil del paciente para mantener la paridad",
+      "area": "desarrollo",
+      "assignee_id": "user_38JfBDoDDUokHOKqc9qRnBmZ02i",
+      "assignee_name": "Rogelio Guzmán",
+      "assignee_email": "roger@ezyai.pro",
+      "creator_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+      "creator_name": "Andres Treviño",
+      "creator_email": "atz@ezyai.pro",
+      "is_critical": false,
+      "progress": 0,
+      "blocker_reason": null,
+      "completion_notes": null,
+      "completion_links": [],
+      "mentions": [],
+      "due_date": null,
+      "started_at": null,
+      "completed_at": null,
+      "created_at": "2026-02-13T23:25:36.809Z",
+      "updated_at": "2026-02-13T23:25:36.809Z",
+      "parent_task_id": null,
+      "attachments": [
+        {
+          "id": "056d032b-dbfb-467a-8442-3f268df375b3",
+          "task_id": "00b195ab-039d-41a4-a1be-cd4234d143f9",
+          "drive_file_id": "1f_OIlslP1nZbsgzhqB6EVXwzmydigpB5",
+          "name": "WhatsApp Image 2026-02-12 at 13.39.28.jpeg",
+          "mime_type": "image/jpeg",
+          "size_bytes": 210554,
+          "uploaded_by": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "uploaded_by_name": "Andres Treviño",
+          "uploaded_by_email": "atz@ezyai.pro",
+          "uploaded_at": "2026-02-13T23:25:40.231Z",
+          "evidence_relative_path": "evidence/00b195ab-039d-41a4-a1be-cd4234d143f9/056d032b-dbfb-467a-8442-3f268df375b3-WhatsApp_Image_2026-02-12_at_13.39.28.jpeg"
+        }
+      ],
+      "activity": [
+        {
+          "id": "01e78901-e0ce-4005-8649-442ab7dbb2dd",
+          "task_id": "00b195ab-039d-41a4-a1be-cd4234d143f9",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "created",
+          "metadata": {
+            "title": "HD - Cambiar de orden preguntascambiar",
+            "mentions": null,
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T23:25:36.809Z"
+        },
+        {
+          "id": "ff6710a9-af69-48f1-b5de-883dbc5c5e5c",
+          "task_id": "00b195ab-039d-41a4-a1be-cd4234d143f9",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "assigned",
+          "metadata": {
+            "taskTitle": "HD - Cambiar de orden preguntascambiar",
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T23:25:36.809Z"
+        }
+      ]
+    },
+    {
+      "id": "1f00642a-d354-4084-b262-672b9fa38638",
+      "queue_status": "pending",
+      "current_status": "backlog",
+      "title": "HD - Respuesta de a que hora se despierta en ragno",
+      "description": "## 🎯 Objetivo / User Story\nComo Administradora/Paciente, quiero poder registrar un rango horario (Desde/Hasta) de cuándo se despierta el bebé, para capturar la variabilidad real de sus mañanas en lugar de una hora fija.\n\n## Ubicación Exacta \nCuestionario de Hábitos de Sueño. Pregunta: \"¿A qué hora se despierta su hijo/a por la mañana?\".\n\n## 🖼️ Referencia Visual\n> **⚠️ PARA ANDRÉS:** Adjunta una captura de la pregunta actual para que el dev sepa cuál componente sustituir.\n* **Análisis de la interfaz:** Se debe reemplazar el input de hora único por un contenedor horizontal (o vertical en móvil) que albergue dos inputs.\n* **Componente:** Utilizar dos \"Time Pickers\" estándar del sistema con etiquetas claras: \"Desde\" y \"Hasta\".\n\n## 📋 Criterios de Aceptación (DoD)\n- [ ] Sustituir el campo de hora único por dos selectores de tipo Time Picker.\n- [ ] **Validación Lógica:** El sistema no debe permitir que la \"Hora Hasta\" sea anterior a la \"Hora Desde\". \n- [ ] Si el usuario intenta ingresar un rango inválido (ej. Desde 8:00 AM - Hasta 7:00 AM), el campo \"Hasta\" debe marcarse en rojo con el mensaje: \"La hora de fin debe ser posterior a la de inicio\".\n- [ ] El formato de salida para el \"pasante\" debe ser un objeto con ambos valores (start_time, end_time).\n\n## ⚙️ Notas Técnicas / Contexto\n* Es vital para el análisis de datos que el formato sea de 24 horas o incluya AM/PM según la configuración regional de la app.\n* Los selectores deben ser nativos o seguir el estilo de la librería de UI actual para asegurar usabilidad en móviles.",
+      "area": "desarrollo",
+      "assignee_id": "user_38JfBDoDDUokHOKqc9qRnBmZ02i",
+      "assignee_name": "Rogelio Guzmán",
+      "assignee_email": "roger@ezyai.pro",
+      "creator_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+      "creator_name": "Andres Treviño",
+      "creator_email": "atz@ezyai.pro",
+      "is_critical": false,
+      "progress": 0,
+      "blocker_reason": null,
+      "completion_notes": null,
+      "completion_links": [],
+      "mentions": [],
+      "due_date": null,
+      "started_at": null,
+      "completed_at": null,
+      "created_at": "2026-02-13T23:22:42.462Z",
+      "updated_at": "2026-02-13T23:22:42.462Z",
+      "parent_task_id": null,
+      "attachments": [
+        {
+          "id": "85569c86-27b6-472f-8bf8-b1e3c117aa80",
+          "task_id": "1f00642a-d354-4084-b262-672b9fa38638",
+          "drive_file_id": "1ARUHZ4kD5vf1vlFl1gbPMNbnzynGH_Np",
+          "name": "WhatsApp Image 2026-02-12 at 13.39.26.jpeg",
+          "mime_type": "image/jpeg",
+          "size_bytes": 260723,
+          "uploaded_by": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "uploaded_by_name": "Andres Treviño",
+          "uploaded_by_email": "atz@ezyai.pro",
+          "uploaded_at": "2026-02-13T23:22:46.667Z",
+          "evidence_relative_path": "evidence/1f00642a-d354-4084-b262-672b9fa38638/85569c86-27b6-472f-8bf8-b1e3c117aa80-WhatsApp_Image_2026-02-12_at_13.39.26.jpeg"
+        }
+      ],
+      "activity": [
+        {
+          "id": "d9f94a79-b4c2-4923-b5f4-c168f0561975",
+          "task_id": "1f00642a-d354-4084-b262-672b9fa38638",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "created",
+          "metadata": {
+            "title": "HD - Respuesta de a que hora se despierta en ragno",
+            "mentions": null,
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T23:22:42.462Z"
+        },
+        {
+          "id": "c3475307-4b33-45ba-ae50-3fb775bb48d2",
+          "task_id": "1f00642a-d354-4084-b262-672b9fa38638",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "assigned",
+          "metadata": {
+            "taskTitle": "HD - Respuesta de a que hora se despierta en ragno",
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T23:22:42.462Z"
+        }
+      ]
+    },
+    {
+      "id": "22e2bd70-d15f-48df-9bc4-08ea0e1fb121",
+      "queue_status": "pending",
+      "current_status": "backlog",
+      "title": "HD - Agregar opción luz mercurial en pregunta 9 de contexto de sueño",
+      "description": "# [TIPO: Feature] Agregar opción \"Luz mercurial\" y estandarización de Checkboxes\n\n## 🎯 Objetivo / User Story\nComo Administradora/Paciente, quiero tener la opción de reportar la \"Luz mercurial de la calle\" como factor que afecta la oscuridad del cuarto, manteniendo un formato visual consistente para todas las preguntas de selección múltiple.\n\n## Ubicación Exacta \nCuestionario de Condiciones del Sueño, Pregunta 9: \"¿Qué tan oscuro es el cuarto de su hijo/a? ¿Deja usted:\".\n\n## 🖼️ Referencia Visual\n> **⚠️ PARA ANDRÉS:** Recuerda adjuntar la imagen `image_d918a8.jpg` en este ticket.\n* **Análisis de la imagen:** Se observa una lista de opciones con checkboxes circulares. Se debe añadir la nueva opción al final de la lista actual.\n* **Estandarización:** Todas las preguntas que permitan \"una o más respuestas\" deben usar este formato de caja/círculo de selección sin guiones prefijados.\n\n## 📋 Criterios de Aceptación (DoD)\n- [ ] Agregar la opción \"Luz mercurial de la calle\" a la Pregunta 9.\n- [ ] Asegurar que el componente permita la selección múltiple (Checkbox).\n- [ ] **Limpieza de UI:** Eliminar cualquier guion (-) previo a las cajas de selección para que el diseño sea limpio y uniforme.\n- [ ] Aplicar esta misma lógica de \"solo checkbox\" (sin guiones) a todas las preguntas de selección múltiple del cuestionario.\n\n## ⚙️ Notas Técnicas / Contexto\n* Se debe verificar que la base de datos esté preparada para recibir este nuevo string en el arreglo de respuestas de la pregunta 9.\n* La consistencia visual debe aplicarse tanto en la versión Web como en la vista móvil del Paciente.",
+      "area": "desarrollo",
+      "assignee_id": "user_38JfBDoDDUokHOKqc9qRnBmZ02i",
+      "assignee_name": "Rogelio Guzmán",
+      "assignee_email": "roger@ezyai.pro",
+      "creator_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+      "creator_name": "Andres Treviño",
+      "creator_email": "atz@ezyai.pro",
+      "is_critical": false,
+      "progress": 0,
+      "blocker_reason": null,
+      "completion_notes": null,
+      "completion_links": [],
+      "mentions": [],
+      "due_date": null,
+      "started_at": null,
+      "completed_at": null,
+      "created_at": "2026-02-13T23:19:04.832Z",
+      "updated_at": "2026-02-13T23:19:04.832Z",
+      "parent_task_id": null,
+      "attachments": [
+        {
+          "id": "23d6feee-83c5-4c22-b475-38ba26d04519",
+          "task_id": "22e2bd70-d15f-48df-9bc4-08ea0e1fb121",
+          "drive_file_id": "1vFDNUtaYaErmTUi6Y79_-MacIOWlsHGD",
+          "name": "WhatsApp Image 2026-02-12 at 13.38.38.jpeg",
+          "mime_type": "image/jpeg",
+          "size_bytes": 244578,
+          "uploaded_by": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "uploaded_by_name": "Andres Treviño",
+          "uploaded_by_email": "atz@ezyai.pro",
+          "uploaded_at": "2026-02-13T23:19:08.779Z",
+          "evidence_relative_path": "evidence/22e2bd70-d15f-48df-9bc4-08ea0e1fb121/23d6feee-83c5-4c22-b475-38ba26d04519-WhatsApp_Image_2026-02-12_at_13.38.38.jpeg"
+        }
+      ],
+      "activity": [
+        {
+          "id": "798fde36-f2c0-418a-8b38-3a3621370327",
+          "task_id": "22e2bd70-d15f-48df-9bc4-08ea0e1fb121",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "assigned",
+          "metadata": {
+            "taskTitle": "HD - Agregar opción luz mercurial en pregunta 9 de contexto de sueño",
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T23:19:04.832Z"
+        },
+        {
+          "id": "a98463e1-34e5-4a63-a5f1-1f09838f13aa",
+          "task_id": "22e2bd70-d15f-48df-9bc4-08ea0e1fb121",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "created",
+          "metadata": {
+            "title": "HD - Agregar opción luz mercurial en pregunta 9 de contexto de sueño",
+            "mentions": null,
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T23:19:04.832Z"
+        }
+      ]
+    },
+    {
+      "id": "ebcf6216-0437-46b6-85d6-2c64000abef2",
+      "queue_status": "pending",
+      "current_status": "backlog",
+      "title": "HD - Corrección en ferritina",
+      "description": "Perfecto, Andrés. Hemos \"limpiado\" la sección de salud para que sea puramente informativa y técnica, eliminando cualquier diagnóstico que pueda sesgar la respuesta del usuario.\n\nMarkdown\n\n# [TIPO: Feature/Refactor] Limpieza de Sesgo Diagnóstico y Rediseño de Ferritina\n\n## 🎯 Objetivo / User Story\nComo Administradora, quiero que el cuestionario sea neutral y no mencione diagnósticos (como Síndrome de Piernas Inquietas) para evitar sesgos en las respuestas, y capturar datos precisos de Ferritina con su respectiva fecha.\n\n## Ubicación Exacta \nSección de Salud del cuestionario (antes referenciada como Síndrome de Piernas Inquietas). Aplicable a vistas de Admin y Paciente.\n\n## 🖼️ Referencia Visual\n> **⚠️ PARA ANDRÉS:** Recuerda adjuntar la imagen `image_d90d63.jpg` en este ticket ahora mismo.\n* **Análisis de la imagen:** * **ELIMINAR:** El título \"Síndrome de Piernas Inquietas\" y su párrafo descriptivo.\n    * **ELIMINAR:** El texto explicativo debajo de \"Nivel de Ferritina (ng/mL)\".\n    * **MODIFICAR:** Los ítems de \"Patalea mucho...\", \"Mueve las piernas...\" y \"Se despierta...\" ahora deben ser opciones simples bajo la pregunta: \"¿Su hijo/a presenta alguno de los siguientes comportamientos al dormir?\".\n\n## 📋 Criterios de Aceptación (DoD)\n- [ ] **Neutralidad:** Eliminar toda mención a \"Síndrome de Piernas Inquietas\" y explicaciones sobre qué significan los niveles de ferritina.\n- [ ] **Nueva Lógica de Ferritina:** - Pregunta: \"¿Le han hecho un estudio de Ferritina?\". \n    - Opciones: Radio [Sí] [No].\n- [ ] **Campos Condicionales (Si Sí):**\n    - Input numérico: \"Nivel de Ferritina (ng/mL)\".\n    - Selector de fecha (Date Picker): \"Fecha del estudio\" (Día/Mes/Año).\n- [ ] **Integridad de Datos:** Ambos campos (nivel y fecha) deben guardarse vinculados para que el análisis posterior considere la antigüedad del estudio.\n\n## ⚙️ Notas Técnicas / Contexto\n* Esta modificación es crítica para el \"pasante\" (algoritmo de análisis), ya que ahora deberá validar la relevancia del nivel de ferritina según la fecha del estudio proporcionada.\n* Se debe asegurar que el selector de fecha sea amigable en dispositivos móviles.",
+      "area": "desarrollo",
+      "assignee_id": "user_38JfBDoDDUokHOKqc9qRnBmZ02i",
+      "assignee_name": "Rogelio Guzmán",
+      "assignee_email": "roger@ezyai.pro",
+      "creator_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+      "creator_name": "Andres Treviño",
+      "creator_email": "atz@ezyai.pro",
+      "is_critical": false,
+      "progress": 0,
+      "blocker_reason": null,
+      "completion_notes": null,
+      "completion_links": [],
+      "mentions": [],
+      "due_date": null,
+      "started_at": null,
+      "completed_at": null,
+      "created_at": "2026-02-13T23:15:29.594Z",
+      "updated_at": "2026-02-13T23:15:29.594Z",
+      "parent_task_id": null,
+      "attachments": [
+        {
+          "id": "3fdd678e-69c8-4b30-81f7-5f1792ec87d7",
+          "task_id": "ebcf6216-0437-46b6-85d6-2c64000abef2",
+          "drive_file_id": "1h_xAzijVrLpjRRyWBuejXVd5rmh0oC9u",
+          "name": "WhatsApp Image 2026-02-12 at 13.37.53.jpeg",
+          "mime_type": "image/jpeg",
+          "size_bytes": 220057,
+          "uploaded_by": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "uploaded_by_name": "Andres Treviño",
+          "uploaded_by_email": "atz@ezyai.pro",
+          "uploaded_at": "2026-02-13T23:15:33.147Z",
+          "evidence_relative_path": "evidence/ebcf6216-0437-46b6-85d6-2c64000abef2/3fdd678e-69c8-4b30-81f7-5f1792ec87d7-WhatsApp_Image_2026-02-12_at_13.37.53.jpeg"
+        }
+      ],
+      "activity": [
+        {
+          "id": "3d24823e-ba66-466a-90b2-0d185d10fc28",
+          "task_id": "ebcf6216-0437-46b6-85d6-2c64000abef2",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "assigned",
+          "metadata": {
+            "taskTitle": "HD - Corrección en ferritina",
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T23:15:29.594Z"
+        },
+        {
+          "id": "8fb58f1d-0ba4-4b45-b1d7-67f1b61fcb5d",
+          "task_id": "ebcf6216-0437-46b6-85d6-2c64000abef2",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "created",
+          "metadata": {
+            "title": "HD - Corrección en ferritina",
+            "mentions": null,
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T23:15:29.594Z"
+        }
+      ]
+    },
+    {
+      "id": "d1814f55-4337-4447-b3a8-1b671f597bde",
+      "queue_status": "pending",
+      "current_status": "backlog",
+      "title": "HD - Preguntas de salud",
+      "description": "# [TIPO: Feature] Nuevas preguntas de Salud y Lógica Condicional (Admin & Paciente)\n\n## 🎯 Objetivo / User Story\nComo Administradora/Paciente, quiero reportar consultas médicas externas y estudios realizados para que el historial de salud sea lo más completo posible.\n\n## Ubicación Exacta \nFinal de la sección \"Salud\" del cuestionario, justo después del campo \"Nivel de Ferritina (ng/mL)\". Este cambio debe reflejarse tanto en el flujo de la Administradora como en el del Paciente.\n\n## 🖼️ Referencia Visual\n> **⚠️ PARA ANDRÉS:** Adjunta la imagen `image_d901e7.jpg` en este ticket.\n* **Análisis de la imagen:** El diseño debe seguir el patrón de los Radio Buttons (círculos) para Sí/No. El campo de texto abierto que aparece al marcar \"Sí\" debe tener el mismo estilo y ancho que el campo \"Describe cómo es inquieto...\".\n\n## 📋 Criterios de Aceptación (DoD)\n- [ ] **P. Doctor:** Agregar \"¿Ha consultado con algún otro doctor?\". \n    - Opciones: Radio button [Sí] [No].\n    - Lógica: Si \"Sí\", mostrar campo de texto abierto: \"¿Qué especialidad fue y por qué motivo?\".\n- [ ] **P. Estudios:** Agregar \"¿Se le han practicado estudios médicos?\". \n    - Opciones: Radio button [Sí] [No].\n    - Lógica: Si \"Sí\", mostrar campo de texto abierto: \"¿Qué tipo de estudios y por qué motivo?\".\n- [ ] **Omnicanalidad:** Validar que estas preguntas aparezcan y guarden datos correctamente tanto en la vista de Admin como en la de Paciente.\n- [ ] **Persistencia:** Asegurar que todos los campos nuevos definidos en sesiones previas (Lactancia, Alimentación) también estén activos para el rol de Paciente.\n\n## ⚙️ Notas Técnicas / Contexto\n* Las preguntas se ubican al final para permitir al usuario añadir información que no fue solicitada en los ítems específicos anteriores.\n* Se debe usar el mismo motor de lógica condicional que ya opera en la sección de \"Piernas Inquietas\".",
+      "area": "desarrollo",
+      "assignee_id": "user_38JfBDoDDUokHOKqc9qRnBmZ02i",
+      "assignee_name": "Rogelio Guzmán",
+      "assignee_email": "roger@ezyai.pro",
+      "creator_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+      "creator_name": "Andres Treviño",
+      "creator_email": "atz@ezyai.pro",
+      "is_critical": false,
+      "progress": 0,
+      "blocker_reason": null,
+      "completion_notes": null,
+      "completion_links": [],
+      "mentions": [],
+      "due_date": null,
+      "started_at": null,
+      "completed_at": null,
+      "created_at": "2026-02-13T23:10:02.873Z",
+      "updated_at": "2026-02-13T23:10:02.873Z",
+      "parent_task_id": null,
+      "attachments": [
+        {
+          "id": "def974ac-4604-41e9-9ad0-11bb707042af",
+          "task_id": "d1814f55-4337-4447-b3a8-1b671f597bde",
+          "drive_file_id": "1GDpzcCAV3ab8Ykw9P9RN0m7rMrBWrdng",
+          "name": "WhatsApp Image 2026-02-12 at 13.37.53.jpeg",
+          "mime_type": "image/jpeg",
+          "size_bytes": 220057,
+          "uploaded_by": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "uploaded_by_name": "Andres Treviño",
+          "uploaded_by_email": "atz@ezyai.pro",
+          "uploaded_at": "2026-02-13T23:10:07.367Z",
+          "evidence_relative_path": "evidence/d1814f55-4337-4447-b3a8-1b671f597bde/def974ac-4604-41e9-9ad0-11bb707042af-WhatsApp_Image_2026-02-12_at_13.37.53.jpeg"
+        }
+      ],
+      "activity": [
+        {
+          "id": "89c344eb-5ce4-49f6-a333-3834197bbb05",
+          "task_id": "d1814f55-4337-4447-b3a8-1b671f597bde",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "assigned",
+          "metadata": {
+            "taskTitle": "HD - Preguntas de salud",
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T23:10:02.873Z"
+        },
+        {
+          "id": "739f6408-f5ad-4ecd-a12e-efe79d582bcb",
+          "task_id": "d1814f55-4337-4447-b3a8-1b671f597bde",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "created",
+          "metadata": {
+            "title": "HD - Preguntas de salud",
+            "mentions": null,
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T23:10:02.873Z"
+        }
+      ]
+    },
+    {
+      "id": "35e9f464-5118-4376-a47f-4db589fa46de",
+      "queue_status": "pending",
+      "current_status": "backlog",
+      "title": "HD - Preguntas de lactancia nuevas al cuestionario",
+      "description": "# [TIPO: Feature] Nuevas preguntas de Lactancia y Alimentación (con estandarización)\n\n## 🎯 Objetivo / User Story\nComo Administradora, quiero capturar datos específicos sobre lactancia y alimentación complementaria, asegurando que todos los inputs numéricos de meses sigan un mismo estándar visual para mejorar la UX.\n\n## Ubicación Exacta \nCuestionario de evaluación. Las preguntas nuevas deben insertarse después de la pregunta actual: \"7. Su hijo/a se alimenta de:\".\n\n## 🖼️ Referencia Visual\n> **⚠️ PARA ANDRÉS:** Por favor, asegúrate de adjuntar la imagen `image_d89c86.jpg` en este ticket.\n* **Análisis de la imagen:** Actualmente existe una mezcla de componentes (Input texto en P3, Dropdown en P4, Number input en P5). \n* **Estandarización:** Se debe aplicar el formato de la **Pregunta 5** (campo numérico con chevrons arriba/abajo) a todas las preguntas de meses, incluyendo las nuevas.\n\n## 📋 Criterios de Aceptación (DoD)\n- [ ] **Estandarización:** Cambiar los inputs de las preguntas 3 y 4 al formato de input numérico con chevrons (estilo P5).\n- [ ] **Nueva P8:** \"¿Tuvieron problemas con la lactancia?\" -> Opciones Radio: [Sí] [No].\n- [ ] **Nueva P9:** \"¿Cuentas con asesoría de lactancia?\" -> Opciones Radio: [Sí] [No].\n- [ ] **Nueva P10 (Condicional):** \"¿Quién es tu Asesora de Lactancia?\" -> Solo visible si P9 es \"Sí\". Campo de texto abierto.\n- [ ] **Nueva P11:** \"¿A qué edad empezó la Alimentación Complementaria?\" -> Input numérico con chevrons (formato estándar).\n\n## ⚙️ Notas Técnicas / Contexto\n* La lógica condicional de la P10 debe ejecutarse en tiempo real sin recargar la página.\n* Todas las preguntas de meses deben heredar la solución del bug de scroll discutido en el ticket anterior.\n",
+      "area": "desarrollo",
+      "assignee_id": "user_38JfBDoDDUokHOKqc9qRnBmZ02i",
+      "assignee_name": "Rogelio Guzmán",
+      "assignee_email": "roger@ezyai.pro",
+      "creator_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+      "creator_name": "Andres Treviño",
+      "creator_email": "atz@ezyai.pro",
+      "is_critical": false,
+      "progress": 0,
+      "blocker_reason": null,
+      "completion_notes": null,
+      "completion_links": [],
+      "mentions": [],
+      "due_date": null,
+      "started_at": null,
+      "completed_at": null,
+      "created_at": "2026-02-13T23:04:34.940Z",
+      "updated_at": "2026-02-13T23:04:34.940Z",
+      "parent_task_id": null,
+      "attachments": [
+        {
+          "id": "ebd95123-cb12-462e-8b07-beaec2faaf53",
+          "task_id": "35e9f464-5118-4376-a47f-4db589fa46de",
+          "drive_file_id": "1o-LKw1rOX4i0AE7YLgZX8MuDiy9ZbHB0",
+          "name": "38731bc0-60ec-4573-a78f-eb84528f2ae2.jpeg",
+          "mime_type": "image/jpeg",
+          "size_bytes": 228375,
+          "uploaded_by": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "uploaded_by_name": "Andres Treviño",
+          "uploaded_by_email": "atz@ezyai.pro",
+          "uploaded_at": "2026-02-13T23:04:41.522Z",
+          "evidence_relative_path": "evidence/35e9f464-5118-4376-a47f-4db589fa46de/ebd95123-cb12-462e-8b07-beaec2faaf53-38731bc0-60ec-4573-a78f-eb84528f2ae2.jpeg"
+        }
+      ],
+      "activity": [
+        {
+          "id": "bae18b7f-e4be-410b-934b-7be3d6423aa6",
+          "task_id": "35e9f464-5118-4376-a47f-4db589fa46de",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "assigned",
+          "metadata": {
+            "taskTitle": "HD - Preguntas de lactancia nuevas al cuestionario",
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T23:04:34.940Z"
+        },
+        {
+          "id": "434da4d3-06fd-40c8-955d-dce449d3185e",
+          "task_id": "35e9f464-5118-4376-a47f-4db589fa46de",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "created",
+          "metadata": {
+            "title": "HD - Preguntas de lactancia nuevas al cuestionario",
+            "mentions": null,
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T23:04:34.940Z"
+        }
+      ]
+    },
+    {
+      "id": "7ed7163b-b308-4cb6-8d86-33368cc064c9",
+      "queue_status": "pending",
+      "current_status": "backlog",
+      "title": "HD - Scroll hijicking en cuestionario",
+      "description": "# [TIPO: Bug] Scroll involuntario en selectores numéricos del Cuestionario\n\n## 🎯 Objetivo / User Story\nComo Usuario (Admin/Paciente), quiero que al interactuar con las flechas de incremento/decremento en las preguntas del cuestionario, la ventana permanezca estática para no perder el foco de la pregunta que estoy respondiendo.\n\n## Ubicación Exacta \nCuestionario de hitos del desarrollo (Preguntas 2 y 3). Afecta al rol de Administrador y potencialmente al rol de Paciente en la versión Web.\n\n## 🖼️ Referencia Visual\n> **⚠️ PARA ANDRÉS:** Recuerda adjuntar el screenshot del cuestionario señalando los botones de \"mayor que\" y \"menor que\" (chevrons) en este ticket.\n* **Análisis de la imagen:** Se observan inputs numéricos personalizados donde los controles de cambio de valor son iconos orientados verticalmente. El error ocurre específicamente al hacer clic en estos disparadores.\n\n## 📋 Criterios de Aceptación (DoD)\n- [ ] Al hacer clic en las flechas de \"meses\" (arriba/abajo), el valor numérico debe cambiar sin activar el scroll de la página.\n- [ ] Se debe implementar `event.preventDefault()` o `event.stopPropagation()` en los manejadores de clic de estos iconos.\n- [ ] El comportamiento debe ser consistente tanto en la vista de Administrador como en la de Paciente (versión Web).\n- [ ] El foco del teclado debe permanecer en el input o en el botón presionado, sin saltar al contenedor padre.\n\n## ⚙️ Notas Técnicas / Contexto\n* El desplazamiento es parcial (unas cuantas líneas), similar al comportamiento de las flechas del teclado.\n* El bug se reportó inicialmente en las preguntas de \"capaz de sentarse\" y \"capaz de gatear\", pero se debe verificar si el componente se repite en otras secciones del cuestionario para aplicar una solución global.",
+      "area": "desarrollo",
+      "assignee_id": "user_38JfBDoDDUokHOKqc9qRnBmZ02i",
+      "assignee_name": "Rogelio Guzmán",
+      "assignee_email": "roger@ezyai.pro",
+      "creator_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+      "creator_name": "Andres Treviño",
+      "creator_email": "atz@ezyai.pro",
+      "is_critical": false,
+      "progress": 0,
+      "blocker_reason": null,
+      "completion_notes": null,
+      "completion_links": [],
+      "mentions": [],
+      "due_date": null,
+      "started_at": null,
+      "completed_at": null,
+      "created_at": "2026-02-13T22:53:38.756Z",
+      "updated_at": "2026-02-13T22:53:59.356Z",
+      "parent_task_id": null,
+      "attachments": [],
+      "activity": [
+        {
+          "id": "412ca6bb-e2b1-4020-82d1-a63588ee78ca",
+          "task_id": "7ed7163b-b308-4cb6-8d86-33368cc064c9",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "created",
+          "metadata": {
+            "title": "Scroll hijicking en cuestionario",
+            "mentions": null,
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T22:53:38.756Z"
+        },
+        {
+          "id": "1d715943-f788-44be-a3f6-1819d9f22d7d",
+          "task_id": "7ed7163b-b308-4cb6-8d86-33368cc064c9",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "assigned",
+          "metadata": {
+            "taskTitle": "Scroll hijicking en cuestionario",
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T22:53:38.756Z"
+        },
+        {
+          "id": "e534e040-5f1c-4afb-a40a-721d42585f14",
+          "task_id": "7ed7163b-b308-4cb6-8d86-33368cc064c9",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "updated",
+          "metadata": {
+            "newTitle": "HD - Scroll hijicking en cuestionario",
+            "oldTitle": "Scroll hijicking en cuestionario",
+            "fieldsUpdated": {
+              "title": true,
+              "mentions": false,
+              "description": true
+            },
+            "newDescription": "# [TIPO: Bug] Scroll involuntario en selectores numéricos del Cuestionario\n\n## 🎯 Objetivo / User Story\nComo Usuario (Admin/Paciente), quiero que al interactuar con las flechas de incremento/decremento en las preguntas del cuestionario, la ventana permanezca estática para no perder el foco de la pregunta que estoy respondiendo.\n\n## Ubicación Exacta \nCuestionario de hitos del desarrollo (Preguntas 2 y 3). Afecta al rol de Administrador y potencialmente al rol de Paciente en la versión Web.\n\n## 🖼️ Referencia Visual\n> **⚠️ PARA ANDRÉS:** Recuerda adjuntar el screenshot del cuestionario señalando los botones de \"mayor que\" y \"menor que\" (chevrons) en este ticket.\n* **Análisis de la imagen:** Se observan inputs numéricos personalizados donde los controles de cambio de valor son iconos orientados verticalmente. El error ocurre específicamente al hacer clic en estos disparadores.\n\n## 📋 Criterios de Aceptación (DoD)\n- [ ] Al hacer clic en las flechas de \"meses\" (arriba/abajo), el valor numérico debe cambiar sin activar el scroll de la página.\n- [ ] Se debe implementar `event.preventDefault()` o `event.stopPropagation()` en los manejadores de clic de estos iconos.\n- [ ] El comportamiento debe ser consistente tanto en la vista de Administrador como en la de Paciente (versión Web).\n- [ ] El foco del teclado debe permanecer en el input o en el botón presionado, sin saltar al contenedor padre.\n\n## ⚙️ Notas Técnicas / Contexto\n* El desplazamiento es parcial (unas cuantas líneas), similar al comportamiento de las flechas del teclado.\n* El bug se reportó inicialmente en las preguntas de \"capaz de sentarse\" y \"capaz de gatear\", pero se debe verificar si el componente se repite en otras secciones del cuestionario para aplicar una solución global.",
+            "oldDescription": "# [TIPO: Bug] Scroll involuntario en selectores numéricos del Cuestionario\n\n## 🎯 Objetivo / User Story\nComo Usuario (Admin/Paciente), quiero que al interactuar con las flechas de incremento/decremento en las preguntas del cuestionario, la ventana permanezca estática para no perder el foco de la pregunta que estoy respondiendo.\n\n## Ubicación Exacta \nCuestionario de hitos del desarrollo (Preguntas 2 y 3). Afecta al rol de Administrador y potencialmente al rol de Paciente en la versión Web.\n\n## 🖼️ Referencia Visual\n> **⚠️ PARA ANDRÉS:** Recuerda adjuntar el screenshot del cuestionario señalando los botones de \"mayor que\" y \"menor que\" (chevrons) en este ticket.\n* **Análisis de la imagen:** Se observan inputs numéricos personalizados donde los controles de cambio de valor son iconos orientados verticalmente. El error ocurre específicamente al hacer clic en estos disparadores.\n\n## 📋 Criterios de Aceptación (DoD)\n- [ ] Al hacer clic en las flechas de \"meses\" (arriba/abajo), el valor numérico debe cambiar sin activar el scroll de la página.\n- [ ] Se debe implementar `event.preventDefault()` o `event.stopPropagation()` en los manejadores de clic de estos iconos.\n- [ ] El comportamiento debe ser consistente tanto en la vista de Administrador como en la de Paciente (versión Web).\n- [ ] El foco del teclado debe permanecer en el input o en el botón presionado, sin saltar al contenedor padre.\n\n## ⚙️ Notas Técnicas / Contexto\n* El desplazamiento es parcial (unas cuantas líneas), similar al comportamiento de las flechas del teclado.\n* El bug se reportó inicialmente en las preguntas de \"capaz de sentarse\" y \"capaz de gatear\", pero se debe verificar si el componente se repite en otras secciones del cuestionario para aplicar una solución global."
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T22:53:59.358Z"
+        }
+      ]
+    },
+    {
+      "id": "5e34972d-e26c-4e35-8a60-3a3449d5524a",
+      "queue_status": "pending",
+      "current_status": "backlog",
+      "title": "HD - CORRECCIÓN DE CALCULO PERCENTILES DE PESO Y TAMAÑO CON OMS",
+      "description": "# [TIPO: Bug/Feature] Corrección de Cálculo de Percentiles (Estándares OMS)\n\n## 🎯 Objetivo / User Story\nComo Sleep Coach (Admin), quiero que los percentiles de peso y tamaño se calculen correctamente basados en los estándares de la OMS para que el seguimiento del crecimiento del bebé sea preciso y confiable.\n\n## Ubicación Exacta \nDashboard del bebé. Accesible para usuarios con rol de Administrador (Sleep Coach).\n\n## 🖼️ Referencia Visual\n> **⚠️ PARA ANDRÉS:** Recuerda adjuntar la imagen de la tabla de referencia de la OMS o un screenshot del Dashboard actual en este ticket ahora mismo.\n* **Análisis de la imagen:** El desarrollador debe ver el Dashboard del bebé donde se muestran actualmente los campos de \"Peso\" y \"Talla\" junto a su valor de percentil. Se debe asegurar que la jerarquía visual resalte si el bebé está dentro de los rangos normales según las curvas de la OMS.\n\n## 📋 Criterios de Aceptación (DoD)\n- [ ] Integrar las tablas de referencia de la OMS (Weight-for-age y Length-for-age).\n- [ ] El cálculo debe ser dinámico basado en: Edad cronológica exacta, Sexo (Niño/Niña) y Medida ingresada.\n- [ ] El sistema debe mostrar el percentil calculado exacto, incluso si se encuentra en los extremos de la curva (1 o 99).\n- [ ] Si se requiere el parámetro de nacionalidad para ajustes regionales, el sistema debe permitir la extensión de la lógica de consulta.\n\n## ⚙️ Notas Técnicas / Contexto\n* Se debe validar que los datos de entrada (peso/talla) coincidan con las unidades de medida de las tablas OMS (kg/cm).\n* Caso borde: Si los datos están extremadamente fuera de rango, se muestra el valor calculado sin truncar, a menos que la fórmula resulte en un error matemático.",
+      "area": "desarrollo",
+      "assignee_id": "user_38JfBDoDDUokHOKqc9qRnBmZ02i",
+      "assignee_name": "Rogelio Guzmán",
+      "assignee_email": "roger@ezyai.pro",
+      "creator_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+      "creator_name": "Andres Treviño",
+      "creator_email": "atz@ezyai.pro",
+      "is_critical": false,
+      "progress": 0,
+      "blocker_reason": null,
+      "completion_notes": null,
+      "completion_links": [],
+      "mentions": [],
+      "due_date": null,
+      "started_at": null,
+      "completed_at": null,
+      "created_at": "2026-02-13T22:45:03.861Z",
+      "updated_at": "2026-02-13T22:53:50.483Z",
+      "parent_task_id": null,
+      "attachments": [],
+      "activity": [
+        {
+          "id": "d87ba10a-9bdc-454e-8f10-c49e3e029cd6",
+          "task_id": "5e34972d-e26c-4e35-8a60-3a3449d5524a",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "created",
+          "metadata": {
+            "title": "HD - CORRECCIÓN DE CALCULO PERCENTILES DE PESO Y TAMAÑO CON OMS",
+            "mentions": null,
+            "assigneeId": null
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T22:45:03.861Z"
+        },
+        {
+          "id": "6caf8491-609e-4c3e-8511-8017c33e7b21",
+          "task_id": "5e34972d-e26c-4e35-8a60-3a3449d5524a",
+          "user_id": "user_39cgz3O2ELkaEIp32CJBT4TFQW4",
+          "actor_name": "Andres Treviño",
+          "actor_email": "atz@ezyai.pro",
+          "action": "assigned",
+          "metadata": {
+            "taskTitle": "HD - CORRECCIÓN DE CALCULO PERCENTILES DE PESO Y TAMAÑO CON OMS",
+            "newAssigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i",
+            "oldAssigneeId": null
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-13T22:53:50.482Z"
+        }
+      ]
+    },
+    {
+      "id": "174cae20-161e-47b3-afb0-89befde668a3",
+      "queue_status": "pending",
+      "current_status": "backlog",
+      "title": "HD Error pantalla Diagnósticos",
+      "description": null,
+      "area": "desarrollo",
+      "assignee_id": "user_38JfBDoDDUokHOKqc9qRnBmZ02i",
+      "assignee_name": "Rogelio Guzmán",
+      "assignee_email": "roger@ezyai.pro",
+      "creator_id": "user_38UGRoPYTRvZfLkk2yRlut7QeHd",
+      "creator_name": "EL JULIUS ❄️",
+      "creator_email": "eljulius@nebulastudios.io",
+      "is_critical": false,
+      "progress": 0,
+      "blocker_reason": null,
+      "completion_notes": null,
+      "completion_links": [],
+      "mentions": [],
+      "due_date": null,
+      "started_at": null,
+      "completed_at": null,
+      "created_at": "2026-02-06T01:26:46.395Z",
+      "updated_at": "2026-02-06T01:26:46.395Z",
+      "parent_task_id": null,
+      "attachments": [
+        {
+          "id": "f51d3c50-452a-4876-bde8-b71fb1fba9c9",
+          "task_id": "174cae20-161e-47b3-afb0-89befde668a3",
+          "drive_file_id": "1CO2mkM0u77Q8iA4WaezkSKcNC0q87ibT",
+          "name": "HappyDreamers Diagnósticos Error.png",
+          "mime_type": "image/png",
+          "size_bytes": 99083,
+          "uploaded_by": "user_38UGRoPYTRvZfLkk2yRlut7QeHd",
+          "uploaded_by_name": "EL JULIUS ❄️",
+          "uploaded_by_email": "eljulius@nebulastudios.io",
+          "uploaded_at": "2026-02-06T01:26:52.547Z",
+          "evidence_relative_path": "evidence/174cae20-161e-47b3-afb0-89befde668a3/f51d3c50-452a-4876-bde8-b71fb1fba9c9-HappyDreamers_Diagn_sticos_Error.png"
+        }
+      ],
+      "activity": [
+        {
+          "id": "2e447fc7-a249-40e6-9602-395f3155eaf6",
+          "task_id": "174cae20-161e-47b3-afb0-89befde668a3",
+          "user_id": "user_38UGRoPYTRvZfLkk2yRlut7QeHd",
+          "actor_name": "EL JULIUS ❄️",
+          "actor_email": "eljulius@nebulastudios.io",
+          "action": "created",
+          "metadata": {
+            "title": "HD Error pantalla Diagnósticos",
+            "mentions": null,
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-06T01:26:46.395Z"
+        },
+        {
+          "id": "4cd13dc5-a843-4568-9450-59db6622495d",
+          "task_id": "174cae20-161e-47b3-afb0-89befde668a3",
+          "user_id": "user_38UGRoPYTRvZfLkk2yRlut7QeHd",
+          "actor_name": "EL JULIUS ❄️",
+          "actor_email": "eljulius@nebulastudios.io",
+          "action": "assigned",
+          "metadata": {
+            "taskTitle": "HD Error pantalla Diagnósticos",
+            "assigneeId": "user_38JfBDoDDUokHOKqc9qRnBmZ02i"
+          },
+          "area": "desarrollo",
+          "created_at": "2026-02-06T01:26:46.395Z"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Human Detail
+
+## HD - Alucinacion y lenguaje en analisis de pasante
+
+- Task ID: `9bb611d9-7fd6-4a8c-a2ab-1951a5a76fa4`
+- Current Status in Mira: `backlog`
+- Queue Status: `pending`
+- Area: `desarrollo`
+- Assignee: Rogelio Guzmán (roger@ezyai.pro)
+- Creator: Andres Treviño (atz@ezyai.pro)
+- Created At: 2026-02-14T04:42:54.714Z
+- Updated At: 2026-02-14T04:42:54.714Z
+- Due Date: -
+- Progress: 0
+- Critical: false
+
+### Description
+# [TIPO: Bug/Refactor] Ajuste de precisión y terminología en el Análisis del Pasante
+
+## 🎯 Objetivo / User Story
+Como Administradora, quiero que el análisis generado por la IA sea técnicamente preciso, use los títulos profesionales correctos y no invente síntomas médicos (falsos positivos) para mantener la credibilidad del diagnóstico.
+
+## Ubicación Exacta 
+Módulo de Análisis Automático (Pasante de IA) - Sección de "Situación General" y "Cruce por Grupos".
+
+## 📋 Criterios de Aceptación (DoD)
+- [ ] **Precisión de Conceptos:** Diferenciar claramente entre:
+    - **Despertares al inicio de la noche:** (Primeras horas tras acostarse).
+    - **Early Rising:** (Despertares muy temprano por la mañana, ej. 5:00 AM).
+    - *Acción:* El pasante debe ser específico y no usar términos ambiguos como "despertares tempranos".
+- [ ] **Corrección de Título Profesional:** - *Acción:* Eliminar el término "Dra." o "Doctora" asociado a Mariana. Sustituir por "Mariana" o el título profesional correspondiente (ej. Especialista en Sueño).
+- [ ] **Eliminación de Falsos Positivos Médicos (Reflujo):**
+    - *Problema:* El pasante indica síntomas de reflujo que no están en el cuestionario (ver `image_f52603.jpg` donde marca 1 alerta de reflujo).
+    - *Acción:* Revisar el mapeo de la Pregunta 10 del cuestionario de salud. Si el usuario no marcó "Reflujo", el pasante NO debe mencionarlo ni sugerir sospechas.
+- [ ] **Validación de Datos Reales:** Asegurar que el pasante reconozca que "3 comidas" es el dato correcto si así se indicó, en lugar de marcar "Sólidos 0".
+
+## ⚙️ Notas Técnicas / Contexto
+* **Imagen de Referencia:** En `image_f53126.jpg` se resalta el texto confuso sobre despertares. 
+* Es fundamental ajustar el *system prompt* de la IA para que sea más conservador: si no hay evidencia directa en el cuestionario, no debe inferir condiciones médicas como el reflujo.
+
+### Blocker / Completion Context
+- blocker_reason: -
+- completion_notes: -
+- completion_links: []
+- mentions: []
+
+### Attachments
+- `WhatsApp Image 2026-02-12 at 13.54.22.jpeg` | mime: `image/jpeg` | size: 249549 | drive_file_id: `1vxWBZq4pMiqj0HNcw0wKMLeCN8zmcr0Z` | evidence: evidence/9bb611d9-7fd6-4a8c-a2ab-1951a5a76fa4/2231b2c1-5906-476b-91b5-4398854c2798-WhatsApp_Image_2026-02-12_at_13.54.22.jpeg
+
+### Activity Timeline
+- 2026-02-14T04:42:54.714Z | action=`created` | actor=Andres Treviño | metadata={"title":"HD - Alucinacion y lenguaje en analisis de pasante","mentions":null,"assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+- 2026-02-14T04:42:54.714Z | action=`assigned` | actor=Andres Treviño | metadata={"taskTitle":"HD - Alucinacion y lenguaje en analisis de pasante","assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+
+## HD - UX de detalle desplegable
+
+- Task ID: `5bc11180-7ba4-4c43-ab3b-89668aa56eb7`
+- Current Status in Mira: `backlog`
+- Queue Status: `pending`
+- Area: `desarrollo`
+- Assignee: Rogelio Guzmán (roger@ezyai.pro)
+- Creator: Andres Treviño (atz@ezyai.pro)
+- Created At: 2026-02-14T04:38:11.369Z
+- Updated At: 2026-02-14T04:38:24.949Z
+- Due Date: -
+- Progress: 0
+- Critical: false
+
+### Description
+# [TIPO: UI/UX] Desglose de síntomas mediante Acordeón en Dashboard
+
+## 🎯 Objetivo / User Story
+Como Administradora, quiero poder desplegar el detalle de cada sección del diagnóstico (Horario, Alimentación, Salud, etc.) para ver exactamente qué respuestas del cuestionario o de la bitácora están activando las alertas o avisos.
+
+## Ubicación Exacta 
+Tarjetas de indicadores en el Dashboard de Diagnóstico (ejemplo: `image_f4d008.jpg`).
+
+## 📋 Criterios de Aceptación (DoD)
+- [ ] **Interacción de Acordeón:** Al hacer clic en el encabezado de una tarjeta (ej: "Alimentación"), esta debe expandirse hacia abajo con una animación fluida.
+- [ ] **Desglose de Síntomas:** Dentro del área expandida, se deben enlistar los "síntomas" o respuestas específicas. 
+    - Ejemplo en Salud: Mostrar "Patalea mucho", "Mueve las piernas", "Nivel de Ferritina: 45 (10/02/26)".
+- [ ] **Estado Visual:** Mantener los iconos de alerta (rojo) o aviso (amarillo) junto a cada síntoma individual para identificar rápidamente el problema.
+- [ ] **Cierre automático:** Opcional: Al abrir un acordeón, se puede configurar para que se cierre el anterior y mantener la pantalla limpia.
+- [ ] **Consistencia:** Este comportamiento debe ser igual para todas las secciones del diagnóstico.
+
+## ⚙️ Notas Técnicas / Contexto
+* Los datos deben ser "vivos"; es decir, si Mariana edita una respuesta en el cuestionario, el detalle del acordeón debe reflejar el cambio.
+* Evitar que el despliegue del acordeón empuje elementos fuera de la pantalla de forma brusca; usar `transition: max-height`.
+
+### Blocker / Completion Context
+- blocker_reason: -
+- completion_notes: -
+- completion_links: []
+- mentions: []
+
+### Attachments
+- `WhatsApp Image 2026-02-12 at 13.50.35.jpeg` | mime: `image/jpeg` | size: 199000 | drive_file_id: `1cMOLcrjfZWQW4spywsqB6AEsC5FBRRuE` | evidence: evidence/5bc11180-7ba4-4c43-ab3b-89668aa56eb7/7774bdc2-aaec-4fbd-a363-3ba0035b6166-WhatsApp_Image_2026-02-12_at_13.50.35.jpeg
+- `WhatsApp Image 2026-02-12 at 13.51.05.jpeg` | mime: `image/jpeg` | size: 177377 | drive_file_id: `1hH7ZW6whK42-f6R1Wq15LR2rw1ljc2qW` | evidence: evidence/5bc11180-7ba4-4c43-ab3b-89668aa56eb7/e428f540-b422-44d0-8b5a-67f1bb348deb-WhatsApp_Image_2026-02-12_at_13.51.05.jpeg
+
+### Activity Timeline
+- 2026-02-14T04:38:11.369Z | action=`created` | actor=Andres Treviño | metadata={"title":"HD - UX de detalle desplegable","mentions":null,"assigneeId":null}
+- 2026-02-14T04:38:24.948Z | action=`assigned` | actor=Andres Treviño | metadata={"taskTitle":"HD - UX de detalle desplegable","newAssigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i","oldAssigneeId":null}
+
+## HD - Interpretacion logica de caso Lennon hijo de Jaanai
+
+- Task ID: `570e444c-3b82-457a-882a-6451b7d09cac`
+- Current Status in Mira: `backlog`
+- Queue Status: `pending`
+- Area: `desarrollo`
+- Assignee: Rogelio Guzmán (roger@ezyai.pro)
+- Creator: Andres Treviño (atz@ezyai.pro)
+- Created At: 2026-02-14T04:33:56.627Z
+- Updated At: 2026-02-14T04:33:56.627Z
+- Due Date: -
+- Progress: 0
+- Critical: false
+
+### Description
+# [TIPO: Bug / Lógica de Negocio] Vinculación de respuestas del cuestionario con Diagnóstico (Caso Lennon)
+
+## 🎯 Objetivo / User Story
+Como Administradora, quiero que los indicadores de diagnóstico (Despertar regular, Cantidad de siestas, Duración, etc.) se validen automáticamente con las respuestas del cuestionario inicial, para evitar que aparezcan como "Pendientes" o con "Alertas" falsas cuando la información ya fue proporcionada.
+
+## Ubicación Exacta 
+Dashboard de Diagnóstico del Paciente (Sección de Horarios y Siestas). Ejemplo específico: Paciente Lennon.
+
+## 🖼️ Referencia Visual
+> **⚠️ PARA ANDRÉS:** Adjunta las imágenes `image_f4d008.jpg` (donde se ven las alertas) y `image_d96f58.jpg` (donde están las respuestas reales del cuestionario).
+* **Evidencia:** El cuestionario muestra una hora de despertar (07:00 AM) y datos de siestas, pero el Dashboard (`image_f4d008.jpg`) indica "0/7 datos disponibles".
+
+## 📋 Criterios de Aceptación (DoD)
+- [ ] **Mapeo de Datos:** Vincular los campos del cuestionario (Preguntas 17, 18, 19, 21 y 26) con los indicadores del Dashboard de Diagnóstico.
+- [ ] **Validación de Indicadores:** - Si el cuestionario tiene hora de despertar y es constante, marcar "Despertar regular" como correcto.
+    - Si el número de siestas reportado coincide con lo esperado para la edad (12m), marcar "Cantidad de siestas" como correcto.
+- [ ] **Eliminación de Falsos Positivos:** El sistema no debe mostrar alertas de "Sin datos" si el usuario ya respondió esas preguntas en el formulario de ingreso.
+- [ ] **Actualización Automática:** Al completar o modificar el cuestionario, los indicadores del Dashboard deben actualizarse en tiempo real.
+
+## ⚙️ Notas Técnicas / Contexto
+* Actualmente, parece que el Dashboard solo busca datos en la "Bitácora diaria" y no toma en cuenta el "Cuestionario inicial".
+* Para el caso de Lennon (12 meses), Mariana confirma que los datos son correctos; el algoritmo debe reflejar este criterio clínico.
+
+### Blocker / Completion Context
+- blocker_reason: -
+- completion_notes: -
+- completion_links: []
+- mentions: []
+
+### Attachments
+- `WhatsApp Image 2026-02-12 at 13.49.32.jpeg` | mime: `image/jpeg` | size: 224197 | drive_file_id: `1S4-JvGeMPr0TFi8ILWSRY_XGwY7CqtGg` | evidence: evidence/570e444c-3b82-457a-882a-6451b7d09cac/42eae7a4-ed8c-4a2a-a068-873938cf3302-WhatsApp_Image_2026-02-12_at_13.49.32.jpeg
+
+### Activity Timeline
+- 2026-02-14T04:33:56.627Z | action=`created` | actor=Andres Treviño | metadata={"title":"HD - Interpretacion logica de caso Lennon hijo de Jaanai","mentions":null,"assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+- 2026-02-14T04:33:56.627Z | action=`assigned` | actor=Andres Treviño | metadata={"taskTitle":"HD - Interpretacion logica de caso Lennon hijo de Jaanai","assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+
+## HD - UX Writing en planes
+
+- Task ID: `c6d77533-cebe-46bd-8379-7cc5533ba010`
+- Current Status in Mira: `backlog`
+- Queue Status: `pending`
+- Area: `desarrollo`
+- Assignee: Rogelio Guzmán (roger@ezyai.pro)
+- Creator: Andres Treviño (atz@ezyai.pro)
+- Created At: 2026-02-14T04:30:37.704Z
+- Updated At: 2026-02-14T04:30:37.704Z
+- Due Date: -
+- Progress: 0
+- Critical: false
+
+### Description
+tivo / User Story
+Como Administradora, quiero que los planes generados para los pacientes utilicen un vocabulario diverso para referirse a la ingesta de alimentos, evitando la repetición excesiva de la palabra "comida" y mejorando así la calidad editorial del documento.
+
+## Ubicación Exacta 
+Módulo de generación de planes (backend/algoritmo) y plantillas de texto para el Plan de Sueño y Alimentación.
+
+## 📋 Criterios de Aceptación (DoD)
+- [ ] **Sinonimia y Contexto:** Configurar el generador de texto para que alterne el uso de términos según el momento del día o el tipo de ingesta.
+- [ ] **Vocabulario Permitido:** Utilizar de forma balanceada las siguientes palabras:
+    - **Alimento / Alimentos:** Para términos generales.
+    - **Sólidos:** Para referirse a la introducción de alimentación complementaria.
+    - **Desayuno / Comida / Cena:** Según el horario del bloque de alimentación.
+    - **Snack / Merienda / Colación:** Para ingestas menores entre comidas principales.
+- [ ] **Regla de No-Repetición:** Evitar que la palabra "comida" aparezca más de dos veces en un mismo párrafo o bloque de recomendaciones.
+
+## ⚙️ Notas Técnicas / Contexto
+* Este ajuste aplica principalmente al motor de lenguaje que redacta las recomendaciones personalizadas.
+* Si se utiliza una IA o un sistema de plantillas, se deben actualizar los *prompts* o los *strings* estáticos para reflejar este cambio.
+* El objetivo es que el plan se lea más natural y específico a la rutina del bebé.
+
+### Blocker / Completion Context
+- blocker_reason: -
+- completion_notes: -
+- completion_links: []
+- mentions: []
+
+### Attachments
+- `WhatsApp Image 2026-02-12 at 13.44.06.jpeg` | mime: `image/jpeg` | size: 184275 | drive_file_id: `1lRu-VXnA7KvhWFyUmD8Bz5XJQyGtvvMu` | evidence: evidence/c6d77533-cebe-46bd-8379-7cc5533ba010/78601465-841f-4a44-b3a5-98bf9d6d8541-WhatsApp_Image_2026-02-12_at_13.44.06.jpeg
+
+### Activity Timeline
+- 2026-02-14T04:30:37.704Z | action=`assigned` | actor=Andres Treviño | metadata={"taskTitle":"HD - UX Writing en planes","assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+- 2026-02-14T04:30:37.704Z | action=`created` | actor=Andres Treviño | metadata={"title":"HD - UX Writing en planes","mentions":null,"assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+
+## HD - Buscador de pacientes rapido en orden alfabetico y solo activos
+
+- Task ID: `29b2e766-20d5-43e4-baf1-4546b6874420`
+- Current Status in Mira: `backlog`
+- Queue Status: `pending`
+- Area: `desarrollo`
+- Assignee: Rogelio Guzmán (roger@ezyai.pro)
+- Creator: Andres Treviño (atz@ezyai.pro)
+- Created At: 2026-02-13T23:27:24.273Z
+- Updated At: 2026-02-13T23:27:24.273Z
+- Due Date: -
+- Progress: 0
+- Critical: false
+
+### Description
+# [TIPO: Optimización/UI] Ordenamiento y Filtrado en Buscador de Pacientes
+
+## 🎯 Objetivo / User Story
+Como Administradora, quiero que el buscador rápido de pacientes muestre solo a los usuarios activos y los organice alfabéticamente para agilizar la navegación y el acceso a los diagnósticos.
+
+## Ubicación Exacta 
+Componente de búsqueda de pacientes en el Header/Sidebar del Dashboard (referencia: `image_d97e3f.jpg`).
+
+## 🖼️ Referencia Visual
+> **⚠️ PARA ANDRÉS:** Adjunta la imagen `image_d97e3f.jpg` en este ticket.
+* **Análisis de la imagen:** El dropdown actual muestra a los pacientes en el orden en que fueron creados o de forma aleatoria. Se debe intervenir la consulta que alimenta este componente.
+
+## 📋 Criterios de Aceptación (DoD)
+- [ ] **Filtro de Estado:** Solo deben aparecer en la lista los pacientes cuyo estatus sea "Activo". Los pacientes archivados o inactivos deben excluirse de este buscador rápido.
+- [ ] **Orden Alfabético:** La lista debe ordenarse de la A a la Z basándose en el nombre del paciente.
+- [ ] **Mantenimiento de Funcionalidad:** El buscador debe seguir permitiendo la búsqueda por nombre o email, pero siempre sobre el universo de pacientes activos y ordenados.
+- [ ] **Rendimiento:** Asegurar que el ordenamiento se haga desde el backend o a través de una función eficiente en el frontend para no afectar la velocidad de carga.
+
+## ⚙️ Notas Técnicas / Contexto
+* Se define como "Paciente Activo" a aquel que tiene un proceso de diagnóstico o plan de sueño vigente (validar con el campo `status` en la base de datos).
+* Este cambio ayuda a evitar confusiones cuando existen varios pacientes con nombres similares (como "María Fernanda" y "María" en la imagen de referencia).
+
+### Blocker / Completion Context
+- blocker_reason: -
+- completion_notes: -
+- completion_links: []
+- mentions: []
+
+### Attachments
+- `WhatsApp Image 2026-02-12 at 13.40.40.jpeg` | mime: `image/jpeg` | size: 178420 | drive_file_id: `1AACuQp3Q49WRaPn7eeEkEgGm96tssqlc` | evidence: evidence/29b2e766-20d5-43e4-baf1-4546b6874420/35bfe55a-51d7-4064-a2c8-abb21c037380-WhatsApp_Image_2026-02-12_at_13.40.40.jpeg
+
+### Activity Timeline
+- 2026-02-13T23:27:24.273Z | action=`created` | actor=Andres Treviño | metadata={"title":"HD - Buscador de pacientes rapido en orden alfabetico y solo activos","mentions":null,"assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+- 2026-02-13T23:27:24.273Z | action=`assigned` | actor=Andres Treviño | metadata={"taskTitle":"HD - Buscador de pacientes rapido en orden alfabetico y solo activos","assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+
+## HD - Cambiar de orden preguntascambiar
+
+- Task ID: `00b195ab-039d-41a4-a1be-cd4234d143f9`
+- Current Status in Mira: `backlog`
+- Queue Status: `pending`
+- Area: `desarrollo`
+- Assignee: Rogelio Guzmán (roger@ezyai.pro)
+- Creator: Andres Treviño (atz@ezyai.pro)
+- Created At: 2026-02-13T23:25:36.809Z
+- Updated At: 2026-02-13T23:25:36.809Z
+- Due Date: -
+- Progress: 0
+- Critical: false
+
+### Description
+Aquí tienes el ticket con el formato exacto para el equipo de desarrollo, Andrés:
+
+Markdown
+
+# [TIPO: Refactor] Re-ordenamiento y re-numeración de sección Siestas/Viajes
+
+## 🎯 Objetivo / User Story
+Como Administradora/Paciente, quiero que el cuestionario tenga un flujo lógico donde primero se pregunte por los hábitos cotidianos (siestas) y luego por las excepciones (viajes), asegurando que la numeración sea consecutiva y correcta.
+
+## Ubicación Exacta 
+Cuestionario de Sueño, bloque de preguntas 28 y 29.
+
+## 🖼️ Referencia Visual
+> **⚠️ PARA ANDRÉS:** Asegúrate de adjuntar la imagen `image_d976da.jpg` en este ticket.
+* **Estado Actual:** * 28. Pregunta sobre viajes (Radio + Texto).
+    * 29. Pregunta sobre lugar de siestas (Texto abierto).
+* **Estado Deseado:** Invertir el orden de estos dos bloques.
+
+## 📋 Criterios de Aceptación (DoD)
+- [ ] **Intercambio de posición:** La pregunta "¿Dónde toma las siestas?" debe aparecer antes que la pregunta "Cuando viajas...".
+- [ ] **Re-numeración Correcta:** * La nueva **Pregunta 28** será: "¿Dónde toma las siestas?".
+    * La nueva **Pregunta 29** será: "Cuando viajas, ¿sientes que tu hijo duerme mejor, peor o igual? ¿Dónde duerme en los viajes?".
+- [ ] **Consecutividad:** Validar que la pregunta 30 ("¿Cuál es tu principal preocupación...") mantenga su número y que no existan saltos en la secuencia numérica del 1 al 30.
+- [ ] **Lógica de Guardado:** Asegurar que los IDs de respuesta en la base de datos se actualicen o mapeen correctamente al nuevo orden para no perder información de usuarios que ya respondieron.
+
+## ⚙️ Notas Técnicas / Contexto
+* Este cambio mejora la narrativa del cuestionario, pasando de lo general (rutina diaria de siestas) a lo particular (viajes).
+* Se debe aplicar el cambio tanto en la interfaz de administración como en la aplicación móvil del paciente para mantener la paridad
+
+### Blocker / Completion Context
+- blocker_reason: -
+- completion_notes: -
+- completion_links: []
+- mentions: []
+
+### Attachments
+- `WhatsApp Image 2026-02-12 at 13.39.28.jpeg` | mime: `image/jpeg` | size: 210554 | drive_file_id: `1f_OIlslP1nZbsgzhqB6EVXwzmydigpB5` | evidence: evidence/00b195ab-039d-41a4-a1be-cd4234d143f9/056d032b-dbfb-467a-8442-3f268df375b3-WhatsApp_Image_2026-02-12_at_13.39.28.jpeg
+
+### Activity Timeline
+- 2026-02-13T23:25:36.809Z | action=`created` | actor=Andres Treviño | metadata={"title":"HD - Cambiar de orden preguntascambiar","mentions":null,"assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+- 2026-02-13T23:25:36.809Z | action=`assigned` | actor=Andres Treviño | metadata={"taskTitle":"HD - Cambiar de orden preguntascambiar","assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+
+## HD - Respuesta de a que hora se despierta en ragno
+
+- Task ID: `1f00642a-d354-4084-b262-672b9fa38638`
+- Current Status in Mira: `backlog`
+- Queue Status: `pending`
+- Area: `desarrollo`
+- Assignee: Rogelio Guzmán (roger@ezyai.pro)
+- Creator: Andres Treviño (atz@ezyai.pro)
+- Created At: 2026-02-13T23:22:42.462Z
+- Updated At: 2026-02-13T23:22:42.462Z
+- Due Date: -
+- Progress: 0
+- Critical: false
+
+### Description
+## 🎯 Objetivo / User Story
+Como Administradora/Paciente, quiero poder registrar un rango horario (Desde/Hasta) de cuándo se despierta el bebé, para capturar la variabilidad real de sus mañanas en lugar de una hora fija.
+
+## Ubicación Exacta 
+Cuestionario de Hábitos de Sueño. Pregunta: "¿A qué hora se despierta su hijo/a por la mañana?".
+
+## 🖼️ Referencia Visual
+> **⚠️ PARA ANDRÉS:** Adjunta una captura de la pregunta actual para que el dev sepa cuál componente sustituir.
+* **Análisis de la interfaz:** Se debe reemplazar el input de hora único por un contenedor horizontal (o vertical en móvil) que albergue dos inputs.
+* **Componente:** Utilizar dos "Time Pickers" estándar del sistema con etiquetas claras: "Desde" y "Hasta".
+
+## 📋 Criterios de Aceptación (DoD)
+- [ ] Sustituir el campo de hora único por dos selectores de tipo Time Picker.
+- [ ] **Validación Lógica:** El sistema no debe permitir que la "Hora Hasta" sea anterior a la "Hora Desde". 
+- [ ] Si el usuario intenta ingresar un rango inválido (ej. Desde 8:00 AM - Hasta 7:00 AM), el campo "Hasta" debe marcarse en rojo con el mensaje: "La hora de fin debe ser posterior a la de inicio".
+- [ ] El formato de salida para el "pasante" debe ser un objeto con ambos valores (start_time, end_time).
+
+## ⚙️ Notas Técnicas / Contexto
+* Es vital para el análisis de datos que el formato sea de 24 horas o incluya AM/PM según la configuración regional de la app.
+* Los selectores deben ser nativos o seguir el estilo de la librería de UI actual para asegurar usabilidad en móviles.
+
+### Blocker / Completion Context
+- blocker_reason: -
+- completion_notes: -
+- completion_links: []
+- mentions: []
+
+### Attachments
+- `WhatsApp Image 2026-02-12 at 13.39.26.jpeg` | mime: `image/jpeg` | size: 260723 | drive_file_id: `1ARUHZ4kD5vf1vlFl1gbPMNbnzynGH_Np` | evidence: evidence/1f00642a-d354-4084-b262-672b9fa38638/85569c86-27b6-472f-8bf8-b1e3c117aa80-WhatsApp_Image_2026-02-12_at_13.39.26.jpeg
+
+### Activity Timeline
+- 2026-02-13T23:22:42.462Z | action=`created` | actor=Andres Treviño | metadata={"title":"HD - Respuesta de a que hora se despierta en ragno","mentions":null,"assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+- 2026-02-13T23:22:42.462Z | action=`assigned` | actor=Andres Treviño | metadata={"taskTitle":"HD - Respuesta de a que hora se despierta en ragno","assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+
+## HD - Agregar opción luz mercurial en pregunta 9 de contexto de sueño
+
+- Task ID: `22e2bd70-d15f-48df-9bc4-08ea0e1fb121`
+- Current Status in Mira: `backlog`
+- Queue Status: `pending`
+- Area: `desarrollo`
+- Assignee: Rogelio Guzmán (roger@ezyai.pro)
+- Creator: Andres Treviño (atz@ezyai.pro)
+- Created At: 2026-02-13T23:19:04.832Z
+- Updated At: 2026-02-13T23:19:04.832Z
+- Due Date: -
+- Progress: 0
+- Critical: false
+
+### Description
+# [TIPO: Feature] Agregar opción "Luz mercurial" y estandarización de Checkboxes
+
+## 🎯 Objetivo / User Story
+Como Administradora/Paciente, quiero tener la opción de reportar la "Luz mercurial de la calle" como factor que afecta la oscuridad del cuarto, manteniendo un formato visual consistente para todas las preguntas de selección múltiple.
+
+## Ubicación Exacta 
+Cuestionario de Condiciones del Sueño, Pregunta 9: "¿Qué tan oscuro es el cuarto de su hijo/a? ¿Deja usted:".
+
+## 🖼️ Referencia Visual
+> **⚠️ PARA ANDRÉS:** Recuerda adjuntar la imagen `image_d918a8.jpg` en este ticket.
+* **Análisis de la imagen:** Se observa una lista de opciones con checkboxes circulares. Se debe añadir la nueva opción al final de la lista actual.
+* **Estandarización:** Todas las preguntas que permitan "una o más respuestas" deben usar este formato de caja/círculo de selección sin guiones prefijados.
+
+## 📋 Criterios de Aceptación (DoD)
+- [ ] Agregar la opción "Luz mercurial de la calle" a la Pregunta 9.
+- [ ] Asegurar que el componente permita la selección múltiple (Checkbox).
+- [ ] **Limpieza de UI:** Eliminar cualquier guion (-) previo a las cajas de selección para que el diseño sea limpio y uniforme.
+- [ ] Aplicar esta misma lógica de "solo checkbox" (sin guiones) a todas las preguntas de selección múltiple del cuestionario.
+
+## ⚙️ Notas Técnicas / Contexto
+* Se debe verificar que la base de datos esté preparada para recibir este nuevo string en el arreglo de respuestas de la pregunta 9.
+* La consistencia visual debe aplicarse tanto en la versión Web como en la vista móvil del Paciente.
+
+### Blocker / Completion Context
+- blocker_reason: -
+- completion_notes: -
+- completion_links: []
+- mentions: []
+
+### Attachments
+- `WhatsApp Image 2026-02-12 at 13.38.38.jpeg` | mime: `image/jpeg` | size: 244578 | drive_file_id: `1vFDNUtaYaErmTUi6Y79_-MacIOWlsHGD` | evidence: evidence/22e2bd70-d15f-48df-9bc4-08ea0e1fb121/23d6feee-83c5-4c22-b475-38ba26d04519-WhatsApp_Image_2026-02-12_at_13.38.38.jpeg
+
+### Activity Timeline
+- 2026-02-13T23:19:04.832Z | action=`assigned` | actor=Andres Treviño | metadata={"taskTitle":"HD - Agregar opción luz mercurial en pregunta 9 de contexto de sueño","assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+- 2026-02-13T23:19:04.832Z | action=`created` | actor=Andres Treviño | metadata={"title":"HD - Agregar opción luz mercurial en pregunta 9 de contexto de sueño","mentions":null,"assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+
+## HD - Corrección en ferritina
+
+- Task ID: `ebcf6216-0437-46b6-85d6-2c64000abef2`
+- Current Status in Mira: `backlog`
+- Queue Status: `pending`
+- Area: `desarrollo`
+- Assignee: Rogelio Guzmán (roger@ezyai.pro)
+- Creator: Andres Treviño (atz@ezyai.pro)
+- Created At: 2026-02-13T23:15:29.594Z
+- Updated At: 2026-02-13T23:15:29.594Z
+- Due Date: -
+- Progress: 0
+- Critical: false
+
+### Description
+Perfecto, Andrés. Hemos "limpiado" la sección de salud para que sea puramente informativa y técnica, eliminando cualquier diagnóstico que pueda sesgar la respuesta del usuario.
+
+Markdown
+
+# [TIPO: Feature/Refactor] Limpieza de Sesgo Diagnóstico y Rediseño de Ferritina
+
+## 🎯 Objetivo / User Story
+Como Administradora, quiero que el cuestionario sea neutral y no mencione diagnósticos (como Síndrome de Piernas Inquietas) para evitar sesgos en las respuestas, y capturar datos precisos de Ferritina con su respectiva fecha.
+
+## Ubicación Exacta 
+Sección de Salud del cuestionario (antes referenciada como Síndrome de Piernas Inquietas). Aplicable a vistas de Admin y Paciente.
+
+## 🖼️ Referencia Visual
+> **⚠️ PARA ANDRÉS:** Recuerda adjuntar la imagen `image_d90d63.jpg` en este ticket ahora mismo.
+* **Análisis de la imagen:** * **ELIMINAR:** El título "Síndrome de Piernas Inquietas" y su párrafo descriptivo.
+    * **ELIMINAR:** El texto explicativo debajo de "Nivel de Ferritina (ng/mL)".
+    * **MODIFICAR:** Los ítems de "Patalea mucho...", "Mueve las piernas..." y "Se despierta..." ahora deben ser opciones simples bajo la pregunta: "¿Su hijo/a presenta alguno de los siguientes comportamientos al dormir?".
+
+## 📋 Criterios de Aceptación (DoD)
+- [ ] **Neutralidad:** Eliminar toda mención a "Síndrome de Piernas Inquietas" y explicaciones sobre qué significan los niveles de ferritina.
+- [ ] **Nueva Lógica de Ferritina:** - Pregunta: "¿Le han hecho un estudio de Ferritina?". 
+    - Opciones: Radio [Sí] [No].
+- [ ] **Campos Condicionales (Si Sí):**
+    - Input numérico: "Nivel de Ferritina (ng/mL)".
+    - Selector de fecha (Date Picker): "Fecha del estudio" (Día/Mes/Año).
+- [ ] **Integridad de Datos:** Ambos campos (nivel y fecha) deben guardarse vinculados para que el análisis posterior considere la antigüedad del estudio.
+
+## ⚙️ Notas Técnicas / Contexto
+* Esta modificación es crítica para el "pasante" (algoritmo de análisis), ya que ahora deberá validar la relevancia del nivel de ferritina según la fecha del estudio proporcionada.
+* Se debe asegurar que el selector de fecha sea amigable en dispositivos móviles.
+
+### Blocker / Completion Context
+- blocker_reason: -
+- completion_notes: -
+- completion_links: []
+- mentions: []
+
+### Attachments
+- `WhatsApp Image 2026-02-12 at 13.37.53.jpeg` | mime: `image/jpeg` | size: 220057 | drive_file_id: `1h_xAzijVrLpjRRyWBuejXVd5rmh0oC9u` | evidence: evidence/ebcf6216-0437-46b6-85d6-2c64000abef2/3fdd678e-69c8-4b30-81f7-5f1792ec87d7-WhatsApp_Image_2026-02-12_at_13.37.53.jpeg
+
+### Activity Timeline
+- 2026-02-13T23:15:29.594Z | action=`assigned` | actor=Andres Treviño | metadata={"taskTitle":"HD - Corrección en ferritina","assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+- 2026-02-13T23:15:29.594Z | action=`created` | actor=Andres Treviño | metadata={"title":"HD - Corrección en ferritina","mentions":null,"assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+
+## HD - Preguntas de salud
+
+- Task ID: `d1814f55-4337-4447-b3a8-1b671f597bde`
+- Current Status in Mira: `backlog`
+- Queue Status: `pending`
+- Area: `desarrollo`
+- Assignee: Rogelio Guzmán (roger@ezyai.pro)
+- Creator: Andres Treviño (atz@ezyai.pro)
+- Created At: 2026-02-13T23:10:02.873Z
+- Updated At: 2026-02-13T23:10:02.873Z
+- Due Date: -
+- Progress: 0
+- Critical: false
+
+### Description
+# [TIPO: Feature] Nuevas preguntas de Salud y Lógica Condicional (Admin & Paciente)
+
+## 🎯 Objetivo / User Story
+Como Administradora/Paciente, quiero reportar consultas médicas externas y estudios realizados para que el historial de salud sea lo más completo posible.
+
+## Ubicación Exacta 
+Final de la sección "Salud" del cuestionario, justo después del campo "Nivel de Ferritina (ng/mL)". Este cambio debe reflejarse tanto en el flujo de la Administradora como en el del Paciente.
+
+## 🖼️ Referencia Visual
+> **⚠️ PARA ANDRÉS:** Adjunta la imagen `image_d901e7.jpg` en este ticket.
+* **Análisis de la imagen:** El diseño debe seguir el patrón de los Radio Buttons (círculos) para Sí/No. El campo de texto abierto que aparece al marcar "Sí" debe tener el mismo estilo y ancho que el campo "Describe cómo es inquieto...".
+
+## 📋 Criterios de Aceptación (DoD)
+- [ ] **P. Doctor:** Agregar "¿Ha consultado con algún otro doctor?". 
+    - Opciones: Radio button [Sí] [No].
+    - Lógica: Si "Sí", mostrar campo de texto abierto: "¿Qué especialidad fue y por qué motivo?".
+- [ ] **P. Estudios:** Agregar "¿Se le han practicado estudios médicos?". 
+    - Opciones: Radio button [Sí] [No].
+    - Lógica: Si "Sí", mostrar campo de texto abierto: "¿Qué tipo de estudios y por qué motivo?".
+- [ ] **Omnicanalidad:** Validar que estas preguntas aparezcan y guarden datos correctamente tanto en la vista de Admin como en la de Paciente.
+- [ ] **Persistencia:** Asegurar que todos los campos nuevos definidos en sesiones previas (Lactancia, Alimentación) también estén activos para el rol de Paciente.
+
+## ⚙️ Notas Técnicas / Contexto
+* Las preguntas se ubican al final para permitir al usuario añadir información que no fue solicitada en los ítems específicos anteriores.
+* Se debe usar el mismo motor de lógica condicional que ya opera en la sección de "Piernas Inquietas".
+
+### Blocker / Completion Context
+- blocker_reason: -
+- completion_notes: -
+- completion_links: []
+- mentions: []
+
+### Attachments
+- `WhatsApp Image 2026-02-12 at 13.37.53.jpeg` | mime: `image/jpeg` | size: 220057 | drive_file_id: `1GDpzcCAV3ab8Ykw9P9RN0m7rMrBWrdng` | evidence: evidence/d1814f55-4337-4447-b3a8-1b671f597bde/def974ac-4604-41e9-9ad0-11bb707042af-WhatsApp_Image_2026-02-12_at_13.37.53.jpeg
+
+### Activity Timeline
+- 2026-02-13T23:10:02.873Z | action=`assigned` | actor=Andres Treviño | metadata={"taskTitle":"HD - Preguntas de salud","assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+- 2026-02-13T23:10:02.873Z | action=`created` | actor=Andres Treviño | metadata={"title":"HD - Preguntas de salud","mentions":null,"assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+
+## HD - Preguntas de lactancia nuevas al cuestionario
+
+- Task ID: `35e9f464-5118-4376-a47f-4db589fa46de`
+- Current Status in Mira: `backlog`
+- Queue Status: `pending`
+- Area: `desarrollo`
+- Assignee: Rogelio Guzmán (roger@ezyai.pro)
+- Creator: Andres Treviño (atz@ezyai.pro)
+- Created At: 2026-02-13T23:04:34.940Z
+- Updated At: 2026-02-13T23:04:34.940Z
+- Due Date: -
+- Progress: 0
+- Critical: false
+
+### Description
+# [TIPO: Feature] Nuevas preguntas de Lactancia y Alimentación (con estandarización)
+
+## 🎯 Objetivo / User Story
+Como Administradora, quiero capturar datos específicos sobre lactancia y alimentación complementaria, asegurando que todos los inputs numéricos de meses sigan un mismo estándar visual para mejorar la UX.
+
+## Ubicación Exacta 
+Cuestionario de evaluación. Las preguntas nuevas deben insertarse después de la pregunta actual: "7. Su hijo/a se alimenta de:".
+
+## 🖼️ Referencia Visual
+> **⚠️ PARA ANDRÉS:** Por favor, asegúrate de adjuntar la imagen `image_d89c86.jpg` en este ticket.
+* **Análisis de la imagen:** Actualmente existe una mezcla de componentes (Input texto en P3, Dropdown en P4, Number input en P5). 
+* **Estandarización:** Se debe aplicar el formato de la **Pregunta 5** (campo numérico con chevrons arriba/abajo) a todas las preguntas de meses, incluyendo las nuevas.
+
+## 📋 Criterios de Aceptación (DoD)
+- [ ] **Estandarización:** Cambiar los inputs de las preguntas 3 y 4 al formato de input numérico con chevrons (estilo P5).
+- [ ] **Nueva P8:** "¿Tuvieron problemas con la lactancia?" -> Opciones Radio: [Sí] [No].
+- [ ] **Nueva P9:** "¿Cuentas con asesoría de lactancia?" -> Opciones Radio: [Sí] [No].
+- [ ] **Nueva P10 (Condicional):** "¿Quién es tu Asesora de Lactancia?" -> Solo visible si P9 es "Sí". Campo de texto abierto.
+- [ ] **Nueva P11:** "¿A qué edad empezó la Alimentación Complementaria?" -> Input numérico con chevrons (formato estándar).
+
+## ⚙️ Notas Técnicas / Contexto
+* La lógica condicional de la P10 debe ejecutarse en tiempo real sin recargar la página.
+* Todas las preguntas de meses deben heredar la solución del bug de scroll discutido en el ticket anterior.
+
+
+### Blocker / Completion Context
+- blocker_reason: -
+- completion_notes: -
+- completion_links: []
+- mentions: []
+
+### Attachments
+- `38731bc0-60ec-4573-a78f-eb84528f2ae2.jpeg` | mime: `image/jpeg` | size: 228375 | drive_file_id: `1o-LKw1rOX4i0AE7YLgZX8MuDiy9ZbHB0` | evidence: evidence/35e9f464-5118-4376-a47f-4db589fa46de/ebd95123-cb12-462e-8b07-beaec2faaf53-38731bc0-60ec-4573-a78f-eb84528f2ae2.jpeg
+
+### Activity Timeline
+- 2026-02-13T23:04:34.940Z | action=`assigned` | actor=Andres Treviño | metadata={"taskTitle":"HD - Preguntas de lactancia nuevas al cuestionario","assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+- 2026-02-13T23:04:34.940Z | action=`created` | actor=Andres Treviño | metadata={"title":"HD - Preguntas de lactancia nuevas al cuestionario","mentions":null,"assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+
+## HD - Scroll hijicking en cuestionario
+
+- Task ID: `7ed7163b-b308-4cb6-8d86-33368cc064c9`
+- Current Status in Mira: `backlog`
+- Queue Status: `pending`
+- Area: `desarrollo`
+- Assignee: Rogelio Guzmán (roger@ezyai.pro)
+- Creator: Andres Treviño (atz@ezyai.pro)
+- Created At: 2026-02-13T22:53:38.756Z
+- Updated At: 2026-02-13T22:53:59.356Z
+- Due Date: -
+- Progress: 0
+- Critical: false
+
+### Description
+# [TIPO: Bug] Scroll involuntario en selectores numéricos del Cuestionario
+
+## 🎯 Objetivo / User Story
+Como Usuario (Admin/Paciente), quiero que al interactuar con las flechas de incremento/decremento en las preguntas del cuestionario, la ventana permanezca estática para no perder el foco de la pregunta que estoy respondiendo.
+
+## Ubicación Exacta 
+Cuestionario de hitos del desarrollo (Preguntas 2 y 3). Afecta al rol de Administrador y potencialmente al rol de Paciente en la versión Web.
+
+## 🖼️ Referencia Visual
+> **⚠️ PARA ANDRÉS:** Recuerda adjuntar el screenshot del cuestionario señalando los botones de "mayor que" y "menor que" (chevrons) en este ticket.
+* **Análisis de la imagen:** Se observan inputs numéricos personalizados donde los controles de cambio de valor son iconos orientados verticalmente. El error ocurre específicamente al hacer clic en estos disparadores.
+
+## 📋 Criterios de Aceptación (DoD)
+- [ ] Al hacer clic en las flechas de "meses" (arriba/abajo), el valor numérico debe cambiar sin activar el scroll de la página.
+- [ ] Se debe implementar `event.preventDefault()` o `event.stopPropagation()` en los manejadores de clic de estos iconos.
+- [ ] El comportamiento debe ser consistente tanto en la vista de Administrador como en la de Paciente (versión Web).
+- [ ] El foco del teclado debe permanecer en el input o en el botón presionado, sin saltar al contenedor padre.
+
+## ⚙️ Notas Técnicas / Contexto
+* El desplazamiento es parcial (unas cuantas líneas), similar al comportamiento de las flechas del teclado.
+* El bug se reportó inicialmente en las preguntas de "capaz de sentarse" y "capaz de gatear", pero se debe verificar si el componente se repite en otras secciones del cuestionario para aplicar una solución global.
+
+### Blocker / Completion Context
+- blocker_reason: -
+- completion_notes: -
+- completion_links: []
+- mentions: []
+
+### Attachments
+- None
+
+### Activity Timeline
+- 2026-02-13T22:53:38.756Z | action=`created` | actor=Andres Treviño | metadata={"title":"Scroll hijicking en cuestionario","mentions":null,"assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+- 2026-02-13T22:53:38.756Z | action=`assigned` | actor=Andres Treviño | metadata={"taskTitle":"Scroll hijicking en cuestionario","assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+- 2026-02-13T22:53:59.358Z | action=`updated` | actor=Andres Treviño | metadata={"newTitle":"HD - Scroll hijicking en cuestionario","oldTitle":"Scroll hijicking en cuestionario","fieldsUpdated":{"title":true,"mentions":false,"description":true},"newDescription":"# [TIPO: Bug] Scroll involuntario en selectores numéricos del Cuestionario\n\n## 🎯 Objetivo / User Story\nComo Usuario (Admin/Paciente), quiero que al interactuar con las flechas de incremento/decremento en las preguntas del cuestionario, la ventana permanezca estática para no perder el foco de la pregunta que estoy respondiendo.\n\n## Ubicación Exacta \nCuestionario de hitos del desarrollo (Preguntas 2 y 3). Afecta al rol de Administrador y potencialmente al rol de Paciente en la versión Web.\n\n## 🖼️ Referencia Visual\n> **⚠️ PARA ANDRÉS:** Recuerda adjuntar el screenshot del cuestionario señalando los botones de \"mayor que\" y \"menor que\" (chevrons) en este ticket.\n* **Análisis de la imagen:** Se observan inputs numéricos personalizados donde los controles de cambio de valor son iconos orientados verticalmente. El error ocurre específicamente al hacer clic en estos disparadores.\n\n## 📋 Criterios de Aceptación (DoD)\n- [ ] Al hacer clic en las flechas de \"meses\" (arriba/abajo), el valor numérico debe cambiar sin activar el scroll de la página.\n- [ ] Se debe implementar `event.preventDefault()` o `event.stopPropagation()` en los manejadores de clic de estos iconos.\n- [ ] El comportamiento debe ser consistente tanto en la vista de Administrador como en la de Paciente (versión Web).\n- [ ] El foco del teclado debe permanecer en el input o en el botón presionado, sin saltar al contenedor padre.\n\n## ⚙️ Notas Técnicas / Contexto\n* El desplazamiento es parcial (unas cuantas líneas), similar al comportamiento de las flechas del teclado.\n* El bug se reportó inicialmente en las preguntas de \"capaz de sentarse\" y \"capaz de gatear\", pero se debe verificar si el componente se repite en otras secciones del cuestionario para aplicar una solución global.","oldDescription":"# [TIPO: Bug] Scroll involuntario en selectores numéricos del Cuestionario\n\n## 🎯 Objetivo / User Story\nComo Usuario (Admin/Paciente), quiero que al interactuar con las flechas de incremento/decremento en las preguntas del cuestionario, la ventana permanezca estática para no perder el foco de la pregunta que estoy respondiendo.\n\n## Ubicación Exacta \nCuestionario de hitos del desarrollo (Preguntas 2 y 3). Afecta al rol de Administrador y potencialmente al rol de Paciente en la versión Web.\n\n## 🖼️ Referencia Visual\n> **⚠️ PARA ANDRÉS:** Recuerda adjuntar el screenshot del cuestionario señalando los botones de \"mayor que\" y \"menor que\" (chevrons) en este ticket.\n* **Análisis de la imagen:** Se observan inputs numéricos personalizados donde los controles de cambio de valor son iconos orientados verticalmente. El error ocurre específicamente al hacer clic en estos disparadores.\n\n## 📋 Criterios de Aceptación (DoD)\n- [ ] Al hacer clic en las flechas de \"meses\" (arriba/abajo), el valor numérico debe cambiar sin activar el scroll de la página.\n- [ ] Se debe implementar `event.preventDefault()` o `event.stopPropagation()` en los manejadores de clic de estos iconos.\n- [ ] El comportamiento debe ser consistente tanto en la vista de Administrador como en la de Paciente (versión Web).\n- [ ] El foco del teclado debe permanecer en el input o en el botón presionado, sin saltar al contenedor padre.\n\n## ⚙️ Notas Técnicas / Contexto\n* El desplazamiento es parcial (unas cuantas líneas), similar al comportamiento de las flechas del teclado.\n* El bug se reportó inicialmente en las preguntas de \"capaz de sentarse\" y \"capaz de gatear\", pero se debe verificar si el componente se repite en otras secciones del cuestionario para aplicar una solución global."}
+
+## HD - CORRECCIÓN DE CALCULO PERCENTILES DE PESO Y TAMAÑO CON OMS
+
+- Task ID: `5e34972d-e26c-4e35-8a60-3a3449d5524a`
+- Current Status in Mira: `backlog`
+- Queue Status: `pending`
+- Area: `desarrollo`
+- Assignee: Rogelio Guzmán (roger@ezyai.pro)
+- Creator: Andres Treviño (atz@ezyai.pro)
+- Created At: 2026-02-13T22:45:03.861Z
+- Updated At: 2026-02-13T22:53:50.483Z
+- Due Date: -
+- Progress: 0
+- Critical: false
+
+### Description
+# [TIPO: Bug/Feature] Corrección de Cálculo de Percentiles (Estándares OMS)
+
+## 🎯 Objetivo / User Story
+Como Sleep Coach (Admin), quiero que los percentiles de peso y tamaño se calculen correctamente basados en los estándares de la OMS para que el seguimiento del crecimiento del bebé sea preciso y confiable.
+
+## Ubicación Exacta 
+Dashboard del bebé. Accesible para usuarios con rol de Administrador (Sleep Coach).
+
+## 🖼️ Referencia Visual
+> **⚠️ PARA ANDRÉS:** Recuerda adjuntar la imagen de la tabla de referencia de la OMS o un screenshot del Dashboard actual en este ticket ahora mismo.
+* **Análisis de la imagen:** El desarrollador debe ver el Dashboard del bebé donde se muestran actualmente los campos de "Peso" y "Talla" junto a su valor de percentil. Se debe asegurar que la jerarquía visual resalte si el bebé está dentro de los rangos normales según las curvas de la OMS.
+
+## 📋 Criterios de Aceptación (DoD)
+- [ ] Integrar las tablas de referencia de la OMS (Weight-for-age y Length-for-age).
+- [ ] El cálculo debe ser dinámico basado en: Edad cronológica exacta, Sexo (Niño/Niña) y Medida ingresada.
+- [ ] El sistema debe mostrar el percentil calculado exacto, incluso si se encuentra en los extremos de la curva (1 o 99).
+- [ ] Si se requiere el parámetro de nacionalidad para ajustes regionales, el sistema debe permitir la extensión de la lógica de consulta.
+
+## ⚙️ Notas Técnicas / Contexto
+* Se debe validar que los datos de entrada (peso/talla) coincidan con las unidades de medida de las tablas OMS (kg/cm).
+* Caso borde: Si los datos están extremadamente fuera de rango, se muestra el valor calculado sin truncar, a menos que la fórmula resulte en un error matemático.
+
+### Blocker / Completion Context
+- blocker_reason: -
+- completion_notes: -
+- completion_links: []
+- mentions: []
+
+### Attachments
+- None
+
+### Activity Timeline
+- 2026-02-13T22:45:03.861Z | action=`created` | actor=Andres Treviño | metadata={"title":"HD - CORRECCIÓN DE CALCULO PERCENTILES DE PESO Y TAMAÑO CON OMS","mentions":null,"assigneeId":null}
+- 2026-02-13T22:53:50.482Z | action=`assigned` | actor=Andres Treviño | metadata={"taskTitle":"HD - CORRECCIÓN DE CALCULO PERCENTILES DE PESO Y TAMAÑO CON OMS","newAssigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i","oldAssigneeId":null}
+
+## HD Error pantalla Diagnósticos
+
+- Task ID: `174cae20-161e-47b3-afb0-89befde668a3`
+- Current Status in Mira: `backlog`
+- Queue Status: `pending`
+- Area: `desarrollo`
+- Assignee: Rogelio Guzmán (roger@ezyai.pro)
+- Creator: EL JULIUS ❄️ (eljulius@nebulastudios.io)
+- Created At: 2026-02-06T01:26:46.395Z
+- Updated At: 2026-02-06T01:26:46.395Z
+- Due Date: -
+- Progress: 0
+- Critical: false
+
+### Description
+_No description_
+
+### Blocker / Completion Context
+- blocker_reason: -
+- completion_notes: -
+- completion_links: []
+- mentions: []
+
+### Attachments
+- `HappyDreamers Diagnósticos Error.png` | mime: `image/png` | size: 99083 | drive_file_id: `1CO2mkM0u77Q8iA4WaezkSKcNC0q87ibT` | evidence: evidence/174cae20-161e-47b3-afb0-89befde668a3/f51d3c50-452a-4876-bde8-b71fb1fba9c9-HappyDreamers_Diagn_sticos_Error.png
+
+### Activity Timeline
+- 2026-02-06T01:26:46.395Z | action=`created` | actor=EL JULIUS ❄️ | metadata={"title":"HD Error pantalla Diagnósticos","mentions":null,"assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+- 2026-02-06T01:26:46.395Z | action=`assigned` | actor=EL JULIUS ❄️ | metadata={"taskTitle":"HD Error pantalla Diagnósticos","assigneeId":"user_38JfBDoDDUokHOKqc9qRnBmZ02i"}
+
