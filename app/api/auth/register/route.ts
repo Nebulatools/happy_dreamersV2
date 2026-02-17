@@ -2,6 +2,7 @@
 // Crea un nuevo usuario en la base de datos
 
 import { NextResponse } from "next/server"
+import * as Sentry from "@sentry/nextjs"
 import { hash } from "bcryptjs"
 import { connectToDatabase } from "@/lib/mongodb"
 
@@ -54,6 +55,7 @@ export async function POST(req: Request) {
     )
   } catch (error) {
     logger.error("Error al registrar usuario:", error)
+    Sentry.captureException(error)
     return NextResponse.json({ message: "Error interno del servidor" }, { status: 500 })
   }
 }

@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs"
 import { OpenAIEmbeddings } from "@langchain/openai"
 import { Document } from "@langchain/core/documents"
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter"
@@ -199,6 +200,7 @@ export class MongoDBVectorStoreManager {
         metadata: doc.metadata,
       }))
     } catch (error) {
+      Sentry.captureException(error)
       logger.error("❌ Error en búsqueda vectorial:", error)
       return []
     }
@@ -209,6 +211,7 @@ export class MongoDBVectorStoreManager {
       const { db } = await connectToDatabase()
       return await db.collection(this.metaCollectionName).countDocuments()
     } catch (error) {
+      Sentry.captureException(error)
       logger.error("Error obteniendo count de documentos:", error)
       return 0
     }
@@ -235,6 +238,7 @@ export class MongoDBVectorStoreManager {
         createdAt: doc.createdAt,
       }))
     } catch (error) {
+      Sentry.captureException(error)
       logger.error("Error obteniendo lista de documentos:", error)
       return []
     }
@@ -300,6 +304,7 @@ export class MongoDBVectorStoreManager {
       logger.info(`🗑️ Documento eliminado: ${docMeta.source}`)
       return true
     } catch (error) {
+      Sentry.captureException(error)
       logger.error("Error eliminando documento:", error)
       return false
     }

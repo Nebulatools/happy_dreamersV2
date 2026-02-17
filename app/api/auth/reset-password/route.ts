@@ -2,6 +2,7 @@
 // Valida token y actualiza contraseña usando MongoDB
 
 import { NextResponse } from "next/server"
+import * as Sentry from "@sentry/nextjs"
 import { connectToDatabase } from "@/lib/mongodb"
 import { hash } from "bcryptjs"
 import { createLogger } from "@/lib/logger"
@@ -78,6 +79,7 @@ export async function POST(req: Request) {
 
   } catch (error) {
     logger.error("Error en reset-password:", error)
+    Sentry.captureException(error)
     return NextResponse.json({
       message: "Error interno del servidor",
     }, { status: 500 })
@@ -122,6 +124,7 @@ export async function GET(req: Request) {
 
   } catch (error) {
     logger.error("Error validando token:", error)
+    Sentry.captureException(error)
     return NextResponse.json({
       valid: false,
       message: "Error interno del servidor",

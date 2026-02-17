@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import * as Sentry from "@sentry/nextjs"
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { createLogger } from "@/lib/logger"
@@ -288,6 +289,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ message: "Niño eliminado correctamente" })
   } catch (error) {
     logger.error("Error al eliminar niño", error)
+    Sentry.captureException(error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }

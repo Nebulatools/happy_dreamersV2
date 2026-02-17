@@ -2,6 +2,7 @@
 // Envía email con link de reset usando MongoDB
 
 import { NextResponse } from "next/server"
+import * as Sentry from "@sentry/nextjs"
 import { connectToDatabase } from "@/lib/mongodb"
 import { sendPasswordResetEmail } from "@/lib/email/password-reset-email"
 import crypto from "crypto"
@@ -93,6 +94,7 @@ export async function POST(req: Request) {
 
   } catch (error) {
     logger.error("Error en forgot-password:", error)
+    Sentry.captureException(error)
     return NextResponse.json({
       message: "Error interno del servidor",
     }, { status: 500 })

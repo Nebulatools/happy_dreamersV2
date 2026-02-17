@@ -14,6 +14,7 @@ import { processSleepStatistics } from "@/lib/sleep-calculations"
 import { createLogger } from "@/lib/logger"
 import { ChildPlan } from "@/types/models"
 import { derivePlanPolicy } from "@/lib/plan-policies"
+import * as Sentry from "@sentry/nextjs"
 import * as fs from "fs"
 import * as path from "path"
 
@@ -217,6 +218,7 @@ async function hasEventsAfterDate(childId: string, afterDate: Date): Promise<{
     }
   } catch (error) {
     logger.error("Error verificando eventos después de fecha:", error)
+    Sentry.captureException(error)
     return { hasEvents: false, eventCount: 0, eventTypes: [], eventDetails: [] }
   }
 }
@@ -246,6 +248,7 @@ async function hasAvailableTranscript(childId: string, afterDate?: Date): Promis
     }
   } catch (error) {
     logger.error("Error verificando transcript disponible:", error)
+    Sentry.captureException(error)
     return { hasTranscript: false }
   }
 }
@@ -310,7 +313,8 @@ export async function GET(req: NextRequest) {
 
   } catch (error) {
     logger.error("Error obteniendo planes:", error)
-    return NextResponse.json({ 
+    Sentry.captureException(error)
+    return NextResponse.json({
       error: "Error interno del servidor",
       details: error instanceof Error ? error.message : "Error desconocido",
     }, { status: 500 })
@@ -501,8 +505,9 @@ export async function POST(req: NextRequest) {
       stack: error instanceof Error ? error.stack : undefined,
       processingTime: totalProcessingTime,
     })
-    
-    return NextResponse.json({ 
+    Sentry.captureException(error)
+
+    return NextResponse.json({
       error: "Error interno del servidor",
       details: error instanceof Error ? error.message : "Error desconocido",
     }, { status: 500 })
@@ -658,7 +663,8 @@ export async function PUT(req: NextRequest) {
 
   } catch (error) {
     logger.error("Error validando posibilidad de generar plan:", error)
-    return NextResponse.json({ 
+    Sentry.captureException(error)
+    return NextResponse.json({
       error: "Error interno del servidor",
       details: error instanceof Error ? error.message : "Error desconocido",
     }, { status: 500 })
@@ -759,6 +765,7 @@ export async function PATCH(req: NextRequest) {
 
   } catch (error) {
     logger.error("Error aplicando plan:", error)
+    Sentry.captureException(error)
     return NextResponse.json({
       error: "Error interno del servidor",
       details: error instanceof Error ? error.message : "Error desconocido",
@@ -1229,10 +1236,12 @@ Enfócate en los ACUERDOS REALISTAS alcanzados en la conversación completa.`,
       return JSON.parse(responseContent)
     } catch (parseError) {
       logger.error("Error parseando extracción de horarios:", parseError)
+      Sentry.captureException(parseError)
       return null
     }
   } catch (error) {
     logger.error("Error en extracción de horarios:", error)
+    Sentry.captureException(error)
     return null
   }
 }
@@ -1277,6 +1286,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
       return JSON.parse(responseContent)
     } catch (parseError) {
       logger.error("Error parseando análisis ligero:", parseError)
+      Sentry.captureException(parseError)
       return {
         analysis: responseContent,
         recommendations: "Ver análisis para recomendaciones específicas.",
@@ -1455,6 +1465,7 @@ async function loadRAGFromSummary(ageInMonths: number | null): Promise<Array<{so
 
   } catch (error) {
     logger.error("❌ Error leyendo RAG_SUMMARY_OPTIMIZED.md:", error)
+    Sentry.captureException(error)
     // Retornar array vacío en caso de error (fallback silencioso)
     return []
   }
@@ -1502,6 +1513,7 @@ async function searchRAGForPlan(ageInMonths: number | null) {
     }))
   } catch (error) {
     logger.error("Error en búsqueda RAG para plan:", error)
+    Sentry.captureException(error)
     return []
   }
 }
@@ -1830,7 +1842,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
         ? `Destete nocturno activo: mover toma ${p.nightWeaning.shiftEarlierMinutesPerStep} min más temprano y aumentar ~${p.nightWeaning.increaseBottleOzPerStep} oz cada ${p.nightWeaning.stepEveryDays} días.`
         : "Si no hay tomas nocturnas recientes, no incluir destete."
       policyText = `POLÍTICAS Y LÍMITES DE AJUSTE (OBLIGATORIO RESPETAR):\n- ${napLine}\n- ${nightLine}`
-    } catch (_) {}
+    } catch (_e) { Sentry.captureException(_e) }
     const __messages: any[] = [
       { role: "system", content: systemPrompt },
     ]
@@ -1866,7 +1878,8 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
         responseContent: responseContent.substring(0, 500) + "...",
         fullLength: responseContent.length,
       })
-      
+      Sentry.captureException(parseError)
+
       // Intentar generar un plan básico como fallback
       logger.warn("Generando plan fallback debido a error de parsing")
       return {
@@ -1895,6 +1908,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
     }
   } catch (error) {
     logger.error("Error generando plan con IA:", error)
+    Sentry.captureException(error)
     // Fallback robusto cuando la IA o la red fallan: devolver un plan básico válido
     logger.warn("Generando plan fallback debido a error en IA/red")
     return {

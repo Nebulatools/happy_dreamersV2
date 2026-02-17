@@ -8,6 +8,7 @@ import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { differenceInMinutes, parseISO } from "date-fns"
 
+import * as Sentry from "@sentry/nextjs"
 import { createLogger } from "@/lib/logger"
 import { syncEventToAnalyticsCollection, removeEventFromAnalyticsCollection } from "@/lib/event-sync"
 import { resolveChildAccess, ChildAccessError } from "@/lib/api/child-access"
@@ -38,6 +39,7 @@ function calculateSleepDuration(startTime: string, endTime: string, sleepDelay: 
     return realSleepDuration
   } catch (error) {
     logger.error("Error calculando duración de sueño:", error)
+    Sentry.captureException(error)
     return 0
   }
 }
@@ -66,6 +68,7 @@ function calculateAwakeDuration(startTime: string, endTime: string, awakeDelay: 
     return totalMinutes
   } catch (error) {
     logger.error("Error calculando duración de despertar:", error)
+    Sentry.captureException(error)
     return 0
   }
 }
@@ -429,6 +432,7 @@ export async function POST(req: NextRequest) {
       logger.info(`✅ Evento ${event._id} guardado en colección 'events'`)
     } catch (insertError: any) {
       logger.error(`❌ Error guardando evento ${event._id} en colección 'events':`, insertError)
+      Sentry.captureException(insertError)
       return NextResponse.json(
         { error: "No se pudo registrar el evento", details: insertError.message },
         { status: 500 }
@@ -473,6 +477,7 @@ export async function POST(req: NextRequest) {
       logger.info(`Evento ${event._id} sincronizado a colección analytics`)
     } catch (syncError) {
       logger.warn(`No se pudo sincronizar evento ${event._id} a analytics:`, syncError)
+      Sentry.captureException(syncError)
       // No fallar la operación principal por error de sincronización
     }
 
@@ -482,6 +487,7 @@ export async function POST(req: NextRequest) {
     )
   } catch (error: any) {
     logger.error("Error al registrar evento:", { message: error.message, stack: error.stack })
+    Sentry.captureException(error)
     return NextResponse.json(
       { error: "Error al registrar el evento" },
       { status: 500 }
@@ -557,6 +563,7 @@ export async function GET(req: NextRequest) {
     })
   } catch (error: any) {
     logger.error("Error al obtener eventos:", error.message)
+    Sentry.captureException(error)
     return NextResponse.json(
       { error: "Error al obtener los eventos", details: error.message },
       { status: 500 }
@@ -755,6 +762,7 @@ export async function PUT(req: NextRequest) {
       logger.info(`Evento ${data.id} sincronizado a colección analytics`)
     } catch (syncError) {
       logger.warn(`No se pudo sincronizar evento ${data.id} a analytics:`, syncError)
+      Sentry.captureException(syncError)
       // No fallar la operación principal por error de sincronización
     }
 
@@ -764,6 +772,7 @@ export async function PUT(req: NextRequest) {
     )
   } catch (error: any) {
     logger.error("Error al actualizar evento:", { message: error.message, stack: error.stack })
+    Sentry.captureException(error)
     return NextResponse.json(
       { error: "Error al actualizar el evento" },
       { status: 500 }
@@ -962,6 +971,7 @@ export async function PATCH(req: NextRequest) {
       logger.info(`Evento ${data.eventId} sincronizado a colección analytics`)
     } catch (syncError) {
       logger.warn(`No se pudo sincronizar evento ${data.eventId} a analytics:`, syncError)
+      Sentry.captureException(syncError)
       // No fallar la operación principal por error de sincronización
     }
 
@@ -971,6 +981,7 @@ export async function PATCH(req: NextRequest) {
     )
   } catch (error: any) {
     logger.error("Error al actualizar evento:", error.message)
+    Sentry.captureException(error)
     return NextResponse.json(
       { error: "Error al actualizar el evento" },
       { status: 500 }
@@ -1038,6 +1049,7 @@ export async function DELETE(req: NextRequest) {
       }
     } catch (e) {
       logger.warn("Error eliminando de colección events:", e)
+      Sentry.captureException(e)
     }
 
     // Verificar que se elimino de la coleccion events
@@ -1055,6 +1067,7 @@ export async function DELETE(req: NextRequest) {
       logger.info(`Evento ${eventId} eliminado de colección analytics`)
     } catch (syncError) {
       logger.warn(`No se pudo eliminar evento ${eventId} de analytics:`, syncError)
+      Sentry.captureException(syncError)
       // No fallar la operación principal por error de sincronización
     }
 
@@ -1064,6 +1077,7 @@ export async function DELETE(req: NextRequest) {
     )
   } catch (error: any) {
     logger.error("Error al eliminar evento:", { message: error.message, stack: error.stack })
+    Sentry.captureException(error)
     return NextResponse.json(
       { error: "Error al eliminar el evento" },
       { status: 500 }

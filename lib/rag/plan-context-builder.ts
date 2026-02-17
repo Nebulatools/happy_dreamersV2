@@ -1,6 +1,7 @@
 // Builder de contexto para planes de niños en el sistema RAG
 // Obtiene y formatea información del plan activo para el asistente
 
+import * as Sentry from "@sentry/nextjs"
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { ChildPlan } from "@/types/models"
@@ -33,6 +34,7 @@ export async function getActivePlan(childId: string, userId: string): Promise<Ch
     return plan as ChildPlan
 
   } catch (error) {
+    Sentry.captureException(error)
     logger.error("Error obteniendo plan activo:", error)
     return null
   }
@@ -151,6 +153,7 @@ export async function hasActivePlan(childId: string, userId: string): Promise<bo
     const plan = await getActivePlan(childId, userId)
     return plan !== null
   } catch (error) {
+    Sentry.captureException(error)
     logger.error("Error verificando si existe plan activo:", error)
     return false
   }
@@ -169,6 +172,7 @@ export async function getChildPlanContext(childId: string, userId: string): Prom
 
     return buildPlanContext(plan)
   } catch (error) {
+    Sentry.captureException(error)
     logger.error("Error obteniendo contexto del plan del niño:", error)
     return "Error al obtener el plan del niño."
   }
@@ -231,6 +235,7 @@ export async function getAllPlansContext(childId: string, userId: string): Promi
     
     return context
   } catch (error) {
+    Sentry.captureException(error)
     logger.error("Error obteniendo historial de planes:", error)
     return "Error al obtener el historial de planes del niño."
   }
