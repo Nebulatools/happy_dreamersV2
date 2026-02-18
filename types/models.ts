@@ -115,6 +115,8 @@ export interface SurveyData {
     pesoHijo?: number // Peso del hijo
     peso?: number // Legacy
     percentilPeso?: number
+    tallaHijo?: number // Talla del hijo en cm
+    percentilTalla?: number // Percentil de talla calculado
 
     // Información prenatal
     embarazoPlaneado?: boolean
@@ -213,7 +215,22 @@ export interface SurveyData {
     }
 
     // G2 Nivel de Ferritina (indicador para RLS pediátrico, alerta si < 50 ng/mL)
+    tieneEstudioFerritina?: boolean // ¿Le han realizado estudio de ferritina?
     nivelFerritina?: number // ng/mL
+    fechaEstudioFerritina?: string // Fecha del estudio (ISO date string)
+
+    // Consultas y estudios medicos adicionales
+    consultaOtroDoctor?: boolean // ¿Ha consultado con otro doctor?
+    consultaDoctorDetalle?: string // Especialidad y motivo
+    estudiosMedicos?: boolean // ¿Se le han practicado estudios medicos?
+    estudiosMedicosDetalle?: string // Tipo de estudios y motivo
+
+    // Lactancia y alimentacion complementaria
+    problemasLactancia?: boolean // ¿Tuvieron problemas con la lactancia?
+    asesoriaLactancia?: boolean // ¿Cuentan con asesoria de lactancia?
+    asesoraLactanciaDetalle?: string // Nombre de la asesora de lactancia
+    edadAlimentacionComplementaria?: number // Edad en meses al iniciar alimentacion complementaria
+
     pesadillasDetalle?: string // Detalle sobre las pesadillas
     alergiaAlimenticiaDetalle?: string // Detalles de alergia alimenticia (condicional)
     alergiaAmbientalDetalle?: string // Detalles de alergia ambiental (condicional)
@@ -295,7 +312,9 @@ export interface SurveyData {
     numeroSiestas?: number // Número de siestas al día
     duracionTotalSiestas?: string // Duración total de siestas
     dondeSiestas?: string // Dónde toma las siestas
-    horaDespertar?: string // Hora de despertar
+    horaDespertar?: string // Hora de despertar (legacy - single value)
+    horaDespertarDesde?: string // Hora de despertar - rango inicio
+    horaDespertarHasta?: string // Hora de despertar - rango fin
 
     // Despertares nocturnos
     despiertaNoche?: boolean // ¿Se despierta en la noche?

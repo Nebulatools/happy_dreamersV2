@@ -42,6 +42,9 @@ interface Child {
   lastName: string
   parentId: string
   birthDate?: string
+  surveyData?: {
+    completed?: boolean
+  }
 }
 
 interface PatientQuickSelectorProps {
@@ -70,6 +73,7 @@ export function PatientQuickSelector({
   const [loadingChildren, setLoadingChildren] = useState<string | null>(null)
   const [searchValue, setSearchValue] = useState("")
   const [childrenPrefetched, setChildrenPrefetched] = useState(false)
+  const [showAll, setShowAll] = useState(false)
   
   const { toast } = useToast()
   const { 
@@ -192,21 +196,51 @@ export function PatientQuickSelector({
     }
   }, [open])
 
+  // Determinar si un usuario es "activo" (tiene al menos un nino con survey completado)
+  const isUserActive = (userId: string): boolean => {
+    const children = userChildren[userId] || globalChildrenMap[userId] || []
+    return children.some(child => child.surveyData?.completed === true)
+  }
+
+  // Ordenar ninos A-Z por firstName
+  const getSortedChildren = (children: Child[]): Child[] => {
+    return [...children].sort((a, b) =>
+      (a.firstName || "").localeCompare(b.firstName || "", "es")
+    )
+  }
+
+  // Obtener el apellido de un nombre completo para ordenamiento
+  const getLastName = (fullName: string): string => {
+    const parts = fullName.trim().split(/\s+/)
+    return parts.length > 1 ? parts[parts.length - 1] : parts[0]
+  }
+
   const filteredUsers = useMemo(() => {
     const search = searchValue.trim().toLowerCase()
-    if (!search) return users
-    
-    const matches = (value?: string) => value?.toLowerCase().includes(search)
-    
-    return users.filter(user => {
-      const matchesUser = matches(user.name) || matches(user.email)
-      const children = userChildren[user._id] || globalChildrenMap[user._id] || []
-      const matchesChild = children.some(child => 
-        `${child.firstName || ""} ${child.lastName || ""}`.toLowerCase().includes(search)
-      )
-      return matchesUser || matchesChild
-    })
-  }, [users, searchValue, userChildren, globalChildrenMap])
+
+    // Aplicar filtro de activos (cuando no se muestra todos)
+    let baseUsers = users
+    if (!showAll) {
+      baseUsers = users.filter(user => isUserActive(user._id))
+    }
+
+    if (search) {
+      const matches = (value?: string) => value?.toLowerCase().includes(search)
+      baseUsers = baseUsers.filter(user => {
+        const matchesUser = matches(user.name) || matches(user.email)
+        const children = userChildren[user._id] || globalChildrenMap[user._id] || []
+        const matchesChild = children.some(child =>
+          `${child.firstName || ""} ${child.lastName || ""}`.toLowerCase().includes(search)
+        )
+        return matchesUser || matchesChild
+      })
+    }
+
+    // Ordenar usuarios A-Z por apellido
+    return [...baseUsers].sort((a, b) =>
+      getLastName(a.name).localeCompare(getLastName(b.name), "es")
+    )
+  }, [users, searchValue, userChildren, globalChildrenMap, showAll])
 
   const childSearchResults = useMemo(() => {
     const search = searchValue.trim().toLowerCase()
@@ -224,6 +258,9 @@ export function PatientQuickSelector({
         seen.add(child._id)
       })
     })
+    results.sort((a, b) =>
+      (a.child.firstName || "").localeCompare(b.child.firstName || "", "es")
+    )
     return results.slice(0, 10)
   }, [searchValue, globalChildrenMap, userChildren])
 
@@ -383,6 +420,17 @@ export function PatientQuickSelector({
             value={searchValue}
             onValueChange={setSearchValue}
           />
+          <div className="flex items-center justify-end px-3 py-1.5 border-b">
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showAll}
+                onChange={(e) => setShowAll(e.target.checked)}
+                className="h-3 w-3 rounded border-gray-300"
+              />
+              Mostrar todos
+            </label>
+          </div>
           <CommandList>
             <CommandEmpty>No se encontraron pacientes.</CommandEmpty>
             
@@ -438,7 +486,7 @@ export function PatientQuickSelector({
             <CommandGroup heading="Pacientes">
               {filteredUsers.map((user) => {
                 const isExpanded = activeUserId === user._id
-                const children = userChildren[user._id] || []
+                const children = getSortedChildren(userChildren[user._id] || [])
                 const isLoadingUser = loadingChildren === user._id
                 
                 return (

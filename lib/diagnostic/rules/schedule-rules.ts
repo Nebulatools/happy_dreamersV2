@@ -30,7 +30,7 @@ export interface ScheduleValidationInput {
   plan: Record<string, any> | null
   childAgeMonths: number
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  surveyData?: Record<string, any> // Fallback para horaDormir/horaDespertar si no hay plan
+  surveyData?: Record<string, any> // Fallback para horaDormir/horaDespertar/siestas si no hay plan/eventos
 }
 
 // Resultado de validacion G1
@@ -211,10 +211,13 @@ function validateWakeDeviation(
 
 /**
  * Valida la duracion de la noche contra lo esperado por edad.
+ * Si no hay eventos suficientes, usa horaDespertar y horaDormir del survey como fallback.
  */
 function validateNightDuration(
   events: SleepEvent[],
-  childAgeMonths: number
+  childAgeMonths: number,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  surveyData?: Record<string, any>
 ): CriterionResult {
   const expectedHours = getNightDurationForAge(childAgeMonths)
 
@@ -223,6 +226,35 @@ function validateNightDuration(
   const actualHours = dailyStats.avgNightHoursPerDay
 
   if (actualHours === 0) {
+    // Fallback: estimar duracion de noche desde survey (horaDormir + horaDespertar)
+    if (surveyData?.horaDormir && surveyData?.horaDespertar) {
+      const bedtimeMinutes = timeToMinutes(surveyData.horaDormir)
+      const wakeMinutes = timeToMinutes(surveyData.horaDespertar)
+
+      if (bedtimeMinutes >= 0 && wakeMinutes >= 0) {
+        // Calcular duracion considerando cruce de medianoche
+        let durationMinutes = wakeMinutes - bedtimeMinutes
+        if (durationMinutes <= 0) durationMinutes += 24 * 60
+        const surveyNightHours = durationMinutes / 60
+
+        const deviation = Math.abs(surveyNightHours - expectedHours)
+        let status: StatusLevel = "ok"
+        if (deviation > 2) status = "warning"
+        else if (deviation > 1) status = "warning"
+
+        return {
+          id: "g1_night_duration",
+          name: "Duracion de noche",
+          status,
+          value: `${surveyNightHours.toFixed(1)} hrs`,
+          expected: `${expectedHours} hrs`,
+          message: `${surveyNightHours.toFixed(1)} hrs estimadas (basado en cuestionario inicial)`,
+          sourceType: "survey",
+          dataAvailable: true,
+        }
+      }
+    }
+
     return {
       id: "g1_night_duration",
       name: "Duracion de noche",
@@ -258,10 +290,13 @@ function validateNightDuration(
 
 /**
  * Valida la cantidad de siestas contra lo esperado por edad.
+ * Si no hay eventos de siesta, usa surveyData como fallback.
  */
 function validateNapCount(
   events: SleepEvent[],
-  childAgeMonths: number
+  childAgeMonths: number,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  surveyData?: Record<string, any>
 ): CriterionResult {
   const rule = getScheduleRuleForAge(childAgeMonths)
 
@@ -299,6 +334,56 @@ function validateNapCount(
       ? dailyStats.napsCount / dailyStats.daysWithData
       : 0
 
+  // Si no hay datos de eventos, intentar fallback a surveyData
+  if (dailyStats.daysWithData === 0) {
+    // Verificar tomaSiestas y numeroSiestas del survey
+    const tomaSiestas = surveyData?.tomaSiestas
+    const numeroSiestas = surveyData?.numeroSiestas
+
+    if (tomaSiestas !== undefined || numeroSiestas !== undefined) {
+      // Si explicitamente dice que no toma siestas
+      if (tomaSiestas === false || tomaSiestas === "no") {
+        const expectedNaps = rule.napCount
+        const deviation = expectedNaps // 0 siestas vs esperadas
+        let status: StatusLevel = "ok"
+        if (deviation > 1) status = "warning"
+        else if (deviation === 1) status = "warning"
+
+        return {
+          id: "g1_nap_count",
+          name: "Cantidad de siestas",
+          status,
+          value: 0,
+          expected: expectedNaps,
+          message: `0 siestas reportadas en cuestionario inicial (esperado: ${expectedNaps})`,
+          sourceType: "survey",
+          dataAvailable: true,
+        }
+      }
+
+      // Si tiene numero de siestas del survey
+      if (numeroSiestas && !isNaN(Number(numeroSiestas))) {
+        const surveyNaps = Number(numeroSiestas)
+        const expectedNaps = rule.napCount
+        const deviation = Math.abs(surveyNaps - expectedNaps)
+        let status: StatusLevel = "ok"
+        if (deviation > 1) status = "warning"
+        else if (deviation === 1) status = "warning"
+
+        return {
+          id: "g1_nap_count",
+          name: "Cantidad de siestas",
+          status,
+          value: surveyNaps,
+          expected: expectedNaps,
+          message: `${surveyNaps} siestas reportadas (basado en cuestionario inicial, esperado: ${expectedNaps})`,
+          sourceType: "survey",
+          dataAvailable: true,
+        }
+      }
+    }
+  }
+
   // Redondear al entero mas cercano
   const actualNaps = Math.round(avgNapsPerDay)
   const expectedNaps = rule.napCount
@@ -326,10 +411,13 @@ function validateNapCount(
 
 /**
  * Valida la duracion de las siestas contra el maximo por edad.
+ * Si no hay eventos de siesta, usa surveyData.duracionTotalSiestas como fallback.
  */
 function validateNapDuration(
   events: SleepEvent[],
-  childAgeMonths: number
+  childAgeMonths: number,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  surveyData?: Record<string, any>
 ): CriterionResult {
   const rule = getScheduleRuleForAge(childAgeMonths)
 
@@ -352,6 +440,28 @@ function validateNapDuration(
   const avgNapMinutes = avgNapHours * 60
 
   if (avgNapMinutes === 0) {
+    // Fallback: usar duracionTotalSiestas del survey
+    if (surveyData?.duracionTotalSiestas) {
+      const surveyDuration = Number(surveyData.duracionTotalSiestas)
+      if (!isNaN(surveyDuration) && surveyDuration > 0) {
+        const exceeds = surveyDuration > rule.napMaxDuration
+        const status: StatusLevel = exceeds ? "warning" : "ok"
+
+        return {
+          id: "g1_nap_duration",
+          name: "Duracion de siestas",
+          status,
+          value: `${Math.round(surveyDuration)} min`,
+          expected: `max ${rule.napMaxDuration} min`,
+          message: exceeds
+            ? `${Math.round(surveyDuration)} min reportadas en cuestionario inicial (max ${rule.napMaxDuration} min)`
+            : "Duracion de siestas dentro del limite (basado en cuestionario inicial)",
+          sourceType: "survey",
+          dataAvailable: true,
+        }
+      }
+    }
+
     return {
       id: "g1_nap_duration",
       name: "Duracion de siestas",
@@ -376,7 +486,7 @@ function validateNapDuration(
     expected: `max ${rule.napMaxDuration} min`,
     message: exceeds
       ? `Siestas de ${Math.round(avgNapMinutes)} min exceden maximo de ${rule.napMaxDuration} min`
-      : `Duracion de siestas dentro del limite`,
+      : "Duracion de siestas dentro del limite",
     sourceType: "calculated",
     dataAvailable: true,
   }
@@ -734,9 +844,9 @@ export function validateSchedule(
   // Ejecutar todas las validaciones
   const wakeMinimumResult = validateMinimumWakeTime(actualWakeTime)
   const wakeDeviationResult = validateWakeDeviation(actualWakeTime, plan, surveyData)
-  const nightDurationResult = validateNightDuration(events, childAgeMonths)
-  const napCountResult = validateNapCount(events, childAgeMonths)
-  const napDurationResult = validateNapDuration(events, childAgeMonths)
+  const nightDurationResult = validateNightDuration(events, childAgeMonths, surveyData)
+  const napCountResult = validateNapCount(events, childAgeMonths, surveyData)
+  const napDurationResult = validateNapDuration(events, childAgeMonths, surveyData)
   const bedtimeResult = validateBedtime(events, plan, surveyData)
   const sleepWindowsResult = validateSleepWindows(events, childAgeMonths)
 

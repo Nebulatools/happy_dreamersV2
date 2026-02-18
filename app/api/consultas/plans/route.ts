@@ -1577,6 +1577,11 @@ ${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join
 y da el PRIMER PASO suave hacia estos objetivos ideales.
 ` : ""}
 
+VOCABULARIO DE ALIMENTACION:
+- Usa terminos variados segun el momento del dia: "Desayuno", "Almuerzo/Comida", "Merienda/Colacion/Snack", "Cena".
+- Para referirte a la ingesta en general, alterna entre "alimento", "ingesta", "comida", "alimentacion". Evita repetir la palabra "comida" mas de 2 veces en el mismo bloque de recomendaciones.
+- Las descripciones de comida deben ser ESPECIFICAS al bebe (ej: "Papilla de verduras", "Cereal con fruta", "Pure de pollo con arroz"), no genericas (NO "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo").
+
 INSTRUCCIONES:
 1. Crea un plan DETALLADO con horarios específicos
 2. Incluye horarios para: dormir, despertar, comidas y siestas (NO incluir actividades)
@@ -1611,10 +1616,10 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
     "bedtime": "20:00",
     "wakeTime": "07:00",
     "meals": [
-      {"time": "07:30", "type": "desayuno", "description": "Descripción del desayuno"},
-      {"time": "12:00", "type": "almuerzo", "description": "Descripción del almuerzo"},
-      {"time": "16:00", "type": "merienda", "description": "Descripción de la merienda"},
-      {"time": "19:00", "type": "cena", "description": "Descripción de la cena"}
+      {"time": "07:30", "type": "desayuno", "description": "Avena con platano y canela"},
+      {"time": "12:00", "type": "almuerzo", "description": "Pure de pollo con verduras"},
+      {"time": "16:00", "type": "merienda", "description": "Fruta picada con yogur natural"},
+      {"time": "19:00", "type": "cena", "description": "Crema de calabaza con arroz"}
     ],
     "activities": [],
     "naps": [
@@ -1659,6 +1664,11 @@ ${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join
 ⚠️ IMPORTANTE: Usa el plan anterior como base y da el SIGUIENTE PASO progresivo hacia estos horarios ideales.
 NO saltes directamente al ideal si el plan anterior está lejos. Avanza gradualmente.
 ` : ""}
+
+VOCABULARIO DE ALIMENTACION:
+- Usa terminos variados segun el momento del dia: "Desayuno", "Almuerzo/Comida", "Merienda/Colacion/Snack", "Cena".
+- Para referirte a la ingesta en general, alterna entre "alimento", "ingesta", "comida", "alimentacion". Evita repetir la palabra "comida" mas de 2 veces en el mismo bloque de recomendaciones.
+- Las descripciones de comida deben ser ESPECIFICAS al bebe (ej: "Papilla de verduras", "Cereal con fruta", "Pure de pollo con arroz"), no genericas (NO "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo").
 
 INSTRUCCIONES PARA PROGRESIÓN:
 1. 🎯 PRIORIDAD: Utiliza el PLAN ANTERIOR como base sólida
@@ -1728,6 +1738,11 @@ ${JSON.stringify(scheduleChanges, null, 2)}
 TRANSCRIPT DE LA CONSULTA (COMPLETO):
 ${transcriptAnalysis?.transcript || "No disponible"}
 
+VOCABULARIO DE ALIMENTACION:
+- Usa terminos variados segun el momento del dia: "Desayuno", "Almuerzo/Comida", "Merienda/Colacion/Snack", "Cena".
+- Para referirte a la ingesta en general, alterna entre "alimento", "ingesta", "comida", "alimentacion". Evita repetir la palabra "comida" mas de 2 veces en el mismo bloque de recomendaciones.
+- Las descripciones de comida deben ser ESPECIFICAS al bebe (ej: "Papilla de verduras", "Cereal con fruta", "Pure de pollo con arroz"), no genericas (NO "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo").
+
 INSTRUCCIONES PARA REFINAMIENTO:
 1. 🎯 PRIORIDAD MÁXIMA: Aplica todos los cambios específicos de horarios extraídos del transcript
 2. ⚠️ CRÍTICO: NO puede haber DOS EVENTOS DIFERENTES a la MISMA HORA (ej: no puede haber "cena a las 19:00" y "baño a las 19:00")
@@ -1747,7 +1762,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
       {
         "time": "07:30",
         "type": "desayuno",
-        "description": "Descripción del desayuno"
+        "description": "Cereal con fruta picada"
       }
     ],
     "activities": [],
@@ -1887,10 +1902,10 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
           bedtime: "20:30",
           wakeTime: "07:00",
           meals: [
-            { time: "07:30", type: "desayuno", description: "Desayuno nutritivo" },
-            { time: "12:00", type: "almuerzo", description: "Almuerzo balanceado" },
-            { time: "16:00", type: "merienda", description: "Merienda ligera" },
-            { time: "19:00", type: "cena", description: "Cena temprana" },
+            { time: "07:30", type: "desayuno", description: "Cereal o fruta de temporada" },
+            { time: "12:00", type: "almuerzo", description: "Proteina con verduras" },
+            { time: "16:00", type: "merienda", description: "Colacion saludable (fruta o yogur)" },
+            { time: "19:00", type: "cena", description: "Cena ligera antes de la rutina nocturna" },
           ],
           activities: [
             { time: "08:00", activity: "jugar", duration: 60, description: "Tiempo de juego" },
@@ -1916,10 +1931,10 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
         bedtime: "20:30",
         wakeTime: "07:00",
         meals: [
-          { time: "07:30", type: "desayuno", description: "Desayuno nutritivo" },
-          { time: "12:00", type: "almuerzo", description: "Almuerzo balanceado" },
-          { time: "16:00", type: "merienda", description: "Merienda ligera" },
-          { time: "19:00", type: "cena", description: "Cena temprana" },
+          { time: "07:30", type: "desayuno", description: "Cereal o fruta de temporada" },
+          { time: "12:00", type: "almuerzo", description: "Proteina con verduras" },
+          { time: "16:00", type: "merienda", description: "Colacion saludable (fruta o yogur)" },
+          { time: "19:00", type: "cena", description: "Cena ligera antes de la rutina nocturna" },
         ],
         activities: [
           { time: "18:30", activity: "rutina", duration: 30, description: "Rutina relajante antes de dormir" },

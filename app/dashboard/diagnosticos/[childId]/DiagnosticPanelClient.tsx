@@ -1,12 +1,21 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, AlertCircle, Info } from "lucide-react"
+import { Loader2, AlertCircle, Info, Clock, Stethoscope, Utensils, Cloud } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion"
 import { useToast } from "@/hooks/use-toast"
 import { useActiveChild } from "@/context/active-child-context"
+import { StatusBadge } from "@/components/diagnostic/StatusIndicator"
+import { cn } from "@/lib/utils"
 
 // Componentes del panel de diagnostico
 import ProfileHeader from "@/components/diagnostic/ProfileHeader"
@@ -23,6 +32,8 @@ import type {
   DiagnosticResult,
   CriterionResult,
   Alert,
+  GroupValidation,
+  StatusLevel,
 } from "@/lib/diagnostic/types"
 
 interface DiagnosticPanelClientProps {
@@ -45,6 +56,148 @@ interface PlanData {
   planVersion: string
   status: string
   startDate?: string
+}
+
+// Configuracion de los grupos para el acordeon
+const GROUP_CONFIG: {
+  id: "G1" | "G2" | "G3" | "G4"
+  title: string
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+}[] = [
+  { id: "G1", title: "g1-horario", label: "Horario", icon: Clock },
+  { id: "G2", title: "g2-medico", label: "Medico", icon: Stethoscope },
+  { id: "G3", title: "g3-alimentacion", label: "Alimentacion", icon: Utensils },
+  { id: "G4", title: "g4-entorno", label: "Entorno", icon: Cloud },
+]
+
+// Colores de borde por status
+const accordionBorderColors: Record<StatusLevel, string> = {
+  ok: "border-l-green-500",
+  warning: "border-l-yellow-500",
+  alert: "border-l-red-500",
+}
+
+/**
+ * ValidationAccordion - Acordeon de grupos de validacion G1-G4
+ *
+ * Muestra las 4 tarjetas de validacion en formato de acordeon.
+ * Las tarjetas con alertas se abren por defecto.
+ */
+function ValidationAccordion({
+  diagnosticResult,
+  onCriterionClick,
+}: {
+  diagnosticResult: DiagnosticResult
+  onCriterionClick: (criterion: CriterionResult, groupTitle: string) => void
+}) {
+  // Calcular cuales grupos tienen alertas para abrirlos por defecto
+  const defaultOpenGroups = useMemo(() => {
+    const open: string[] = []
+    for (const config of GROUP_CONFIG) {
+      const group = diagnosticResult.groups[config.id]
+      if (group.status === "alert" || group.status === "warning") {
+        open.push(config.title)
+      }
+    }
+    // Si ninguno tiene alertas, abrir el primero
+    if (open.length === 0) open.push(GROUP_CONFIG[0].title)
+    return open
+  }, [diagnosticResult])
+
+  // Funcion auxiliar para contar alertas/avisos de un grupo
+  const getGroupCounts = (group: GroupValidation) => {
+    const alerts = group.criteria.filter((c) => c.status === "alert").length
+    const warnings = group.criteria.filter((c) => c.status === "warning").length
+    return { alerts, warnings }
+  }
+
+  return (
+    <Accordion type="multiple" defaultValue={defaultOpenGroups} className="space-y-3">
+      {GROUP_CONFIG.map((config) => {
+        const group = diagnosticResult.groups[config.id]
+        const { alerts, warnings } = getGroupCounts(group)
+        const Icon = config.icon
+
+        return (
+          <AccordionItem
+            key={config.title}
+            value={config.title}
+            className={cn(
+              "border-0 border-l-4 rounded-lg bg-white shadow-sm overflow-hidden",
+              accordionBorderColors[group.status]
+            )}
+          >
+            <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-gray-50/50">
+              <div className="flex items-center gap-3 flex-1">
+                <StatusBadge status={group.status} size="sm" />
+                <div className="flex items-center gap-2">
+                  <Icon className="h-4 w-4 text-gray-600" />
+                  <span className="text-sm font-semibold text-gray-900">
+                    {config.label}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 ml-auto mr-2">
+                  {alerts > 0 && (
+                    <Badge className="bg-red-100 text-red-700 text-xs">
+                      {alerts} alerta{alerts !== 1 ? "s" : ""}
+                    </Badge>
+                  )}
+                  {warnings > 0 && (
+                    <Badge className="bg-yellow-100 text-yellow-700 text-xs">
+                      {warnings} aviso{warnings !== 1 ? "s" : ""}
+                    </Badge>
+                  )}
+                  {alerts === 0 && warnings === 0 && (
+                    <Badge className="bg-green-100 text-green-700 text-xs">
+                      OK
+                    </Badge>
+                  )}
+                  <span className="text-xs text-gray-400 ml-1">
+                    {group.dataCompleteness.available}/{group.dataCompleteness.total}
+                  </span>
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              {config.id === "G1" && (
+                <G1ScheduleValidation
+                  validation={diagnosticResult.groups.G1}
+                  onCriterionClick={(criterion) =>
+                    onCriterionClick(criterion, "G1 - Horario")
+                  }
+                />
+              )}
+              {config.id === "G2" && (
+                <G2MedicalValidation
+                  validation={diagnosticResult.groups.G2}
+                  onCriterionClick={(criterion) =>
+                    onCriterionClick(criterion, "G2 - Medico")
+                  }
+                />
+              )}
+              {config.id === "G3" && (
+                <G3NutritionValidation
+                  validation={diagnosticResult.groups.G3}
+                  onCriterionClick={(criterion) =>
+                    onCriterionClick(criterion, "G3 - Alimentacion")
+                  }
+                />
+              )}
+              {config.id === "G4" && (
+                <G4EnvironmentalValidation
+                  validation={diagnosticResult.groups.G4}
+                  onCriterionClick={(criterion) =>
+                    onCriterionClick(criterion, "G4 - Entorno")
+                  }
+                />
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        )
+      })}
+    </Accordion>
+  )
 }
 
 /**
@@ -275,40 +428,11 @@ export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClient
           </Card>
         )}
 
-        {/* Grid de grupos de validacion (2x2) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* G1 - Horario */}
-          <G1ScheduleValidation
-            validation={diagnosticResult.groups.G1}
-            onCriterionClick={(criterion) =>
-              handleCriterionClick(criterion, "G1 - Horario")
-            }
-          />
-
-          {/* G2 - Medico */}
-          <G2MedicalValidation
-            validation={diagnosticResult.groups.G2}
-            onCriterionClick={(criterion) =>
-              handleCriterionClick(criterion, "G2 - Medico")
-            }
-          />
-
-          {/* G3 - Alimentacion */}
-          <G3NutritionValidation
-            validation={diagnosticResult.groups.G3}
-            onCriterionClick={(criterion) =>
-              handleCriterionClick(criterion, "G3 - Alimentacion")
-            }
-          />
-
-          {/* G4 - Entorno */}
-          <G4EnvironmentalValidation
-            validation={diagnosticResult.groups.G4}
-            onCriterionClick={(criterion) =>
-              handleCriterionClick(criterion, "G4 - Entorno")
-            }
-          />
-        </div>
+        {/* Grupos de validacion con acordeon */}
+        <ValidationAccordion
+          diagnosticResult={diagnosticResult}
+          onCriterionClick={handleCriterionClick}
+        />
 
         {/* Seccion Pasante AI */}
         <PasanteAISection

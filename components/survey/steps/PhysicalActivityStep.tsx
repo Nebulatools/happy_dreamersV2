@@ -155,6 +155,7 @@ export function PhysicalActivityStep({ data, onChange, errors = {} }: SurveyStep
                 min={1}
                 value={activityDuration}
                 onChange={(e) => setActivityDuration(e.target.value)}
+                onWheel={(e) => { e.currentTarget.blur() }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault()

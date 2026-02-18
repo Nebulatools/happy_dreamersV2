@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { CheckedState } from "@radix-ui/react-checkbox"
 import { Heart } from "lucide-react"
@@ -84,6 +85,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
               type="number"
               value={data.rodarMeses || ""}
               onChange={(e) => updateField("rodarMeses", e.target.value)}
+              onWheel={(e) => { e.currentTarget.blur() }}
               placeholder="Edad en meses"
             />
           </div>
@@ -98,6 +100,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
               type="number"
               value={data.sentarseMeses || ""}
               onChange={(e) => updateField("sentarseMeses", e.target.value)}
+              onWheel={(e) => { e.currentTarget.blur() }}
               placeholder="Edad en meses"
             />
           </div>
@@ -112,6 +115,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
               type="number"
               value={data.gatearMeses || ""}
               onChange={(e) => updateField("gatearMeses", e.target.value)}
+              onWheel={(e) => { e.currentTarget.blur() }}
               placeholder="Edad en meses"
             />
           </div>
@@ -162,6 +166,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
               type="number"
               value={data.caminarMeses || ""}
               onChange={(e) => updateField("caminarMeses", e.target.value)}
+              onWheel={(e) => { e.currentTarget.blur() }}
               placeholder="Edad en meses"
             />
           </div>
@@ -269,7 +274,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
           <div className="flex gap-4 mt-2">
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="si" id="come-solidos-si" />
-              <Label htmlFor="come-solidos-si">Sí</Label>
+              <Label htmlFor="come-solidos-si">Si</Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="no" id="come-solidos-no" />
@@ -277,6 +282,76 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             </div>
           </div>
         </RadioGroup>
+      </div>
+
+      {/* T11: Preguntas de lactancia */}
+      <div>
+        <Label>¿Tuvieron problemas con la lactancia?</Label>
+        <RadioGroup
+          value={data.problemasLactancia === true ? "si" : data.problemasLactancia === false ? "no" : ""}
+          onValueChange={(value) => {
+            updateField("problemasLactancia", value === "si")
+          }}
+        >
+          <div className="flex gap-4 mt-2">
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="si" id="problemas-lactancia-si" />
+              <Label htmlFor="problemas-lactancia-si">Si</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="no" id="problemas-lactancia-no" />
+              <Label htmlFor="problemas-lactancia-no">No</Label>
+            </div>
+          </div>
+        </RadioGroup>
+      </div>
+
+      <div>
+        <Label>¿Cuentas con asesoria de lactancia?</Label>
+        <RadioGroup
+          value={data.asesoriaLactancia === true ? "si" : data.asesoriaLactancia === false ? "no" : ""}
+          onValueChange={(value) => {
+            updateField("asesoriaLactancia", value === "si")
+          }}
+        >
+          <div className="flex gap-4 mt-2">
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="si" id="asesoria-lactancia-si" />
+              <Label htmlFor="asesoria-lactancia-si">Si</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="no" id="asesoria-lactancia-no" />
+              <Label htmlFor="asesoria-lactancia-no">No</Label>
+            </div>
+          </div>
+        </RadioGroup>
+        {data.asesoriaLactancia && (
+          <div className="mt-3 ml-4">
+            <Label htmlFor="asesora-lactancia-detalle">¿Quien es tu Asesora de Lactancia?</Label>
+            <Input
+              id="asesora-lactancia-detalle"
+              value={data.asesoraLactanciaDetalle || ""}
+              onChange={(e) => updateField("asesoraLactanciaDetalle", e.target.value)}
+              placeholder="Nombre de la asesora..."
+              className="max-w-md mt-1"
+            />
+          </div>
+        )}
+      </div>
+
+      <div>
+        <Label htmlFor="edad-alimentacion-complementaria">¿A que edad empezo la Alimentacion Complementaria? (meses)</Label>
+        <Input
+          id="edad-alimentacion-complementaria"
+          type="number"
+          min="0"
+          max="36"
+          value={data.edadAlimentacionComplementaria || ""}
+          onChange={(e) => updateField("edadAlimentacionComplementaria", e.target.value ? Number(e.target.value) : undefined)}
+          onWheel={(e) => { e.currentTarget.blur() }}
+          placeholder="Edad en meses"
+          className="max-w-xs mt-1"
+        />
       </div>
 
       {/* 9. Tu hijo(a) - Lista de checkboxes */}
@@ -598,12 +673,9 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
         </div>
       </div>
 
-      {/* G2 Síndrome de Piernas Inquietas (Restless Leg Syndrome) */}
+      {/* Comportamientos al dormir (antes: Sindrome de Piernas Inquietas) */}
       <div>
-        <Label>Síndrome de Piernas Inquietas</Label>
-        <p className="text-sm text-gray-500 mb-2">
-          Estos síntomas pueden indicar el síndrome de piernas inquietas, que afecta la calidad del sueño.
-        </p>
+        <Label>¿Su hijo/a presenta alguno de los siguientes comportamientos al dormir?</Label>
         <div className="space-y-3 mt-2">
           <div className="flex items-center space-x-2">
             <Checkbox
@@ -642,29 +714,126 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
                 })
               }}
             />
-            <Label htmlFor="rls-quejandose">Se despierta quejándose de las piernas</Label>
+            <Label htmlFor="rls-quejandose">Se despierta quejandose de las piernas</Label>
           </div>
         </div>
       </div>
 
-      {/* Nivel de Ferritina */}
+      {/* Estudio de Ferritina */}
       <div>
-        <Label htmlFor="nivel-ferritina">
-          Nivel de Ferritina (ng/mL)
-        </Label>
-        <p className="text-sm text-gray-500 mb-2">
-          Un nivel menor a 50 ng/mL puede contribuir al síndrome de piernas inquietas en niños.
-        </p>
-        <Input
-          id="nivel-ferritina"
-          type="number"
-          min="0"
-          max="500"
-          value={data.nivelFerritina || ""}
-          onChange={(e) => updateField("nivelFerritina", e.target.value ? Number(e.target.value) : undefined)}
-          placeholder="Ej: 45"
-          className="max-w-xs"
-        />
+        <Label>¿Le han realizado un estudio de Ferritina?</Label>
+        <RadioGroup
+          value={data.tieneEstudioFerritina === true ? "si" : data.tieneEstudioFerritina === false ? "no" : ""}
+          onValueChange={(value) => {
+            updateField("tieneEstudioFerritina", value === "si")
+          }}
+        >
+          <div className="flex gap-4 mt-2">
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="si" id="estudio-ferritina-si" />
+              <Label htmlFor="estudio-ferritina-si">Si</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="no" id="estudio-ferritina-no" />
+              <Label htmlFor="estudio-ferritina-no">No</Label>
+            </div>
+          </div>
+        </RadioGroup>
+        {data.tieneEstudioFerritina && (
+          <div className="mt-3 space-y-3 ml-4">
+            <div>
+              <Label htmlFor="nivel-ferritina">Nivel de Ferritina (ng/mL)</Label>
+              <Input
+                id="nivel-ferritina"
+                type="number"
+                min="0"
+                max="500"
+                value={data.nivelFerritina || ""}
+                onChange={(e) => updateField("nivelFerritina", e.target.value ? Number(e.target.value) : undefined)}
+                onWheel={(e) => { e.currentTarget.blur() }}
+                placeholder="Ej: 45"
+                className="max-w-xs mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="fecha-estudio-ferritina">Fecha del estudio</Label>
+              <Input
+                id="fecha-estudio-ferritina"
+                type="date"
+                value={data.fechaEstudioFerritina || ""}
+                onChange={(e) => updateField("fechaEstudioFerritina", e.target.value)}
+                className="max-w-xs mt-1"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* T10: Nuevas preguntas de salud */}
+      <div>
+        <Label>¿Ha consultado con algun otro doctor?</Label>
+        <RadioGroup
+          value={data.consultaOtroDoctor === true ? "si" : data.consultaOtroDoctor === false ? "no" : ""}
+          onValueChange={(value) => {
+            updateField("consultaOtroDoctor", value === "si")
+          }}
+        >
+          <div className="flex gap-4 mt-2">
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="si" id="consulta-otro-doctor-si" />
+              <Label htmlFor="consulta-otro-doctor-si">Si</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="no" id="consulta-otro-doctor-no" />
+              <Label htmlFor="consulta-otro-doctor-no">No</Label>
+            </div>
+          </div>
+        </RadioGroup>
+        {data.consultaOtroDoctor && (
+          <div className="mt-3 ml-4">
+            <Label htmlFor="consulta-doctor-detalle">¿Que especialidad fue y por que motivo?</Label>
+            <Textarea
+              id="consulta-doctor-detalle"
+              value={data.consultaDoctorDetalle || ""}
+              onChange={(e) => updateField("consultaDoctorDetalle", e.target.value)}
+              placeholder="Ej: Neurologo, por problemas de sueno..."
+              className="max-w-md mt-1"
+            />
+          </div>
+        )}
+      </div>
+
+      <div>
+        <Label>¿Se le han practicado estudios medicos?</Label>
+        <RadioGroup
+          value={data.estudiosMedicos === true ? "si" : data.estudiosMedicos === false ? "no" : ""}
+          onValueChange={(value) => {
+            updateField("estudiosMedicos", value === "si")
+          }}
+        >
+          <div className="flex gap-4 mt-2">
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="si" id="estudios-medicos-si" />
+              <Label htmlFor="estudios-medicos-si">Si</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="no" id="estudios-medicos-no" />
+              <Label htmlFor="estudios-medicos-no">No</Label>
+            </div>
+          </div>
+        </RadioGroup>
+        {data.estudiosMedicos && (
+          <div className="mt-3 ml-4">
+            <Label htmlFor="estudios-medicos-detalle">¿Que tipo de estudios y por que motivo?</Label>
+            <Textarea
+              id="estudios-medicos-detalle"
+              value={data.estudiosMedicosDetalle || ""}
+              onChange={(e) => updateField("estudiosMedicosDetalle", e.target.value)}
+              placeholder="Ej: Estudio de sueno, analisis de sangre..."
+              className="max-w-md mt-1"
+            />
+          </div>
+        )}
       </div>
 
       {/* 10. ¿Ha tenido algunas de las siguientes situaciones? */}
@@ -749,6 +918,7 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
                   type="number"
                   value={data.infeccionesOidoDetalle || ""}
                   onChange={(e) => updateField("infeccionesOidoDetalle", e.target.value)}
+                  onWheel={(e) => { e.currentTarget.blur() }}
                   placeholder="Número de veces"
                   className="max-w-md mt-1"
                 />

@@ -50,9 +50,14 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
       updates.tiempoDormir = "20"
       hasChanges = true
     }
-    if (!data.horaDespertar || data.horaDespertar === "") {
-      console.log("Setting horaDespertar to 06:00")
-      updates.horaDespertar = "06:00"
+    if (!data.horaDespertarDesde && !data.horaDespertar) {
+      console.log("Setting horaDespertarDesde to 06:00")
+      updates.horaDespertarDesde = "06:00"
+      hasChanges = true
+    }
+    if (!data.horaDespertarHasta) {
+      console.log("Setting horaDespertarHasta to 07:00")
+      updates.horaDespertarHasta = "07:00"
       hasChanges = true
     }
 
@@ -292,6 +297,10 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="luz-bano" id="osc-bano" />
               <Label htmlFor="osc-bano">Luz del baño prendida</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="luz-mercurial" id="osc-mercurial" />
+              <Label htmlFor="osc-mercurial">Luz mercurial de la calle</Label>
             </div>
           </div>
         </RadioGroup>
@@ -599,6 +608,7 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
             step="5"
             value={data.tiempoDormir || ""}
             onChange={(e) => updateField("tiempoDormir", e.target.value)}
+            onWheel={(e) => { e.currentTarget.blur() }}
             placeholder="Ej: 20"
             className="max-w-xs"
           />
@@ -606,19 +616,42 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         </div>
       </div>
 
-      {/* 19. Hora de despertarse - Time Picker */}
+      {/* 19. Hora de despertarse - Rango (Desde / Hasta) */}
       <div>
-        <Label htmlFor="hora-despertar">
+        <Label>
           19. ¿A qué hora se despierta tu hijo(a) por la mañana?
         </Label>
-        <Input
-          id="hora-despertar"
-          type="time"
-          step="300"
-          value={getValueOrDefault("horaDespertar", "06:00")}
-          onChange={(e) => updateField("horaDespertar", e.target.value)}
-          className="max-w-xs"
-        />
+        <div className="flex gap-4 mt-2">
+          <div className="flex-1 max-w-[180px]">
+            <Label htmlFor="hora-despertar-desde" className="text-sm text-gray-600">Desde</Label>
+            <Input
+              id="hora-despertar-desde"
+              type="time"
+              step="300"
+              value={data.horaDespertarDesde || data.horaDespertar || "06:00"}
+              onChange={(e) => updateField("horaDespertarDesde", e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div className="flex-1 max-w-[180px]">
+            <Label htmlFor="hora-despertar-hasta" className="text-sm text-gray-600">Hasta</Label>
+            <Input
+              id="hora-despertar-hasta"
+              type="time"
+              step="300"
+              value={data.horaDespertarHasta || "07:00"}
+              onChange={(e) => updateField("horaDespertarHasta", e.target.value)}
+              className={`mt-1 ${
+                data.horaDespertarHasta && data.horaDespertarDesde && data.horaDespertarHasta < data.horaDespertarDesde
+                  ? "border-red-500"
+                  : ""
+              }`}
+            />
+          </div>
+        </div>
+        {data.horaDespertarHasta && data.horaDespertarDesde && data.horaDespertarHasta < data.horaDespertarDesde && (
+          <p className="text-red-500 text-sm mt-1">La hora &quot;Hasta&quot; debe ser posterior a la hora &quot;Desde&quot;</p>
+        )}
       </div>
 
       {/* 20. ¿Despierta por la noche? */}
@@ -740,10 +773,23 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
         />
       </div>
 
-      {/* 28. Sueño y lugar cuando viajan */}
+      {/* 28. ¿Dónde toma siestas? */}
+      <div>
+        <Label htmlFor="donde-siestas">
+          28. ¿Dónde toma las siestas?
+        </Label>
+        <Input
+          id="donde-siestas"
+          value={data.dondeSiestas || ""}
+          onChange={(e) => updateField("dondeSiestas", e.target.value)}
+          placeholder="Ej: En su cuna, en brazos..."
+        />
+      </div>
+
+      {/* 29. Sueño y lugar cuando viajan */}
       <div>
         <Label htmlFor="duerme-mejor-viaja">
-          28. Cuando viajas, ¿sientes que tu hijo duerme mejor, peor o igual? ¿Dónde duerme en los viajes?
+          29. Cuando viajas, ¿sientes que tu hijo duerme mejor, peor o igual? ¿Dónde duerme en los viajes?
         </Label>
         <div className="mt-2 space-y-2">
           <RadioGroup
@@ -778,19 +824,6 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
             placeholder="Ej: En cuna portátil, cama de hotel, con los padres, etc."
           />
         </div>
-      </div>
-
-      {/* 29. ¿Dónde toma siestas? */}
-      <div>
-        <Label htmlFor="donde-siestas">
-          29. ¿Dónde toma las siestas?
-        </Label>
-        <Input
-          id="donde-siestas"
-          value={data.dondeSiestas || ""}
-          onChange={(e) => updateField("dondeSiestas", e.target.value)}
-          placeholder="Ej: En su cuna, en brazos..."
-        />
       </div>
 
       {/* 30. Principal preocupación */}
