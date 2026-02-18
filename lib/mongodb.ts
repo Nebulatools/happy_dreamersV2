@@ -2,6 +2,7 @@
 // Utiliza singleton con health checks y configuración de performance
 
 import { MongoClient, MongoClientOptions, Db } from "mongodb"
+import * as Sentry from "@sentry/nextjs"
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("MongoDB")
@@ -20,9 +21,9 @@ const options: MongoClientOptions = {
   maxIdleTimeMS: 30000,               // 30s timeout para conexiones idle
   
   // Timeouts
-  serverSelectionTimeoutMS: 5000,     // 5s para seleccionar servidor
+  serverSelectionTimeoutMS: 15000,    // 15s para seleccionar servidor (cold starts)
   socketTimeoutMS: 45000,             // 45s timeout para operaciones
-  connectTimeoutMS: 10000,            // 10s timeout para conectar
+  connectTimeoutMS: 15000,            // 15s timeout para conectar (cold starts)
   
   // Reliability
   heartbeatFrequencyMS: 10000,        // Health check cada 10s
@@ -58,12 +59,42 @@ if (process.env.NODE_ENV === "development") {
   clientPromise = client.connect()
 }
 
-// 🔌 FUNCIÓN DE CONEXIÓN SIMPLE Y ESTABLE
+// 🔌 FUNCIÓN DE CONEXIÓN CON RETRY PARA COLD STARTS
+const MAX_RETRIES = 2
+const RETRY_DELAY_MS = 1000
+
 export async function connectToDatabase(): Promise<{ client: MongoClient; db: Db }> {
-  const client = await clientPromise
-  const dbName = process.env.MONGODB_DB_FINAL || process.env.MONGODB_DATABASE || process.env.MONGODB_DB
-  const db = client.db(dbName)
-  return { client, db }
+  let lastError: Error | null = null
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const client = await clientPromise
+      const dbName = process.env.MONGODB_DB_FINAL || process.env.MONGODB_DATABASE || process.env.MONGODB_DB
+      const db = client.db(dbName)
+
+      Sentry.addBreadcrumb({
+        category: "mongodb",
+        message: `Conexion establecida (intento ${attempt})`,
+        level: "info",
+      })
+
+      return { client, db }
+    } catch (error) {
+      lastError = error as Error
+      logger.warn(`Intento ${attempt}/${MAX_RETRIES} fallido: ${lastError.message}`)
+
+      if (attempt < MAX_RETRIES) {
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
+      }
+    }
+  }
+
+  Sentry.captureException(lastError, {
+    tags: { module: "mongodb", action: "connectToDatabase" },
+    extra: { retries: MAX_RETRIES },
+  })
+
+  throw lastError
 }
 
 // 📊 FUNCIONES UTILITARIAS PARA MONITOREO (SIMPLIFICADAS)
@@ -81,7 +112,7 @@ export async function getConnectionStats() {
       },
     }
   } catch (error) {
-    return { connected: false, stats: null, error: error.message }
+    return { connected: false, stats: null, error: (error as Error).message }
   }
 }
 
@@ -95,7 +126,7 @@ export async function healthCheck(): Promise<{ healthy: boolean; latency?: numbe
     
     return { healthy: true, latency }
   } catch (error) {
-    return { healthy: false, error: error.message }
+    return { healthy: false, error: (error as Error).message }
   }
 }
 
