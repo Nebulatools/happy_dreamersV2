@@ -160,8 +160,17 @@ export function Header() {
       })
     }
 
-    router.push("/dashboard")
-  }, [searchChildren, setActiveUserId, setActiveUserName, setActiveChildId, toast, router])
+    // Navegar a la vista de paciente si estamos en esa seccion
+    if (pathname?.startsWith("/dashboard/paciente")) {
+      if (children.length === 1) {
+        router.push(`/dashboard/paciente/${children[0]._id}`)
+      } else {
+        router.push("/dashboard/paciente")
+      }
+    } else {
+      router.push("/dashboard")
+    }
+  }, [searchChildren, setActiveUserId, setActiveUserName, setActiveChildId, toast, router, pathname])
 
   useEffect(() => {
     setMounted(true)
@@ -306,6 +315,7 @@ export function Header() {
       "/dashboard/calendar": "Calendario",
       "/dashboard/assistant": "Asistente IA",
       "/dashboard/patients": "Pacientes",
+      "/dashboard/paciente": "Pacientes",
       "/dashboard/consultas": "Consultas",
       "/dashboard/planes": "Planes",
       "/dashboard/transcripts": "Transcripts",
@@ -336,6 +346,9 @@ export function Header() {
     }
     if (normalized.startsWith("/dashboard/consultas/")) {
       return "Consultas"
+    }
+    if (normalized.startsWith("/dashboard/paciente/")) {
+      return "Paciente"
     }
     if (normalized.startsWith("/dashboard/patients/")) {
       return "Pacientes"

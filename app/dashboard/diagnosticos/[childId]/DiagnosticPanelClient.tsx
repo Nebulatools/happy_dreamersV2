@@ -38,6 +38,7 @@ import type {
 
 interface DiagnosticPanelClientProps {
   childId: string
+  embedded?: boolean
 }
 
 // Estados posibles del componente
@@ -215,14 +216,16 @@ function ValidationAccordion({
  * - error: error al cargar (red de error, etc)
  * - success: diagnostico cargado correctamente (parcial o completo)
  */
-export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClientProps) {
+export default function DiagnosticPanelClient({ childId, embedded = false }: DiagnosticPanelClientProps) {
   const { toast } = useToast()
   const router = useRouter()
   const { activeChildId, isInitialized } = useActiveChild()
   const hasInitializedRef = useRef(false)
 
   // Si el admin limpia la seleccion o cambia de nino, redirigir
+  // En modo embedded, el componente padre maneja la navegacion
   useEffect(() => {
+    if (embedded) return
     if (!isInitialized) return
 
     // Saltar el valor inicial (persistido de localStorage)
@@ -233,15 +236,15 @@ export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClient
 
     // Seleccion limpiada → volver a pantalla de seleccion
     if (!activeChildId) {
-      router.push("/dashboard/diagnosticos")
+      router.push("/dashboard/paciente")
       return
     }
 
     // Cambio a otro nino → navegar a su panel
     if (activeChildId !== childId) {
-      router.push(`/dashboard/diagnosticos/${activeChildId}`)
+      router.push(`/dashboard/paciente/${activeChildId}?tab=diagnostico`)
     }
-  }, [activeChildId, isInitialized, router, childId])
+  }, [activeChildId, isInitialized, router, childId, embedded])
 
   // Estados
   const [viewState, setViewState] = useState<ViewState>("loading")

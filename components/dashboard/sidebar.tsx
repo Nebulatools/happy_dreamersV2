@@ -76,7 +76,7 @@ export function Sidebar({ className }: { className?: string }) {
       role: ["parent", "user"],
     },
     {
-      title: "Dashboard Admin",
+      title: "Panel General",
       href: "/dashboard",
       icon: <LayoutDashboard className="h-5 w-5" />,
       role: ["admin"],
@@ -85,23 +85,25 @@ export function Sidebar({ className }: { className?: string }) {
       title: "Estadísticas de Sueño",
       href: "/dashboard/sleep-statistics",
       icon: <BarChart3 className="h-5 w-5" />,
+      role: ["parent", "user"],
     },
     {
       title: "Mis Soñadores",
       href: "/dashboard/children",
       icon: <Users className="h-5 w-5" />,
-      role: ["parent", "user"], // Para parents y users
+      role: ["parent", "user"],
     },
     {
       title: "Bitácora",
       href: "/dashboard/calendar",
       icon: <Calendar className="h-5 w-5" />,
+      role: ["parent", "user"],
     },
     {
       title: "Mis Eventos",
       href: eventsHref,
       icon: <List className="h-5 w-5" />,
-      role: ["parent", "user"], // Para parents y users
+      role: ["parent", "user"],
       onClick: !activeChildId ? () => {
         toast({
           title: "Selecciona un niño primero",
@@ -111,40 +113,16 @@ export function Sidebar({ className }: { className?: string }) {
       } : undefined,
     },
     {
-      title: "Asistente IA",
-      href: "/dashboard/assistant",
-      icon: <MessageSquare className="h-5 w-5" />,
-      role: ["admin"],
-    },
-    {
       title: "Cuestionario de Sueño",
       href: activeChildId ? `/dashboard/survey?childId=${activeChildId}` : "/dashboard/survey",
       icon: <ClipboardList className="h-5 w-5" />,
-      role: ["parent", "user"], // Para parents y users
+      role: ["parent", "user"],
     },
     {
       title: "Pacientes",
-      href: "/dashboard/patients",
+      href: "/dashboard/paciente",
       icon: <Users className="h-5 w-5" />,
       role: ["admin"],
-    },
-    {
-      title: "Consultas",
-      href: "/dashboard/consultas",
-      icon: <Stethoscope className="h-5 w-5" />,
-      role: ["admin"],
-    },
-    {
-      title: "Diagnósticos",
-      href: "/dashboard/diagnosticos",
-      icon: <Activity className="h-5 w-5" />,
-      role: ["admin"],
-    },
-    {
-      title: "Planes",
-      href: "/dashboard/planes",
-      icon: <FileText className="h-5 w-5" />,
-      role: ["parent", "user", "admin"],
     },
     {
       title: "Transcripts",
@@ -152,8 +130,18 @@ export function Sidebar({ className }: { className?: string }) {
       icon: <Cloud className="h-5 w-5" />,
       role: ["admin"],
     },
-    // Opción A: Eliminar elemento "Notificaciones" del sidebar y
-    // hacer que "Configuración" apunte al contenido de notificaciones.
+    {
+      title: "Asistente IA",
+      href: "/dashboard/assistant",
+      icon: <MessageSquare className="h-5 w-5" />,
+      role: ["admin"],
+    },
+    {
+      title: "Planes",
+      href: "/dashboard/planes",
+      icon: <FileText className="h-5 w-5" />,
+      role: ["parent", "user"],
+    },
     {
       title: "Configuración",
       href: "/dashboard/notificaciones",
@@ -340,6 +328,12 @@ function SidebarNav({
           )
         }
 
+        // Highlight activo: coincidencia exacta o subruta
+        // Excepcion para /dashboard: solo match exacto (evita que se ilumine siempre)
+        const isActive = item.href === "/dashboard"
+          ? pathname === "/dashboard"
+          : pathname === item.href || pathname.startsWith(item.href + "/")
+
         return (
           <Link
             key={item.href + item.title}
@@ -347,14 +341,14 @@ function SidebarNav({
             className={cn(
               "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
               collapsed ? "justify-center px-3" : "",
-              pathname === item.href && !item.disabled 
-                ? "" 
+              isActive && !item.disabled
+                ? ""
                 : "hover:bg-white/10",
               item.disabled ? "opacity-50 pointer-events-none cursor-not-allowed" : ""
             )}
-            style={{ 
-              backgroundColor: pathname === item.href && !item.disabled ? "#DEF1F1" : "transparent",
-              color: pathname === item.href && !item.disabled ? "#68A1C8" : "#DEF1F1",
+            style={{
+              backgroundColor: isActive && !item.disabled ? "#DEF1F1" : "transparent",
+              color: isActive && !item.disabled ? "#68A1C8" : "#DEF1F1",
               fontFamily: "Century Gothic, sans-serif",
             }}
             aria-disabled={item.disabled}
@@ -427,6 +421,11 @@ function MobileSidebar({
             )
           }
 
+          // Highlight activo: coincidencia exacta o subruta
+          const isActiveMobile = item.href === "/dashboard"
+            ? pathname === "/dashboard"
+            : pathname === item.href || pathname.startsWith(item.href + "/")
+
           return (
             <Link
               key={item.href + item.title}
@@ -434,12 +433,12 @@ function MobileSidebar({
               onClick={() => { if (!item.disabled) setOpen(false) }}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                pathname === item.href && !item.disabled ? "" : "hover:bg-white/10",
+                isActiveMobile && !item.disabled ? "" : "hover:bg-white/10",
                 item.disabled ? "opacity-50 pointer-events-none cursor-not-allowed" : ""
               )}
-              style={{ 
-                backgroundColor: pathname === item.href && !item.disabled ? "#DEF1F1" : "transparent",
-                color: pathname === item.href && !item.disabled ? "#68A1C8" : "#DEF1F1",
+              style={{
+                backgroundColor: isActiveMobile && !item.disabled ? "#DEF1F1" : "transparent",
+                color: isActiveMobile && !item.disabled ? "#68A1C8" : "#DEF1F1",
               }}
               aria-disabled={item.disabled}
               tabIndex={item.disabled ? -1 : undefined}
