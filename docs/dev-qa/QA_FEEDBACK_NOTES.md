@@ -1,46 +1,15 @@
 # QA Feedback Notes
 
-**Fecha:** 2026-02-__
-**Sprint:** Sprint 5 - Automation Tasks Queue
-**Tester:** Julio
-**Branch:** QA
+## TEST 6: Preguntas de lactancia nuevas (T11)
 
----
+4. **Resultado esperado:** Probar captura de nuevas preguntas de lactancia
+5. **Resultado actual:** No se pudo testear porque ninguna de las siguientes preguntas fueron implementadas:
+- "frecuencia de lactancia nocturna" - No existe
+- "duracion promedio de toma" - No existe
+- "tipo de lactancia (exclusiva/mixta/formula)" - No existe
+- "edad de inicio de formula (condicional)" - No existe
 
-## Instrucciones para el Tester
+## TEST 9: Acordeon desplegable en tarjetas G1-G4 (T2)
 
-Usa los tests de `QA_RELEASE_NOTES.md` como guia. Para cada bug encontrado, documenta aqui:
-
-### Template por Bug
-
-```
-## Bug #X - [Titulo corto]
-
-**Test:** TEST #__
-**Ruta:** /dashboard/...
-**Severidad:** Critica / Alta / Media / Baja
-
-### Pasos para reproducir
-1. ...
-2. ...
-3. ...
-
-### Resultado esperado
-...
-
-### Resultado actual
-...
-
-### Screenshot
-(adjuntar si es visual)
-
-### Consola (F12)
-(copiar errores si los hay)
-```
-
----
-
-## Bugs Encontrados
-
-(Julio: escribe aqui debajo)
-
+4. **Resultado esperado:** Tarjetas muestran sólo 1 vez el título del grupo
+5. **Resultado actual:** Tarjetas muestran título duplicado
