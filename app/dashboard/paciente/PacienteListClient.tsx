@@ -62,34 +62,50 @@ export default function PacienteListClient() {
   const [searchTerm, setSearchTerm] = useState("")
   const [childrenPrefetched, setChildrenPrefetched] = useState(false)
 
-  // Cargar la lista de usuarios al iniciar
+  // Cargar la lista de usuarios al iniciar (con retry para client-side navigation)
   useEffect(() => {
+    let cancelled = false
+
+    const fetchWithRetry = async (retries = 3, delay = 400): Promise<Response> => {
+      const response = await fetch("/api/admin/users")
+      if (!response.ok && retries > 0) {
+        await new Promise(r => setTimeout(r, delay))
+        if (cancelled) throw new Error("cancelled")
+        return fetchWithRetry(retries - 1, delay * 1.5)
+      }
+      return response
+    }
+
     const fetchUsers = async () => {
       try {
         setLoading(true)
-        const response = await fetch("/api/admin/users")
+        const response = await fetchWithRetry()
 
         if (!response.ok) {
-          throw new Error("Error al cargar los usuarios")
+          const errorBody = await response.text().catch(() => "sin cuerpo")
+          throw new Error(`Error al cargar usuarios: HTTP ${response.status} - ${errorBody}`)
         }
 
         const data = await response.json()
+        if (cancelled) return
         // Excluir a los usuarios admin
         const filteredUsers = data.filter((user: User) => user.role !== "admin")
         setUsers(filteredUsers)
       } catch (error) {
-        logger.error("Error:", error)
+        if (cancelled) return
+        logger.error("Error al cargar usuarios", error instanceof Error ? error : new Error(String(error)))
         toast({
           title: "Error",
           description: "No se pudieron cargar los usuarios. Verifica que tengas permisos de administrador.",
           variant: "destructive",
         })
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     fetchUsers()
+    return () => { cancelled = true }
   }, [toast])
 
   // Precargar todos los ninos
@@ -129,7 +145,12 @@ export default function PacienteListClient() {
     try {
       if (userChildren[userId]) return
 
-      const response = await fetch(`/api/children?userId=${userId}`)
+      let response = await fetch(`/api/children?userId=${userId}`)
+      // Retry una vez si falla (race condition de sesion)
+      if (!response.ok) {
+        await new Promise(r => setTimeout(r, 500))
+        response = await fetch(`/api/children?userId=${userId}`)
+      }
       if (!response.ok) {
         throw new Error("Error al cargar los ninos del usuario")
       }
@@ -165,16 +186,20 @@ export default function PacienteListClient() {
     return parts.length > 1 ? parts[parts.length - 1] : name
   }
 
+  // Normalizar texto para busqueda sin acentos
+  const normalize = (text: string) =>
+    text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+
   // Filtrar y ordenar usuarios
   const filteredUsers = users
     .filter(user => {
       if (!searchTerm) return true
-      const search = searchTerm.toLowerCase()
-      const matchesUser = user.name.toLowerCase().includes(search) ||
-        user.email.toLowerCase().includes(search)
+      const search = normalize(searchTerm)
+      const matchesUser = normalize(user.name).includes(search) ||
+        normalize(user.email).includes(search)
       const children = userChildren[user._id] || allChildrenMap[user._id] || []
       const matchesChild = children.some(child =>
-        `${child.firstName || ""} ${child.lastName || ""}`.toLowerCase().includes(search)
+        normalize(`${child.firstName || ""} ${child.lastName || ""}`).includes(search)
       )
       return matchesUser || matchesChild
     })

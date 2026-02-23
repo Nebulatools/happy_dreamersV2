@@ -43,6 +43,18 @@ export function useSleepData(childId: string | null, dateRange: string = "7-days
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
+
+    async function fetchWithRetry(url: string, retries = 3, delay = 400): Promise<Response> {
+      const response = await fetch(url)
+      if (!response.ok && retries > 0) {
+        await new Promise(r => setTimeout(r, delay))
+        if (cancelled) throw new Error("cancelled")
+        return fetchWithRetry(url, retries - 1, delay * 1.5)
+      }
+      return response
+    }
+
     async function fetchData() {
       if (!childId) {
         setData(null)
@@ -52,7 +64,10 @@ export function useSleepData(childId: string | null, dateRange: string = "7-days
 
       try {
         setLoading(true)
-        const response = await fetch(`/api/children/events?childId=${childId}`)
+        setError(null)
+        const response = await fetchWithRetry(`/api/children/events?childId=${childId}`)
+
+        if (cancelled) return
 
         if (!response.ok) {
           throw new Error('Error al cargar datos de sueño')
@@ -96,15 +111,16 @@ export function useSleepData(childId: string | null, dateRange: string = "7-days
         
         // Calcular métricas
         const processedData = processSleepData(sleepEvents, allEvents, recentEvents, dateRange)
-        setData(processedData)
+        if (!cancelled) setData(processedData)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error desconocido')
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Error desconocido')
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     fetchData()
+    return () => { cancelled = true }
   }, [childId, dateRange, periodsToFetch])
 
   return { data, loading, error }

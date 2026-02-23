@@ -123,6 +123,7 @@ export function BugCenter({ variant = "header", collapsed = false }: BugCenterPr
 
   const fetchPatchedRef = useRef(false)
   const originalFetchRef = useRef<typeof window.fetch | null>(null)
+  const pathnameRef = useRef(pathname)
   const isEnabled = process.env.NEXT_PUBLIC_BUG_CENTER_ENABLED === "true"
   const role = session?.user?.role
   const canUse = isEnabled && isRoleAllowed(role)
@@ -156,6 +157,11 @@ export function BugCenter({ variant = "header", collapsed = false }: BugCenterPr
     return unsubscribe
   }, [refreshClientLogs])
 
+  // Mantener pathnameRef sincronizado sin re-ejecutar el effect de fetch patching
+  useEffect(() => {
+    pathnameRef.current = pathname
+  }, [pathname])
+
   useEffect(() => {
     if (!canUse) return
     if (fetchPatchedRef.current) return
@@ -166,7 +172,7 @@ export function BugCenter({ variant = "header", collapsed = false }: BugCenterPr
         type: "runtime",
         message,
         traceId: extractTraceId(message),
-        route: pathname || undefined,
+        route: pathnameRef.current || undefined,
         details: asOptionalString(event.error?.stack),
       })
     }
@@ -183,7 +189,7 @@ export function BugCenter({ variant = "header", collapsed = false }: BugCenterPr
         type: "unhandledrejection",
         message: reasonMessage,
         traceId: extractTraceId(reasonMessage),
-        route: pathname || undefined,
+        route: pathnameRef.current || undefined,
         details: rawReason instanceof Error ? rawReason.stack : undefined,
       })
     }
@@ -199,7 +205,7 @@ export function BugCenter({ variant = "header", collapsed = false }: BugCenterPr
           recordClientError({
             type: "fetch",
             message: `HTTP ${response.status} en ${endpoint || "request"}`,
-            route: pathname || undefined,
+            route: pathnameRef.current || undefined,
             endpoint: endpoint || undefined,
             statusCode: response.status,
             traceId: traceId || undefined,
@@ -212,7 +218,7 @@ export function BugCenter({ variant = "header", collapsed = false }: BugCenterPr
         recordClientError({
           type: "fetch",
           message,
-          route: pathname || undefined,
+          route: pathnameRef.current || undefined,
           endpoint: endpoint || undefined,
           traceId: extractTraceId(message),
           details: error instanceof Error ? error.stack : undefined,
@@ -234,7 +240,7 @@ export function BugCenter({ variant = "header", collapsed = false }: BugCenterPr
       window.removeEventListener("unhandledrejection", onUnhandledRejection)
       fetchPatchedRef.current = false
     }
-  }, [canUse, pathname])
+  }, [canUse])
 
   useEffect(() => {
     if (!open || !canUse) return
