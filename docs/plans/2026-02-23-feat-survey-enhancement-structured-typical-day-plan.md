@@ -1,7 +1,7 @@
 ---
 title: "feat: Enhance Survey with Structured Typical Day and Feeding Data"
 type: feat
-status: active
+status: completed
 date: 2026-02-23
 ---
 
@@ -149,16 +149,16 @@ if (flat.tomasLecheDetalle?.length) {
 
 ### Functional Requirements
 
-- [ ] Step 6 muestra campos estructurados: despertar (hora, solo/despertaron, humor), siestas (dinamico), bedtime (hora acostaron, que hicieron, hora real), despertares nocturnos (dinamico), tomas nocturnas (dinamico)
-- [ ] Step 4 muestra alimentacion estructurada: solidos (condicional, dinamico) y tomas de leche (dinamico)
-- [ ] Formularios dinamicos permiten agregar/quitar items (max 4 siestas, max 5 despertares, max 5 tomas nocturnas, max 5 comidas solidas, max 10 tomas leche)
-- [ ] Campos de texto libre para "que hiciste para dormirlo" son textarea grandes (min 3 lineas)
-- [ ] Campos opcionales pueden dejarse en blanco sin bloquear navegacion
-- [ ] Panel de diagnosticos G1 muestra datos de sueno del survey cuando no hay eventos registrados
-- [ ] Panel de diagnosticos G3 muestra datos de alimentacion del survey cuando no hay eventos registrados
-- [ ] Admin puede subir documentos (PDF, JPG, PNG, max 10MB) en perfil del paciente
-- [ ] Admin puede ver lista de documentos y eliminarlos
-- [ ] Encuestas existentes con `diaTipico` texto se muestran correctamente (texto en "Notas adicionales", campos estructurados vacios)
+- [x] Step 6 muestra campos estructurados: despertar (hora, solo/despertaron, humor), siestas (dinamico), bedtime (hora acostaron, que hicieron, hora real), despertares nocturnos (dinamico), tomas nocturnas (dinamico)
+- [x] Step 4 muestra alimentacion estructurada: solidos (condicional, dinamico) y tomas de leche (dinamico)
+- [x] Formularios dinamicos permiten agregar/quitar items (max 4 siestas, max 5 despertares, max 5 tomas nocturnas, max 5 comidas solidas, max 10 tomas leche)
+- [x] Campos de texto libre para "que hiciste para dormirlo" son textarea grandes (min 3 lineas)
+- [x] Campos opcionales pueden dejarse en blanco sin bloquear navegacion
+- [x] Panel de diagnosticos G1 muestra datos de sueno del survey cuando no hay eventos registrados
+- [x] Panel de diagnosticos G3 muestra datos de alimentacion del survey cuando no hay eventos registrados
+- [x] Admin puede subir documentos (PDF, JPG, PNG, max 10MB) en perfil del paciente
+- [x] Admin puede ver lista de documentos y eliminarlos
+- [x] Encuestas existentes con `diaTipico` texto se muestran correctamente (texto en "Notas adicionales", campos estructurados vacios)
 
 ### Non-Functional Requirements
 

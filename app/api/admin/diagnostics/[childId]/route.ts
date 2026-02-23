@@ -222,6 +222,23 @@ function flattenSurveyData(raw: Record<string, any>): Record<string, any> {
     flat.householdMembers = flat.otrosResidentes
   }
 
+  // Derivar campos planos desde arrays estructurados para compatibilidad G1/G3
+  if (Array.isArray(flat.siestasDetalle) && flat.siestasDetalle.length > 0) {
+    flat.numeroSiestas = String(flat.siestasDetalle.length)
+    flat.tomaSiestas = true
+  }
+  if (flat.horaDespertarManana && !flat.horaDespertar) {
+    // Mapear nombre nuevo al que G1 espera
+    flat.horaDespertar = flat.horaDespertarManana
+  }
+  if (Array.isArray(flat.comidasSolidasDetalle) && flat.comidasSolidasDetalle.length > 0) {
+    flat.numeroComidasSolidas = flat.comidasSolidasDetalle.length
+    flat.comeSolidos = true
+  }
+  if (Array.isArray(flat.tomasLecheDetalle) && flat.tomasLecheDetalle.length > 0) {
+    flat.numeroTomasLeche = flat.tomasLecheDetalle.length
+  }
+
   return flat
 }
 

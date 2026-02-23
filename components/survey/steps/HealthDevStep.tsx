@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { CheckedState } from "@radix-ui/react-checkbox"
 import { Heart } from "lucide-react"
 import type { SurveyStepProps } from "../types/survey.types"
+import { DynamicListField } from "../DynamicListField"
 
 export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) {
   const updateField = (field: string, value: any) => {
@@ -352,6 +353,176 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
           placeholder="Edad en meses"
           className="max-w-xs mt-1"
         />
+      </div>
+
+      {/* Seccion A: Detalle de comidas solidas (condicional) */}
+      {data.comeSolidos === true && (
+        <div className="space-y-4 ml-4 p-4 border-l-2 border-gray-200">
+          <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+            Detalle de comidas solidas
+          </h4>
+
+          <div>
+            <Label htmlFor="numero-comidas-solidas">Cuantas comidas solidas al dia?</Label>
+            <Input
+              id="numero-comidas-solidas"
+              type="number"
+              min="1"
+              max="5"
+              value={data.numeroComidasSolidas || ""}
+              onChange={(e) => updateField("numeroComidasSolidas", e.target.value ? Number(e.target.value) : undefined)}
+              onWheel={(e) => { e.currentTarget.blur() }}
+              placeholder="1-5"
+              className="max-w-xs mt-1"
+            />
+          </div>
+
+          <div>
+            <Label className="mb-2 block">Detalle de cada comida</Label>
+            <DynamicListField
+              items={data.comidasSolidasDetalle || []}
+              onChange={(items) => updateField("comidasSolidasDetalle", items)}
+              maxItems={5}
+              addLabel="Agregar comida"
+              emptyMessage="No hay comidas registradas"
+              createEmpty={() => ({ tipoComida: "", hora: "", queComeTipicamente: "" })}
+              renderItem={(item, index, onItemChange) => (
+                <div className="space-y-2">
+                  <div>
+                    <Label className="text-sm text-gray-600">Tipo de comida</Label>
+                    <RadioGroup
+                      value={item.tipoComida || ""}
+                      onValueChange={(value) => onItemChange({ ...item, tipoComida: value })}
+                    >
+                      <div className="flex gap-3 mt-1 flex-wrap">
+                        <div className="flex items-center space-x-1">
+                          <RadioGroupItem value="desayuno" id={`comida-${index}-desayuno`} />
+                          <Label htmlFor={`comida-${index}-desayuno`} className="text-sm">Desayuno</Label>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <RadioGroupItem value="comida" id={`comida-${index}-comida`} />
+                          <Label htmlFor={`comida-${index}-comida`} className="text-sm">Comida</Label>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <RadioGroupItem value="cena" id={`comida-${index}-cena`} />
+                          <Label htmlFor={`comida-${index}-cena`} className="text-sm">Cena</Label>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <RadioGroupItem value="snack" id={`comida-${index}-snack`} />
+                          <Label htmlFor={`comida-${index}-snack`} className="text-sm">Snack</Label>
+                        </div>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  <div>
+                    <Label htmlFor={`comida-${index}-hora`} className="text-sm text-gray-600">Hora</Label>
+                    <Input
+                      id={`comida-${index}-hora`}
+                      type="time"
+                      value={item.hora || ""}
+                      onChange={(e) => onItemChange({ ...item, hora: e.target.value })}
+                      className="max-w-[140px] mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor={`comida-${index}-que-come`} className="text-sm text-gray-600">Que come tipicamente?</Label>
+                    <Textarea
+                      id={`comida-${index}-que-come`}
+                      rows={2}
+                      value={item.queComeTipicamente || ""}
+                      onChange={(e) => onItemChange({ ...item, queComeTipicamente: e.target.value })}
+                      placeholder="Ej: Verduras, pollo, fruta..."
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              )}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Seccion B: Tomas de leche/formula (siempre visible) */}
+      <div className="space-y-4">
+        <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+          Tomas de leche / formula
+        </h4>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <Label htmlFor="numero-tomas-leche">Cuantas tomas de leche al dia?</Label>
+            <Input
+              id="numero-tomas-leche"
+              type="number"
+              min="0"
+              max="10"
+              value={data.numeroTomasLeche ?? ""}
+              onChange={(e) => updateField("numeroTomasLeche", e.target.value ? Number(e.target.value) : undefined)}
+              onWheel={(e) => { e.currentTarget.blur() }}
+              placeholder="0-10"
+              className="max-w-xs mt-1"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="cantidad-por-toma">De cuanto es cada toma?</Label>
+            <Input
+              id="cantidad-por-toma"
+              type="number"
+              min="0"
+              value={data.cantidadPorToma || ""}
+              onChange={(e) => updateField("cantidadPorToma", e.target.value ? Number(e.target.value) : undefined)}
+              onWheel={(e) => { e.currentTarget.blur() }}
+              placeholder="Cantidad"
+              className="max-w-xs mt-1"
+            />
+          </div>
+
+          <div>
+            <Label>Unidad</Label>
+            <RadioGroup
+              value={data.unidadToma || ""}
+              onValueChange={(value) => updateField("unidadToma", value)}
+            >
+              <div className="flex gap-4 mt-2">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="ml" id="unidad-toma-ml" />
+                  <Label htmlFor="unidad-toma-ml">ml</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="oz" id="unidad-toma-oz" />
+                  <Label htmlFor="unidad-toma-oz">oz</Label>
+                </div>
+              </div>
+            </RadioGroup>
+          </div>
+        </div>
+
+        <div>
+          <Label className="mb-2 block">Horarios de las tomas</Label>
+          <DynamicListField
+            items={data.tomasLecheDetalle || []}
+            onChange={(items) => updateField("tomasLecheDetalle", items)}
+            maxItems={10}
+            addLabel="Agregar toma"
+            emptyMessage="No hay tomas registradas"
+            createEmpty={() => ({ hora: "" })}
+            renderItem={(item, index, onItemChange) => (
+              <div>
+                <Label htmlFor={`toma-${index}-hora`} className="text-sm text-gray-600">
+                  Toma {index + 1} - Hora
+                </Label>
+                <Input
+                  id={`toma-${index}-hora`}
+                  type="time"
+                  value={item.hora || ""}
+                  onChange={(e) => onItemChange({ ...item, hora: e.target.value })}
+                  className="max-w-[140px] mt-1"
+                />
+              </div>
+            )}
+          />
+        </div>
       </div>
 
       {/* 9. Tu hijo(a) - Lista de checkboxes */}

@@ -7,7 +7,7 @@
 import { useMemo, useCallback } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, BarChart3, Stethoscope, CalendarDays, MessageSquare, ClipboardList } from "lucide-react"
+import { ArrowLeft, BarChart3, Stethoscope, CalendarDays, MessageSquare, ClipboardList, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { usePageHeaderConfig } from "@/context/page-header-context"
 import ResumenTab from "./tabs/ResumenTab"
@@ -15,6 +15,7 @@ import ConsultasTab from "./tabs/ConsultasTab"
 import BitacoraTab from "./tabs/BitacoraTab"
 import EncuestaTab from "./tabs/EncuestaTab"
 import DiagnosticPanelClient from "@/app/dashboard/diagnosticos/[childId]/DiagnosticPanelClient"
+import DocumentosTab from "./tabs/DocumentosTab"
 
 // Tabs disponibles
 const TABS = [
@@ -23,6 +24,7 @@ const TABS = [
   { id: "bitacora", label: "Bitacora", icon: CalendarDays },
   { id: "consultas", label: "Consultas", icon: MessageSquare },
   { id: "encuesta", label: "Encuesta", icon: ClipboardList },
+  { id: "documentos", label: "Documentos", icon: FileText },
 ] as const
 
 type TabId = typeof TABS[number]["id"]
@@ -163,6 +165,9 @@ export default function PatientHubClient({ childId, childData }: PatientHubClien
         </div>
         <div className={activeTab === "encuesta" ? "" : "hidden"}>
           <EncuestaTab childId={childId} childName={childName} />
+        </div>
+        <div className={activeTab === "documentos" ? "" : "hidden"}>
+          <DocumentosTab childId={childId} />
         </div>
       </div>
     </div>

@@ -565,6 +565,133 @@ function validateWeightStatus(
 }
 
 // ─────────────────────────────────────────────────────────
+// CRITERIOS DE SURVEY (Conteos desde encuesta estructurada)
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Valida conteo de comidas solidas desde el survey contra lo esperado por edad.
+ * Usa numeroComidasSolidas derivado de comidasSolidasDetalle en flattenSurveyData.
+ */
+function validateSurveySolidMealCount(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  surveyData: Record<string, any>,
+  childAgeMonths: number
+): CriterionResult | null {
+  const count = surveyData?.numeroComidasSolidas
+  if (count === undefined || count === null) return null
+
+  // Menores de 6 meses no requieren solidos
+  if (childAgeMonths < 6) return null
+
+  const rule = getNutritionRuleForAge(childAgeMonths)
+  const required = rule.solidMinCount
+  const actual = typeof count === "number" ? count : Number(count)
+  if (isNaN(actual)) return null
+
+  const status = getCountStatus(actual, required)
+
+  return {
+    id: "g3_survey_solid_count",
+    name: "Comidas solidas (encuesta)",
+    status,
+    value: actual,
+    expected: required,
+    message:
+      status === "ok"
+        ? `${actual} comidas solidas reportadas (minimo ${required})`
+        : `Solo ${actual} de ${required} comidas solidas reportadas en encuesta`,
+    sourceType: "survey",
+    sourceField: "numeroComidasSolidas",
+    dataAvailable: true,
+  }
+}
+
+/**
+ * Valida conteo de tomas de leche desde el survey contra lo esperado por edad.
+ * Usa numeroTomasLeche derivado de tomasLecheDetalle en flattenSurveyData.
+ */
+function validateSurveyMilkFeedingCount(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  surveyData: Record<string, any>,
+  childAgeMonths: number
+): CriterionResult | null {
+  const count = surveyData?.numeroTomasLeche
+  if (count === undefined || count === null) return null
+
+  const rule = getNutritionRuleForAge(childAgeMonths)
+  const required = rule.milkMinCount
+  const actual = typeof count === "number" ? count : Number(count)
+  if (isNaN(actual)) return null
+
+  // Si el minimo requerido es 0, no validar
+  if (required === 0) return null
+
+  const status = getCountStatus(actual, required)
+
+  return {
+    id: "g3_survey_milk_count",
+    name: "Tomas de leche (encuesta)",
+    status,
+    value: actual,
+    expected: required,
+    message:
+      status === "ok"
+        ? `${actual} tomas de leche reportadas (minimo ${required})`
+        : `Solo ${actual} de ${required} tomas de leche reportadas en encuesta`,
+    sourceType: "survey",
+    sourceField: "numeroTomasLeche",
+    dataAvailable: true,
+  }
+}
+
+/**
+ * Valida cantidadPorToma de leche contra limites por edad.
+ * Limite: max 24 oz para <12m, max 16 oz para >=12m.
+ * cantidadPorToma puede venir del survey en tomasLecheDetalle.
+ */
+function validateSurveyMilkAmount(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  surveyData: Record<string, any>,
+  childAgeMonths: number
+): CriterionResult | null {
+  const detalle = surveyData?.tomasLecheDetalle
+  if (!Array.isArray(detalle) || detalle.length === 0) return null
+
+  // Sumar cantidades individuales de cada toma
+  let totalOz = 0
+  let hasCantidad = false
+  for (const toma of detalle) {
+    const cantidad = toma?.cantidadPorToma ?? toma?.cantidad
+    if (cantidad !== undefined && cantidad !== null) {
+      const parsed = typeof cantidad === "number" ? cantidad : Number(cantidad)
+      if (!isNaN(parsed) && parsed > 0) {
+        totalOz += parsed
+        hasCantidad = true
+      }
+    }
+  }
+
+  if (!hasCantidad) return null
+
+  const maxOz = childAgeMonths >= 12 ? 16 : 24
+  const exceeded = totalOz > maxOz
+
+  return {
+    id: "g3_survey_milk_amount",
+    name: "Cantidad de leche (encuesta)",
+    status: exceeded ? "alert" : "ok",
+    value: totalOz,
+    expected: maxOz,
+    message: exceeded
+      ? `${totalOz} oz reportadas exceden el maximo de ${maxOz} oz para ${childAgeMonths >= 12 ? "12+ meses" : "menores de 12 meses"}`
+      : `${totalOz} oz reportadas dentro del limite (max ${maxOz} oz)`,
+    sourceType: "survey",
+    sourceField: "tomasLecheDetalle",
+    dataAvailable: true,
+  }
+}
+
+// ─────────────────────────────────────────────────────────
 // VALIDADOR PRINCIPAL
 // ─────────────────────────────────────────────────────────
 
@@ -607,6 +734,16 @@ export function validateNutrition(
     criteria.push(validateFeedingType(surveyData))
     criteria.push(validateSolidsFromSurvey(surveyData, childAgeMonths))
     criteria.push(validateWeightStatus(surveyData))
+
+    // Criterios de conteo estructurado desde encuesta (campos derivados de arrays)
+    const surveySolidCount = validateSurveySolidMealCount(surveyData, childAgeMonths)
+    if (surveySolidCount) criteria.push(surveySolidCount)
+
+    const surveyMilkCount = validateSurveyMilkFeedingCount(surveyData, childAgeMonths)
+    if (surveyMilkCount) criteria.push(surveyMilkCount)
+
+    const surveyMilkAmount = validateSurveyMilkAmount(surveyData, childAgeMonths)
+    if (surveyMilkAmount) criteria.push(surveyMilkAmount)
   }
 
   // Determinar status general (el peor de los criterios)

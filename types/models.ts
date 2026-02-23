@@ -236,6 +236,22 @@ export interface SurveyData {
     alergiaAmbientalDetalle?: string // Detalles de alergia ambiental (condicional)
     infeccionesOidoDetalle?: string // Detalles de infecciones de oído (condicional)
     dificultadRespirarDetalle?: string // Detalles de dificultad para respirar (condicional)
+
+    // Alimentacion estructurada - comidas solidas
+    numeroComidasSolidas?: number // Numero de comidas solidas al dia
+    comidasSolidasDetalle?: Array<{
+      tipoComida: "desayuno" | "comida" | "cena" | "snack"
+      hora: string
+      queComeTipicamente: string
+    }>
+
+    // Alimentacion estructurada - tomas de leche
+    numeroTomasLeche?: number // Numero de tomas de leche al dia
+    cantidadPorToma?: number // Cantidad por toma
+    unidadToma?: "ml" | "oz" // Unidad de medida
+    tomasLecheDetalle?: Array<{
+      hora: string // Hora de la toma
+    }>
   }
   
   // ACTIVIDAD FÍSICA
@@ -275,6 +291,8 @@ export interface SurveyData {
     horaEspecificaDormir?: boolean
     horaDormir?: string // Hora específica de dormir
     horaAcostarBebe?: string // Hora de acostar al bebé
+    queHaceParaDormir?: string // Que hace para dormir al nino por la noche
+    horaRealDormidoNoche?: string // Hora real a la que se durmio por la noche
     tiempoDormir?: string // Tiempo que le toma conciliar el sueño
     duermeSolo?: boolean // ¿Se queda dormido solo?
     comoLograDormir?: string // Cómo lo logran dormir cuando no se duerme solo
@@ -306,6 +324,11 @@ export interface SurveyData {
     comparteHabitacionCon?: string // Con quién comparte (condicional)
     conQuienComparte?: string // Legacy
 
+    // Despertar matutino estructurado
+    horaDespertarManana?: string // Hora a la que despierta en la manana
+    despiertaSolo?: "solo" | "lo_despiertan" // Si despierta solo o lo despiertan
+    despiertaBuenHumor?: "si" | "no" | "a_veces" // Si despierta de buen humor
+
     // Siestas
     tomaSiestas?: boolean // ¿Toma siestas?
     haceSiestas?: boolean // Legacy
@@ -316,6 +339,14 @@ export interface SurveyData {
     horaDespertarDesde?: string // Hora de despertar - rango inicio
     horaDespertarHasta?: string // Hora de despertar - rango fin
 
+    // Siestas estructuradas (detalle por siesta)
+    siestasDetalle?: Array<{
+      horaIntentoDomir: string // Hora a la que intentan dormir la siesta
+      comoYDondeDuermen: string // Como y donde se duerme
+      horaRealDormido: string // Hora real a la que se durmio
+      horaDespertoSiesta: string // Hora a la que desperto de la siesta
+    }>
+
     // Despertares nocturnos
     despiertaNoche?: boolean // ¿Se despierta en la noche?
     despiertaEnNoche?: boolean // Legacy
@@ -323,6 +354,23 @@ export interface SurveyData {
     desdeCuandoDespierta?: string // Desde cuándo se despierta
     queHacesDespierta?: string // Qué haces cuando se despierta
     tiempoDespierto?: string // Tiempo que está despierto
+
+    // Despertares nocturnos estructurados (detalle por despertar)
+    despertaresDetalle?: Array<{
+      horaDespertar: string // Hora del despertar
+      queHaceParaDormir: string // Que hace para volver a dormir
+      horaVolvioaDormir: string // Hora a la que volvio a dormir
+    }>
+
+    // Tomas nocturnas
+    tieneTomasNocturnas?: boolean // Si tiene tomas nocturnas
+    numeroTomasNocturnas?: number // Numero de tomas nocturnas
+    tomasNocturnasDetalle?: Array<{
+      cuantoComio: string // Cantidad que comio
+      seDurmioEnToma: "si" | "no" | "a_veces" // Si se durmio durante la toma
+      minutosEnVolverADormir: number // Minutos en volver a dormir
+      queHaceParaDormir: string // Que hace para volver a dormir
+    }>
 
     // Comportamiento
     intentaSalirCama?: boolean

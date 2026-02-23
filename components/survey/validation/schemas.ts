@@ -146,10 +146,7 @@ export const physicalActivityValidation: StepValidation = {
 
 export const routineHabitsValidation: StepValidation = {
   fields: {
-    "diaTipico": {
-      required: true,
-      minLength: 20,
-    },
+    // diaTipico pasa a ser opcional (campo de notas adicionales)
     "quienCuida": {
       required: true,
       minLength: 2,
