@@ -1,13 +1,15 @@
 // Hub principal del paciente - Client component con tabs
+// Inyecta su header (back + nombre + tabs) en el header global via customContent
 // Todos los tabs se montan siempre y se ocultan con hidden
 
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useCallback } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, BarChart3, Stethoscope, CalendarDays, MessageSquare, ClipboardList } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { usePageHeaderConfig } from "@/context/page-header-context"
 import ResumenTab from "./tabs/ResumenTab"
 import ConsultasTab from "./tabs/ConsultasTab"
 import BitacoraTab from "./tabs/BitacoraTab"
@@ -73,73 +75,75 @@ export default function PatientHubClient({ childId, childData }: PatientHubClien
   const ageText = calculateAgeText(childData.birthDate)
 
   // Cambiar tab sin push al history
-  const handleTabChange = (tabId: TabId) => {
+  const handleTabChange = useCallback((tabId: string) => {
     const params = new URLSearchParams(searchParams?.toString() || "")
     params.set("tab", tabId)
     router.replace(`/dashboard/paciente/${childId}?${params.toString()}`)
-  }
+  }, [searchParams, router, childId])
 
   // Callback para navegar a consultas desde otros tabs
-  const handleNavigateToConsultas = (subtab?: string) => {
+  const handleNavigateToConsultas = useCallback((subtab?: string) => {
     const params = new URLSearchParams()
     params.set("tab", "consultas")
     if (subtab) params.set("subtab", subtab)
     router.replace(`/dashboard/paciente/${childId}?${params.toString()}`)
-  }
+  }, [router, childId])
+
+  // Inyectar el header del paciente en el header global
+  // El header global renderiza customContent en vez de su contenido normal
+  usePageHeaderConfig({
+    title: `Paciente - ${childName}`,
+    showSearch: true,
+    showChildSelector: false,
+    showNotifications: false,
+    customContent: (
+      <div>
+        {/* Fila 1: back + nombre + edad */}
+        <div className="flex items-center gap-2 mb-1.5">
+          <Link
+            href="/dashboard/paciente"
+            className="flex items-center gap-1 text-sm text-white/70 hover:text-white transition-colors shrink-0"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Pacientes
+          </Link>
+          <span className="text-white/30">|</span>
+          <h1 className="text-base font-semibold text-white truncate">{childName}</h1>
+          {ageText && (
+            <span className="text-sm text-white/70 shrink-0">· {ageText}</span>
+          )}
+        </div>
+
+        {/* Fila 2: tabs */}
+        <div className="flex gap-0.5 overflow-x-auto">
+          {TABS.map(tab => {
+            const Icon = tab.icon
+            const isActive = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-t-md transition-colors whitespace-nowrap",
+                  isActive
+                    ? "bg-[#DEF1F1] text-[#2553A1]"
+                    : "text-white/70 hover:text-white hover:bg-white/10"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    ),
+  })
 
   return (
     <div className="min-h-screen">
-      {/* Header con back link y nombre del nino */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
-        <div className="container py-3">
-          <div className="flex items-center gap-3 mb-3">
-            <Link
-              href="/dashboard/paciente"
-              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Pacientes
-            </Link>
-          </div>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-medium">
-              {childData.firstName?.charAt(0)?.toUpperCase() || "?"}
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">{childName}</h1>
-              {ageText && (
-                <p className="text-sm text-muted-foreground">{ageText}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Tab bar */}
-          <div className="flex gap-1 overflow-x-auto pb-0">
-            {TABS.map(tab => {
-              const Icon = tab.icon
-              const isActive = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-t-md transition-colors whitespace-nowrap",
-                    isActive
-                      ? "bg-background text-foreground border border-b-0 border-border"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {tab.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-
       {/* Contenido de los tabs - patron hidden */}
-      <div className="container py-6">
+      <div className="container py-3">
         <div className={activeTab === "resumen" ? "" : "hidden"}>
           <ResumenTab childId={childId} />
         </div>

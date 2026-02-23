@@ -7,6 +7,7 @@ export interface PageHeaderConfig {
   title: string
   subtitle?: string
   actions?: ReactNode // Para filtros, botones, etc.
+  customContent?: ReactNode // Reemplaza TODO el contenido del header (admin desktop)
   showSearch?: boolean
   showChildSelector?: boolean
   showNotifications?: boolean
@@ -70,12 +71,13 @@ export function usePageHeaderConfig(config: PageHeaderConfig) {
   
   // Memoizar la configuración para evitar cambios innecesarios
   const memoizedConfig = React.useMemo(() => config, [
-    config.title, 
-    config.subtitle, 
-    config.showSearch, 
-    config.showChildSelector, 
+    config.title,
+    config.subtitle,
+    config.showSearch,
+    config.showChildSelector,
     config.showNotifications,
-    config.actions // incluir actions en la memoización
+    config.actions,
+    config.customContent,
   ])
 
   React.useEffect(() => {

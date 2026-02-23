@@ -4,6 +4,7 @@
 "use client"
 
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 import { signOut, useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import {
@@ -494,6 +495,130 @@ export function Header() {
     </DropdownMenu>
   )
 
+  // Admin desktop: header compacto
+  // Mobile y parent/user: header completo con todas las utilidades
+  const isAdminDesktop = isAdmin && mounted
+  const hasCustomContent = !!config.customContent
+
+  // Popover de search reutilizable (completo o compacto)
+  const searchPopover = config.showSearch !== false && isAdmin ? (
+    <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+      <PopoverTrigger asChild>
+        {hasCustomContent && isAdminDesktop ? (
+          // Icono compacto cuando hay customContent en desktop
+          <button
+            className="flex items-center justify-center h-9 w-9 rounded-full bg-white/70 hover:bg-white transition-colors shrink-0"
+            aria-label="Buscar paciente"
+          >
+            <Search className="h-4 w-4 text-[#2553A1]" />
+          </button>
+        ) : (
+          // Barra completa en otros casos
+          <div className={cn(
+            "hidden items-center bg-[#DEF1F1] rounded-[30px] px-4 py-2 h-12 cursor-pointer hover:bg-[#c8e3e3] transition-colors",
+            isAdminDesktop ? "md:flex md:max-w-[420px]" : "lg:flex min-w-[220px] max-w-[360px]"
+          )}>
+            <Search className="h-5 w-5 text-[#68A1C8] flex-shrink-0" />
+            <span className="ml-2.5 text-[#68A1C8] text-base font-medium opacity-70">
+              Buscar cliente o usuario...
+            </span>
+          </div>
+        )}
+      </PopoverTrigger>
+      <PopoverContent className="w-[400px] p-0" align="end">
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder="Buscar cliente o usuario..."
+            value={searchValue}
+            onValueChange={setSearchValue}
+          />
+          <CommandList>
+            {searchLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <span className="text-sm text-muted-foreground">Cargando...</span>
+              </div>
+            ) : (
+              <>
+                <CommandEmpty>No se encontraron usuarios.</CommandEmpty>
+                <CommandGroup heading="Usuarios">
+                  {filteredSearchUsers.map((user) => {
+                    const children = searchChildren[user._id] || []
+                    return (
+                      <CommandItem
+                        key={user._id}
+                        value={user.name}
+                        onSelect={() => handleSearchSelect(user)}
+                        className="flex items-center gap-3 py-2"
+                      >
+                        <User className="h-4 w-4 text-slate-500" />
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">{user.name}</div>
+                          <div className="text-xs text-muted-foreground">{user.email}</div>
+                          {children.length > 0 && (
+                            <div className="flex items-center gap-1 mt-1">
+                              <Baby className="h-3 w-3 text-slate-400" />
+                              <span className="text-xs text-slate-500">
+                                {children.map(c => c.firstName).join(", ")}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </CommandItem>
+                    )
+                  })}
+                </CommandGroup>
+              </>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  ) : null
+
+  // Cuando hay customContent (hub de paciente) y es admin desktop:
+  // el header muestra el contenido custom + search icon
+  if (hasCustomContent && isAdminDesktop) {
+    return (
+      <header className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: "#A0D8D0" }}>
+        {/* Mobile: header normal con utilidades (customContent no aplica) */}
+        <div className="md:hidden px-3 pb-3" style={{ paddingTop: safeAreaPaddingTop }}>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-1 flex-wrap items-center gap-3 pl-14">
+              {config.showChildSelector !== false && (
+                <div className="flex min-w-[180px] max-w-[360px] flex-1 items-center gap-2">
+                  <div className="flex-1 min-w-[160px]">
+                    <ChildSelector />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-2 w-full sm:w-auto sm:ml-auto">
+              <BugCenter />
+              {notificationButton}
+              {profileMenu}
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop: customContent + search icon compacto */}
+        <div
+          className="hidden md:block px-6 pb-2"
+          style={{ paddingTop: safeAreaPaddingTop }}
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex-1 min-w-0">
+              {config.customContent}
+            </div>
+            <div className="shrink-0 pt-1">
+              {searchPopover}
+            </div>
+          </div>
+        </div>
+      </header>
+    )
+  }
+
   return (
     <header className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: "#A0D8D0" }}>
       <div
@@ -501,7 +626,11 @@ export function Header() {
         style={{ paddingTop: safeAreaPaddingTop }}
       >
         <div className="flex flex-col gap-3 md:gap-4">
-          <div className="flex flex-wrap items-center gap-3 sm:justify-between">
+          {/* Fila de ChildSelector + utilidades: visible en mobile para admin, siempre para parent */}
+          <div className={cn(
+            "flex flex-wrap items-center gap-3 sm:justify-between",
+            isAdminDesktop && "md:hidden"
+          )}>
             <div className="flex flex-1 flex-wrap items-center gap-3 pl-14 md:pl-0">
               {config.actions && (
                 <div className="flex-shrink-0 order-1">
@@ -530,66 +659,8 @@ export function Header() {
             </div>
           </div>
 
-          {config.showSearch !== false && isAdmin && (
-            <Popover open={searchOpen} onOpenChange={setSearchOpen}>
-              <PopoverTrigger asChild>
-                <div className="hidden lg:flex items-center bg-[#DEF1F1] rounded-[30px] px-4 py-2 h-12 min-w-[220px] max-w-[360px] cursor-pointer hover:bg-[#c8e3e3] transition-colors">
-                  <Search className="h-5 w-5 text-[#68A1C8] flex-shrink-0" />
-                  <span className="ml-2.5 text-[#68A1C8] text-base font-medium opacity-70">
-                    Buscar cliente o usuario...
-                  </span>
-                </div>
-              </PopoverTrigger>
-              <PopoverContent className="w-[400px] p-0" align="start">
-                <Command shouldFilter={false}>
-                  <CommandInput
-                    placeholder="Buscar cliente o usuario..."
-                    value={searchValue}
-                    onValueChange={setSearchValue}
-                  />
-                  <CommandList>
-                    {searchLoading ? (
-                      <div className="flex items-center justify-center py-6">
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        <span className="text-sm text-muted-foreground">Cargando...</span>
-                      </div>
-                    ) : (
-                      <>
-                        <CommandEmpty>No se encontraron usuarios.</CommandEmpty>
-                        <CommandGroup heading="Usuarios">
-                          {filteredSearchUsers.map((user) => {
-                            const children = searchChildren[user._id] || []
-                            return (
-                              <CommandItem
-                                key={user._id}
-                                value={user.name}
-                                onSelect={() => handleSearchSelect(user)}
-                                className="flex items-center gap-3 py-2"
-                              >
-                                <User className="h-4 w-4 text-slate-500" />
-                                <div className="flex-1">
-                                  <div className="font-medium text-sm">{user.name}</div>
-                                  <div className="text-xs text-muted-foreground">{user.email}</div>
-                                  {children.length > 0 && (
-                                    <div className="flex items-center gap-1 mt-1">
-                                      <Baby className="h-3 w-3 text-slate-400" />
-                                      <span className="text-xs text-slate-500">
-                                        {children.map(c => c.firstName).join(", ")}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                              </CommandItem>
-                            )
-                          })}
-                        </CommandGroup>
-                      </>
-                    )}
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          )}
+          {/* Search bar: admin desktop */}
+          {searchPopover}
         </div>
       </div>
     </header>
