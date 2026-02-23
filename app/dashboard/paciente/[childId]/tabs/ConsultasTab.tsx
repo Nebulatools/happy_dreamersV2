@@ -50,6 +50,8 @@ export default function ConsultasTab({
     return "transcript"
   }
 
+  const isAdmin = session?.user?.role === "admin"
+
   const [activeSubTab, setActiveSubTab] = useState<ValidSubTab>(getInitialSubTab)
   const [transcript, setTranscript] = useState("")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -137,6 +139,9 @@ export default function ConsultasTab({
               onChange={setTranscript}
               disabled={isAnalyzing}
               onAnalyzeRequested={handleAnalyze}
+              childId={childId}
+              childName={childName}
+              isAdmin={isAdmin}
             />
             <div className="flex justify-center mt-6">
               <Button

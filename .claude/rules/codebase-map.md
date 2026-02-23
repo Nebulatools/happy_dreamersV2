@@ -45,7 +45,6 @@ DASHBOARD - ADMIN ONLY
 /dashboard/consultas             Analisis AI con RAG + transcripts
 /dashboard/diagnosticos          Panel de diagnostico (server component + redirect)
 /dashboard/diagnosticos/[childId] Panel de diagnostico por nino (server + client)
-/dashboard/transcripts           Gestion de transcripts Zoom
 
 
 DASHBOARD - COMPARTIDO (Usuario + Admin)

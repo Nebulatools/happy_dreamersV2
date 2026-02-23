@@ -30,7 +30,6 @@ import {
   HelpCircle,
   Mail,
   FileText,
-  Cloud,
   ChevronLeft,
   ChevronRight,
   Activity,
@@ -248,12 +247,6 @@ export function Sidebar({ className }: { className?: string }) {
       title: "Pacientes",
       href: "/dashboard/paciente",
       icon: <Users className="h-5 w-5" />,
-      role: ["admin"],
-    },
-    {
-      title: "Transcripts",
-      href: "/dashboard/transcripts",
-      icon: <Cloud className="h-5 w-5" />,
       role: ["admin"],
     },
     {

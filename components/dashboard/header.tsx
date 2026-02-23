@@ -319,7 +319,6 @@ export function Header() {
       "/dashboard/paciente": "Pacientes",
       "/dashboard/consultas": "Consultas",
       "/dashboard/planes": "Planes",
-      "/dashboard/transcripts": "Transcripts",
       "/dashboard/notificaciones": "Configuración",
       "/dashboard/ayuda": "Ayuda",
       "/dashboard/contacto": "Contacto",

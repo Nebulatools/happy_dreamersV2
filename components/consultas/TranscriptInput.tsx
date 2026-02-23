@@ -32,9 +32,13 @@ interface TranscriptInputProps {
   value: string
   onChange: (value: string) => void
   disabled?: boolean
+  onAnalyzeRequested?: () => void
+  childId?: string
+  childName?: string
+  isAdmin?: boolean
 }
 
-export function TranscriptInput({ value, onChange, disabled = false, onAnalyzeRequested }: TranscriptInputProps & { onAnalyzeRequested?: () => void }) {
+export function TranscriptInput({ value, onChange, disabled = false, onAnalyzeRequested, childId, childName, isAdmin }: TranscriptInputProps) {
   const { toast } = useToast()
   
   // Estados para grabación
@@ -407,6 +411,9 @@ export function TranscriptInput({ value, onChange, disabled = false, onAnalyzeRe
 
       {/* Transcripts recientes de Zoom (insertar/copiar/analizar) */}
       <ZoomTranscriptsList
+        childId={childId}
+        childName={childName}
+        isAdmin={isAdmin}
         onInsert={(text) => {
           const header = "--- TRANSCRIPT DE ZOOM ---\n"
           const newValue = value ? `${value}\n\n${header}${text}` : `${header}${text}`
