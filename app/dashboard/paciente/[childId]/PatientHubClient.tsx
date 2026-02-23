@@ -95,29 +95,30 @@ export default function PatientHubClient({ childId, childData }: PatientHubClien
   // El header global renderiza customContent en vez de su contenido normal
   usePageHeaderConfig({
     title: `Paciente - ${childName}`,
+    contentKey: activeTab,
     showSearch: true,
     showChildSelector: false,
     showNotifications: false,
     customContent: (
       <div>
         {/* Fila 1: back + nombre + edad */}
-        <div className="flex items-center gap-2 mb-1.5">
+        <div className="flex items-center gap-2 mb-2">
           <Link
             href="/dashboard/paciente"
-            className="flex items-center gap-1 text-sm text-white/70 hover:text-white transition-colors shrink-0"
+            className="flex items-center gap-1 text-sm text-[#1a5c55] hover:text-[#0d3d38] transition-colors shrink-0 font-medium"
           >
             <ArrowLeft className="h-4 w-4" />
             Pacientes
           </Link>
-          <span className="text-white/30">|</span>
-          <h1 className="text-base font-semibold text-white truncate">{childName}</h1>
+          <span className="text-[#1a5c55]/30 text-lg font-light">|</span>
+          <h1 className="text-base font-bold text-[#1a3a4a] truncate">{childName}</h1>
           {ageText && (
-            <span className="text-sm text-white/70 shrink-0">· {ageText}</span>
+            <span className="text-sm text-[#1a5c55] font-medium shrink-0">· {ageText}</span>
           )}
         </div>
 
         {/* Fila 2: tabs */}
-        <div className="flex gap-0.5 overflow-x-auto">
+        <div className="flex gap-1 overflow-x-auto">
           {TABS.map(tab => {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
@@ -126,10 +127,10 @@ export default function PatientHubClient({ childId, childData }: PatientHubClien
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-t-md transition-colors whitespace-nowrap",
+                  "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap",
                   isActive
-                    ? "bg-[#DEF1F1] text-[#2553A1]"
-                    : "text-white/70 hover:text-white hover:bg-white/10"
+                    ? "bg-white text-[#2553A1] shadow-sm"
+                    : "text-[#1a5c55] hover:text-[#0d3d38] hover:bg-white/40"
                 )}
               >
                 <Icon className="h-4 w-4" />

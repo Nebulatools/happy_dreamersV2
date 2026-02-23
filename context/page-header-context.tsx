@@ -11,6 +11,8 @@ export interface PageHeaderConfig {
   showSearch?: boolean
   showChildSelector?: boolean
   showNotifications?: boolean
+  /** Cambiar este valor fuerza re-evaluacion del customContent/actions */
+  contentKey?: string
 }
 
 // Contexto del header
@@ -77,7 +79,7 @@ export function usePageHeaderConfig(config: PageHeaderConfig) {
   customContentRef.current = config.customContent
   actionsRef.current = config.actions
 
-  // Solo re-ejecutar cuando cambian props primitivas
+  // Re-ejecutar cuando cambian props primitivas o contentKey
   React.useEffect(() => {
     setConfig({
       title: config.title,
@@ -85,6 +87,7 @@ export function usePageHeaderConfig(config: PageHeaderConfig) {
       showSearch: config.showSearch,
       showChildSelector: config.showChildSelector,
       showNotifications: config.showNotifications,
+      contentKey: config.contentKey,
       actions: actionsRef.current,
       customContent: customContentRef.current,
     })
@@ -93,8 +96,9 @@ export function usePageHeaderConfig(config: PageHeaderConfig) {
       resetConfig()
     }
     // Solo deps primitivas - ReactNode se lee de refs
+    // contentKey permite forzar actualizacion cuando customContent cambia
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.title, config.subtitle, config.showSearch, config.showChildSelector, config.showNotifications, setConfig, resetConfig])
+  }, [config.title, config.subtitle, config.showSearch, config.showChildSelector, config.showNotifications, config.contentKey, setConfig, resetConfig])
 
   return { setConfig }
 }
