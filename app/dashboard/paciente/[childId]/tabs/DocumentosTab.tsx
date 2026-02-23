@@ -1,28 +1,15 @@
 // Tab de documentos - Subir, listar y eliminar archivos adjuntos del nino
 // Solo accesible por admin. Almacenamiento en Vercel Blob.
+// Usa modales nativos (createPortal) en vez de Radix Dialog para evitar
+// bug de react-presence + React 19 (Maximum update depth exceeded)
 
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import { createPortal } from "react-dom"
 import { FileText, Image, Plus, Trash2, Eye, Upload, Loader2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { createLogger } from "@/lib/logger"
 
@@ -67,6 +54,37 @@ function formatDate(dateStr: string): string {
   }
 }
 
+// Modal simple con createPortal para evitar bug react-presence + React 19
+function SimpleModal({ open, onClose, children }: {
+  open: boolean
+  onClose: () => void
+  children: React.ReactNode
+}) {
+  if (!open) return null
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      {/* Overlay */}
+      <div className="fixed inset-0 bg-white/60 backdrop-blur-sm" />
+      {/* Content */}
+      <div className="relative z-10 w-full max-w-md mx-4 bg-white rounded-lg shadow-lg border p-6">
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100 transition-opacity"
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Cerrar</span>
+        </button>
+        {children}
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 export default function DocumentosTab({ childId }: DocumentosTabProps) {
   const [documents, setDocuments] = useState<DocumentRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -95,7 +113,9 @@ export default function DocumentosTab({ childId }: DocumentosTabProps) {
     } finally {
       setLoading(false)
     }
-  }, [childId, toast])
+    // toast es una funcion a nivel de modulo, estable - no incluir en deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [childId])
 
   useEffect(() => {
     fetchDocuments()
@@ -291,12 +311,17 @@ export default function DocumentosTab({ childId }: DocumentosTabProps) {
         </div>
       )}
 
-      {/* Dialog de subida */}
-      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Subir documento</DialogTitle>
-          </DialogHeader>
+      {/* Modal de subida - usa createPortal en vez de Radix Dialog */}
+      <SimpleModal open={uploadDialogOpen} onClose={() => setUploadDialogOpen(false)}>
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold leading-none tracking-tight">
+              Subir documento
+            </h2>
+            <p className="text-sm text-gray-500 mt-1.5">
+              Sube estudios medicos, recetas u otros documentos del paciente.
+            </p>
+          </div>
 
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
@@ -345,29 +370,33 @@ export default function DocumentosTab({ childId }: DocumentosTabProps) {
             className="hidden"
             onChange={handleFileInputChange}
           />
-        </DialogContent>
-      </Dialog>
+        </div>
+      </SimpleModal>
 
-      {/* Confirmacion de eliminacion */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar documento</AlertDialogTitle>
-            <AlertDialogDescription>
+      {/* Modal de confirmacion de eliminacion */}
+      <SimpleModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold leading-none tracking-tight">
+              Eliminar documento
+            </h2>
+            <p className="text-sm text-gray-500 mt-1.5">
               Se eliminara permanentemente &quot;{deleteTarget?.fileName}&quot;. Esta accion no se puede deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
+            </p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Cancelar
+            </Button>
+            <Button
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 text-white"
             >
               Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </div>
+        </div>
+      </SimpleModal>
     </div>
   )
 }

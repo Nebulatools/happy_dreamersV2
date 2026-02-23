@@ -65,29 +65,36 @@ export function usePageHeader() {
   return context
 }
 
-// Hook específico para configurar el header de una página
+// Hook especifico para configurar el header de una pagina
+// Usa useRef para ReactNode props (customContent, actions) que son objetos
+// nuevos en cada render y causarian loop infinito en useEffect
 export function usePageHeaderConfig(config: PageHeaderConfig) {
   const { setConfig, resetConfig } = usePageHeader()
-  
-  // Memoizar la configuración para evitar cambios innecesarios
-  const memoizedConfig = React.useMemo(() => config, [
-    config.title,
-    config.subtitle,
-    config.showSearch,
-    config.showChildSelector,
-    config.showNotifications,
-    config.actions,
-    config.customContent,
-  ])
 
+  // Refs para props que son ReactNode (nuevos en cada render)
+  const customContentRef = React.useRef(config.customContent)
+  const actionsRef = React.useRef(config.actions)
+  customContentRef.current = config.customContent
+  actionsRef.current = config.actions
+
+  // Solo re-ejecutar cuando cambian props primitivas
   React.useEffect(() => {
-    setConfig(memoizedConfig)
-    
-    // Cleanup: resetear al desmontar el componente
+    setConfig({
+      title: config.title,
+      subtitle: config.subtitle,
+      showSearch: config.showSearch,
+      showChildSelector: config.showChildSelector,
+      showNotifications: config.showNotifications,
+      actions: actionsRef.current,
+      customContent: customContentRef.current,
+    })
+
     return () => {
       resetConfig()
     }
-  }, [memoizedConfig, setConfig, resetConfig])
+    // Solo deps primitivas - ReactNode se lee de refs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.title, config.subtitle, config.showSearch, config.showChildSelector, config.showNotifications, setConfig, resetConfig])
 
   return { setConfig }
 }

@@ -144,31 +144,31 @@ export default function PatientHubClient({ childId, childData }: PatientHubClien
 
   return (
     <div className="min-h-screen">
-      {/* Contenido de los tabs - patron hidden */}
+      {/* Contenido de los tabs - render condicional para evitar crash entre tabs */}
       <div className="container py-3">
-        <div className={activeTab === "resumen" ? "" : "hidden"}>
+        {activeTab === "resumen" && (
           <ResumenTab childId={childId} />
-        </div>
-        <div className={activeTab === "diagnostico" ? "" : "hidden"}>
+        )}
+        {activeTab === "diagnostico" && (
           <DiagnosticPanelClient childId={childId} embedded={true} />
-        </div>
-        <div className={activeTab === "bitacora" ? "" : "hidden"}>
+        )}
+        {activeTab === "bitacora" && (
           <BitacoraTab childId={childId} />
-        </div>
-        <div className={activeTab === "consultas" ? "" : "hidden"}>
+        )}
+        {activeTab === "consultas" && (
           <ConsultasTab
             childId={childId}
             parentId={childData.parentId}
             childName={childName}
             onNavigateToConsultas={handleNavigateToConsultas}
           />
-        </div>
-        <div className={activeTab === "encuesta" ? "" : "hidden"}>
+        )}
+        {activeTab === "encuesta" && (
           <EncuestaTab childId={childId} childName={childName} />
-        </div>
-        <div className={activeTab === "documentos" ? "" : "hidden"}>
+        )}
+        {activeTab === "documentos" && (
           <DocumentosTab childId={childId} />
-        </div>
+        )}
       </div>
     </div>
   )
