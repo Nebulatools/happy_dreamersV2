@@ -15,9 +15,7 @@ export default function AyudaPage() {
 
   usePageHeaderConfig({
     title: "Ayuda",
-    showSearch: false,
     showChildSelector: true,
-    showNotifications: true,
   })
 
   const ParentHelp = () => (

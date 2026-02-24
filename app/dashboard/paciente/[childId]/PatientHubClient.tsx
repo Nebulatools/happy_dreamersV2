@@ -96,9 +96,7 @@ export default function PatientHubClient({ childId, childData }: PatientHubClien
   usePageHeaderConfig({
     title: `Paciente - ${childName}`,
     contentKey: activeTab,
-    showSearch: true,
     showChildSelector: false,
-    showNotifications: false,
     customContent: (
       <div>
         {/* Fila 1: back + nombre + edad */}

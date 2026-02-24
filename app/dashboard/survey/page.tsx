@@ -36,8 +36,6 @@ export default function SurveyPage() {
   usePageHeaderConfig({
     title: "Encuesta de Sueño",
     showChildSelector: true,
-    showSearch: false,
-    showNotifications: true,
   })
 
   // Sincronizar cambio de niño entre contexto y URL

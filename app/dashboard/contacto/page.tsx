@@ -12,9 +12,7 @@ export default function ContactoPage() {
 
   usePageHeaderConfig({
     title: "Contacto",
-    showSearch: false,
     showChildSelector: true,
-    showNotifications: true,
   })
 
   return (

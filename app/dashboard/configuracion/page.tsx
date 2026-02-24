@@ -80,8 +80,6 @@ export default function ConfiguracionPage() {
   usePageHeaderConfig({
     title: "Configuración",
     showChildSelector: false,
-    showSearch: false,
-    showNotifications: true,
   })
 
   // Update profileData when userData changes

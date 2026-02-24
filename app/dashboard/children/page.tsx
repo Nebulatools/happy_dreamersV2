@@ -65,8 +65,6 @@ export default function MisSonadoresPage() {
   usePageHeaderConfig({
     title: "Mis Soñadores",
     showChildSelector: false,
-    showSearch: false,
-    showNotifications: true,
   })
 
   useEffect(() => {

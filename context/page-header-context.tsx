@@ -8,9 +8,7 @@ export interface PageHeaderConfig {
   subtitle?: string
   actions?: ReactNode // Para filtros, botones, etc.
   customContent?: ReactNode // Reemplaza TODO el contenido del header (admin desktop)
-  showSearch?: boolean
   showChildSelector?: boolean
-  showNotifications?: boolean
   /** Cambiar este valor fuerza re-evaluacion del customContent/actions */
   contentKey?: string
 }
@@ -25,9 +23,7 @@ interface PageHeaderContextType {
 // Configuración por defecto
 const defaultConfig: PageHeaderConfig = {
   title: "Dashboard",
-  showSearch: false,
   showChildSelector: true,
-  showNotifications: true
 }
 
 // Crear el contexto
@@ -84,9 +80,7 @@ export function usePageHeaderConfig(config: PageHeaderConfig) {
     setConfig({
       title: config.title,
       subtitle: config.subtitle,
-      showSearch: config.showSearch,
       showChildSelector: config.showChildSelector,
-      showNotifications: config.showNotifications,
       contentKey: config.contentKey,
       actions: actionsRef.current,
       customContent: customContentRef.current,
@@ -98,7 +92,7 @@ export function usePageHeaderConfig(config: PageHeaderConfig) {
     // Solo deps primitivas - ReactNode se lee de refs
     // contentKey permite forzar actualizacion cuando customContent cambia
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.title, config.subtitle, config.showSearch, config.showChildSelector, config.showNotifications, config.contentKey, setConfig, resetConfig])
+  }, [config.title, config.subtitle, config.showChildSelector, config.contentKey, setConfig, resetConfig])
 
   return { setConfig }
 }

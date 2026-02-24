@@ -41,9 +41,7 @@ export default function PlanesPage() {
 
   usePageHeaderConfig({
     title: "Planes de Sueño",
-    showSearch: false,
     showChildSelector: true,
-    showNotifications: true,
   })
 
   useEffect(() => {
