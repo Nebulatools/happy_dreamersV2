@@ -47,8 +47,6 @@ export function Header() {
       "/dashboard/consultas": "Consultas",
       "/dashboard/planes": "Planes",
       "/dashboard/notificaciones": "Configuracion",
-      "/dashboard/ayuda": "Ayuda",
-      "/dashboard/contacto": "Contacto",
       "/dashboard/survey": "Encuesta de Sueno",
       "/dashboard/profile": "Perfil",
       "/dashboard/reports": "Reportes",

@@ -7,7 +7,7 @@
 import type React from "react"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -25,8 +25,6 @@ import {
   MessageSquare,
   List,
   ClipboardList,
-  HelpCircle,
-  Mail,
   FileText,
   ChevronLeft,
   ChevronRight,
@@ -48,7 +46,6 @@ interface SidebarNavProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Sidebar({ className }: { className?: string }) {
   const { data: session } = useSession()
   const pathname = usePathname()
-  const router = useRouter()
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
@@ -125,11 +122,6 @@ export function Sidebar({ className }: { className?: string }) {
       href: "/dashboard/planes",
       icon: <FileText className="h-5 w-5" />,
       role: ["parent", "user"],
-    },
-    {
-      title: "Configuracion",
-      href: "/dashboard/notificaciones",
-      icon: <Settings className="h-5 w-5" />,
     },
   ]
 
@@ -224,30 +216,26 @@ export function Sidebar({ className }: { className?: string }) {
             </div>
           </ScrollArea>
 
-          {/* Botones de Ayuda y Contacto al final */}
+          {/* Configuracion fijo al fondo */}
           <div className="p-3 mt-auto border-t border-white/10">
-            <button
+            <Link
+              href="/dashboard/notificaciones"
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200 hover:bg-white/10 w-full mb-1",
+                "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200 w-full",
                 collapsed ? "justify-center" : "justify-start",
+                (pathname === "/dashboard/notificaciones" || pathname === "/dashboard/configuracion")
+                  ? ""
+                  : "hover:bg-white/10",
               )}
-              style={{ color: "#DEF1F1", fontFamily: "Century Gothic, sans-serif" }}
-              onClick={() => router.push("/dashboard/ayuda")}
+              style={{
+                backgroundColor: (pathname === "/dashboard/notificaciones" || pathname === "/dashboard/configuracion") ? "#DEF1F1" : "transparent",
+                color: (pathname === "/dashboard/notificaciones" || pathname === "/dashboard/configuracion") ? "#68A1C8" : "#DEF1F1",
+                fontFamily: "Century Gothic, sans-serif",
+              }}
             >
-              <HelpCircle className="h-5 w-5" />
-              {!collapsed && "Ayuda"}
-            </button>
-            <button
-              className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200 hover:bg-white/10 w-full",
-                collapsed ? "justify-center" : "justify-start",
-              )}
-              style={{ color: "#DEF1F1", fontFamily: "Century Gothic, sans-serif" }}
-              onClick={() => router.push("/dashboard/contacto")}
-            >
-              <Mail className="h-5 w-5" />
-              {!collapsed && "Contacto"}
-            </button>
+              <Settings className="h-5 w-5" />
+              {!collapsed && "Configuracion"}
+            </Link>
           </div>
         </div>
       </div>
@@ -337,7 +325,7 @@ function MobileSidebar({
   const pathname = usePathname()
 
   return (
-    <div className="flex flex-col gap-6 py-2">
+    <div className="flex flex-col gap-6 py-2 h-full">
       <Link href="/dashboard" className="flex items-center justify-center px-4" onClick={() => setOpen(false)}>
         <img
           src="/LOGO.svg"
@@ -403,6 +391,28 @@ function MobileSidebar({
           )
         })}
       </nav>
+
+      {/* Configuracion fijo al fondo */}
+      <div className="mt-auto border-t border-white/10 px-2 pt-3 pb-2">
+        <Link
+          href="/dashboard/notificaciones"
+          onClick={() => setOpen(false)}
+          className={cn(
+            "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+            (pathname === "/dashboard/notificaciones" || pathname === "/dashboard/configuracion")
+              ? ""
+              : "hover:bg-white/10",
+          )}
+          style={{
+            backgroundColor: (pathname === "/dashboard/notificaciones" || pathname === "/dashboard/configuracion") ? "#DEF1F1" : "transparent",
+            color: (pathname === "/dashboard/notificaciones" || pathname === "/dashboard/configuracion") ? "#68A1C8" : "#DEF1F1",
+            fontFamily: "Century Gothic, sans-serif",
+          }}
+        >
+          <Settings className="h-5 w-5" />
+          Configuracion
+        </Link>
+      </div>
     </div>
   )
 }
