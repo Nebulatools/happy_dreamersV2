@@ -59,6 +59,7 @@ export function HeaderUtilityBar() {
     searchResults,
     searchLoading,
     handleSelectChild,
+    recentPatients,
   } = useAdminSearch()
 
   const accountType = (sessionUser as any)?.accountType || ""
@@ -116,9 +117,39 @@ export function HeaderUtilityBar() {
                 <span className="text-sm text-muted-foreground">Cargando...</span>
               </div>
             ) : searchValue.trim() === "" ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                Escribe para buscar...
-              </div>
+              recentPatients.length > 0 ? (
+                <CommandGroup heading="Recientes">
+                  {recentPatients.map((recent) => (
+                    <CommandItem
+                      key={`recent-${recent.childId}`}
+                      value={recent.childName}
+                      onSelect={() => {
+                        handleSelectChild({
+                          _id: recent.childId,
+                          firstName: recent.childName.split(" ")[0] || "",
+                          lastName: recent.childName.split(" ").slice(1).join(" ") || "",
+                          parentId: recent.parentId || "",
+                        })
+                      }}
+                      className="flex items-center gap-3 py-2"
+                    >
+                      <Baby className="h-4 w-4 text-[#68A1C8]" />
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{recent.childName}</div>
+                        {recent.parentName && (
+                          <div className="text-xs text-muted-foreground">
+                            Padre: {recent.parentName}
+                          </div>
+                        )}
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ) : (
+                <div className="py-6 text-center text-sm text-muted-foreground">
+                  Escribe para buscar...
+                </div>
+              )
             ) : searchResults.length === 0 ? (
               <CommandEmpty>No se encontraron resultados.</CommandEmpty>
             ) : (

@@ -32,6 +32,40 @@ export interface ChildResult {
   parentName: string
 }
 
+// Pacientes visitados recientemente (persistido en localStorage)
+export interface RecentPatient {
+  childId: string
+  childName: string
+  parentId: string
+  parentName: string
+  viewedAt: number
+}
+
+const RECENT_PATIENTS_KEY = "admin_recent_patients"
+const MAX_RECENT = 5
+
+function readRecentPatients(): RecentPatient[] {
+  try {
+    const raw = localStorage.getItem(RECENT_PATIENTS_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeRecentPatient(patient: Omit<RecentPatient, "viewedAt">) {
+  const current = readRecentPatients()
+  const filtered = current.filter((p) => p.childId !== patient.childId)
+  const updated: RecentPatient[] = [
+    { ...patient, viewedAt: Date.now() },
+    ...filtered,
+  ].slice(0, MAX_RECENT)
+  localStorage.setItem(RECENT_PATIENTS_KEY, JSON.stringify(updated))
+  return updated
+}
+
 export function useAdminSearch() {
   const { data: session } = useSession()
   const router = useRouter()
@@ -45,6 +79,13 @@ export function useAdminSearch() {
   const [users, setUsers] = useState<SearchUser[]>([])
   const [allChildren, setAllChildren] = useState<SearchChild[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
+  const [recentPatients, setRecentPatients] = useState<RecentPatient[]>([])
+
+  // Cargar recientes de localStorage al montar
+  useEffect(() => {
+    if (!isAdmin) return
+    setRecentPatients(readRecentPatients())
+  }, [isAdmin])
 
   // Cargar datos al montar (solo admin)
   useEffect(() => {
@@ -113,8 +154,18 @@ export function useAdminSearch() {
     return results.slice(0, 15)
   }, [searchValue, allChildren, parentNameMap])
 
-  // Click en un nino → navegar directo al hub del paciente
+  // Click en un nino → guardar en recientes y navegar al hub del paciente
   const handleSelectChild = useCallback((child: SearchChild) => {
+    // Persistir en recientes
+    const childName = `${child.firstName} ${child.lastName}`.trim()
+    const updated = writeRecentPatient({
+      childId: child._id,
+      childName,
+      parentId: child.parentId,
+      parentName: parentNameMap[child.parentId] || "",
+    })
+    setRecentPatients(updated)
+
     setActiveUserId(child.parentId)
     setActiveUserName(parentNameMap[child.parentId] || "")
     setActiveChildId(child._id)
@@ -133,5 +184,6 @@ export function useAdminSearch() {
     searchResults,
     searchLoading,
     handleSelectChild,
+    recentPatients,
   }
 }
