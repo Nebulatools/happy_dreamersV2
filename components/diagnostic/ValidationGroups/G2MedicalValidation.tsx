@@ -14,6 +14,7 @@ interface G2MedicalValidationProps {
   validation: MedicalGroupValidation
   onCriterionClick?: (criterion: CriterionResult) => void
   className?: string
+  hideHeader?: boolean
 }
 
 // Nombres amigables para cada condicion
@@ -109,6 +110,7 @@ export function G2MedicalValidation({
   validation,
   onCriterionClick,
   className,
+  hideHeader,
 }: G2MedicalValidationProps) {
   const { indicators, detectedCount, pendingCount } = validation
 
@@ -134,6 +136,7 @@ export function G2MedicalValidation({
         dataCompleteness={validation.dataCompleteness}
         summary={validation.summary}
         onCriterionClick={onCriterionClick}
+        hideHeader={hideHeader}
       />
 
       {/* Resumen por condicion */}

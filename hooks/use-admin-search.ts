@@ -55,7 +55,7 @@ function readRecentPatients(): RecentPatient[] {
   }
 }
 
-function writeRecentPatient(patient: Omit<RecentPatient, "viewedAt">) {
+export function writeRecentPatient(patient: Omit<RecentPatient, "viewedAt">) {
   const current = readRecentPatients()
   const filtered = current.filter((p) => p.childId !== patient.childId)
   const updated: RecentPatient[] = [
@@ -81,11 +81,13 @@ export function useAdminSearch() {
   const [searchLoading, setSearchLoading] = useState(false)
   const [recentPatients, setRecentPatients] = useState<RecentPatient[]>([])
 
-  // Cargar recientes de localStorage al montar
+  // Recargar recientes cada vez que se abre el search (y al montar)
   useEffect(() => {
     if (!isAdmin) return
-    setRecentPatients(readRecentPatients())
-  }, [isAdmin])
+    if (searchOpen) {
+      setRecentPatients(readRecentPatients())
+    }
+  }, [isAdmin, searchOpen])
 
   // Cargar datos al montar (solo admin)
   useEffect(() => {

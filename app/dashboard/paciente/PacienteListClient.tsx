@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation"
 import { createLogger } from "@/lib/logger"
 import { useActiveChild } from "@/context/active-child-context"
 import { usePageHeaderConfig } from "@/context/page-header-context"
+import { writeRecentPatient } from "@/hooks/use-admin-search"
 
 const logger = createLogger("PacienteListClient")
 
@@ -207,6 +208,13 @@ export default function PacienteListClient() {
 
   // Al hacer clic en un nino: setActiveChild + navegar al hub
   const handleChildClick = (child: Child, userName: string) => {
+    // Registrar en recientes para que aparezca en el search del header
+    writeRecentPatient({
+      childId: child._id,
+      childName: `${child.firstName} ${child.lastName}`.trim(),
+      parentId: child.parentId,
+      parentName: userName,
+    })
     setActiveChild(child._id, child.parentId, userName)
     router.push(`/dashboard/paciente/${child._id}`)
   }

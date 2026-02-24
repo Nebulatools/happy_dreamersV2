@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, AlertCircle, Info, Clock, Stethoscope, Utensils, Cloud } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -92,19 +92,8 @@ function ValidationAccordion({
   diagnosticResult: DiagnosticResult
   onCriterionClick: (criterion: CriterionResult, groupTitle: string) => void
 }) {
-  // Calcular cuales grupos tienen alertas para abrirlos por defecto
-  const defaultOpenGroups = useMemo(() => {
-    const open: string[] = []
-    for (const config of GROUP_CONFIG) {
-      const group = diagnosticResult.groups[config.id]
-      if (group.status === "alert" || group.status === "warning") {
-        open.push(config.title)
-      }
-    }
-    // Si ninguno tiene alertas, abrir el primero
-    if (open.length === 0) open.push(GROUP_CONFIG[0].title)
-    return open
-  }, [diagnosticResult])
+  // Todos los grupos inician colapsados para reducir ruido visual
+  const defaultOpenGroups: string[] = []
 
   // Funcion auxiliar para contar alertas/avisos de un grupo
   const getGroupCounts = (group: GroupValidation) => {
@@ -167,6 +156,7 @@ function ValidationAccordion({
                   onCriterionClick={(criterion) =>
                     onCriterionClick(criterion, "G1 - Horario")
                   }
+                  hideHeader
                 />
               )}
               {config.id === "G2" && (
@@ -175,6 +165,7 @@ function ValidationAccordion({
                   onCriterionClick={(criterion) =>
                     onCriterionClick(criterion, "G2 - Medico")
                   }
+                  hideHeader
                 />
               )}
               {config.id === "G3" && (
@@ -183,6 +174,7 @@ function ValidationAccordion({
                   onCriterionClick={(criterion) =>
                     onCriterionClick(criterion, "G3 - Alimentacion")
                   }
+                  hideHeader
                 />
               )}
               {config.id === "G4" && (
@@ -191,6 +183,7 @@ function ValidationAccordion({
                   onCriterionClick={(criterion) =>
                     onCriterionClick(criterion, "G4 - Entorno")
                   }
+                  hideHeader
                 />
               )}
             </AccordionContent>

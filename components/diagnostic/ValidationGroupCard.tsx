@@ -22,6 +22,8 @@ interface ValidationGroupCardProps {
   summary?: string
   onCriterionClick?: (criterion: CriterionResult) => void
   className?: string
+  /** Ocultar header y card wrapper (para uso dentro de Accordion que ya muestra titulo) */
+  hideHeader?: boolean
 }
 
 // Estilos de borde por status
@@ -151,6 +153,7 @@ export function ValidationGroupCard({
   summary,
   onCriterionClick,
   className,
+  hideHeader = false,
 }: ValidationGroupCardProps) {
   const [expanded, setExpanded] = useState(false)
 
@@ -167,6 +170,59 @@ export function ValidationGroupCard({
   const hasHidden = sortedCriteria.length > maxVisible
   const visibleCriteria = expanded ? sortedCriteria : sortedCriteria.slice(0, maxVisible)
   const hiddenCount = sortedCriteria.length - maxVisible
+
+  // Contenido compartido: criterios + completitud
+  const criteriaContent = (
+    <div className="space-y-3">
+      {/* Lista de criterios */}
+      <div className="space-y-2">
+        {visibleCriteria.map((criterion) => (
+          <CriterionItem
+            key={criterion.id}
+            criterion={criterion}
+            onClick={
+              onCriterionClick
+                ? () => onCriterionClick(criterion)
+                : undefined
+            }
+          />
+        ))}
+      </div>
+
+      {/* Boton expandir/colapsar criterios */}
+      {hasHidden && (
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          className="w-full flex items-center justify-center gap-1 text-xs text-blue-600 hover:text-blue-800 py-1.5 rounded-md hover:bg-blue-50 transition-colors"
+        >
+          {expanded ? (
+            <>
+              <ChevronUp className="h-3.5 w-3.5" />
+              Mostrar menos
+            </>
+          ) : (
+            <>
+              <ChevronDown className="h-3.5 w-3.5" />
+              +{hiddenCount} criterio{hiddenCount !== 1 ? "s" : ""} mas
+            </>
+          )}
+        </button>
+      )}
+
+      {/* Mensaje de completitud de datos */}
+      {dataCompleteness && (
+        <div className="pt-2 border-t border-gray-100">
+          <DataCompletenessMessage dataCompleteness={dataCompleteness} />
+        </div>
+      )}
+    </div>
+  )
+
+  // Modo compacto: solo criterios sin card wrapper (para uso dentro de Accordion)
+  if (hideHeader) {
+    return <div className={className}>{criteriaContent}</div>
+  }
 
   return (
     <Card
@@ -207,49 +263,8 @@ export function ValidationGroupCard({
         </div>
       </CardHeader>
 
-      <CardContent className="pt-2 space-y-3">
-        {/* Lista de criterios */}
-        <div className="space-y-2">
-          {visibleCriteria.map((criterion) => (
-            <CriterionItem
-              key={criterion.id}
-              criterion={criterion}
-              onClick={
-                onCriterionClick
-                  ? () => onCriterionClick(criterion)
-                  : undefined
-              }
-            />
-          ))}
-        </div>
-
-        {/* Boton expandir/colapsar criterios */}
-        {hasHidden && (
-          <button
-            type="button"
-            onClick={() => setExpanded(!expanded)}
-            className="w-full flex items-center justify-center gap-1 text-xs text-blue-600 hover:text-blue-800 py-1.5 rounded-md hover:bg-blue-50 transition-colors"
-          >
-            {expanded ? (
-              <>
-                <ChevronUp className="h-3.5 w-3.5" />
-                Mostrar menos
-              </>
-            ) : (
-              <>
-                <ChevronDown className="h-3.5 w-3.5" />
-                +{hiddenCount} criterio{hiddenCount !== 1 ? "s" : ""} mas
-              </>
-            )}
-          </button>
-        )}
-
-        {/* Mensaje de completitud de datos */}
-        {dataCompleteness && (
-          <div className="pt-2 border-t border-gray-100">
-            <DataCompletenessMessage dataCompleteness={dataCompleteness} />
-          </div>
-        )}
+      <CardContent className="pt-2">
+        {criteriaContent}
       </CardContent>
     </Card>
   )

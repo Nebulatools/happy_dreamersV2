@@ -14,6 +14,7 @@ interface G3NutritionValidationProps {
   validation: NutritionGroupValidation
   onCriterionClick?: (criterion: CriterionResult) => void
   className?: string
+  hideHeader?: boolean
 }
 
 // Nombres amigables para grupos nutricionales
@@ -184,6 +185,7 @@ export function G3NutritionValidation({
   validation,
   onCriterionClick,
   className,
+  hideHeader,
 }: G3NutritionValidationProps) {
   const {
     milkFeedings,
@@ -203,6 +205,7 @@ export function G3NutritionValidation({
         dataCompleteness={validation.dataCompleteness}
         summary={validation.summary}
         onCriterionClick={onCriterionClick}
+        hideHeader={hideHeader}
       />
 
       {/* Resumen de alimentacion del dia */}

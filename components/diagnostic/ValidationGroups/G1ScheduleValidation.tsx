@@ -8,6 +8,7 @@ interface G1ScheduleValidationProps {
   validation: GroupValidation
   onCriterionClick?: (criterion: CriterionResult) => void
   className?: string
+  hideHeader?: boolean
 }
 
 /**
@@ -32,6 +33,7 @@ export function G1ScheduleValidation({
   validation,
   onCriterionClick,
   className,
+  hideHeader,
 }: G1ScheduleValidationProps) {
   return (
     <ValidationGroupCard
@@ -43,6 +45,7 @@ export function G1ScheduleValidation({
       summary={validation.summary}
       onCriterionClick={onCriterionClick}
       className={className}
+      hideHeader={hideHeader}
     />
   )
 }
