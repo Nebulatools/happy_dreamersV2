@@ -177,11 +177,12 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
               <Label htmlFor="papa-edad">
                 2. Edad: <span className="text-red-500">*</span>
               </Label>
-              <Input 
+              <Input
                 id="papa-edad"
                 type="number"
                 value={data.papa?.edad || ""}
                 onChange={(e) => updateField("papa", "edad", e.target.value)}
+                onWheel={(e) => { e.currentTarget.blur() }}
                 placeholder="Edad"
                 className={hasError("papa", "edad") ? "border-red-500" : ""}
               />
@@ -393,11 +394,12 @@ export function FamilyInfoStep({ data, onChange, errors = {}, context = {} }: Su
               <Label htmlFor="mama-edad">
                 2. Edad
               </Label>
-              <Input 
+              <Input
                 id="mama-edad"
                 type="number"
                 value={data.mama?.edad || ""}
                 onChange={(e) => updateField("mama", "edad", e.target.value)}
+                onWheel={(e) => { e.currentTarget.blur() }}
                 placeholder="Edad (opcional)"
               />
             </div>

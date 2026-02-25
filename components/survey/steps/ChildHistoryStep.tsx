@@ -11,6 +11,7 @@ import { Baby } from "lucide-react"
 import type { SurveyStepProps } from "../types/survey.types"
 import { calculateAgeInMonths } from "@/lib/date-utils"
 import { calculateWeightPercentile } from "@/lib/growth/weight-percentile"
+import { calculateHeightPercentile } from "@/lib/growth/height-percentile"
 
 export function ChildHistoryStep({ data, onChange, errors = {}, context }: SurveyStepProps) {
   const childProfile = context?.childData
@@ -146,6 +147,48 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
     return percentile !== null ? percentile.toString() : ""
   }, [birthDateObject, childProfile?.birthDate, childProfile?.gender, childProfile?.ageInMonths, data.genero])
 
+  const computePercentilFromHeight = useCallback((rawValue?: string): string => {
+    if (!rawValue) return ""
+    const normalizedValue = rawValue.replace(",", ".")
+    const tallaNum = parseFloat(normalizedValue)
+    if (!tallaNum || !Number.isFinite(tallaNum) || tallaNum <= 0) {
+      return ""
+    }
+
+    const fallbackBirthDate =
+      birthDateObject ||
+      (childProfile?.birthDate
+        ? (() => {
+          const parsed = new Date(childProfile.birthDate as any)
+          return Number.isNaN(parsed.getTime()) ? null : parsed
+        })()
+        : null)
+
+    const derivedAgeInMonths = (() => {
+      if (fallbackBirthDate) {
+        return calculateAgeInMonths(fallbackBirthDate)
+      }
+
+      if (
+        typeof childProfile?.ageInMonths === "number" &&
+        !Number.isNaN(childProfile.ageInMonths) &&
+        childProfile.ageInMonths >= 0
+      ) {
+        return childProfile.ageInMonths
+      }
+
+      return null
+    })()
+
+    if (derivedAgeInMonths === null || derivedAgeInMonths < 0) {
+      return ""
+    }
+
+    const resolvedGender = (data.genero || childProfile?.gender || "") as string
+    const percentile = calculateHeightPercentile(tallaNum, derivedAgeInMonths, resolvedGender)
+    return percentile !== null ? percentile.toString() : ""
+  }, [birthDateObject, childProfile?.birthDate, childProfile?.gender, childProfile?.ageInMonths, data.genero])
+
   useEffect(() => {
     if (!data.pesoHijo) return
     const latest = computePercentilFromWeight(data.pesoHijo)
@@ -153,6 +196,14 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
       updateField("percentilPeso", latest)
     }
   }, [data.pesoHijo, data.percentilPeso, computePercentilFromWeight])
+
+  useEffect(() => {
+    if (!data.tallaHijo) return
+    const latest = computePercentilFromHeight(data.tallaHijo)
+    if ((data.percentilTalla || "") !== latest) {
+      updateField("percentilTalla", latest)
+    }
+  }, [data.tallaHijo, data.percentilTalla, computePercentilFromHeight])
 
   return (
     <div className="space-y-8">
@@ -256,7 +307,52 @@ export function ChildHistoryStep({ data, onChange, errors = {}, context }: Surve
               className="bg-gray-100"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Se calcula automáticamente basado en el peso y la edad
+              Se calcula automaticamente basado en el peso y la edad
+            </p>
+          </div>
+
+          {/* 5. Talla actual */}
+          <div>
+            <Label htmlFor="talla-hijo">
+              5. Talla del hijo(a) (cm)
+            </Label>
+            <Input
+              id="talla-hijo"
+              type="number"
+              min={30}
+              max={130}
+              step={0.1}
+              value={data.tallaHijo || ""}
+              onWheel={(e) => (e.target as HTMLInputElement).blur()}
+              onChange={(e) => {
+                const rawValue = e.target.value
+                const updates: Record<string, any> = { tallaHijo: rawValue }
+                updates.percentilTalla = computePercentilFromHeight(rawValue)
+                updateFields(updates)
+              }}
+              placeholder="Ej: 75.5"
+              className={hasError("tallaHijo") ? "border-red-500" : ""}
+            />
+            {hasError("tallaHijo") && (
+              <p className="text-red-500 text-sm mt-1">{getError("tallaHijo")}</p>
+            )}
+          </div>
+
+          {/* 6. Percentil de talla (auto-calculado) */}
+          <div>
+            <Label htmlFor="percentil-talla">
+              6. Percentil de Talla
+            </Label>
+            <Input
+              id="percentil-talla"
+              value={data.percentilTalla || ""}
+              readOnly
+              disabled
+              placeholder="Se calcula automaticamente"
+              className="bg-gray-100"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Se calcula automaticamente basado en la talla y la edad
             </p>
           </div>
         </div>
