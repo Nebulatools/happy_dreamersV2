@@ -1,0 +1,440 @@
+===============================================================
+  HAPPY DREAMERS - NOTAS DE VERSION
+  Fecha: 24 de febrero de 2026
+  Version: Sprint 5
+===============================================================
+
+
+A continuacion se describen todos los cambios incluidos en
+esta version, organizados por tipo de usuario.
+
+
+---------------------------------------------------------------
+CAMBIOS PARA PADRES / USUARIOS
+---------------------------------------------------------------
+
+
+1. NUEVO CAMPO EN ENCUESTA: TALLA Y PERCENTIL DE TALLA
+.............................................................
+
+   Ruta: /dashboard/survey
+   Navegacion: Menu lateral > Cuestionario de Sueno > Paso
+   "Historia del Nino"
+
+   Se agrego un campo para registrar la talla (estatura) del
+   nino en centimetros. Al igual que el peso, el percentil de
+   talla se calcula automaticamente basado en las tablas
+   oficiales de la OMS segun la edad y genero del nino.
+
+   Como validar:
+   a) Iniciar sesion como padre/usuario
+   b) Ir al cuestionario de sueno del nino
+   c) Navegar al paso "Historia del Nino"
+   d) Buscar el campo "Talla del hijo(a) (cm)"
+   e) Ingresar la talla (por ejemplo: 75.5)
+   f) Verificar que el campo "Percentil de Talla" se
+      calcula automaticamente debajo
+   g) Guardar y verificar que ambos valores persisten
+   h) El campo es opcional, se puede dejar vacio
+
+
+2. NUEVAS PREGUNTAS EN ENCUESTA: LACTANCIA
+.............................................................
+
+   Ruta: /dashboard/survey
+   Navegacion: Menu lateral > Cuestionario de Sueno > Paso
+   "Desarrollo y Salud"
+
+   Se agregaron tres nuevas preguntas relacionadas con la
+   lactancia:
+
+   - "Tuvieron problemas con la lactancia?" (Si/No)
+   - "Cuentas con asesoria de lactancia?" (Si/No)
+     - Si responde "Si", aparece un campo adicional para
+       indicar el nombre de la asesora de lactancia
+   - "A que edad empezo la Alimentacion Complementaria?"
+     (campo numerico en meses)
+
+   Como validar:
+   a) Iniciar sesion como padre/usuario
+   b) Ir al cuestionario de sueno del nino
+   c) Navegar al paso "Desarrollo y Salud"
+   d) Buscar las preguntas de lactancia (aparecen despues
+      de "Come solidos")
+   e) Responder "Si" a "Tuvieron problemas con la lactancia?"
+   f) Responder "Si" a "Cuentas con asesoria de lactancia?"
+   g) Verificar que aparece el campo "Quien es tu Asesora
+      de Lactancia?"
+   h) Llenar el nombre y guardar
+   i) Ingresar la edad de inicio de alimentacion complementaria
+   j) Verificar que todo persiste al volver a entrar
+   k) Los tres campos son opcionales
+
+
+3. NUEVA PREGUNTA EN ENCUESTA: ESTUDIO DE FERRITINA (MEJORADO)
+.............................................................
+
+   Ruta: /dashboard/survey
+   Navegacion: Menu lateral > Cuestionario de Sueno > Paso
+   "Desarrollo y Salud"
+
+   La seccion de ferritina fue rediseñada. Ahora primero
+   pregunta si al nino le han realizado un estudio de
+   ferritina. Si la respuesta es "Si", aparecen dos campos
+   adicionales:
+
+   - Nivel de Ferritina (ng/mL)
+   - Fecha del estudio
+
+   Antes se mostraba solo el campo numerico. Ahora la
+   informacion esta mejor organizada y es mas clara.
+
+   Como validar:
+   a) Iniciar sesion como padre/usuario
+   b) Ir al cuestionario de sueno del nino
+   c) Navegar al paso "Desarrollo y Salud"
+   d) Buscar "Le han realizado un estudio de Ferritina?"
+   e) Seleccionar "Si"
+   f) Verificar que aparecen los campos de nivel y fecha
+   g) Llenar ambos campos y guardar
+   h) Seleccionar "No" y verificar que los campos desaparecen
+   i) Volver a entrar y verificar que los datos persisten
+
+
+4. NUEVAS PREGUNTAS EN ENCUESTA: CONSULTAS Y ESTUDIOS MEDICOS
+.............................................................
+
+   Ruta: /dashboard/survey
+   Navegacion: Menu lateral > Cuestionario de Sueno > Paso
+   "Desarrollo y Salud"
+
+   Se agregaron dos preguntas nuevas para conocer el historial
+   medico del nino:
+
+   - "Ha consultado con algun otro doctor?" (Si/No)
+     - Si responde "Si", aparece un campo de texto para
+       indicar la especialidad y el motivo de la consulta
+   - "Se le han practicado estudios medicos?" (Si/No)
+     - Si responde "Si", aparece un campo de texto para
+       describir que tipo de estudios y por que motivo
+
+   Como validar:
+   a) Iniciar sesion como padre/usuario
+   b) Ir al cuestionario de sueno del nino
+   c) Navegar al paso "Desarrollo y Salud"
+   d) Buscar "Ha consultado con algun otro doctor?"
+   e) Seleccionar "Si" y verificar que aparece el campo
+      de texto para escribir el detalle
+   f) Escribir algo (ej: "Neurologo, por problemas de sueno")
+   g) Buscar "Se le han practicado estudios medicos?"
+   h) Seleccionar "Si" y llenar el detalle
+   i) Guardar y verificar que todo persiste al volver
+
+
+5. CAMBIO EN ENCUESTA: COMPORTAMIENTOS AL DORMIR
+.............................................................
+
+   Ruta: /dashboard/survey
+   Navegacion: Menu lateral > Cuestionario de Sueno > Paso
+   "Desarrollo y Salud"
+
+   La seccion que antes se llamaba "Sindrome de Piernas
+   Inquietas" fue renombrada a "Presenta alguno de los
+   siguientes comportamientos al dormir?". Las opciones
+   disponibles siguen siendo las mismas:
+
+   - Pataleo nocturno al dormirse
+   - Piernas inquietas que necesitan movimiento
+   - Se despierta quejandose de las piernas
+
+   Este cambio es solo de nombre para que sea mas claro
+   y menos tecnico.
+
+   Como validar:
+   a) Iniciar sesion como padre/usuario
+   b) Ir al cuestionario del nino > "Desarrollo y Salud"
+   c) Buscar la seccion de comportamientos al dormir
+   d) Verificar que el titulo dice "Presenta alguno de
+      los siguientes comportamientos al dormir?"
+   e) Las opciones funcionan igual que antes
+
+
+6. CAMBIO EN ENCUESTA: HORA DE DESPERTAR AHORA ES UN RANGO
+.............................................................
+
+   Ruta: /dashboard/survey
+   Navegacion: Menu lateral > Cuestionario de Sueno > Paso
+   "Rutina y Habitos"
+
+   La pregunta "A que hora se despierta tu hijo(a) por la
+   manana?" ahora permite indicar un rango con dos campos:
+   "Desde" y "Hasta", en lugar de una sola hora fija.
+
+   Por ejemplo, si el nino se despierta entre las 6:00 y
+   las 7:00, ahora se pueden registrar ambos valores.
+
+   Si la hora "Hasta" es anterior a la hora "Desde", se
+   muestra un mensaje de error en rojo.
+
+   Como validar:
+   a) Iniciar sesion como padre/usuario
+   b) Ir al cuestionario del nino > "Rutina y Habitos"
+   c) Buscar la pregunta 19 sobre la hora de despertar
+   d) Verificar que aparecen dos campos: "Desde" y "Hasta"
+   e) Seleccionar un rango valido (ej: 06:00 a 07:00)
+   f) Intentar poner una hora "Hasta" menor a "Desde"
+      y verificar que aparece un mensaje de error
+   g) Guardar y verificar que los valores persisten
+
+
+7. NUEVA OPCION EN ENCUESTA: LUZ MERCURIAL
+.............................................................
+
+   Ruta: /dashboard/survey
+   Navegacion: Menu lateral > Cuestionario de Sueno > Paso
+   "Rutina y Habitos"
+
+   En la pregunta sobre la oscuridad de la habitacion al
+   dormir, se agrego una nueva opcion: "Luz mercurial de
+   la calle".
+
+   Como validar:
+   a) Iniciar sesion como padre/usuario
+   b) Ir al cuestionario del nino > "Rutina y Habitos"
+   c) Buscar la pregunta sobre oscuridad de la habitacion
+   d) Verificar que existe la opcion "Luz mercurial de la
+      calle"
+   e) Seleccionarla y guardar
+
+
+8. CAMBIO EN ENCUESTA: REORDEN DE PREGUNTAS 28 Y 29
+.............................................................
+
+   Ruta: /dashboard/survey
+   Navegacion: Menu lateral > Cuestionario de Sueno > Paso
+   "Rutina y Habitos"
+
+   Se intercambio el orden de dos preguntas:
+   - La pregunta 28 ahora es "Donde toma las siestas?"
+     (antes era la 29)
+   - La pregunta 29 ahora es sobre el sueno cuando viajan
+     (antes era la 28)
+
+   Es un cambio de orden solamente, las preguntas funcionan
+   igual que antes.
+
+   Como validar:
+   a) Iniciar sesion como padre/usuario
+   b) Ir al cuestionario del nino > "Rutina y Habitos"
+   c) Verificar que la pregunta 28 es "Donde toma las siestas?"
+   d) Verificar que la pregunta 29 es sobre viajes
+
+
+9. MEJORA: LOS CAMPOS NUMERICOS YA NO CAMBIAN CON LA RUEDA
+   DEL RATON
+.............................................................
+
+   Ruta: /dashboard/survey (todos los pasos)
+   Navegacion: Menu lateral > Cuestionario de Sueno
+
+   Antes, al hacer scroll con la rueda del raton sobre un
+   campo numerico (edad en meses, peso, talla, etc.), el
+   valor cambiaba accidentalmente. Ahora los campos numericos
+   ya no responden a la rueda del raton, evitando cambios
+   no deseados.
+
+   Esto aplica a todos los campos numericos de la encuesta:
+   edad de hitos del desarrollo, peso, talla, edad del papa
+   y mama, nivel de ferritina, duracion de actividades, etc.
+
+   Como validar:
+   a) Iniciar sesion como padre/usuario
+   b) Ir al cuestionario del nino
+   c) Posicionar el cursor sobre cualquier campo numerico
+   d) Usar la rueda del raton para hacer scroll
+   e) Verificar que el valor del campo NO cambia
+   f) Verificar que la pagina hace scroll normalmente
+
+
+---------------------------------------------------------------
+CAMBIOS PARA ADMINISTRADORES
+---------------------------------------------------------------
+
+
+10. DIAGNOSTICOS: NUEVA VISTA EN ACORDEON
+.............................................................
+
+   Ruta: /dashboard/diagnosticos/[nino seleccionado]
+   Navegacion: Menu lateral > Diagnosticos > Seleccionar
+   paciente
+
+   Los 4 grupos de validacion del panel de diagnostico
+   (Horario, Medico, Alimentacion, Entorno) ahora se
+   muestran en formato de acordeon en lugar de una grilla
+   de 4 tarjetas.
+
+   Las tarjetas que tienen alertas o avisos se abren
+   automaticamente. Las que estan en verde (OK) se muestran
+   cerradas para no ocupar espacio innecesario.
+
+   Cada tarjeta muestra en su encabezado:
+   - Un indicador de color (verde/amarillo/rojo)
+   - El icono del grupo
+   - El nombre del grupo
+   - El conteo de alertas y avisos
+   - Los datos disponibles vs totales
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Ir a Diagnosticos y seleccionar un paciente
+   c) Verificar que los grupos se muestran como acordeon
+   d) Verificar que los grupos con alertas estan abiertos
+   e) Hacer clic en un grupo cerrado para expandirlo
+   f) Hacer clic en un grupo abierto para cerrarlo
+   g) Verificar que los indicadores y conteos son correctos
+
+
+11. DIAGNOSTICOS: DATOS MAS COMPLETOS CON MENOS EVENTOS
+.............................................................
+
+   Ruta: /dashboard/diagnosticos/[nino seleccionado]
+   Navegacion: Menu lateral > Diagnosticos > Seleccionar
+   paciente
+
+   El sistema de diagnostico ahora puede mostrar informacion
+   mas completa incluso cuando el nino tiene pocos eventos
+   registrados. Si no hay suficientes eventos para calcular
+   un indicador, el sistema busca la informacion en el
+   cuestionario inicial (encuesta) del nino como respaldo.
+
+   Esto aplica a los siguientes indicadores del grupo
+   "Horario":
+   - Duracion de la noche: se estima con la hora de dormir
+     y despertar del cuestionario
+   - Cantidad de siestas: se usa el numero reportado en
+     el cuestionario
+   - Duracion de siestas: se usa la duracion reportada en
+     el cuestionario
+
+   Cuando un indicador usa datos del cuestionario en lugar
+   de eventos reales, se muestra la nota "basado en
+   cuestionario inicial" junto al valor.
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Ir a Diagnosticos y seleccionar un nino que tenga
+      pocos o ningun evento registrado pero con encuesta
+      completada
+   c) Verificar que los indicadores de Horario muestran
+      valores (no "Sin datos")
+   d) Verificar que los valores muestran la nota "basado
+      en cuestionario inicial"
+   e) Comparar con un nino que tenga muchos eventos: los
+      indicadores deben mostrar "calculado" en lugar de
+      "basado en cuestionario"
+
+
+12. SELECTOR DE PACIENTES: FILTRO DE USUARIOS ACTIVOS
+.............................................................
+
+   Ruta: /dashboard/diagnosticos o /dashboard/consultas
+   Navegacion: Selector de pacientes (barra superior)
+
+   El selector de pacientes ahora muestra por defecto solo
+   los usuarios "activos" (aquellos que tienen al menos un
+   nino con la encuesta completada). Esto reduce la lista
+   y facilita encontrar pacientes relevantes.
+
+   Se agrego un checkbox "Mostrar todos" para ver la lista
+   completa incluyendo usuarios sin encuesta.
+
+   Ademas, los usuarios ahora aparecen ordenados
+   alfabeticamente por apellido, y los ninos dentro de
+   cada usuario tambien se ordenan alfabeticamente.
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Abrir el selector de pacientes
+   c) Verificar que por defecto solo se muestran usuarios
+      con ninos que tienen encuesta completada
+   d) Marcar el checkbox "Mostrar todos"
+   e) Verificar que ahora aparecen todos los usuarios
+   f) Verificar que los usuarios estan ordenados A-Z
+      por apellido
+   g) Expandir un usuario y verificar que sus ninos
+      tambien estan ordenados A-Z
+
+
+13. PLANES DE SUENO: MEJORES DESCRIPCIONES DE ALIMENTACION
+.............................................................
+
+   Ruta: /dashboard/consultas
+   Navegacion: Menu lateral > Consultas > Generar plan
+
+   Los planes de sueno generados por la inteligencia
+   artificial ahora incluyen descripciones de alimentacion
+   mas especificas y variadas. En lugar de textos genericos
+   como "Desayuno nutritivo" o "Almuerzo balanceado", ahora
+   los planes sugieren alimentos concretos adaptados al
+   bebe, por ejemplo:
+
+   - "Avena con platano y canela" en lugar de "Desayuno nutritivo"
+   - "Pure de pollo con verduras" en lugar de "Almuerzo balanceado"
+   - "Fruta picada con yogur natural" en lugar de "Merienda ligera"
+
+   Tambien se usa vocabulario mas variado: "Desayuno",
+   "Almuerzo", "Merienda/Colacion/Snack" y "Cena".
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Ir a Consultas y seleccionar un nino
+   c) Generar un nuevo plan de sueno
+   d) Revisar la seccion de alimentacion del plan generado
+   e) Verificar que las descripciones son especificas
+      (mencionan alimentos concretos)
+   f) Verificar que no dice "Desayuno nutritivo", "Almuerzo
+      balanceado" o textos genericos similares
+
+
+---------------------------------------------------------------
+MEJORAS TECNICAS (NO VISIBLES PARA EL USUARIO)
+---------------------------------------------------------------
+
+14. ESTABILIDAD DE CONEXION A LA BASE DE DATOS
+.............................................................
+
+   Se mejoro la conexion a la base de datos para que sea
+   mas estable cuando la aplicacion lleva tiempo sin usarse
+   (por ejemplo, durante la noche). Antes podia ocurrir
+   que la primera carga del dia tardara mucho o mostrara
+   un error temporal. Ahora el sistema reintenta la conexion
+   automaticamente si el primer intento falla.
+
+   Esto no requiere ninguna accion del usuario. Si antes
+   experimentaban una pantalla de carga larga al abrir la
+   aplicacion por primera vez en el dia, deberian notar
+   que ahora carga de manera mas confiable.
+
+
+---------------------------------------------------------------
+NOTAS GENERALES
+---------------------------------------------------------------
+
+- Todos los nuevos campos de la encuesta (talla, lactancia,
+  ferritina mejorado, consultas medicas, hora de despertar
+  en rango, luz mercurial) son opcionales. Las encuestas
+  guardadas antes de esta version siguen funcionando sin
+  necesidad de llenar los campos nuevos.
+
+- La vista de acordeon en Diagnosticos y el filtro de
+  usuarios activos son exclusivos para administradores.
+
+- Los campos numericos de toda la encuesta ahora estan
+  protegidos contra cambios accidentales con la rueda del
+  raton.
+
+- Todas las pantallas y mensajes estan en espanol.
+
+===============================================================
+  Fin de las notas de version
+===============================================================
