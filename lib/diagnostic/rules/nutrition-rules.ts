@@ -48,7 +48,26 @@ export interface NutritionValidationInput {
 // ─────────────────────────────────────────────────────────
 
 /**
- * Filtra eventos de feeding del dia actual
+ * Fix 4: Filtra eventos de feeding de los ultimos 7 dias
+ * Reemplaza getTodayFeedingEvents para capturar datos semanales
+ * Nota: Usa comparacion ISO string para evitar bugs UTC en servidor
+ */
+function getRecentFeedingEvents(events: FeedingEvent[], days: number = 7): FeedingEvent[] {
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - days)
+  const cutoffISO = cutoff.toISOString()
+
+  return events.filter((event) => {
+    if (event.eventType !== "feeding" && event.eventType !== "night_feeding") {
+      return false
+    }
+    // Comparacion ISO string (evita startOfDay/endOfDay que tienen problemas UTC)
+    return event.startTime >= cutoffISO
+  })
+}
+
+/**
+ * Filtra eventos de feeding del dia actual (para validateMilkLimit que sigue siendo diario)
  */
 function getTodayFeedingEvents(events: FeedingEvent[]): FeedingEvent[] {
   const today = new Date()
@@ -66,6 +85,72 @@ function getTodayFeedingEvents(events: FeedingEvent[]): FeedingEvent[] {
       return false
     }
   })
+}
+
+/**
+ * Fix 4: Calcula promedios diarios de feeding de los ultimos 7 dias
+ * Solo cuenta dias con >= 2 eventos de alimentacion
+ */
+function calculateDailyFeedingAverages(events: FeedingEvent[]): {
+  avgMilkCount: number
+  avgSolidCount: number
+  daysWithData: number
+} {
+  // Agrupar por dia (usando fecha local del startTime)
+  const dayMap = new Map<string, FeedingEvent[]>()
+  for (const e of events) {
+    const dayKey = e.startTime.substring(0, 10) // YYYY-MM-DD
+    const existing = dayMap.get(dayKey) || []
+    existing.push(e)
+    dayMap.set(dayKey, existing)
+  }
+
+  // Solo contar dias con >= 2 feeding events
+  let totalMilk = 0
+  let totalSolid = 0
+  let validDays = 0
+
+  for (const [, dayEvents] of dayMap) {
+    if (dayEvents.length < 2) continue
+    validDays++
+    totalMilk += countMilkFeedings(dayEvents)
+    totalSolid += countSolidFeedings(dayEvents)
+  }
+
+  return {
+    avgMilkCount: validDays > 0 ? totalMilk / validDays : 0,
+    avgSolidCount: validDays > 0 ? totalSolid / validDays : 0,
+    daysWithData: validDays,
+  }
+}
+
+/**
+ * Fix 4: Calcula gap maximo excluyendo gaps nocturnos (22:00-07:00)
+ */
+function calculateMaxDaytimeFeedingGap(events: FeedingEvent[]): number {
+  if (events.length < 2) return 0
+
+  const sortedEvents = [...events].sort(
+    (a, b) => parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime()
+  )
+
+  let maxGap = 0
+  for (let i = 1; i < sortedEvents.length; i++) {
+    const prevTime = parseISO(sortedEvents[i - 1].startTime)
+    const currTime = parseISO(sortedEvents[i].startTime)
+
+    // Excluir gaps que cruzan ventana nocturna (22:00-07:00)
+    const prevHour = prevTime.getHours()
+    const currHour = currTime.getHours()
+    const isOvernightGap = prevHour >= 22 || currHour < 7
+
+    if (isOvernightGap) continue
+
+    const gap = differenceInHours(currTime, prevTime)
+    if (gap > maxGap) maxGap = gap
+  }
+
+  return maxGap
 }
 
 /**
@@ -254,7 +339,8 @@ function validateSolidCount(
  * Valida gap maximo entre comidas
  */
 function validateFeedingGap(events: FeedingEvent[]): CriterionResult {
-  const maxGap = calculateMaxFeedingGap(events)
+  // Fix 4: Usar version que excluye gaps nocturnos (22:00-07:00)
+  const maxGap = calculateMaxDaytimeFeedingGap(events)
 
   if (events.length < 2) {
     return {
@@ -706,28 +792,53 @@ export function validateNutrition(
   const { events, childAgeMonths, aiClassifications = [], surveyData } = input
   const rule = getNutritionRuleForAge(childAgeMonths)
 
-  // Filtrar eventos de feeding del dia
+  // Fix 4: Usar ventana de 7 dias para criterios basados en promedios
+  const recentFeedings = getRecentFeedingEvents(events, 7)
   const todayFeedings = getTodayFeedingEvents(events)
 
-  // Conteos
-  const milkCount = countMilkFeedings(todayFeedings)
-  const solidCount = countSolidFeedings(todayFeedings)
+  // Promedios de 7 dias
+  const dailyAverages = calculateDailyFeedingAverages(recentFeedings)
+
+  // Conteos: usar promedios de 7 dias si hay datos, fallback a hoy
+  const milkCount = dailyAverages.daysWithData > 0
+    ? Math.round(dailyAverages.avgMilkCount)
+    : countMilkFeedings(todayFeedings)
+  const solidCount = dailyAverages.daysWithData > 0
+    ? Math.round(dailyAverages.avgSolidCount)
+    : countSolidFeedings(todayFeedings)
 
   // Grupos nutricionales cubiertos (de clasificaciones AI)
   const coveredGroups = extractCoveredGroups(aiClassifications)
-  const hasTodayFeedings = todayFeedings.length > 0
+  const hasRecentFeedings = recentFeedings.length > 0
 
   // Evaluar criterios de eventos.
-  // Si no hay eventos del dia, degradar a warning/no data para evitar contradicciones con survey.
-  const criteria: CriterionResult[] = hasTodayFeedings
+  // Fix 4: Usar datos de 7 dias para conteos, hoy para limite de oz
+  const criteria: CriterionResult[] = hasRecentFeedings
     ? [
-      validateMilkCount(todayFeedings, childAgeMonths),
+      validateMilkCount(recentFeedings, childAgeMonths),
+      // Limite de oz sigue siendo diario (cumplimiento del dia)
       validateMilkLimit(todayFeedings, childAgeMonths),
-      validateSolidCount(todayFeedings, childAgeMonths),
-      validateFeedingGap(todayFeedings),
+      validateSolidCount(recentFeedings, childAgeMonths),
+      validateFeedingGap(recentFeedings),
       validateNutritionGroups(childAgeMonths, coveredGroups),
     ]
     : buildNoEventCriteria(childAgeMonths)
+
+  // Fix 4: Agregar criterio de dias con datos
+  if (hasRecentFeedings) {
+    criteria.push({
+      id: "g3_days_with_data",
+      name: "Dias con registro de alimentacion",
+      status: dailyAverages.daysWithData >= 3 ? "ok" : "warning",
+      value: dailyAverages.daysWithData,
+      expected: 7,
+      message: dailyAverages.daysWithData >= 3
+        ? `${dailyAverages.daysWithData} de 7 dias con datos de alimentacion`
+        : `Solo ${dailyAverages.daysWithData} de 7 dias con registros suficientes`,
+      sourceType: "calculated",
+      dataAvailable: true,
+    })
+  }
 
   // Agregar criterios de survey si hay datos disponibles
   if (surveyData && Object.keys(surveyData).length > 0) {
@@ -783,11 +894,11 @@ export function validateNutrition(
     summary = "Alimentacion dentro de parametros"
   }
 
-  // Status de leche y solidos
-  const milkStatus = hasTodayFeedings
+  // Status de leche y solidos (Fix 4: usar hasRecentFeedings en vez de hasTodayFeedings)
+  const milkStatus = hasRecentFeedings
     ? getCountStatus(milkCount, rule.milkMinCount)
     : "warning"
-  const solidStatus = hasTodayFeedings
+  const solidStatus = hasRecentFeedings
     ? getCountStatus(solidCount, rule.solidMinCount)
     : "warning"
 

@@ -246,15 +246,21 @@ export function HealthDevStep({ data, onChange, errors = {} }: SurveyStepProps) 
             {(data.alimentacion === "formula" || data.alimentacion === "materna-formula") && (
               <div className="ml-6 mt-2 space-y-1">
                 <Label htmlFor="alimentacion-introduccion" className="text-sm text-gray-600">
-                  ¿Cuándo la introdujeron?
+                  ¿A los cuantos meses la introdujeron?
                 </Label>
-                <Input
-                  id="alimentacion-introduccion"
-                  value={data.alimentacionIntroduccion || ""}
-                  onChange={(e) => updateField("alimentacionIntroduccion", e.target.value)}
-                  placeholder="Ej. a los 4 meses"
-                  className="max-w-md"
-                />
+                <div className="flex items-center gap-2 max-w-xs">
+                  <Input
+                    id="alimentacion-introduccion"
+                    type="number"
+                    min={0}
+                    max={36}
+                    value={data.alimentacionIntroduccion || ""}
+                    onChange={(e) => updateField("alimentacionIntroduccion", e.target.value)}
+                    placeholder="Ej. 4"
+                    className="w-24"
+                  />
+                  <span className="text-sm text-gray-500">meses</span>
+                </div>
               </div>
             )}
             <div className="flex items-center space-x-2">

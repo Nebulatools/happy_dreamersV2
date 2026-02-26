@@ -283,7 +283,7 @@ export default function DiagnosticPanelClient({ childId, embedded = false }: Dia
             planId: data.planId,
             planVersion: data.planVersion,
             status: "active",
-            startDate: undefined,
+            startDate: data.planCreatedAt || undefined,
           })
         } else {
           setPlanData(null)
@@ -438,7 +438,7 @@ export default function DiagnosticPanelClient({ childId, embedded = false }: Dia
           diagnosticResult={diagnosticResult}
           planVersion={diagnosticResult.planVersion || "sin plan"}
           planStatus={diagnosticResult.planId ? "active" : "sin plan"}
-          recentEventsCount={diagnosticResult.groups.G1.criteria.length}
+          recentEventsCount={diagnosticResult.recentEventsCount ?? diagnosticResult.groups.G1.criteria.length}
           surveyDataAvailable={surveyDataAvailable}
           freeTextData={diagnosticResult.freeTextData}
         />

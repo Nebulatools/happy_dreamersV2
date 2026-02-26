@@ -5,6 +5,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { OpenAI } from "openai"
 import { authOptions } from "@/lib/auth"
+import { connectToDatabase } from "@/lib/mongodb"
+import { ObjectId } from "mongodb"
 import {
   getPasanteSystemPrompt,
   getPasanteUserPrompt,
@@ -15,6 +17,11 @@ import type { DiagnosticResult } from "@/lib/diagnostic/types"
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("API:admin:diagnostics:ai-summary")
+
+// P3: OpenAI client a module scope (singleton, igual que MongoDB)
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+})
 
 // Interface del body esperado
 interface AISummaryRequestBody {
@@ -87,6 +94,26 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // S1: Verificar que el childId existe en BD (ownership check)
+    // Previene que un admin manipule el POST body con datos de otro nino
+    if (ObjectId.isValid(body.childId)) {
+      const { db } = await connectToDatabase()
+      const childExists = await db.collection("children").findOne(
+        { _id: new ObjectId(body.childId) },
+        { projection: { _id: 1 } }
+      )
+      if (!childExists) {
+        logger.warn("ai-summary: childId no encontrado en BD", {
+          adminId: session.user.id,
+          childId: body.childId,
+        })
+        return NextResponse.json(
+          { error: "Nino no encontrado" },
+          { status: 404 }
+        )
+      }
+    }
+
     logger.info("Generando resumen AI", {
       adminId: session.user.id,
       childId: body.childId,
@@ -136,11 +163,6 @@ export async function POST(req: NextRequest) {
       model: PASANTE_AI_CONFIG.model,
     })
 
-    // Inicializar OpenAI
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    })
-
     // Llamar a OpenAI con la configuracion del Pasante
     // Nota: GPT-5 usa max_completion_tokens y solo soporta temperature=1
     const completion = await openai.chat.completions.create({
@@ -152,26 +174,21 @@ export async function POST(req: NextRequest) {
       max_completion_tokens: PASANTE_AI_CONFIG.maxTokens,
     })
 
-    // Debug: Log completo de la respuesta para GPT-5
-    logger.info("OpenAI response debug", {
+    // S3: Solo loguear metadata, NO contenido de salud
+    logger.info("OpenAI response", {
       childId: body.childId,
       hasChoices: !!completion.choices,
-      choicesLength: completion.choices?.length,
-      firstChoice: completion.choices?.[0] ? {
-        finishReason: completion.choices[0].finish_reason,
-        hasMessage: !!completion.choices[0].message,
-        messageRole: completion.choices[0].message?.role,
-        contentLength: completion.choices[0].message?.content?.length,
-        contentPreview: completion.choices[0].message?.content?.substring(0, 100),
-      } : null,
+      finishReason: completion.choices?.[0]?.finish_reason,
+      contentLength: completion.choices?.[0]?.message?.content?.length,
     })
 
     const aiSummary = completion.choices[0]?.message?.content
 
     if (!aiSummary) {
+      // S3: No loguear fullResponse (contiene datos de salud)
       logger.error("OpenAI no retorno contenido", {
         childId: body.childId,
-        fullResponse: JSON.stringify(completion, null, 2).substring(0, 500),
+        finishReason: completion.choices?.[0]?.finish_reason,
       })
       return NextResponse.json(
         { error: "No se pudo generar el resumen AI" },

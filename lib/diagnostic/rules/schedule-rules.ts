@@ -289,12 +289,15 @@ function validateNightDuration(
 }
 
 /**
- * Valida la cantidad de siestas contra lo esperado por edad.
+ * Valida la cantidad de siestas contra lo esperado por plan (prioridad) o edad.
+ * Fix 6: Si hay plan con siestas definidas, usa esa cantidad como referencia.
  * Si no hay eventos de siesta, usa surveyData como fallback.
  */
 function validateNapCount(
   events: SleepEvent[],
   childAgeMonths: number,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  plan: Record<string, any> | null,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   surveyData?: Record<string, any>
 ): CriterionResult {
@@ -327,6 +330,26 @@ function validateNapCount(
     }
   }
 
+  // Fix 6: Extraer cantidad de siestas del plan (prioridad sobre regla por edad)
+  let expectedNaps = rule.napCount
+  let sourceLabel = "edad"
+
+  // plan.schedule.naps[] — array de siestas prescritas
+  const planNaps = plan?.schedule?.naps
+  if (Array.isArray(planNaps) && planNaps.length > 0) {
+    expectedNaps = planNaps.length
+    sourceLabel = "plan"
+  }
+  // plan.sleepRoutine.numberOfNaps — formato alternativo
+  const routineNaps = plan?.sleepRoutine?.numberOfNaps
+  if (!Array.isArray(planNaps) && routineNaps !== undefined && routineNaps !== null) {
+    const parsed = typeof routineNaps === "number" ? routineNaps : Number(routineNaps)
+    if (!isNaN(parsed) && parsed >= 0) {
+      expectedNaps = parsed
+      sourceLabel = "plan"
+    }
+  }
+
   // Contar siestas promedio en los ultimos 7 dias
   const dailyStats = aggregateDailySleep(events, "7-days")
   const avgNapsPerDay =
@@ -343,7 +366,6 @@ function validateNapCount(
     if (tomaSiestas !== undefined || numeroSiestas !== undefined) {
       // Si explicitamente dice que no toma siestas
       if (tomaSiestas === false || tomaSiestas === "no") {
-        const expectedNaps = rule.napCount
         const deviation = expectedNaps // 0 siestas vs esperadas
         let status: StatusLevel = "ok"
         if (deviation > 1) status = "warning"
@@ -355,7 +377,7 @@ function validateNapCount(
           status,
           value: 0,
           expected: expectedNaps,
-          message: `0 siestas reportadas en cuestionario inicial (esperado: ${expectedNaps})`,
+          message: `0 siestas reportadas en cuestionario inicial (esperado: ${expectedNaps}, ref: ${sourceLabel})`,
           sourceType: "survey",
           dataAvailable: true,
         }
@@ -364,7 +386,6 @@ function validateNapCount(
       // Si tiene numero de siestas del survey
       if (numeroSiestas && !isNaN(Number(numeroSiestas))) {
         const surveyNaps = Number(numeroSiestas)
-        const expectedNaps = rule.napCount
         const deviation = Math.abs(surveyNaps - expectedNaps)
         let status: StatusLevel = "ok"
         if (deviation > 1) status = "warning"
@@ -376,7 +397,7 @@ function validateNapCount(
           status,
           value: surveyNaps,
           expected: expectedNaps,
-          message: `${surveyNaps} siestas reportadas (basado en cuestionario inicial, esperado: ${expectedNaps})`,
+          message: `${surveyNaps} siestas reportadas (basado en cuestionario, esperado: ${expectedNaps}, ref: ${sourceLabel})`,
           sourceType: "survey",
           dataAvailable: true,
         }
@@ -386,7 +407,6 @@ function validateNapCount(
 
   // Redondear al entero mas cercano
   const actualNaps = Math.round(avgNapsPerDay)
-  const expectedNaps = rule.napCount
 
   // Tolerancia: ±1 siesta
   const deviation = Math.abs(actualNaps - expectedNaps)
@@ -402,19 +422,70 @@ function validateNapCount(
     expected: expectedNaps,
     message:
       deviation === 0
-        ? `${actualNaps} siestas promedio (esperado: ${expectedNaps})`
-        : `${actualNaps} siestas vs ${expectedNaps} esperadas para ${rule.ageRange}`,
+        ? `${actualNaps} siestas promedio (esperado: ${expectedNaps}, ref: ${sourceLabel})`
+        : `${actualNaps} siestas vs ${expectedNaps} esperadas (ref: ${sourceLabel})`,
     sourceType: "calculated",
     dataAvailable: dailyStats.daysWithData > 0,
   }
 }
 
 /**
- * Valida la duracion de las siestas contra el maximo por edad.
- * Si no hay eventos de siesta, usa surveyData.duracionTotalSiestas como fallback.
+ * Fix 3: Valida el estado emocional dominante al dormir.
+ * Usa datos de processSleepStatistics (ya hoisted en P2).
  */
-function validateNapDuration(
-  events: SleepEvent[],
+function validateEmotionalState(
+  stats: ReturnType<typeof processSleepStatistics>
+): CriterionResult {
+  // processSleepStatistics retorna emotionalStates como Record<string, number>
+  const emotionalStates = stats.emotionalStates as Record<string, number> | undefined
+  const dominantMood = stats.dominantMood as string | undefined
+
+  if (!emotionalStates || !dominantMood || Object.keys(emotionalStates).length === 0) {
+    return {
+      id: "g1_emotional_state",
+      name: "Estado emocional al dormir",
+      status: "warning",
+      value: null,
+      expected: "tranquilo",
+      message: "Sin datos de estado emocional en eventos de sueno",
+      sourceType: "event",
+      dataAvailable: false,
+    }
+  }
+
+  // Evaluar: tranquilo = ok, inquieto = warning, alterado = alert
+  let status: StatusLevel = "ok"
+  if (dominantMood === "alterado") {
+    status = "alert"
+  } else if (dominantMood === "inquieto") {
+    status = "warning"
+  }
+
+  const totalWithMood = Object.values(emotionalStates).reduce((a, b) => a + b, 0)
+  const moodSummary = Object.entries(emotionalStates)
+    .map(([mood, count]) => `${mood}: ${count}`)
+    .join(", ")
+
+  return {
+    id: "g1_emotional_state",
+    name: "Estado emocional al dormir",
+    status,
+    value: dominantMood,
+    expected: "tranquilo",
+    message: status === "ok"
+      ? `Estado emocional predominante: ${dominantMood} (${totalWithMood} eventos)`
+      : `Estado emocional predominante: ${dominantMood} (${moodSummary})`,
+    sourceType: "event",
+    dataAvailable: true,
+  }
+}
+
+/**
+ * P2: Version de validateNapDuration que recibe stats pre-calculados
+ * Evita llamar processSleepStatistics por segunda vez
+ */
+function validateNapDurationWithStats(
+  stats: ReturnType<typeof processSleepStatistics>,
   childAgeMonths: number,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   surveyData?: Record<string, any>
@@ -434,23 +505,18 @@ function validateNapDuration(
     }
   }
 
-  // Obtener duracion promedio de siestas
-  const stats = processSleepStatistics(events)
-  const avgNapHours = stats.avgNapDuration
-  const avgNapMinutes = avgNapHours * 60
+  const avgNapMinutes = stats.avgNapDuration * 60
 
   if (avgNapMinutes === 0) {
-    // Fallback: usar duracionTotalSiestas del survey
+    // Fallback a survey
     if (surveyData?.duracionTotalSiestas) {
       const surveyDuration = Number(surveyData.duracionTotalSiestas)
       if (!isNaN(surveyDuration) && surveyDuration > 0) {
         const exceeds = surveyDuration > rule.napMaxDuration
-        const status: StatusLevel = exceeds ? "warning" : "ok"
-
         return {
           id: "g1_nap_duration",
           name: "Duracion de siestas",
-          status,
+          status: exceeds ? "warning" : "ok",
           value: `${Math.round(surveyDuration)} min`,
           expected: `max ${rule.napMaxDuration} min`,
           message: exceeds
@@ -474,14 +540,11 @@ function validateNapDuration(
     }
   }
 
-  // Comparar con maximo
   const exceeds = avgNapMinutes > rule.napMaxDuration
-  const status: StatusLevel = exceeds ? "warning" : "ok"
-
   return {
     id: "g1_nap_duration",
     name: "Duracion de siestas",
-    status,
+    status: exceeds ? "warning" : "ok",
     value: `${Math.round(avgNapMinutes)} min`,
     expected: `max ${rule.napMaxDuration} min`,
     message: exceeds
@@ -493,28 +556,24 @@ function validateNapDuration(
 }
 
 /**
- * Valida la hora de acostarse (bedtime) contra el plan.
+ * P2: Version de validateBedtime que recibe stats pre-calculados
  */
-function validateBedtime(
-  events: SleepEvent[],
+function validateBedtimeWithStats(
+  stats: ReturnType<typeof processSleepStatistics>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   plan: Record<string, any> | null,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   surveyData?: Record<string, any>
 ): CriterionResult {
-  // Extraer hora de bedtime del plan
   let expectedBedtime =
     plan?.schedule?.bedtime || plan?.bedtime || plan?.acostarse
 
-  // Fallback: usar horaDormir del survey si no hay plan
   let sourceLabel = "plan"
   if (!expectedBedtime && surveyData?.horaDormir) {
     expectedBedtime = surveyData.horaDormir
     sourceLabel = "encuesta"
   }
 
-  // Obtener hora promedio de acostarse de los eventos
-  const stats = processSleepStatistics(events)
   const actualBedtime = stats.avgBedtime
 
   if (!expectedBedtime) {
@@ -841,14 +900,20 @@ export function validateSchedule(
   // Calcular hora de despertar promedio
   const actualWakeTime = calculateMorningWakeTime(events)
 
+  // P2: Hoist processSleepStatistics — llamar una vez y reutilizar
+  const sleepStats = processSleepStatistics(events)
+
   // Ejecutar todas las validaciones
   const wakeMinimumResult = validateMinimumWakeTime(actualWakeTime)
   const wakeDeviationResult = validateWakeDeviation(actualWakeTime, plan, surveyData)
   const nightDurationResult = validateNightDuration(events, childAgeMonths, surveyData)
-  const napCountResult = validateNapCount(events, childAgeMonths, surveyData)
-  const napDurationResult = validateNapDuration(events, childAgeMonths, surveyData)
-  const bedtimeResult = validateBedtime(events, plan, surveyData)
+  const napCountResult = validateNapCount(events, childAgeMonths, plan, surveyData)
+  const napDurationResult = validateNapDurationWithStats(sleepStats, childAgeMonths, surveyData)
+  const bedtimeResult = validateBedtimeWithStats(sleepStats, plan, surveyData)
   const sleepWindowsResult = validateSleepWindows(events, childAgeMonths)
+
+  // Fix 3: Estado emocional como criterio G1
+  const emotionalStateResult = validateEmotionalState(sleepStats)
 
   const criteria: CriterionResult[] = [
     wakeMinimumResult,
@@ -858,6 +923,7 @@ export function validateSchedule(
     napDurationResult,
     bedtimeResult,
     sleepWindowsResult,
+    emotionalStateResult,
   ]
 
   const status = getWorstStatus(criteria)

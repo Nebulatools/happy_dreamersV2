@@ -143,6 +143,12 @@ export interface DiagnosticResult {
   planId?: string // Opcional - puede no haber plan activo
   planVersion?: string // Opcional - puede no haber plan activo
   evaluatedAt: string
+  // Fix 1: Conteo real de eventos recientes (no criteria.length)
+  recentEventsCount?: number
+  // Fix 5: Fecha de creacion del plan para ProfileHeader
+  planCreatedAt?: string
+  // Fix 2: Resumen del plan formateado para el prompt del AI
+  planScheduleSummary?: string
   groups: {
     G1: GroupValidation
     G2: MedicalGroupValidation
@@ -158,6 +164,9 @@ export interface DiagnosticResult {
     eventNotes: string[]
     chatMessages: string[]
   }
+  // Fix 7: Medicamentos y actividades estructurados para el AI
+  medicationSummary?: Array<{ name: string; count: number; lastDose: string; lastTime: string }>
+  activitySummary?: Array<{ description: string; count: number; avgDurationMin: number }>
   // Survey completo aplanado para que el Pasante AI tenga acceso a TODOS los campos
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   surveyData?: Record<string, any>
