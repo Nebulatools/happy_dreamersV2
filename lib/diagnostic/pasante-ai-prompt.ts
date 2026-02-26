@@ -478,13 +478,18 @@ ${hasFreeText ? `- SI encontraste algo relevante en el texto libre, mencionalo c
 - Maximo 400 palabras
 
 FORMATO DE RESPUESTA:
-Escribe en parrafos cortos (2-4 maximo).
-Primero describe la situacion general.
-${hasSurvey ? `Si hay datos del cuestionario relevantes, integralos en tu analisis.` : ""}
-${hasFreeText ? `Si hay hallazgos del texto libre, mencionalos en una seccion aparte: "Hallazgos del texto libre:"` : ""}
-Luego ofrece 2-4 recomendaciones generales como lista.
+Usa EXACTAMENTE estas secciones con sus titulos en MAYUSCULAS seguidos de dos puntos:
 
-Responde en espanol. Se conciso y util.`
+SITUACION GENERAL:
+(2-3 parrafos cortos describiendo la situacion actual del nino. Integra datos del cuestionario si son relevantes.)
+${hasFreeText ? `
+HALLAZGOS DEL TEXTO LIBRE:
+(Solo incluir si hay texto libre con informacion relevante. Lista con "- " al inicio de cada hallazgo.)
+` : ""}
+RECOMENDACIONES:
+(2-4 recomendaciones generales como lista con "- " al inicio de cada una.)
+
+Responde en espanol. Se conciso y util. Maximo 400 palabras.`
 }
 
 /**

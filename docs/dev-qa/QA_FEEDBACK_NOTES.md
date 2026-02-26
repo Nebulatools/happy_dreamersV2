@@ -1,7 +1,7 @@
 # QA Feedback Notes
 
 **Fecha:** 2026-02-__
-**Sprint:** Sprint 5 - Automation Tasks Queue
+**Sprint:** Sprint 6 - Admin UX Hub + Diagnostic Pipeline
 **Tester:** Julio
 **Branch:** QA
 

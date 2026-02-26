@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Sparkles, Loader2, AlertCircle, RefreshCw, ChevronDown, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { FormattedAISummary } from "./FormattedAISummary"
 import type { DiagnosticResult } from "@/lib/diagnostic/types"
 
 interface PasanteAISectionProps {
@@ -228,9 +229,7 @@ export function PasanteAISection({
         {(requestState === "success" || aiSummary) && aiSummary && (
           <div className="space-y-3">
             <div className="bg-white rounded-lg p-4 border border-purple-100 shadow-sm">
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {aiSummary}
-              </p>
+              <FormattedAISummary text={aiSummary} />
             </div>
             <div className="flex justify-end">
               <Button
@@ -292,10 +291,8 @@ export function PasanteAISection({
                         />
                       </button>
                       {isExpanded && (
-                        <div className="px-3 pb-3 border-t border-purple-50">
-                          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pt-2">
-                            {entry.summary}
-                          </p>
+                        <div className="px-3 pb-3 border-t border-purple-50 pt-2">
+                          <FormattedAISummary text={entry.summary} compact />
                         </div>
                       )}
                     </div>
