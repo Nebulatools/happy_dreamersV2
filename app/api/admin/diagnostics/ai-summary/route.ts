@@ -42,6 +42,46 @@ interface AISummaryRequestBody {
 }
 
 /**
+ * GET /api/admin/diagnostics/ai-summary?childId=xxx
+ *
+ * Retorna historial de analisis AI para un nino.
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user || session.user.role !== "admin") {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+    }
+
+    const childId = req.nextUrl.searchParams.get("childId")
+    if (!childId || !ObjectId.isValid(childId)) {
+      return NextResponse.json({ error: "childId invalido" }, { status: 400 })
+    }
+
+    const { db } = await connectToDatabase()
+    const history = await db
+      .collection("diagnostic_ai_summaries")
+      .find({ childId: new ObjectId(childId) })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .project({
+        _id: 1,
+        summary: 1,
+        context: 1,
+        createdAt: 1,
+      })
+      .toArray()
+
+    return NextResponse.json({ history })
+  } catch (error) {
+    logger.error("Error en GET ai-summary:", {
+      error: error instanceof Error ? error.message : "Unknown",
+    })
+    return NextResponse.json({ error: "Error interno" }, { status: 500 })
+  }
+}
+
+/**
  * POST /api/admin/diagnostics/ai-summary
  *
  * Genera un resumen AI descriptivo del diagnostico de un nino
@@ -202,7 +242,37 @@ export async function POST(req: NextRequest) {
       summaryLength: aiSummary.length,
     })
 
-    return NextResponse.json({ aiSummary })
+    // Persistir en MongoDB para historial
+    let savedId: string | null = null
+    try {
+      const { db } = await connectToDatabase()
+      const doc = {
+        childId: new ObjectId(body.childId),
+        summary: aiSummary,
+        context: {
+          childAgeMonths: body.childAgeMonths,
+          planVersion: body.planVersion || null,
+          planStatus: body.planStatus || null,
+          recentEventsCount: body.recentEventsCount ?? 0,
+          overallStatus: body.diagnosticResult?.overallStatus || null,
+          dataLevel: body.diagnosticResult?.dataLevel || null,
+          alertCount: body.diagnosticResult?.alerts?.length ?? 0,
+        },
+        generatedBy: session.user.id,
+        createdAt: new Date(),
+      }
+      const result = await db.collection("diagnostic_ai_summaries").insertOne(doc)
+      savedId = result.insertedId.toString()
+      logger.info("AI summary persistido", { childId: body.childId, savedId })
+    } catch (saveError) {
+      // No bloquear el response si falla el guardado
+      logger.error("Error al persistir AI summary (no bloqueante)", {
+        childId: body.childId,
+        error: saveError instanceof Error ? saveError.message : "Unknown",
+      })
+    }
+
+    return NextResponse.json({ aiSummary, savedId })
   } catch (error) {
     logger.error("Error en ai-summary:", {
       error: error instanceof Error ? error.message : "Unknown",

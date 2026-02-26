@@ -25,7 +25,7 @@ import { ConsultasErrorBoundary } from "@/components/consultas/ConsultasErrorBou
 const logger = createLogger("page")
 
 // Tabs validos para la pagina de consultas
-const VALID_TABS = ["transcript", "plan", "analysis", "history"] as const
+const VALID_TABS = ["transcript", "analysis", "plan", "history"] as const
 type ValidTab = typeof VALID_TABS[number]
 
 
@@ -289,6 +289,7 @@ function ConsultasPageContent() {
             isLoading={isAnalyzing}
             userName={activeUserName || ""}
             childName={childName}
+            onGoToPlan={() => setActiveTab("plan")}
           />
         )
 

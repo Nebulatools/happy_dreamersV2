@@ -21,7 +21,7 @@ import { createLogger } from "@/lib/logger"
 const logger = createLogger("ConsultasTab")
 
 // Sub-tabs validos
-const VALID_SUBTABS = ["transcript", "plan", "analysis", "history"] as const
+const VALID_SUBTABS = ["transcript", "analysis", "plan", "history"] as const
 type ValidSubTab = typeof VALID_SUBTABS[number]
 
 interface ConsultasTabProps {
@@ -179,6 +179,7 @@ export default function ConsultasTab({
             isLoading={isAnalyzing}
             userName=""
             childName={childName}
+            onGoToPlan={() => setActiveSubTab("plan")}
           />
         )
 
