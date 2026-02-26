@@ -30,6 +30,23 @@ En vez de verificar items individuales, vas a recorrer todo el sistema como si f
 
 ---
 
+## Estado Inicial del Nino de Prueba
+
+El nino **E2E TestChild** ya existe en el sistema con un **cuestionario (survey) completado**.
+Esto es intencional — simula que los papas ya llenaron el cuestionario inicial.
+
+**Lo que SI tiene desde el inicio:**
+- Cuestionario completado (datos del survey: informacion medica, habitos, entorno)
+- Por eso, al entrar al Diagnostico veras alertas del survey (ej: indicadores medicos, entorno)
+- Esto es **normal y esperado** — el diagnostico siempre muestra resultados del survey
+
+**Lo que NO tiene (empieza en cero):**
+- 0 eventos (se crearan en PARTE 4)
+- 0 planes (se creara en PARTE 7)
+- 0 analisis del Pasante AI (se generara en PARTE 5)
+
+---
+
 ## PARTE 1: Navegacion y Sidebar
 
 ### CHECKPOINT HUMANO 1: Login y Sidebar
