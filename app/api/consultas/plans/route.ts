@@ -1580,7 +1580,10 @@ y da el PRIMER PASO suave hacia estos objetivos ideales.
 VOCABULARIO DE ALIMENTACION:
 - Usa terminos variados segun el momento del dia: "Desayuno", "Almuerzo/Comida", "Merienda/Colacion/Snack", "Cena".
 - Para referirte a la ingesta en general, alterna entre "alimento", "ingesta", "comida", "alimentacion". Evita repetir la palabra "comida" mas de 2 veces en el mismo bloque de recomendaciones.
-- Las descripciones de comida deben ser ESPECIFICAS al bebe (ej: "Papilla de verduras", "Cereal con fruta", "Pure de pollo con arroz"), no genericas (NO "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo").
+- NO des recomendaciones nutricionales especificas ni nombres de alimentos concretos. NO somos nutriologos. En su lugar, sugiere COMBINACIONES GENERALES de grupos alimenticios adaptadas a la edad (ej: "Proteina + cereal + fruta", "Proteina + verdura + grasa saludable", "Cereal + fruta + lacteo").
+- NO usar: "Avena con platano", "Pure de pollo con arroz", "Papilla de verduras" (demasiado especifico).
+- NO usar: "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo" (demasiado generico).
+- SI usar: "Proteina + cereal + fruta", "Proteina + verdura + grasa", "Lacteo + cereal + fruta" (combinacion de grupos).
 
 INSTRUCCIONES:
 1. Crea un plan DETALLADO con horarios específicos
@@ -1616,10 +1619,10 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
     "bedtime": "20:00",
     "wakeTime": "07:00",
     "meals": [
-      {"time": "07:30", "type": "desayuno", "description": "Avena con platano y canela"},
-      {"time": "12:00", "type": "almuerzo", "description": "Pure de pollo con verduras"},
-      {"time": "16:00", "type": "merienda", "description": "Fruta picada con yogur natural"},
-      {"time": "19:00", "type": "cena", "description": "Crema de calabaza con arroz"}
+      {"time": "07:30", "type": "desayuno", "description": "Cereal + fruta + lacteo"},
+      {"time": "12:00", "type": "almuerzo", "description": "Proteina + verdura + cereal"},
+      {"time": "16:00", "type": "merienda", "description": "Fruta + lacteo"},
+      {"time": "19:00", "type": "cena", "description": "Proteina + verdura + grasa saludable"}
     ],
     "activities": [],
     "naps": [
@@ -1668,7 +1671,10 @@ NO saltes directamente al ideal si el plan anterior está lejos. Avanza gradualm
 VOCABULARIO DE ALIMENTACION:
 - Usa terminos variados segun el momento del dia: "Desayuno", "Almuerzo/Comida", "Merienda/Colacion/Snack", "Cena".
 - Para referirte a la ingesta en general, alterna entre "alimento", "ingesta", "comida", "alimentacion". Evita repetir la palabra "comida" mas de 2 veces en el mismo bloque de recomendaciones.
-- Las descripciones de comida deben ser ESPECIFICAS al bebe (ej: "Papilla de verduras", "Cereal con fruta", "Pure de pollo con arroz"), no genericas (NO "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo").
+- NO des recomendaciones nutricionales especificas ni nombres de alimentos concretos. NO somos nutriologos. En su lugar, sugiere COMBINACIONES GENERALES de grupos alimenticios adaptadas a la edad (ej: "Proteina + cereal + fruta", "Proteina + verdura + grasa saludable", "Cereal + fruta + lacteo").
+- NO usar: "Avena con platano", "Pure de pollo con arroz", "Papilla de verduras" (demasiado especifico).
+- NO usar: "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo" (demasiado generico).
+- SI usar: "Proteina + cereal + fruta", "Proteina + verdura + grasa", "Lacteo + cereal + fruta" (combinacion de grupos).
 
 INSTRUCCIONES PARA PROGRESIÓN:
 1. 🎯 PRIORIDAD: Utiliza el PLAN ANTERIOR como base sólida
@@ -1741,7 +1747,10 @@ ${transcriptAnalysis?.transcript || "No disponible"}
 VOCABULARIO DE ALIMENTACION:
 - Usa terminos variados segun el momento del dia: "Desayuno", "Almuerzo/Comida", "Merienda/Colacion/Snack", "Cena".
 - Para referirte a la ingesta en general, alterna entre "alimento", "ingesta", "comida", "alimentacion". Evita repetir la palabra "comida" mas de 2 veces en el mismo bloque de recomendaciones.
-- Las descripciones de comida deben ser ESPECIFICAS al bebe (ej: "Papilla de verduras", "Cereal con fruta", "Pure de pollo con arroz"), no genericas (NO "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo").
+- NO des recomendaciones nutricionales especificas ni nombres de alimentos concretos. NO somos nutriologos. En su lugar, sugiere COMBINACIONES GENERALES de grupos alimenticios adaptadas a la edad (ej: "Proteina + cereal + fruta", "Proteina + verdura + grasa saludable", "Cereal + fruta + lacteo").
+- NO usar: "Avena con platano", "Pure de pollo con arroz", "Papilla de verduras" (demasiado especifico).
+- NO usar: "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo" (demasiado generico).
+- SI usar: "Proteina + cereal + fruta", "Proteina + verdura + grasa", "Lacteo + cereal + fruta" (combinacion de grupos).
 
 INSTRUCCIONES PARA REFINAMIENTO:
 1. 🎯 PRIORIDAD MÁXIMA: Aplica todos los cambios específicos de horarios extraídos del transcript
@@ -1762,7 +1771,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
       {
         "time": "07:30",
         "type": "desayuno",
-        "description": "Cereal con fruta picada"
+        "description": "Cereal + fruta + lacteo"
       }
     ],
     "activities": [],
@@ -1902,10 +1911,10 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
           bedtime: "20:30",
           wakeTime: "07:00",
           meals: [
-            { time: "07:30", type: "desayuno", description: "Cereal o fruta de temporada" },
-            { time: "12:00", type: "almuerzo", description: "Proteina con verduras" },
-            { time: "16:00", type: "merienda", description: "Colacion saludable (fruta o yogur)" },
-            { time: "19:00", type: "cena", description: "Cena ligera antes de la rutina nocturna" },
+            { time: "07:30", type: "desayuno", description: "Cereal + fruta + lacteo" },
+            { time: "12:00", type: "almuerzo", description: "Proteina + verdura + cereal" },
+            { time: "16:00", type: "merienda", description: "Fruta + lacteo o cereal" },
+            { time: "19:00", type: "cena", description: "Proteina + verdura + grasa saludable" },
           ],
           activities: [
             { time: "08:00", activity: "jugar", duration: 60, description: "Tiempo de juego" },
@@ -1931,10 +1940,10 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
         bedtime: "20:30",
         wakeTime: "07:00",
         meals: [
-          { time: "07:30", type: "desayuno", description: "Cereal o fruta de temporada" },
-          { time: "12:00", type: "almuerzo", description: "Proteina con verduras" },
-          { time: "16:00", type: "merienda", description: "Colacion saludable (fruta o yogur)" },
-          { time: "19:00", type: "cena", description: "Cena ligera antes de la rutina nocturna" },
+          { time: "07:30", type: "desayuno", description: "Cereal + fruta + lacteo" },
+          { time: "12:00", type: "almuerzo", description: "Proteina + verdura + cereal" },
+          { time: "16:00", type: "merienda", description: "Fruta + lacteo o cereal" },
+          { time: "19:00", type: "cena", description: "Proteina + verdura + grasa saludable" },
         ],
         activities: [
           { time: "18:30", activity: "rutina", duration: 30, description: "Rutina relajante antes de dormir" },
