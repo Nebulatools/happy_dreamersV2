@@ -36,18 +36,28 @@ describe("Plans UX Writing - Vocabulario de alimentacion", () => {
     expect(fileContent).toContain("alimentacion")
   })
 
-  test("contiene instruccion de descripciones especificas al bebe", () => {
-    expect(fileContent).toContain("Papilla de verduras")
-    expect(fileContent).toContain("Cereal con fruta")
-    expect(fileContent).toContain("Pure de pollo con arroz")
+  test("contiene instruccion de usar combinaciones de grupos alimenticios", () => {
+    expect(fileContent).toContain("Proteina + cereal + fruta")
+    expect(fileContent).toContain("Proteina + verdura + grasa saludable")
+    expect(fileContent).toContain("Cereal + fruta + lacteo")
+  })
+
+  test("contiene instruccion de NO ser nutriologos", () => {
+    expect(fileContent).toContain("NO somos nutriologos")
   })
 
   test("contiene instruccion de NO usar descripciones genericas", () => {
     // Debe mencionar explicitamente que NO usar genericos
-    // El formato en el archivo es: (NO "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo")
-    expect(fileContent).toContain('NO "Comida balanceada"')
+    expect(fileContent).toContain('"Comida balanceada"')
     expect(fileContent).toContain('"Comida nutritiva"')
     expect(fileContent).toContain('"Desayuno nutritivo"')
+  })
+
+  test("contiene instruccion de NO usar alimentos especificos", () => {
+    // Debe mencionar explicitamente que NO usar nombres concretos
+    expect(fileContent).toContain('"Avena con platano"')
+    expect(fileContent).toContain('"Pure de pollo con arroz"')
+    expect(fileContent).toContain('"Papilla de verduras"')
   })
 
   // -------------------------------------------------------
@@ -63,13 +73,9 @@ describe("Plans UX Writing - Vocabulario de alimentacion", () => {
 
   // -------------------------------------------------------
   // C) Verificar que los fallbacks ya NO contienen strings viejos
-  //    ("Desayuno nutritivo", "Almuerzo balanceado")
   // -------------------------------------------------------
 
   test("NO contiene 'Desayuno nutritivo' como descripcion de fallback (campo description)", () => {
-    // "Desayuno nutritivo" aparece en la instruccion del prompt como ejemplo de lo que NO hacer,
-    // pero NO debe aparecer como valor de un campo description en los fallbacks.
-    // Verificamos que no haya: description: "Desayuno nutritivo"
     expect(fileContent).not.toMatch(/description:\s*["']Desayuno nutritivo["']/)
   })
 
@@ -78,25 +84,29 @@ describe("Plans UX Writing - Vocabulario de alimentacion", () => {
   })
 
   test("NO contiene 'Merienda saludable' como descripcion de fallback generica", () => {
-    // Si alguna vez existio como fallback, no debe estar
     expect(fileContent).not.toContain('"Merienda saludable"')
+  })
+
+  test("NO contiene descripciones de alimentos especificos en ejemplos JSON", () => {
+    // Verificar que los ejemplos JSON ya no tienen alimentos concretos
+    expect(fileContent).not.toMatch(/description.*Avena con platano y canela/)
+    expect(fileContent).not.toMatch(/description.*Pure de pollo con verduras/)
+    expect(fileContent).not.toMatch(/description.*Fruta picada con yogur/)
+    expect(fileContent).not.toMatch(/description.*Crema de calabaza con arroz/)
   })
 
   // -------------------------------------------------------
   // D) Verificar que los ejemplos JSON en prompts tienen
-  //    descripciones especificas, no genericas
+  //    descripciones con combinaciones de grupos alimenticios
   // -------------------------------------------------------
 
-  test("los ejemplos JSON de meals usan descripciones especificas", () => {
-    // Buscamos que al menos algunos ejemplos tengan descripciones concretas
-    // como "Avena con platano", "Pure de pollo", "Fruta picada", "Crema de calabaza"
-    const specificDescriptions = [
-      "Avena con platano",
-      "Pure de pollo",
-      "Fruta picada",
-      "Crema de calabaza",
+  test("los ejemplos JSON de meals usan combinaciones de grupos alimenticios", () => {
+    const groupCombinations = [
+      "Cereal + fruta + lacteo",
+      "Proteina + verdura + cereal",
+      "Proteina + verdura + grasa saludable",
     ]
-    const foundCount = specificDescriptions.filter(desc => fileContent.includes(desc)).length
+    const foundCount = groupCombinations.filter(desc => fileContent.includes(desc)).length
     expect(foundCount).toBeGreaterThanOrEqual(2)
   })
 
@@ -104,11 +114,16 @@ describe("Plans UX Writing - Vocabulario de alimentacion", () => {
   // E) Verificar los fallbacks actualizados
   // -------------------------------------------------------
 
-  test("los fallbacks usan descripciones no-genericas", () => {
-    // Verificar que los fallbacks (plan basico) usan frases aceptables
-    // como "Cereal o fruta de temporada", "Proteina con verduras", etc.
-    expect(fileContent).toContain("Cereal o fruta de temporada")
-    expect(fileContent).toContain("Proteina con verduras")
-    expect(fileContent).toContain("Colacion saludable")
+  test("los fallbacks usan combinaciones de grupos alimenticios", () => {
+    // Verificar que los fallbacks (plan basico) usan combinaciones de grupos
+    expect(fileContent).toContain("Cereal + fruta + lacteo")
+    expect(fileContent).toContain("Proteina + verdura + cereal")
+    expect(fileContent).toContain("Fruta + lacteo o cereal")
+  })
+
+  test("NO contiene fallbacks viejos con alimentos genericos", () => {
+    expect(fileContent).not.toMatch(/description.*Cereal o fruta de temporada/)
+    expect(fileContent).not.toMatch(/description.*Colacion saludable/)
+    expect(fileContent).not.toMatch(/description.*Cena ligera antes de la rutina/)
   })
 })
