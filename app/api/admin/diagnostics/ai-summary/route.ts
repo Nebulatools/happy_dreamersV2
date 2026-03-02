@@ -5,6 +5,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { OpenAI } from "openai"
 import { authOptions } from "@/lib/auth"
+import { connectToDatabase } from "@/lib/mongodb"
+import { ObjectId } from "mongodb"
 import {
   getPasanteSystemPrompt,
   getPasanteUserPrompt,
@@ -15,6 +17,11 @@ import type { DiagnosticResult } from "@/lib/diagnostic/types"
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("API:admin:diagnostics:ai-summary")
+
+// P3: OpenAI client a module scope (singleton, igual que MongoDB)
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+})
 
 // Interface del body esperado
 interface AISummaryRequestBody {
@@ -31,6 +38,46 @@ interface AISummaryRequestBody {
   freeTextData?: {
     eventNotes: string[]     // Notas de eventos de los ultimos 14 dias
     chatMessages: string[]   // Mensajes de chat de los ultimos 14 dias
+  }
+}
+
+/**
+ * GET /api/admin/diagnostics/ai-summary?childId=xxx
+ *
+ * Retorna historial de analisis AI para un nino.
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user || session.user.role !== "admin") {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+    }
+
+    const childId = req.nextUrl.searchParams.get("childId")
+    if (!childId || !ObjectId.isValid(childId)) {
+      return NextResponse.json({ error: "childId invalido" }, { status: 400 })
+    }
+
+    const { db } = await connectToDatabase()
+    const history = await db
+      .collection("diagnostic_ai_summaries")
+      .find({ childId: new ObjectId(childId) })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .project({
+        _id: 1,
+        summary: 1,
+        context: 1,
+        createdAt: 1,
+      })
+      .toArray()
+
+    return NextResponse.json({ history })
+  } catch (error) {
+    logger.error("Error en GET ai-summary:", {
+      error: error instanceof Error ? error.message : "Unknown",
+    })
+    return NextResponse.json({ error: "Error interno" }, { status: 500 })
   }
 }
 
@@ -87,6 +134,26 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // S1: Verificar que el childId existe en BD (ownership check)
+    // Previene que un admin manipule el POST body con datos de otro nino
+    if (ObjectId.isValid(body.childId)) {
+      const { db } = await connectToDatabase()
+      const childExists = await db.collection("children").findOne(
+        { _id: new ObjectId(body.childId) },
+        { projection: { _id: 1 } }
+      )
+      if (!childExists) {
+        logger.warn("ai-summary: childId no encontrado en BD", {
+          adminId: session.user.id,
+          childId: body.childId,
+        })
+        return NextResponse.json(
+          { error: "Nino no encontrado" },
+          { status: 404 }
+        )
+      }
+    }
+
     logger.info("Generando resumen AI", {
       adminId: session.user.id,
       childId: body.childId,
@@ -136,11 +203,6 @@ export async function POST(req: NextRequest) {
       model: PASANTE_AI_CONFIG.model,
     })
 
-    // Inicializar OpenAI
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    })
-
     // Llamar a OpenAI con la configuracion del Pasante
     // Nota: GPT-5 usa max_completion_tokens y solo soporta temperature=1
     const completion = await openai.chat.completions.create({
@@ -152,26 +214,21 @@ export async function POST(req: NextRequest) {
       max_completion_tokens: PASANTE_AI_CONFIG.maxTokens,
     })
 
-    // Debug: Log completo de la respuesta para GPT-5
-    logger.info("OpenAI response debug", {
+    // S3: Solo loguear metadata, NO contenido de salud
+    logger.info("OpenAI response", {
       childId: body.childId,
       hasChoices: !!completion.choices,
-      choicesLength: completion.choices?.length,
-      firstChoice: completion.choices?.[0] ? {
-        finishReason: completion.choices[0].finish_reason,
-        hasMessage: !!completion.choices[0].message,
-        messageRole: completion.choices[0].message?.role,
-        contentLength: completion.choices[0].message?.content?.length,
-        contentPreview: completion.choices[0].message?.content?.substring(0, 100),
-      } : null,
+      finishReason: completion.choices?.[0]?.finish_reason,
+      contentLength: completion.choices?.[0]?.message?.content?.length,
     })
 
     const aiSummary = completion.choices[0]?.message?.content
 
     if (!aiSummary) {
+      // S3: No loguear fullResponse (contiene datos de salud)
       logger.error("OpenAI no retorno contenido", {
         childId: body.childId,
-        fullResponse: JSON.stringify(completion, null, 2).substring(0, 500),
+        finishReason: completion.choices?.[0]?.finish_reason,
       })
       return NextResponse.json(
         { error: "No se pudo generar el resumen AI" },
@@ -185,7 +242,37 @@ export async function POST(req: NextRequest) {
       summaryLength: aiSummary.length,
     })
 
-    return NextResponse.json({ aiSummary })
+    // Persistir en MongoDB para historial
+    let savedId: string | null = null
+    try {
+      const { db } = await connectToDatabase()
+      const doc = {
+        childId: new ObjectId(body.childId),
+        summary: aiSummary,
+        context: {
+          childAgeMonths: body.childAgeMonths,
+          planVersion: body.planVersion || null,
+          planStatus: body.planStatus || null,
+          recentEventsCount: body.recentEventsCount ?? 0,
+          overallStatus: body.diagnosticResult?.overallStatus || null,
+          dataLevel: body.diagnosticResult?.dataLevel || null,
+          alertCount: body.diagnosticResult?.alerts?.length ?? 0,
+        },
+        generatedBy: session.user.id,
+        createdAt: new Date(),
+      }
+      const result = await db.collection("diagnostic_ai_summaries").insertOne(doc)
+      savedId = result.insertedId.toString()
+      logger.info("AI summary persistido", { childId: body.childId, savedId })
+    } catch (saveError) {
+      // No bloquear el response si falla el guardado
+      logger.error("Error al persistir AI summary (no bloqueante)", {
+        childId: body.childId,
+        error: saveError instanceof Error ? saveError.message : "Unknown",
+      })
+    }
+
+    return NextResponse.json({ aiSummary, savedId })
   } catch (error) {
     logger.error("Error en ai-summary:", {
       error: error instanceof Error ? error.message : "Unknown",

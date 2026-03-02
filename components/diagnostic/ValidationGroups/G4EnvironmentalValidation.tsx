@@ -25,6 +25,7 @@ interface G4EnvironmentalValidationProps {
   validation: EnvironmentalGroupValidation
   onCriterionClick?: (criterion: CriterionResult) => void
   className?: string
+  hideHeader?: boolean
 }
 
 // Iconos por factor ambiental
@@ -279,6 +280,7 @@ export function G4EnvironmentalValidation({
   validation,
   onCriterionClick,
   className,
+  hideHeader,
 }: G4EnvironmentalValidationProps) {
   const { detectedKeywords, factors } = validation
 
@@ -310,6 +312,7 @@ export function G4EnvironmentalValidation({
         dataCompleteness={validation.dataCompleteness}
         summary={validation.summary}
         onCriterionClick={onCriterionClick}
+        hideHeader={hideHeader}
       />
 
       {/* Resumen de factores ambientales */}

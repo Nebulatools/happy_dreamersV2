@@ -13,11 +13,11 @@ export async function GET(req: NextRequest) {
   try {
     // Verificar la sesión del usuario
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
-    
+
     // Verificar si el usuario es admin
     if (session.user.role !== "admin") {
       return NextResponse.json({ error: "Acceso denegado. Se requiere rol de administrador." }, { status: 403 })

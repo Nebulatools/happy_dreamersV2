@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, AlertCircle, Info, Clock, Stethoscope, Utensils, Cloud } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -38,6 +38,7 @@ import type {
 
 interface DiagnosticPanelClientProps {
   childId: string
+  embedded?: boolean
 }
 
 // Estados posibles del componente
@@ -91,19 +92,8 @@ function ValidationAccordion({
   diagnosticResult: DiagnosticResult
   onCriterionClick: (criterion: CriterionResult, groupTitle: string) => void
 }) {
-  // Calcular cuales grupos tienen alertas para abrirlos por defecto
-  const defaultOpenGroups = useMemo(() => {
-    const open: string[] = []
-    for (const config of GROUP_CONFIG) {
-      const group = diagnosticResult.groups[config.id]
-      if (group.status === "alert" || group.status === "warning") {
-        open.push(config.title)
-      }
-    }
-    // Si ninguno tiene alertas, abrir el primero
-    if (open.length === 0) open.push(GROUP_CONFIG[0].title)
-    return open
-  }, [diagnosticResult])
+  // Todos los grupos inician colapsados para reducir ruido visual
+  const defaultOpenGroups: string[] = []
 
   // Funcion auxiliar para contar alertas/avisos de un grupo
   const getGroupCounts = (group: GroupValidation) => {
@@ -166,6 +156,7 @@ function ValidationAccordion({
                   onCriterionClick={(criterion) =>
                     onCriterionClick(criterion, "G1 - Horario")
                   }
+                  hideHeader
                 />
               )}
               {config.id === "G2" && (
@@ -174,6 +165,7 @@ function ValidationAccordion({
                   onCriterionClick={(criterion) =>
                     onCriterionClick(criterion, "G2 - Medico")
                   }
+                  hideHeader
                 />
               )}
               {config.id === "G3" && (
@@ -182,6 +174,7 @@ function ValidationAccordion({
                   onCriterionClick={(criterion) =>
                     onCriterionClick(criterion, "G3 - Alimentacion")
                   }
+                  hideHeader
                 />
               )}
               {config.id === "G4" && (
@@ -190,6 +183,7 @@ function ValidationAccordion({
                   onCriterionClick={(criterion) =>
                     onCriterionClick(criterion, "G4 - Entorno")
                   }
+                  hideHeader
                 />
               )}
             </AccordionContent>
@@ -215,14 +209,16 @@ function ValidationAccordion({
  * - error: error al cargar (red de error, etc)
  * - success: diagnostico cargado correctamente (parcial o completo)
  */
-export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClientProps) {
+export default function DiagnosticPanelClient({ childId, embedded = false }: DiagnosticPanelClientProps) {
   const { toast } = useToast()
   const router = useRouter()
   const { activeChildId, isInitialized } = useActiveChild()
   const hasInitializedRef = useRef(false)
 
   // Si el admin limpia la seleccion o cambia de nino, redirigir
+  // En modo embedded, el componente padre maneja la navegacion
   useEffect(() => {
+    if (embedded) return
     if (!isInitialized) return
 
     // Saltar el valor inicial (persistido de localStorage)
@@ -233,15 +229,15 @@ export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClient
 
     // Seleccion limpiada → volver a pantalla de seleccion
     if (!activeChildId) {
-      router.push("/dashboard/diagnosticos")
+      router.push("/dashboard/paciente")
       return
     }
 
     // Cambio a otro nino → navegar a su panel
     if (activeChildId !== childId) {
-      router.push(`/dashboard/diagnosticos/${activeChildId}`)
+      router.push(`/dashboard/paciente/${activeChildId}?tab=diagnostico`)
     }
-  }, [activeChildId, isInitialized, router, childId])
+  }, [activeChildId, isInitialized, router, childId, embedded])
 
   // Estados
   const [viewState, setViewState] = useState<ViewState>("loading")
@@ -287,7 +283,7 @@ export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClient
             planId: data.planId,
             planVersion: data.planVersion,
             status: "active",
-            startDate: undefined,
+            startDate: data.planCreatedAt || undefined,
           })
         } else {
           setPlanData(null)
@@ -442,7 +438,7 @@ export default function DiagnosticPanelClient({ childId }: DiagnosticPanelClient
           diagnosticResult={diagnosticResult}
           planVersion={diagnosticResult.planVersion || "sin plan"}
           planStatus={diagnosticResult.planId ? "active" : "sin plan"}
-          recentEventsCount={diagnosticResult.groups.G1.criteria.length}
+          recentEventsCount={diagnosticResult.recentEventsCount ?? diagnosticResult.groups.G1.criteria.length}
           surveyDataAvailable={surveyDataAvailable}
           freeTextData={diagnosticResult.freeTextData}
         />

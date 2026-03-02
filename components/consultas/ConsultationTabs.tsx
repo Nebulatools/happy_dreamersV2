@@ -22,8 +22,8 @@ interface TabItem {
 
 const TABS: TabItem[] = [
   { id: "transcript", label: "Transcript", icon: FileText },
-  { id: "plan", label: "Plan", icon: Calendar },
   { id: "analysis", label: "Análisis", icon: Stethoscope },
+  { id: "plan", label: "Plan", icon: Calendar },
   { id: "history", label: "Historial", icon: History },
 ]
 

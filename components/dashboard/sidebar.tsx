@@ -1,12 +1,13 @@
 // Componente de barra lateral para el dashboard
-// Incluye la navegación principal
+// Incluye la navegacion principal
+// Utilidades (profile, notifications, bug) se movieron al header (HeaderUtilityBar)
 
 "use client"
 
 import type React from "react"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -23,21 +24,12 @@ import {
   Menu,
   MessageSquare,
   List,
-  Stethoscope,
   ClipboardList,
-  HelpCircle,
-  Mail,
   FileText,
-  Cloud,
   ChevronLeft,
   ChevronRight,
-  Activity,
 } from "lucide-react"
-import { useEventsInvalidation } from "@/hooks/use-events-cache"
 import { useToast } from "@/hooks/use-toast"
-import { createLogger } from "@/lib/logger"
-
-const logger = createLogger("sidebar")
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLDivElement> {
   items: {
@@ -54,19 +46,14 @@ interface SidebarNavProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Sidebar({ className }: { className?: string }) {
   const { data: session } = useSession()
   const pathname = usePathname()
-  const router = useRouter()
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
-  const [eventModalOpen, setEventModalOpen] = useState(false)
-  const [children, setChildren] = useState([])
   const [collapsed, setCollapsed] = useState(false)
   const { activeChildId } = useActiveChild()
-  const invalidateEvents = useEventsInvalidation()
 
   const isAdmin = session?.user?.role === "admin"
 
   const eventsHref = activeChildId ? `/dashboard/children/${activeChildId}/events` : "/dashboard/children"
-  const isEventsLinkDisabled = false // Ya no lo deshabilitamos, redirigimos
 
   const sidebarNavItems = [
     {
@@ -76,39 +63,53 @@ export function Sidebar({ className }: { className?: string }) {
       role: ["parent", "user"],
     },
     {
-      title: "Dashboard Admin",
+      title: "Panel General",
       href: "/dashboard",
       icon: <LayoutDashboard className="h-5 w-5" />,
       role: ["admin"],
     },
     {
-      title: "Estadísticas de Sueño",
+      title: "Estadisticas de Sueno",
       href: "/dashboard/sleep-statistics",
       icon: <BarChart3 className="h-5 w-5" />,
+      role: ["parent", "user"],
     },
     {
-      title: "Mis Soñadores",
+      title: "Mis Sonadores",
       href: "/dashboard/children",
       icon: <Users className="h-5 w-5" />,
-      role: ["parent", "user"], // Para parents y users
+      role: ["parent", "user"],
     },
     {
-      title: "Bitácora",
+      title: "Bitacora",
       href: "/dashboard/calendar",
       icon: <Calendar className="h-5 w-5" />,
+      role: ["parent", "user"],
     },
     {
       title: "Mis Eventos",
       href: eventsHref,
       icon: <List className="h-5 w-5" />,
-      role: ["parent", "user"], // Para parents y users
+      role: ["parent", "user"],
       onClick: !activeChildId ? () => {
         toast({
-          title: "Selecciona un niño primero",
-          description: "Debes seleccionar o registrar un niño para ver sus eventos.",
+          title: "Selecciona un nino primero",
+          description: "Debes seleccionar o registrar un nino para ver sus eventos.",
           variant: "default",
         })
       } : undefined,
+    },
+    {
+      title: "Cuestionario de Sueno",
+      href: activeChildId ? `/dashboard/survey?childId=${activeChildId}` : "/dashboard/survey",
+      icon: <ClipboardList className="h-5 w-5" />,
+      role: ["parent", "user"],
+    },
+    {
+      title: "Pacientes",
+      href: "/dashboard/paciente",
+      icon: <Users className="h-5 w-5" />,
+      role: ["admin"],
     },
     {
       title: "Asistente IA",
@@ -117,65 +118,14 @@ export function Sidebar({ className }: { className?: string }) {
       role: ["admin"],
     },
     {
-      title: "Cuestionario de Sueño",
-      href: activeChildId ? `/dashboard/survey?childId=${activeChildId}` : "/dashboard/survey",
-      icon: <ClipboardList className="h-5 w-5" />,
-      role: ["parent", "user"], // Para parents y users
-    },
-    {
-      title: "Pacientes",
-      href: "/dashboard/patients",
-      icon: <Users className="h-5 w-5" />,
-      role: ["admin"],
-    },
-    {
-      title: "Consultas",
-      href: "/dashboard/consultas",
-      icon: <Stethoscope className="h-5 w-5" />,
-      role: ["admin"],
-    },
-    {
-      title: "Diagnósticos",
-      href: "/dashboard/diagnosticos",
-      icon: <Activity className="h-5 w-5" />,
-      role: ["admin"],
-    },
-    {
       title: "Planes",
       href: "/dashboard/planes",
       icon: <FileText className="h-5 w-5" />,
-      role: ["parent", "user", "admin"],
-    },
-    {
-      title: "Transcripts",
-      href: "/dashboard/transcripts",
-      icon: <Cloud className="h-5 w-5" />,
-      role: ["admin"],
-    },
-    // Opción A: Eliminar elemento "Notificaciones" del sidebar y
-    // hacer que "Configuración" apunte al contenido de notificaciones.
-    {
-      title: "Configuración",
-      href: "/dashboard/notificaciones",
-      icon: <Settings className="h-5 w-5" />,
+      role: ["parent", "user"],
     },
   ]
 
-  // Cargar children cuando se abre el modal
-  useEffect(() => {
-    if (eventModalOpen && session?.user?.email) {
-      fetch("/api/children")
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            setChildren(data.children)
-          }
-        })
-        .catch(error => logger.error("Error al obtener niños", error))
-    }
-  }, [eventModalOpen, session?.user?.email])
-
-  // Filtrar elementos según el rol del usuario
+  // Filtrar elementos segun el rol del usuario
   const filteredItems = sidebarNavItems.filter(
     (item) => !item.role || (item.role && item.role.includes(session?.user?.role as string))
   )
@@ -210,13 +160,12 @@ export function Sidebar({ className }: { className?: string }) {
         <SheetTrigger asChild className="md:hidden">
           <Button variant="outline" size="icon" className="fixed left-4 top-4 z-40 rounded-full">
             <Menu className="h-5 w-5" />
-            <span className="sr-only">Abrir menú</span>
+            <span className="sr-only">Abrir menu</span>
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-[256px] pr-0" style={{ backgroundColor: "#68A1C8" }}>
-          {/* Título accesible oculto para lectores de pantalla */}
           <SheetHeader>
-            <SheetTitle className="sr-only">Menú</SheetTitle>
+            <SheetTitle className="sr-only">Menu</SheetTitle>
           </SheetHeader>
           <MobileSidebar items={filteredItems} setOpen={setOpen} onItemClick={handleItemClick} />
         </SheetContent>
@@ -251,7 +200,7 @@ export function Sidebar({ className }: { className?: string }) {
               ) : (
                 <ChevronLeft className="h-4 w-4 text-[#DEF1F1]" />
               )}
-              <span className="sr-only">Alternar tamaño del menú</span>
+              <span className="sr-only">Alternar tamano del menu</span>
             </Button>
           </div>
 
@@ -267,45 +216,29 @@ export function Sidebar({ className }: { className?: string }) {
             </div>
           </ScrollArea>
 
-          {/* Botones de Ayuda y Contacto al final */}
+          {/* Configuracion fijo al fondo */}
           <div className="p-3 mt-auto border-t border-white/10">
-            <button
+            <Link
+              href="/dashboard/notificaciones"
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200 hover:bg-white/10 w-full mb-1",
+                "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200 w-full",
                 collapsed ? "justify-center" : "justify-start",
+                (pathname === "/dashboard/notificaciones" || pathname === "/dashboard/configuracion")
+                  ? ""
+                  : "hover:bg-white/10",
               )}
-              style={{ color: "#DEF1F1", fontFamily: "Century Gothic, sans-serif" }}
-              onClick={() => router.push("/dashboard/ayuda")}
+              style={{
+                backgroundColor: (pathname === "/dashboard/notificaciones" || pathname === "/dashboard/configuracion") ? "#DEF1F1" : "transparent",
+                color: (pathname === "/dashboard/notificaciones" || pathname === "/dashboard/configuracion") ? "#68A1C8" : "#DEF1F1",
+                fontFamily: "Century Gothic, sans-serif",
+              }}
             >
-              <HelpCircle className="h-5 w-5" />
-              {!collapsed && "Ayuda"}
-            </button>
-            <button
-              className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200 hover:bg-white/10 w-full",
-                collapsed ? "justify-center" : "justify-start",
-              )}
-              style={{ color: "#DEF1F1", fontFamily: "Century Gothic, sans-serif" }}
-              onClick={() => router.push("/dashboard/contacto")}
-            >
-              <Mail className="h-5 w-5" />
-              {!collapsed && "Contacto"}
-            </button>
+              <Settings className="h-5 w-5" />
+              {!collapsed && "Configuracion"}
+            </Link>
           </div>
         </div>
       </div>
-
-      {/* Event Registration Modal (mantenido para compatibilidad) */}
-      {/* <EventRegistrationModal
-        isOpen={eventModalOpen}
-        onClose={() => setEventModalOpen(false)}
-        childId={activeChildId || undefined}
-        children={children}
-        onEventCreated={() => {
-          invalidateEvents() // Invalidar cache de eventos en todas las páginas
-          setEventModalOpen(false)
-        }}
-      /> */}
     </>
   )
 }
@@ -340,6 +273,10 @@ function SidebarNav({
           )
         }
 
+        const isActive = item.href === "/dashboard"
+          ? pathname === "/dashboard"
+          : pathname === item.href || pathname.startsWith(item.href + "/")
+
         return (
           <Link
             key={item.href + item.title}
@@ -347,14 +284,14 @@ function SidebarNav({
             className={cn(
               "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
               collapsed ? "justify-center px-3" : "",
-              pathname === item.href && !item.disabled 
-                ? "" 
+              isActive && !item.disabled
+                ? ""
                 : "hover:bg-white/10",
               item.disabled ? "opacity-50 pointer-events-none cursor-not-allowed" : ""
             )}
-            style={{ 
-              backgroundColor: pathname === item.href && !item.disabled ? "#DEF1F1" : "transparent",
-              color: pathname === item.href && !item.disabled ? "#68A1C8" : "#DEF1F1",
+            style={{
+              backgroundColor: isActive && !item.disabled ? "#DEF1F1" : "transparent",
+              color: isActive && !item.disabled ? "#68A1C8" : "#DEF1F1",
               fontFamily: "Century Gothic, sans-serif",
             }}
             aria-disabled={item.disabled}
@@ -388,12 +325,12 @@ function MobileSidebar({
   const pathname = usePathname()
 
   return (
-    <div className="flex flex-col gap-6 py-2">
+    <div className="flex flex-col gap-6 py-2 h-full">
       <Link href="/dashboard" className="flex items-center justify-center px-4" onClick={() => setOpen(false)}>
         <img
           src="/LOGO.svg"
           alt="Happy Dreamers Logo"
-          style={{ 
+          style={{
             width: "140px",
             height: "90px",
             objectFit: "contain",
@@ -427,6 +364,10 @@ function MobileSidebar({
             )
           }
 
+          const isActiveMobile = item.href === "/dashboard"
+            ? pathname === "/dashboard"
+            : pathname === item.href || pathname.startsWith(item.href + "/")
+
           return (
             <Link
               key={item.href + item.title}
@@ -434,12 +375,12 @@ function MobileSidebar({
               onClick={() => { if (!item.disabled) setOpen(false) }}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                pathname === item.href && !item.disabled ? "" : "hover:bg-white/10",
+                isActiveMobile && !item.disabled ? "" : "hover:bg-white/10",
                 item.disabled ? "opacity-50 pointer-events-none cursor-not-allowed" : ""
               )}
-              style={{ 
-                backgroundColor: pathname === item.href && !item.disabled ? "#DEF1F1" : "transparent",
-                color: pathname === item.href && !item.disabled ? "#68A1C8" : "#DEF1F1",
+              style={{
+                backgroundColor: isActiveMobile && !item.disabled ? "#DEF1F1" : "transparent",
+                color: isActiveMobile && !item.disabled ? "#68A1C8" : "#DEF1F1",
               }}
               aria-disabled={item.disabled}
               tabIndex={item.disabled ? -1 : undefined}
@@ -450,6 +391,28 @@ function MobileSidebar({
           )
         })}
       </nav>
+
+      {/* Configuracion fijo al fondo */}
+      <div className="mt-auto border-t border-white/10 px-2 pt-3 pb-2">
+        <Link
+          href="/dashboard/notificaciones"
+          onClick={() => setOpen(false)}
+          className={cn(
+            "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+            (pathname === "/dashboard/notificaciones" || pathname === "/dashboard/configuracion")
+              ? ""
+              : "hover:bg-white/10",
+          )}
+          style={{
+            backgroundColor: (pathname === "/dashboard/notificaciones" || pathname === "/dashboard/configuracion") ? "#DEF1F1" : "transparent",
+            color: (pathname === "/dashboard/notificaciones" || pathname === "/dashboard/configuracion") ? "#68A1C8" : "#DEF1F1",
+            fontFamily: "Century Gothic, sans-serif",
+          }}
+        >
+          <Settings className="h-5 w-5" />
+          Configuracion
+        </Link>
+      </div>
     </div>
   )
 }

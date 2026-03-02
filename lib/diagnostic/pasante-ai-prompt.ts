@@ -31,6 +31,14 @@ export interface PasanteContext {
   }
 }
 
+// S2: Campos de salud mental materna que NO deben enviarse al AI (GDPR Art. 9)
+const EXCLUDED_SURVEY_FIELDS = [
+  "postpartumDepression",
+  "pensamientosNegativos",
+  "maternalMentalHealth",
+  "parentMentalHealthNotes",
+]
+
 // Etiquetas legibles para campos del survey (espanol)
 // Permite que el AI vea nombres descriptivos en lugar de keys programaticos
 const SURVEY_FIELD_LABELS: Record<string, string> = {
@@ -279,6 +287,9 @@ function buildSurveyContext(surveyData?: Record<string, any>): string {
     // Saltar valores nulos, undefined o vacios
     if (value === null || value === undefined || value === "") continue
 
+    // S2: Excluir datos de salud mental materna (GDPR Art. 9)
+    if (EXCLUDED_SURVEY_FIELDS.includes(key)) continue
+
     // Saltar objetos anidados complejos (ya fueron aplanados por flattenSurveyData)
     if (typeof value === "object" && !Array.isArray(value)) continue
 
@@ -349,6 +360,39 @@ function buildAllCriteriaContext(result: DiagnosticResult): string {
 }
 
 /**
+ * Fix 7: Construye contexto de medicamentos y actividades para el prompt
+ */
+function buildMedicationActivityContext(result: DiagnosticResult): string {
+  const sections: string[] = []
+
+  if (result.medicationSummary && result.medicationSummary.length > 0) {
+    const medLines = result.medicationSummary.map(m => {
+      const lastDate = m.lastTime ? new Date(m.lastTime).toLocaleDateString("es-MX") : "desconocido"
+      return `- ${m.name}: ${m.lastDose} (${m.count} veces en 7 dias, ultima: ${lastDate})`
+    })
+    sections.push(`MEDICAMENTOS REGISTRADOS (7 dias):\n${medLines.join("\n")}`)
+  }
+
+  if (result.activitySummary && result.activitySummary.length > 0) {
+    const actLines = result.activitySummary.map(a =>
+      `- ${a.description}: ${a.count} veces, ~${a.avgDurationMin} min promedio`
+    )
+    sections.push(`ACTIVIDADES REGISTRADAS (7 dias):\n${actLines.join("\n")}`)
+  }
+
+  if (sections.length === 0) return ""
+  return "\n\n" + sections.join("\n\n")
+}
+
+/**
+ * Fix 2: Construye contexto del plan activo para el prompt
+ */
+function buildPlanScheduleContext(result: DiagnosticResult): string {
+  if (!result.planScheduleSummary) return ""
+  return `\n\nPLAN ACTIVO DETALLADO:\n${result.planScheduleSummary}`
+}
+
+/**
  * Genera el system prompt para el Pasante AI
  *
  * @param context - Contexto estructurado del nino y su diagnostico
@@ -360,6 +404,8 @@ export function getPasanteSystemPrompt(context: PasanteContext): string {
   const diagnosticAlerts = buildDiagnosticContext(context.diagnosticResult)
   const surveyContext = buildSurveyContext(context.diagnosticResult.surveyData)
   const freeTextContext = buildFreeTextContext(context.freeTextData)
+  const medicationActivityContext = buildMedicationActivityContext(context.diagnosticResult)
+  const planScheduleContext = buildPlanScheduleContext(context.diagnosticResult)
   const hasFreeText = context.freeTextData &&
     ((context.freeTextData.eventNotes?.length || 0) > 0 ||
      (context.freeTextData.chatMessages?.length || 0) > 0)
@@ -385,6 +431,8 @@ PERFIL DEL PACIENTE:
 ${context.diagnosticResult.missingDataSources?.length > 0
     ? `- Datos faltantes: ${context.diagnosticResult.missingDataSources.join(", ")}`
     : "- Todos los datos disponibles"}
+${planScheduleContext}
+${medicationActivityContext}
 
 EVALUACION COMPLETA POR GRUPO (todos los criterios evaluados):
 ${allCriteriaContext}
@@ -430,13 +478,18 @@ ${hasFreeText ? `- SI encontraste algo relevante en el texto libre, mencionalo c
 - Maximo 400 palabras
 
 FORMATO DE RESPUESTA:
-Escribe en parrafos cortos (2-4 maximo).
-Primero describe la situacion general.
-${hasSurvey ? `Si hay datos del cuestionario relevantes, integralos en tu analisis.` : ""}
-${hasFreeText ? `Si hay hallazgos del texto libre, mencionalos en una seccion aparte: "Hallazgos del texto libre:"` : ""}
-Luego ofrece 2-4 recomendaciones generales como lista.
+Usa EXACTAMENTE estas secciones con sus titulos en MAYUSCULAS seguidos de dos puntos:
 
-Responde en espanol. Se conciso y util.`
+SITUACION GENERAL:
+(2-3 parrafos cortos describiendo la situacion actual del nino. Integra datos del cuestionario si son relevantes.)
+${hasFreeText ? `
+HALLAZGOS DEL TEXTO LIBRE:
+(Solo incluir si hay texto libre con informacion relevante. Lista con "- " al inicio de cada hallazgo.)
+` : ""}
+RECOMENDACIONES:
+(2-4 recomendaciones generales como lista con "- " al inicio de cada una.)
+
+Responde en espanol. Se conciso y util. Maximo 400 palabras.`
 }
 
 /**

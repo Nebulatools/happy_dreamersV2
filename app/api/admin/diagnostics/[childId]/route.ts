@@ -14,6 +14,7 @@ import { validateSchedule } from "@/lib/diagnostic/rules/schedule-rules"
 import { validateMedicalIndicators } from "@/lib/diagnostic/rules/medical-rules"
 import { validateNutrition } from "@/lib/diagnostic/rules/nutrition-rules"
 import { validateEnvironmentalFactors } from "@/lib/diagnostic/rules/environmental-rules"
+import { formatPlanForDiagnostic } from "@/lib/diagnostic/plan-formatter"
 
 const logger = createLogger("API:admin:diagnostics")
 
@@ -222,6 +223,23 @@ function flattenSurveyData(raw: Record<string, any>): Record<string, any> {
     flat.householdMembers = flat.otrosResidentes
   }
 
+  // Derivar campos planos desde arrays estructurados para compatibilidad G1/G3
+  if (Array.isArray(flat.siestasDetalle) && flat.siestasDetalle.length > 0) {
+    flat.numeroSiestas = String(flat.siestasDetalle.length)
+    flat.tomaSiestas = true
+  }
+  if (flat.horaDespertarManana && !flat.horaDespertar) {
+    // Mapear nombre nuevo al que G1 espera
+    flat.horaDespertar = flat.horaDespertarManana
+  }
+  if (Array.isArray(flat.comidasSolidasDetalle) && flat.comidasSolidasDetalle.length > 0) {
+    flat.numeroComidasSolidas = flat.comidasSolidasDetalle.length
+    flat.comeSolidos = true
+  }
+  if (Array.isArray(flat.tomasLecheDetalle) && flat.tomasLecheDetalle.length > 0) {
+    flat.numeroTomasLeche = flat.tomasLecheDetalle.length
+  }
+
   return flat
 }
 
@@ -253,10 +271,11 @@ export async function GET(
     })
 
     const { db } = await connectToDatabase()
+    const childObjectId = new ObjectId(childId)
 
-    // 2. Obtener datos del nino
+    // 2. Obtener datos del nino primero (necesitamos parentId para plan query)
     const child = await db.collection("children").findOne({
-      _id: new ObjectId(childId),
+      _id: childObjectId,
     })
 
     if (!child) {
@@ -272,18 +291,41 @@ export async function GET(
       ? Math.floor(differenceInDays(new Date(), birthDate) / 30.44)
       : 0
 
-    // 4. Verificar plan activo (prerequisito)
     const parentId = child.parentId?.toString() || ""
-    const activePlan = await db.collection("child_plans").findOne(
-      {
-        childId: new ObjectId(childId),
-        userId: new ObjectId(parentId),
-        status: "active",
-      },
-      {
-        sort: { planNumber: -1, createdAt: -1 },
-      }
-    )
+
+    // P1: Paralelizar queries restantes con Promise.all
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    const fourteenDaysAgo = new Date()
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
+
+    const [activePlan, events, chatMessages] = await Promise.all([
+      // 4. Plan activo
+      db.collection("child_plans").findOne(
+        {
+          childId: childObjectId,
+          userId: new ObjectId(parentId),
+          status: "active",
+        },
+        { sort: { planNumber: -1, createdAt: -1 } }
+      ),
+      // 5. Eventos recientes (7 dias)
+      db.collection("events")
+        .find({
+          childId: childObjectId,
+          startTime: { $gte: sevenDaysAgo.toISOString() },
+        })
+        .sort({ startTime: -1 })
+        .toArray(),
+      // 6. Chat messages (14 dias)
+      db.collection("chatMessages")
+        .find({
+          childId: childObjectId,
+          createdAt: { $gte: fourteenDaysAgo },
+        })
+        .sort({ createdAt: -1 })
+        .toArray(),
+    ])
 
     if (activePlan) {
       logger.info("Plan activo encontrado", {
@@ -294,36 +336,11 @@ export async function GET(
       logger.info("Sin plan activo, diagnostico con datos disponibles", { childId })
     }
 
-    // 5. Obtener eventos recientes (ultimos 7 dias)
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-
-    const events = await db
-      .collection("events")
-      .find({
-        childId: new ObjectId(childId),
-        startTime: { $gte: sevenDaysAgo.toISOString() },
-      })
-      .sort({ startTime: -1 })
-      .toArray()
-
-    logger.info("Eventos obtenidos", {
-      count: events.length,
+    logger.info("Datos obtenidos", {
+      eventCount: events.length,
+      chatCount: chatMessages.length,
       desde: sevenDaysAgo.toISOString(),
     })
-
-    // 6. Obtener mensajes de chat recientes (ultimos 14 dias)
-    const fourteenDaysAgo = new Date()
-    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
-
-    const chatMessages = await db
-      .collection("chatMessages")
-      .find({
-        childId: new ObjectId(childId),
-        createdAt: { $gte: fourteenDaysAgo },
-      })
-      .sort({ createdAt: -1 })
-      .toArray()
 
     const chatTexts = chatMessages
       .filter((msg) => msg.content && typeof msg.content === "string")
@@ -444,6 +461,47 @@ export async function GET(
     // 11. Construir resultado final
     const childName = `${child.firstName || ""} ${child.lastName || ""}`.trim()
 
+    // Fix 7: Extraer medicamentos y actividades de los eventos
+    const medicationEvents = events.filter((e: Record<string, unknown>) => e.eventType === "medication")
+    const activityEvents = events.filter((e: Record<string, unknown>) => e.eventType === "extra_activities")
+
+    // Agrupar medicamentos por nombre
+    const medicationMap = new Map<string, { count: number; lastDose: string; lastTime: string }>()
+    for (const e of medicationEvents) {
+      const name = (e.medicationName as string) || "Sin nombre"
+      const existing = medicationMap.get(name) || { count: 0, lastDose: "", lastTime: "" }
+      existing.count++
+      existing.lastDose = (e.medicationDose as string) || existing.lastDose
+      const eTime = (e.startTime as string) || ""
+      existing.lastTime = eTime > existing.lastTime ? eTime : existing.lastTime
+      medicationMap.set(name, existing)
+    }
+    const medicationSummary = medicationMap.size > 0
+      ? Array.from(medicationMap.entries()).map(([name, data]) => ({
+        name,
+        count: data.count,
+        lastDose: data.lastDose,
+        lastTime: data.lastTime,
+      }))
+      : undefined
+
+    // Agrupar actividades por descripcion
+    const activityMap = new Map<string, { count: number; totalDuration: number }>()
+    for (const e of activityEvents) {
+      const desc = (e.activityDescription as string) || "Sin descripcion"
+      const existing = activityMap.get(desc) || { count: 0, totalDuration: 0 }
+      existing.count++
+      existing.totalDuration += Number(e.activityDuration) || 0
+      activityMap.set(desc, existing)
+    }
+    const activitySummary = activityMap.size > 0
+      ? Array.from(activityMap.entries()).map(([description, data]) => ({
+        description,
+        count: data.count,
+        avgDurationMin: data.count > 0 ? Math.round(data.totalDuration / data.count) : 0,
+      }))
+      : undefined
+
     const diagnosticResult: DiagnosticResult = {
       childId,
       childName,
@@ -451,8 +509,15 @@ export async function GET(
       childBirthDate: child.birthDate || undefined,
       parentId,
       planId: activePlan?._id?.toString(),
-      planVersion: activePlan ? String(activePlan.planNumber || "1") : undefined,
+      // B1: Usar ?? en vez de || para que planNumber 0 no se convierta en "1"
+      planVersion: activePlan ? String(activePlan.planNumber ?? "sin plan") : undefined,
       evaluatedAt: now,
+      // Fix 1: Conteo real de eventos (no criteria.length)
+      recentEventsCount: events.length,
+      // Fix 5: Fecha de creacion del plan
+      planCreatedAt: activePlan?.createdAt ? new Date(activePlan.createdAt).toISOString() : undefined,
+      // Fix 2: Resumen del plan para contexto AI
+      planScheduleSummary: activePlan ? formatPlanForDiagnostic(activePlan) : undefined,
       groups: {
         G1: g1Result,
         G2: g2Result,
@@ -467,6 +532,9 @@ export async function GET(
         eventNotes,
         chatMessages: chatTexts,
       },
+      // Fix 7: Medicamentos y actividades estructurados
+      medicationSummary,
+      activitySummary,
       // Survey completo para que el Pasante AI tenga acceso a TODOS los campos
       surveyData: hasSurvey ? surveyData : undefined,
     }

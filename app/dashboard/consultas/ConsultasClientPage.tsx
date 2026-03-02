@@ -1,0 +1,411 @@
+// Pagina de consultas - Client component
+// Permite hacer consultas combinando transcript + datos del nino + knowledge base
+// Solo para administradores (el server component padre verifica el rol)
+
+"use client"
+
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
+import { Loader2, Stethoscope } from "lucide-react"
+import { useSession } from "next-auth/react"
+import { TranscriptInput } from "@/components/consultas/TranscriptInput"
+import { AnalysisReport } from "@/components/consultas/AnalysisReport"
+import { ConsultationHistory } from "@/components/consultas/ConsultationHistory"
+import { PlanManager } from "@/components/consultas/PlanManager"
+import { ConsultationTabs } from "@/components/consultas/ConsultationTabs"
+import { useActiveChild } from "@/context/active-child-context"
+import { ArrowUp } from "lucide-react"
+
+import { createLogger } from "@/lib/logger"
+import { ConsultasErrorBoundary } from "@/components/consultas/ConsultasErrorBoundary"
+
+const logger = createLogger("page")
+
+// Tabs validos para la pagina de consultas
+const VALID_TABS = ["transcript", "analysis", "plan", "history"] as const
+type ValidTab = typeof VALID_TABS[number]
+
+
+interface Child {
+  _id: string
+  firstName: string
+  lastName: string
+  parentId: string
+  birthDate?: string
+}
+
+// Componente interno que usa useSearchParams (requiere Suspense)
+function ConsultasPageContent() {
+  const { data: session } = useSession()
+  const { toast } = useToast()
+  const searchParams = useSearchParams()
+  const { activeUserId, activeUserName, activeChildId, setActiveChild } = useActiveChild()
+
+  // Leer tab inicial desde URL params
+  const getInitialTab = (): ValidTab => {
+    const tabParam = searchParams?.get("tab")
+    if (tabParam && VALID_TABS.includes(tabParam as ValidTab)) {
+      return tabParam as ValidTab
+    }
+    return "transcript"
+  }
+
+  const [activeTab, setActiveTab] = useState<ValidTab>(getInitialTab)
+  const [transcript, setTranscript] = useState("")
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [analysisResult, setAnalysisResult] = useState<any>(null)
+  const [childData, setChildData] = useState<Child | null>(null)
+  const [loadingChild, setLoadingChild] = useState(true)
+
+  // Sincronizar contexto desde URL params al cargar la pagina
+  useEffect(() => {
+    const childIdParam = searchParams?.get("childId")
+    const parentIdParam = searchParams?.get("parentId")
+
+    // Si hay childId en params y es diferente al activo, sincronizar
+    if (childIdParam && parentIdParam && childIdParam !== activeChildId) {
+      logger.debug("Sincronizando contexto desde URL params", {
+        childId: childIdParam,
+        parentId: parentIdParam,
+      })
+      setActiveChild(childIdParam, parentIdParam, "")
+    }
+  }, [searchParams, activeChildId, setActiveChild])
+
+  // Sincronizar tab cuando cambian los params (navegacion interna)
+  useEffect(() => {
+    const tabParam = searchParams?.get("tab")
+    if (tabParam && VALID_TABS.includes(tabParam as ValidTab)) {
+      setActiveTab(tabParam as ValidTab)
+    }
+  }, [searchParams])
+
+  // Verificar que el usuario es admin
+  useEffect(() => {
+    if (session && session.user.role !== "admin") {
+      toast({
+        title: "Acceso denegado",
+        description: "Solo los administradores pueden acceder a esta pagina.",
+        variant: "destructive",
+      })
+      return
+    }
+  }, [session, toast])
+
+  // Cargar datos del nino seleccionado
+  useEffect(() => {
+    const loadChildData = async () => {
+      if (!activeChildId || !activeUserId) {
+        setLoadingChild(false)
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/children?userId=${activeUserId}`)
+        if (!response.ok) throw new Error("Error al cargar datos del nino")
+
+        const data = await response.json()
+        const children = Array.isArray(data) ? data : (data?.children || data?.data?.children || [])
+        const child = children.find((c: Child) => c._id === activeChildId)
+
+        setChildData(child || null)
+      } catch (error) {
+        logger.error("Error:", error)
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los datos del nino.",
+          variant: "destructive",
+        })
+      } finally {
+        setLoadingChild(false)
+      }
+    }
+
+    loadChildData()
+  }, [activeChildId, activeUserId, toast])
+
+
+  // Procesar analisis
+  const handleAnalyze = async () => {
+    if (!activeUserId || !activeChildId || !transcript.trim()) {
+      toast({
+        title: "Informacion incompleta",
+        description: "Asegurate de tener un paciente seleccionado y proporciona un transcript.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsAnalyzing(true)
+    try {
+      const startTime = Date.now()
+
+      const response = await fetch("/api/consultas/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: activeUserId,
+          childId: activeChildId,
+          transcript: transcript.trim(),
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Error al procesar el analisis")
+      }
+
+      const result = await response.json()
+
+      // Agregar metadata del procesamiento
+      const processingTime = Date.now() - startTime
+      const analysisWithMetadata = {
+        ...result,
+        metadata: {
+          reportId: result.reportId,
+          createdAt: new Date().toISOString(),
+          adminName: session?.user?.name || "Admin",
+          processingTime: `${processingTime}ms`,
+        },
+      }
+
+      setAnalysisResult(analysisWithMetadata)
+
+      toast({
+        title: "Analisis completado",
+        description: "Se ha generado el analisis y plan de mejoramiento.",
+      })
+
+      // Cambiar al tab de analisis despues de un pequeno delay
+      setTimeout(() => {
+        setActiveTab("analysis")
+      }, 100)
+    } catch (error) {
+      logger.error("Error:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo procesar el analisis.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+
+
+  if (session?.user.role !== "admin") {
+    return (
+      <div className="container py-8">
+        <Card>
+          <CardContent className="py-10">
+            <div className="text-center">
+              <p>Acceso denegado. Solo los administradores pueden acceder a esta pagina.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Renderizar contenido basado en el tab activo
+  const renderTabContent = () => {
+    // Validaciones defensivas mejoradas
+    if (!activeUserId || !activeChildId) {
+      logger.debug("No hay usuario o nino seleccionado")
+      return null
+    }
+
+    // Verificacion defensiva para childData
+    if (loadingChild) {
+      return (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          <span>Cargando datos del nino...</span>
+        </div>
+      )
+    }
+
+    if (!childData) {
+      logger.warn("childData es null despues de cargar")
+      return (
+        <div className="flex items-center justify-center py-8 text-amber-600">
+          <span>No se pudieron cargar los datos del nino. Por favor, intenta nuevamente.</span>
+        </div>
+      )
+    }
+
+    const childName = `${childData.firstName || ""} ${childData.lastName || ""}`.trim() || "Nino"
+
+    try {
+      switch (activeTab) {
+      case "transcript":
+        return (
+          <>
+            <TranscriptInput
+              value={transcript}
+              onChange={setTranscript}
+              disabled={isAnalyzing}
+              onAnalyzeRequested={handleAnalyze}
+            />
+
+            <div className="flex justify-center mt-6">
+              <Button
+                onClick={handleAnalyze}
+                disabled={!transcript.trim() || isAnalyzing}
+                size="lg"
+                className="min-w-[200px]"
+              >
+                {isAnalyzing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Stethoscope className="h-4 w-4 mr-2" />
+                )}
+                {isAnalyzing ? "Analizando..." : "Generar Analisis Completo"}
+              </Button>
+            </div>
+          </>
+        )
+
+      case "plan":
+        return (
+          <PlanManager
+            selectedUserId={activeUserId}
+            selectedChildId={activeChildId}
+            selectedChildName={childName}
+            hasAnalysisResult={!!analysisResult}
+            latestReportId={analysisResult?.reportId || null}
+          />
+        )
+
+      case "analysis":
+        return (
+          <AnalysisReport
+            result={analysisResult}
+            isLoading={isAnalyzing}
+            userName={activeUserName || ""}
+            childName={childName}
+            onGoToPlan={() => setActiveTab("plan")}
+          />
+        )
+
+      case "history":
+        return (
+          <ConsultationHistory
+            selectedUserId={activeUserId}
+            selectedChildId={activeChildId}
+            selectedChildName={childName}
+            visible={true}
+          />
+        )
+
+      default:
+        return null
+      }
+    } catch (error) {
+      logger.error("Error rendering tab content:", error)
+      return (
+        <div className="flex items-center justify-center py-8 text-red-600">
+          <span>Error al cargar el contenido. Por favor, recarga la pagina.</span>
+        </div>
+      )
+    }
+  }
+
+  // Si hay seleccion, mostrar tabs
+  if (activeUserId && activeChildId && !loadingChild) {
+    return (
+      <ConsultasErrorBoundary>
+        <>
+          {/* Tabs de navegacion */}
+          <ConsultationTabs
+            activeTab={activeTab}
+            onTabChange={(newTab) => {
+              // Prevenir cambios de tab durante analisis o carga
+              if (isAnalyzing || loadingChild) return
+
+              // Log para debug
+              logger.debug(`Cambiando de tab: ${activeTab} -> ${newTab}`)
+
+              // Validar que el nuevo tab es valido
+              if (VALID_TABS.includes(newTab as ValidTab)) {
+                setActiveTab(newTab as ValidTab)
+              } else {
+                logger.warn(`Tab invalido: ${newTab}`)
+              }
+            }}
+            userName={activeUserName || ""}
+            childName={childData ? `${childData.firstName || ""} ${childData.lastName || ""}`.trim() : "Cargando..."}
+          />
+
+          {/* Contenido principal */}
+          <div className="container py-8 space-y-6">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold flex items-center gap-2">
+                <Stethoscope className="h-8 w-8" />
+                Consultas Especializadas
+              </h1>
+              <p className="text-muted-foreground">
+                Realiza consultas combinando transcripts con datos del nino y knowledge base
+              </p>
+            </div>
+
+            {/* Contenido del tab activo */}
+            {renderTabContent()}
+          </div>
+        </>
+      </ConsultasErrorBoundary>
+    )
+  }
+
+  // Estado vacio cuando no hay seleccion
+  return (
+    <div className="container py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <Stethoscope className="h-8 w-8" />
+          Consultas Especializadas
+        </h1>
+        <p className="text-muted-foreground">
+          Realiza consultas combinando transcripts con datos del nino y knowledge base
+        </p>
+      </div>
+
+      <Card className="max-w-md mx-auto">
+        <CardContent className="py-16 text-center">
+          <Stethoscope className="h-16 w-16 mx-auto text-muted-foreground mb-6" />
+          <h3 className="text-xl font-semibold mb-2">
+            Selecciona un paciente para comenzar
+          </h3>
+          <p className="text-muted-foreground mb-6">
+            Usa el selector en la parte superior para elegir un paciente y nino
+          </p>
+          <div className="flex justify-center">
+            <ArrowUp className="h-8 w-8 text-muted-foreground animate-bounce" />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+// Componente exportado que envuelve con Suspense para useSearchParams
+export default function ConsultasClientPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container py-8">
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        </div>
+      }
+    >
+      <ConsultasPageContent />
+    </Suspense>
+  )
+}

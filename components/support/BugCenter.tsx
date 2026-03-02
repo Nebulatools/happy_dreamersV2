@@ -5,6 +5,7 @@ import * as Sentry from "@sentry/nextjs"
 import { useSession } from "next-auth/react"
 import { usePathname } from "next/navigation"
 import { Bug, Send } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -102,7 +103,12 @@ function getFetchUrl(input: RequestInfo | URL): string {
   return ""
 }
 
-export function BugCenter() {
+interface BugCenterProps {
+  variant?: "header" | "sidebar"
+  collapsed?: boolean
+}
+
+export function BugCenter({ variant = "header", collapsed = false }: BugCenterProps) {
   const { data: session } = useSession()
   const pathname = usePathname()
   const { toast } = useToast()
@@ -117,6 +123,7 @@ export function BugCenter() {
 
   const fetchPatchedRef = useRef(false)
   const originalFetchRef = useRef<typeof window.fetch | null>(null)
+  const pathnameRef = useRef(pathname)
   const isEnabled = process.env.NEXT_PUBLIC_BUG_CENTER_ENABLED === "true"
   const role = session?.user?.role
   const canUse = isEnabled && isRoleAllowed(role)
@@ -150,6 +157,11 @@ export function BugCenter() {
     return unsubscribe
   }, [refreshClientLogs])
 
+  // Mantener pathnameRef sincronizado sin re-ejecutar el effect de fetch patching
+  useEffect(() => {
+    pathnameRef.current = pathname
+  }, [pathname])
+
   useEffect(() => {
     if (!canUse) return
     if (fetchPatchedRef.current) return
@@ -160,7 +172,7 @@ export function BugCenter() {
         type: "runtime",
         message,
         traceId: extractTraceId(message),
-        route: pathname || undefined,
+        route: pathnameRef.current || undefined,
         details: asOptionalString(event.error?.stack),
       })
     }
@@ -177,7 +189,7 @@ export function BugCenter() {
         type: "unhandledrejection",
         message: reasonMessage,
         traceId: extractTraceId(reasonMessage),
-        route: pathname || undefined,
+        route: pathnameRef.current || undefined,
         details: rawReason instanceof Error ? rawReason.stack : undefined,
       })
     }
@@ -193,7 +205,7 @@ export function BugCenter() {
           recordClientError({
             type: "fetch",
             message: `HTTP ${response.status} en ${endpoint || "request"}`,
-            route: pathname || undefined,
+            route: pathnameRef.current || undefined,
             endpoint: endpoint || undefined,
             statusCode: response.status,
             traceId: traceId || undefined,
@@ -206,7 +218,7 @@ export function BugCenter() {
         recordClientError({
           type: "fetch",
           message,
-          route: pathname || undefined,
+          route: pathnameRef.current || undefined,
           endpoint: endpoint || undefined,
           traceId: extractTraceId(message),
           details: error instanceof Error ? error.stack : undefined,
@@ -228,7 +240,7 @@ export function BugCenter() {
       window.removeEventListener("unhandledrejection", onUnhandledRejection)
       fetchPatchedRef.current = false
     }
-  }, [canUse, pathname])
+  }, [canUse])
 
   useEffect(() => {
     if (!open || !canUse) return
@@ -363,13 +375,27 @@ export function BugCenter() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          className="relative p-2 min-h-[44px] min-w-[44px] h-auto w-auto rounded-full bg-white/70 backdrop-blur hover:bg-white"
-          aria-label="Abrir centro de bugs"
-        >
-          <Bug className="h-4 w-4 text-[#2553A1]" />
-        </Button>
+        {variant === "sidebar" ? (
+          <button
+            className={cn(
+              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:bg-white/10 w-full",
+              collapsed ? "justify-center" : "justify-start",
+            )}
+            style={{ color: "#DEF1F1", fontFamily: "Century Gothic, sans-serif" }}
+            aria-label="Abrir centro de bugs"
+          >
+            <Bug className="h-5 w-5" />
+            {!collapsed && "Reportar bug"}
+          </button>
+        ) : (
+          <Button
+            variant="ghost"
+            className="relative p-2 min-h-[44px] min-w-[44px] h-auto w-auto rounded-full bg-white/70 backdrop-blur hover:bg-white"
+            aria-label="Abrir centro de bugs"
+          >
+            <Bug className="h-4 w-4 text-[#2553A1]" />
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent className="max-w-2xl w-[95vw] max-h-[85vh] flex flex-col">

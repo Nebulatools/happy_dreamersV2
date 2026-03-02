@@ -7,9 +7,10 @@ export interface PageHeaderConfig {
   title: string
   subtitle?: string
   actions?: ReactNode // Para filtros, botones, etc.
-  showSearch?: boolean
+  customContent?: ReactNode // Reemplaza TODO el contenido del header (admin desktop)
   showChildSelector?: boolean
-  showNotifications?: boolean
+  /** Cambiar este valor fuerza re-evaluacion del customContent/actions */
+  contentKey?: string
 }
 
 // Contexto del header
@@ -22,9 +23,7 @@ interface PageHeaderContextType {
 // Configuración por defecto
 const defaultConfig: PageHeaderConfig = {
   title: "Dashboard",
-  showSearch: false,
   showChildSelector: true,
-  showNotifications: true
 }
 
 // Crear el contexto
@@ -64,28 +63,36 @@ export function usePageHeader() {
   return context
 }
 
-// Hook específico para configurar el header de una página
+// Hook especifico para configurar el header de una pagina
+// Usa useRef para ReactNode props (customContent, actions) que son objetos
+// nuevos en cada render y causarian loop infinito en useEffect
 export function usePageHeaderConfig(config: PageHeaderConfig) {
   const { setConfig, resetConfig } = usePageHeader()
-  
-  // Memoizar la configuración para evitar cambios innecesarios
-  const memoizedConfig = React.useMemo(() => config, [
-    config.title, 
-    config.subtitle, 
-    config.showSearch, 
-    config.showChildSelector, 
-    config.showNotifications,
-    config.actions // incluir actions en la memoización
-  ])
 
+  // Refs para props que son ReactNode (nuevos en cada render)
+  const customContentRef = React.useRef(config.customContent)
+  const actionsRef = React.useRef(config.actions)
+  customContentRef.current = config.customContent
+  actionsRef.current = config.actions
+
+  // Re-ejecutar cuando cambian props primitivas o contentKey
   React.useEffect(() => {
-    setConfig(memoizedConfig)
-    
-    // Cleanup: resetear al desmontar el componente
+    setConfig({
+      title: config.title,
+      subtitle: config.subtitle,
+      showChildSelector: config.showChildSelector,
+      contentKey: config.contentKey,
+      actions: actionsRef.current,
+      customContent: customContentRef.current,
+    })
+
     return () => {
       resetConfig()
     }
-  }, [memoizedConfig, setConfig, resetConfig])
+    // Solo deps primitivas - ReactNode se lee de refs
+    // contentKey permite forzar actualizacion cuando customContent cambia
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.title, config.subtitle, config.showChildSelector, config.contentKey, setConfig, resetConfig])
 
   return { setConfig }
 }

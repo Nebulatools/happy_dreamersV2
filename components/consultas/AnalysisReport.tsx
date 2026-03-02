@@ -6,24 +6,18 @@
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { 
-  FileText, 
-  Download, 
-  Share, 
-  Copy, 
+import {
+  FileText,
+  Copy,
   CheckCircle,
   AlertCircle,
   Lightbulb,
-  Clock,
-  User,
   Baby,
   Calendar,
-  TrendingUp,
+  ArrowRight,
 } from "lucide-react"
 import { PDFExportButton } from "@/components/reports/PDFExportButton"
 import { useToast } from "@/hooks/use-toast"
-import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface AnalysisResult {
@@ -53,13 +47,15 @@ interface AnalysisReportProps {
   isLoading?: boolean
   userName?: string
   childName?: string
+  onGoToPlan?: () => void
 }
 
-export function AnalysisReport({ 
-  result, 
-  isLoading = false, 
-  userName, 
-  childName, 
+export function AnalysisReport({
+  result,
+  isLoading = false,
+  userName,
+  childName,
+  onGoToPlan,
 }: AnalysisReportProps) {
   const { toast } = useToast()
   const [copied, setCopied] = useState(false)
@@ -90,7 +86,7 @@ Generado por Happy Dreamers AI Assistant
         title: "Copiado",
         description: "El análisis se ha copiado al portapapeles.",
       })
-      
+
       setTimeout(() => setCopied(false), 2000)
     } catch (error) {
       toast({
@@ -119,11 +115,6 @@ Generado por Happy Dreamers AI Assistant
             <div className="h-4 bg-muted rounded animate-pulse"></div>
             <div className="h-4 bg-muted rounded animate-pulse w-3/4"></div>
             <div className="h-4 bg-muted rounded animate-pulse w-1/2"></div>
-          </div>
-          <Separator />
-          <div className="space-y-3">
-            <div className="h-4 bg-muted rounded animate-pulse"></div>
-            <div className="h-4 bg-muted rounded animate-pulse w-2/3"></div>
           </div>
         </CardContent>
       </Card>
@@ -158,8 +149,7 @@ Generado por Happy Dreamers AI Assistant
                 Análisis Completado
               </CardTitle>
               <CardDescription>
-                Análisis generado el {new Date().toLocaleDateString("es-ES")} 
-                {result.metadata?.processingTime && ` en ${result.metadata.processingTime}`}
+                Generado el {new Date().toLocaleDateString("es-ES")}
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -182,21 +172,15 @@ Generado por Happy Dreamers AI Assistant
             </div>
           </div>
         </CardHeader>
-        
+
         {/* Información del contexto */}
-        {(userName || childName || result.childContext) && (
+        {(childName || result.childContext) && (
           <CardContent className="pt-0">
             <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-              {userName && (
-                <div className="flex items-center gap-1">
-                  <User className="h-4 w-4 text-gray-500" />
-                  Usuario: {userName}
-                </div>
-              )}
               {childName && (
                 <div className="flex items-center gap-1">
                   <Baby className="h-4 w-4 text-gray-500" />
-                  Niño: {childName}
+                  {childName}
                 </div>
               )}
               {result.childContext && (
@@ -215,11 +199,8 @@ Generado por Happy Dreamers AI Assistant
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-blue-600" />
-            Análisis Clínico
+            Análisis de la Consulta
           </CardTitle>
-          <CardDescription>
-            Evaluación basada en transcript + estadísticas unificadas + consultas anteriores + knowledge base RAG
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <ScrollArea className="max-h-[400px]">
@@ -254,120 +235,25 @@ Generado por Happy Dreamers AI Assistant
         </CardContent>
       </Card>
 
-      {/* Metadatos del reporte mejorados */}
-      {result.metadata && (
-        <Card className="bg-muted/30">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Clock className="h-4 w-4" />
-              Información del Reporte
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 space-y-4">
-            {/* Información básica */}
-            <div className="grid grid-cols-2 gap-4 text-xs text-gray-500">
+      {/* CTA: Siguiente paso → Generar Plan */}
+      {onGoToPlan && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="py-6">
+            <div className="flex items-center justify-between">
               <div>
-                <strong>ID del Reporte:</strong><br />
-                <code className="text-xs bg-gray-100 px-1 rounded">{result.metadata.reportId}</code>
+                <h3 className="font-semibold text-base">Siguiente paso</h3>
+                <p className="text-sm text-muted-foreground">
+                  Revisa o genera un nuevo plan basado en este análisis
+                </p>
               </div>
-              <div>
-                <strong>Generado:</strong><br />
-                {new Date(result.metadata.createdAt).toLocaleString("es-ES")}
-              </div>
-              {result.metadata.adminName && (
-                <div>
-                  <strong>Administrador:</strong><br />
-                  {result.metadata.adminName}
-                </div>
-              )}
-              {result.metadata.processingTime && (
-                <div>
-                  <strong>Tiempo de procesamiento:</strong><br />
-                  {typeof result.metadata.processingTime === "number" 
-                    ? `${result.metadata.processingTime}ms`
-                    : result.metadata.processingTime}
-                </div>
-              )}
-            </div>
-
-            {/* Calidad de datos */}
-            {result.metadata.dataQuality && (
-              <div className="border-t pt-3">
-                <h4 className="text-xs font-semibold mb-2 text-gray-700">Fuentes de Datos Utilizadas</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    {result.metadata.dataQuality.allSourcesUsed ? (
-                      <CheckCircle className="h-3 w-3 text-green-600" />
-                    ) : (
-                      <AlertCircle className="h-3 w-3 text-yellow-600" />
-                    )}
-                    <span className="text-xs">
-                      {result.metadata.dataQuality.allSourcesUsed 
-                        ? "Se utilizaron TODAS las fuentes disponibles"
-                        : `Se utilizaron ${result.metadata.sourcesUsed || 0} fuentes`
-                      }
-                    </span>
-                  </div>
-                  
-                  {result.metadata.dataQuality.statsFromDate && (
-                    <div className="text-xs text-gray-600">
-                      <strong>Estadísticas desde:</strong> {new Date(result.metadata.dataQuality.statsFromDate).toLocaleDateString("es-ES")}
-                    </div>
-                  )}
-                  
-                  {result.metadata.dataQuality.statsMethod && (
-                    <div className="text-xs text-gray-600">
-                      <strong>Método:</strong> 
-                      <Badge variant="outline" className="ml-1 text-xs">
-                        {result.metadata.dataQuality.statsMethod === "unified_with_dashboard" 
-                          ? "Unificado con Dashboard" 
-                          : result.metadata.dataQuality.statsMethod
-                        }
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Fuentes utilizadas */}
-            <div className="border-t pt-3">
-              <h4 className="text-xs font-semibold mb-2 text-gray-700">Componentes del Análisis</h4>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="flex items-center gap-1">
-                  <CheckCircle className="h-3 w-3 text-green-600" />
-                  Transcript actual
-                </div>
-                <div className="flex items-center gap-1">
-                  <CheckCircle className="h-3 w-3 text-green-600" />
-                  Estadísticas del niño
-                </div>
-                <div className="flex items-center gap-1">
-                  <CheckCircle className="h-3 w-3 text-green-600" />
-                  Consultas anteriores
-                </div>
-                <div className="flex items-center gap-1">
-                  <CheckCircle className="h-3 w-3 text-green-600" />
-                  Knowledge Base RAG
-                </div>
-              </div>
+              <Button onClick={onGoToPlan} className="gap-2">
+                Ir al Plan
+                <ArrowRight className="h-4 w-4" />
+              </Button>
             </div>
           </CardContent>
         </Card>
       )}
-
-      {/* Acciones adicionales */}
-      <div className="flex justify-center">
-        <div className="flex gap-2">
-          <Badge variant="secondary" className="text-xs">
-            <TrendingUp className="h-3 w-3 mr-1" />
-            Análisis Completado
-          </Badge>
-          <Badge variant="outline" className="text-xs">
-            Powered by AI
-          </Badge>
-        </div>
-      </div>
     </div>
   )
 }

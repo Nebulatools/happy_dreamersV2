@@ -1,292 +1,30 @@
-// Componente de cabecera para el dashboard
-// Incluye el selector de niños, perfil de usuario y toggle de tema
+// Componente de cabecera unificado para el dashboard
+// Layout unico: izquierda (customContent O titulo+childSelector) + derecha (HeaderUtilityBar)
 
 "use client"
 
-import Link from "next/link"
-import { signOut, useSession } from "next-auth/react"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { UserAvatar } from "@/components/ui/user-avatar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
-import { useRouter, usePathname } from "next/navigation"
-import { useState, useEffect, useMemo, useCallback } from "react"
-import { formatDistanceToNow } from "date-fns"
-import { es } from "date-fns/locale"
+import { cn } from "@/lib/utils"
+import { useSession } from "next-auth/react"
+import { usePathname } from "next/navigation"
+import { useState, useEffect, useMemo } from "react"
 import { ChildSelector } from "@/components/dashboard/child-selector"
-import { BugCenter } from "@/components/support/BugCenter"
 import { usePageHeader } from "@/context/page-header-context"
 import { ChildAgeFromContext } from "@/components/ui/child-age-badge"
-import { Icons } from "@/components/icons"
-import { Video, Search, User, Baby, Loader2 } from "lucide-react"
-import { useActiveChild } from "@/context/active-child-context"
-import { useToast } from "@/hooks/use-toast"
-
-import { createLogger } from "@/lib/logger"
-
-const logger = createLogger("header")
-
+import { HeaderUtilityBar } from "@/components/dashboard/header-utility-bar"
 
 export function Header() {
   const { data: session } = useSession()
-  const router = useRouter()
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
   const { config } = usePageHeader()
-  const [notificationCount, setNotificationCount] = useState(0)
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [notificationsLoading, setNotificationsLoading] = useState(false)
-  const [notifications, setNotifications] = useState<any[]>([])
-  const sessionUser = session?.user
-  const accountType = (sessionUser as any)?.accountType || ""
-  const userFirstName = useMemo(() => {
-    if (!sessionUser?.name) return "Perfil"
-    const [firstChunk] = sessionUser.name.split(" ")
-    return firstChunk || "Perfil"
-  }, [sessionUser?.name])
-  const roleLabel = useMemo(() => {
-    if (sessionUser?.role === "admin") return "Admin"
-    if (sessionUser?.role === "professional") return "Coach"
-    if (accountType === "mother") return "Mamá"
-    if (accountType === "father") return "Papá"
-    if (accountType === "caregiver") return "Cuidador"
-    return "Perfil"
-  }, [sessionUser?.role, accountType])
 
-  // Estados para el buscador funcional (solo admin)
-  const isAdmin = sessionUser?.role === "admin"
-  const { toast } = useToast()
-  const { setActiveUserId, setActiveUserName, setActiveChildId } = useActiveChild()
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [searchValue, setSearchValue] = useState("")
-  const [searchUsers, setSearchUsers] = useState<Array<{ _id: string; name: string; email: string }>>([])
-  const [searchChildren, setSearchChildren] = useState<Record<string, Array<{ _id: string; firstName: string; lastName: string; parentId: string }>>>({})
-  const [searchLoading, setSearchLoading] = useState(false)
-
-  // Cargar usuarios para busqueda (solo admin)
-  useEffect(() => {
-    if (!isAdmin || !session?.user?.id) return
-
-    const fetchUsers = async () => {
-      try {
-        setSearchLoading(true)
-        const [usersRes, childrenRes] = await Promise.all([
-          fetch("/api/admin/users"),
-          fetch("/api/children"),
-        ])
-
-        if (usersRes.ok) {
-          const data = await usersRes.json()
-          const filtered = data.filter((u: any) => u.role !== "admin")
-          setSearchUsers(filtered)
-        }
-
-        if (childrenRes.ok) {
-          const data = await childrenRes.json()
-          const children = Array.isArray(data) ? data : data.children || []
-          const grouped = children.reduce((acc: Record<string, any[]>, child: any) => {
-            if (!child?.parentId) return acc
-            if (!acc[child.parentId]) acc[child.parentId] = []
-            acc[child.parentId].push(child)
-            return acc
-          }, {})
-          setSearchChildren(grouped)
-        }
-      } catch (error) {
-        logger.error("Error loading search data:", error)
-      } finally {
-        setSearchLoading(false)
-      }
-    }
-
-    fetchUsers()
-  }, [isAdmin, session?.user?.id])
-
-  // Filtrar usuarios por busqueda
-  const filteredSearchUsers = useMemo(() => {
-    const search = searchValue.trim().toLowerCase()
-    if (!search) return searchUsers.slice(0, 10)
-
-    return searchUsers.filter(user => {
-      const matchesUser = user.name?.toLowerCase().includes(search) || user.email?.toLowerCase().includes(search)
-      const children = searchChildren[user._id] || []
-      const matchesChild = children.some(child =>
-        `${child.firstName || ""} ${child.lastName || ""}`.toLowerCase().includes(search)
-      )
-      return matchesUser || matchesChild
-    }).slice(0, 10)
-  }, [searchUsers, searchChildren, searchValue])
-
-  // Extraer apellido del nombre completo
-  const getLastName = useCallback((name: string) => {
-    const parts = name.trim().split(" ")
-    return parts.length > 1 ? parts[parts.length - 1] : name
-  }, [])
-
-  // Manejar seleccion desde el buscador
-  const handleSearchSelect = useCallback((user: { _id: string; name: string }) => {
-    setActiveUserId(user._id)
-    setActiveUserName(user.name)
-    setActiveChildId(null)
-    setSearchOpen(false)
-    setSearchValue("")
-
-    const children = searchChildren[user._id] || []
-    if (children.length === 1) {
-      setActiveChildId(children[0]._id)
-      toast({
-        title: "Paciente seleccionado",
-        description: `${children[0].firstName} ${children[0].lastName} - ${user.name}`,
-      })
-    } else {
-      toast({
-        title: "Usuario seleccionado",
-        description: `${user.name} - Selecciona un niño`,
-      })
-    }
-
-    router.push("/dashboard")
-  }, [searchChildren, setActiveUserId, setActiveUserName, setActiveChildId, toast, router])
+  const isAdmin = session?.user?.role === "admin"
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Cargar conteo de notificaciones pendientes
-  useEffect(() => {
-    let isMountedComponent = true
-
-    const fetchNotificationCount = async () => {
-      if (!isMountedComponent) return
-      if (!session?.user?.email) return
-
-      try {
-        const response = await fetch("/api/notifications/count")
-        if (response.ok) {
-          const data = await response.json()
-          setNotificationCount(data.count || 0)
-        }
-      } catch (error) {
-        logger.error("Error fetching notification count:", error)
-      }
-    }
-
-    fetchNotificationCount()
-
-    // Para admins, actualizar más frecuentemente para capturar nuevos transcripts de Zoom
-    const refreshInterval = session?.user?.role === "admin" ? 30000 : 60000 // 30s para admins, 60s para otros
-    const interval = setInterval(fetchNotificationCount, refreshInterval)
-
-    const handleNotificationsUpdated = () => {
-      fetchNotificationCount()
-    }
-
-    window.addEventListener("notificationsUpdated", handleNotificationsUpdated)
-    
-    return () => {
-      isMountedComponent = false
-      clearInterval(interval)
-      window.removeEventListener("notificationsUpdated", handleNotificationsUpdated)
-    }
-  }, [session])
-
-  const fetchNotificationsList = async () => {
-    if (!session?.user?.id) return
-    setNotificationsLoading(true)
-
-    try {
-      const response = await fetch("/api/notifications/history?limit=10")
-      if (!response.ok) throw new Error("Error cargando notificaciones")
-
-      const data = await response.json()
-      const list = data.notifications || []
-      setNotifications(list)
-
-      const toMark = list
-        .filter((item: any) =>
-          item?.status === "delivered" &&
-          ["invitation", "invitation_response"].includes(item?.type)
-        )
-        .map((item: any) => item?._id)
-        .filter(Boolean)
-
-      if (toMark.length > 0) {
-        await Promise.all(toMark.map((id: string) =>
-          fetch("/api/notifications/history", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ notificationId: id, action: "read" }),
-          })
-        ))
-
-        window.dispatchEvent(new CustomEvent("notificationsUpdated"))
-        setNotifications((current) => current.map((item: any) =>
-          toMark.includes(item._id)
-            ? { ...item, status: "read", readAt: new Date().toISOString() }
-            : item
-        ))
-      }
-    } catch (error) {
-      logger.error("Error loading notifications list:", error)
-    } finally {
-      setNotificationsLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    if (notificationsOpen) {
-      fetchNotificationsList()
-
-      // Para admins, auto-refrescar la lista de notificaciones mientras está abierta
-      if (session?.user?.role === "admin") {
-        const refreshInterval = setInterval(fetchNotificationsList, 15000) // Cada 15 segundos
-        return () => clearInterval(refreshInterval)
-      }
-    }
-  }, [notificationsOpen, session?.user?.role])
-
-  const handleSignOut = async () => {
-    // Limpiar localStorage para evitar problemas al cerrar sesión
-    if (localStorage.getItem("admin_selected_user_id")) {
-      localStorage.removeItem("admin_selected_user_id")
-      localStorage.removeItem("admin_selected_user_name")
-    }
-
-    // Usar window.location.href para forzar una redirección completa
-    // que limpie correctamente el estado de la aplicación
-    try {
-      await signOut({ redirect: false })
-      window.location.href = "/"
-    } catch (error) {
-      logger.error("Error al cerrar sesión:", error)
-      // En caso de error, forzar redirección de todos modos
-      window.location.href = "/"
-    }
-  }
-
-  const userInitials = session?.user?.name
-    ? session.user.name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-    : "U"
-
+  // Titulo derivado de la ruta actual
   const derivedTitle = useMemo(() => {
     if (config.title && config.title !== "Dashboard") {
       return config.title
@@ -297,22 +35,19 @@ export function Header() {
     }
 
     const normalized = pathname.replace(/\/+$/, "")
-    const isAdmin = session?.user?.role === "admin"
 
     const directMatch: Record<string, string> = {
       "/dashboard": isAdmin ? "Dashboard Admin" : "Dashboard Usuario",
-      "/dashboard/sleep-statistics": "Estadísticas de Sueño",
-      "/dashboard/children": "Mis Soñadores",
+      "/dashboard/sleep-statistics": "Estadisticas de Sueno",
+      "/dashboard/children": "Mis Sonadores",
       "/dashboard/calendar": "Calendario",
       "/dashboard/assistant": "Asistente IA",
       "/dashboard/patients": "Pacientes",
+      "/dashboard/paciente": "Pacientes",
       "/dashboard/consultas": "Consultas",
       "/dashboard/planes": "Planes",
-      "/dashboard/transcripts": "Transcripts",
-      "/dashboard/notificaciones": "Configuración",
-      "/dashboard/ayuda": "Ayuda",
-      "/dashboard/contacto": "Contacto",
-      "/dashboard/survey": "Encuesta de Sueño",
+      "/dashboard/notificaciones": "Configuracion",
+      "/dashboard/survey": "Encuesta de Sueno",
       "/dashboard/profile": "Perfil",
       "/dashboard/reports": "Reportes",
       "/dashboard/reports/professional": "Reportes Profesionales",
@@ -326,7 +61,7 @@ export function Header() {
       return "Mis Eventos"
     }
     if (normalized.startsWith("/dashboard/children/")) {
-      return "Mis Soñadores"
+      return "Mis Sonadores"
     }
     if (normalized.startsWith("/dashboard/planes/")) {
       return "Planes"
@@ -337,246 +72,92 @@ export function Header() {
     if (normalized.startsWith("/dashboard/consultas/")) {
       return "Consultas"
     }
+    if (normalized.startsWith("/dashboard/paciente/")) {
+      return "Paciente"
+    }
     if (normalized.startsWith("/dashboard/patients/")) {
       return "Pacientes"
     }
 
-    const fallback = config.title || "Dashboard"
-    return fallback
-  }, [config.title, pathname, session?.user?.role])
+    return config.title || "Dashboard"
+  }, [config.title, pathname, isAdmin])
 
   if (!mounted) return null
 
   const safeAreaPaddingTop = "calc(env(safe-area-inset-top, 0px) + 8px)"
-
-  const notificationButton = config.showNotifications !== false ? (
-    <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-      <PopoverTrigger asChild>
-        <Button 
-          variant="ghost" 
-          className="relative p-2 min-h-[44px] min-w-[44px] h-auto w-auto flex items-center justify-center rounded-full bg-white/70 backdrop-blur hover:bg-white"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-[18px] w-[15.75px] text-[#2553A1]"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
-          </svg>
-          {notificationCount > 0 && (
-            <div className="absolute top-1 right-1 h-4 w-4 bg-[#DF3F40] rounded-full flex items-center justify-center">
-              <span className="text-xs text-white font-medium leading-none">{notificationCount}</span>
-            </div>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0">
-        <div className="p-4 border-b">
-          <h3 className="text-sm font-medium text-[#1F2937]">Notificaciones</h3>
-          <p className="text-xs text-muted-foreground mt-1">Últimas solicitudes y avisos</p>
-        </div>
-        <div className="max-h-80 overflow-y-auto">
-          {notificationsLoading ? (
-            <div className="flex items-center justify-center py-6">
-              <Icons.spinner className="h-5 w-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : notifications.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">
-              No hay notificaciones nuevas
-            </div>
-          ) : (
-            <div className="divide-y">
-              {notifications.map((notification) => {
-                const createdAt = notification?.createdAt ? new Date(notification.createdAt) : null
-                const isZoomTranscript = notification.type === "zoom_transcript"
-
-                return (
-                  <div
-                    key={notification._id || notification.title}
-                    className="p-4 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => {
-                      if (isZoomTranscript && notification.childId) {
-                        if (notification.childId) {
-                          localStorage.setItem("admin_selected_child_id", notification.childId.toString())
-                          if (notification.metadata?.childName) {
-                            localStorage.setItem("admin_selected_child_name", notification.metadata.childName)
-                          }
-                        }
-                        setNotificationsOpen(false)
-                        router.push("/dashboard/consultas")
-                      }
-                    }}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1">
-                        {isZoomTranscript ? (
-                          <Video className="h-4 w-4 text-blue-600" />
-                        ) : (
-                          <Icons.bell className="h-4 w-4 text-[#68A1C8]" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-[#1F2937]">
-                          {notification.title || "Nueva notificación"}
-                        </p>
-                        {notification.message && (
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                            {notification.message}
-                          </p>
-                        )}
-                        {createdAt && (
-                          <p className="text-xs text-muted-foreground mt-2">
-                            {formatDistanceToNow(createdAt, { addSuffix: true, locale: es })}
-                          </p>
-                        )}
-                      </div>
-                      {notification.status !== "read" && (
-                        <span className="inline-flex h-2 w-2 rounded-full bg-[#68A1C8] mt-2" />
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
-  ) : null
-
-  const profileMenu = (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className="group flex items-center gap-3 rounded-full border border-white/50 bg-white/80 px-2.5 py-1 pr-3 text-left shadow-sm ring-1 ring-white/40 transition hover:bg-white hover:shadow-md"
-          aria-label="Abrir menú de perfil"
-        >
-          <UserAvatar 
-            name={sessionUser?.name} 
-            image={sessionUser?.image}
-            className="h-9 w-9 ring-2 ring-white/80 shadow-sm" 
-            fallbackClassName="bg-[#2553A1]"
-          />
-          <div className="hidden sm:flex flex-col leading-tight text-[#1F2937]">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#628BE6]">{roleLabel}</span>
-            <span className="text-sm font-semibold">{userFirstName}</span>
-          </div>
-          <Icons.chevronDown className="h-4 w-4 text-[#2553A1] transition group-hover:translate-y-0.5" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/dashboard/profile">Perfil</Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/dashboard/configuracion">Configuración</Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut}>Cerrar sesión</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
+  const hasCustomContent = !!config.customContent
+  const isAdminDesktop = isAdmin && mounted
 
   return (
-    <header className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: "#A0D8D0" }}>
+    <header
+      className="sticky top-0 z-30 shadow-sm"
+      style={{ backgroundColor: "#A0D8D0", minHeight: "64px" }}
+    >
+      {/* ===== Mobile ===== */}
+      <div className="md:hidden px-3 pb-3" style={{ paddingTop: safeAreaPaddingTop }}>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Izquierda: child selector (para parent) */}
+          <div className="flex flex-1 flex-wrap items-center gap-3 pl-14">
+            {config.showChildSelector !== false && (
+              <div className="flex min-w-[180px] max-w-[360px] flex-1 items-center gap-2">
+                <div className="flex-1 min-w-[160px]">
+                  <ChildSelector />
+                </div>
+              </div>
+            )}
+          </div>
+          {/* Derecha: utilidades */}
+          <div className="flex items-center justify-end gap-2 w-full sm:w-auto sm:ml-auto">
+            <HeaderUtilityBar />
+          </div>
+        </div>
+      </div>
+
+      {/* ===== Desktop ===== */}
       <div
-        className="px-3 md:px-6 pb-3 md:pb-4"
+        className="hidden md:block px-6 pb-2"
         style={{ paddingTop: safeAreaPaddingTop }}
       >
-        <div className="flex flex-col gap-3 md:gap-4">
-          <div className="flex flex-wrap items-center gap-3 sm:justify-between">
-            <div className="flex flex-1 flex-wrap items-center gap-3 pl-14 md:pl-0">
-              {config.actions && (
-                <div className="flex-shrink-0 order-1">
-                  <div className="flex items-center gap-2 text-white">
+        <div className="flex items-center gap-4 min-h-[48px]">
+          {/* ZONA IZQUIERDA */}
+          <div className="flex-1 min-w-0">
+            {hasCustomContent ? (
+              // Patient Hub: breadcrumb + tabs
+              config.customContent
+            ) : (
+              // Paginas normales: titulo + child selector + actions
+              <div className="flex items-center gap-4">
+                {/* Titulo */}
+                <h1 className="text-lg font-bold text-[#1a3a4a] whitespace-nowrap shrink-0">
+                  {derivedTitle}
+                </h1>
+
+                {/* Actions opcionales */}
+                {config.actions && (
+                  <div className="flex items-center gap-2 text-white shrink-0">
                     {config.actions}
                   </div>
-                </div>
-              )}
+                )}
 
-              {config.showChildSelector !== false && (
-                <div className="order-2 flex min-w-[220px] max-w-[420px] flex-1 items-center gap-2">
-                  <div className="flex-1 min-w-[180px]">
-                    <ChildSelector />
+                {/* Child selector (solo para parents, no admin) */}
+                {!isAdminDesktop && config.showChildSelector !== false && (
+                  <div className="flex items-center gap-2 min-w-[180px] max-w-[360px] flex-1">
+                    <div className="flex-1 min-w-[160px]">
+                      <ChildSelector />
+                    </div>
+                    <div className="hidden lg:block">
+                      <ChildAgeFromContext />
+                    </div>
                   </div>
-                  <div className="hidden lg:block">
-                    <ChildAgeFromContext />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-end gap-2 md:gap-3 w-full sm:w-auto sm:ml-auto">
-              <BugCenter />
-              {notificationButton}
-              {profileMenu}
-            </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {config.showSearch !== false && isAdmin && (
-            <Popover open={searchOpen} onOpenChange={setSearchOpen}>
-              <PopoverTrigger asChild>
-                <div className="hidden lg:flex items-center bg-[#DEF1F1] rounded-[30px] px-4 py-2 h-12 min-w-[220px] max-w-[360px] cursor-pointer hover:bg-[#c8e3e3] transition-colors">
-                  <Search className="h-5 w-5 text-[#68A1C8] flex-shrink-0" />
-                  <span className="ml-2.5 text-[#68A1C8] text-base font-medium opacity-70">
-                    Buscar cliente o usuario...
-                  </span>
-                </div>
-              </PopoverTrigger>
-              <PopoverContent className="w-[400px] p-0" align="start">
-                <Command shouldFilter={false}>
-                  <CommandInput
-                    placeholder="Buscar cliente o usuario..."
-                    value={searchValue}
-                    onValueChange={setSearchValue}
-                  />
-                  <CommandList>
-                    {searchLoading ? (
-                      <div className="flex items-center justify-center py-6">
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        <span className="text-sm text-muted-foreground">Cargando...</span>
-                      </div>
-                    ) : (
-                      <>
-                        <CommandEmpty>No se encontraron usuarios.</CommandEmpty>
-                        <CommandGroup heading="Usuarios">
-                          {filteredSearchUsers.map((user) => {
-                            const children = searchChildren[user._id] || []
-                            return (
-                              <CommandItem
-                                key={user._id}
-                                value={user.name}
-                                onSelect={() => handleSearchSelect(user)}
-                                className="flex items-center gap-3 py-2"
-                              >
-                                <User className="h-4 w-4 text-slate-500" />
-                                <div className="flex-1">
-                                  <div className="font-medium text-sm">{user.name}</div>
-                                  <div className="text-xs text-muted-foreground">{user.email}</div>
-                                  {children.length > 0 && (
-                                    <div className="flex items-center gap-1 mt-1">
-                                      <Baby className="h-3 w-3 text-slate-400" />
-                                      <span className="text-xs text-slate-500">
-                                        {children.map(c => c.firstName).join(", ")}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                              </CommandItem>
-                            )
-                          })}
-                        </CommandGroup>
-                      </>
-                    )}
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          )}
+          {/* ZONA DERECHA: HeaderUtilityBar (siempre igual) */}
+          <div className="shrink-0">
+            <HeaderUtilityBar />
+          </div>
         </div>
       </div>
     </header>

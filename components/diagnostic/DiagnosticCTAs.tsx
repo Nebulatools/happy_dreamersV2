@@ -12,6 +12,7 @@ interface DiagnosticCTAsProps {
   parentId?: string
   parentName?: string
   className?: string
+  onNavigateToConsultas?: (subtab?: string) => void
 }
 
 /**
@@ -30,17 +31,25 @@ export function EditPlanButton({
   parentId,
   parentName,
   className,
+  onNavigateToConsultas,
 }: {
   childId: string
   planId?: string
   parentId?: string
   parentName?: string
   className?: string
+  onNavigateToConsultas?: (subtab?: string) => void
 }) {
   const router = useRouter()
   const { setActiveChild } = useActiveChild()
 
   const handleClick = () => {
+    // Si el padre maneja la navegacion (modo embedded en hub), delegar
+    if (onNavigateToConsultas) {
+      onNavigateToConsultas("plan")
+      return
+    }
+
     // Sincronizar contexto antes de navegar (si tenemos parentId)
     if (parentId) {
       setActiveChild(childId, parentId, parentName || "")
@@ -87,16 +96,24 @@ export function GenerateNewPlanButton({
   parentId,
   parentName,
   className,
+  onNavigateToConsultas,
 }: {
   childId: string
   parentId?: string
   parentName?: string
   className?: string
+  onNavigateToConsultas?: (subtab?: string) => void
 }) {
   const router = useRouter()
   const { setActiveChild } = useActiveChild()
 
   const handleClick = () => {
+    // Si el padre maneja la navegacion (modo embedded en hub), delegar
+    if (onNavigateToConsultas) {
+      onNavigateToConsultas("transcript")
+      return
+    }
+
     // Sincronizar contexto antes de navegar (si tenemos parentId)
     if (parentId) {
       setActiveChild(childId, parentId, parentName || "")
@@ -141,6 +158,7 @@ export function DiagnosticCTAs({
   parentId,
   parentName,
   className,
+  onNavigateToConsultas,
 }: DiagnosticCTAsProps) {
   return (
     <div
@@ -154,11 +172,13 @@ export function DiagnosticCTAs({
         planId={planId}
         parentId={parentId}
         parentName={parentName}
+        onNavigateToConsultas={onNavigateToConsultas}
       />
       <GenerateNewPlanButton
         childId={childId}
         parentId={parentId}
         parentName={parentName}
+        onNavigateToConsultas={onNavigateToConsultas}
       />
     </div>
   )

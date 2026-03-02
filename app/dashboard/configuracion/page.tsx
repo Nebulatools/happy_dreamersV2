@@ -1,27 +1,19 @@
-// Página de Configuración de Cuenta según diseño de Figma
-// Gestión de perfil, seguridad y preferencias de notificación
+// Pagina de Configuracion de Cuenta
+// Gestion de perfil, seguridad y cerrar sesion
 
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useSession, signOut } from "next-auth/react"
+import { signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { usePageHeaderConfig } from "@/context/page-header-context"
 import { useToast } from "@/hooks/use-toast"
-import { ToggleSwitch } from "@/components/ui/toggle-switch"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useUser } from "@/context/UserContext"
-import { 
-  Camera,
-  Trash2,
-  LogOut,
-  AlertTriangle,
-} from "lucide-react"
+import { LogOut } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -42,49 +34,32 @@ interface UserProfile {
   name: string
   email: string
   phone: string
-  language: string
   timezone: string
   currentPassword: string
   newPassword: string
   confirmPassword: string
-  twoFactorEnabled: boolean
-  sleepReminders: boolean
-  weeklyTips: boolean
-  appUpdates: boolean
-  marketingEmails: boolean
 }
 
 export default function ConfiguracionPage() {
-  const router = useRouter()
-  const { data: session } = useSession()
   const { toast } = useToast()
   const { userData, isLoading: userLoading, updateProfile, changePassword } = useUser()
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [profileData, setProfileData] = useState<UserProfile>({
     name: "",
     email: "",
     phone: "",
-    language: "es",
     timezone: "America/Monterrey",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
-    twoFactorEnabled: false,
-    sleepReminders: true,
-    weeklyTips: true,
-    appUpdates: false,
-    marketingEmails: false,
   })
 
   usePageHeaderConfig({
-    title: "Configuración",
+    title: "Configuracion",
     showChildSelector: false,
-    showSearch: false,
-    showNotifications: true,
   })
 
-  // Update profileData when userData changes
+  // Actualizar profileData cuando cambian los datos del usuario
   useEffect(() => {
     if (userData.name || userData.email || userData.phone) {
       setProfileData(prev => ({
@@ -102,29 +77,26 @@ export default function ConfiguracionPage() {
     : "MG"
 
   const handleSaveProfile = async () => {
-    const success = await updateProfile({
+    await updateProfile({
       name: profileData.name,
       phone: profileData.phone,
       timezone: profileData.timezone,
     })
-    
-    // The UserContext handles the toast notifications and data synchronization
   }
 
   const handleUpdatePassword = async () => {
     if (profileData.newPassword !== profileData.confirmPassword) {
       toast({
         title: "Error",
-        description: "Las contraseñas no coinciden",
+        description: "Las contrasenas no coinciden",
         variant: "destructive",
       })
       return
     }
 
     const success = await changePassword(profileData.currentPassword, profileData.newPassword)
-    
+
     if (success) {
-      // Limpiar campos de contraseña
       setProfileData(prev => ({
         ...prev,
         currentPassword: "",
@@ -141,45 +113,20 @@ export default function ConfiguracionPage() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo cerrar la sesión",
+        description: "No se pudo cerrar la sesion",
         variant: "destructive",
       })
     }
   }
 
-  const handleDeleteAccount = async () => {
-    // Por seguridad, la eliminación de cuentas está deshabilitada temporalmente
-    toast({
-      title: "Función no disponible",
-      description: "Por seguridad, la eliminación de cuentas debe realizarse contactando al soporte",
-    })
-    setShowDeleteModal(false)
-    
-    // Implementación futura:
-    // try {
-    //   const response = await fetch("/api/user/account", {
-    //     method: "DELETE",
-    //   })
-    //   if (!response.ok) throw new Error("Error al eliminar la cuenta")
-    //   await signOut({ redirect: false })
-    //   window.location.href = "/"
-    // } catch (error) {
-    //   toast({
-    //     title: "Error",
-    //     description: "No se pudo eliminar la cuenta",
-    //     variant: "destructive",
-    //   })
-    // }
-  }
-
-  // Show loading state while user data is being loaded
+  // Estado de carga mientras se obtienen datos del usuario
   if (userLoading || (!userData.name && !userData.email)) {
     return (
       <div className="max-w-6xl mx-auto p-6 space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-[#1F2937]">Configuración de Cuenta</h1>
+          <h1 className="text-3xl font-bold text-[#1F2937]">Configuracion de Cuenta</h1>
           <p className="text-gray-600 mt-2">
-            Cargando información del usuario...
+            Cargando informacion del usuario...
           </p>
         </div>
         <div className="flex justify-center items-center h-64">
@@ -193,20 +140,19 @@ export default function ConfiguracionPage() {
     <div className="w-full max-w-[720px] md:max-w-6xl mx-auto px-4 md:px-6 space-y-6 pb-24 safe-area-bottom min-h-[100svh]">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-[#1F2937]">Configuración de Cuenta</h1>
+        <h1 className="text-3xl font-bold text-[#1F2937]">Configuracion de Cuenta</h1>
         <p className="text-gray-600 mt-2">
-          Gestiona tu perfil, preferencias y configuración de seguridad.
+          Gestiona tu perfil y configuracion de seguridad.
         </p>
       </div>
 
-      {/* Sección 1: Información Personal */}
+      {/* Seccion 1: Informacion Personal */}
       <Card className="p-6">
-        <h2 className="text-lg font-bold mb-6">Información Personal</h2>
-        
-        {/* Foto de perfil */}
+        <h2 className="text-lg font-bold mb-6">Informacion Personal</h2>
+
+        {/* Avatar (solo lectura) */}
         <div className="mb-6">
-          <h3 className="text-base font-medium mb-2">Foto de perfil</h3>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             <Avatar className="w-16 h-16">
               <AvatarImage src="" alt={profileData.name} />
               <AvatarFallback className="bg-[#BFD7F3] text-[#2F2F2F] text-lg font-medium">
@@ -214,36 +160,8 @@ export default function ConfiguracionPage() {
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm text-gray-600 mb-3">
-                Usa una foto o imagen que sea de al menos 132px x 132px.
-              </p>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="text-[#2553A1]"
-                  onClick={() => {
-                    toast({
-                      title: "Función en desarrollo",
-                      description: "La carga de fotos de perfil estará disponible próximamente",
-                    })
-                  }}
-                >
-                  Cambiar foto
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    toast({
-                      title: "Función en desarrollo",
-                      description: "La eliminación de fotos estará disponible próximamente",
-                    })
-                  }}
-                >
-                  Eliminar
-                </Button>
-              </div>
+              <p className="text-base font-medium">{profileData.name}</p>
+              <p className="text-sm text-gray-500">{profileData.email}</p>
             </div>
           </div>
         </div>
@@ -259,9 +177,9 @@ export default function ConfiguracionPage() {
               className="mt-1"
             />
           </div>
-          
+
           <div>
-            <Label htmlFor="email">Correo Electrónico</Label>
+            <Label htmlFor="email">Correo Electronico</Label>
             <Input
               id="email"
               value={profileData.email}
@@ -269,9 +187,9 @@ export default function ConfiguracionPage() {
               className="mt-1 bg-gray-50"
             />
           </div>
-          
+
           <div>
-            <Label htmlFor="phone">Número de Teléfono</Label>
+            <Label htmlFor="phone">Numero de Telefono</Label>
             <Input
               id="phone"
               value={profileData.phone}
@@ -301,34 +219,6 @@ export default function ConfiguracionPage() {
             </Select>
             <p className="text-xs text-gray-500 mt-1">Predeterminado: America/Monterrey.</p>
           </div>
-          
-          <div>
-            <Label htmlFor="language">Idioma Preferido</Label>
-            <Select
-              value={profileData.language}
-              onValueChange={(value) => {
-                setProfileData({ ...profileData, language: value })
-                const languageNames = {
-                  es: "Español",
-                  en: "English", 
-                  pt: "Português",
-                }
-                toast({
-                  title: "Función en desarrollo",
-                  description: `El cambio de idioma a ${languageNames[value as keyof typeof languageNames]} estará disponible próximamente. La aplicación permanece en español.`,
-                })
-              }}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="es">Español</SelectItem>
-                <SelectItem value="en">English</SelectItem>
-                <SelectItem value="pt">Português</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
         <div className="mt-6">
@@ -342,16 +232,16 @@ export default function ConfiguracionPage() {
         </div>
       </Card>
 
-      {/* Sección 2: Seguridad */}
+      {/* Seccion 2: Seguridad */}
       <Card className="p-6">
         <h2 className="text-lg font-bold mb-6">Seguridad</h2>
-        
-        {/* Cambiar contraseña */}
-        <div className="mb-8">
-          <h3 className="text-base font-medium mb-4">Cambiar Contraseña</h3>
+
+        {/* Cambiar contrasena */}
+        <div>
+          <h3 className="text-base font-medium mb-4">Cambiar Contrasena</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="currentPassword">Contraseña Actual</Label>
+              <Label htmlFor="currentPassword">Contrasena Actual</Label>
               <Input
                 id="currentPassword"
                 type="password"
@@ -360,9 +250,9 @@ export default function ConfiguracionPage() {
                 className="mt-1"
               />
             </div>
-            
+
             <div>
-              <Label htmlFor="newPassword">Nueva Contraseña</Label>
+              <Label htmlFor="newPassword">Nueva Contrasena</Label>
               <Input
                 id="newPassword"
                 type="password"
@@ -371,9 +261,9 @@ export default function ConfiguracionPage() {
                 className="mt-1"
               />
             </div>
-            
+
             <div>
-              <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña</Label>
+              <Label htmlFor="confirmPassword">Confirmar Nueva Contrasena</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -388,154 +278,36 @@ export default function ConfiguracionPage() {
             disabled={userLoading}
             className="mt-4 hd-gradient-button text-white"
           >
-            Actualizar Contraseña
-          </Button>
-        </div>
-
-        {/* Verificación en dos pasos */}
-        <div className="border-t pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-medium">Verificación en Dos Pasos</h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Añade una capa extra de seguridad a tu cuenta requiriendo un código adicional al iniciar sesión.
-              </p>
-            </div>
-            <ToggleSwitch
-              checked={profileData.twoFactorEnabled}
-              onCheckedChange={(checked) => {
-                setProfileData({ ...profileData, twoFactorEnabled: checked })
-                toast({
-                  title: "Función en desarrollo",
-                  description: "La autenticación de dos factores estará disponible próximamente",
-                })
-              }}
-            />
-          </div>
-        </div>
-      </Card>
-
-      {/* Sección 3: Preferencias de Notificación */}
-      <Card className="p-6">
-        <h2 className="text-lg font-bold mb-6">Preferencias de Notificación</h2>
-        
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-medium">Recordatorios de Sueño</h3>
-              <p className="text-sm text-gray-600">
-                Recibe notificaciones para registrar los patrones de sueño de tu hijo/a.
-              </p>
-            </div>
-            <ToggleSwitch
-              checked={profileData.sleepReminders}
-              onCheckedChange={(checked) => setProfileData({ ...profileData, sleepReminders: checked })}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-medium">Consejos Semanales</h3>
-              <p className="text-sm text-gray-600">
-                Recibe consejos personalizados para mejorar el sueño de tu hijo/a.
-              </p>
-            </div>
-            <ToggleSwitch
-              checked={profileData.weeklyTips}
-              onCheckedChange={(checked) => setProfileData({ ...profileData, weeklyTips: checked })}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-medium">Actualizaciones de la Aplicación</h3>
-              <p className="text-sm text-gray-600">
-                Recibe notificaciones sobre nuevas características y mejoras.
-              </p>
-            </div>
-            <ToggleSwitch
-              checked={profileData.appUpdates}
-              onCheckedChange={(checked) => setProfileData({ ...profileData, appUpdates: checked })}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-medium">Correos Electrónicos de Marketing</h3>
-              <p className="text-sm text-gray-600">
-                Recibe ofertas especiales y noticias sobre nuestros servicios.
-              </p>
-            </div>
-            <ToggleSwitch
-              checked={profileData.marketingEmails}
-              onCheckedChange={(checked) => setProfileData({ ...profileData, marketingEmails: checked })}
-            />
-          </div>
-        </div>
-        
-        {/* Botón de guardar preferencias */}
-        <div className="mt-6 flex justify-end">
-          <Button
-            onClick={() => {
-              toast({
-                title: "Preferencias guardadas",
-                description: "Tus preferencias de notificación se han actualizado (función en desarrollo)",
-              })
-            }}
-            className="hd-gradient-button text-white"
-          >
-            Guardar Preferencias
+            Actualizar Contrasena
           </Button>
         </div>
       </Card>
 
-      {/* Sección 4: Acciones de Cuenta */}
+      {/* Seccion 3: Cerrar Sesion */}
       <Card className="p-6">
-        <h2 className="text-lg font-bold mb-6">Acciones de Cuenta</h2>
-        
-        <div className="space-y-6">
-          {/* Cerrar sesión */}
-          <div className="pb-6 border-b">
-            <h3 className="text-base font-medium mb-2">Cerrar Sesión en Todos los Dispositivos</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Cierra la sesión en todos los dispositivos donde hayas iniciado sesión.
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => setShowLogoutModal(true)}
-              className="text-[#2553A1] border-gray-300"
-            >
-              Cerrar Sesión
-            </Button>
-          </div>
-
-          {/* Eliminar cuenta */}
-          <div>
-            <h3 className="text-base font-medium text-red-600 mb-2">Eliminar Cuenta</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Elimina permanentemente tu cuenta y todos tus datos. Esta acción no se puede deshacer.
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => setShowDeleteModal(true)}
-              className="text-red-600 border-red-200 hover:bg-red-50"
-            >
-              Eliminar Cuenta
-            </Button>
-          </div>
-        </div>
+        <h2 className="text-lg font-bold mb-4">Sesion</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Cierra la sesion en todos los dispositivos donde hayas iniciado sesion.
+        </p>
+        <Button
+          variant="outline"
+          onClick={() => setShowLogoutModal(true)}
+          className="text-[#2553A1] border-gray-300"
+        >
+          Cerrar Sesion
+        </Button>
       </Card>
 
-      {/* Modal de confirmación de cierre de sesión */}
+      {/* Modal de confirmacion de cierre de sesion */}
       <Dialog open={showLogoutModal} onOpenChange={setShowLogoutModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <div className="mx-auto mb-4 w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
               <LogOut className="w-6 h-6 text-blue-600" />
             </div>
-            <DialogTitle className="text-center">Cerrar Sesión</DialogTitle>
+            <DialogTitle className="text-center">Cerrar Sesion</DialogTitle>
             <DialogDescription className="text-center">
-              ¿Estás seguro de que quieres cerrar sesión en todos los dispositivos?
+              Estas seguro de que quieres cerrar sesion en todos los dispositivos?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:justify-center">
@@ -549,43 +321,7 @@ export default function ConfiguracionPage() {
               onClick={handleLogoutAllDevices}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              Sí, Cerrar Sesión
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de confirmación de eliminación */}
-      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="mx-auto mb-4 w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-              <AlertTriangle className="w-8 h-8 text-red-600" />
-            </div>
-            <DialogTitle className="text-center text-xl">Confirmar Eliminación</DialogTitle>
-            <DialogDescription className="text-center space-y-3">
-              <span className="block text-black">
-                ¿Estás seguro de que quieres eliminar a <strong>{profileData.name || "tu cuenta"}</strong>?
-              </span>
-              <span className="block text-red-500 text-sm mt-2">
-                Esta acción no se puede deshacer y se perderán todos los datos asociados.
-              </span>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex gap-2 sm:justify-center">
-            <Button
-              variant="outline"
-              onClick={() => setShowDeleteModal(false)}
-              className="min-w-[120px]"
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteAccount}
-              className="min-w-[120px]"
-            >
-              Sí, Eliminar
+              Si, Cerrar Sesion
             </Button>
           </DialogFooter>
         </DialogContent>
