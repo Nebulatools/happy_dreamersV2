@@ -4,10 +4,10 @@
 
 "use client"
 
-import { useMemo, useCallback, useEffect } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, BarChart3, Stethoscope, CalendarDays, MessageSquare, ClipboardList, FileText } from "lucide-react"
+import { ArrowLeft, BarChart3, Stethoscope, CalendarDays, MessageSquare, ClipboardList, FileText, Archive, ArchiveRestore, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useActiveChild } from "@/context/active-child-context"
 import { usePageHeaderConfig } from "@/context/page-header-context"
@@ -37,6 +37,7 @@ interface PatientHubClientProps {
     lastName: string
     birthDate: string
     parentId: string
+    archived?: boolean
   }
 }
 
@@ -65,6 +66,27 @@ export default function PatientHubClient({ childId, childData }: PatientHubClien
   const searchParams = useSearchParams()
   const router = useRouter()
   const { activeChildId, setActiveChildId, setActiveUserId } = useActiveChild()
+  const [isArchived, setIsArchived] = useState(childData.archived === true)
+  const [isRestoringArchive, setIsRestoringArchive] = useState(false)
+
+  // Restaurar paciente archivado
+  const handleRestore = async () => {
+    setIsRestoringArchive(true)
+    try {
+      const response = await fetch("/api/admin/children/archive", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ childId, archived: false }),
+      })
+      if (response.ok) {
+        setIsArchived(false)
+      }
+    } catch (error) {
+      console.error("Error restoring child:", error)
+    } finally {
+      setIsRestoringArchive(false)
+    }
+  }
 
   // Sincronizar el contexto global con el childId de la URL
   // Resuelve: admin selecciona otro nino pero el contexto sigue con el anterior
@@ -156,6 +178,31 @@ export default function PatientHubClient({ childId, childData }: PatientHubClien
 
   return (
     <div className="min-h-screen">
+      {/* Banner de paciente archivado */}
+      {isArchived && (
+        <div className="container pt-3 pb-0">
+          <div className="flex items-center justify-between gap-3 bg-gray-50 border border-gray-200 rounded-xl px-5 py-3">
+            <div className="flex items-center gap-2.5 text-sm text-gray-500 font-medium">
+              <Archive className="h-4 w-4 text-gray-400" />
+              Este paciente esta archivado
+            </div>
+            <button
+              type="button"
+              disabled={isRestoringArchive}
+              onClick={handleRestore}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-[#2553A1] text-white hover:bg-[#1a4391] transition-colors disabled:opacity-60"
+            >
+              {isRestoringArchive ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <ArchiveRestore className="h-3.5 w-3.5" />
+              )}
+              Restaurar
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Contenido de los tabs - render condicional para evitar crash entre tabs */}
       <div className="container py-3">
         {activeTab === "resumen" && (

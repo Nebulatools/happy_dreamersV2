@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Search, ArrowRight, Users } from "lucide-react"
+import { Loader2, Search, ArrowRight, Users, Archive, ArchiveRestore } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { createLogger } from "@/lib/logger"
 import { useActiveChild } from "@/context/active-child-context"
@@ -27,6 +27,7 @@ interface Child {
   firstName: string
   lastName: string
   parentId: string
+  archived?: boolean
   surveyData?: {
     completed?: boolean
     completedAt?: string
@@ -63,7 +64,11 @@ export default function PacienteListClient() {
   const [loading, setLoading] = useState(true)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
-  const [childrenPrefetched, setChildrenPrefetched] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
+  const [archivingChildId, setArchivingChildId] = useState<string | null>(null)
+  const [confirmArchive, setConfirmArchive] = useState<{
+    childId: string; childName: string; archived: boolean
+  } | null>(null)
 
   // Contadores para el header
   const counts = useMemo(() => {
@@ -139,12 +144,13 @@ export default function PacienteListClient() {
     return () => { cancelled = true }
   }, [toast])
 
-  // Precargar todos los ninos
+  // Precargar todos los ninos (refetch cuando cambia showArchived)
   useEffect(() => {
-    if (!users.length || childrenPrefetched) return
+    if (!users.length) return
     const fetchAllChildren = async () => {
       try {
-        const response = await fetch("/api/children")
+        const url = showArchived ? "/api/children?includeArchived=true" : "/api/children"
+        const response = await fetch(url)
         if (!response.ok) {
           throw new Error("Error al precargar ninos")
         }
@@ -158,29 +164,26 @@ export default function PacienteListClient() {
           acc[child.parentId].push(child)
           return acc
         }, {})
-        if (Object.keys(grouped).length) {
-          setAllChildrenMap(grouped)
-          setUserChildren(prev => ({ ...grouped, ...prev }))
-        }
+        setAllChildrenMap(grouped)
+        setUserChildren(grouped)
       } catch (error) {
         logger.warn("No se pudieron precargar los ninos", error)
-      } finally {
-        setChildrenPrefetched(true)
       }
     }
     fetchAllChildren()
-  }, [users.length, childrenPrefetched])
+  }, [users.length, showArchived])
 
   // Cargar los ninos de un usuario especifico
   const loadUserChildren = useCallback(async (userId: string) => {
     try {
       if (userChildren[userId]) return
 
-      let response = await fetch(`/api/children?userId=${userId}`)
+      const archivedParam = showArchived ? "&includeArchived=true" : ""
+      let response = await fetch(`/api/children?userId=${userId}${archivedParam}`)
       // Retry una vez si falla (race condition de sesion)
       if (!response.ok) {
         await new Promise(r => setTimeout(r, 500))
-        response = await fetch(`/api/children?userId=${userId}`)
+        response = await fetch(`/api/children?userId=${userId}${archivedParam}`)
       }
       if (!response.ok) {
         throw new Error("Error al cargar los ninos del usuario")
@@ -198,7 +201,7 @@ export default function PacienteListClient() {
         variant: "destructive",
       })
     }
-  }, [userChildren, toast])
+  }, [userChildren, toast, showArchived])
 
   // Seleccionar una familia y cargar sus ninos
   const handleSelectFamily = useCallback((userId: string) => {
@@ -217,6 +220,57 @@ export default function PacienteListClient() {
     })
     setActiveChild(child._id, child.parentId, userName)
     router.push(`/dashboard/paciente/${child._id}`)
+  }
+
+  // Archivar o desarchivar un nino
+  const handleToggleArchive = async (childId: string, archived: boolean) => {
+    setArchivingChildId(childId)
+    try {
+      const response = await fetch("/api/admin/children/archive", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ childId, archived }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Error al actualizar estado de archivo")
+      }
+
+      // Actualizar el estado local: modificar el campo archived del nino
+      const updateChildInMap = (map: Record<string, Child[]>) => {
+        const updated = { ...map }
+        for (const userId of Object.keys(updated)) {
+          updated[userId] = updated[userId].map(c =>
+            c._id === childId ? { ...c, archived } : c
+          )
+          // Si se archiva y no estamos mostrando archivados, filtrar
+          if (archived && !showArchived) {
+            updated[userId] = updated[userId].filter(c => c._id !== childId)
+          }
+        }
+        return updated
+      }
+
+      setUserChildren(prev => updateChildInMap(prev))
+      setAllChildrenMap(prev => updateChildInMap(prev))
+
+      toast({
+        title: archived ? "Paciente archivado" : "Paciente restaurado",
+        description: archived
+          ? "Puedes verlo activando 'Mostrar archivados'"
+          : "El paciente aparece de nuevo en la lista activa",
+      })
+    } catch (error) {
+      logger.error("Error al archivar/desarchivar:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estado del paciente.",
+        variant: "destructive",
+      })
+    } finally {
+      setArchivingChildId(null)
+      setConfirmArchive(null)
+    }
   }
 
   // Extraer apellido del nombre completo
@@ -355,6 +409,36 @@ export default function PacienteListClient() {
           </div>
         </div>
 
+        {/* Toggle archivados */}
+        <div className="px-4 pt-2 pb-1 border-b border-[#e8f4f1]">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={showArchived}
+              onClick={() => setShowArchived(prev => !prev)}
+              className={[
+                "relative inline-flex h-5 w-9 shrink-0 items-center",
+                "rounded-full border-2 border-transparent transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2",
+                "focus-visible:ring-[#628BE6]/40",
+                showArchived ? "bg-[#628BE6]" : "bg-[#d0e8e3]",
+              ].join(" ")}
+            >
+              <span
+                className={[
+                  "pointer-events-none block h-3.5 w-3.5",
+                  "rounded-full bg-white shadow-sm transition-transform",
+                  showArchived ? "translate-x-4" : "translate-x-0.5",
+                ].join(" ")}
+              />
+            </button>
+            <span className="text-[11px] font-medium text-[#7a9e97]">
+              Mostrar archivados
+            </span>
+          </label>
+        </div>
+
         {/* Header de lista */}
         <div className="px-4 pt-2.5 pb-1.5 flex justify-between items-center">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-[#8ab5ad]">
@@ -480,24 +564,80 @@ export default function PacienteListClient() {
                   {selectedChildren.map(child => {
                     const surveyCompleted = child.surveyData?.completed === true ||
                       (!!child.surveyData?.completedAt && child.surveyData?.isPartial !== true)
+                    const isArchived = child.archived === true
+                    const isArchiving = archivingChildId === child._id
 
                     return (
                       <div
                         key={child._id}
-                        className="bg-white rounded-[14px] p-5 border border-[#d8efeb] transition-all cursor-pointer hover:shadow-[0_4px_16px_rgba(26,60,74,0.08)] hover:border-[#628BE6] hover:-translate-y-px"
+                        className={[
+                          "bg-white rounded-[14px] p-5 border",
+                          "transition-all cursor-pointer",
+                          "hover:shadow-[0_4px_16px_rgba(26,60,74,0.08)]",
+                          "hover:-translate-y-px",
+                          isArchived
+                            ? "border-[#d8efeb]/60 opacity-55 hover:opacity-80 hover:border-[#8ab5ad]"
+                            : "border-[#d8efeb] hover:border-[#628BE6]",
+                        ].join(" ")}
                         onClick={() => handleChildClick(child, selectedUser.name)}
                       >
-                        {/* Top: avatar + nombre */}
+                        {/* Top: avatar + nombre + boton archivar */}
                         <div className="flex items-center gap-3 mb-3.5">
-                          <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-base font-bold shrink-0">
+                          <div className={[
+                            "h-11 w-11 rounded-xl flex items-center",
+                            "justify-center text-white text-base",
+                            "font-bold shrink-0",
+                            isArchived
+                              ? "bg-gradient-to-br from-gray-400 to-gray-500"
+                              : "bg-gradient-to-br from-blue-500 to-purple-500",
+                          ].join(" ")}>
                             {child.firstName?.charAt(0)?.toUpperCase() || "?"}
                           </div>
-                          <div>
-                            <p className="text-base font-bold text-[#1a3a4a]">
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-base font-bold leading-tight truncate ${
+                              isArchived ? "text-[#1a3a4a]/50" : "text-[#1a3a4a]"
+                            }`}>
                               {child.firstName} {child.lastName}
                             </p>
                           </div>
+                          {/* Boton archivar/desarchivar */}
+                          <button
+                            type="button"
+                            title={isArchived ? "Restaurar paciente" : "Archivar paciente"}
+                            disabled={isArchiving}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setConfirmArchive({
+                                childId: child._id,
+                                childName: `${child.firstName} ${child.lastName}`.trim(),
+                                archived: !isArchived,
+                              })
+                            }}
+                            className={`shrink-0 p-1.5 rounded-lg transition-all ${
+                              isArchived
+                                ? "text-[#628BE6] hover:bg-[#628BE6]/10"
+                                : "text-[#8ab5ad] hover:bg-[#8ab5ad]/10 hover:text-[#5a8a80]"
+                            }`}
+                          >
+                            {isArchiving ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : isArchived ? (
+                              <ArchiveRestore className="h-4 w-4" />
+                            ) : (
+                              <Archive className="h-4 w-4" />
+                            )}
+                          </button>
                         </div>
+
+                        {/* Badge archivado */}
+                        {isArchived && (
+                          <div className="mb-2">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-500">
+                              <Archive className="h-3 w-3" />
+                              Archivado
+                            </span>
+                          </div>
+                        )}
 
                         {/* Badge de estado de encuesta */}
                         <div className="mb-3.5">
@@ -535,6 +675,66 @@ export default function PacienteListClient() {
           </div>
         )}
       </div>
+
+      {/* Dialog de confirmacion para archivar/desarchivar */}
+      {confirmArchive && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+            onClick={() => setConfirmArchive(null)}
+          />
+          {/* Dialog */}
+          <div className="relative bg-white rounded-2xl shadow-xl p-6 max-w-sm mx-4 animate-[fadeSlideIn_0.2s_ease-out]">
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                confirmArchive.archived
+                  ? "bg-[#8ab5ad]/10 text-[#5a8a80]"
+                  : "bg-[#628BE6]/10 text-[#2553A1]"
+              }`}>
+                {confirmArchive.archived ? (
+                  <Archive className="h-5 w-5" />
+                ) : (
+                  <ArchiveRestore className="h-5 w-5" />
+                )}
+              </div>
+              <h3 className="text-base font-bold text-[#1a3a4a]">
+                {confirmArchive.archived ? "Archivar paciente" : "Restaurar paciente"}
+              </h3>
+            </div>
+            <p className="text-sm text-[#5a8a80] mb-6">
+              {confirmArchive.archived
+                ? `Archivar a ${confirmArchive.childName}? Podras verlo activando "Mostrar archivados".`
+                : `Restaurar a ${confirmArchive.childName}? Volvera a aparecer en la lista activa.`
+              }
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmArchive(null)}
+                className="px-4 py-2 text-sm font-medium text-[#5a8a80] bg-[#f0faf8] rounded-lg hover:bg-[#e0f0ed] transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={!!archivingChildId}
+                onClick={() =>
+                  handleToggleArchive(confirmArchive.childId, confirmArchive.archived)
+                }
+                className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors flex items-center gap-2 ${
+                  confirmArchive.archived
+                    ? "bg-[#5a8a80] text-white hover:bg-[#4a7a70]"
+                    : "bg-[#2553A1] text-white hover:bg-[#1a4391]"
+                }`}
+              >
+                {archivingChildId && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {confirmArchive.archived ? "Archivar" : "Restaurar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Animacion CSS para el detail panel */}
       <style jsx global>{`
