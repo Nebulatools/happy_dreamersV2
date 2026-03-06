@@ -15,6 +15,7 @@ import { createLogger } from "@/lib/logger"
 import { ChildPlan } from "@/types/models"
 import { derivePlanPolicy } from "@/lib/plan-policies"
 import * as Sentry from "@sentry/nextjs"
+import { getScheduleRuleForAge } from "@/lib/diagnostic/age-schedules"
 import * as fs from "fs"
 import * as path from "path"
 
@@ -1518,6 +1519,78 @@ async function searchRAGForPlan(ageInMonths: number | null) {
   }
 }
 
+// Genera texto de restricciones de horario segun edad para inyectar en prompts
+function buildScheduleConstraints(ageInMonths: number | null): string {
+  const rule = ageInMonths != null ? getScheduleRuleForAge(ageInMonths) : null
+  const napCount = rule?.napCount ?? -1
+  const napMax = rule?.napMaxDuration ?? 120
+  const nightHrs = rule?.nightDurationHours ?? 11
+
+  let napText = ""
+  if (napCount === 0) {
+    napText = "- Este nino NO debe tener siestas (por su edad ya no las necesita)."
+  } else if (napCount > 0) {
+    napText = `- Siestas esperadas: ${napCount}. Duracion maxima por siesta: ${napMax} min.
+- Las siestas DEBEN ser en horario diurno (entre 09:00 y 17:00). NUNCA poner siestas despues de las 17:00.`
+  } else {
+    napText = `- Siestas: cantidad variable por edad. Mantenerlas entre 09:00 y 17:00.`
+  }
+
+  return `
+RESTRICCIONES DE HORARIO (OBLIGATORIO - NO NEGOCIABLE):
+- bedtime DEBE estar entre 19:00 y 22:00. NUNCA poner bedtime despues de las 22:30 ni antes de las 18:30.
+- wakeTime DEBE estar entre 06:00 y 08:30. NUNCA poner wakeTime despues de las 09:00 ni antes de las 05:30.
+- Duracion de noche esperada: ~${nightHrs} horas.
+${napText}
+- Si las estadisticas del nino muestran horarios fuera de estos rangos, ajusta GRADUALMENTE hacia el rango permitido pero NUNCA generes un plan con bedtime > 22:00 o wakeTime > 09:00.
+`
+}
+
+// Validacion post-proceso: clampea horarios irrealistas generados por la IA
+function clampScheduleTimes(plan: any): any {
+  if (!plan?.schedule) return plan
+
+  const s = plan.schedule
+
+  // Validar bedtime: debe estar entre 18:30 y 22:30
+  if (s.bedtime) {
+    const [bH, bM] = s.bedtime.split(":").map(Number)
+    const bedMinutes = bH * 60 + bM
+    // Si bedtime esta fuera de 18:30-22:30 (1110-1350 min), corregir
+    if (bedMinutes < 1110 || bedMinutes > 1350) {
+      // Si es de madrugada (0:00-6:00) o muy tarde (23:00+), poner 21:00
+      s.bedtime = "21:00"
+    }
+  }
+
+  // Validar wakeTime: debe estar entre 05:30 y 09:00
+  if (s.wakeTime) {
+    const [wH, wM] = s.wakeTime.split(":").map(Number)
+    const wakeMinutes = wH * 60 + wM
+    // Si wakeTime esta fuera de 05:30-09:00 (330-540 min), corregir
+    if (wakeMinutes < 330 || wakeMinutes > 540) {
+      s.wakeTime = "07:00"
+    }
+  }
+
+  // Validar siestas: deben estar entre 09:00 y 17:00
+  if (Array.isArray(s.naps)) {
+    s.naps = s.naps.filter((nap: any) => {
+      if (!nap?.time) return true
+      const [nH, nM] = nap.time.split(":").map(Number)
+      const napMinutes = nH * 60 + nM
+      // Filtrar siestas fuera de 08:00-17:30 (480-1050 min)
+      if (napMinutes < 480 || napMinutes > 1050) {
+        // Si la siesta es en la noche/madrugada, descartarla
+        return false
+      }
+      return true
+    })
+  }
+
+  return plan
+}
+
 // Función principal para generar plan con IA
 async function generatePlanWithAI({
   planType,
@@ -1584,6 +1657,8 @@ VOCABULARIO DE ALIMENTACION:
 - NO usar: "Avena con platano", "Pure de pollo con arroz", "Papilla de verduras" (demasiado especifico).
 - NO usar: "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo" (demasiado generico).
 - SI usar: "Proteina + cereal + fruta", "Proteina + verdura + grasa", "Lacteo + cereal + fruta" (combinacion de grupos).
+
+${buildScheduleConstraints(childData.ageInMonths)}
 
 INSTRUCCIONES:
 1. Crea un plan DETALLADO con horarios específicos
@@ -1676,6 +1751,8 @@ VOCABULARIO DE ALIMENTACION:
 - NO usar: "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo" (demasiado generico).
 - SI usar: "Proteina + cereal + fruta", "Proteina + verdura + grasa", "Lacteo + cereal + fruta" (combinacion de grupos).
 
+${buildScheduleConstraints(childData.ageInMonths)}
+
 INSTRUCCIONES PARA PROGRESIÓN:
 1. 🎯 PRIORIDAD: Utiliza el PLAN ANTERIOR como base sólida
 2. 📊 AJUSTA según los PATRONES REALES observados en los eventos
@@ -1752,6 +1829,8 @@ VOCABULARIO DE ALIMENTACION:
 - NO usar: "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo" (demasiado generico).
 - SI usar: "Proteina + cereal + fruta", "Proteina + verdura + grasa", "Lacteo + cereal + fruta" (combinacion de grupos).
 
+${buildScheduleConstraints(childData.ageInMonths)}
+
 INSTRUCCIONES PARA REFINAMIENTO:
 1. 🎯 PRIORIDAD MÁXIMA: Aplica todos los cambios específicos de horarios extraídos del transcript
 2. ⚠️ CRÍTICO: NO puede haber DOS EVENTOS DIFERENTES a la MISMA HORA (ej: no puede haber "cena a las 19:00" y "baño a las 19:00")
@@ -1818,6 +1897,8 @@ ${JSON.stringify(scheduleChanges, null, 2)}
 
 TRANSCRIPT DE LA SESIÓN (COMPLETO):
 ${transcriptAnalysis.transcript}
+
+${buildScheduleConstraints(childData.ageInMonths)}
 
 INSTRUCCIONES:
 1. 🎯 PRIORIDAD MÁXIMA: Aplica todos los cambios específicos de horarios extraídos del transcript
@@ -1895,7 +1976,9 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
     }
     
     try {
-      return JSON.parse(responseContent)
+      const parsed = JSON.parse(responseContent)
+      // Validacion post-proceso: corregir horarios fuera de rangos realistas
+      return clampScheduleTimes(parsed)
     } catch (parseError) {
       logger.error("Error parseando respuesta de IA:", {
         parseError: parseError.message,
