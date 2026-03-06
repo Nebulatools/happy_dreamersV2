@@ -4,11 +4,12 @@
 
 "use client"
 
-import { useMemo, useCallback } from "react"
+import { useMemo, useCallback, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, BarChart3, Stethoscope, CalendarDays, MessageSquare, ClipboardList, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useActiveChild } from "@/context/active-child-context"
 import { usePageHeaderConfig } from "@/context/page-header-context"
 import ResumenTab from "./tabs/ResumenTab"
 import ConsultasTab from "./tabs/ConsultasTab"
@@ -63,6 +64,18 @@ function calculateAgeText(birthDate: string): string {
 export default function PatientHubClient({ childId, childData }: PatientHubClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { activeChildId, setActiveChildId, setActiveUserId } = useActiveChild()
+
+  // Sincronizar el contexto global con el childId de la URL
+  // Resuelve: admin selecciona otro nino pero el contexto sigue con el anterior
+  useEffect(() => {
+    if (childId && childId !== activeChildId) {
+      setActiveChildId(childId)
+    }
+    if (childData.parentId) {
+      setActiveUserId(childData.parentId)
+    }
+  }, [childId, childData.parentId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Tab activo desde URL, default "resumen"
   const activeTab = useMemo(() => {
