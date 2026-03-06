@@ -64,7 +64,25 @@ export async function GET(req: Request) {
       recentEvents.map(event => event.childId?.toString()).filter(Boolean)
     )
 
-    // 5. Calcular métricas agregadas
+    // 5. Obtener usuarios nuevos en los últimos 30 días
+    const newUsersList = await db.collection("users").find({
+      createdAt: { $gte: thirtyDaysAgo },
+    }, {
+      projection: { _id: 1, name: 1, email: 1, createdAt: 1 },
+    }).sort({ createdAt: -1 }).toArray()
+
+    const newUsersThisMonth = newUsersList.length
+
+    // 6. Obtener niños nuevos en los últimos 30 días
+    const newChildrenList = await db.collection("children").find({
+      createdAt: { $gte: thirtyDaysAgo },
+    }, {
+      projection: { _id: 1, firstName: 1, lastName: 1, createdAt: 1 },
+    }).sort({ createdAt: -1 }).toArray()
+
+    const newChildrenThisMonth = newChildrenList.length
+
+    // 7. Calcular métricas agregadas
     let activeToday = 0
     const childMetrics = allChildren.map(child => {
       const childIdStr = child._id.toString()
@@ -103,6 +121,20 @@ export async function GET(req: Request) {
       totalChildren: allChildren.length,
       activeToday,
       childMetrics,
+      newUsersThisMonth,
+      newUsersList: newUsersList.map(u => ({
+        _id: u._id.toString(),
+        name: u.name || "Sin nombre",
+        email: u.email,
+        createdAt: u.createdAt,
+      })),
+      newChildrenThisMonth,
+      newChildrenList: newChildrenList.map(c => ({
+        _id: c._id.toString(),
+        firstName: c.firstName,
+        lastName: c.lastName,
+        createdAt: c.createdAt,
+      })),
       timestamp: new Date().toISOString(),
     })
 

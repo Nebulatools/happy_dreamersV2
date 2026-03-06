@@ -24,6 +24,7 @@ import {
 import { es } from "date-fns/locale"
 
 import { createLogger } from "@/lib/logger"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { useActiveChild } from "@/context/active-child-context"
 
@@ -39,9 +40,27 @@ interface ChildAlert {
   parentName?: string
 }
 
+interface NewUserInfo {
+  _id: string
+  name: string
+  email: string
+  createdAt: string
+}
+
+interface NewChildInfo {
+  _id: string
+  firstName: string
+  lastName: string
+  createdAt: string
+}
+
 interface DashboardMetrics {
   totalPatients: number
   activeToday: number
+  newUsersThisMonth: number
+  newUsersList: NewUserInfo[]
+  newChildrenThisMonth: number
+  newChildrenList: NewChildInfo[]
   alerts: {
     critical: number
     warning: number
@@ -100,6 +119,10 @@ export default function AdminStatistics() {
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalPatients: 0,
     activeToday: 0,
+    newUsersThisMonth: 0,
+    newUsersList: [],
+    newChildrenThisMonth: 0,
+    newChildrenList: [],
     alerts: {
       critical: 0,
       warning: 0,
@@ -137,7 +160,7 @@ export default function AdminStatistics() {
       }
 
       const metricsData = await metricsResponse.json()
-      const { totalChildren, activeToday } = metricsData
+      const { totalChildren, activeToday, newUsersThisMonth, newUsersList, newChildrenThisMonth, newChildrenList } = metricsData
 
       // TODO: Integrar con el backend real para alertas de Zuli
       // Los datos de triage deben venir del endpoint que proporcionará las alertas categorizadas por Zuli
@@ -156,6 +179,10 @@ export default function AdminStatistics() {
       setMetrics({
         totalPatients: totalChildren,
         activeToday: activeToday, // Pacientes con planes de seguimiento activos o actividad reciente
+        newUsersThisMonth: newUsersThisMonth || 0,
+        newUsersList: newUsersList || [],
+        newChildrenThisMonth: newChildrenThisMonth || 0,
+        newChildrenList: newChildrenList || [],
         alerts: {
           critical: 0,
           warning: 0,
@@ -400,9 +427,58 @@ export default function AdminStatistics() {
               </div>
               <div className="mt-4 flex items-center gap-2">
                 <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50" style={{ fontFamily: "Century Gothic, sans-serif" }}>Registrados</Badge>
-                <span className="text-xs text-[#666666]">
-                  +{Math.max(1, Math.floor(metrics.totalPatients * 0.15))} este mes
-                </span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
+                      style={{ fontFamily: "Century Gothic, sans-serif" }}
+                    >
+                      +{metrics.newUsersThisMonth} este mes
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0" align="start">
+                    <div className="p-4 space-y-3">
+                      <h4 className="font-medium text-sm text-[#2F2F2F]" style={{ fontFamily: "Century Gothic, sans-serif" }}>
+                        Nuevos registros (ultimos 30 dias)
+                      </h4>
+                      {metrics.newUsersThisMonth > 0 ? (
+                        <>
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-[#666666] uppercase tracking-wide">Usuarios</p>
+                            {metrics.newUsersList.map(user => (
+                              <div key={user._id} className="flex items-center justify-between text-sm border-b border-gray-100 pb-1.5 last:border-0">
+                                <div>
+                                  <span className="font-medium text-[#2F2F2F]">{user.name}</span>
+                                  <span className="text-[#999999] ml-2 text-xs">{user.email}</span>
+                                </div>
+                                <span className="text-xs text-[#999999] whitespace-nowrap ml-2">
+                                  {user.createdAt ? format(parseISO(user.createdAt), "d MMM", { locale: es }) : "—"}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          {metrics.newChildrenThisMonth > 0 && (
+                            <div className="space-y-2 pt-1">
+                              <p className="text-xs font-medium text-[#666666] uppercase tracking-wide">Ninos</p>
+                              {metrics.newChildrenList.map(child => (
+                                <div key={child._id} className="flex items-center justify-between text-sm border-b border-gray-100 pb-1.5 last:border-0">
+                                  <span className="font-medium text-[#2F2F2F]">{child.firstName} {child.lastName}</span>
+                                  <span className="text-xs text-[#999999] whitespace-nowrap ml-2">
+                                    {child.createdAt ? format(parseISO(child.createdAt), "d MMM", { locale: es }) : "—"}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm text-[#999999]" style={{ fontFamily: "Century Gothic, sans-serif" }}>
+                          Sin nuevos registros este mes
+                        </p>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </CardContent>
           </Card>
