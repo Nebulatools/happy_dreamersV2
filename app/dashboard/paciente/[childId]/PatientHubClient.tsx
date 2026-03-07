@@ -212,7 +212,7 @@ export default function PatientHubClient({ childId, childData }: PatientHubClien
           <DiagnosticPanelClient childId={childId} embedded={true} />
         )}
         {activeTab === "bitacora" && (
-          <BitacoraTab childId={childId} />
+          <BitacoraTab childId={childId} onNavigateToConsultas={handleNavigateToConsultas} />
         )}
         {activeTab === "consultas" && (
           <ConsultasTab
