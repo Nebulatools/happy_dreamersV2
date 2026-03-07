@@ -57,6 +57,8 @@ import {
 import { getEventBgClass } from "@/lib/colors/event-colors"
 import { getEventIconConfig } from "@/lib/icons/event-icons"
 import { createLogger } from "@/lib/logger"
+import { AnalysisView } from "@/components/bitacora/analysis/AnalysisView"
+import { ActivePlanBanner } from "@/components/bitacora/ActivePlanBanner"
 
 const logger = createLogger("BitacoraTab")
 
@@ -107,9 +109,10 @@ interface MonthlyStats {
 
 interface BitacoraTabProps {
   childId: string
+  onNavigateToConsultas?: (subtab?: string) => void
 }
 
-export default function BitacoraTab({ childId }: BitacoraTabProps) {
+export default function BitacoraTab({ childId, onNavigateToConsultas }: BitacoraTabProps) {
   const { toast } = useToast()
   const { data: session } = useSession()
   const userTimeZone = session?.user?.timezone || "America/Monterrey"
@@ -132,7 +135,7 @@ export default function BitacoraTab({ childId }: BitacoraTabProps) {
     }
     return "week"
   })
-  const [calendarTab, setCalendarTab] = useState<"calendar" | "stats">("calendar")
+  const [calendarTab, setCalendarTab] = useState<"calendar" | "stats" | "analisis">("calendar")
   const [isLoading, setIsLoading] = useState(true)
   const [events, setEvents] = useState<Event[]>([])
   const [allEventsCache, setAllEventsCache] = useState<Event[]>([])
@@ -561,6 +564,14 @@ export default function BitacoraTab({ childId }: BitacoraTabProps) {
               >
                 Estadisticas
               </Button>
+              <Button
+                variant={calendarTab === "analisis" ? "default" : "ghost"}
+                size="sm"
+                className={calendarTab === "analisis" ? "bg-gradient-to-r from-[#C4B5FD] to-[#A78BFA] text-white" : "text-gray-600"}
+                onClick={() => setCalendarTab("analisis")}
+              >
+                Analisis
+              </Button>
             </div>
 
             {/* Selector de vista: Mensual / Semanal / Diario */}
@@ -590,8 +601,20 @@ export default function BitacoraTab({ childId }: BitacoraTabProps) {
         </div>
       </div>
 
+      {/* Banner del plan activo */}
+      <ActivePlanBanner
+        plan={activePlan}
+        onViewFullPlan={onNavigateToConsultas ? () => onNavigateToConsultas("planes") : undefined}
+      />
+
       {/* Contenido principal */}
-      {calendarTab === "calendar" ? (
+      {calendarTab === "analisis" ? (
+        <AnalysisView
+          events={allEventsCache.length > 0 ? allEventsCache : events}
+          childName={activeChildName}
+          timezone={userTimeZone}
+        />
+      ) : calendarTab === "calendar" ? (
         <Card ref={calendarContainerRef} className="p-4 h-[calc(100vh-300px)] overflow-auto" style={{ minHeight: "450px" }}>
           <div className="h-full">
             {isLoading ? (
