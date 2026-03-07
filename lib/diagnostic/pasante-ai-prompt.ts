@@ -179,16 +179,11 @@ function buildDiagnosticContext(result: DiagnosticResult): string {
   const g2 = result.groups.G2
   if (g2?.criteria) {
     const g2Alerts = extractAlertCriteria(g2.criteria)
-    const hasPendingData = g2.dataCompleteness?.pending?.length > 0
-    if (g2Alerts.length > 0 || hasPendingData) {
-      let g2Section = `## G2 - Medico (${g2.status.toUpperCase()}):\n`
-      if (g2Alerts.length > 0) {
-        g2Section += g2Alerts.map(c => `- ${formatCriterion(c)}`).join("\n")
-      }
-      if (hasPendingData) {
-        g2Section += `\n- Datos pendientes: ${g2.dataCompleteness.pending.length} indicadores sin recolectar`
-      }
-      sections.push(g2Section)
+    if (g2Alerts.length > 0) {
+      sections.push(
+        `## G2 - Medico (${g2.status.toUpperCase()}):\n` +
+        g2Alerts.map(c => `- ${formatCriterion(c)}`).join("\n")
+      )
     }
   }
 

@@ -37,15 +37,12 @@ const conditionColors: Record<MedicalCondition, string> = {
 function ConditionSummary({
   condition,
   detected,
-  pending,
   total,
 }: {
   condition: MedicalCondition
   detected: number
-  pending: number
   total: number
 }) {
-  const available = total - pending
   const hasAlert = detected > 0
 
   return (
@@ -67,19 +64,13 @@ function ConditionSummary({
       </div>
 
       <div className="flex items-center gap-2">
-        {hasAlert && (
+        {hasAlert ? (
           <Badge className="bg-red-100 text-red-700 text-xs">
             {detected} detectado{detected !== 1 ? "s" : ""}
           </Badge>
-        )}
-        {pending > 0 && (
-          <Badge variant="outline" className="text-xs text-gray-500">
-            {pending} pendiente{pending !== 1 ? "s" : ""}
-          </Badge>
-        )}
-        {!hasAlert && pending === 0 && (
+        ) : (
           <span className="text-xs text-gray-500">
-            {available}/{total} OK
+            {total}/{total} OK
           </span>
         )}
       </div>
@@ -112,18 +103,15 @@ export function G2MedicalValidation({
   className,
   hideHeader,
 }: G2MedicalValidationProps) {
-  const { indicators, detectedCount, pendingCount } = validation
+  const { indicators, detectedCount } = validation
 
-  // Calcular totales por condicion
-  const conditions: MedicalCondition[] = ["reflujo", "apnea", "restless_leg"]
+  // Solo condiciones que tienen indicadores con datos
+  const conditions = (["reflujo", "apnea", "restless_leg"] as MedicalCondition[])
+    .filter((c) => indicators[c].length > 0)
 
   // Total de indicadores detectados
   const totalDetected =
     detectedCount.reflujo + detectedCount.apnea + detectedCount.restless_leg
-
-  // Total de indicadores pendientes
-  const totalPending =
-    pendingCount.reflujo + pendingCount.apnea + pendingCount.restless_leg
 
   return (
     <div className={cn("space-y-4", className)}>
@@ -145,11 +133,9 @@ export function G2MedicalValidation({
           <h4 className="text-sm font-semibold text-gray-700">
             Indicadores por condicion
           </h4>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <span>{totalDetected} detectado{totalDetected !== 1 ? "s" : ""}</span>
-            <span>|</span>
-            <span>{totalPending} pendiente{totalPending !== 1 ? "s" : ""}</span>
-          </div>
+          <span className="text-xs text-gray-500">
+            {totalDetected} detectado{totalDetected !== 1 ? "s" : ""}
+          </span>
         </div>
 
         <div className="space-y-2">
@@ -158,7 +144,6 @@ export function G2MedicalValidation({
               key={condition}
               condition={condition}
               detected={detectedCount[condition]}
-              pending={pendingCount[condition]}
               total={indicators[condition].length}
             />
           ))}
