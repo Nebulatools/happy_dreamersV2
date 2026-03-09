@@ -10,7 +10,7 @@ import { ObjectId } from "mongodb"
 import { getMongoDBVectorStoreManager } from "@/lib/rag/vector-store-mongodb"
 import { OpenAI } from "openai"
 import { differenceInDays, format, subDays } from "date-fns"
-import { processSleepStatistics } from "@/lib/sleep-calculations"
+import { processSleepStatistics, type SleepEvent } from "@/lib/sleep-calculations"
 import { createLogger } from "@/lib/logger"
 import { ChildPlan } from "@/types/models"
 import { derivePlanPolicy } from "@/lib/plan-policies"
@@ -1028,16 +1028,52 @@ async function generateTranscriptRefinementPlan(
     throw new Error("No se encontró información del niño")
   }
 
+  // 2b. Calcular edad en meses (mismo patron que generateInitialPlan / generateEventBasedPlan)
+  const birthDate = child.birthDate ? new Date(child.birthDate) : null
+  const ageInMonths = birthDate ? Math.floor(differenceInDays(new Date(), birthDate) / 30.44) : null
+
+  // 2c. Obtener eventos recientes (ultimos 30 dias) para enriquecer contexto
+  const thirtyDaysAgo = subDays(new Date(), 30)
+  const recentEvents = await db.collection("events").find({
+    childId: new ObjectId(childId),
+    startTime: { $gt: thirtyDaysAgo.toISOString() },
+  }).sort({ startTime: -1 }).toArray()
+
+  const stats = processSleepStatistics(recentEvents as unknown as SleepEvent[], thirtyDaysAgo)
+
+  // 2d. Buscar contexto RAG (mismo que initial y event_based)
+  const ragContext = await searchRAGForPlan(ageInMonths)
+
+  // 2e. Enriquecer estadisticas (siestas/bedtime/feeding) para reflejar patrones reales
+  const napStats = computeNapStatsFromEvents(recentEvents)
+  const bedtimeStats = computeBedtimeAvgFromEvents(recentEvents)
+  const feedingStats = computeFeedingTypicalTimesFromEvents(recentEvents)
+
+  logger.info("generateTranscriptRefinementPlan: Datos enriquecidos", {
+    childId,
+    ageInMonths,
+    recentEventsCount: recentEvents.length,
+    ragContextCount: ragContext.length,
+    napStats: { count: napStats.count, typicalTime: napStats.typicalTime },
+    bedtimeAvg: bedtimeStats.avgBedtime,
+  })
+
   // 3. Extraer cambios específicos de horarios del transcript
   const scheduleChanges = await extractScheduleChangesFromTranscript(
     consultationReport.transcript,
     child.firstName
   )
 
-  // 4. Generar plan refinado basado en transcript
+  // 4. Generar plan refinado basado en transcript (con datos enriquecidos)
   const aiPlan = await generatePlanWithAI({
     planType: "transcript_refinement",
-    childData: child,
+    childData: {
+      ...child,
+      ageInMonths,
+      stats,
+      events: recentEvents,
+    },
+    ragContext,
     previousPlan: basePlan,
     transcriptAnalysis: {
       analysis: consultationReport.analysis,
@@ -1045,6 +1081,7 @@ async function generateTranscriptRefinementPlan(
       transcript: consultationReport.transcript,
     },
     scheduleChanges,
+    enrichedStats: { napStats, bedtimeStats, feedingStats },
   })
 
   return {
@@ -1536,12 +1573,34 @@ function buildScheduleConstraints(ageInMonths: number | null): string {
     napText = `- Siestas: cantidad variable por edad. Mantenerlas entre 09:00 y 17:00.`
   }
 
+  // Restricciones de alimentacion basadas en reglas clinicas por edad
+  let feedingText = ""
+  if (rule) {
+    const solidMin = rule.solidMinCount
+    const milkMin = rule.milkMinCount
+    const milkInterval = rule.milkIntervalHours
+
+    if (ageInMonths != null && ageInMonths >= 12) {
+      // 12+ meses: priorizar solidos, leche es opcional/complementaria
+      feedingText = `- ALIMENTACION para ${ageInMonths} meses: minimo ${solidMin} comidas solidas al dia. Leches/biberones: maximo ${Math.max(milkMin, 2)} (complementarias, NO sustituyen comidas). Priorizar SOLIDOS sobre biberones. Maximo 16 oz de leche al dia.
+- NUNCA generar 5 o mas biberones/leches para un nino de 12+ meses. Es clinicamente inapropiado.`
+    } else if (ageInMonths != null && ageInMonths >= 6) {
+      // 6-11 meses: introduccion de solidos progresiva
+      feedingText = `- ALIMENTACION para ${ageInMonths} meses: minimo ${solidMin} comidas solidas, minimo ${milkMin > 0 ? milkMin : "variable"} tomas de leche${milkInterval > 0 ? ` (cada ~${milkInterval} hrs)` : ""}. Los solidos complementan la leche, no la reemplazan a esta edad.`
+    } else {
+      // 0-5 meses: solo leche
+      feedingText = `- ALIMENTACION para ${ageInMonths ?? "?"} meses: solo leche materna o formula. NO incluir comidas solidas en el plan.`
+    }
+    feedingText += "\n- TODAS las comidas deben estar entre 06:00 y 21:00. NUNCA programar comidas de madrugada (excepto tomas nocturnas para <6 meses)."
+  }
+
   return `
 RESTRICCIONES DE HORARIO (OBLIGATORIO - NO NEGOCIABLE):
 - bedtime DEBE estar entre 19:00 y 22:00. NUNCA poner bedtime despues de las 22:30 ni antes de las 18:30.
 - wakeTime DEBE estar entre 06:00 y 08:30. NUNCA poner wakeTime despues de las 09:00 ni antes de las 05:30.
 - Duracion de noche esperada: ~${nightHrs} horas.
 ${napText}
+${feedingText}
 - Si las estadisticas del nino muestran horarios fuera de estos rangos, ajusta GRADUALMENTE hacia el rango permitido pero NUNCA generes un plan con bedtime > 22:00 o wakeTime > 09:00.
 `
 }
@@ -1585,6 +1644,25 @@ function clampScheduleTimes(plan: any): any {
         return false
       }
       return true
+    })
+  }
+
+  // Validar comidas: deben estar entre 06:00 y 21:00
+  if (Array.isArray(s.meals)) {
+    s.meals = s.meals.map((meal: any) => {
+      if (!meal?.time) return meal
+      const [mH, mM] = meal.time.split(":").map(Number)
+      const mealMinutes = mH * 60 + mM
+      // Comidas deben estar entre 06:00 (360 min) y 21:00 (1260 min)
+      if (mealMinutes < 360) {
+        // Si es de madrugada, clampear a 06:00
+        return { ...meal, time: "06:00" }
+      }
+      if (mealMinutes > 1260) {
+        // Si es despues de las 21:00, clampear a 21:00
+        return { ...meal, time: "21:00" }
+      }
+      return meal
     })
   }
 
@@ -1804,6 +1882,16 @@ CRÍTICO: Tu respuesta DEBE ser únicamente un objeto JSON válido, sin texto ad
 
 REFINA EL PLAN EXISTENTE para ${childData.firstName} basándote en la consulta médica más reciente.
 
+INFORMACIÓN DEL NIÑO:
+- Nombre: ${childData.firstName}
+- Edad: ${childData.ageInMonths ?? "desconocida"} meses
+- Eventos de sueno registrados (ultimos 30 dias): ${childData.events?.length || 0}
+- Sueno nocturno (promedio): ${childData.stats?.avgSleepDurationMinutes || 0} minutos
+- Hora promedio de despertar: ${String(Math.floor((childData.stats?.avgWakeTimeMinutes || 0) / 60)).padStart(2, "0")}:${((childData.stats?.avgWakeTimeMinutes || 0) % 60).toString().padStart(2, "0")} (formato 24h)
+${enrichedStats ? `- Hora media de acostarse observada: ${enrichedStats?.bedtimeStats?.avgBedtime || "N/A"}
+- Siestas: total=${enrichedStats?.napStats?.count || 0}, hora tipica=${enrichedStats?.napStats?.typicalTime || "N/A"}, duracion prom=${enrichedStats?.napStats?.avgDuration || 0} min
+- Comidas tipicas (si existen eventos): desayuno=${enrichedStats?.feedingStats?.breakfast || "N/A"} (n=${enrichedStats?.feedingStats?.breakfastCount || 0}), almuerzo=${enrichedStats?.feedingStats?.lunch || "N/A"} (n=${enrichedStats?.feedingStats?.lunchCount || 0}), merienda=${enrichedStats?.feedingStats?.snack || "N/A"} (n=${enrichedStats?.feedingStats?.snackCount || 0}), cena=${enrichedStats?.feedingStats?.dinner || "N/A"} (n=${enrichedStats?.feedingStats?.dinnerCount || 0})` : ""}
+
 PLAN BASE (A REFINAR):
 ${JSON.stringify(previousPlan?.schedule, null, 2)}
 
@@ -1820,6 +1908,16 @@ ${JSON.stringify(scheduleChanges, null, 2)}
 
 TRANSCRIPT DE LA CONSULTA (COMPLETO):
 ${transcriptAnalysis?.transcript || "No disponible"}
+
+${ragContext ? `
+CONTEXTO DE REFERENCIA CLINICA (RAG):
+El siguiente contenido muestra los HORARIOS IDEALES y MEJORES PRACTICAS segun la edad del nino.
+Usa esto como referencia para validar que el plan refinado sea clinicamente apropiado para ${childData.ageInMonths ?? "?"} meses.
+
+${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join("\n\n---\n\n")}
+
+⚠️ IMPORTANTE: Los acuerdos del transcript tienen prioridad, pero el plan DEBE respetar las restricciones clinicas por edad.
+` : ""}
 
 VOCABULARIO DE ALIMENTACION:
 - Usa terminos variados segun el momento del dia: "Desayuno", "Almuerzo/Comida", "Merienda/Colacion/Snack", "Cena".
@@ -1840,6 +1938,7 @@ INSTRUCCIONES PARA REFINAMIENTO:
 6. Conserva elementos que funcionan del plan base
 7. ⛔ NO generar actividades de "Acostado", "Acostarse", "Ir a la cama" o "Rutina de sueño" - el campo "bedtime" ya cubre la hora de dormir
 8. ⛔ NO incluir actividades en el plan - solo incluir: despertar (wakeTime), siestas (naps), comidas (meals) y dormir (bedtime)
+9. ⚠️ VERIFICA que la cantidad de comidas/leches sea apropiada para ${childData.ageInMonths ?? "?"} meses segun las restricciones de alimentacion
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {

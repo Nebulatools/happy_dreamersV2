@@ -191,6 +191,11 @@ function flattenSurveyData(raw: Record<string, any>): Record<string, any> {
     flat.sharesRoom = flat.comparteHabitacion
   }
 
+  // Legacy: conQuienComparte -> comparteHabitacionCon
+  if (flat.comparteHabitacionCon === undefined && flat.conQuienComparte !== undefined) {
+    flat.comparteHabitacionCon = flat.conQuienComparte
+  }
+
   // recentChanges <- principalPreocupacion (texto libre)
   if (flat.principalPreocupacion !== undefined) {
     flat.recentChanges = flat.principalPreocupacion

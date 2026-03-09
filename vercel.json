@@ -58,6 +58,12 @@
       "destination": "/offline.html"
     }
   ],
+  "crons": [
+    {
+      "path": "/api/integrations/zoom/poller",
+      "schedule": "*/15 * * * *"
+    }
+  ],
   "functions": {
     "app/api/notifications/scheduler/route.ts": {
       "maxDuration": 10

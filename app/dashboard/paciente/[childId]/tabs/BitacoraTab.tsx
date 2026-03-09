@@ -542,8 +542,8 @@ export default function BitacoraTab({ childId, onNavigateToConsultas }: Bitacora
 
   return (
     <div className="space-y-4">
-      {/* Barra superior: tabs + vistas + navegacion */}
-      <div className="flex flex-col gap-4">
+      {/* Barra superior: tabs + vistas + navegacion - sticky al hacer scroll */}
+      <div className="sticky top-0 z-10 bg-[#DEF1F1] pb-3 -mx-1 px-1">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             {/* Tabs Calendario / Estadisticas */}

@@ -42,9 +42,9 @@ export async function GET(req: Request) {
       }
     })
 
-    // 3. Obtener todos los planes activos (últimos 30 días)
-    const activePlans = await db.collection("consultas").find({
-      createdAt: { $gte: thirtyDaysAgo },
+    // 3. Obtener todos los planes activos
+    const activePlans = await db.collection("child_plans").find({
+      status: "active",
     }).toArray()
 
     // Crear un Set de childIds que tienen planes activos
@@ -107,6 +107,42 @@ export async function GET(req: Request) {
       }
     })
 
+    // 8. Obtener niños con actividad reciente (últimas 48 horas) para tab "Actividad Reciente"
+    const fortyEightHoursAgo = new Date(today.getTime() - 48 * 60 * 60 * 1000)
+    const recentDetailedEvents = await db.collection("events").find({
+      startTime: { $gte: fortyEightHoursAgo },
+    }, {
+      projection: { childId: 1, eventType: 1, startTime: 1 },
+    }).sort({ startTime: -1 }).toArray()
+
+    // Agrupar por childId, tomar solo el evento más reciente por niño
+    const recentByChild = new Map<string, { eventType: string; startTime: string }>()
+    recentDetailedEvents.forEach(event => {
+      const childIdStr = event.childId?.toString()
+      if (childIdStr && !recentByChild.has(childIdStr)) {
+        recentByChild.set(childIdStr, {
+          eventType: event.eventType,
+          startTime: typeof event.startTime === "string" ? event.startTime : new Date(event.startTime).toISOString(),
+        })
+      }
+    })
+
+    // Construir lista de actividad reciente (máximo 10)
+    const recentActivityChildren = Array.from(recentByChild.entries())
+      .slice(0, 10)
+      .map(([childIdStr, lastEvent]) => {
+        const child = allChildren.find(c => c._id.toString() === childIdStr)
+        if (!child) return null
+        return {
+          childId: childIdStr,
+          childName: `${child.firstName} ${child.lastName}`,
+          apellidoContacto: surveyMap.get(childIdStr) || child.lastName || "",
+          lastEventType: lastEvent.eventType,
+          lastEventTime: lastEvent.startTime,
+        }
+      })
+      .filter(Boolean)
+
     // Ordenar por apellido del contacto principal (A-Z)
     childMetrics.sort((a, b) => {
       const apellidoA = a.apellidoContacto.toLowerCase()
@@ -121,6 +157,7 @@ export async function GET(req: Request) {
       totalChildren: allChildren.length,
       activeToday,
       childMetrics,
+      recentActivityChildren,
       newUsersThisMonth,
       newUsersList: newUsersList.map(u => ({
         _id: u._id.toString(),

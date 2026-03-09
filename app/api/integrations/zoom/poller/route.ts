@@ -96,8 +96,29 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    logger.info("Zoom poller", { found: meetings.length, inserted })
-    return NextResponse.json({ success: true, found: meetings.length, inserted })
+    // Reprocess stuck sessions (transcript wasn't ready during webhook)
+    const stuckSessions = await db.collection("consultation_sessions").find({
+      status: { $in: ["recording_listed_no_transcript", "recording_listed"] },
+      updatedAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // Solo ultimos 7 dias
+    }).toArray()
+
+    let reprocessed = 0
+    for (const session of stuckSessions) {
+      try {
+        await ingestZoomMeetingTranscripts({
+          meetingId: session.meetingId,
+          uuid: session.uuid,
+          topic: session.topic,
+        })
+        reprocessed++
+        logger.info("Reprocessed stuck session", { uuid: session.uuid })
+      } catch (error) {
+        logger.warn("Failed to reprocess stuck session", { uuid: session.uuid, error: String(error) })
+      }
+    }
+
+    logger.info("Zoom poller", { found: meetings.length, inserted, stuckRetried: stuckSessions.length, reprocessed })
+    return NextResponse.json({ success: true, found: meetings.length, inserted, stuckRetried: stuckSessions.length, reprocessed })
   } catch (error: any) {
     logger.error("Zoom poller error", error)
     return NextResponse.json({ error: error.message || "Error interno" }, { status: 500 })

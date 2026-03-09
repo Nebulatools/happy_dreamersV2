@@ -1,8 +1,9 @@
 // Paso 6: Rutina y Hábitos de Sueño
 // Información sobre rutinas diarias y hábitos de sueño del niño
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
@@ -108,6 +109,59 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // --- Estado local para temperatura con selector de unidad ---
+  const [tempUnit, setTempUnit] = useState<"C" | "F">(data.unidadTemperatura || "C")
+  const [tempRaw, setTempRaw] = useState<string>(
+    data.temperaturaOriginal != null ? String(data.temperaturaOriginal) : (data.temperaturaCuarto != null ? String(data.temperaturaCuarto) : "")
+  )
+
+  // Conversion Fahrenheit -> Celsius
+  const fahrenheitToCelsius = useCallback((f: number): number => {
+    return Math.round(((f - 32) * 5 / 9) * 10) / 10
+  }, [])
+
+  // Cuando el usuario cambia el valor numerico
+  const handleTempValueChange = useCallback((rawValue: string) => {
+    setTempRaw(rawValue)
+    const num = parseFloat(rawValue)
+    if (rawValue === "" || isNaN(num)) {
+      // Limpiar los campos si el input esta vacio
+      onChange({
+        ...data,
+        temperaturaCuarto: "",
+        temperaturaOriginal: rawValue,
+        unidadTemperatura: tempUnit,
+      })
+      return
+    }
+    const celsiusValue = tempUnit === "F" ? fahrenheitToCelsius(num) : num
+    onChange({
+      ...data,
+      temperaturaCuarto: String(celsiusValue),
+      temperaturaOriginal: rawValue,
+      unidadTemperatura: tempUnit,
+    })
+  }, [data, onChange, tempUnit, fahrenheitToCelsius])
+
+  // Cuando el usuario cambia la unidad (C <-> F)
+  const handleTempUnitChange = useCallback((newUnit: "C" | "F") => {
+    if (newUnit === tempUnit) return
+    setTempUnit(newUnit)
+    const num = parseFloat(tempRaw)
+    if (tempRaw === "" || isNaN(num)) {
+      onChange({ ...data, unidadTemperatura: newUnit })
+      return
+    }
+    // Re-convertir el valor actual con la nueva unidad
+    const celsiusValue = newUnit === "F" ? fahrenheitToCelsius(num) : num
+    onChange({
+      ...data,
+      temperaturaCuarto: String(celsiusValue),
+      temperaturaOriginal: tempRaw,
+      unidadTemperatura: newUnit,
+    })
+  }, [tempUnit, tempRaw, data, onChange, fahrenheitToCelsius])
 
   return (
     <div className="space-y-8">
@@ -918,17 +972,47 @@ export function RoutineHabitsStep({ data, onChange, errors = {} }: SurveyStepPro
           </RadioGroup>
         </div>
 
-        {/* 11. Temperatura del cuarto */}
+        {/* 11. Temperatura del cuarto (con selector de unidad C/F) */}
         <div>
           <Label htmlFor="temperatura">
             Aproximadamente, a que temperatura esta el cuarto al dormir?
           </Label>
-          <Input
-            id="temperatura"
-            value={data.temperaturaCuarto || ""}
-            onChange={(e) => updateField("temperaturaCuarto", e.target.value)}
-            placeholder="Ej: 22C, fresco, templado..."
-          />
+          <div className="flex items-center gap-2 mt-2">
+            <Input
+              id="temperatura"
+              type="number"
+              step="0.5"
+              min={tempUnit === "C" ? 10 : 50}
+              max={tempUnit === "C" ? 40 : 104}
+              value={tempRaw}
+              onChange={(e) => handleTempValueChange(e.target.value)}
+              placeholder={tempUnit === "C" ? "Ej: 22" : "Ej: 72"}
+              className="max-w-[140px]"
+            />
+            <div className="flex rounded-md border border-gray-300 overflow-hidden">
+              <Button
+                type="button"
+                variant={tempUnit === "C" ? "default" : "ghost"}
+                size="sm"
+                className={`rounded-none px-3 ${tempUnit === "C" ? "" : "text-gray-500"}`}
+                onClick={() => handleTempUnitChange("C")}
+              >
+                °C
+              </Button>
+              <Button
+                type="button"
+                variant={tempUnit === "F" ? "default" : "ghost"}
+                size="sm"
+                className={`rounded-none px-3 ${tempUnit === "F" ? "" : "text-gray-500"}`}
+                onClick={() => handleTempUnitChange("F")}
+              >
+                °F
+              </Button>
+            </div>
+          </div>
+          <p className="text-sm text-gray-500 mt-1">
+            Rango optimo: 22-25 °C (72-77 °F)
+          </p>
         </div>
 
         {/* G4 Humedad del cuarto */}
