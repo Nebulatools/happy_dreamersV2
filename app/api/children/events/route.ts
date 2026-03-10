@@ -439,6 +439,16 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Auto-reactivar nino archivado si se registra un evento
+    try {
+      await db.collection("children").updateOne(
+        { _id: new ObjectId(event.childId), archived: true },
+        { $set: { archived: false, updatedAt: new Date() } }
+      )
+    } catch (reactivateErr) {
+      logger.warn("Auto-reactivacion fallo (no critico):", reactivateErr)
+    }
+
     // SINCRONIZAR CON COLECCIÓN ANALYTICS (no bloquear si falla)
     try {
       await syncEventToAnalyticsCollection({

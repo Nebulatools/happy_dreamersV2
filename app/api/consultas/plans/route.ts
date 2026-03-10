@@ -747,6 +747,16 @@ export async function PATCH(req: NextRequest) {
       }, { status: 500 })
     }
 
+    // Auto-reactivar nino archivado al activar un plan
+    try {
+      await db.collection("children").updateOne(
+        { _id: new ObjectId(childId), archived: true },
+        { $set: { archived: false, updatedAt: new Date() } }
+      )
+    } catch (reactivateErr) {
+      logger.warn("Auto-reactivacion fallo (no critico):", reactivateErr)
+    }
+
     logger.info("Plan aplicado exitosamente", {
       planId,
       planNumber: planToActivate.planNumber,

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { connectToDatabase } from "@/lib/mongodb"
+import { triageChild } from "@/lib/diagnostic/triage"
+import { computePatientStatus, type PatientStatus } from "@/lib/patient-status"
 
 export async function GET(req: Request) {
   try {
@@ -64,6 +66,24 @@ export async function GET(req: Request) {
       recentEvents.map(event => event.childId?.toString()).filter(Boolean)
     )
 
+    // 4b. Obtener la fecha del ultimo evento de cada nino (para computar status)
+    const latestEventByChild = await db.collection("events").aggregate([
+      { $sort: { startTime: -1 } },
+      { $group: { _id: "$childId", lastEventDate: { $first: "$startTime" } } },
+    ]).toArray()
+
+    // Mapa de childId -> fecha del ultimo evento
+    const lastEventMap = new Map<string, Date>()
+    latestEventByChild.forEach(item => {
+      const childIdStr = item._id?.toString()
+      if (childIdStr && item.lastEventDate) {
+        const d = typeof item.lastEventDate === "string"
+          ? new Date(item.lastEventDate)
+          : item.lastEventDate
+        lastEventMap.set(childIdStr, d)
+      }
+    })
+
     // 5. Obtener usuarios nuevos en los últimos 30 días
     const newUsersList = await db.collection("users").find({
       createdAt: { $gte: thirtyDaysAgo },
@@ -82,15 +102,28 @@ export async function GET(req: Request) {
 
     const newChildrenThisMonth = newChildrenList.length
 
-    // 7. Calcular métricas agregadas
+    // 7. Calcular metricas agregadas + status computado
     let activeToday = 0
+    const statusCounts = { active: 0, inactive: 0, archived: 0 }
     const childMetrics = allChildren.map(child => {
       const childIdStr = child._id.toString()
       const hasPlan = childrenWithPlans.has(childIdStr)
       const hasActivity = childrenWithActivity.has(childIdStr)
       const isActive = hasPlan || hasActivity
+      const lastEventDate = lastEventMap.get(childIdStr) || null
 
-      if (isActive) {
+      // Computar status derivado
+      const status: PatientStatus = computePatientStatus({
+        archived: child.archived === true,
+        hasActivePlan: hasPlan,
+        lastEventDate,
+        childCreatedAt: child.createdAt ? new Date(child.createdAt) : new Date(0),
+      })
+
+      statusCounts[status]++
+
+      // activeToday solo cuenta no-archivados
+      if (isActive && status !== "archived") {
         activeToday++
       }
 
@@ -104,10 +137,54 @@ export async function GET(req: Request) {
         isActive,
         hasPlan,
         hasRecentActivity: hasActivity,
+        status,
+        lastEventDate: lastEventDate?.toISOString() || null,
       }
     })
 
-    // 8. Obtener niños con actividad reciente (últimas 48 horas) para tab "Actividad Reciente"
+    // 8. Triage diagnostico: correr G2+G4 sobre surveyData de cada nino
+    interface ChildAlertItem {
+      childId: string
+      childName: string
+      severity: "critical" | "warning"
+      diagnosis: string
+      lastUpdate: string
+      parentName: string
+    }
+    const childAlerts: ChildAlertItem[] = []
+    let alertCritical = 0
+    let alertWarning = 0
+    let alertOk = 0
+
+    for (const child of allChildren) {
+      const triage = triageChild(child.surveyData || {})
+      const childIdStr = child._id.toString()
+      if (triage.severity === "critical") {
+        alertCritical++
+        childAlerts.push({
+          childId: childIdStr,
+          childName: `${child.firstName} ${child.lastName}`,
+          severity: "critical",
+          diagnosis: triage.diagnosis,
+          lastUpdate: new Date().toISOString(),
+          parentName: `Fam. ${surveyMap.get(childIdStr) || child.lastName || ""}`,
+        })
+      } else if (triage.severity === "warning") {
+        alertWarning++
+        childAlerts.push({
+          childId: childIdStr,
+          childName: `${child.firstName} ${child.lastName}`,
+          severity: "warning",
+          diagnosis: triage.diagnosis,
+          lastUpdate: new Date().toISOString(),
+          parentName: `Fam. ${surveyMap.get(childIdStr) || child.lastName || ""}`,
+        })
+      } else {
+        alertOk++
+      }
+    }
+
+    // 9. Obtener niños con actividad reciente (últimas 48 horas) para tab "Actividad Reciente"
     const fortyEightHoursAgo = new Date(today.getTime() - 48 * 60 * 60 * 1000)
     const recentDetailedEvents = await db.collection("events").find({
       startTime: { $gte: fortyEightHoursAgo },
@@ -143,21 +220,19 @@ export async function GET(req: Request) {
       })
       .filter(Boolean)
 
-    // Ordenar por apellido del contacto principal (A-Z)
+    // Ordenar por nombre del nino (A-Z)
     childMetrics.sort((a, b) => {
-      const apellidoA = a.apellidoContacto.toLowerCase()
-      const apellidoB = b.apellidoContacto.toLowerCase()
-      if (apellidoA < apellidoB) return -1
-      if (apellidoA > apellidoB) return 1
-      // Si tienen el mismo apellido, ordenar por nombre del niño
-      return a.childName.toLowerCase().localeCompare(b.childName.toLowerCase())
+      return a.childName.toLowerCase().localeCompare(b.childName.toLowerCase(), "es")
     })
 
     return NextResponse.json({
-      totalChildren: allChildren.length,
+      totalChildren: allChildren.length - statusCounts.archived,
       activeToday,
+      statusCounts,
       childMetrics,
       recentActivityChildren,
+      childAlerts,
+      alerts: { critical: alertCritical, warning: alertWarning, ok: alertOk },
       newUsersThisMonth,
       newUsersList: newUsersList.map(u => ({
         _id: u._id.toString(),

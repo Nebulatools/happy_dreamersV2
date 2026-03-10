@@ -61,6 +61,8 @@ interface ChildMetric {
   isActive: boolean
   hasPlan: boolean
   hasRecentActivity: boolean
+  status: "active" | "inactive" | "archived"
+  lastEventDate: string | null
 }
 
 interface RecentActivityChild {
@@ -74,6 +76,7 @@ interface RecentActivityChild {
 interface DashboardMetrics {
   totalPatients: number
   activeToday: number
+  statusCounts: { active: number; inactive: number; archived: number }
   newUsersThisMonth: number
   newUsersList: NewUserInfo[]
   newChildrenThisMonth: number
@@ -115,6 +118,7 @@ export default function AdminStatistics() {
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalPatients: 0,
     activeToday: 0,
+    statusCounts: { active: 0, inactive: 0, archived: 0 },
     newUsersThisMonth: 0,
     newUsersList: [],
     newChildrenThisMonth: 0,
@@ -149,26 +153,21 @@ export default function AdminStatistics() {
       setChildMetrics(metricsData.childMetrics || [])
       setRecentActivityChildren(metricsData.recentActivityChildren || [])
 
-      // TODO: Integrar con el backend real para alertas de Zuli
-      const mockCriticalAlerts: ChildAlert[] = []
-      const mockWarningAlerts: ChildAlert[] = []
-
-      setCriticalAlerts(mockCriticalAlerts)
-      setWarningAlerts(mockWarningAlerts)
+      // Separar alertas por severidad desde el backend
+      const allAlerts: ChildAlert[] = metricsData.childAlerts || []
+      setCriticalAlerts(allAlerts.filter((a: ChildAlert) => a.severity === "critical"))
+      setWarningAlerts(allAlerts.filter((a: ChildAlert) => a.severity === "warning"))
 
       // Actualizar metricas con datos reales del endpoint
       setMetrics({
         totalPatients: totalChildren,
         activeToday: activeToday,
+        statusCounts: metricsData.statusCounts || { active: 0, inactive: 0, archived: 0 },
         newUsersThisMonth: newUsersThisMonth || 0,
         newUsersList: newUsersList || [],
         newChildrenThisMonth: newChildrenThisMonth || 0,
         newChildrenList: newChildrenList || [],
-        alerts: {
-          critical: 0,
-          warning: 0,
-          ok: totalChildren,
-        },
+        alerts: metricsData.alerts || { critical: 0, warning: 0, ok: totalChildren },
       })
 
     } catch (error) {
@@ -266,6 +265,11 @@ export default function AdminStatistics() {
               </div>
               <div className="mt-4 flex items-center gap-2">
                 <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50" style={{ fontFamily: "Century Gothic, sans-serif" }}>Registrados</Badge>
+                {metrics.statusCounts.archived > 0 && (
+                  <span className="text-xs text-gray-400" style={{ fontFamily: "Century Gothic, sans-serif" }}>
+                    ({metrics.statusCounts.archived} archivados)
+                  </span>
+                )}
                 <Popover>
                   <PopoverTrigger asChild>
                     <button
@@ -664,12 +668,22 @@ export default function AdminStatistics() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
+                            {child.status === "archived" && (
+                              <Badge className="bg-gray-100 text-gray-500 text-xs">
+                                Archivado
+                              </Badge>
+                            )}
+                            {child.status === "inactive" && (
+                              <Badge className="bg-gray-50 text-gray-400 text-xs">
+                                Inactivo
+                              </Badge>
+                            )}
                             {child.hasPlan && (
                               <Badge className="bg-green-50 text-green-700 text-xs">
                                 Plan activo
                               </Badge>
                             )}
-                            {child.hasRecentActivity && (
+                            {child.hasRecentActivity && child.status !== "archived" && (
                               <Badge className="bg-blue-50 text-blue-700 text-xs">
                                 Actividad reciente
                               </Badge>
