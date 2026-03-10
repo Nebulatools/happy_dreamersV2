@@ -13,17 +13,18 @@ if (!process.env.MONGODB_URI) {
 
 const uri = process.env.MONGODB_URI
 
-// 🏊‍♂️ CONFIGURACIÓN PROFESIONAL DEL CONNECTION POOL
+// Configuración del connection pool optimizada para MongoDB Atlas M0 (free tier)
+// M0 tiene conexiones compartidas y throttling, hay que ser conservador
 const options: MongoClientOptions = {
-  // Connection Pool
-  maxPoolSize: 10,                    // Máximo 10 conexiones concurrentes
-  minPoolSize: 2,                     // Mínimo 2 conexiones en el pool
-  maxIdleTimeMS: 30000,               // 30s timeout para conexiones idle
-  
-  // Timeouts
-  serverSelectionTimeoutMS: 15000,    // 15s para seleccionar servidor (cold starts)
+  // Connection Pool - conservador para M0 free tier
+  maxPoolSize: 3,                     // M0 tiene limite compartido, no saturar
+  minPoolSize: 0,                     // No mantener conexiones idle en serverless
+  maxIdleTimeMS: 15000,               // 15s idle timeout (liberar rapido en M0)
+
+  // Timeouts - tolerantes a cold starts en M0
+  serverSelectionTimeoutMS: 20000,    // 20s para seleccionar servidor (M0 puede ser lento)
   socketTimeoutMS: 45000,             // 45s timeout para operaciones
-  connectTimeoutMS: 15000,            // 15s timeout para conectar (cold starts)
+  connectTimeoutMS: 20000,            // 20s timeout para conectar (M0 cold starts)
   
   // Reliability
   heartbeatFrequencyMS: 10000,        // Health check cada 10s

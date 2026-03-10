@@ -1,6 +1,6 @@
 # QA Release Notes — Sprint 6: Admin UX Hub + Diagnostic Pipeline
 
-**Fecha:** 2026-02-26
+**Fecha:** 2026-02-26 (actualizado 2026-03-02)
 **URL:** https://happy-dreamers-v2.vercel.app (o localhost:3000)
 **Branch QA:** `QA`
 
@@ -22,18 +22,253 @@ En vez de verificar items individuales, vas a recorrer todo el sistema como si f
 
 ---
 
+## PARTE 0: Configuracion Inicial de la Base de Datos QA
+
+> **IMPORTANTE**: Los usuarios (mariana@admin.com y eljulius@nebulastudios.io) ya existen en la BD de QA.
+> Solo falta crear el nino de prueba y llenar su cuestionario. Sigue estos pasos en orden.
+
+### Paso 0.1: Levantar la app
+
+1. Asegurate de que el archivo `.env.local` apunte a la base de datos de QA
+2. Ejecuta `npm run dev` para levantar la app en `localhost:3000`
+3. Confirma que la app carga en el navegador (deberia mostrar la pantalla de login)
+
+### Paso 0.2: Crear nino E2E TestChild
+
+**PEGAR EN CLAUDE:**
+
+```
+Necesito crear el nino de prueba E2E TestChild directamente en MongoDB.
+
+1. Conectate a la base de datos MongoDB usando la URI de .env.local
+2. Busca el userId del padre eljulius@nebulastudios.io en la coleccion "users"
+3. Crea el nino con insertOne en la coleccion "children":
+
+db.children.insertOne({
+  firstName: "E2E",
+  lastName: "TestChild",
+  birthDate: "2024-09-15",
+  parentId: ObjectId("<parentId>"),
+  createdAt: new Date(),
+  updatedAt: new Date()
+})
+
+4. Luego vincula el nino al padre actualizando el array children del usuario:
+
+db.users.updateOne(
+  { _id: ObjectId("<parentId>") },
+  { $addToSet: { children: ObjectId("<childId>") }, $set: { updatedAt: new Date() } }
+)
+
+5. Muestra el childId resultante — lo necesitaremos para todo el test.
+```
+
+**Verificar:**
+- [ ] Se creo el nino y tienes su `childId`
+- [ ] El nino tiene aproximadamente 18 meses de edad (nacido Sep 2024)
+
+### Paso 0.3: Completar el cuestionario (survey) del nino
+
+Este paso es **critico** — sin el survey, el diagnostico no tendra datos de contexto medico ni familiar.
+
+**PEGAR EN CLAUDE:**
+
+```
+Necesito llenar el survey completo del nino E2E TestChild directamente en MongoDB.
+
+1. Primero conectate a la base de datos MongoDB de este proyecto (usa la URI de .env.local)
+2. Busca el childId del nino E2E TestChild en la coleccion "children"
+3. Ejecuta el siguiente updateOne sobre ese documento para poblar surveyData con las 6 secciones:
+
+db.children.updateOne(
+  { _id: ObjectId("<childId>") },
+  {
+    $set: {
+      "surveyData.informacionFamiliar": {
+        "papa": {
+          "nombre": "Julius",
+          "edad": 35,
+          "ocupacion": "Desarrollador",
+          "direccion": "Av. Tecnologico 123, Monterrey",
+          "ciudad": "Monterrey",
+          "telefono": "81-1234-5678",
+          "email": "eljulius@nebulastudios.io",
+          "trabajaFueraCasa": true,
+          "horaRegresoTrabajo": "18:00",
+          "tieneAlergias": false
+        },
+        "mama": {
+          "nombre": "Ana",
+          "edad": 32,
+          "ocupacion": "Disenadora",
+          "mismaDireccionPapa": true,
+          "telefono": "81-8765-4321",
+          "email": "ana@test.com",
+          "trabajaFueraCasa": true,
+          "puedeDormir": true,
+          "pensamientosNegativos": false,
+          "tieneAlergias": false
+        },
+        "primaryCaregiver": "mother"
+      },
+      "surveyData.dinamicaFamiliar": {
+        "otrosResidentes": "Nadie mas, solo papa y mama",
+        "hijosInfo": [],
+        "cantidadHijos": 0,
+        "contactoPrincipal": "mama",
+        "comoSupiste": "Recomendacion de pediatra",
+        "librosConsultados": "Ninguno",
+        "metodosContra": "Ninguno",
+        "otroAsesor": false,
+        "quienAtiende": "Mama durante el dia, papa en las noches"
+      },
+      "surveyData.historial": {
+        "nombreHijo": "E2E TestChild",
+        "fechaNacimiento": "2024-09-15",
+        "pesoHijo": "3.2",
+        "tallaHijo": "50",
+        "genero": "masculino",
+        "embarazoPlaneado": true,
+        "problemasEmbarazo": false,
+        "condicionesEmbarazo": ["ninguna"],
+        "tipoParto": "vaginal",
+        "complicacionesParto": false,
+        "nacioTermino": true,
+        "problemasNacer": false,
+        "pediatra": "Dr. Rodriguez",
+        "pediatraTelefono": "81-5555-0000",
+        "pediatraEmail": "rodriguez@pediatra.com",
+        "pediatraDescarto": true,
+        "pediatraConfirma": true,
+        "tratamientoMedico": false
+      },
+      "surveyData.desarrolloSalud": {
+        "rodarMeses": 4,
+        "sentarseMeses": 6,
+        "gatearMeses": 8,
+        "pararseMeses": 10,
+        "caminarMeses": 12,
+        "hijoUtiliza": "ambas",
+        "alimentacion": "materna-formula",
+        "alimentacionIntroduccion": 4,
+        "comeSolidos": true,
+        "problemasLactancia": false,
+        "asesoriaLactancia": false,
+        "edadAlimentacionComplementaria": 6,
+        "numeroComidasSolidas": 3,
+        "comidasSolidasDetalle": [
+          { "tipoComida": "desayuno", "hora": "08:00", "queComeTipicamente": "Cereal con fruta" },
+          { "tipoComida": "comida", "hora": "12:30", "queComeTipicamente": "Verduras con pollo" },
+          { "tipoComida": "cena", "hora": "18:30", "queComeTipicamente": "Sopa o pure de verduras" }
+        ],
+        "numeroTomasLeche": 3,
+        "cantidadPorToma": 180,
+        "unidadToma": "ml",
+        "tomasLecheDetalle": [
+          { "hora": "07:00" },
+          { "hora": "15:00" },
+          { "hora": "20:00" }
+        ],
+        "problemasHijo": [],
+        "situacionesHijo": []
+      },
+      "surveyData.actividadFisica": {
+        "vePantallas": true,
+        "pantallasDetalle": "30 minutos de videos infantiles por la tarde",
+        "practicaActividad": true,
+        "actividadesLista": [
+          { "nombre": "Caminar en el parque", "duracionMinutos": 30 },
+          { "nombre": "Juego libre en el piso", "duracionMinutos": 45 }
+        ],
+        "actividadesDespierto": "Juega con bloques, camina por la casa, lee cuentos con mama",
+        "signosIrritabilidad": false
+      },
+      "surveyData.rutinaHabitos": {
+        "horaDespertarManana": "07:00",
+        "despiertaSolo": "si",
+        "despiertaBuenHumor": "si",
+        "vaKinder": false,
+        "quienCuida": "Mama durante el dia",
+        "quienCuidaNoche": "Ambos papas",
+        "dondeDuermeSalida": "En la carriola o en brazos",
+        "rutinaDormir": "Bano a las 19:30, piyama, biberon, cuento corto",
+        "horaDormir": "19:30",
+        "duermeSolo": false,
+        "comoLograDormir": "Lo mecen en brazos y lo acuestan en la cuna cuando esta somnoliento",
+        "horaAcostarBebe": "20:00",
+        "queHaceParaDormir": "Toma biberon y escucha cuento, luego lo mecen",
+        "horaRealDormidoNoche": "20:30",
+        "tiempoDormir": "30 minutos",
+        "tomaSiestas": true,
+        "numeroSiestas": 1,
+        "duracionTotalSiestas": "90",
+        "dondeSiestas": "En la cuna de su cuarto",
+        "siestasDetalle": [
+          { "hora": "10:00", "duracion": 90 }
+        ],
+        "despiertaNoche": true,
+        "vecesDespierta": 1,
+        "tiempoDespierto": "15 minutos",
+        "desdeCuandoDespierta": "Desde los 12 meses",
+        "queHacesDespierta": "Palmaditas en la espalda hasta que se vuelve a dormir",
+        "despertaresDetalle": [
+          { "hora": "02:00", "duracion": 15 }
+        ],
+        "tieneTomasNocturnas": false,
+        "oscuridadCuarto": "lamparita",
+        "colorLamparita": "rojo",
+        "ruidoBlanco": false,
+        "temperaturaCuarto": "22",
+        "humedadHabitacion": "media",
+        "tipoPiyama": "Piyama de algodon manga larga",
+        "usaSaco": false,
+        "teQuedasHastaDuerma": true
+      },
+      "surveyData.completed": true,
+      "surveyData.completedAt": new Date(),
+      "surveyData.lastUpdated": new Date(),
+      "updatedAt": new Date()
+    }
+  }
+)
+
+Reemplaza <childId> con el ObjectId real del nino E2E TestChild.
+Confirma que el modifiedCount sea 1.
+Luego verifica haciendo un findOne para confirmar que surveyData.completed === true.
+```
+
+**Verificar:**
+- [ ] El comando reporto `modifiedCount: 1`
+- [ ] Al entrar como admin al Patient Hub > tab "Encuesta", se ven los datos del survey
+
+### Paso 0.4: Verificar setup completo
+
+1. Login como **mariana@admin.com** / **password**
+2. Ve a **Pacientes** en el sidebar
+
+**Verificar:**
+- [ ] Aparece E2E TestChild en la lista de pacientes
+- [ ] Al hacer click en E2E TestChild, se ve su Patient Hub
+- [ ] El tab "Encuesta" muestra los datos del survey que llenaste
+
+> Una vez completado PARTE 0, tienes todo listo para empezar el test E2E.
+> A partir de aqui el nino tiene: 1 survey completado, 0 eventos, 0 planes, 0 analisis AI.
+
+---
+
 ## Credenciales
 
 | Rol | Email | Password |
 |-----|-------|----------|
 | Admin | mariana@admin.com | password |
+| Padre | eljulius@nebulastudios.io | juls0925 |
 
 ---
 
-## Estado Inicial del Nino de Prueba
+## Estado Inicial del Nino de Prueba (despues de PARTE 0)
 
-El nino **E2E TestChild** ya existe en el sistema con un **cuestionario (survey) completado**.
-Esto es intencional — simula que los papas ya llenaron el cuestionario inicial.
+El nino **E2E TestChild** existe en el sistema con un **cuestionario (survey) completado**.
+Esto simula que los papas ya llenaron el cuestionario inicial.
 
 **Lo que SI tiene desde el inicio:**
 - Cuestionario completado (datos del survey: informacion medica, habitos, entorno)
@@ -106,25 +341,134 @@ Ahora vamos a simular un dia completo de un bebe para que haya datos en el diagn
 ### PEGAR EN CLAUDE:
 
 ```
-Necesito que crees eventos de prueba para E2E TestChild usando la API.
-Login como mariana@admin.com / password.
+Necesito crear 8 eventos de prueba para E2E TestChild directamente en MongoDB.
 
-Primero, obten el childId del E2E TestChild consultando la base de datos o la API GET /api/children.
+1. Conectate a la base de datos MongoDB usando la URI de .env.local
+2. Busca el childId del nino E2E TestChild y el parentId (su padre) en la coleccion "children"
+3. Usa la fecha de HOY para todos los eventos. Construye los timestamps en formato ISO con offset de America/Monterrey (-06:00)
+4. Inserta los 8 eventos con insertMany en la coleccion "events":
 
-Luego, crea estos 8 eventos usando POST /api/children/events (con fetch desde el navegador o curl):
+db.events.insertMany([
+  {
+    _id: ObjectId(),
+    childId: ObjectId("<childId>"),
+    parentId: ObjectId("<parentId>"),
+    createdBy: ObjectId("<parentId>"),
+    eventType: "wake",
+    emotionalState: "neutral",
+    startTime: "<HOY>T07:00:00-06:00",
+    endTime: "<HOY>T07:00:00-06:00",
+    notes: "",
+    createdAt: new Date().toISOString()
+  },
+  {
+    _id: ObjectId(),
+    childId: ObjectId("<childId>"),
+    parentId: ObjectId("<parentId>"),
+    createdBy: ObjectId("<parentId>"),
+    eventType: "feeding",
+    feedingType: "bottle",
+    feedingSubtype: "bottle",
+    feedingAmount: 180,
+    babyState: "awake",
+    isNightFeeding: false,
+    feedingContext: "awake",
+    startTime: "<HOY>T07:30:00-06:00",
+    notes: "Biberon 6oz",
+    createdAt: new Date().toISOString()
+  },
+  {
+    _id: ObjectId(),
+    childId: ObjectId("<childId>"),
+    parentId: ObjectId("<parentId>"),
+    createdBy: ObjectId("<parentId>"),
+    eventType: "nap",
+    emotionalState: "tranquilo",
+    sleepDelay: 5,
+    startTime: "<HOY>T10:00:00-06:00",
+    endTime: "<HOY>T11:30:00-06:00",
+    duration: 85,
+    durationReadable: "1h 25m",
+    notes: "",
+    createdAt: new Date().toISOString()
+  },
+  {
+    _id: ObjectId(),
+    childId: ObjectId("<childId>"),
+    parentId: ObjectId("<parentId>"),
+    createdBy: ObjectId("<parentId>"),
+    eventType: "feeding",
+    feedingType: "solids",
+    feedingSubtype: "solids",
+    feedingAmount: 150,
+    babyState: "awake",
+    isNightFeeding: false,
+    feedingContext: "awake",
+    startTime: "<HOY>T12:00:00-06:00",
+    notes: "Comida solida 150g",
+    createdAt: new Date().toISOString()
+  },
+  {
+    _id: ObjectId(),
+    childId: ObjectId("<childId>"),
+    parentId: ObjectId("<parentId>"),
+    createdBy: ObjectId("<parentId>"),
+    eventType: "feeding",
+    feedingType: "bottle",
+    feedingSubtype: "bottle",
+    feedingAmount: 150,
+    babyState: "awake",
+    isNightFeeding: false,
+    feedingContext: "awake",
+    startTime: "<HOY>T15:00:00-06:00",
+    notes: "Biberon 5oz",
+    createdAt: new Date().toISOString()
+  },
+  {
+    _id: ObjectId(),
+    childId: ObjectId("<childId>"),
+    parentId: ObjectId("<parentId>"),
+    createdBy: ObjectId("<parentId>"),
+    eventType: "feeding",
+    feedingType: "solids",
+    feedingSubtype: "solids",
+    feedingAmount: 120,
+    babyState: "awake",
+    isNightFeeding: false,
+    feedingContext: "awake",
+    startTime: "<HOY>T18:00:00-06:00",
+    notes: "Cena 120g",
+    createdAt: new Date().toISOString()
+  },
+  {
+    _id: ObjectId(),
+    childId: ObjectId("<childId>"),
+    parentId: ObjectId("<parentId>"),
+    createdBy: ObjectId("<parentId>"),
+    eventType: "sleep",
+    emotionalState: "tranquilo",
+    sleepDelay: 10,
+    startTime: "<HOY>T20:30:00-06:00",
+    notes: "",
+    createdAt: new Date().toISOString()
+  },
+  {
+    _id: ObjectId(),
+    childId: ObjectId("<childId>"),
+    parentId: ObjectId("<parentId>"),
+    createdBy: ObjectId("<parentId>"),
+    eventType: "night_waking",
+    emotionalState: "inquieto",
+    awakeDelay: 15,
+    startTime: "<HOY+1>T02:00:00-06:00",
+    notes: "",
+    createdAt: new Date().toISOString()
+  }
+])
 
-1. WAKE — Despertar manana a las 07:00 de hoy
-2. FEEDING (bottle) — Biberon 6oz a las 07:30
-3. NAP — Siesta de 10:00 a 11:30 (90 min), sleepDelay: 5, emotionalState: "tranquilo"
-4. FEEDING (solids) — Comida solida a las 12:00, feedingAmount: 150g
-5. FEEDING (bottle) — Biberon 5oz a las 15:00
-6. FEEDING (solids) — Cena a las 18:00, feedingAmount: 120g
-7. SLEEP — Sueno nocturno a las 20:30, sleepDelay: 10, emotionalState: "tranquilo"
-8. NIGHT_WAKING — Despertar nocturno a las 02:00, awakeDelay: 15, emotionalState: "inquieto"
-
-Usa la fecha de HOY para todos los eventos.
-Muestra un resumen de los eventos creados al terminar.
-NO pidas confirmacion, solo crealos.
+Reemplaza <childId>, <parentId>, <HOY> (formato YYYY-MM-DD de hoy) y <HOY+1> (manana, porque las 02:00 son de madrugada).
+Confirma que se insertaron 8 documentos.
+Muestra un resumen de los eventos creados.
 ```
 
 ### CHECKPOINT HUMANO 5: Verificar Eventos en Bitacora
@@ -235,18 +579,51 @@ Muestra SOLO el texto del transcript para que yo lo copie y pegue.
 ### PEGAR EN CLAUDE:
 
 ```
-Necesito crear un Plan v1 para E2E TestChild usando la API de Happy Dreamers.
+Necesito crear un Plan v1 para E2E TestChild directamente en MongoDB.
 
-1. Obten el childId del E2E TestChild y el userId de su padre
-2. Verifica si ya hay un plan activo: GET /api/consultas/plans?childId=[childId]
-3. Si no hay plan activo, crea uno: POST /api/consultas/plans con:
-   - childId del E2E TestChild
-   - userId del padre
-   - planType: "Progresion"
-   - transcript: "Consulta de seguimiento: bebe despierta 7am, siesta 1.5h, bedtime 8:30pm con rutina bano+cuento, 1 despertar nocturno"
-4. Activa el plan: PATCH /api/consultas/plans/[planId] con status: "active"
+1. Conectate a la base de datos MongoDB usando la URI de .env.local
+2. Busca el childId de E2E TestChild y el userId de su padre (parentId) en la coleccion "children"
+3. Busca el userId del admin mariana@admin.com en la coleccion "users"
+4. Inserta el plan en la coleccion "child_plans":
 
-Muestra el planId y confirma que quedo activo.
+db.child_plans.insertOne({
+  childId: ObjectId("<childId>"),
+  userId: ObjectId("<parentId>"),
+  createdBy: ObjectId("<adminId>"),
+  planNumber: 1,
+  planVersion: "1",
+  planType: "event_based",
+  title: "Plan de sueno - Semana 1",
+  schedule: {
+    bedtime: "20:30",
+    wakeTime: "07:00",
+    meals: [
+      { time: "07:30", type: "desayuno", description: "Cereal + fruta + lacteo" },
+      { time: "12:00", type: "almuerzo", description: "Proteina + verdura + cereal" },
+      { time: "15:30", type: "merienda", description: "Fruta + lacteo" },
+      { time: "18:30", type: "cena", description: "Proteina + verdura + grasa saludable" }
+    ],
+    activities: [],
+    naps: [
+      { time: "10:00", duration: 90, description: "Siesta de la manana" }
+    ]
+  },
+  objectives: [
+    "Consolidar hora de dormir a las 20:30 con rutina predecible",
+    "Reducir despertar nocturno gradualmente con tecnica de palmaditas",
+    "Mantener siesta matutina de 90 minutos"
+  ],
+  recommendations: [
+    "Iniciar rutina nocturna a las 19:30: bano, pijama, biberon, cuento",
+    "Mantener cuarto oscuro con lamparita roja tenue",
+    "En despertar nocturno, esperar 2 minutos antes de intervenir"
+  ],
+  status: "active",
+  createdAt: new Date(),
+  updatedAt: new Date()
+})
+
+5. Confirma que el plan se inserto correctamente y muestra el planId.
 ```
 
 ### CHECKPOINT HUMANO 12: Plan Visible
@@ -257,7 +634,7 @@ Muestra el planId y confirma que quedo activo.
 **Verificar:**
 - [ ] Se ve el plan activo con horarios del bebe
 - [ ] El plan muestra schedule con bedtime, wake time, siestas
-- [ ] El vocabulario de comidas es variado (no solo "desayuno/comida/cena" repetitivo)
+- [ ] Las descripciones de comidas usan **combinaciones de grupos alimenticios** (ej: "Proteina + verdura + cereal"), NO alimentos especificos (ej: "Avena con platano") ni genericos (ej: "Comida balanceada")
 
 ---
 
@@ -328,6 +705,9 @@ Muestra el planId y confirma que quedo activo.
 
 | # | Checkpoint | Area | Status |
 |---|-----------|------|--------|
+| 0.2 | Crear E2E TestChild | Setup BD | |
+| 0.3 | Completar survey del nino | Setup BD | |
+| 0.4 | Verificar setup completo | Setup BD | |
 | 1 | Login y Sidebar | Navegacion | |
 | 2 | Busqueda Child-Centric | Header | |
 | 3 | Lista de Pacientes | Pacientes | |

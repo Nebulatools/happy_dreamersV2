@@ -54,7 +54,7 @@ export function CalendarDayView({
       {/* Área de eventos */}
       <div className="flex-1 relative">
         {/* Header del día */}
-        <div className="h-8 bg-white border-b border-gray-200 flex items-center justify-center relative">
+        <div className="h-8 bg-white border-b border-gray-200 flex items-center justify-center relative sticky top-0 z-10">
           {/* Flecha izquierda */}
           {onDayNavigateBack && (
             <button

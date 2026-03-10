@@ -80,7 +80,7 @@ export default function MisSonadoresPage() {
         setChildren(childrenData)
         
         if (childrenData.length === 0 && data && !Array.isArray(data)) {
-          logger.warn("No se pudieron extraer niños de la respuesta:", data)
+          logger.debug("Respuesta sin niños extraibles:", data)
         }
       } else {
         toast.error("Error al cargar los soñadores")

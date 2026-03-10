@@ -88,6 +88,7 @@ For detailed information, read the following reference files:
 - `references/datetime-patterns.md` - UTC bug details and timezone handling
 - `references/event-system.md` - Event types, validation, and flags
 - `references/modal-patterns.md` - Modal implementation with edit mode
+- `references/bug-center-ops.md` - Bug Center: como checar reportes de bugs de usuarios
 - `/lib/colors/event-colors.ts` - Color system (Single Source of Truth)
 - `/lib/icons/event-icons.ts` - Icon registry (Single Source of Truth)
 

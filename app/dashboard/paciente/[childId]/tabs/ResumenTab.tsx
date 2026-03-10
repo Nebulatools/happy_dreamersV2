@@ -5,6 +5,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import ClinicalSummaryCard from "@/components/clinical-summary/ClinicalSummaryCard"
 import EnhancedSleepMetricsCard from "@/components/sleep-statistics/EnhancedSleepMetricsCard"
 import PositiveFeedbackCard from "@/components/sleep-statistics/PositiveFeedbackCard"
 import NightWakeupsEvolutionChart from "@/components/sleep-statistics/NightWakeupsEvolutionChart"
@@ -20,6 +21,9 @@ export default function ResumenTab({ childId }: ResumenTabProps) {
 
   return (
     <div className="space-y-6">
+      {/* Resumen clinico compacto */}
+      <ClinicalSummaryCard childId={childId} />
+
       {/* Selector de rango de fecha */}
       <div className="flex items-center justify-end">
         <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1">

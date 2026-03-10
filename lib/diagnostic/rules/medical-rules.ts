@@ -179,25 +179,17 @@ function evaluateCondition(
   const configs = getIndicatorsForCondition(condition)
   const indicators: MedicalIndicator[] = []
   let detectedCount = 0
-  let pendingCount = 0
+  const pendingCount = 0
   let availableCount = 0
   const missingDataNames: string[] = []
 
   for (const config of configs) {
+    // Solo incluir indicadores que tienen datos disponibles
+    if (!config.available) continue
+    if (!hasDataForIndicator(config, surveyData, events)) continue
+
     const indicator = evaluateIndicator(config, surveyData, events)
     indicators.push(indicator)
-
-    if (!indicator.available) {
-      pendingCount++
-      continue
-    }
-
-    const hasData = hasDataForIndicator(config, surveyData, events)
-    if (!hasData) {
-      pendingCount++
-      missingDataNames.push(indicator.name)
-      continue
-    }
 
     availableCount++
     if (indicator.detected) {
@@ -209,9 +201,6 @@ function evaluateCondition(
   let status: StatusLevel = "ok"
   if (detectedCount >= MEDICAL_ALERT_THRESHOLD) {
     status = "alert"
-  } else if (pendingCount > 0 && availableCount < configs.length / 2) {
-    // Si hay muchos datos pendientes, warning
-    status = "warning"
   }
 
   return {
@@ -240,9 +229,6 @@ function conditionToCriteria(evaluation: ConditionEvaluation): CriterionResult {
   let message = ""
   if (evaluation.detectedCount === 0) {
     message = "Sin indicadores detectados"
-    if (evaluation.pendingCount > 0) {
-      message += ` (${evaluation.pendingCount} datos pendientes)`
-    }
   } else {
     message = `${evaluation.detectedCount} indicador(es) detectado(s): ${detectedNames.join(", ")}`
   }
@@ -260,25 +246,18 @@ function conditionToCriteria(evaluation: ConditionEvaluation): CriterionResult {
 }
 
 // Calcular completitud de datos
+// Solo cuenta indicadores con datos (los sin datos ya fueron filtrados)
 function calculateMedicalDataCompleteness(
   evaluations: ConditionEvaluation[]
 ): DataCompleteness {
   let available = 0
-  let total = 0
-  const pending = new Set<string>()
 
   for (const evaluation of evaluations) {
-    for (const indicator of evaluation.indicators) {
-      total++
-      if (!indicator.available) pending.add(indicator.name)
-    }
     available += evaluation.availableCount
-    for (const missingDataName of evaluation.missingDataNames) {
-      pending.add(missingDataName)
-    }
   }
 
-  return { available, total, pending: Array.from(pending) }
+  // total = available porque solo incluimos indicadores con datos
+  return { available, total: available, pending: [] }
 }
 
 // Determinar status general del grupo
@@ -296,7 +275,7 @@ function calculateOverallMedicalStatus(
 // Generar resumen del grupo
 function generateMedicalSummary(
   evaluations: ConditionEvaluation[],
-  dataCompleteness: DataCompleteness
+  _dataCompleteness: DataCompleteness
 ): string {
   const totalDetected = evaluations.reduce((sum, e) => sum + e.detectedCount, 0)
   const conditions = evaluations
@@ -311,9 +290,6 @@ function generateMedicalSummary(
     })
 
   if (totalDetected === 0) {
-    if (dataCompleteness.pending.length > 0) {
-      return `Sin indicadores detectados. ${dataCompleteness.pending.length} datos pendientes de recolectar.`
-    }
     return "Sin indicadores médicos detectados."
   }
 
@@ -336,8 +312,10 @@ export function validateMedicalIndicators(
 
   const evaluations = [reflujoEval, apneaEval, restlessEval]
 
-  // Construir criterios
-  const criteria: CriterionResult[] = evaluations.map(conditionToCriteria)
+  // Construir criterios (solo condiciones con datos disponibles)
+  const criteria: CriterionResult[] = evaluations
+    .filter((e) => e.availableCount > 0)
+    .map(conditionToCriteria)
 
   // Calcular completitud
   const dataCompleteness = calculateMedicalDataCompleteness(evaluations)

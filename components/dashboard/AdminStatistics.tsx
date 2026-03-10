@@ -1,31 +1,31 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ChildAvatar } from "@/components/ui/child-avatar"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
-import { 
-  Users, TrendingUp, AlertTriangle, Calendar, 
-  Moon, Activity, BarChart3, CheckCircle,
-  FileText, MessageSquare, Filter, ChevronRight,
+import {
+  Users, TrendingUp, AlertTriangle,
+  Activity, CheckCircle,
+  ChevronRight,
   Clock, AlertCircle, Search, Loader2,
 } from "lucide-react"
 import {
   format,
   parseISO,
-  differenceInMinutes,
+  formatDistanceToNow,
 } from "date-fns"
 import { es } from "date-fns/locale"
 
 import { createLogger } from "@/lib/logger"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { useActiveChild } from "@/context/active-child-context"
 
 const logger = createLogger("AdminStatistics")
 
@@ -39,9 +39,48 @@ interface ChildAlert {
   parentName?: string
 }
 
+interface NewUserInfo {
+  _id: string
+  name: string
+  email: string
+  createdAt: string
+}
+
+interface NewChildInfo {
+  _id: string
+  firstName: string
+  lastName: string
+  createdAt: string
+}
+
+interface ChildMetric {
+  childId: string
+  childName: string
+  apellidoContacto: string
+  parentId: string
+  isActive: boolean
+  hasPlan: boolean
+  hasRecentActivity: boolean
+  status: "active" | "inactive" | "archived"
+  lastEventDate: string | null
+}
+
+interface RecentActivityChild {
+  childId: string
+  childName: string
+  apellidoContacto: string
+  lastEventType: string
+  lastEventTime: string
+}
+
 interface DashboardMetrics {
   totalPatients: number
   activeToday: number
+  statusCounts: { active: number; inactive: number; archived: number }
+  newUsersThisMonth: number
+  newUsersList: NewUserInfo[]
+  newChildrenThisMonth: number
+  newChildrenList: NewChildInfo[]
   alerts: {
     critical: number
     warning: number
@@ -49,120 +88,88 @@ interface DashboardMetrics {
   }
 }
 
-interface Child {
-  _id: string
-  firstName: string
-  lastName: string
-  birthDate?: string
-  parentId: string
-}
-
-interface AdminUser {
-  _id: string
-  name: string
-  email: string
-  role: string
-}
-
-interface Event {
-  _id: string
-  childId: string
-  eventType: string
-  emotionalState: string
-  startTime: string
-  endTime?: string
-  notes?: string
-  createdAt: string
-}
-
-const extractChildrenFromPayload = (payload: any): Child[] => {
-  if (!payload) return []
-  if (Array.isArray(payload)) return payload as Child[]
-  if (Array.isArray(payload.children)) return payload.children as Child[]
-  if (Array.isArray(payload.data?.children)) return payload.data.children as Child[]
-  if (Array.isArray(payload.data)) return payload.data as Child[]
-  return []
+// Mapa de nombres legibles para tipos de evento
+const eventTypeLabels: Record<string, string> = {
+  sleep: "Registro de sueno",
+  nap: "Siesta",
+  wake: "Despertar",
+  night_waking: "Despertar nocturno",
+  feeding: "Alimentacion",
+  medication: "Medicamento",
+  extra_activities: "Actividad extra",
 }
 
 export default function AdminStatistics() {
   const { data: session } = useSession()
   const { toast } = useToast()
-  const [period, setPeriod] = useState("week")
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("urgencia")
-  
-  // Estados para el nuevo sistema de triage
+
+  // Estados para el sistema de triage
   const [criticalAlerts, setCriticalAlerts] = useState<ChildAlert[]>([])
   const [warningAlerts, setWarningAlerts] = useState<ChildAlert[]>([])
-  const [todayPatients, setTodayPatients] = useState<Child[]>([])
-  
+
+  // Estados para datos del API
+  const [childMetrics, setChildMetrics] = useState<ChildMetric[]>([])
+  const [recentActivityChildren, setRecentActivityChildren] = useState<RecentActivityChild[]>([])
+
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalPatients: 0,
     activeToday: 0,
+    statusCounts: { active: 0, inactive: 0, archived: 0 },
+    newUsersThisMonth: 0,
+    newUsersList: [],
+    newChildrenThisMonth: 0,
+    newChildrenList: [],
     alerts: {
       critical: 0,
       warning: 0,
       ok: 0,
     },
   })
-  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([])
-  const [userChildrenMap, setUserChildrenMap] = useState<Record<string, Child[]>>({})
-  const [directoryLoading, setDirectoryLoading] = useState(false)
-  const [directoryError, setDirectoryError] = useState<string | null>(null)
-  const [childrenPrefetched, setChildrenPrefetched] = useState(false)
-  const [childrenLoadingId, setChildrenLoadingId] = useState<string | null>(null)
-  const {
-    activeChildId,
-    activeUserId,
-    setActiveChildId,
-    setActiveUserId,
-    setActiveUserName,
-  } = useActiveChild()
 
   // Cargar datos administrativos
   useEffect(() => {
     loadAdminData()
-  }, [period])
+  }, [])
 
   const loadAdminData = async () => {
     try {
       setIsLoading(true)
 
-      // Usar el nuevo endpoint optimizado para métricas del dashboard admin
+      // Usar el endpoint optimizado para metricas del dashboard admin
       const metricsResponse = await fetch("/api/admin/dashboard-metrics")
 
       if (!metricsResponse.ok) {
-        throw new Error("Error al cargar métricas del dashboard")
+        throw new Error("Error al cargar metricas del dashboard")
       }
 
       const metricsData = await metricsResponse.json()
-      const { totalChildren, activeToday } = metricsData
+      const { totalChildren, activeToday, newUsersThisMonth, newUsersList, newChildrenThisMonth, newChildrenList } = metricsData
 
-      // TODO: Integrar con el backend real para alertas de Zuli
-      // Los datos de triage deben venir del endpoint que proporcionará las alertas categorizadas por Zuli
+      // Guardar childMetrics y actividad reciente del API
+      setChildMetrics(metricsData.childMetrics || [])
+      setRecentActivityChildren(metricsData.recentActivityChildren || [])
 
-      // Por ahora, inicializar arrays vacíos para alertas críticas y warnings
-      const mockCriticalAlerts: ChildAlert[] = []
-      const mockWarningAlerts: ChildAlert[] = []
+      // Separar alertas por severidad desde el backend
+      const allAlerts: ChildAlert[] = metricsData.childAlerts || []
+      setCriticalAlerts(allAlerts.filter((a: ChildAlert) => a.severity === "critical"))
+      setWarningAlerts(allAlerts.filter((a: ChildAlert) => a.severity === "warning"))
 
-      const todayActivePatients: Child[] = []
-
-      setCriticalAlerts(mockCriticalAlerts)
-      setWarningAlerts(mockWarningAlerts)
-      setTodayPatients(todayActivePatients)
-
-      // Actualizar métricas con datos reales del nuevo endpoint
+      // Actualizar metricas con datos reales del endpoint
       setMetrics({
         totalPatients: totalChildren,
-        activeToday: activeToday, // Pacientes con planes de seguimiento activos o actividad reciente
-        alerts: {
-          critical: 0,
-          warning: 0,
-          ok: totalChildren, // Por ahora todos son "ok" ya que no tenemos sistema de triage
-        },
+        activeToday: activeToday,
+        statusCounts: metricsData.statusCounts || { active: 0, inactive: 0, archived: 0 },
+        newUsersThisMonth: newUsersThisMonth || 0,
+        newUsersList: newUsersList || [],
+        newChildrenThisMonth: newChildrenThisMonth || 0,
+        newChildrenList: newChildrenList || [],
+        alerts: metricsData.alerts || { critical: 0, warning: 0, ok: totalChildren },
       })
-      
+
     } catch (error) {
       logger.error("Error loading admin data:", error)
       toast({
@@ -175,180 +182,38 @@ export default function AdminStatistics() {
     }
   }
 
-  useEffect(() => {
-    if (session?.user?.role !== "admin") {
-      setAdminUsers([])
-      return
-    }
-
-    const fetchDirectoryUsers = async () => {
-      try {
-        setDirectoryLoading(true)
-        setDirectoryError(null)
-        const response = await fetch("/api/admin/users")
-        if (!response.ok) {
-          throw new Error("Error al cargar usuarios")
-        }
-        const data = await response.json()
-        const filtered = (Array.isArray(data) ? data : []).filter((user: AdminUser) => user.role !== "admin")
-        setAdminUsers(filtered)
-      } catch (error) {
-        logger.error("No se pudieron cargar los usuarios para el directorio", error)
-        setAdminUsers([])
-        setDirectoryError("No se pudo cargar la lista de pacientes. Intenta nuevamente.")
-      } finally {
-        setDirectoryLoading(false)
-      }
-    }
-
-    fetchDirectoryUsers()
-  }, [session?.user?.role])
-
-  useEffect(() => {
-    if (!adminUsers.length || childrenPrefetched) return
-    let isMounted = true
-
-    const fetchAllChildren = async () => {
-      try {
-        const response = await fetch("/api/children")
-        if (!response.ok) {
-          throw new Error("Error al precargar niños")
-        }
-        const payload = await response.json()
-        const children = extractChildrenFromPayload(payload)
-        if (!isMounted || !children.length) return
-        const grouped = children.reduce<Record<string, Child[]>>((acc, child) => {
-          if (!child?.parentId) return acc
-          if (!acc[child.parentId]) acc[child.parentId] = []
-          acc[child.parentId].push(child)
-          return acc
-        }, {})
-        setUserChildrenMap(prev => ({ ...grouped, ...prev }))
-      } catch (error) {
-        logger.warn("No se pudieron precargar todos los niños", error)
-      } finally {
-        if (isMounted) {
-          setChildrenPrefetched(true)
-        }
-      }
-    }
-
-    fetchAllChildren()
-    return () => {
-      isMounted = false
-    }
-  }, [adminUsers, childrenPrefetched])
-
-  const ensureUserChildren = async (userId: string) => {
-    if (userChildrenMap[userId]) {
-      return userChildrenMap[userId]
-    }
-    try {
-      setChildrenLoadingId(userId)
-      const response = await fetch(`/api/children?userId=${userId}`)
-      if (!response.ok) {
-        throw new Error("Error al cargar niños")
-      }
-      const payload = await response.json()
-      const children = extractChildrenFromPayload(payload)
-      setUserChildrenMap(prev => ({ ...prev, [userId]: children }))
-      return children
-    } catch (error) {
-      logger.error("No se pudieron cargar los niños del usuario", error)
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los niños de este usuario.",
-        variant: "destructive",
-      })
-      return []
-    } finally {
-      setChildrenLoadingId(null)
-    }
-  }
-
-  const handleParentFocus = async (user: AdminUser) => {
-    await ensureUserChildren(user._id)
-    setActiveUserId(user._id)
-    setActiveUserName(user.name)
-    setActiveChildId(null)
-    toast({
-      title: "Tutor sincronizado",
-      description: `${user.name} está listo para elegir uno de sus niños.`,
-      duration: 2500,
+  // Lista filtrada de todos los pacientes para el tab "Todos"
+  const filteredChildren = useMemo(() => {
+    if (!childMetrics.length) return []
+    const search = searchTerm.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    if (!search) return childMetrics
+    return childMetrics.filter(child => {
+      const name = child.childName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      const apellido = child.apellidoContacto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      return name.includes(search) || apellido.includes(search)
     })
-  }
-
-  const handleChildSelection = async (user: AdminUser, child: Child) => {
-    await ensureUserChildren(user._id)
-    setActiveUserId(user._id)
-    setActiveUserName(user.name)
-    setActiveChildId(child._id)
-    toast({
-      title: "Paciente seleccionado",
-      description: `${child.firstName} ${child.lastName} quedó activo en el dashboard.`,
-      duration: 2500,
-    })
-  }
-
-  const formatChildAge = (birthDate?: string) => {
-    if (!birthDate) return ""
-    try {
-      const birth = new Date(birthDate)
-      const diffDays = Math.floor((Date.now() - birth.getTime()) / (1000 * 60 * 60 * 24))
-      if (diffDays < 30) return `${diffDays}d`
-      if (diffDays < 365) return `${Math.floor(diffDays / 30)}m`
-      const years = Math.floor(diffDays / 365)
-      const months = Math.floor((diffDays % 365) / 30)
-      return months > 0 ? `${years}a ${months}m` : `${years}a`
-    } catch {
-      return ""
-    }
-  }
-
-  const directoryFamilies = useMemo(() => {
-    if (!adminUsers.length) return [] as Array<{ user: AdminUser; children: Child[] }>
-    const search = searchTerm.trim().toLowerCase()
-    return adminUsers.map(user => {
-      const children = userChildrenMap[user._id] || []
-      if (!search) {
-        return { user, children }
-      }
-      const parentMatches = user.name.toLowerCase().includes(search) || user.email.toLowerCase().includes(search)
-      const childMatches = children.some(child => `${child.firstName || ""} ${child.lastName || ""}`.trim().toLowerCase().includes(search))
-      if (parentMatches || childMatches) {
-        return { user, children }
-      }
-      return null
-    }).filter(Boolean) as Array<{ user: AdminUser; children: Child[] }>
-  }, [adminUsers, userChildrenMap, searchTerm])
-
-  const totalDirectoryChildren = useMemo(() => {
-    return directoryFamilies.reduce((sum, entry) => sum + entry.children.length, 0)
-  }, [directoryFamilies])
+  }, [childMetrics, searchTerm])
 
   const getGreeting = () => {
     const hour = new Date().getHours()
-    if (hour < 12) return "¡Buenos días"
-    if (hour < 18) return "¡Buenas tardes"
-    return "¡Buenas noches"
+    if (hour < 12) return "Buenos dias"
+    if (hour < 18) return "Buenas tardes"
+    return "Buenas noches"
   }
 
-  // Función para manejar navegación a paciente
+  // Navegacion a paciente
   const handlePatientClick = (childId: string) => {
-    // TODO: Navegar a la vista de diagnóstico del paciente
-    logger.info("Navegar a paciente:", childId)
+    router.push(`/dashboard/paciente/${childId}`)
   }
 
-  // Función para crear plan
+  // Navegacion a crear plan
   const handleCreatePlan = (childId: string) => {
-    // TODO: Navegar a la vista de planificación
-    logger.info("Crear plan para:", childId)
+    router.push(`/dashboard/paciente/${childId}?tab=consultas`)
   }
 
-  // Función para revisar bitácora
+  // Navegacion a revisar bitacora
   const handleReviewLog = (childId: string) => {
-    // TODO: Navegar a la bitácora del paciente
-    logger.info("Revisar bitácora de:", childId)
+    router.push(`/dashboard/paciente/${childId}?tab=bitacora`)
   }
 
   if (isLoading) {
@@ -357,7 +222,7 @@ export default function AdminStatistics() {
         <Activity className="h-16 w-16 text-muted-foreground animate-pulse" />
         <h2 className="text-2xl font-bold">Cargando Dashboard Administrativo</h2>
         <p className="text-muted-foreground text-center">
-          Obteniendo métricas y datos de todos los pacientes...
+          Obteniendo metricas y datos de todos los pacientes...
         </p>
       </div>
     )
@@ -368,7 +233,7 @@ export default function AdminStatistics() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Saludo personalizado para admin */}
         <div className="space-y-2">
-          <h1 
+          <h1
             className="greeting-title"
             style={{
               fontFamily: "Ludicrous, sans-serif",
@@ -380,11 +245,11 @@ export default function AdminStatistics() {
             {getGreeting()}, Coach {session?.user?.name?.split(" ")[0] || "Admin"}!
           </h1>
           <p className="text-[#666666]" style={{ fontFamily: "Century Gothic, sans-serif" }}>
-            Aquí está el resumen de tus pacientes y casos que requieren atención.
+            Aqui esta el resumen de tus pacientes y casos que requieren atencion.
           </p>
         </div>
 
-        {/* Métricas Simplificadas - Movidas arriba */}
+        {/* Metricas Simplificadas */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Total de Pacientes */}
           <Card className="bg-white shadow-sm border-0">
@@ -400,9 +265,63 @@ export default function AdminStatistics() {
               </div>
               <div className="mt-4 flex items-center gap-2">
                 <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50" style={{ fontFamily: "Century Gothic, sans-serif" }}>Registrados</Badge>
-                <span className="text-xs text-[#666666]">
-                  +{Math.max(1, Math.floor(metrics.totalPatients * 0.15))} este mes
-                </span>
+                {metrics.statusCounts.archived > 0 && (
+                  <span className="text-xs text-gray-400" style={{ fontFamily: "Century Gothic, sans-serif" }}>
+                    ({metrics.statusCounts.archived} archivados)
+                  </span>
+                )}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
+                      style={{ fontFamily: "Century Gothic, sans-serif" }}
+                    >
+                      +{metrics.newUsersThisMonth} este mes
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0" align="start">
+                    <div className="p-4 space-y-3">
+                      <h4 className="font-medium text-sm text-[#2F2F2F]" style={{ fontFamily: "Century Gothic, sans-serif" }}>
+                        Nuevos registros (ultimos 30 dias)
+                      </h4>
+                      {metrics.newUsersThisMonth > 0 ? (
+                        <>
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-[#666666] uppercase tracking-wide">Usuarios</p>
+                            {metrics.newUsersList.map(user => (
+                              <div key={user._id} className="flex items-center justify-between text-sm border-b border-gray-100 pb-1.5 last:border-0">
+                                <div>
+                                  <span className="font-medium text-[#2F2F2F]">{user.name}</span>
+                                  <span className="text-[#999999] ml-2 text-xs">{user.email}</span>
+                                </div>
+                                <span className="text-xs text-[#999999] whitespace-nowrap ml-2">
+                                  {user.createdAt ? format(parseISO(user.createdAt), "d MMM", { locale: es }) : "—"}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          {metrics.newChildrenThisMonth > 0 && (
+                            <div className="space-y-2 pt-1">
+                              <p className="text-xs font-medium text-[#666666] uppercase tracking-wide">Ninos</p>
+                              {metrics.newChildrenList.map(child => (
+                                <div key={child._id} className="flex items-center justify-between text-sm border-b border-gray-100 pb-1.5 last:border-0">
+                                  <span className="font-medium text-[#2F2F2F]">{child.firstName} {child.lastName}</span>
+                                  <span className="text-xs text-[#999999] whitespace-nowrap ml-2">
+                                    {child.createdAt ? format(parseISO(child.createdAt), "d MMM", { locale: es }) : "—"}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm text-[#999999]" style={{ fontFamily: "Century Gothic, sans-serif" }}>
+                          Sin nuevos registros este mes
+                        </p>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </CardContent>
           </Card>
@@ -424,7 +343,7 @@ export default function AdminStatistics() {
                   {Math.round((metrics.activeToday / metrics.totalPatients) * 100) || 0}% en seguimiento
                 </Badge>
                 <span className="text-xs text-[#666666]" style={{ fontFamily: "Century Gothic, sans-serif" }} title="Pacientes con planes activos o actividad reciente">
-                  planes activos o actividad en 7 días
+                  planes activos o actividad en 7 dias
                 </span>
               </div>
             </CardContent>
@@ -437,23 +356,23 @@ export default function AdminStatistics() {
                 <div className="space-y-1">
                   <p className="text-sm text-[#666666]" style={{ fontFamily: "Century Gothic, sans-serif" }}>Resumen de Alertas</p>
                   <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1.5">
                       <div className="h-4 w-4 bg-red-100 rounded-full flex items-center justify-center">
                         <span className="text-xs font-bold text-red-600">{metrics.alerts.critical}</span>
                       </div>
-                      <span className="text-red-600">🔴</span>
+                      <div className="h-3 w-3 rounded-full bg-red-500" />
                     </span>
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1.5">
                       <div className="h-4 w-4 bg-yellow-100 rounded-full flex items-center justify-center">
                         <span className="text-xs font-bold text-yellow-600">{metrics.alerts.warning}</span>
                       </div>
-                      <span className="text-yellow-600">🟡</span>
+                      <div className="h-3 w-3 rounded-full bg-yellow-500" />
                     </span>
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1.5">
                       <div className="h-4 w-4 bg-green-100 rounded-full flex items-center justify-center">
                         <span className="text-xs font-bold text-green-600">{metrics.alerts.ok}</span>
                       </div>
-                      <span className="text-green-600">🟢</span>
+                      <div className="h-3 w-3 rounded-full bg-green-500" />
                     </span>
                   </div>
                 </div>
@@ -472,8 +391,8 @@ export default function AdminStatistics() {
         {/* Sistema de Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-white/50">
-            <TabsTrigger 
-              value="urgencia" 
+            <TabsTrigger
+              value="urgencia"
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
             >
               <AlertTriangle className="h-4 w-4 mr-2" />
@@ -484,19 +403,19 @@ export default function AdminStatistics() {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger 
-              value="hoy"
+            <TabsTrigger
+              value="actividad"
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
             >
-              <Calendar className="h-4 w-4 mr-2" />
-              Pacientes de Hoy
-              {todayPatients.length > 0 && (
+              <Activity className="h-4 w-4 mr-2" />
+              Actividad Reciente
+              {recentActivityChildren.length > 0 && (
                 <Badge className="ml-2 bg-blue-100 text-blue-700 h-5 px-1.5">
-                  {todayPatients.length}
+                  {recentActivityChildren.length}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="todos"
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
             >
@@ -507,22 +426,22 @@ export default function AdminStatistics() {
               </Badge>
             </TabsTrigger>
           </TabsList>
-          
+
           {/* Tab de Pacientes en Urgencia */}
           <TabsContent value="urgencia" className="mt-6 space-y-6">
-            {/* ACCIÓN URGENTE (Alertas Críticas) */}
+            {/* ACCION URGENTE (Alertas Criticas) */}
             {criticalAlerts.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <div className="h-8 w-8 bg-red-100 rounded-full flex items-center justify-center">
                     <AlertTriangle className="h-5 w-5 text-red-600" />
                   </div>
-                  <h2 className="text-xl font-semibold text-[#2F2F2F]">ACCIÓN URGENTE</h2>
+                  <h2 className="text-xl font-semibold text-[#2F2F2F]">ACCION URGENTE</h2>
                   <Badge className="bg-red-100 text-red-700 hover:bg-red-100">
                     {criticalAlerts.length} {criticalAlerts.length === 1 ? "caso" : "casos"}
                   </Badge>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {criticalAlerts.map((alert) => (
                     <Card key={alert.childId} className="bg-white shadow-sm border-red-200 hover:shadow-md transition-shadow cursor-pointer"
@@ -538,17 +457,17 @@ export default function AdminStatistics() {
                               <AlertCircle className="h-5 w-5 text-red-600" />
                             </div>
                           </div>
-                          
+
                           <div className="bg-red-50 rounded-lg p-3">
                             <p className="text-sm text-[#3A3A3A] leading-relaxed">
-                              <span className="font-medium">Diagnóstico Clave de Zuli:</span> {alert.diagnosis}
+                              <span className="font-medium">Diagnostico Clave de Zuli:</span> {alert.diagnosis}
                             </p>
                           </div>
-                          
+
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-[#666666]">{alert.lastUpdate}</span>
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               className="bg-red-600 hover:bg-red-700 text-white"
                               onClick={(e) => {
                                 e.stopPropagation()
@@ -566,19 +485,19 @@ export default function AdminStatistics() {
               </div>
             )}
 
-            {/* NECESITAN REVISIÓN (Alertas de Advertencia) */}
+            {/* NECESITAN REVISION (Alertas de Advertencia) */}
             {warningAlerts.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <div className="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center">
                     <AlertCircle className="h-5 w-5 text-yellow-600" />
                   </div>
-                  <h2 className="text-xl font-semibold text-[#2F2F2F]">NECESITAN REVISIÓN</h2>
+                  <h2 className="text-xl font-semibold text-[#2F2F2F]">NECESITAN REVISION</h2>
                   <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">
                     {warningAlerts.length} {warningAlerts.length === 1 ? "caso" : "casos"}
                   </Badge>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {warningAlerts.map((alert) => (
                     <Card key={alert.childId} className="bg-white shadow-sm border-yellow-200 hover:shadow-md transition-shadow cursor-pointer"
@@ -594,17 +513,17 @@ export default function AdminStatistics() {
                               <Clock className="h-4 w-4 text-yellow-600" />
                             </div>
                           </div>
-                          
+
                           <div className="bg-yellow-50 rounded-lg p-2.5">
                             <p className="text-xs text-[#3A3A3A] leading-relaxed">
-                              <span className="font-medium">Observación Clave:</span> {alert.diagnosis}
+                              <span className="font-medium">Observacion Clave:</span> {alert.diagnosis}
                             </p>
                           </div>
-                          
+
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-[#666666]">{alert.lastUpdate}</span>
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               variant="outline"
                               className="text-yellow-700 border-yellow-300 hover:bg-yellow-50 text-xs"
                               onClick={(e) => {
@@ -612,7 +531,7 @@ export default function AdminStatistics() {
                                 handleReviewLog(alert.childId)
                               }}
                             >
-                              Revisar Bitácora
+                              Revisar Bitacora
                             </Button>
                           </div>
                         </div>
@@ -630,41 +549,50 @@ export default function AdminStatistics() {
                   <div className="text-center space-y-3">
                     <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
                     <h3 className="text-lg font-medium text-[#2F2F2F]">Sin casos urgentes</h3>
-                    <p className="text-[#666666]">Todos los pacientes están estables por el momento.</p>
+                    <p className="text-[#666666]">Todos los pacientes estan estables por el momento.</p>
                   </div>
                 </CardContent>
               </Card>
             )}
           </TabsContent>
-          
-          {/* Tab de Pacientes de Hoy */}
-          <TabsContent value="hoy" className="mt-6">
+
+          {/* Tab de Actividad Reciente */}
+          <TabsContent value="actividad" className="mt-6">
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-[#2F2F2F]">Pacientes con Citas Hoy</h2>
+              <h2 className="text-xl font-semibold text-[#2F2F2F]">Pacientes con Actividad Reciente</h2>
+              <p className="text-sm text-[#666666]">Ultimas 48 horas de registros</p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {todayPatients.length > 0 ? todayPatients.map((child) => (
-                  <Card key={child._id} className="bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => handlePatientClick(child._id)}>
+                {recentActivityChildren.length > 0 ? recentActivityChildren.map((child) => (
+                  <Card key={child.childId} className="bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => handlePatientClick(child.childId)}>
                     <CardContent className="p-4">
                       <div className="flex items-center gap-3">
-                        <ChildAvatar 
-                          name={`${child.firstName} ${child.lastName}`}
+                        <ChildAvatar
+                          name={child.childName}
                           className="h-10 w-10"
                         />
-                        <div className="flex-1">
-                          <p className="text-sm text-[#3A3A3A] font-medium">
-                            {child.firstName} {child.lastName}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-[#3A3A3A] font-medium truncate">
+                            {child.childName}
                           </p>
-                          <p className="text-xs text-[#666666]">
-                            {child.birthDate ? 
-                              `${Math.floor((Date.now() - new Date(child.birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} años` 
-                              : "Edad no especificada"
-                            }
+                          {child.apellidoContacto && (
+                            <p className="text-xs text-[#999999]">
+                              Fam. {child.apellidoContacto}
+                            </p>
+                          )}
+                          <p className="text-xs text-[#666666] mt-0.5">
+                            {eventTypeLabels[child.lastEventType] || child.lastEventType}
+                            {" - "}
+                            {(() => {
+                              try {
+                                return formatDistanceToNow(parseISO(child.lastEventTime), { addSuffix: true, locale: es })
+                              } catch {
+                                return ""
+                              }
+                            })()}
                           </p>
                         </div>
-                        <Badge className="bg-blue-50 text-blue-700 text-xs">
-                          Activo hoy
-                        </Badge>
+                        <ChevronRight className="h-4 w-4 text-[#999999] flex-shrink-0" />
                       </div>
                     </CardContent>
                   </Card>
@@ -672,9 +600,9 @@ export default function AdminStatistics() {
                   <Card className="col-span-full">
                     <CardContent className="py-16">
                       <div className="text-center space-y-3">
-                        <Calendar className="h-12 w-12 text-gray-400 mx-auto" />
-                        <h3 className="text-lg font-medium text-[#2F2F2F]">Sin citas programadas</h3>
-                        <p className="text-[#666666]">No hay pacientes con citas para hoy.</p>
+                        <Activity className="h-12 w-12 text-gray-400 mx-auto" />
+                        <h3 className="text-lg font-medium text-[#2F2F2F]">Sin actividad reciente</h3>
+                        <p className="text-[#666666]">No hay registros de pacientes en las ultimas 48 horas.</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -682,7 +610,7 @@ export default function AdminStatistics() {
               </div>
             </div>
           </TabsContent>
-          
+
           {/* Tab de Todos los Pacientes */}
           <TabsContent value="todos" className="mt-6">
             <div className="space-y-4">
@@ -691,7 +619,7 @@ export default function AdminStatistics() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
                     type="text"
-                    placeholder="Buscar tutor o niño..."
+                    placeholder="Buscar por nombre o apellido..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 bg-white"
@@ -699,103 +627,71 @@ export default function AdminStatistics() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge className="bg-gray-100 text-gray-700">
-                    {directoryFamilies.length} {directoryFamilies.length === 1 ? "familia" : "familias"}
-                  </Badge>
-                  <Badge className="bg-blue-50 text-blue-700">
-                    {totalDirectoryChildren} {totalDirectoryChildren === 1 ? "niño" : "niños"}
+                    {filteredChildren.length} {filteredChildren.length === 1 ? "paciente" : "pacientes"}
                   </Badge>
                 </div>
               </div>
 
               <Card className="bg-white shadow-sm border-0">
                 <CardContent className="p-0">
-                  {directoryLoading ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                      <Loader2 className="h-6 w-6 animate-spin mb-3" />
-                      <p>Cargando pacientes...</p>
-                    </div>
-                  ) : directoryError ? (
+                  {childMetrics.length === 0 ? (
                     <div className="py-12 px-6 text-center text-sm text-muted-foreground">
-                      {directoryError}
+                      No hay pacientes registrados.
                     </div>
-                  ) : directoryFamilies.length === 0 ? (
+                  ) : filteredChildren.length === 0 ? (
                     <div className="py-12 px-6 text-center text-sm text-muted-foreground">
-                      No encontramos pacientes que coincidan con la búsqueda.
+                      No encontramos pacientes que coincidan con la busqueda.
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-100">
-                      {directoryFamilies.map(({ user, children }) => {
-                        const isUserSelected = activeUserId === user._id
-                        return (
-                          <div key={user._id} className="p-4 space-y-4">
-                            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                              <div>
-                                <p className="text-base font-semibold text-[#2F2F2F]">{user.name}</p>
-                                <p className="text-sm text-[#666666]">{user.email}</p>
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                <Badge className="bg-gray-100 text-gray-700">
-                                  {children.length} {children.length === 1 ? "niño" : "niños"}
-                                </Badge>
-                                {isUserSelected && (
-                                  <Badge className="bg-green-100 text-green-700">
-                                    Tutor activo
-                                  </Badge>
-                                )}
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleParentFocus(user)}
-                                >
-                                  Sincronizar tutor
-                                </Button>
-                              </div>
-                            </div>
-                            <div className="flex flex-col gap-2">
-                              {children.length > 0 ? (
-                                children.map((child) => {
-                                  const isChildSelected = activeChildId === child._id
-                                  return (
-                                    <button
-                                      key={child._id}
-                                      type="button"
-                                      className={cn(
-                                        "w-full border rounded-lg p-3 text-left transition flex items-center justify-between gap-3",
-                                        isChildSelected
-                                          ? "border-[#68A1C8] bg-[#DEF1F1]"
-                                          : "border-gray-200 hover:border-[#68A1C8]/60 hover:bg-gray-50"
-                                      )}
-                                      onClick={() => handleChildSelection(user, child)}
-                                    >
-                                      <div>
-                                        <p className="text-sm font-semibold text-[#2F2F2F]">
-                                          {child.firstName} {child.lastName}
-                                        </p>
-                                        <p className="text-xs text-[#666666]">
-                                          {formatChildAge(child.birthDate) || "Edad no disponible"}
-                                        </p>
-                                      </div>
-                                      {isChildSelected && (
-                                        <CheckCircle className="h-4 w-4 text-[#68A1C8]" />
-                                      )}
-                                    </button>
-                                  )
-                                })
-                              ) : (
-                                <div className="text-sm text-muted-foreground">
-                                  Este tutor aún no tiene niños registrados.
-                                </div>
-                              )}
-                              {childrenLoadingId === user._id && (
-                                <div className="flex items-center text-sm text-muted-foreground gap-2">
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                  Recuperando niños...
-                                </div>
+                      {filteredChildren.map((child) => (
+                        <button
+                          key={child.childId}
+                          type="button"
+                          className="w-full p-4 text-left transition hover:bg-gray-50 flex items-center justify-between gap-3"
+                          onClick={() => handlePatientClick(child.childId)}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <ChildAvatar
+                              name={child.childName}
+                              className="h-9 w-9 flex-shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-[#2F2F2F] truncate">
+                                {child.childName}
+                              </p>
+                              {child.apellidoContacto && (
+                                <p className="text-xs text-[#666666]">
+                                  Fam. {child.apellidoContacto}
+                                </p>
                               )}
                             </div>
                           </div>
-                        )
-                      })}
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {child.status === "archived" && (
+                              <Badge className="bg-gray-100 text-gray-500 text-xs">
+                                Archivado
+                              </Badge>
+                            )}
+                            {child.status === "inactive" && (
+                              <Badge className="bg-gray-50 text-gray-400 text-xs">
+                                Inactivo
+                              </Badge>
+                            )}
+                            {child.hasPlan && (
+                              <Badge className="bg-green-50 text-green-700 text-xs">
+                                Plan activo
+                              </Badge>
+                            )}
+                            {child.hasRecentActivity && child.status !== "archived" && (
+                              <Badge className="bg-blue-50 text-blue-700 text-xs">
+                                Actividad reciente
+                              </Badge>
+                            )}
+                            <ChevronRight className="h-4 w-4 text-[#999999]" />
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   )}
                 </CardContent>

@@ -12,7 +12,7 @@ Log de aprendizajes entre sesiones de Ralph Loop.
 - **UI bloqueada**: Mostrar mensaje de acceso denegado, no redirect
 
 ### Prerequisito Plan Activo
-- **Lógica**: Query `childPlans` donde `status === "active"`
+- **Lógica**: Query `child_plans` donde `status === "active"`
 - **Referencia**: `lib/rag/plan-context-builder.ts` función `getActivePlan()`
 - **UI bloqueada**: Mostrar "Selecciona un paciente con plan activo"
 

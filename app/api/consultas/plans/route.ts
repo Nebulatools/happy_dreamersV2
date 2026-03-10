@@ -10,11 +10,12 @@ import { ObjectId } from "mongodb"
 import { getMongoDBVectorStoreManager } from "@/lib/rag/vector-store-mongodb"
 import { OpenAI } from "openai"
 import { differenceInDays, format, subDays } from "date-fns"
-import { processSleepStatistics } from "@/lib/sleep-calculations"
+import { processSleepStatistics, type SleepEvent } from "@/lib/sleep-calculations"
 import { createLogger } from "@/lib/logger"
 import { ChildPlan } from "@/types/models"
 import { derivePlanPolicy } from "@/lib/plan-policies"
 import * as Sentry from "@sentry/nextjs"
+import { getScheduleRuleForAge } from "@/lib/diagnostic/age-schedules"
 import * as fs from "fs"
 import * as path from "path"
 
@@ -746,6 +747,16 @@ export async function PATCH(req: NextRequest) {
       }, { status: 500 })
     }
 
+    // Auto-reactivar nino archivado al activar un plan
+    try {
+      await db.collection("children").updateOne(
+        { _id: new ObjectId(childId), archived: true },
+        { $set: { archived: false, updatedAt: new Date() } }
+      )
+    } catch (reactivateErr) {
+      logger.warn("Auto-reactivacion fallo (no critico):", reactivateErr)
+    }
+
     logger.info("Plan aplicado exitosamente", {
       planId,
       planNumber: planToActivate.planNumber,
@@ -1027,16 +1038,52 @@ async function generateTranscriptRefinementPlan(
     throw new Error("No se encontró información del niño")
   }
 
+  // 2b. Calcular edad en meses (mismo patron que generateInitialPlan / generateEventBasedPlan)
+  const birthDate = child.birthDate ? new Date(child.birthDate) : null
+  const ageInMonths = birthDate ? Math.floor(differenceInDays(new Date(), birthDate) / 30.44) : null
+
+  // 2c. Obtener eventos recientes (ultimos 30 dias) para enriquecer contexto
+  const thirtyDaysAgo = subDays(new Date(), 30)
+  const recentEvents = await db.collection("events").find({
+    childId: new ObjectId(childId),
+    startTime: { $gt: thirtyDaysAgo.toISOString() },
+  }).sort({ startTime: -1 }).toArray()
+
+  const stats = processSleepStatistics(recentEvents as unknown as SleepEvent[], thirtyDaysAgo)
+
+  // 2d. Buscar contexto RAG (mismo que initial y event_based)
+  const ragContext = await searchRAGForPlan(ageInMonths)
+
+  // 2e. Enriquecer estadisticas (siestas/bedtime/feeding) para reflejar patrones reales
+  const napStats = computeNapStatsFromEvents(recentEvents)
+  const bedtimeStats = computeBedtimeAvgFromEvents(recentEvents)
+  const feedingStats = computeFeedingTypicalTimesFromEvents(recentEvents)
+
+  logger.info("generateTranscriptRefinementPlan: Datos enriquecidos", {
+    childId,
+    ageInMonths,
+    recentEventsCount: recentEvents.length,
+    ragContextCount: ragContext.length,
+    napStats: { count: napStats.count, typicalTime: napStats.typicalTime },
+    bedtimeAvg: bedtimeStats.avgBedtime,
+  })
+
   // 3. Extraer cambios específicos de horarios del transcript
   const scheduleChanges = await extractScheduleChangesFromTranscript(
     consultationReport.transcript,
     child.firstName
   )
 
-  // 4. Generar plan refinado basado en transcript
+  // 4. Generar plan refinado basado en transcript (con datos enriquecidos)
   const aiPlan = await generatePlanWithAI({
     planType: "transcript_refinement",
-    childData: child,
+    childData: {
+      ...child,
+      ageInMonths,
+      stats,
+      events: recentEvents,
+    },
+    ragContext,
     previousPlan: basePlan,
     transcriptAnalysis: {
       analysis: consultationReport.analysis,
@@ -1044,6 +1091,7 @@ async function generateTranscriptRefinementPlan(
       transcript: consultationReport.transcript,
     },
     scheduleChanges,
+    enrichedStats: { napStats, bedtimeStats, feedingStats },
   })
 
   return {
@@ -1518,6 +1566,119 @@ async function searchRAGForPlan(ageInMonths: number | null) {
   }
 }
 
+// Genera texto de restricciones de horario segun edad para inyectar en prompts
+function buildScheduleConstraints(ageInMonths: number | null): string {
+  const rule = ageInMonths != null ? getScheduleRuleForAge(ageInMonths) : null
+  const napCount = rule?.napCount ?? -1
+  const napMax = rule?.napMaxDuration ?? 120
+  const nightHrs = rule?.nightDurationHours ?? 11
+
+  let napText = ""
+  if (napCount === 0) {
+    napText = "- Este nino NO debe tener siestas (por su edad ya no las necesita)."
+  } else if (napCount > 0) {
+    napText = `- Siestas esperadas: ${napCount}. Duracion maxima por siesta: ${napMax} min.
+- Las siestas DEBEN ser en horario diurno (entre 09:00 y 17:00). NUNCA poner siestas despues de las 17:00.`
+  } else {
+    napText = `- Siestas: cantidad variable por edad. Mantenerlas entre 09:00 y 17:00.`
+  }
+
+  // Restricciones de alimentacion basadas en reglas clinicas por edad
+  let feedingText = ""
+  if (rule) {
+    const solidMin = rule.solidMinCount
+    const milkMin = rule.milkMinCount
+    const milkInterval = rule.milkIntervalHours
+
+    if (ageInMonths != null && ageInMonths >= 12) {
+      // 12+ meses: priorizar solidos, leche es opcional/complementaria
+      feedingText = `- ALIMENTACION para ${ageInMonths} meses: minimo ${solidMin} comidas solidas al dia. Leches/biberones: maximo ${Math.max(milkMin, 2)} (complementarias, NO sustituyen comidas). Priorizar SOLIDOS sobre biberones. Maximo 16 oz de leche al dia.
+- NUNCA generar 5 o mas biberones/leches para un nino de 12+ meses. Es clinicamente inapropiado.`
+    } else if (ageInMonths != null && ageInMonths >= 6) {
+      // 6-11 meses: introduccion de solidos progresiva
+      feedingText = `- ALIMENTACION para ${ageInMonths} meses: minimo ${solidMin} comidas solidas, minimo ${milkMin > 0 ? milkMin : "variable"} tomas de leche${milkInterval > 0 ? ` (cada ~${milkInterval} hrs)` : ""}. Los solidos complementan la leche, no la reemplazan a esta edad.`
+    } else {
+      // 0-5 meses: solo leche
+      feedingText = `- ALIMENTACION para ${ageInMonths ?? "?"} meses: solo leche materna o formula. NO incluir comidas solidas en el plan.`
+    }
+    feedingText += "\n- TODAS las comidas deben estar entre 06:00 y 21:00. NUNCA programar comidas de madrugada (excepto tomas nocturnas para <6 meses)."
+  }
+
+  return `
+RESTRICCIONES DE HORARIO (OBLIGATORIO - NO NEGOCIABLE):
+- bedtime DEBE estar entre 19:00 y 22:00. NUNCA poner bedtime despues de las 22:30 ni antes de las 18:30.
+- wakeTime DEBE estar entre 06:00 y 08:30. NUNCA poner wakeTime despues de las 09:00 ni antes de las 05:30.
+- Duracion de noche esperada: ~${nightHrs} horas.
+${napText}
+${feedingText}
+- Si las estadisticas del nino muestran horarios fuera de estos rangos, ajusta GRADUALMENTE hacia el rango permitido pero NUNCA generes un plan con bedtime > 22:00 o wakeTime > 09:00.
+`
+}
+
+// Validacion post-proceso: clampea horarios irrealistas generados por la IA
+function clampScheduleTimes(plan: any): any {
+  if (!plan?.schedule) return plan
+
+  const s = plan.schedule
+
+  // Validar bedtime: debe estar entre 18:30 y 22:30
+  if (s.bedtime) {
+    const [bH, bM] = s.bedtime.split(":").map(Number)
+    const bedMinutes = bH * 60 + bM
+    // Si bedtime esta fuera de 18:30-22:30 (1110-1350 min), corregir
+    if (bedMinutes < 1110 || bedMinutes > 1350) {
+      // Si es de madrugada (0:00-6:00) o muy tarde (23:00+), poner 21:00
+      s.bedtime = "21:00"
+    }
+  }
+
+  // Validar wakeTime: debe estar entre 05:30 y 09:00
+  if (s.wakeTime) {
+    const [wH, wM] = s.wakeTime.split(":").map(Number)
+    const wakeMinutes = wH * 60 + wM
+    // Si wakeTime esta fuera de 05:30-09:00 (330-540 min), corregir
+    if (wakeMinutes < 330 || wakeMinutes > 540) {
+      s.wakeTime = "07:00"
+    }
+  }
+
+  // Validar siestas: deben estar entre 09:00 y 17:00
+  if (Array.isArray(s.naps)) {
+    s.naps = s.naps.filter((nap: any) => {
+      if (!nap?.time) return true
+      const [nH, nM] = nap.time.split(":").map(Number)
+      const napMinutes = nH * 60 + nM
+      // Filtrar siestas fuera de 08:00-17:30 (480-1050 min)
+      if (napMinutes < 480 || napMinutes > 1050) {
+        // Si la siesta es en la noche/madrugada, descartarla
+        return false
+      }
+      return true
+    })
+  }
+
+  // Validar comidas: deben estar entre 06:00 y 21:00
+  if (Array.isArray(s.meals)) {
+    s.meals = s.meals.map((meal: any) => {
+      if (!meal?.time) return meal
+      const [mH, mM] = meal.time.split(":").map(Number)
+      const mealMinutes = mH * 60 + mM
+      // Comidas deben estar entre 06:00 (360 min) y 21:00 (1260 min)
+      if (mealMinutes < 360) {
+        // Si es de madrugada, clampear a 06:00
+        return { ...meal, time: "06:00" }
+      }
+      if (mealMinutes > 1260) {
+        // Si es despues de las 21:00, clampear a 21:00
+        return { ...meal, time: "21:00" }
+      }
+      return meal
+    })
+  }
+
+  return plan
+}
+
 // Función principal para generar plan con IA
 async function generatePlanWithAI({
   planType,
@@ -1580,7 +1741,12 @@ y da el PRIMER PASO suave hacia estos objetivos ideales.
 VOCABULARIO DE ALIMENTACION:
 - Usa terminos variados segun el momento del dia: "Desayuno", "Almuerzo/Comida", "Merienda/Colacion/Snack", "Cena".
 - Para referirte a la ingesta en general, alterna entre "alimento", "ingesta", "comida", "alimentacion". Evita repetir la palabra "comida" mas de 2 veces en el mismo bloque de recomendaciones.
-- Las descripciones de comida deben ser ESPECIFICAS al bebe (ej: "Papilla de verduras", "Cereal con fruta", "Pure de pollo con arroz"), no genericas (NO "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo").
+- NO des recomendaciones nutricionales especificas ni nombres de alimentos concretos. NO somos nutriologos. En su lugar, sugiere COMBINACIONES GENERALES de grupos alimenticios adaptadas a la edad (ej: "Proteina + cereal + fruta", "Proteina + verdura + grasa saludable", "Cereal + fruta + lacteo").
+- NO usar: "Avena con platano", "Pure de pollo con arroz", "Papilla de verduras" (demasiado especifico).
+- NO usar: "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo" (demasiado generico).
+- SI usar: "Proteina + cereal + fruta", "Proteina + verdura + grasa", "Lacteo + cereal + fruta" (combinacion de grupos).
+
+${buildScheduleConstraints(childData.ageInMonths)}
 
 INSTRUCCIONES:
 1. Crea un plan DETALLADO con horarios específicos
@@ -1616,10 +1782,10 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
     "bedtime": "20:00",
     "wakeTime": "07:00",
     "meals": [
-      {"time": "07:30", "type": "desayuno", "description": "Avena con platano y canela"},
-      {"time": "12:00", "type": "almuerzo", "description": "Pure de pollo con verduras"},
-      {"time": "16:00", "type": "merienda", "description": "Fruta picada con yogur natural"},
-      {"time": "19:00", "type": "cena", "description": "Crema de calabaza con arroz"}
+      {"time": "07:30", "type": "desayuno", "description": "Cereal + fruta + lacteo"},
+      {"time": "12:00", "type": "almuerzo", "description": "Proteina + verdura + cereal"},
+      {"time": "16:00", "type": "merienda", "description": "Fruta + lacteo"},
+      {"time": "19:00", "type": "cena", "description": "Proteina + verdura + grasa saludable"}
     ],
     "activities": [],
     "naps": [
@@ -1668,7 +1834,12 @@ NO saltes directamente al ideal si el plan anterior está lejos. Avanza gradualm
 VOCABULARIO DE ALIMENTACION:
 - Usa terminos variados segun el momento del dia: "Desayuno", "Almuerzo/Comida", "Merienda/Colacion/Snack", "Cena".
 - Para referirte a la ingesta en general, alterna entre "alimento", "ingesta", "comida", "alimentacion". Evita repetir la palabra "comida" mas de 2 veces en el mismo bloque de recomendaciones.
-- Las descripciones de comida deben ser ESPECIFICAS al bebe (ej: "Papilla de verduras", "Cereal con fruta", "Pure de pollo con arroz"), no genericas (NO "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo").
+- NO des recomendaciones nutricionales especificas ni nombres de alimentos concretos. NO somos nutriologos. En su lugar, sugiere COMBINACIONES GENERALES de grupos alimenticios adaptadas a la edad (ej: "Proteina + cereal + fruta", "Proteina + verdura + grasa saludable", "Cereal + fruta + lacteo").
+- NO usar: "Avena con platano", "Pure de pollo con arroz", "Papilla de verduras" (demasiado especifico).
+- NO usar: "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo" (demasiado generico).
+- SI usar: "Proteina + cereal + fruta", "Proteina + verdura + grasa", "Lacteo + cereal + fruta" (combinacion de grupos).
+
+${buildScheduleConstraints(childData.ageInMonths)}
 
 INSTRUCCIONES PARA PROGRESIÓN:
 1. 🎯 PRIORIDAD: Utiliza el PLAN ANTERIOR como base sólida
@@ -1721,6 +1892,16 @@ CRÍTICO: Tu respuesta DEBE ser únicamente un objeto JSON válido, sin texto ad
 
 REFINA EL PLAN EXISTENTE para ${childData.firstName} basándote en la consulta médica más reciente.
 
+INFORMACIÓN DEL NIÑO:
+- Nombre: ${childData.firstName}
+- Edad: ${childData.ageInMonths ?? "desconocida"} meses
+- Eventos de sueno registrados (ultimos 30 dias): ${childData.events?.length || 0}
+- Sueno nocturno (promedio): ${childData.stats?.avgSleepDurationMinutes || 0} minutos
+- Hora promedio de despertar: ${String(Math.floor((childData.stats?.avgWakeTimeMinutes || 0) / 60)).padStart(2, "0")}:${((childData.stats?.avgWakeTimeMinutes || 0) % 60).toString().padStart(2, "0")} (formato 24h)
+${enrichedStats ? `- Hora media de acostarse observada: ${enrichedStats?.bedtimeStats?.avgBedtime || "N/A"}
+- Siestas: total=${enrichedStats?.napStats?.count || 0}, hora tipica=${enrichedStats?.napStats?.typicalTime || "N/A"}, duracion prom=${enrichedStats?.napStats?.avgDuration || 0} min
+- Comidas tipicas (si existen eventos): desayuno=${enrichedStats?.feedingStats?.breakfast || "N/A"} (n=${enrichedStats?.feedingStats?.breakfastCount || 0}), almuerzo=${enrichedStats?.feedingStats?.lunch || "N/A"} (n=${enrichedStats?.feedingStats?.lunchCount || 0}), merienda=${enrichedStats?.feedingStats?.snack || "N/A"} (n=${enrichedStats?.feedingStats?.snackCount || 0}), cena=${enrichedStats?.feedingStats?.dinner || "N/A"} (n=${enrichedStats?.feedingStats?.dinnerCount || 0})` : ""}
+
 PLAN BASE (A REFINAR):
 ${JSON.stringify(previousPlan?.schedule, null, 2)}
 
@@ -1738,10 +1919,25 @@ ${JSON.stringify(scheduleChanges, null, 2)}
 TRANSCRIPT DE LA CONSULTA (COMPLETO):
 ${transcriptAnalysis?.transcript || "No disponible"}
 
+${ragContext ? `
+CONTEXTO DE REFERENCIA CLINICA (RAG):
+El siguiente contenido muestra los HORARIOS IDEALES y MEJORES PRACTICAS segun la edad del nino.
+Usa esto como referencia para validar que el plan refinado sea clinicamente apropiado para ${childData.ageInMonths ?? "?"} meses.
+
+${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join("\n\n---\n\n")}
+
+⚠️ IMPORTANTE: Los acuerdos del transcript tienen prioridad, pero el plan DEBE respetar las restricciones clinicas por edad.
+` : ""}
+
 VOCABULARIO DE ALIMENTACION:
 - Usa terminos variados segun el momento del dia: "Desayuno", "Almuerzo/Comida", "Merienda/Colacion/Snack", "Cena".
 - Para referirte a la ingesta en general, alterna entre "alimento", "ingesta", "comida", "alimentacion". Evita repetir la palabra "comida" mas de 2 veces en el mismo bloque de recomendaciones.
-- Las descripciones de comida deben ser ESPECIFICAS al bebe (ej: "Papilla de verduras", "Cereal con fruta", "Pure de pollo con arroz"), no genericas (NO "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo").
+- NO des recomendaciones nutricionales especificas ni nombres de alimentos concretos. NO somos nutriologos. En su lugar, sugiere COMBINACIONES GENERALES de grupos alimenticios adaptadas a la edad (ej: "Proteina + cereal + fruta", "Proteina + verdura + grasa saludable", "Cereal + fruta + lacteo").
+- NO usar: "Avena con platano", "Pure de pollo con arroz", "Papilla de verduras" (demasiado especifico).
+- NO usar: "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo" (demasiado generico).
+- SI usar: "Proteina + cereal + fruta", "Proteina + verdura + grasa", "Lacteo + cereal + fruta" (combinacion de grupos).
+
+${buildScheduleConstraints(childData.ageInMonths)}
 
 INSTRUCCIONES PARA REFINAMIENTO:
 1. 🎯 PRIORIDAD MÁXIMA: Aplica todos los cambios específicos de horarios extraídos del transcript
@@ -1752,6 +1948,7 @@ INSTRUCCIONES PARA REFINAMIENTO:
 6. Conserva elementos que funcionan del plan base
 7. ⛔ NO generar actividades de "Acostado", "Acostarse", "Ir a la cama" o "Rutina de sueño" - el campo "bedtime" ya cubre la hora de dormir
 8. ⛔ NO incluir actividades en el plan - solo incluir: despertar (wakeTime), siestas (naps), comidas (meals) y dormir (bedtime)
+9. ⚠️ VERIFICA que la cantidad de comidas/leches sea apropiada para ${childData.ageInMonths ?? "?"} meses segun las restricciones de alimentacion
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 {
@@ -1762,7 +1959,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
       {
         "time": "07:30",
         "type": "desayuno",
-        "description": "Cereal con fruta picada"
+        "description": "Cereal + fruta + lacteo"
       }
     ],
     "activities": [],
@@ -1809,6 +2006,8 @@ ${JSON.stringify(scheduleChanges, null, 2)}
 
 TRANSCRIPT DE LA SESIÓN (COMPLETO):
 ${transcriptAnalysis.transcript}
+
+${buildScheduleConstraints(childData.ageInMonths)}
 
 INSTRUCCIONES:
 1. 🎯 PRIORIDAD MÁXIMA: Aplica todos los cambios específicos de horarios extraídos del transcript
@@ -1886,7 +2085,9 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
     }
     
     try {
-      return JSON.parse(responseContent)
+      const parsed = JSON.parse(responseContent)
+      // Validacion post-proceso: corregir horarios fuera de rangos realistas
+      return clampScheduleTimes(parsed)
     } catch (parseError) {
       logger.error("Error parseando respuesta de IA:", {
         parseError: parseError.message,
@@ -1902,10 +2103,10 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
           bedtime: "20:30",
           wakeTime: "07:00",
           meals: [
-            { time: "07:30", type: "desayuno", description: "Cereal o fruta de temporada" },
-            { time: "12:00", type: "almuerzo", description: "Proteina con verduras" },
-            { time: "16:00", type: "merienda", description: "Colacion saludable (fruta o yogur)" },
-            { time: "19:00", type: "cena", description: "Cena ligera antes de la rutina nocturna" },
+            { time: "07:30", type: "desayuno", description: "Cereal + fruta + lacteo" },
+            { time: "12:00", type: "almuerzo", description: "Proteina + verdura + cereal" },
+            { time: "16:00", type: "merienda", description: "Fruta + lacteo o cereal" },
+            { time: "19:00", type: "cena", description: "Proteina + verdura + grasa saludable" },
           ],
           activities: [
             { time: "08:00", activity: "jugar", duration: 60, description: "Tiempo de juego" },
@@ -1931,10 +2132,10 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
         bedtime: "20:30",
         wakeTime: "07:00",
         meals: [
-          { time: "07:30", type: "desayuno", description: "Cereal o fruta de temporada" },
-          { time: "12:00", type: "almuerzo", description: "Proteina con verduras" },
-          { time: "16:00", type: "merienda", description: "Colacion saludable (fruta o yogur)" },
-          { time: "19:00", type: "cena", description: "Cena ligera antes de la rutina nocturna" },
+          { time: "07:30", type: "desayuno", description: "Cereal + fruta + lacteo" },
+          { time: "12:00", type: "almuerzo", description: "Proteina + verdura + cereal" },
+          { time: "16:00", type: "merienda", description: "Fruta + lacteo o cereal" },
+          { time: "19:00", type: "cena", description: "Proteina + verdura + grasa saludable" },
         ],
         activities: [
           { time: "18:30", activity: "rutina", duration: 30, description: "Rutina relajante antes de dormir" },

@@ -17,7 +17,7 @@ export const TimeAxis = React.memo(({
   return (
     <div className={`w-12 bg-gray-50 border-r border-gray-200 flex-shrink-0 ${className}`}>
       {/* Header vacío para alineación */}
-      <div className="h-8 border-b border-gray-200 bg-white" />
+      <div className="h-8 border-b border-gray-200 bg-white sticky top-0 z-10" />
       
       {/* Timeline - mostrar horas cada 2 horas para no saturar */}
       <div className="relative" style={{ height: `${24 * hourHeight}px` }}>

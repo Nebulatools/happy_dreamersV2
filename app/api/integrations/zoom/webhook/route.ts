@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
         await ingestZoomMeetingTranscripts({ meetingId, uuid, topic })
       } catch (e) {
         logger.error("Ingest error (webhook)", { meetingId, uuid, error: e instanceof Error ? e.message : String(e) })
+        logger.info("Ingestion will be retried by poller cron", { meetingId, uuid })
       }
     }
 

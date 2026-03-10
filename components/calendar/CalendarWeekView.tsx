@@ -108,7 +108,7 @@ export function CalendarWeekView({
               {/* Header del día - compacto en una línea */}
               <div
                 className={cn(
-                  "h-8 bg-white border-b border-gray-200 flex items-center justify-center text-xs font-medium relative",
+                  "h-8 bg-white border-b border-gray-200 flex items-center justify-center text-xs font-medium relative sticky top-0 z-10",
                   isDayToday && "bg-blue-50 text-blue-600"
                 )}
               >

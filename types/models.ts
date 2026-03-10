@@ -26,6 +26,7 @@ export interface Child {
   sharedWith?: string[] // Array de IDs de usuarios con acceso compartido
   surveyData?: SurveyData
   sleepProfile?: SleepProfile
+  archived?: boolean // Campo manual: true cuando el admin archiva al paciente
   createdAt: Date
   updatedAt: Date
 }

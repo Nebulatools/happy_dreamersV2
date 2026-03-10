@@ -304,6 +304,9 @@ function evaluateRoomSharing(
       normalized === "true"
   }
 
+  // Obtener con quien comparte (campo texto libre del survey)
+  const sharesWith = surveyData?.["comparteHabitacionCon"]
+
   return {
     id: "g4_room_sharing",
     name: factor.name,
@@ -311,7 +314,7 @@ function evaluateRoomSharing(
     value: sharesRoom ? "Comparte cuarto" : "Cuarto individual",
     expected: "Información registrada",
     message: sharesRoom
-      ? "El niño comparte cuarto con alguien más"
+      ? `El niño comparte cuarto con: ${sharesWith && typeof sharesWith === "string" && sharesWith.trim() ? sharesWith.trim() : "no especificado"}`
       : "El niño tiene cuarto individual",
     sourceType: "survey",
     sourceField: factor.surveyField,
