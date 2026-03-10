@@ -1,6 +1,6 @@
-# QA Release Notes — Sprint 6: Admin UX Hub + Diagnostic Pipeline
+# QA Release Notes — Sprint 6: Admin UX Hub + Diagnostic Pipeline + Patient Status
 
-**Fecha:** 2026-02-26 (actualizado 2026-03-02)
+**Fecha:** 2026-02-26 (actualizado 2026-03-10)
 **URL:** https://happy-dreamers-v2.vercel.app (o localhost:3000)
 **Branch QA:** `QA`
 
@@ -701,6 +701,189 @@ db.child_plans.insertOne({
 
 ---
 
+## PARTE 12: Sistema de Status — Tabs de Filtrado
+
+> **IMPORTANTE**: Esta seccion prueba el nuevo sistema de clasificacion automatica de pacientes.
+> Los ninos se clasifican como **Activos**, **Inactivos** o **Archivados** automaticamente.
+
+### CHECKPOINT HUMANO 18: Tabs de Status en Lista de Pacientes
+
+1. Ve a **Pacientes** en el sidebar
+2. Observa los tabs debajo del buscador: **Activos**, **Inactivos**, **Archivados**, **Todos**
+
+**Verificar:**
+- [ ] Los 4 tabs son visibles: Activos, Inactivos, Archivados, Todos
+- [ ] Cada tab muestra un conteo entre parentesis (ej: "Activos (3)")
+- [ ] El tab "Activos" esta seleccionado por default
+- [ ] Al hacer click en "Todos", se ven TODAS las familias sin importar status
+- [ ] Al hacer click en "Inactivos", solo aparecen familias con ninos sin actividad en 30+ dias y sin plan activo
+- [ ] E2E TestChild aparece como "Activo" (tiene eventos recientes)
+- [ ] La lista de familias esta ordenada **A→Z** por nombre (de arriba para abajo)
+
+### CHECKPOINT HUMANO 19: Badges de Status en Tarjetas de Ninos
+
+1. Estando en el tab "Todos", selecciona una familia con ninos
+2. Observa las tarjetas de ninos en el panel derecho
+
+**Verificar:**
+- [ ] Si un nino tiene plan activo, NO muestra badge "Sin plan"
+- [ ] Si un nino NO tiene plan activo, muestra badge ambar "Sin plan"
+- [ ] Si un nino esta archivado, muestra badge con icono de archivo
+- [ ] Las tarjetas de ninos inactivos se ven con opacidad reducida (mas tenues)
+- [ ] Las tarjetas de ninos archivados se ven aun mas tenues
+
+---
+
+## PARTE 13: Archivar y Restaurar Pacientes
+
+### CHECKPOINT HUMANO 20: Archivar un Nino
+
+1. Ve al tab "Activos" en la lista de pacientes
+2. Selecciona la familia de E2E TestChild
+3. En la tarjeta de E2E TestChild, busca el boton de archivado (icono de caja/archivo)
+4. Click en el boton de archivar
+
+**Verificar:**
+- [ ] Aparece un dialogo de confirmacion: "Archivar E2E TestChild?"
+- [ ] El dialogo tiene opciones de Cancelar y Confirmar
+- [ ] Al confirmar, el nino desaparece del tab "Activos"
+- [ ] Al cambiar al tab "Archivados", E2E TestChild aparece ahi
+- [ ] El conteo del tab "Activos" disminuyo en 1 y "Archivados" aumento en 1
+
+### CHECKPOINT HUMANO 21: Restaurar un Nino
+
+1. Ve al tab "Archivados"
+2. Selecciona la familia de E2E TestChild
+3. En la tarjeta archivada, busca el boton de restaurar (icono de deshacer)
+4. Click en restaurar
+
+**Verificar:**
+- [ ] Aparece dialogo de confirmacion: "Restaurar E2E TestChild?"
+- [ ] Al confirmar, el nino desaparece del tab "Archivados"
+- [ ] Al cambiar al tab "Activos", E2E TestChild vuelve a aparecer
+- [ ] Los conteos de tabs se actualizan correctamente
+
+---
+
+## PARTE 14: Auto-Reactivacion
+
+> Esta prueba verifica que registrar un evento automaticamente desarchiva al nino.
+
+### Paso 14.1: Archivar E2E TestChild de nuevo
+
+1. Repite el proceso de archivar (PARTE 13, CHECKPOINT 20)
+2. Confirma que E2E TestChild esta en el tab "Archivados"
+
+### Paso 14.2: Crear evento para nino archivado
+
+**PEGAR EN CLAUDE:**
+
+```
+Necesito crear un evento de prueba para E2E TestChild directamente en MongoDB, para probar la auto-reactivacion.
+
+1. Conectate a la base de datos MongoDB usando la URI de .env.local
+2. Busca el childId de E2E TestChild y su parentId en la coleccion "children"
+3. Verifica que el campo "archived" del nino esta en true
+4. Ahora usa la API de eventos (NO MongoDB directo) para crear el evento, para que se dispare la auto-reactivacion:
+
+curl -X POST http://localhost:3000/api/children/events \
+  -H "Content-Type: application/json" \
+  -H "Cookie: <session cookie>" \
+  -b <session cookie> \
+  -d '{
+    "childId": "<childId>",
+    "eventType": "feeding",
+    "feedingType": "bottle",
+    "feedingAmount": 180,
+    "babyState": "awake",
+    "startTime": "<HOY>T16:00:00-06:00"
+  }'
+
+Nota: Para obtener la session cookie, necesitaras hacer login primero.
+Alternativa: Usa MongoDB directamente para crear el evento Y luego desarchiva al nino:
+
+db.events.insertOne({
+  childId: ObjectId("<childId>"),
+  parentId: ObjectId("<parentId>"),
+  createdBy: ObjectId("<parentId>"),
+  eventType: "feeding",
+  feedingType: "bottle",
+  feedingAmount: 180,
+  babyState: "awake",
+  isNightFeeding: false,
+  startTime: "<HOY>T16:00:00-06:00",
+  createdAt: new Date().toISOString()
+})
+
+db.children.updateOne(
+  { _id: ObjectId("<childId>") },
+  { $set: { archived: false, updatedAt: new Date() } }
+)
+
+Confirma que el evento se creo y el nino ya NO esta archivado.
+```
+
+### CHECKPOINT HUMANO 22: Verificar Auto-Reactivacion
+
+1. Recarga la pagina de Pacientes
+2. Ve al tab "Activos"
+
+**Verificar:**
+- [ ] E2E TestChild vuelve a aparecer en el tab "Activos"
+- [ ] Ya NO aparece en el tab "Archivados"
+- [ ] El evento de alimentacion nuevo aparece en su bitacora
+
+---
+
+## PARTE 15: Dashboard Admin — Metricas de Status y Alertas
+
+### CHECKPOINT HUMANO 23: Dashboard Home con Status
+
+1. Ve a **Dashboard** en el sidebar (la pagina principal del admin)
+2. Observa las tarjetas de metricas superiores
+
+**Verificar:**
+- [ ] Tarjeta "Total de Pacientes" muestra un numero (excluye archivados)
+- [ ] Al hacer click o hover en la tarjeta de pacientes, muestra desglose (activos, inactivos, archivados)
+- [ ] Tarjeta "Alertas Clinicas" muestra contadores de alertas (critical en rojo, warning en amarillo)
+- [ ] Las tarjetas "Nuevos Usuarios" y "Nuevos Ninos" muestran datos del ultimo mes
+
+### CHECKPOINT HUMANO 24: Tabs del Dashboard
+
+1. Observa los tabs del dashboard: "Todos los Pacientes", "Actividad Reciente", etc.
+
+**Verificar:**
+- [ ] Tab "Todos los Pacientes" muestra lista de TODOS los ninos ordenada A→Z
+- [ ] Cada nino muestra nombre, familia/contacto, y badges de status (plan, actividad)
+- [ ] Tab "Actividad Reciente" muestra ninos con eventos en las ultimas 48 horas
+- [ ] Si hay alertas clinicas, se muestran con badge de severidad y descripcion diagnostica
+
+### CHECKPOINT HUMANO 25: Alertas Clickeables
+
+1. Si hay alertas clinicas (ninos con indicadores medicos del survey), click en una alerta
+
+**Verificar:**
+- [ ] Al hacer click en una alerta, navega al diagnostico del nino correspondiente
+- [ ] La alerta muestra el diagnostico resumido (ej: "Medico: Ronca | Ambiental: Colecho")
+
+---
+
+## PARTE 16: Ordenamiento Alfabetico Global
+
+### CHECKPOINT HUMANO 26: Orden A→Z Consistente
+
+1. Ve a **Pacientes** > tab "Todos"
+2. Observa el orden de las familias en el panel izquierdo
+3. Ve a **Dashboard** > tab "Todos los Pacientes"
+4. Observa el orden de los ninos
+
+**Verificar:**
+- [ ] En Pacientes: las familias estan ordenadas A→Z por nombre completo (de arriba hacia abajo)
+- [ ] En Dashboard: los ninos estan ordenados A→Z por nombre del nino (de arriba hacia abajo)
+- [ ] El orden es consistente en ambas vistas (no al reves)
+
+---
+
 ## Resumen de Checkpoints
 
 | # | Checkpoint | Area | Status |
@@ -725,6 +908,15 @@ db.child_plans.insertOne({
 | 15 | Metricas vs Plan | Resumen | |
 | 16 | Historial Consultas | Consultas | |
 | 17 | Tab Encuesta | Encuesta | |
+| 18 | Tabs de Status | Pacientes/Status | |
+| 19 | Badges de Status | Pacientes/Status | |
+| 20 | Archivar Nino | Pacientes/Archive | |
+| 21 | Restaurar Nino | Pacientes/Archive | |
+| 22 | Auto-Reactivacion | Pacientes/Auto | |
+| 23 | Dashboard Status | Dashboard/Metricas | |
+| 24 | Tabs Dashboard | Dashboard/Tabs | |
+| 25 | Alertas Clickeables | Dashboard/Alertas | |
+| 26 | Orden A→Z Global | Pacientes+Dashboard | |
 
 ---
 
@@ -741,7 +933,7 @@ Anota en `QA_FEEDBACK_NOTES.md`:
 ## Archivos Modificados en Este Sprint
 
 <details>
-<summary>96 archivos (click para expandir)</summary>
+<summary>140 archivos (click para expandir)</summary>
 
 **Nuevos:**
 - `app/dashboard/paciente/*` (7 archivos) — Patient Hub
@@ -751,6 +943,11 @@ Anota en `QA_FEEDBACK_NOTES.md`:
 - `components/survey/DynamicListField.tsx` — Listas dinamicas survey
 - `lib/diagnostic/plan-formatter.ts` — Formateador de plan para AI
 - `app/api/children/[id]/documents/route.ts` — API documentos
+- `lib/patient-status.ts` — Clasificacion computada de pacientes
+- `lib/diagnostic/triage.ts` — Triage ligero G2+G4
+- `lib/diagnostic/flatten-survey-data.ts` — Normalizador de surveyData
+- `app/api/admin/children/archive/route.ts` — API archivar/restaurar
+- `__tests__/lib/patient-status.test.ts` — Tests de clasificacion
 
 **Modificados significativamente:**
 - `components/dashboard/sidebar.tsx` — Simplificado
@@ -760,6 +957,11 @@ Anota en `QA_FEEDBACK_NOTES.md`:
 - `app/api/admin/diagnostics/[childId]/route.ts` — 8 pipeline fixes
 - `components/consultas/AnalysisReport.tsx` — UX cleanup
 - `components/diagnostic/AIAnalysis/PasanteAISection.tsx` — Historial
+- `app/dashboard/paciente/PacienteListClient.tsx` — Tabs status, badges, archive/restore
+- `components/dashboard/AdminStatistics.tsx` — Datos reales, triage, status
+- `app/api/admin/dashboard-metrics/route.ts` — Status computado, triage, ordering
+- `app/api/children/events/route.ts` — Auto-reactivacion
+- `app/api/consultas/plans/route.ts` — Auto-reactivacion
 
 **Eliminados:**
 - `app/dashboard/transcripts/page.tsx`
