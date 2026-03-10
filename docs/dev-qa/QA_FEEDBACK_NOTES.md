@@ -1,17 +1,17 @@
 # QA Feedback Notes
 
 **Fecha:** 2026-03-10
-**Sprint:** Sprint 6 - Admin UX Hub + Diagnostic Pipeline + Patient Status
+**Sprint:** Sprint 6
 **Tester:** Julio
 **Branch:** QA
-**Total de Checkpoints:** 26
+**Total de Checkpoints:** 21
 
 ---
 
-## Instrucciones para el Tester
+## Instrucciones
 
-Usa los tests de `QA_RELEASE_NOTES.md` como guia. Sigue las PARTEs 0-16 en orden.
-Hay 26 checkpoints humanos en total. Para cada bug encontrado, documenta aqui:
+Sigue los checkpoints de `QA_RELEASE_NOTES.md` en orden (1-21).
+Para cada bug, copia el template y llena los campos:
 
 ### Template por Bug
 
@@ -25,7 +25,6 @@ Hay 26 checkpoints humanos en total. Para cada bug encontrado, documenta aqui:
 ### Pasos para reproducir
 1. ...
 2. ...
-3. ...
 
 ### Resultado esperado
 ...
@@ -42,18 +41,8 @@ Hay 26 checkpoints humanos en total. Para cada bug encontrado, documenta aqui:
 
 ---
 
-## Areas Nuevas a Prestar Atencion
-
-Las PARTEs 12-16 son **NUEVAS** y prueban el sistema de status de pacientes:
-- **PARTE 12**: Tabs de filtrado (Activos/Inactivos/Archivados/Todos)
-- **PARTE 13**: Archivar y restaurar ninos
-- **PARTE 14**: Auto-reactivacion al crear eventos
-- **PARTE 15**: Dashboard con metricas de status y alertas clinicas
-- **PARTE 16**: Ordenamiento alfabetico A→Z
-
----
-
 ## Bugs Encontrados
 
 (Julio: escribe aqui debajo)
 
+- Ajustar colores de texto (blanco) a los eventos de "Hoy" en la vista diaria de Calendario en Bitacora.
