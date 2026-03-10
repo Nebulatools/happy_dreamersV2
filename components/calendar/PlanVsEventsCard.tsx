@@ -318,7 +318,7 @@ function TimelineRow({ item, variant }: TimelineRowProps) {
       )}>
         <IconComponent
           className="w-3 h-3"
-          style={{ color: variant === "plan" ? "#94a3b8" : iconConfig.color }}
+          style={{ color: variant === "plan" ? "#94a3b8" : "white" }}
         />
       </div>
 

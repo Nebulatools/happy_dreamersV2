@@ -11,7 +11,9 @@
       "Bash(node -e:*)",
       "Bash(npm view:*)",
       "Bash(npm run build:*)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(node:*)",
+      "Bash(xargs grep:*)"
     ],
     "deny": [],
     "ask": []
