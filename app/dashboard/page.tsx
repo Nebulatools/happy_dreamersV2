@@ -16,7 +16,7 @@ const SleepMetricsCombinedChart = lazy(() => import("@/components/child-profile/
 // Sistema de eventos - Nueva implementación v1.0
 import { EventRegistration } from "@/components/events"
 import { EventEditRouter } from "@/components/events/EventEditRouter"
-import { PlanSummaryCard } from "@/components/parent/PlanSummaryCard"
+import { PlanDisplay } from "@/components/consultas/PlanDisplay"
 // Vista narrativa de eventos (Fase 4)
 import { NarrativeTimeline } from "@/components/narrative/NarrativeTimeline"
 import type { NarrativeTimelineEvent } from "@/components/narrative/NarrativeTimeline"
@@ -528,9 +528,40 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Sección de plan resumido (sin avisos) */}
-        {!isAdmin && activeChildId && activePlan && (
-          <PlanSummaryCard plan={activePlan} isLoading={planLoading} error={planError} />
+        {/* Plan completo personalizado */}
+        {!isAdmin && activeChildId && (
+          <>
+            {planLoading && (
+              <Card className="bg-white shadow-sm border-0">
+                <CardHeader>
+                  <CardTitle className="text-sm text-slate-600">Cargando plan...</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-24 rounded-2xl bg-slate-100 animate-pulse" />
+                </CardContent>
+              </Card>
+            )}
+            {!planLoading && planError && (
+              <Card className="bg-white border-red-100">
+                <CardHeader>
+                  <CardTitle className="text-sm text-red-700">No pudimos cargar el plan</CardTitle>
+                </CardHeader>
+              </Card>
+            )}
+            {!planLoading && !planError && !activePlan && (
+              <Card className="bg-white shadow-sm border-0">
+                <CardHeader>
+                  <CardTitle className="text-base text-slate-800">Aún no tienes un plan activo</CardTitle>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Cuando tu coach genere un plan, podrás verlo aquí automáticamente.
+                  </p>
+                </CardHeader>
+              </Card>
+            )}
+            {!planLoading && !planError && activePlan && (
+              <PlanDisplay plan={activePlan} />
+            )}
+          </>
         )}
 
         {/* Métricas clave de sueño */}
