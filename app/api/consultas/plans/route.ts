@@ -1676,6 +1676,9 @@ function clampScheduleTimes(plan: any): any {
     })
   }
 
+  // Forzar activities vacio - los planes solo deben tener: wakeTime, bedtime, meals, naps
+  s.activities = []
+
   return plan
 }
 
@@ -2108,10 +2111,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
             { time: "16:00", type: "merienda", description: "Fruta + lacteo o cereal" },
             { time: "19:00", type: "cena", description: "Proteina + verdura + grasa saludable" },
           ],
-          activities: [
-            { time: "08:00", activity: "jugar", duration: 60, description: "Tiempo de juego" },
-            { time: "17:00", activity: "ejercicio", duration: 30, description: "Actividad física" },
-          ],
+          activities: [],
           naps: [
             { time: "14:00", duration: 90, description: "Siesta vespertina" },
           ],
@@ -2125,7 +2125,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
   } catch (error) {
     logger.error("Error generando plan con IA:", error)
     Sentry.captureException(error)
-    // Fallback robusto cuando la IA o la red fallan: devolver un plan básico válido
+    // Fallback robusto cuando la IA o la red fallan: devolver un plan basico valido
     logger.warn("Generando plan fallback debido a error en IA/red")
     return {
       schedule: {
@@ -2137,9 +2137,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
           { time: "16:00", type: "merienda", description: "Fruta + lacteo o cereal" },
           { time: "19:00", type: "cena", description: "Proteina + verdura + grasa saludable" },
         ],
-        activities: [
-          { time: "18:30", activity: "rutina", duration: 30, description: "Rutina relajante antes de dormir" },
-        ],
+        activities: [],
         naps: [
           { time: "14:00", duration: 90, description: "Siesta vespertina" },
         ],
