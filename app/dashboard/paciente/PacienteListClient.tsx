@@ -4,7 +4,7 @@
 
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, Search, ArrowRight, Users, Archive, ArchiveRestore, Clock } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -77,6 +77,9 @@ export default function PacienteListClient() {
   const [childStatusMap, setChildStatusMap] = useState<Record<string, PatientStatus>>({})
   const [statusCounts, setStatusCounts] = useState({ active: 0, inactive: 0, archived: 0 })
   const [childPlanMap, setChildPlanMap] = useState<Record<string, boolean>>({})
+
+  // Ref para rastrear que usuarios ya tienen sus hijos cargados (evita recrear loadUserChildren)
+  const loadedChildrenRef = useRef<Set<string>>(new Set())
 
   // Contadores para el header
   const counts = useMemo(() => {
@@ -173,6 +176,8 @@ export default function PacienteListClient() {
         }, {})
         setAllChildrenMap(grouped)
         setUserChildren(grouped)
+        // Marcar todos los usuarios como ya cargados
+        loadedChildrenRef.current = new Set(Object.keys(grouped))
       } catch (error) {
         logger.warn("No se pudieron precargar los ninos", error)
       }
@@ -210,11 +215,12 @@ export default function PacienteListClient() {
     fetchMetrics()
   }, [])
 
-  // Cargar los ninos de un usuario especifico
+  // Cargar los ninos de un usuario especifico (usa ref para evitar recreaciones)
   const loadUserChildren = useCallback(async (userId: string) => {
-    try {
-      if (userChildren[userId]) return
+    if (loadedChildrenRef.current.has(userId)) return
+    loadedChildrenRef.current.add(userId)
 
+    try {
       let response = await fetch(`/api/children?userId=${userId}&includeArchived=true`)
       // Retry una vez si falla (race condition de sesion)
       if (!response.ok) {
@@ -230,6 +236,7 @@ export default function PacienteListClient() {
       setUserChildren(prev => ({ ...prev, [userId]: children }))
       setAllChildrenMap(prev => ({ ...prev, [userId]: children }))
     } catch (error) {
+      loadedChildrenRef.current.delete(userId) // Permitir retry en error
       logger.error("Error:", error)
       toast({
         title: "Error",
@@ -237,7 +244,7 @@ export default function PacienteListClient() {
         variant: "destructive",
       })
     }
-  }, [userChildren, toast])
+  }, [toast])
 
   // Seleccionar una familia y cargar sus ninos
   const handleSelectFamily = useCallback((userId: string) => {
@@ -374,34 +381,20 @@ export default function PacienteListClient() {
       })
   }, [users, searchTerm, statusFilter, userChildren, allChildrenMap, childStatusMap])
 
-  // Auto-seleccionar primera familia cuando la lista cambia
+  // Auto-seleccionar familia: un solo efecto que maneja seleccion inicial y cambios de filtro.
+  // Usa functional update de setSelectedUserId para evitar depender de selectedUserId
+  // (lo que causaba un ping-pong infinito entre dos efectos).
   useEffect(() => {
-    if (filteredUsers.length === 0) {
-      setSelectedUserId(null)
-      return
-    }
-    // Si la familia seleccionada ya no esta en la lista filtrada, seleccionar la primera
-    const selectedStillVisible = filteredUsers.some(u => u._id === selectedUserId)
-    if (!selectedStillVisible) {
-      const firstId = filteredUsers[0]._id
-      setSelectedUserId(firstId)
-      loadUserChildren(firstId)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredUsers, selectedUserId])
+    if (filteredUsers.length === 0) return
 
-  // Auto-seleccionar la primera familia al cargar usuarios por primera vez
-  useEffect(() => {
-    if (users.length > 0 && !selectedUserId) {
-      const sorted = [...users].sort((a, b) => {
-        return a.name.toLowerCase().localeCompare(b.name.toLowerCase(), "es")
-      })
-      const firstId = sorted[0]._id
-      setSelectedUserId(firstId)
+    setSelectedUserId(prev => {
+      const stillVisible = prev && filteredUsers.some(u => u._id === prev)
+      if (stillVisible) return prev
+      const firstId = filteredUsers[0]._id
       loadUserChildren(firstId)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [users, selectedUserId])
+      return firstId
+    })
+  }, [filteredUsers, loadUserChildren])
 
   // Datos de la familia seleccionada
   const selectedUser = users.find(u => u._id === selectedUserId) || null

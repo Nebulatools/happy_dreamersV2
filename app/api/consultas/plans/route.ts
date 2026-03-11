@@ -65,12 +65,20 @@ function calculateNextPlanVersion(existingPlans: any[], planType: "initial" | "e
     if (!latestPlan) {
       throw new Error("No se puede crear un plan de refinamiento sin un plan base")
     }
-    
-    const basePlanNumber = latestPlan.planNumber
-    const refinementVersion = `${basePlanNumber}.1`
-    
+
+    // Encontrar el plan base (el mas reciente de tipo entero, no refinamiento)
+    const basePlan = existingPlans.find(p => !String(p.planVersion).includes(".")) || latestPlan
+    const basePlanNumber = basePlan.planNumber
+
+    // Contar refinamientos existentes de este plan base (X.1, X.2, X.3...)
+    const existingRefinements = existingPlans.filter(
+      p => p.planNumber === basePlanNumber && String(p.planVersion).includes(".")
+    )
+    const nextSub = existingRefinements.length + 1
+    const refinementVersion = `${basePlanNumber}.${nextSub}`
+
     return {
-      planNumber: basePlanNumber, // Mismo número que el plan base
+      planNumber: basePlanNumber,
       planVersion: refinementVersion,
     }
   }
@@ -1676,6 +1684,9 @@ function clampScheduleTimes(plan: any): any {
     })
   }
 
+  // Forzar activities vacio - los planes solo deben tener: wakeTime, bedtime, meals, naps
+  s.activities = []
+
   return plan
 }
 
@@ -2108,10 +2119,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
             { time: "16:00", type: "merienda", description: "Fruta + lacteo o cereal" },
             { time: "19:00", type: "cena", description: "Proteina + verdura + grasa saludable" },
           ],
-          activities: [
-            { time: "08:00", activity: "jugar", duration: 60, description: "Tiempo de juego" },
-            { time: "17:00", activity: "ejercicio", duration: 30, description: "Actividad física" },
-          ],
+          activities: [],
           naps: [
             { time: "14:00", duration: 90, description: "Siesta vespertina" },
           ],
@@ -2125,7 +2133,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
   } catch (error) {
     logger.error("Error generando plan con IA:", error)
     Sentry.captureException(error)
-    // Fallback robusto cuando la IA o la red fallan: devolver un plan básico válido
+    // Fallback robusto cuando la IA o la red fallan: devolver un plan basico valido
     logger.warn("Generando plan fallback debido a error en IA/red")
     return {
       schedule: {
@@ -2137,9 +2145,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
           { time: "16:00", type: "merienda", description: "Fruta + lacteo o cereal" },
           { time: "19:00", type: "cena", description: "Proteina + verdura + grasa saludable" },
         ],
-        activities: [
-          { time: "18:30", activity: "rutina", duration: 30, description: "Rutina relajante antes de dormir" },
-        ],
+        activities: [],
         naps: [
           { time: "14:00", duration: 90, description: "Siesta vespertina" },
         ],

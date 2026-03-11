@@ -398,14 +398,23 @@ export function PlanManager({
   // Determinar si hay un plan activo
   const hasActivePlan = plans.some(p => p.status === "active")
 
-  // Obtener solo el boton relevante segun el estado del paciente
-  const getVisiblePlanButton = () => {
-    // Si NO hay plan activo, mostrar solo "Generar Plan Inicial"
+  // Obtener botones de plan visibles segun el estado del paciente
+  const getAvailablePlans = () => {
+    const buttons: Array<{
+      planType: "initial" | "event_based" | "transcript_refinement"
+      canGenerate: boolean
+      buttonText: string
+      description: string
+      nextVersion: string
+      validation: any
+    }> = []
+
     if (!hasActivePlan) {
+      // Sin plan activo: solo plan inicial
       const initialValidation = planValidations.initial
       if (initialValidation) {
-        return {
-          planType: "initial" as const,
+        buttons.push({
+          planType: "initial",
           canGenerate: initialValidation.canGenerate,
           buttonText: "Generar Plan Inicial",
           description: initialValidation.canGenerate
@@ -413,31 +422,41 @@ export function PlanManager({
             : initialValidation.reason,
           nextVersion: initialValidation.nextVersion,
           validation: initialValidation,
-        }
+        })
       }
-      return null
+    } else {
+      // Con plan activo: progresion + refinamiento si hay transcript
+      const eventValidation = planValidations.event_based
+      if (eventValidation) {
+        buttons.push({
+          planType: "event_based",
+          canGenerate: eventValidation.canGenerate,
+          buttonText: eventValidation.canGenerate
+            ? `Generar Plan ${eventValidation.nextVersion} (Progresión)`
+            : "Plan de Progresión",
+          description: eventValidation.reason,
+          nextVersion: eventValidation.nextVersion,
+          validation: eventValidation,
+        })
+      }
+
+      // Boton de refinamiento cuando hay transcript analizado
+      const transcriptValidation = planValidations.transcript_refinement
+      if (transcriptValidation) {
+        buttons.push({
+          planType: "transcript_refinement",
+          canGenerate: transcriptValidation.canGenerate,
+          buttonText: transcriptValidation.canGenerate
+            ? `Generar Plan ${transcriptValidation.nextVersion} (Refinamiento)`
+            : "Plan de Refinamiento",
+          description: transcriptValidation.reason,
+          nextVersion: transcriptValidation.nextVersion,
+          validation: transcriptValidation,
+        })
+      }
     }
 
-    // Si YA hay plan activo, mostrar solo "Plan de Progresion"
-    const eventValidation = planValidations.event_based
-    if (eventValidation) {
-      return {
-        planType: "event_based" as const,
-        canGenerate: eventValidation.canGenerate,
-        buttonText: eventValidation.canGenerate
-          ? `Generar Plan ${eventValidation.nextVersion} (Progresión)`
-          : "Plan de Progresión",
-        description: eventValidation.reason,
-        nextVersion: eventValidation.nextVersion,
-        validation: eventValidation,
-      }
-    }
-    return null
-  }
-
-  const getAvailablePlans = () => {
-    const visibleButton = getVisiblePlanButton()
-    return visibleButton ? [visibleButton] : []
+    return buttons
   }
 
   const availablePlans = getAvailablePlans()

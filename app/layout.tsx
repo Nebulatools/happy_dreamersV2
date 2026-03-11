@@ -2,7 +2,7 @@ import type React from "react"
 // Archivo principal de layout que configura la estructura básica de la aplicación
 // Incluye el ThemeProvider para gestionar el modo oscuro/claro y la configuración global
 
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -19,8 +19,13 @@ export const metadata: Metadata = {
   description: "Aplicación para el seguimiento del sueño de niños",
   generator: "v0.dev",
   manifest: "/manifest.json",
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
   themeColor: "#3B82F6",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=5",
 }
 
 export default function RootLayout({
