@@ -65,12 +65,20 @@ function calculateNextPlanVersion(existingPlans: any[], planType: "initial" | "e
     if (!latestPlan) {
       throw new Error("No se puede crear un plan de refinamiento sin un plan base")
     }
-    
-    const basePlanNumber = latestPlan.planNumber
-    const refinementVersion = `${basePlanNumber}.1`
-    
+
+    // Encontrar el plan base (el mas reciente de tipo entero, no refinamiento)
+    const basePlan = existingPlans.find(p => !String(p.planVersion).includes(".")) || latestPlan
+    const basePlanNumber = basePlan.planNumber
+
+    // Contar refinamientos existentes de este plan base (X.1, X.2, X.3...)
+    const existingRefinements = existingPlans.filter(
+      p => p.planNumber === basePlanNumber && String(p.planVersion).includes(".")
+    )
+    const nextSub = existingRefinements.length + 1
+    const refinementVersion = `${basePlanNumber}.${nextSub}`
+
     return {
-      planNumber: basePlanNumber, // Mismo número que el plan base
+      planNumber: basePlanNumber,
       planVersion: refinementVersion,
     }
   }
