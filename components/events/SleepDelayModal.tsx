@@ -18,6 +18,7 @@ import { useDevTime } from "@/context/dev-time-context"
 import { useUser } from "@/context/UserContext"
 import { buildLocalDate, dateToTimestamp, DEFAULT_TIMEZONE } from "@/lib/datetime"
 import { DelaySelector, EmotionalStateSelector } from "@/components/events/shared"
+import { DurationEndTimeSelector } from "./DurationEndTimeSelector"
 import type { EmotionalState } from "@/components/events/types"
 
 interface SleepDelayModalProps {
@@ -232,74 +233,30 @@ export function SleepDelayModal({
           </div>
         )}
 
-        {/* Fecha y hora de despertar - Solo visible en modo edición si hay endTime */}
+        {/* Hora de despertar - Solo visible en modo edición */}
         {mode === "edit" && (
-          <div className="space-y-3 pb-4 border-b">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium text-gray-700">
-                Hora de despertar
-              </div>
-              {!hasEndTime && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setHasEndTime(true)
-                    setEndDate(eventDate)
-                    setEndTimeValue(format(getCurrentTime(), "HH:mm"))
-                  }}
-                  className="text-xs text-blue-600 hover:text-blue-700 underline"
-                >
-                  + Agregar hora de despertar
-                </button>
-              )}
+          <div className="pb-4 border-b">
+            <div className="text-sm font-medium text-gray-700 mb-2">
+              Hora de despertar
             </div>
-            {hasEndTime ? (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2">
-                  <Label htmlFor="wake-date" className="text-xs text-gray-500">
-                    Fecha
-                  </Label>
-                  <Input
-                    id="wake-date"
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="wake-time" className="text-xs text-gray-500">
-                    Hora
-                  </Label>
-                  <div className="flex gap-1">
-                    <Input
-                      id="wake-time"
-                      type="time"
-                      value={endTimeValue}
-                      onChange={(e) => setEndTimeValue(e.target.value)}
-                      className="w-full"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setHasEndTime(false)
-                        setEndTimeValue("")
-                      }}
-                      className="px-2 text-gray-400 hover:text-red-500"
-                      title="Quitar hora de despertar"
-                    >
-                      x
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="text-xs text-gray-500 italic">
-                El sueno aun no tiene hora de despertar registrada
-              </div>
-            )}
+            <DurationEndTimeSelector
+              startDate={eventDate}
+              startTime={eventTime}
+              timezone={timezone}
+              hasEndTime={hasEndTime}
+              endDate={endDate}
+              endTimeValue={endTimeValue}
+              initialDuration={hasEndTime && initialData?.startTime && initialData?.endTime
+                ? Math.round((new Date(initialData.endTime).getTime() - new Date(initialData.startTime).getTime()) / 60000)
+                : undefined}
+              accentColor="blue"
+              onEndTimeChange={(data) => {
+                setHasEndTime(data.hasEndTime)
+                setEndDate(data.endDate)
+                setEndTimeValue(data.endTimeValue)
+              }}
+              getCurrentTime={getCurrentTime}
+            />
           </div>
         )}
 

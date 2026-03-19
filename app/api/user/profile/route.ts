@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { createLogger } from "@/lib/logger"
 import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
+import { isValidTimezone } from "@/lib/datetime"
 
 const logger = createLogger("UserProfileAPI")
 
@@ -55,17 +56,8 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Validate timezone (simple whitelist for ahora)
-    const ALLOWED_TIMEZONES = [
-      "America/Monterrey",
-      "America/Mexico_City",
-      "America/Chicago",
-      "America/New_York",
-      "UTC",
-      "Asia/Tokyo",
-    ]
-
-    if (timezone && !ALLOWED_TIMEZONES.includes(timezone)) {
+    // Validar timezone con Intl.DateTimeFormat (acepta cualquier IANA valida)
+    if (timezone && !isValidTimezone(timezone)) {
       logger.warn("Invalid timezone provided", { timezone })
       return NextResponse.json(
         { error: "Zona horaria inválida" },

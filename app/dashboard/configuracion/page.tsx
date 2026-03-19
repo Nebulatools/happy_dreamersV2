@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useUser } from "@/context/UserContext"
 import { LogOut } from "lucide-react"
+import { SUPPORTED_TIMEZONES } from "@/lib/datetime"
 import {
   Select,
   SelectContent,
@@ -209,12 +210,11 @@ export default function ConfiguracionPage() {
                 <SelectValue placeholder="Selecciona tu zona horaria" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="America/Monterrey">America/Monterrey (GMT-6)</SelectItem>
-                <SelectItem value="America/Mexico_City">America/Mexico_City (GMT-6)</SelectItem>
-                <SelectItem value="America/Chicago">America/Chicago (GMT-6)</SelectItem>
-                <SelectItem value="America/New_York">America/New_York (GMT-5)</SelectItem>
-                <SelectItem value="UTC">UTC</SelectItem>
-                <SelectItem value="Asia/Tokyo">Asia/Tokyo (GMT+9)</SelectItem>
+                {SUPPORTED_TIMEZONES.map((tz) => (
+                  <SelectItem key={tz} value={tz}>
+                    {tz}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-gray-500 mt-1">Predeterminado: America/Monterrey.</p>

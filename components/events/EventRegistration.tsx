@@ -52,7 +52,7 @@ export function EventRegistration({
   const showNightFeedingButton = isSleeping // Solo durante sueno nocturno (no siestas)
   const showMedicationButton = isAwake || isSleeping || isNightWaking
   const showActivityButton = isAwake // Solo cuando despierto
-  const showManualButton = isAwake // Solo cuando despierto
+  const showManualButton = true // Siempre visible para registro retroactivo
 
   // Determinar si hay botones secundarios visibles
   const hasSecondaryButtons = showFeedingButton || showNightFeedingButton || showMedicationButton || showActivityButton
