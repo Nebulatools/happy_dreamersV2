@@ -26,7 +26,7 @@ export default async function PatientHubPage({ params }: PageProps) {
     const { db } = await connectToDatabase()
     const child = await db.collection("children").findOne(
       { _id: new ObjectId(childId) },
-      { projection: { firstName: 1, lastName: 1, birthDate: 1, parentId: 1 } }
+      { projection: { firstName: 1, lastName: 1, birthDate: 1, parentId: 1, archived: 1 } }
     )
     if (child) {
       childData = {
@@ -34,6 +34,7 @@ export default async function PatientHubPage({ params }: PageProps) {
         lastName: child.lastName || "",
         birthDate: child.birthDate || "",
         parentId: child.parentId?.toString() || "",
+        archived: child.archived === true,
       }
     }
   } catch (error) {

@@ -78,7 +78,8 @@ export function ChildSelector() {
       const childrenData = extractChildrenFromResponse(responseData)
       
       if (childrenData.length === 0 && responseData && !Array.isArray(responseData)) {
-        logger.warn("No se pudieron extraer niños de la respuesta:", responseData)
+        // Solo log local, no enviar a Sentry (es esperado cuando el usuario no tiene niños)
+        logger.debug("Respuesta sin niños extraibles:", responseData)
       }
       
       logger.info(`Loaded ${childrenData.length} children`)

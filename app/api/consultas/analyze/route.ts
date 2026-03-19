@@ -11,6 +11,7 @@ import { OpenAI } from "openai"
 import { differenceInDays, format, parseISO, subDays } from "date-fns"
 import { processSleepStatistics } from "@/lib/sleep-calculations"
 import { createLogger } from "@/lib/logger"
+import { getScheduleRuleForAge } from "@/lib/diagnostic/age-schedules"
 
 const logger = createLogger("API:consultas:analyze:route")
 
@@ -325,12 +326,26 @@ async function generateTranscriptOnlyAnalysis({
   transcript: string
   childData: any
 }) {
+  // Construir restricciones de alimentacion por edad para inyectar en el prompt
+  const ageInMonths = childData.ageInMonths
+  const ageRule = ageInMonths != null ? getScheduleRuleForAge(ageInMonths) : null
+  let feedingConstraintsText = ""
+  if (ageRule && ageInMonths != null) {
+    if (ageInMonths >= 12) {
+      feedingConstraintsText = `\nRESTRICCIONES DE ALIMENTACION (${ageInMonths} meses):\n- Minimo ${ageRule.solidMinCount} comidas solidas al dia. Leches/biberones: maximo ${Math.max(ageRule.milkMinCount, 2)} (complementarias). Priorizar SOLIDOS sobre biberones. Maximo 16 oz de leche al dia.\n- NUNCA recomendar 5+ biberones para un nino de 12+ meses.\n`
+    } else if (ageInMonths >= 6) {
+      feedingConstraintsText = `\nRESTRICCIONES DE ALIMENTACION (${ageInMonths} meses):\n- Minimo ${ageRule.solidMinCount} comidas solidas, minimo ${ageRule.milkMinCount > 0 ? ageRule.milkMinCount : "variable"} tomas de leche${ageRule.milkIntervalHours > 0 ? ` (cada ~${ageRule.milkIntervalHours} hrs)` : ""}. Los solidos complementan la leche.\n`
+    } else {
+      feedingConstraintsText = `\nRESTRICCIONES DE ALIMENTACION (${ageInMonths} meses):\n- Solo leche materna o formula. NO recomendar comidas solidas.\n`
+    }
+  }
+
   const systemPrompt = `Eres Mariana, coach del sueño infantil y desarrollo infantil.
 
 INFORMACIÓN BÁSICA DEL NIÑO:
 - Nombre: ${childData.firstName} ${childData.lastName}
 - Edad: ${childData.ageInMonths} meses
-
+${feedingConstraintsText}
 INSTRUCCIONES PARA ANÁLISIS INTEGRAL:
 Analiza TODO EL TRANSCRIPT de la consulta considerando la conversación COMPLETA entre los padres y la coach del sueño para extraer acuerdos realistas y viables que serán usados para actualizar el plan del niño.
 

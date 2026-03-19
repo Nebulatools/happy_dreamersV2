@@ -83,7 +83,7 @@ DASHBOARD - COMPARTIDO (Usuario + Admin)
 |---------|------------|--------------|
 | **Evento** | Registro unico de actividad (sleep, feeding, medication, etc.) | `/api/children/events`, coleccion `events` |
 | **Sesion** | Evento de tipo sleep/nap CON duracion calculada | UI: 100% ancho en timeline |
-| **Plan** | Horario personalizado de sueno para un nino | `/api/consultas/plans`, coleccion `childPlans` |
+| **Plan** | Horario personalizado de sueno para un nino | `/api/consultas/plans`, coleccion `child_plans` |
 | **Consulta** | Analisis AI de datos del nino | `/dashboard/consultas` (admin) |
 | **Diagnostico** | Validacion clinica cruzando eventos, survey y reglas por edad | `/dashboard/diagnosticos` (admin) |
 | **Survey** | Cuestionario inicial sobre el nino/familia | `/dashboard/survey`, campo `child.surveyData` |
@@ -240,7 +240,7 @@ DASHBOARD - COMPARTIDO (Usuario + Admin)
 | `users` | Usuarios del sistema | email, role, password |
 | `children` | Perfiles de ninos | firstName, parentId, surveyData |
 | `events` | Eventos registrados | childId, eventType, startTime, endTime |
-| `childPlans` | Planes personalizados | childId, planVersion, schedule, status |
+| `child_plans` | Planes personalizados | childId, planVersion, schedule, status |
 | `userChildAccess` | Acceso compartido | userId, childId, role, permissions |
 | `pendingInvitations` | Invitaciones pendientes | email, childId, invitationToken |
 | `chatSessions` | Sesiones de chat | userId, childId, title |

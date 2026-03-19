@@ -1,7 +1,7 @@
 # Reporte de Feedback QA para Desarrollo
 
 **Fecha de Generacion:** (Pendiente - se genera despues de QA)
-**Release Evaluado:** Sprint 6 - Admin UX Hub + Diagnostic Pipeline
+**Release Evaluado:** Sprint 6 - Admin UX Hub + Diagnostic Pipeline + Patient Status
 **Branch:** QA
 **Tester:** Julio
 **Analista:** Claude AI

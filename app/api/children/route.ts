@@ -90,13 +90,20 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     
   // Si es admin y solicita los niños de un usuario específico
   if (isAdmin && requestedUserId) {
-    logger.info("Admin solicitando niños de usuario", { requestedUserId, adminId: session.user.id })
+    const includeArchived = searchParams.get("includeArchived") === "true"
+    logger.info("Admin solicitando niños de usuario", { requestedUserId, adminId: session.user.id, includeArchived })
+
+    const query: any = { parentId: new ObjectId(requestedUserId) }
+    if (!includeArchived) {
+      query.archived = { $ne: true }
+    }
+
     const children = await db.collection<Child>("children")
-      .find({ parentId: new ObjectId(requestedUserId) })
+      .find(query)
       .toArray()
-    
+
     logger.info("Niños encontrados", { count: children.length, userId: requestedUserId })
-    
+
     const response = createSuccessResponse({ children: children.map(serializeChild), success: true })
     response.headers.set("Cache-Control", "no-store, max-age=0")
     return response
@@ -116,8 +123,14 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   }
 
   // Para admins sin filtro, devolver todos los niños
+  const includeArchived = searchParams.get("includeArchived") === "true"
+  const adminQuery: any = {}
+  if (!includeArchived) {
+    adminQuery.archived = { $ne: true }
+  }
+
   const children = await db.collection<Child>("children")
-    .find({})
+    .find(adminQuery)
     .toArray()
 
   logger.info("Admin obtuvo todos los niños", { count: children.length })

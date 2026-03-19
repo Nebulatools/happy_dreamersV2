@@ -135,7 +135,7 @@ export const REFLUX_INDICATORS: MedicalIndicatorConfig[] = [
 
 // ─────────────────────────────────────────────────────────
 // INDICADORES DE APNEA / ALERGIAS
-// Campos disponibles en survey actual: 10 de 12
+// Campos disponibles en survey actual: 11 de 13
 // ─────────────────────────────────────────────────────────
 
 export const APNEA_INDICATORS: MedicalIndicatorConfig[] = [
@@ -246,6 +246,14 @@ export const APNEA_INDICATORS: MedicalIndicatorConfig[] = [
       return after3am.length > before3am.length
     },
     available: true, // Calculado de eventos
+  },
+  {
+    id: "apnea_alergias_padres",
+    name: "Alergias en los padres",
+    description: "Los padres tienen historial de alergias (factor hereditario de apnea)",
+    condition: "apnea" as MedicalCondition,
+    surveyField: "alergiasPadres",
+    available: true, // lineas 12, 23 CSV - ya mapeado en flattenSurveyData
   },
   {
     id: "apnea_despierta_asustado",

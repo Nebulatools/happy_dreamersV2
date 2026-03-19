@@ -57,6 +57,8 @@ import {
 import { getEventBgClass } from "@/lib/colors/event-colors"
 import { getEventIconConfig } from "@/lib/icons/event-icons"
 import { createLogger } from "@/lib/logger"
+import { AnalysisView } from "@/components/bitacora/analysis/AnalysisView"
+import { ActivePlanBanner } from "@/components/bitacora/ActivePlanBanner"
 
 const logger = createLogger("BitacoraTab")
 
@@ -107,9 +109,10 @@ interface MonthlyStats {
 
 interface BitacoraTabProps {
   childId: string
+  onNavigateToConsultas?: (subtab?: string) => void
 }
 
-export default function BitacoraTab({ childId }: BitacoraTabProps) {
+export default function BitacoraTab({ childId, onNavigateToConsultas }: BitacoraTabProps) {
   const { toast } = useToast()
   const { data: session } = useSession()
   const userTimeZone = session?.user?.timezone || "America/Monterrey"
@@ -132,7 +135,7 @@ export default function BitacoraTab({ childId }: BitacoraTabProps) {
     }
     return "week"
   })
-  const [calendarTab, setCalendarTab] = useState<"calendar" | "stats">("calendar")
+  const [calendarTab, setCalendarTab] = useState<"calendar" | "stats" | "analisis">("calendar")
   const [isLoading, setIsLoading] = useState(true)
   const [events, setEvents] = useState<Event[]>([])
   const [allEventsCache, setAllEventsCache] = useState<Event[]>([])
@@ -539,8 +542,8 @@ export default function BitacoraTab({ childId }: BitacoraTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Barra superior: tabs + vistas + navegacion */}
-      <div className="flex flex-col gap-4">
+      {/* Barra superior: tabs + vistas + navegacion - sticky al hacer scroll */}
+      <div className="sticky top-0 z-10 bg-[#DEF1F1] pb-3 -mx-1 px-1">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             {/* Tabs Calendario / Estadisticas */}
@@ -560,6 +563,14 @@ export default function BitacoraTab({ childId }: BitacoraTabProps) {
                 onClick={() => setCalendarTab("stats")}
               >
                 Estadisticas
+              </Button>
+              <Button
+                variant={calendarTab === "analisis" ? "default" : "ghost"}
+                size="sm"
+                className={calendarTab === "analisis" ? "bg-gradient-to-r from-[#C4B5FD] to-[#A78BFA] text-white" : "text-gray-600"}
+                onClick={() => setCalendarTab("analisis")}
+              >
+                Analisis
               </Button>
             </div>
 
@@ -590,8 +601,20 @@ export default function BitacoraTab({ childId }: BitacoraTabProps) {
         </div>
       </div>
 
+      {/* Banner del plan activo */}
+      <ActivePlanBanner
+        plan={activePlan}
+        onViewFullPlan={onNavigateToConsultas ? () => onNavigateToConsultas("planes") : undefined}
+      />
+
       {/* Contenido principal */}
-      {calendarTab === "calendar" ? (
+      {calendarTab === "analisis" ? (
+        <AnalysisView
+          events={allEventsCache.length > 0 ? allEventsCache : events}
+          childName={activeChildName}
+          timezone={userTimeZone}
+        />
+      ) : calendarTab === "calendar" ? (
         <Card ref={calendarContainerRef} className="p-4 h-[calc(100vh-300px)] overflow-auto" style={{ minHeight: "450px" }}>
           <div className="h-full">
             {isLoading ? (

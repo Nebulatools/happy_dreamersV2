@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Pill, X, Plus } from "lucide-react"
+import { Pill } from "lucide-react"
+import { DurationEndTimeSelector } from "./DurationEndTimeSelector"
 import { useDevTime } from "@/context/dev-time-context"
 import { useUser } from "@/context/UserContext"
 import { format } from "date-fns"
@@ -288,54 +289,24 @@ export function MedicationModal({
           {mode === "edit" && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">Hora de fin</Label>
-              {!hasEndTime ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setHasEndTime(true)
-                    // Inicializar con hora actual si no hay valor
-                    if (!endTimeValue) {
-                      const now = getCurrentTime()
-                      setEndDate(format(now, "yyyy-MM-dd"))
-                      setEndTimeValue(format(now, "HH:mm"))
-                    }
-                  }}
-                  className="w-full border-dashed border-amber-300 text-amber-600 hover:bg-amber-50"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Agregar hora de fin
-                </Button>
-              ) : (
-                <div className="relative">
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      id="end-date"
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full"
-                    />
-                    <Input
-                      id="end-time"
-                      type="time"
-                      value={endTimeValue}
-                      onChange={(e) => setEndTimeValue(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setHasEndTime(false)}
-                    className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-gray-100 hover:bg-gray-200"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              )}
+              <DurationEndTimeSelector
+                startDate={eventDate}
+                startTime={medicationTime}
+                timezone={timezone}
+                hasEndTime={hasEndTime}
+                endDate={endDate}
+                endTimeValue={endTimeValue}
+                initialDuration={hasEndTime && initialData?.startTime && initialData?.endTime
+                  ? Math.round((new Date(initialData.endTime).getTime() - new Date(initialData.startTime).getTime()) / 60000)
+                  : undefined}
+                accentColor="amber"
+                onEndTimeChange={(data) => {
+                  setHasEndTime(data.hasEndTime)
+                  setEndDate(data.endDate)
+                  setEndTimeValue(data.endTimeValue)
+                }}
+                getCurrentTime={getCurrentTime}
+              />
             </div>
           )}
 

@@ -9,7 +9,8 @@ import { EventData, EmotionalState } from "./types"
 import { cn } from "@/lib/utils"
 import { useDevTime } from "@/context/dev-time-context"
 import { useUser } from "@/context/UserContext"
-import { dateToTimestamp, getTimePartsInTimezone, DEFAULT_TIMEZONE } from "@/lib/datetime"
+import { dateToTimestamp, buildLocalDate, getTimePartsInTimezone, DEFAULT_TIMEZONE } from "@/lib/datetime"
+import { format } from "date-fns"
 import { SleepDelayModal } from "./SleepDelayModal"
 import { EventNotesModal } from "./EventNotesModal"
 
@@ -52,7 +53,7 @@ export function SleepButton({
     notes?: string
   } | null>(null)
   const [sleepModalConfig, setSleepModalConfig] = useState<{ eventType: "sleep" | "nap"; start: Date } | null>(null)
-  const [notesModalConfig, setNotesModalConfig] = useState<{ action: "wake" | "night_wake"; start: Date } | null>(null)
+  const [notesModalConfig, setNotesModalConfig] = useState<{ action: "wake" | "night_wake"; start: Date; duration: number | null } | null>(null)
 
   
   // Calcular duración localmente usando tiempo simulado
@@ -242,7 +243,7 @@ export function SleepButton({
     }
 
     if (config.action === "wake" || config.action === "night_wake") {
-      setNotesModalConfig({ action: config.action, start: now })
+      setNotesModalConfig({ action: config.action, start: now, duration: localDuration })
     }
   }
 
@@ -367,17 +368,28 @@ export function SleepButton({
     }
   }
 
-  const handleNotesConfirm = async (emotionalStateValue: string, notesValue: string) => {
+  const handleNotesConfirm = async (emotionalStateValue: string, notesValue: string, adjustedTime?: string) => {
     if (!notesModalConfig) return
+
+    // Calcular el tiempo real del evento (ajustado por el usuario o el momento del click)
+    const resolveEventTime = (): Date => {
+      if (adjustedTime) {
+        // El usuario ajusto la hora manualmente
+        const today = format(notesModalConfig.start, "yyyy-MM-dd")
+        return buildLocalDate(today, adjustedTime)
+      }
+      return notesModalConfig.start
+    }
 
     // Si es despertar nocturno, crear nightWakePending (NO tocar sleepPending)
     if (notesModalConfig.action === "night_wake") {
       setIsProcessing(true)
       try {
+        const eventTime = resolveEventTime()
         // Crear nightWakePending separado - sleepPending se mantiene intacto
         setNightWakePending({
           type: "night_waking",
-          start: dateToTimestamp(notesModalConfig.start, userData.timezone),
+          start: dateToTimestamp(eventTime, userData.timezone),
           emotionalState: emotionalStateValue as EmotionalState,
           notes: notesValue,
         })
@@ -395,7 +407,7 @@ export function SleepButton({
 
     // Caso despertar normal - USAR PATCH PARA ACTUALIZAR EVENTO EXISTENTE
     setIsProcessing(true)
-    const endTime = notesModalConfig.start
+    const endTime = resolveEventTime()
 
     try {
       // Obtener ID del evento abierto (del estado local o del API)
@@ -540,6 +552,9 @@ export function SleepButton({
             ? "Guardar despertar"
             : "Guardar"
         }
+        showTimeInput
+        defaultTime={notesModalConfig ? format(notesModalConfig.start, "HH:mm") : undefined}
+        sleepDuration={notesModalConfig?.duration}
       />
     </div>
   )

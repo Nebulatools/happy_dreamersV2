@@ -29,8 +29,9 @@ export const NIGHT_START_HOUR = 19
 /** Hora de fin del horario nocturno (6am = 06:00) */
 export const NIGHT_END_HOUR = 6
 
-/** Lista de timezones soportadas para Mexico */
+/** Lista de timezones soportadas (Americas + comunes) */
 export const SUPPORTED_TIMEZONES = [
+  // Mexico
   "America/Monterrey",
   "America/Mexico_City",
   "America/Tijuana",
@@ -38,6 +39,27 @@ export const SUPPORTED_TIMEZONES = [
   "America/Chihuahua",
   "America/Mazatlan",
   "America/Hermosillo",
+  // Estados Unidos / Canada
+  "America/Vancouver",
+  "America/Los_Angeles",
+  "America/Denver",
+  "America/Chicago",
+  "America/New_York",
+  "America/Toronto",
+  "America/Edmonton",
+  // Latinoamerica
+  "America/Bogota",
+  "America/Lima",
+  "America/Santiago",
+  "America/Buenos_Aires",
+  "America/Sao_Paulo",
+  // Europa (comunes)
+  "Europe/London",
+  "Europe/Madrid",
+  "Europe/Paris",
+  // Otros
+  "Asia/Tokyo",
+  "UTC",
 ] as const
 
 export type SupportedTimezone = typeof SUPPORTED_TIMEZONES[number]
@@ -67,11 +89,10 @@ export interface TimeParts {
 export function detectBrowserTimezone(): string {
   try {
     const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
-    // Si es una timezone de Mexico soportada, usarla
-    if (SUPPORTED_TIMEZONES.includes(detected as SupportedTimezone)) {
+    // Aceptar cualquier timezone IANA valida del navegador
+    if (detected && isValidTimezone(detected)) {
       return detected
     }
-    // Si no, usar default
     return DEFAULT_TIMEZONE
   } catch {
     return DEFAULT_TIMEZONE

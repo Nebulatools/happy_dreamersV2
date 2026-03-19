@@ -1,19 +1,22 @@
 // Lista de pacientes con layout Master-Detail Split View
-// Panel izquierdo: lista de familias con busqueda
+// Panel izquierdo: lista de familias con busqueda y tabs de status
 // Panel derecho: detalle de familia seleccionada con grid de ninos
 
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Search, ArrowRight, Users } from "lucide-react"
+import { Loader2, Search, ArrowRight, Users, Archive, ArchiveRestore, Clock } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { createLogger } from "@/lib/logger"
 import { useActiveChild } from "@/context/active-child-context"
 import { usePageHeaderConfig } from "@/context/page-header-context"
 import { writeRecentPatient } from "@/hooks/use-admin-search"
+import type { PatientStatus } from "@/lib/patient-status"
 
 const logger = createLogger("PacienteListClient")
+
+type StatusFilter = PatientStatus | "all"
 
 interface User {
   _id: string
@@ -27,6 +30,7 @@ interface Child {
   firstName: string
   lastName: string
   parentId: string
+  archived?: boolean
   surveyData?: {
     completed?: boolean
     completedAt?: string
@@ -63,7 +67,19 @@ export default function PacienteListClient() {
   const [loading, setLoading] = useState(true)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
-  const [childrenPrefetched, setChildrenPrefetched] = useState(false)
+  const [archivingChildId, setArchivingChildId] = useState<string | null>(null)
+  const [confirmArchive, setConfirmArchive] = useState<{
+    childId: string; childName: string; archived: boolean
+  } | null>(null)
+
+  // Status computado por nino (desde dashboard-metrics)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("active")
+  const [childStatusMap, setChildStatusMap] = useState<Record<string, PatientStatus>>({})
+  const [statusCounts, setStatusCounts] = useState({ active: 0, inactive: 0, archived: 0 })
+  const [childPlanMap, setChildPlanMap] = useState<Record<string, boolean>>({})
+
+  // Ref para rastrear que usuarios ya tienen sus hijos cargados (evita recrear loadUserChildren)
+  const loadedChildrenRef = useRef<Set<string>>(new Set())
 
   // Contadores para el header
   const counts = useMemo(() => {
@@ -139,12 +155,12 @@ export default function PacienteListClient() {
     return () => { cancelled = true }
   }, [toast])
 
-  // Precargar todos los ninos
+  // Precargar todos los ninos (siempre incluir archivados, filtrar client-side)
   useEffect(() => {
-    if (!users.length || childrenPrefetched) return
+    if (!users.length) return
     const fetchAllChildren = async () => {
       try {
-        const response = await fetch("/api/children")
+        const response = await fetch("/api/children?includeArchived=true")
         if (!response.ok) {
           throw new Error("Error al precargar ninos")
         }
@@ -158,29 +174,58 @@ export default function PacienteListClient() {
           acc[child.parentId].push(child)
           return acc
         }, {})
-        if (Object.keys(grouped).length) {
-          setAllChildrenMap(grouped)
-          setUserChildren(prev => ({ ...grouped, ...prev }))
-        }
+        setAllChildrenMap(grouped)
+        setUserChildren(grouped)
+        // Marcar todos los usuarios como ya cargados
+        loadedChildrenRef.current = new Set(Object.keys(grouped))
       } catch (error) {
         logger.warn("No se pudieron precargar los ninos", error)
-      } finally {
-        setChildrenPrefetched(true)
       }
     }
     fetchAllChildren()
-  }, [users.length, childrenPrefetched])
+  }, [users.length])
 
-  // Cargar los ninos de un usuario especifico
+  // Cargar metricas de dashboard para obtener status por nino
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const response = await fetch("/api/admin/dashboard-metrics")
+        if (!response.ok) return
+        const data = await response.json()
+
+        // Construir mapa de childId -> status
+        const statusMap: Record<string, PatientStatus> = {}
+        const planMap: Record<string, boolean> = {}
+        if (Array.isArray(data.childMetrics)) {
+          for (const metric of data.childMetrics) {
+            statusMap[metric.childId] = metric.status
+            planMap[metric.childId] = metric.hasPlan === true
+          }
+        }
+        setChildStatusMap(statusMap)
+        setChildPlanMap(planMap)
+
+        if (data.statusCounts) {
+          setStatusCounts(data.statusCounts)
+        }
+      } catch (error) {
+        logger.warn("No se pudieron cargar metricas de status", error)
+      }
+    }
+    fetchMetrics()
+  }, [])
+
+  // Cargar los ninos de un usuario especifico (usa ref para evitar recreaciones)
   const loadUserChildren = useCallback(async (userId: string) => {
-    try {
-      if (userChildren[userId]) return
+    if (loadedChildrenRef.current.has(userId)) return
+    loadedChildrenRef.current.add(userId)
 
-      let response = await fetch(`/api/children?userId=${userId}`)
+    try {
+      let response = await fetch(`/api/children?userId=${userId}&includeArchived=true`)
       // Retry una vez si falla (race condition de sesion)
       if (!response.ok) {
         await new Promise(r => setTimeout(r, 500))
-        response = await fetch(`/api/children?userId=${userId}`)
+        response = await fetch(`/api/children?userId=${userId}&includeArchived=true`)
       }
       if (!response.ok) {
         throw new Error("Error al cargar los ninos del usuario")
@@ -191,6 +236,7 @@ export default function PacienteListClient() {
       setUserChildren(prev => ({ ...prev, [userId]: children }))
       setAllChildrenMap(prev => ({ ...prev, [userId]: children }))
     } catch (error) {
+      loadedChildrenRef.current.delete(userId) // Permitir retry en error
       logger.error("Error:", error)
       toast({
         title: "Error",
@@ -198,7 +244,7 @@ export default function PacienteListClient() {
         variant: "destructive",
       })
     }
-  }, [userChildren, toast])
+  }, [toast])
 
   // Seleccionar una familia y cargar sus ninos
   const handleSelectFamily = useCallback((userId: string) => {
@@ -219,71 +265,146 @@ export default function PacienteListClient() {
     router.push(`/dashboard/paciente/${child._id}`)
   }
 
-  // Extraer apellido del nombre completo
-  const getLastName = (name: string): string => {
-    const parts = name.trim().split(" ")
-    return parts.length > 1 ? parts[parts.length - 1] : name
+  // Archivar o desarchivar un nino
+  const handleToggleArchive = async (childId: string, archived: boolean) => {
+    setArchivingChildId(childId)
+    try {
+      const response = await fetch("/api/admin/children/archive", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ childId, archived }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Error al actualizar estado de archivo")
+      }
+
+      // Actualizar el campo archived del nino en estado local
+      const updateChildInMap = (map: Record<string, Child[]>) => {
+        const updated = { ...map }
+        for (const userId of Object.keys(updated)) {
+          updated[userId] = updated[userId].map(c =>
+            c._id === childId ? { ...c, archived } : c
+          )
+        }
+        return updated
+      }
+
+      setUserChildren(prev => updateChildInMap(prev))
+      setAllChildrenMap(prev => updateChildInMap(prev))
+
+      // Actualizar status map
+      setChildStatusMap(prev => ({
+        ...prev,
+        [childId]: archived ? "archived" : "active",
+      }))
+
+      // Actualizar contadores
+      setStatusCounts(prev => {
+        const newCounts = { ...prev }
+        if (archived) {
+          // Mover de active/inactive a archived
+          const prevStatus = childStatusMap[childId] || "active"
+          if (prevStatus !== "archived") {
+            newCounts[prevStatus] = Math.max(0, newCounts[prevStatus] - 1)
+            newCounts.archived++
+          }
+        } else {
+          // Mover de archived a active (al desarchivar)
+          newCounts.archived = Math.max(0, newCounts.archived - 1)
+          newCounts.active++
+        }
+        return newCounts
+      })
+
+      toast({
+        title: archived ? "Paciente archivado" : "Paciente restaurado",
+        description: archived
+          ? "Aparece en la tab 'Archivados'"
+          : "El paciente aparece de nuevo como activo",
+      })
+    } catch (error) {
+      logger.error("Error al archivar/desarchivar:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estado del paciente.",
+        variant: "destructive",
+      })
+    } finally {
+      setArchivingChildId(null)
+      setConfirmArchive(null)
+    }
   }
 
+  // Extraer apellido del nombre completo
   // Normalizar texto para busqueda sin acentos
   const normalize = (text: string) =>
     text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
 
-  // Contar ninos de un usuario
+  // Contar ninos de un usuario (filtrado por status)
   const getChildCount = (userId: string): number => {
-    return (userChildren[userId] || allChildrenMap[userId] || []).length
+    const children = userChildren[userId] || allChildrenMap[userId] || []
+    if (statusFilter === "all") return children.length
+    return children.filter(c => {
+      const childStatus = childStatusMap[c._id]
+      return childStatus === statusFilter
+    }).length
   }
 
-  // Filtrar y ordenar usuarios
-  const filteredUsers = users
-    .filter(user => {
-      if (!searchTerm) return true
-      const search = normalize(searchTerm)
-      const matchesUser = normalize(user.name).includes(search) ||
-        normalize(user.email).includes(search)
-      const children = userChildren[user._id] || allChildrenMap[user._id] || []
-      const matchesChild = children.some(child =>
-        normalize(`${child.firstName || ""} ${child.lastName || ""}`).includes(search)
-      )
-      return matchesUser || matchesChild
-    })
-    .sort((a, b) => {
-      const lastNameA = getLastName(a.name).toLowerCase()
-      const lastNameB = getLastName(b.name).toLowerCase()
-      return lastNameA.localeCompare(lastNameB, "es")
-    })
+  // Filtrar y ordenar usuarios (filtrado por status de sus ninos)
+  const filteredUsers = useMemo(() => {
+    return users
+      .filter(user => {
+        // Filtro de busqueda
+        if (searchTerm) {
+          const search = normalize(searchTerm)
+          const matchesUser = normalize(user.name).includes(search) ||
+            normalize(user.email).includes(search)
+          const children = userChildren[user._id] || allChildrenMap[user._id] || []
+          const matchesChild = children.some(child =>
+            normalize(`${child.firstName || ""} ${child.lastName || ""}`).includes(search)
+          )
+          if (!matchesUser && !matchesChild) return false
+        }
 
-  // Auto-seleccionar primera familia cuando la lista cambia
-  useEffect(() => {
-    if (filteredUsers.length === 0) {
-      setSelectedUserId(null)
-      return
-    }
-    // Si la familia seleccionada ya no esta en la lista filtrada, seleccionar la primera
-    const selectedStillVisible = filteredUsers.some(u => u._id === selectedUserId)
-    if (!selectedStillVisible) {
-      handleSelectFamily(filteredUsers[0]._id)
-    }
-  }, [filteredUsers, selectedUserId, handleSelectFamily])
+        // Filtro por status de ninos
+        if (statusFilter !== "all") {
+          const children = userChildren[user._id] || allChildrenMap[user._id] || []
+          const hasMatchingChild = children.some(c => childStatusMap[c._id] === statusFilter)
+          if (!hasMatchingChild) return false
+        }
 
-  // Auto-seleccionar la primera familia al cargar usuarios por primera vez
-  useEffect(() => {
-    if (users.length > 0 && !selectedUserId) {
-      // Ordenar por apellido como filteredUsers
-      const sorted = [...users].sort((a, b) => {
-        const lastNameA = getLastName(a.name).toLowerCase()
-        const lastNameB = getLastName(b.name).toLowerCase()
-        return lastNameA.localeCompare(lastNameB, "es")
+        return true
       })
-      handleSelectFamily(sorted[0]._id)
-    }
-  }, [users, selectedUserId, handleSelectFamily])
+      .sort((a, b) => {
+        return a.name.toLowerCase().localeCompare(b.name.toLowerCase(), "es")
+      })
+  }, [users, searchTerm, statusFilter, userChildren, allChildrenMap, childStatusMap])
+
+  // Auto-seleccionar familia: un solo efecto que maneja seleccion inicial y cambios de filtro.
+  // Usa functional update de setSelectedUserId para evitar depender de selectedUserId
+  // (lo que causaba un ping-pong infinito entre dos efectos).
+  useEffect(() => {
+    if (filteredUsers.length === 0) return
+
+    setSelectedUserId(prev => {
+      const stillVisible = prev && filteredUsers.some(u => u._id === prev)
+      if (stillVisible) return prev
+      const firstId = filteredUsers[0]._id
+      loadUserChildren(firstId)
+      return firstId
+    })
+  }, [filteredUsers, loadUserChildren])
 
   // Datos de la familia seleccionada
   const selectedUser = users.find(u => u._id === selectedUserId) || null
   const selectedChildren = useMemo(() => {
-    return selectedUserId ? (userChildren[selectedUserId] || []) : []
-  }, [selectedUserId, userChildren])
+    if (!selectedUserId) return []
+    const children = userChildren[selectedUserId] || []
+    // Si hay filtro de status, filtrar ninos tambien en el detail panel
+    if (statusFilter === "all") return children
+    return children.filter(c => childStatusMap[c._id] === statusFilter)
+  }, [selectedUserId, userChildren, statusFilter, childStatusMap])
   const isLoadingChildren = selectedUserId ? !userChildren[selectedUserId] : false
 
   // Stats de encuestas para la familia seleccionada
@@ -335,6 +456,15 @@ export default function PacienteListClient() {
     )
   }
 
+  const totalAll = statusCounts.active + statusCounts.inactive + statusCounts.archived
+
+  const statusTabs: { key: StatusFilter; label: string; count: number }[] = [
+    { key: "active", label: "Activos", count: statusCounts.active },
+    { key: "inactive", label: "Inactivos", count: statusCounts.inactive },
+    { key: "archived", label: "Archivados", count: statusCounts.archived },
+    { key: "all", label: "Todos", count: totalAll },
+  ]
+
   return (
     <div className="flex h-[calc(100vh-4rem)]">
       {/* ── Master Panel (izquierda) ── */}
@@ -353,6 +483,31 @@ export default function PacienteListClient() {
               autoComplete="off"
             />
           </div>
+        </div>
+
+        {/* Tabs de status */}
+        <div className="flex gap-1 px-3 pt-2 pb-1.5 border-b border-[#e8f4f1]">
+          {statusTabs.map(tab => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setStatusFilter(tab.key)}
+              className={[
+                "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all",
+                statusFilter === tab.key
+                  ? "bg-[#2553A1] text-white"
+                  : "text-[#7a9e97] hover:bg-[#f0faf8] hover:text-[#1a3a4a]",
+              ].join(" ")}
+            >
+              {tab.label}
+              <span className={[
+                "ml-1 text-[10px]",
+                statusFilter === tab.key ? "text-white/80" : "text-[#a0bbb6]",
+              ].join(" ")}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
         </div>
 
         {/* Header de lista */}
@@ -469,7 +624,10 @@ export default function PacienteListClient() {
             {/* Seccion de ninos */}
             {selectedChildren.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4">
-                Este usuario no tiene ninos registrados.
+                {statusFilter === "all"
+                  ? "Este usuario no tiene ninos registrados."
+                  : `Este usuario no tiene ninos con status "${statusFilter === "active" ? "activo" : statusFilter === "inactive" ? "inactivo" : "archivado"}".`
+                }
               </p>
             ) : (
               <>
@@ -480,27 +638,105 @@ export default function PacienteListClient() {
                   {selectedChildren.map(child => {
                     const surveyCompleted = child.surveyData?.completed === true ||
                       (!!child.surveyData?.completedAt && child.surveyData?.isPartial !== true)
+                    const childStatus = childStatusMap[child._id] || "active"
+                    const isArchived = childStatus === "archived"
+                    const isInactive = childStatus === "inactive"
+                    const hasPlan = childPlanMap[child._id] === true
+                    const isArchiving = archivingChildId === child._id
 
                     return (
                       <div
                         key={child._id}
-                        className="bg-white rounded-[14px] p-5 border border-[#d8efeb] transition-all cursor-pointer hover:shadow-[0_4px_16px_rgba(26,60,74,0.08)] hover:border-[#628BE6] hover:-translate-y-px"
+                        className={[
+                          "bg-white rounded-[14px] p-5 border",
+                          "transition-all cursor-pointer",
+                          "hover:shadow-[0_4px_16px_rgba(26,60,74,0.08)]",
+                          "hover:-translate-y-px",
+                          isArchived
+                            ? "border-[#d8efeb]/60 opacity-55 hover:opacity-80 hover:border-[#8ab5ad]"
+                            : isInactive
+                              ? "border-[#d8efeb]/80 opacity-70 hover:opacity-90 hover:border-[#8ab5ad]"
+                              : "border-[#d8efeb] hover:border-[#628BE6]",
+                        ].join(" ")}
                         onClick={() => handleChildClick(child, selectedUser.name)}
                       >
-                        {/* Top: avatar + nombre */}
+                        {/* Top: avatar + nombre + boton archivar */}
                         <div className="flex items-center gap-3 mb-3.5">
-                          <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-base font-bold shrink-0">
+                          <div className={[
+                            "h-11 w-11 rounded-xl flex items-center",
+                            "justify-center text-white text-base",
+                            "font-bold shrink-0",
+                            isArchived
+                              ? "bg-gradient-to-br from-gray-400 to-gray-500"
+                              : isInactive
+                                ? "bg-gradient-to-br from-gray-400 to-blue-400"
+                                : "bg-gradient-to-br from-blue-500 to-purple-500",
+                          ].join(" ")}>
                             {child.firstName?.charAt(0)?.toUpperCase() || "?"}
                           </div>
-                          <div>
-                            <p className="text-base font-bold text-[#1a3a4a]">
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-base font-bold leading-tight truncate ${
+                              isArchived ? "text-[#1a3a4a]/50" : "text-[#1a3a4a]"
+                            }`}>
                               {child.firstName} {child.lastName}
                             </p>
                           </div>
+                          {/* Boton archivar/desarchivar */}
+                          <button
+                            type="button"
+                            title={isArchived ? "Restaurar paciente" : "Archivar paciente"}
+                            disabled={isArchiving}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setConfirmArchive({
+                                childId: child._id,
+                                childName: `${child.firstName} ${child.lastName}`.trim(),
+                                archived: !isArchived,
+                              })
+                            }}
+                            className={`shrink-0 p-1.5 rounded-lg transition-all ${
+                              isArchived
+                                ? "text-[#628BE6] hover:bg-[#628BE6]/10"
+                                : "text-[#8ab5ad] hover:bg-[#8ab5ad]/10 hover:text-[#5a8a80]"
+                            }`}
+                          >
+                            {isArchiving ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : isArchived ? (
+                              <ArchiveRestore className="h-4 w-4" />
+                            ) : (
+                              <Archive className="h-4 w-4" />
+                            )}
+                          </button>
                         </div>
 
-                        {/* Badge de estado de encuesta */}
-                        <div className="mb-3.5">
+                        {/* Badges de status */}
+                        <div className="flex flex-wrap gap-1.5 mb-3.5">
+                          {/* Badge archivado */}
+                          {isArchived && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-500">
+                              <Archive className="h-3 w-3" />
+                              Archivado
+                            </span>
+                          )}
+
+                          {/* Badge inactivo */}
+                          {isInactive && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-500">
+                              <Clock className="h-3 w-3" />
+                              Sin actividad reciente
+                            </span>
+                          )}
+
+                          {/* Badge sin plan (solo activos sin plan) */}
+                          {!isArchived && !isInactive && !hasPlan && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-700">
+                              <span className="h-[7px] w-[7px] rounded-full bg-amber-500" />
+                              Sin plan
+                            </span>
+                          )}
+
+                          {/* Badge de encuesta */}
                           {surveyCompleted ? (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-[#22a064]/10 text-[#1a7a4c]">
                               <span className="h-[7px] w-[7px] rounded-full bg-[#22a064]" />
@@ -535,6 +771,66 @@ export default function PacienteListClient() {
           </div>
         )}
       </div>
+
+      {/* Dialog de confirmacion para archivar/desarchivar */}
+      {confirmArchive && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+            onClick={() => setConfirmArchive(null)}
+          />
+          {/* Dialog */}
+          <div className="relative bg-white rounded-2xl shadow-xl p-6 max-w-sm mx-4 animate-[fadeSlideIn_0.2s_ease-out]">
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                confirmArchive.archived
+                  ? "bg-[#8ab5ad]/10 text-[#5a8a80]"
+                  : "bg-[#628BE6]/10 text-[#2553A1]"
+              }`}>
+                {confirmArchive.archived ? (
+                  <Archive className="h-5 w-5" />
+                ) : (
+                  <ArchiveRestore className="h-5 w-5" />
+                )}
+              </div>
+              <h3 className="text-base font-bold text-[#1a3a4a]">
+                {confirmArchive.archived ? "Archivar paciente" : "Restaurar paciente"}
+              </h3>
+            </div>
+            <p className="text-sm text-[#5a8a80] mb-6">
+              {confirmArchive.archived
+                ? `Archivar a ${confirmArchive.childName}? Podras verlo en la tab "Archivados".`
+                : `Restaurar a ${confirmArchive.childName}? Volvera a aparecer en la lista activa.`
+              }
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmArchive(null)}
+                className="px-4 py-2 text-sm font-medium text-[#5a8a80] bg-[#f0faf8] rounded-lg hover:bg-[#e0f0ed] transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={!!archivingChildId}
+                onClick={() =>
+                  handleToggleArchive(confirmArchive.childId, confirmArchive.archived)
+                }
+                className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors flex items-center gap-2 ${
+                  confirmArchive.archived
+                    ? "bg-[#5a8a80] text-white hover:bg-[#4a7a70]"
+                    : "bg-[#2553A1] text-white hover:bg-[#1a4391]"
+                }`}
+              >
+                {archivingChildId && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {confirmArchive.archived ? "Archivar" : "Restaurar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Animacion CSS para el detail panel */}
       <style jsx global>{`

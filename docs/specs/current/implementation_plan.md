@@ -166,7 +166,7 @@ Validacion Fase 6:
 - [x] **7.2** Agregar logica de prerequisito (plan activo)
   - Input: childId
   - Output: 400 con mensaje si no hay plan activo
-  - Comportamiento: Query childPlans donde status === "active"
+  - Comportamiento: Query child_plans donde status === "active"
   - Referencia: ver `lib/rag/plan-context-builder.ts` getActivePlan()
 
 Validacion Fase 7:

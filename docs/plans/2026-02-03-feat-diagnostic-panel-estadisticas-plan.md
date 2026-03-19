@@ -412,7 +412,7 @@ Al final del panel, dos botones:
 ```mermaid
 erDiagram
     children ||--o{ events : has
-    children ||--o| childPlans : has_active
+    children ||--o| child_plans : has_active
     children {
         ObjectId _id
         string firstName
@@ -432,7 +432,7 @@ erDiagram
         boolean aiClassified
     }
 
-    childPlans {
+    child_plans {
         ObjectId _id
         ObjectId childId
         string planVersion
