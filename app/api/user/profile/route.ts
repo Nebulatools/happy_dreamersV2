@@ -27,13 +27,15 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { name, phone, accountType, timezone } = body
 
-    // Validate input data
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
-      logger.warn("Invalid name provided in profile update", { name })
-      return NextResponse.json(
-        { error: "El nombre es requerido" },
-        { status: 400 }
-      )
+    // Validate name only when provided (allows partial updates like timezone-only)
+    if (name !== undefined) {
+      if (typeof name !== "string" || name.trim().length === 0) {
+        logger.warn("Invalid name provided in profile update", { name })
+        return NextResponse.json(
+          { error: "El nombre es requerido" },
+          { status: 400 }
+        )
+      }
     }
 
     // Validate phone format if provided
@@ -69,8 +71,11 @@ export async function PUT(request: NextRequest) {
     const { db } = await connectToDatabase()
 
     const updateData: any = {
-      name: name.trim(),
       updatedAt: new Date(),
+    }
+
+    if (name !== undefined) {
+      updateData.name = name.trim()
     }
 
     // Always update phone field - either set to value or empty string
