@@ -47,7 +47,16 @@ export default function ProfilePage() {
     }))
   }
 
+  const [nameError, setNameError] = useState("")
+
   const handleSave = async () => {
+    // Validar nombre antes de enviar
+    if (!formData.name || formData.name.trim().length === 0) {
+      setNameError("El nombre es requerido")
+      return
+    }
+    setNameError("")
+
     const success = await updateProfile({
       name: formData.name,
       phone: formData.phone,
@@ -153,10 +162,16 @@ export default function ProfilePage() {
                       id="name"
                       type="text"
                       value={formData.name}
-                      onChange={(e) => handleInputChange("name", e.target.value)}
-                      className="mt-1"
+                      onChange={(e) => {
+                        handleInputChange("name", e.target.value)
+                        if (nameError) setNameError("")
+                      }}
+                      className={`mt-1 ${nameError ? "border-red-500" : ""}`}
                       placeholder="Tu nombre completo"
                     />
+                    {nameError && (
+                      <p className="text-xs text-red-500 mt-1">{nameError}</p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="email">Email</Label>
