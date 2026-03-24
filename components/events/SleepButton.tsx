@@ -316,7 +316,7 @@ export function SleepButton({
             body: JSON.stringify({
               childId,
               eventType: sleepModalConfig.eventType,
-              startTime: dateToTimestamp(startTime, userData.timezone),
+              startTime: options?.startTime || dateToTimestamp(startTime, userData.timezone),
               sleepDelay: delay,
               emotionalState: emotionalStateValue as EmotionalState,
               notes: notesValue,
@@ -414,7 +414,16 @@ export function SleepButton({
       const eventIdToClose = openEventId || sleepState.lastEventId
 
       if (!eventIdToClose) {
-        throw new Error("No se encontró un evento de sueño abierto para cerrar")
+        console.warn("No hay evento abierto para cerrar. openEventId:", openEventId, "lastEventId:", sleepState.lastEventId)
+        toast({
+          title: "No se encontro evento de sueno activo",
+          description: "Intenta recargar la pagina o registra el despertar manualmente.",
+          variant: "destructive",
+        })
+        setOptimisticStatus(null)
+        setIsProcessing(false)
+        setNotesModalConfig(null)
+        return
       }
 
       // PATCH: Actualizar solo endTime, emotionalState y notas

@@ -55,10 +55,15 @@ export function NightFeedingButton({
           ? "during_nap"
           : "awake"
 
-      // Construir startTime y endTime
+      // startTime = hora ingresada, endTime = startTime + duracion (pecho) o ahora (otros)
       const todayDate = format(now, "yyyy-MM-dd")
       const startTimeDate = buildLocalDate(todayDate, feedingData.feedingTime)
-      const endTimeDate = now
+      let endTimeDate: Date
+      if (feedingData.feedingType === "breast" && feedingData.feedingDuration) {
+        endTimeDate = new Date(startTimeDate.getTime() + feedingData.feedingDuration * 60 * 1000)
+      } else {
+        endTimeDate = now
+      }
 
       // Crear evento de alimentacion nocturna
       // isNightFeeding=true indica que es alimentacion durante el sueno
