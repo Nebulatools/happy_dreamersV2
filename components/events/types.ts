@@ -80,6 +80,7 @@ export interface EventData {
 export interface FeedingModalData {
   feedingType: FeedingType
   feedingAmount?: number // Solo para bottle (oz/ml)
+  feedingDuration?: number // Solo para breast (minutos)
   babyState: "awake" | "asleep"
   feedingNotes: string
   feedingTime: string // Hora de inicio (HH:mm)

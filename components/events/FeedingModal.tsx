@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import {
   Dialog,
   DialogContent,
@@ -94,6 +94,8 @@ export function FeedingModal({
     return mode === "edit" && !!initialData?.endTime
   })
   const [isProcessing, setIsProcessing] = useState(false)
+  // Ref para evitar resetear feedingTime en re-renders mientras el modal esta abierto
+  const wasOpenRef = useRef(false)
 
   // Inicializar con datos cuando se abre en modo edición
   useEffect(() => {
@@ -122,10 +124,12 @@ export function FeedingModal({
         setHasEndTime(false)
       }
     }
-    // En modo create, actualizar la hora al abrir el modal
-    if (open && mode === "create") {
+    // En modo create, setear hora SOLO al abrir (no en re-renders)
+    if (open && mode === "create" && !wasOpenRef.current) {
       setFeedingTime(format(getCurrentTime(), "HH:mm"))
+      setEventDate(format(getCurrentTime(), "yyyy-MM-dd"))
     }
+    wasOpenRef.current = open
   }, [open, mode, initialData, getCurrentTime])
 
   // Tipos de alimentación disponibles con íconos oficiales y colores
@@ -231,6 +235,7 @@ export function FeedingModal({
     const data: FeedingModalData = {
       feedingType,
       feedingAmount: feedingType === "bottle" ? feedingAmount : undefined,
+      feedingDuration: feedingType === "breast" ? feedingDuration : undefined,
       babyState: normalizedBabyState,
       feedingNotes,
       // Nueva propiedad: hora de inicio (para calcular startTime en el Button)
@@ -432,10 +437,43 @@ export function FeedingModal({
 
         {/* Sección 2: Campos según tipo de alimentación */}
         <div className="space-y-4 border-t pt-4">
-          {/* PECHO: Sin campo de duración - se calcula automáticamente */}
+          {/* PECHO: Selector de duración */}
           {feedingType === "breast" && (
-            <div className="text-center py-4 text-sm text-gray-500">
-              La duración se calculará automáticamente al guardar
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-gray-700">
+                Duracion de la toma (min)
+              </div>
+              <div className="flex items-center justify-center gap-4 py-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => adjustDuration(-5)}
+                  disabled={isProcessing || feedingDuration <= 1}
+                  className="h-10 w-10 rounded-full"
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <div className="bg-pink-50 border-2 border-pink-200 rounded-xl px-6 py-3 min-w-[120px] text-center">
+                  <div className="text-2xl font-bold text-pink-600">
+                    {feedingDuration}
+                  </div>
+                  <div className="text-xs text-pink-500">minutos</div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => adjustDuration(5)}
+                  disabled={isProcessing || feedingDuration >= 60}
+                  className="h-10 w-10 rounded-full"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500 text-center">
+                Tiempo aproximado de lactancia
+              </p>
             </div>
           )}
 

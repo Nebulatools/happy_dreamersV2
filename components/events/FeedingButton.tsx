@@ -76,10 +76,15 @@ export function FeedingButton({
           ? "during_nap"
           : "awake"
 
-      // NUEVO PATRON: startTime = hora ingresada, endTime = ahora (momento de guardar)
+      // startTime = hora ingresada, endTime = startTime + duracion (pecho) o ahora (otros)
       const todayDate = format(now, "yyyy-MM-dd")
       const startTimeDate = buildLocalDate(todayDate, feedingData.feedingTime)
-      const endTimeDate = now
+      let endTimeDate: Date
+      if (feedingData.feedingType === "breast" && feedingData.feedingDuration) {
+        endTimeDate = new Date(startTimeDate.getTime() + feedingData.feedingDuration * 60 * 1000)
+      } else {
+        endTimeDate = now
+      }
 
       // Crear UN SOLO evento de alimentación con flag isNightFeeding
       const eventData: Partial<EventData> = {

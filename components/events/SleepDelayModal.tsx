@@ -129,13 +129,12 @@ export function SleepDelayModal({
       endTime?: string | null
     } = { didNotSleep }
 
-    // En modo edicion, incluir startTime y endTime editados
-    if (mode === "edit") {
-      // Construir startTime desde fecha/hora editadas (usando buildLocalDate para evitar bug UTC)
-      const startDateTime = buildLocalDate(eventDate, eventTime)
-      options.startTime = dateToTimestamp(startDateTime, timezone)
+    // Construir startTime siempre (create y edit) desde fecha/hora del modal
+    const startDateTime = buildLocalDate(eventDate, eventTime)
+    options.startTime = dateToTimestamp(startDateTime, timezone)
 
-      // Construir endTime si existe
+    // En modo edicion, incluir endTime editado
+    if (mode === "edit") {
       if (hasEndTime && endTimeValue) {
         const endDateTime = buildLocalDate(endDate, endTimeValue)
         options.endTime = dateToTimestamp(endDateTime, timezone)
@@ -198,12 +197,12 @@ export function SleepDelayModal({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Fecha y hora de inicio (cuando se durmio) - Solo visible en modo edición */}
-        {mode === "edit" && (
-          <div className="space-y-3 pb-4 border-b">
-            <div className="text-sm font-medium text-gray-700">
-              Hora de acostarse
-            </div>
+        {/* Hora de inicio - visible en create y edit */}
+        <div className="space-y-3 pb-4 border-b">
+          <div className="text-sm font-medium text-gray-700">
+            Hora de acostarse
+          </div>
+          {mode === "edit" ? (
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-2">
                 <Label htmlFor="sleep-date" className="text-xs text-gray-500">
@@ -230,8 +229,21 @@ export function SleepDelayModal({
                 />
               </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="space-y-2">
+              <Input
+                id="sleep-time-create"
+                type="time"
+                value={eventTime}
+                onChange={(e) => setEventTime(e.target.value)}
+                className="w-full text-lg text-center"
+              />
+              <p className="text-xs text-gray-500 text-center">
+                Ajusta si no fue justo ahora.
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Hora de despertar - Solo visible en modo edición */}
         {mode === "edit" && (
