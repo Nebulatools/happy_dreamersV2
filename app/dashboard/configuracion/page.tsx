@@ -45,6 +45,7 @@ export default function ConfiguracionPage() {
   const { toast } = useToast()
   const { userData, isLoading: userLoading, updateProfile, changePassword } = useUser()
   const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [nameError, setNameError] = useState("")
   const [profileData, setProfileData] = useState<UserProfile>({
     name: "",
     email: "",
@@ -78,6 +79,11 @@ export default function ConfiguracionPage() {
     : "MG"
 
   const handleSaveProfile = async () => {
+    if (!profileData.name || profileData.name.trim().length === 0) {
+      setNameError("El nombre es requerido")
+      return
+    }
+    setNameError("")
     await updateProfile({
       name: profileData.name,
       phone: profileData.phone,
@@ -174,9 +180,15 @@ export default function ConfiguracionPage() {
             <Input
               id="name"
               value={profileData.name}
-              onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-              className="mt-1"
+              onChange={(e) => {
+                setProfileData({ ...profileData, name: e.target.value })
+                if (nameError) setNameError("")
+              }}
+              className={`mt-1 ${nameError ? "border-red-500" : ""}`}
             />
+            {nameError && (
+              <p className="text-xs text-red-500 mt-1">{nameError}</p>
+            )}
           </div>
 
           <div>
