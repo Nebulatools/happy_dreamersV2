@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -149,6 +149,9 @@ export function ManualEventModal({
       if (initialData.activityImpact) {
         setActivityImpact(initialData.activityImpact as "positive" | "neutral" | "negative")
       }
+
+      // Los datos vienen del evento existente, no son edicion manual aun
+      isEndTimeManuallyEdited.current = false
     }
   }, [open, mode, initialData])
 
@@ -157,6 +160,8 @@ export function ManualEventModal({
   const [endDate, setEndDate] = useState(format(new Date(), "yyyy-MM-dd"))
   const [endTime, setEndTime] = useState(getCurrentHourRounded())
   const [includeEndTime, setIncludeEndTime] = useState<boolean>(initialEventType === "sleep") // Hora fin opcional
+  // Track si el usuario edito manualmente endTime/endDate para no sobreescribir
+  const isEndTimeManuallyEdited = useRef(false)
   const [notes, setNotes] = useState("")
   
   // Campos específicos de sueño (sleep, nap, night_waking)
@@ -363,15 +368,19 @@ export function ManualEventModal({
     setActivityDescription("")
     setActivityImpact("neutral")
     setActivityNotes("")
+
+    isEndTimeManuallyEdited.current = false
   }
   
   useEffect(() => {
     if (!open) return
+    // En modo edicion, no resetear startTime al cambiar tipo - preservar lo que el usuario edito
+    if (mode === "edit") return
     setStartTime(getDefaultStartTimeForType(eventType))
     // Cuando cambiamos de tipo de evento, resetear el selector de delay
     setSleepDelay(0)
     setDidNotSleep(false)
-  }, [eventType, open])
+  }, [eventType, open, mode])
 
   // Siempre forzar hora de fin para todos los tipos de evento en registro manual
   useEffect(() => {
@@ -380,6 +389,8 @@ export function ManualEventModal({
 
   // Effect para ajustar endTime cuando cambia el tipo de evento
   useEffect(() => {
+    // Si el usuario ya edito manualmente endTime/endDate, no sobreescribir
+    if (isEndTimeManuallyEdited.current) return
     if (hasEndTime && includeEndTime && startTime) {
       // Para eventos con fin, establecer hora de fin predeterminada
       const startDateTime = buildLocalDate(startDate, startTime)
@@ -462,7 +473,7 @@ export function ManualEventModal({
                 <Input
                   type="date"
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  onChange={(e) => { isEndTimeManuallyEdited.current = true; setEndDate(e.target.value) }}
                   max={format(new Date(), "yyyy-MM-dd")}
                   min={startDate}
                 />
@@ -472,7 +483,7 @@ export function ManualEventModal({
                 <Input
                   type="time"
                   value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
+                  onChange={(e) => { isEndTimeManuallyEdited.current = true; setEndTime(e.target.value) }}
                 />
               </div>
             </div>

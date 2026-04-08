@@ -5,7 +5,7 @@ import { Pill, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { EventData } from "./types"
-import { dateToTimestamp } from "@/lib/datetime"
+import { dateToTimestamp, buildLocalDate } from "@/lib/datetime"
 import { cn } from "@/lib/utils"
 import { useDevTime } from "@/context/dev-time-context"
 import { MedicationModal } from "./MedicationModal"
@@ -67,15 +67,19 @@ export function MedicationButton({
       setIsProcessing(true)
       
       const now = getCurrentTime()
-      
+
+      // Construir startTime desde la hora que el usuario eligio en el modal (no "ahora")
+      const medTime = medicationData.medicationTime || format(now, "HH:mm")
+      const medicationDate = buildLocalDate(format(now, "yyyy-MM-dd"), medTime)
+
       // Crear evento de medicamento con todos los datos en campos separados
       const eventData: Partial<EventData> = {
         childId,
         eventType: "medication",
-        startTime: dateToTimestamp(now, userData.timezone),
+        startTime: dateToTimestamp(medicationDate, userData.timezone),
         medicationName: medicationData.medicationName,
         medicationDose: medicationData.medicationDose,
-        medicationTime: medicationData.medicationTime || format(now, "HH:mm"), // Usar hora actual si no se especifica
+        medicationTime: medTime,
         medicationNotes: medicationData.medicationNotes,
         notes: medicationData.medicationNotes, // Mantener en notes para compatibilidad
         emotionalState: "neutral", // Por defecto neutral para medicamento

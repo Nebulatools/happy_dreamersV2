@@ -55,7 +55,24 @@ export function SleepButton({
   const [sleepModalConfig, setSleepModalConfig] = useState<{ eventType: "sleep" | "nap"; start: Date } | null>(null)
   const [notesModalConfig, setNotesModalConfig] = useState<{ action: "wake" | "night_wake"; start: Date; duration: number | null } | null>(null)
 
-  
+  // Restaurar nightWakePending desde localStorage al montar (persistencia entre navegacion/app switch)
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const key = `pending_night_wake_${childId}`
+    try {
+      const stored = localStorage.getItem(key)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (parsed?.start) {
+          setNightWakePending(parsed)
+          setOptimisticStatus("night_waking")
+        }
+      }
+    } catch {
+      localStorage.removeItem(key)
+    }
+  }, [childId])
+
   // Calcular duración localmente usando tiempo simulado
   useEffect(() => {
     if (sleepState.lastEventTime && (sleepState.status === "sleeping" || sleepState.status === "napping")) {
@@ -205,9 +222,9 @@ export function SleepButton({
   const finalizeNightWaking = async (endTime: Date) => {
     if (!nightWakePending) return
     const startDate = new Date(nightWakePending.start)
-    const awakeDelay = Math.max(
-      1,
-      Math.floor((endTime.getTime() - startDate.getTime()) / (1000 * 60))
+    const awakeDelay = Math.min(
+      180,
+      Math.max(1, Math.floor((endTime.getTime() - startDate.getTime()) / (1000 * 60)))
     )
 
     const response = await fetch("/api/children/events", {
@@ -230,6 +247,7 @@ export function SleepButton({
 
     // Solo limpiar nightWakePending, NO tocar sleepPending
     setNightWakePending(null)
+    localStorage.removeItem(`pending_night_wake_${childId}`)
   }
 
   // Manejar click del botón (abre el modal correspondiente)
@@ -261,6 +279,9 @@ export function SleepButton({
       // PERO NO crear nuevo sleepPending - el original sigue vigente
       if (nightWakePending) {
         await finalizeNightWaking(startTime)
+        // Refrescar datos para que el evento aparezca en el dashboard
+        await refetch()
+        onEventRegistered?.()
         // sleepPending se mantiene intacto con su hora original (ej: 9 PM)
         setOptimisticStatus("sleeping")
         toast({
@@ -387,12 +408,15 @@ export function SleepButton({
       try {
         const eventTime = resolveEventTime()
         // Crear nightWakePending separado - sleepPending se mantiene intacto
-        setNightWakePending({
-          type: "night_waking",
+        const nightWakeData = {
+          type: "night_waking" as const,
           start: dateToTimestamp(eventTime, userData.timezone),
           emotionalState: emotionalStateValue as EmotionalState,
           notes: notesValue,
-        })
+        }
+        setNightWakePending(nightWakeData)
+        // Persistir en localStorage para sobrevivir navegacion y app switch
+        localStorage.setItem(`pending_night_wake_${childId}`, JSON.stringify(nightWakeData))
         setOptimisticStatus("night_waking")
         toast({
           title: "Despertar nocturno",
@@ -455,6 +479,7 @@ export function SleepButton({
       setOpenEventId(null)
       setOpenEventType(null)
       setNightWakePending(null)
+      localStorage.removeItem(`pending_night_wake_${childId}`)
       setOptimisticStatus("awake")
 
       // Sincronización inmediata
