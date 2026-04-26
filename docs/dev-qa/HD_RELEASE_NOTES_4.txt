@@ -1,0 +1,702 @@
+===============================================================
+  HAPPY DREAMERS - NOTAS DE VERSION
+  Fecha: 19 de marzo de 2026
+  Version: Sprint 6
+===============================================================
+
+
+A continuacion se describen todos los cambios incluidos en
+esta version, organizados por tipo de usuario.
+
+
+---------------------------------------------------------------
+CAMBIOS PARA PADRES / USUARIOS
+---------------------------------------------------------------
+
+
+1. PLAN DE SUENO COMPLETO EN EL DASHBOARD
+.............................................................
+
+   Ruta: /dashboard
+   Navegacion: Menu lateral > Dashboard (pagina principal)
+
+   El dashboard del padre ahora muestra el plan de sueno
+   completo del nino en lugar de solo un resumen con 3
+   objetivos. Se puede ver la linea de tiempo del dia,
+   los horarios detallados, objetivos y recomendaciones
+   directamente desde la pantalla principal.
+
+   Si el nino no tiene un plan activo, se muestra un
+   mensaje indicandolo. Tambien se muestran estados de
+   carga y error de forma clara.
+
+   Como validar:
+   a) Iniciar sesion como padre/usuario
+   b) Ir al Dashboard (pagina principal)
+   c) Si el nino tiene un plan activo, verificar que se
+      muestra la linea de tiempo completa del dia con
+      horarios de sueno, siestas, comidas y actividades
+   d) Verificar que se ven los objetivos y recomendaciones
+   e) Si no hay plan activo, verificar que se muestra un
+      mensaje informativo (no un error)
+   f) Seleccionar otro nino y verificar que el plan se
+      actualiza correctamente
+
+
+2. CORRECCION DE ZONA HORARIA (CRITICO)
+.............................................................
+
+   Ruta: /dashboard/configuracion
+   Navegacion: Menu lateral > Configuracion > Zona horaria
+
+   Antes, los usuarios fuera de Mexico (por ejemplo en
+   British Columbia o Miami) veian los eventos registrados
+   con una hora de diferencia. Esto ocurria porque el
+   sistema solo soportaba zonas horarias de Mexico.
+
+   Ahora el sistema soporta zonas horarias de:
+   - Mexico (todas las zonas)
+   - Estados Unidos (todas las zonas)
+   - Canada (todas las zonas)
+   - Latinoamerica
+   - Europa
+
+   La deteccion automatica del navegador ahora acepta
+   cualquier zona horaria IANA valida. El dropdown de
+   configuracion se genera desde una sola fuente de verdad,
+   evitando inconsistencias.
+
+   Como validar:
+   a) Iniciar sesion como padre/usuario
+   b) Ir a Configuracion > Zona horaria
+   c) Verificar que el dropdown muestra zonas horarias
+      de varios paises (no solo Mexico)
+   d) Seleccionar una zona diferente (ej: America/Vancouver)
+   e) Registrar un evento y verificar que la hora es correcta
+   f) Verificar que la deteccion automatica del navegador
+      funciona correctamente
+
+
+3. BOTON "REGISTRAR EVENTO" SIEMPRE VISIBLE
+.............................................................
+
+   Ruta: /dashboard
+   Navegacion: Dashboard > Botones de registro de eventos
+
+   Antes, cuando el bebe estaba durmiendo, el boton
+   "Registrar Evento" (registro manual) desaparecia por
+   completo. Los padres no podian registrar eventos
+   retroactivos durante la noche (como una alimentacion o
+   un medicamento que dieron mientras el bebe dormia).
+
+   Ahora el boton esta siempre visible, independientemente
+   de si el bebe esta despierto o dormido. Permite
+   registrar cualquier tipo de evento en cualquier momento.
+
+   Como validar:
+   a) Iniciar sesion como padre/usuario
+   b) Registrar que el bebe se durmio (boton "SE DURMIO")
+   c) Una vez que el bebe esta "durmiendo" en la app,
+      verificar que el boton "Registrar Evento" sigue visible
+   d) Hacer clic en el boton y verificar que se pueden
+      registrar eventos de alimentacion, medicamentos, etc.
+
+
+4. HORA AJUSTABLE AL DESPERTAR + DURACION DE SUENO
+.............................................................
+
+   Ruta: /dashboard
+   Navegacion: Dashboard > Boton "SE DESPERTO" o
+   "DESPERTAR NOCTURNO"
+
+   Antes, al presionar "SE DESPERTO" o registrar un
+   despertar nocturno, el evento se guardaba con la hora
+   exacta del clic. No habia forma de ajustar la hora.
+
+   Problema comun: el papa esta calmando al bebe y no puede
+   sacar el celular. Cuando finalmente registra el despertar,
+   ya pasaron 10-20 minutos.
+
+   Ahora el modal de despertar incluye:
+   - Un campo de hora editable (prellenado con la hora actual)
+   - Un banner que muestra cuanto tiempo lleva durmiendo el
+     bebe (ej: "Durmiendo hace 2h 15m")
+
+   Si el papa no modifica la hora, funciona exactamente igual
+   que antes. Si necesita ajustar, simplemente cambia la hora.
+
+   Como validar:
+   a) Iniciar sesion como padre/usuario
+   b) Registrar que el bebe se durmio
+   c) Presionar "SE DESPERTO"
+   d) Verificar que el modal muestra un campo de hora editable
+   e) Verificar que aparece un banner con el tiempo dormido
+   f) Cambiar la hora hacia atras y confirmar
+   g) Verificar que el evento se registro con la hora ajustada
+   h) Repetir con "DESPERTAR NOCTURNO" - mismo comportamiento
+
+
+5. SELECTOR DE TEMPERATURA EN ENCUESTA: CELSIUS O FAHRENHEIT
+.............................................................
+
+   Ruta: /dashboard/survey
+   Navegacion: Menu lateral > Cuestionario de Sueno > Seccion
+   de Entorno de Sueno
+
+   En la pregunta sobre la temperatura de la habitacion, ahora
+   se puede elegir entre Celsius (C) y Fahrenheit (F). Al
+   cambiar de unidad, el valor se convierte automaticamente.
+
+   Si se selecciona Fahrenheit, el campo de ejemplo cambia a
+   "Ej: 72" y el rango valido se ajusta a 50-104 F.
+
+   El sistema siempre almacena internamente en Celsius para
+   mantener consistencia, pero guarda la unidad original para
+   referencia.
+
+   Como validar:
+   a) Iniciar sesion como padre/usuario
+   b) Ir al cuestionario del nino
+   c) Navegar a la seccion de entorno de sueno
+   d) Buscar la pregunta sobre temperatura de la habitacion
+   e) Verificar que hay un selector C / F junto al campo
+   f) Ingresar un valor en Celsius (ej: 22)
+   g) Cambiar a Fahrenheit y verificar que el valor se
+      convierte automaticamente (ej: 71.6)
+   h) Guardar y verificar que los datos persisten
+
+
+---------------------------------------------------------------
+CAMBIOS PARA ADMINISTRADORES
+---------------------------------------------------------------
+
+
+6. NUEVO PATIENT HUB: TODA LA INFORMACION EN UN SOLO LUGAR
+.............................................................
+
+   Ruta: /dashboard/patients/child/[id]
+   Navegacion: Pacientes > Seleccionar un nino
+
+   Se creo una nueva vista centralizada para cada paciente
+   con 6 tabs que agrupan toda la informacion:
+
+   - Resumen: Metricas de sueno, tarjeta de resumen clinico
+     con datos medicos, rutina y plan actual (acordeon)
+   - Diagnostico: Panel de validacion con 4 grupos (G1-G4)
+     y analisis del Pasante AI
+   - Bitacora: Calendario de eventos con vista de analisis
+     multi-dia y banner de plan activo
+   - Consultas: Wizard de 4 pasos (Transcript, Analisis,
+     Plan, Historial)
+   - Encuesta: Respuestas del cuestionario organizadas
+   - Documentos: Gestion de documentos RAG
+
+   El header muestra una flecha de regreso a "Pacientes",
+   el nombre del nino y su edad.
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Ir a Pacientes y seleccionar un nino
+   c) Verificar que se ven los 6 tabs
+   d) Recorrer cada tab y verificar que carga correctamente
+   e) Verificar que el header muestra nombre y edad del nino
+   f) Hacer clic en la flecha de regreso y verificar que
+      vuelve a la lista de pacientes
+
+
+7. DASHBOARD RENOVADO CON METRICAS REALES
+.............................................................
+
+   Ruta: /dashboard
+   Navegacion: Menu lateral > Dashboard (sesion admin)
+
+   El dashboard del administrador fue rediseñado con datos
+   reales:
+
+   - Total de Pacientes: muestra conteo real. Al hacer clic,
+     un popover muestra el desglose (activos, inactivos,
+     archivados)
+   - Pacientes Activos: conteo real
+   - Alertas Clinicas: contadores de alertas criticas (rojo)
+     y advertencias (amarillo)
+   - Nuevos del Mes: conteo real de usuarios y ninos creados
+     en los ultimos 30 dias. Al hacer clic, muestra los
+     nombres, emails y fechas de registro
+
+   Debajo de las metricas hay tabs:
+   - "Todos los Pacientes": lista de ninos ordenada A-Z
+   - "Actividad Reciente": ninos con eventos en las ultimas
+     48 horas
+
+   Al hacer clic en un nino de la lista, navega directamente
+   a su Patient Hub.
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Verificar que las tarjetas de metricas muestran numeros
+      reales (no 0 ni datos falsos)
+   c) Hacer clic en "Total de Pacientes" y verificar el
+      desglose en popover
+   d) Hacer clic en "Nuevos del Mes" y verificar los nombres
+   e) Verificar que la lista esta ordenada A-Z
+   f) Hacer clic en un nino y verificar que navega a su
+      Patient Hub
+
+
+8. SISTEMA DE ESTADOS DE PACIENTES
+.............................................................
+
+   Ruta: /dashboard/patients
+   Navegacion: Menu lateral > Pacientes
+
+   La lista de pacientes ahora tiene 4 tabs de estado:
+
+   - Activos: pacientes con plan activo o eventos recientes
+     (ultimos 30 dias), o creados hace menos de 14 dias
+   - Inactivos: pacientes sin plan y sin actividad en los
+     ultimos 30 dias
+   - Archivados: pacientes archivados manualmente por el
+     administrador
+   - Todos: todos los pacientes sin filtrar
+
+   Cada tab muestra un conteo entre parentesis. Los estados
+   se calculan automaticamente basados en la actividad real
+   del paciente, no se guardan manualmente en la base de datos.
+
+   Los pacientes inactivos y archivados se muestran con
+   opacidad reducida y badges de estado.
+
+   Las listas estan ordenadas alfabeticamente A-Z por
+   apellido.
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Ir a Pacientes
+   c) Verificar que aparecen los 4 tabs con conteos
+   d) Verificar que "Activos" esta seleccionado por defecto
+   e) Cambiar entre tabs y verificar que las listas cambian
+   f) Verificar que las familias estan ordenadas A-Z
+   g) Verificar que los badges de estado son correctos
+
+
+9. ARCHIVAR Y RESTAURAR PACIENTES
+.............................................................
+
+   Ruta: /dashboard/patients
+   Navegacion: Menu lateral > Pacientes
+
+   Ahora se pueden archivar pacientes que ya no estan en
+   tratamiento activo para mantener la lista limpia.
+
+   Para archivar:
+   - En la tarjeta de un nino, hacer clic en el icono de
+     archivo (caja). Aparece un dialogo de confirmacion.
+   - Al confirmar, el nino se mueve al tab "Archivados".
+
+   Para restaurar:
+   - En el tab "Archivados", hacer clic en el icono de
+     restaurar (deshacer) en la tarjeta del nino.
+   - Al confirmar, el nino vuelve al tab "Activos".
+
+   Auto-reactivacion: Si un padre registra un evento para
+   un nino archivado, el sistema lo reactiva automaticamente
+   y vuelve a aparecer en "Activos".
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Ir a Pacientes > tab "Activos"
+   c) Archivar un nino (icono de caja en su tarjeta)
+   d) Confirmar en el dialogo
+   e) Verificar que desaparece de "Activos"
+   f) Ir al tab "Archivados" y verificar que aparece ahi
+   g) Restaurarlo (icono de deshacer)
+   h) Verificar que vuelve a "Activos"
+   i) (Opcional) Para probar auto-reactivacion: archivar un
+      nino, luego iniciar sesion como padre y registrar un
+      evento para ese nino. Volver como admin y verificar
+      que vuelve a "Activos" automaticamente
+
+
+10. BUSQUEDA GLOBAL DE PACIENTES
+.............................................................
+
+   Ruta: Cualquier pagina del dashboard admin
+   Navegacion: Icono de lupa en el header superior
+
+   Se agrego un buscador global accesible desde cualquier
+   pagina. Al hacer clic en el icono de lupa del header,
+   se abre un campo de busqueda.
+
+   Los resultados muestran nombres de ninos. Al seleccionar
+   uno, navega directamente a su Patient Hub.
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Hacer clic en el icono de lupa del header
+   c) Escribir el nombre de un nino existente
+   d) Verificar que aparecen resultados
+   e) Seleccionar un resultado y verificar que navega al
+      Patient Hub del nino
+   f) Buscar algo que no existe y verificar que no hay error
+
+
+11. SIDEBAR SIMPLIFICADO
+.............................................................
+
+   Ruta: Cualquier pagina del dashboard admin
+   Navegacion: Panel lateral izquierdo
+
+   El menu lateral se simplifico. Ahora incluye:
+   - Dashboard
+   - Pacientes
+   - Consultas
+   - Diagnosticos
+   - Asistente
+   - Calendario
+   - Reportes
+
+   Se removieron las opciones "Ayuda" y "Contacto".
+   "Configuracion" ahora esta ubicado al fondo del sidebar,
+   separado del resto de las opciones.
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Observar el sidebar izquierdo
+   c) Verificar que las opciones listadas arriba estan
+      presentes
+   d) Verificar que NO aparecen "Ayuda" ni "Contacto"
+   e) Verificar que "Configuracion" esta al fondo del sidebar
+
+
+12. WIZARD DE CONSULTAS REORDENADO
+.............................................................
+
+   Ruta: /dashboard/patients/child/[id] > tab Consultas
+   Navegacion: Patient Hub > Consultas
+
+   Los sub-tabs del wizard de consultas ahora siguen un
+   flujo logico guiado:
+
+   1. Transcript (ingresar notas de la consulta)
+   2. Analisis (resultado del analisis AI)
+   3. Plan (plan de sueno generado)
+   4. Historial (versiones anteriores)
+
+   Despues de generar un analisis, aparece un boton
+   "Siguiente paso: Ir al Plan" que guia al administrador
+   al siguiente paso del flujo.
+
+   Ademas, el analisis ya no muestra informacion tecnica
+   (IDs, tiempos de procesamiento, subtitulos RAG). Solo
+   muestra la informacion clinica relevante.
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Ir al Patient Hub de un nino > tab Consultas
+   c) Verificar que los tabs estan en orden: Transcript,
+      Analisis, Plan, Historial
+   d) Ingresar un texto de consulta en Transcript
+   e) Generar analisis y verificar que no aparece
+      informacion tecnica (IDs, milisegundos, RAG)
+   f) Verificar que aparece el boton "Ir al Plan"
+   g) Hacer clic y verificar que navega al tab Plan
+
+
+13. PLANES DE ALIMENTACION CON GRUPOS ALIMENTICIOS
+.............................................................
+
+   Ruta: /dashboard/patients/child/[id] > tab Consultas > Plan
+   Navegacion: Patient Hub > Consultas > Plan
+
+   Los planes de sueno generados por la inteligencia
+   artificial ahora describen las comidas usando combinaciones
+   de grupos alimenticios en lugar de alimentos especificos.
+
+   Ejemplos:
+   - "Proteina + cereal + fruta" en lugar de "Avena con
+     platano y canela"
+   - "Proteina + verdura + cereal" en lugar de "Pure de
+     pollo con verduras"
+   - "Fruta + lacteo" en lugar de "Fruta picada con yogur"
+
+   Este cambio responde a que la especialista no es
+   nutriologa, por lo que no corresponde recomendar
+   alimentos especificos.
+
+   Ademas, los horarios de comidas ahora estan restringidos
+   al rango 06:00-21:00 para evitar sugerencias irreales.
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Ir al Patient Hub de un nino > Consultas > Plan
+   c) Generar un nuevo plan de sueno
+   d) Verificar que las descripciones de comidas usan grupos
+      alimenticios (Proteina, Cereal, Verdura, Fruta, Lacteo)
+   e) Verificar que NO dice alimentos especificos ni textos
+      genericos como "Desayuno nutritivo"
+
+
+14. RESTRICCIONES DE HORARIO POR EDAD EN PLANES
+.............................................................
+
+   Ruta: /dashboard/patients/child/[id] > tab Consultas > Plan
+   Navegacion: Patient Hub > Consultas > Plan
+
+   Los planes generados por la IA ahora respetan restricciones
+   de horario basadas en la edad del nino:
+
+   - Hora de dormir: entre 19:00 y 22:00
+   - Hora de despertar: entre 06:00 y 08:30
+   - Siestas: entre 09:00 y 17:00
+
+   Si la IA genera un horario fuera de estos rangos, el
+   sistema lo corrige automaticamente. Esto previene planes
+   con horarios irreales (como proponer que el bebe se
+   duerma a las 2 AM).
+
+   Las restricciones se aplican a los 4 tipos de plan:
+   inicial, basado en eventos, refinamiento por transcript
+   y plan de respaldo.
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Generar planes para ninos de diferentes edades
+   c) Verificar que la hora de dormir esta entre 19:00-22:00
+   d) Verificar que la hora de despertar esta entre 06:00-08:30
+   e) Verificar que las siestas estan entre 09:00-17:00
+
+
+15. MULTIPLES REFINAMIENTOS POR ETAPA DE PLAN
+.............................................................
+
+   Ruta: /dashboard/patients/child/[id] > tab Consultas > Plan
+   Navegacion: Patient Hub > Consultas > Plan
+
+   Antes, solo se podia generar un refinamiento (version X.1)
+   por cada etapa del plan. Esto no permitia hacer retroalimen-
+   tacion diaria dentro de la misma etapa de entrenamiento.
+
+   Ahora se pueden generar multiples refinamientos por etapa:
+   1.1, 1.2, 1.3, etc. Cada refinamiento se numera secuencial-
+   mente a partir del ultimo existente.
+
+   Ademas, se restauro el boton "Refinamiento por Transcript"
+   que habia desaparecido accidentalmente. Antes solo aparecia
+   "Plan de Progresion" despues de analizar un transcript;
+   ahora aparecen ambos botones cuando corresponde.
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Ir al Patient Hub de un nino con plan activo
+   c) Generar un refinamiento (version X.1)
+   d) Verificar que se puede generar otro refinamiento (X.2)
+   e) Verificar que el boton "Refinamiento por Transcript"
+      aparece despues de analizar un transcript
+
+
+16. PASANTE AI CON HISTORIAL PERSISTENTE
+.............................................................
+
+   Ruta: /dashboard/patients/child/[id] > tab Diagnostico
+   Navegacion: Patient Hub > Diagnostico > Pasante AI
+
+   El Pasante AI ahora guarda un historial de todos los
+   analisis generados para cada nino. Los analisis anteriores
+   se muestran en un acordeon colapsable debajo del analisis
+   actual.
+
+   Cada entrada del historial muestra:
+   - Fecha relativa (ej: "hace 3 dias")
+   - Contexto del analisis (que datos tenia disponibles)
+   - El contenido completo del analisis
+
+   El Pasante AI ya no usa el titulo "Dra. Mariana" y en su
+   lugar usa "Mariana" o "Especialista".
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Ir al Patient Hub de un nino > tab Diagnostico
+   c) Generar un analisis del Pasante AI
+   d) Verificar que aparece el resultado con datos reales
+   e) Generar otro analisis (boton "Regenerar")
+   f) Verificar que el analisis anterior aparece en el
+      historial debajo como "Analisis anteriores (N)"
+   g) Expandir el historial y verificar fechas y contexto
+
+
+17. MEJORAS EN EL PANEL DE DIAGNOSTICO
+.............................................................
+
+   Ruta: /dashboard/patients/child/[id] > tab Diagnostico
+   Navegacion: Patient Hub > Diagnostico
+
+   Se realizaron varias mejoras al panel de diagnostico:
+
+   a) G2 (Medico): Si el nino NO tiene encuesta completada,
+      los indicadores medicos ya no aparecen como "pendiente"
+      con porcentajes confusos. Solo se muestran indicadores
+      que tienen datos reales.
+
+   b) G4 (Ambiental): Cuando el nino comparte habitacion, el
+      diagnostico ahora muestra con quien la comparte (dato
+      del cuestionario), en lugar del generico "comparte
+      cuarto con alguien".
+
+   c) Se agrego un nuevo indicador en G2: alergias de los
+      padres como factor de riesgo hereditario de apnea.
+      Antes solo se consideraba el reflujo.
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Ir al diagnostico de un nino SIN encuesta completada
+   c) Verificar que G2 no muestra indicadores "pendiente"
+   d) Ir al diagnostico de un nino que comparte cuarto
+   e) Verificar que G4 dice con quien comparte (no generico)
+   f) Verificar que G2 incluye alergias de padres si aplica
+
+
+18. VISTA DE ANALISIS MULTI-DIA EN BITACORA
+.............................................................
+
+   Ruta: /dashboard/patients/child/[id] > tab Bitacora
+   Navegacion: Patient Hub > Bitacora
+
+   Se agrego una vista de "Analisis" en la bitacora que
+   muestra varios dias lado a lado con un desglose por
+   columnas. Cada dia muestra:
+
+   - Siestas
+   - Alimentaciones
+   - Medicamentos
+   - Actividades
+   - Despertares nocturnos
+   - Resumen diario
+
+   Ademas, si el nino tiene un plan activo, se muestra un
+   banner colapsable arriba del calendario con los horarios
+   del plan (hora de dormir, hora de despertar, siestas).
+   Al expandirlo se ven mas detalles y un enlace al plan
+   completo.
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Ir al Patient Hub de un nino con eventos > tab Bitacora
+   c) Buscar la vista de "Analisis" con multiples dias
+   d) Verificar que muestra el desglose por categoria
+   e) Si hay plan activo, verificar que aparece el banner
+      con horarios del plan
+   f) Expandir el banner y verificar los detalles
+
+
+19. TARJETA DE RESUMEN CLINICO
+.............................................................
+
+   Ruta: /dashboard/patients/child/[id] > tab Resumen
+   Navegacion: Patient Hub > Resumen
+
+   Se agrego una tarjeta de resumen clinico en formato de
+   acordeon en el tab Resumen del Patient Hub. Incluye tres
+   secciones:
+
+   - Datos medicos: informacion del cuestionario
+   - Rutina: rutina actual del nino
+   - Plan actual: resumen del plan activo
+
+   La informacion se obtiene automaticamente del cuestionario
+   y del plan activo del nino.
+
+   Como validar:
+   a) Iniciar sesion como administrador
+   b) Ir al Patient Hub de un nino > tab Resumen
+   c) Verificar que la tarjeta de resumen clinico aparece
+   d) Expandir cada seccion (Datos medicos, Rutina, Plan)
+   e) Verificar que la informacion es correcta
+
+
+---------------------------------------------------------------
+MEJORAS TECNICAS (NO VISIBLES PARA EL USUARIO)
+---------------------------------------------------------------
+
+20. OPTIMIZACION DE CONEXION A BASE DE DATOS
+.............................................................
+
+   Se optimizo la configuracion del pool de conexiones de
+   MongoDB para el plan gratuito de Atlas (M0). Esto reduce
+   errores de conexion cuando la aplicacion tiene periodos
+   de inactividad. Tambien se agrego un endpoint de health
+   check para monitoreo.
+
+
+21. REDUCCION DE RUIDO EN LOGS Y MONITOREO
+.............................................................
+
+   Se redujo el ruido en los logs y en Sentry:
+   - Respuestas vacias de ninos se bajaron de "warning" a
+     "debug" (es un estado normal, no un error)
+   - Se suprimieron los logs de 404 de __webpack_hmr que
+     aparecian constantemente en desarrollo
+   - Se limpio informacion sensible de los logs del
+     diagnostico
+
+
+22. CORRECCION DE LOOPS INFINITOS EN LISTA DE PACIENTES
+.............................................................
+
+   Se corrigio un bug donde la lista de pacientes entraba
+   en un ciclo infinito de re-renderizado. Dos efectos de
+   React se activaban mutuamente en un bucle al manejar
+   la seleccion de pacientes. Se consolido la logica en
+   un solo efecto.
+
+
+23. SINCRONIZACION DE CONTEXTO CON URL
+.............................................................
+
+   Cuando el administrador navegaba directamente entre
+   pacientes usando la URL, el contexto global del nino
+   seleccionado se quedaba con los datos del paciente
+   anterior. Ahora el contexto se sincroniza automaticamente
+   con el ID del nino en la URL.
+
+
+24. CRON AJUSTADO PARA VERCEL HOBBY
+.............................................................
+
+   El cron job (tarea programada) se ajusto de cada hora a
+   una vez al dia para cumplir con los limites del plan
+   Hobby de Vercel. Esto aplica al procesamiento automatico
+   de transcripciones de Zoom.
+
+
+---------------------------------------------------------------
+NOTAS GENERALES
+---------------------------------------------------------------
+
+- Esta version incluye una reorganizacion mayor del flujo
+  de trabajo del administrador. El nuevo Patient Hub
+  centraliza toda la informacion de un paciente en 6 tabs,
+  eliminando la necesidad de navegar entre multiples
+  secciones.
+
+- El sistema de estados de pacientes (Activos, Inactivos,
+  Archivados) es automatico: se calcula en base a la
+  actividad real, no requiere gestion manual (excepto
+  archivar/restaurar explicitamente).
+
+- Los planes de sueno ahora son mas seguros: respetan
+  restricciones de horario por edad y usan grupos
+  alimenticios en vez de sugerir alimentos especificos.
+
+- Los 3 bugs criticos reportados por usuarios en British
+  Columbia y Miami (timezone, boton nocturno, hora de
+  despertar) fueron resueltos.
+
+- El selector de temperatura C/F en la encuesta es el unico
+  cambio nuevo para padres en la seccion de encuesta. Los
+  demas cambios de la encuesta del Sprint 5 siguen vigentes.
+
+- Todas las pantallas y mensajes estan en espanol.
+
+===============================================================
+  Fin de las notas de version
+===============================================================
