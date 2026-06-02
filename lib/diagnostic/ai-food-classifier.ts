@@ -12,10 +12,13 @@ const FOOD_CLASSIFIER_SYSTEM_PROMPT = `Eres un asistente especializado en nutric
 Tu tarea es clasificar alimentos en grupos nutricionales.
 
 Los grupos nutricionales validos son:
-- proteina: carnes, pollo, pescado, huevo, legumbres, tofu
+- proteina: carnes, pollo, pescado, huevo, tofu, legumbres (frijoles/lentejas/garbanzos)
 - carbohidrato: arroz, pasta, pan, avena, cereales, papa, tortilla
 - grasa: aguacate, aceite, mantequilla, queso, nueces
-- fibra: frutas, verduras, vegetales, legumbres
+- fibra: frutas, verduras, vegetales
+
+NOTA ESPECIAL: Las legumbres (frijoles, lentejas, garbanzos, habas) clasifican
+SIEMPRE en ["proteina", "fibra"] de forma simultanea, porque aportan ambos grupos.
 
 REGLAS:
 1. Analiza el texto de entrada que describe una comida
@@ -29,6 +32,7 @@ REGLAS:
 EJEMPLOS:
 - "pollo con arroz y brocoli" -> {"groups": ["proteina", "carbohidrato", "fibra"], "confidence": 0.95}
 - "pure de manzana" -> {"groups": ["fibra"], "confidence": 0.90}
+- "sopa de lentejas" -> {"groups": ["proteina", "fibra"], "confidence": 0.90}
 - "leche materna" -> {"groups": [], "confidence": 0.80}
 - "huevo revuelto con aguacate" -> {"groups": ["proteina", "grasa"], "confidence": 0.95}
 - "texto incomprensible" -> {"groups": [], "confidence": 0}

@@ -277,6 +277,49 @@ export async function PUT(
       childId: existingPlan.childId,
     })
 
+    // M16: calcular el delta entre la sugerencia ORIGINAL de la IA y la edicion
+    // de Mariana. Es la informacion mas valiosa para el feedback loop: en que se
+    // equivoca la IA respecto al criterio de Mariana. Solo se calcula si el plan
+    // tiene snapshot de aiSuggestion (planes generados tras la Fase 3).
+    const aiSchedule = existingPlan.aiSuggestion?.schedule
+    let marianaDelta: any = existingPlan.marianaDelta ?? null
+    if (aiSchedule && schedule) {
+      const parseTime = (t?: string): number | null => {
+        if (!t || typeof t !== "string" || !t.includes(":")) return null
+        const [h, m] = t.split(":").map(Number)
+        return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null
+      }
+      const fields: Record<string, { ai: any; mariana: any; diffMinutes?: number }> = {}
+      for (const key of ["bedtime", "wakeTime"] as const) {
+        if (aiSchedule[key] !== schedule[key]) {
+          const aiMin = parseTime(aiSchedule[key])
+          const mMin = parseTime(schedule[key])
+          fields[key] = {
+            ai: aiSchedule[key],
+            mariana: schedule[key],
+            ...(aiMin !== null && mMin !== null ? { diffMinutes: mMin - aiMin } : {}),
+          }
+        }
+      }
+      const aiNaps = aiSchedule.naps?.length || 0
+      const mNaps = schedule.naps?.length || 0
+      if (aiNaps !== mNaps) {
+        fields.naps = { ai: aiNaps, mariana: mNaps }
+      }
+      const summary = Object.entries(fields)
+        .map(([k, v]) =>
+          v.diffMinutes !== undefined
+            ? `${k}: ${v.diffMinutes > 0 ? "+" : ""}${v.diffMinutes}min`
+            : `${k}: ${v.ai} → ${v.mariana}`
+        )
+        .join(", ")
+      marianaDelta = {
+        summary: summary || "sin cambios de horario",
+        fields,
+        reviewedAt: new Date(),
+      }
+    }
+
     // Actualizar el plan existente
     const updateResult = await plansCollection.updateOne(
       { _id: new ObjectId(planId) },
@@ -286,6 +329,7 @@ export async function PUT(
           objectives,
           recommendations,
           sleepRoutine: sleepRoutine || null,
+          marianaDelta,
           updatedAt: new Date(),
           updatedBy: new ObjectId(session.user.id),
         },

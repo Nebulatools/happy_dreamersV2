@@ -727,6 +727,30 @@ export interface ChildPlan {
     basePlanVersion: string      // Plan base que se refinó (ej: "1", "2")
   }
   
+  // M13: Chain of reasoning entre versiones de plan. Documenta por qué se
+  // hicieron los cambios; se reinyecta al siguiente Plan N para continuidad.
+  reasoning?: {
+    changesFromPrevious?: string[]
+    justification?: string
+    toleranceObserved?: "good" | "partial" | "poor" | string
+    nextStepSuggestion?: string
+  } | null
+
+  // M16: Feedback loop Mariana → IA. Captura la sugerencia original de la IA y
+  // el delta tras la edición de Mariana, para aprender de las correcciones.
+  aiSuggestion?: {
+    schedule?: ChildPlan["schedule"]
+    objectives?: string[]
+    recommendations?: string[]
+    promptVersion?: string        // versión del prompt usado al generar
+    capturedAt?: Date
+  } | null
+  marianaDelta?: {
+    summary?: string              // ej: "bedtime: +30min, napTime: removed"
+    fields?: Record<string, { ai: any; mariana: any; diffMinutes?: number }>
+    reviewedAt?: Date
+  } | null
+
   // Información de auditoría
   createdAt: Date
   updatedAt: Date
