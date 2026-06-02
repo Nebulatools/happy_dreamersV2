@@ -19,6 +19,35 @@ import { MARIANA_IDENTITY } from "@/lib/ai-prompts/personas"
 
 const logger = createLogger("RAGChatAPI")
 
+// (M5 del Plan Maestro reconciliado) Sintesis unificada.
+// Antes habia dos prompts de sintesis casi identicos (uno con contexto
+// estructurado por campos, otro con el output combinado de agentes). Se fusionan
+// aqui: un solo conjunto de instrucciones base y un builder con el tipo de contexto.
+const SYNTHESIS_BASE_INSTRUCTIONS = `- Responde de forma profesional y empática
+- Máximo 3 párrafos, sé conciso y directo
+- Si no tienes información específica, dilo claramente
+- Enfócate en responder exactamente lo que se preguntó`
+
+function buildSynthesisPrompt(params: {
+  question: string
+  conversationContext: string
+  contextLabel: string
+  contextBody: string
+  extraInstructions?: string
+}): string {
+  const { question, conversationContext, contextLabel, contextBody, extraInstructions } = params
+  return `${MARIANA_IDENTITY}
+
+PREGUNTA DEL USUARIO: "${question}"
+${conversationContext}
+
+${contextLabel}:
+${contextBody}
+
+INSTRUCCIONES:
+${extraInstructions ? `${extraInstructions}\n` : ""}${SYNTHESIS_BASE_INSTRUCTIONS}`
+}
+
 // 🎛️ CONFIGURACIÓN DE LOGGING PROFESIONAL
 const IS_PRODUCTION = process.env.NODE_ENV === "production"
 const DEBUG_ENABLED = process.env.DEBUG_RAG === "true"
@@ -438,13 +467,11 @@ const superComprehensiveAgent = async (
     maxTokens: 1000,
   })
   
-  const synthesisPrompt = `${MARIANA_IDENTITY}
-
-PREGUNTA DEL USUARIO: "${question}"
-${conversationContext}
-
-INFORMACIÓN DISPONIBLE:
-
+  const synthesisPrompt = buildSynthesisPrompt({
+    question,
+    conversationContext,
+    contextLabel: "INFORMACIÓN DISPONIBLE",
+    contextBody: `
 📊 ESTADÍSTICAS DEL NIÑO (${period}):
 ${statistics}
 
@@ -455,17 +482,13 @@ ${currentPlan}
 ${plansHistory}
 
 📚 CONOCIMIENTO MÉDICO:
-${ragResults}
-
-INSTRUCCIONES:
-- Responde de forma profesional y empática
-- USA SOLO la información relevante para la pregunta específica
+${ragResults}`,
+    extraInstructions: `- USA SOLO la información relevante para la pregunta específica
 - Si pregunta sobre estadísticas, enfócate en los datos pero contextualiza con el plan
 - Si pregunta sobre el plan, enfócate en el plan pero relaciona con estadísticas si es útil
 - Si es pregunta general ("¿cómo está?"), combina todo lo relevante
-- Compara con planes anteriores cuando sea útil para mostrar progreso
-- Máximo 3 párrafos, sé conciso y directo
-- Si no tienes información específica, dilo claramente`
+- Compara con planes anteriores cuando sea útil para mostrar progreso`,
+  })
 
   const response = await llm.invoke([
     new SystemMessage(synthesisPrompt),
@@ -852,22 +875,15 @@ const intelligentOrchestrator = async (
   
   const combinedInformation = agentResults.join("\n\n")
   
-  const synthesisPrompt = `${MARIANA_IDENTITY}
-
-PREGUNTA DEL USUARIO: "${question}"
-${conversationContext}
-
-INFORMACIÓN RECOPILADA POR AGENTES ESPECIALIZADOS:
-${combinedInformation}
-
-INSTRUCCIONES:
-- Responde de forma profesional y empática
-- Usa TODA la información relevante proporcionada por los agentes
+  const synthesisPrompt = buildSynthesisPrompt({
+    question,
+    conversationContext,
+    contextLabel: "INFORMACIÓN RECOPILADA POR AGENTES ESPECIALIZADOS",
+    contextBody: combinedInformation,
+    extraInstructions: `- Usa TODA la información relevante proporcionada por los agentes
 - Integra los datos de manera coherente para dar una respuesta completa
-- Si hay múltiples fuentes, combínalas inteligentemente
-- Máximo 3 párrafos, sé conciso y directo
-- Si no tienes información específica, dilo claramente
-- Enfócate en responder exactamente lo que se preguntó`
+- Si hay múltiples fuentes, combínalas inteligentemente`,
+  })
 
   const response = await llm.invoke([
     new SystemMessage(synthesisPrompt),

@@ -1864,9 +1864,19 @@ INSTRUCCIONES PARA PROGRESIÓN:
    - Da el SIGUIENTE PASO PROGRESIVO (no saltes directamente al ideal)
    - Ejemplo: Si Plan 0 propuso 21:00 y el ideal es 20:00, ahora propón 20:30 o 20:00 según tolerancia observada
    - Usa los eventos reales para validar si el niño está tolerando bien los ajustes
+   - 🛑 MODO MANTENIMIENTO (convergencia): si el plan anterior YA está a 15 minutos o menos
+     del objetivo ideal del RAG en bedtime y wakeTime, NO sigas moviendo los horarios. Estabiliza:
+     conserva los horarios actuales y solo propón UN ajuste correctivo si los eventos reales muestran
+     regresión clara (ej: bedtime >30 min más tarde del objetivo por 3+ días consecutivos).
+     No oscilar alrededor del objetivo ni proponer cambios cosméticos cuando ya se alcanzó la meta.
 7. ✨ EVOLUCIONA el plan manteniendo coherencia con el anterior
 8. 🔧 OPTIMIZA horarios según los datos reales registrados y el siguiente paso hacia el ideal
-9. Si el período contiene siestas (conteo>0), DEBES incluir al menos 1 siesta con hora cercana a ${enrichedStats?.napStats?.typicalTime || "14:00"} y duración ~${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min
+9. 😴 FASE DE SIESTA (transición Gentle Sleep): evalúa la CONSISTENCIA de siestas en el período
+   (total de siestas vs. días del período) y aplica la fase correspondiente:
+   - FASE ACTIVA (siesta casi todos los días): incluye SIEMPRE 1 siesta con hora cercana a ${enrichedStats?.napStats?.typicalTime || "14:00"} y duración ~${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min.
+   - EN TRANSICIÓN (algunos días sí, otros no): incluye la siesta pero márcala como OPCIONAL en su description ("Siesta solo si hay señales de sueño"). NO la elimines de un plan al siguiente sin justificación en los eventos.
+   - DEJANDO LA SIESTA (rara vez duerme siesta): incluye como máximo 1 siesta corta opcional; evita reintroducir siestas largas.
+   - REGLA DE COHERENCIA: no pongas y quites la siesta de forma errática entre versiones del plan; los cambios de siesta deben seguir la progresión, no oscilar.
 10. Para comidas, no inventes categorías sin eventos; puedes omitirlas o marcarlas como opcionales
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):

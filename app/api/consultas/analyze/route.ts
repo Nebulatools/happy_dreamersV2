@@ -390,10 +390,22 @@ EJEMPLO DE ANÁLISIS INTEGRAL:
 - Si la coach del sueño dice "8:15 AM" pero el padre dice "imposible por trabajo" → buscar el compromiso acordado
 - Siempre basarse en lo que REALMENTE es factible según la conversación
 
-Responde en el siguiente formato JSON:
+Responde en el siguiente formato JSON. Los campos "analysis" y "recommendations" (texto)
+son obligatorios; los campos estructurados ayudan a que el generador de planes use los
+acuerdos con mayor fidelidad (M6 del Plan Maestro):
 {
   "analysis": "Análisis integral de toda la conversación: situación actual reportada por los padres, progreso logrado, dificultades persistentes, recomendaciones de la coach del sueño, y los acuerdos finales alcanzados. Incluye horarios específicos acordados y la viabilidad práctica de los cambios. Escribe en párrafos normales.",
-  "recommendations": "Recomendaciones finales basadas en los ACUERDOS COMPLETOS de la conversación, incluyendo todos los horarios VIABLES acordados entre la coach del sueño y los padres (despertar, dormir, comidas, etc.) con horarios exactos. Considera limitaciones prácticas y soluciones realistas. Escribe en párrafos normales."
+  "recommendations": "Recomendaciones finales basadas en los ACUERDOS COMPLETOS de la conversación, incluyendo todos los horarios VIABLES acordados entre la coach del sueño y los padres (despertar, dormir, comidas, etc.) con horarios exactos. Considera limitaciones prácticas y soluciones realistas. Escribe en párrafos normales.",
+  "currentSituation": "Descripción breve de la situación actual del niño reportada por los padres",
+  "coachRecommendations": ["Recomendación específica de la coach", "..."],
+  "parentConstraints": ["Restricción práctica mencionada por los padres (ej: trabajo, hermanos)", "..."],
+  "agreedSchedules": {
+    "bedtime": "20:30 o null",
+    "wakeTime": "07:00 o null",
+    "napTime": "14:00 o null",
+    "meals": {"breakfast": "08:15 o null", "lunch": "12:00 o null", "snack": "16:00 o null", "dinner": "19:30 o null"}
+  },
+  "finalAgreements": ["Acuerdo final concreto alcanzado en la consulta", "..."]
 }`
 
   try {
@@ -465,6 +477,14 @@ async function saveConsultationReport({
       transcript,
       analysis: analysis.analysis,
       recommendations: analysis.recommendations,
+      // M6: campos estructurados (aditivos) para que el generador de planes
+      // consuma los acuerdos con mayor fidelidad. Pueden venir undefined si el
+      // modelo no los emite; se persisten solo si existen.
+      currentSituation: analysis.currentSituation ?? null,
+      coachRecommendations: analysis.coachRecommendations ?? null,
+      parentConstraints: analysis.parentConstraints ?? null,
+      agreedSchedules: analysis.agreedSchedules ?? null,
+      finalAgreements: analysis.finalAgreements ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     }
