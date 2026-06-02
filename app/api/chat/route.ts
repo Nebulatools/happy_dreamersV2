@@ -10,6 +10,7 @@ import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
 
 import { createLogger } from "@/lib/logger"
+import { MARIANA_IDENTITY } from "@/lib/ai-prompts/personas"
 
 const logger = createLogger("API:chat:route")
 
@@ -70,7 +71,7 @@ export async function POST(req: Request) {
     // Generar respuesta con OpenAI
     const { text } = await generateText({
       model: openai("gpt-4o"),
-      prompt: `Eres un asistente especializado en sueño infantil para la aplicación Happy Dreamers. 
+      prompt: `${MARIANA_IDENTITY}
               Responde de manera amable y profesional a la siguiente consulta sobre sueño infantil.
               Proporciona consejos prácticos y basados en evidencia científica.
               

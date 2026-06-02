@@ -1,5 +1,18 @@
 // Analisis de transcripciones de consultas pediatricas de sueno con LLM.
 // Usa OpenAI GPT-4 como motor principal, con fallback a heuristicas regex.
+//
+// (M11 del Plan Maestro reconciliado) CRITERIO DE USO -- IMPORTANTE:
+// Este es el analizador GENERICO de transcripts (sin contexto de coach ni
+// extraccion de acuerdos negociados). Solo debe usarse para:
+//   1. Transcripts de sesiones informales (no consultas formales con coach).
+//   2. Fallback cuando el analisis integral no aplica.
+// Hoy se invoca unicamente desde app/api/transcripts/process/route.ts y NO
+// alimenta la generacion de planes.
+//
+// Para consultas FORMALES con Mariana que alimentan un plan, usar el analisis
+// integral en app/api/consultas/analyze/route.ts, que incluye identidad de
+// Mariana, contexto del nino y extraccion de horarios acordados. NO reconectar
+// este analizador generico al flujo de planes.
 
 import { OpenAI } from "openai"
 import { createLogger } from "@/lib/logger"

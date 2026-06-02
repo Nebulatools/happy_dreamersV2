@@ -16,6 +16,8 @@ import { ChildPlan } from "@/types/models"
 import { derivePlanPolicy } from "@/lib/plan-policies"
 import * as Sentry from "@sentry/nextjs"
 import { getScheduleRuleForAge } from "@/lib/diagnostic/age-schedules"
+import { MARIANA_IDENTITY_CLINICAL } from "@/lib/ai-prompts/personas"
+import { FOOD_VOCABULARY } from "@/lib/ai-prompts/food-vocabulary"
 import * as fs from "fs"
 import * as path from "path"
 
@@ -983,6 +985,18 @@ async function generateEventBasedPlan(
     schedule: aiPlan.schedule,
     objectives: aiPlan.objectives,
     recommendations: aiPlan.recommendations,
+    // M13: razonamiento clinico que motivó los cambios; se reinyecta al
+    // siguiente Plan N para dar continuidad (chain of reasoning).
+    reasoning: aiPlan.reasoning || null,
+    // M16: snapshot de la sugerencia ORIGINAL de la IA (antes de que Mariana
+    // edite). Permite calcular despues el delta IA↔Mariana al guardar la edicion.
+    aiSuggestion: {
+      schedule: aiPlan.schedule,
+      objectives: aiPlan.objectives,
+      recommendations: aiPlan.recommendations,
+      promptVersion: "plan-maestro-fase3",
+      capturedAt: new Date(),
+    },
     basedOn: "events_stats_rag",
     basedOnPlan: {
       planId: basePlan._id,
@@ -1304,7 +1318,7 @@ Enfócate en los ACUERDOS REALISTAS alcanzados en la conversación completa.`,
 
 // Función para análisis ligero del transcript (solo para planes actualizados)
 async function analyzeLightTranscript(transcript: string, childName: string) {
-  const systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y desarrollo infantil.
+  const systemPrompt = `${MARIANA_IDENTITY_CLINICAL}
 
 Analiza ÚNICAMENTE este transcript de consulta para identificar:
 1. Problemas o preocupaciones mencionados
@@ -1715,7 +1729,7 @@ async function generatePlanWithAI({
   let systemPrompt = ""
 
   if (planType === "initial") {
-    systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y desarrollo infantil. 
+    systemPrompt = `${MARIANA_IDENTITY_CLINICAL} 
 
 CRÍTICO: Tu respuesta DEBE ser únicamente un objeto JSON válido, sin texto adicional.
 
@@ -1749,13 +1763,7 @@ ${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join
 y da el PRIMER PASO suave hacia estos objetivos ideales.
 ` : ""}
 
-VOCABULARIO DE ALIMENTACION:
-- Usa terminos variados segun el momento del dia: "Desayuno", "Almuerzo/Comida", "Merienda/Colacion/Snack", "Cena".
-- Para referirte a la ingesta en general, alterna entre "alimento", "ingesta", "comida", "alimentacion". Evita repetir la palabra "comida" mas de 2 veces en el mismo bloque de recomendaciones.
-- NO des recomendaciones nutricionales especificas ni nombres de alimentos concretos. NO somos nutriologos. En su lugar, sugiere COMBINACIONES GENERALES de grupos alimenticios adaptadas a la edad (ej: "Proteina + cereal + fruta", "Proteina + verdura + grasa saludable", "Cereal + fruta + lacteo").
-- NO usar: "Avena con platano", "Pure de pollo con arroz", "Papilla de verduras" (demasiado especifico).
-- NO usar: "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo" (demasiado generico).
-- SI usar: "Proteina + cereal + fruta", "Proteina + verdura + grasa", "Lacteo + cereal + fruta" (combinacion de grupos).
+${FOOD_VOCABULARY}
 
 ${buildScheduleConstraints(childData.ageInMonths)}
 
@@ -1813,7 +1821,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
   ]
 }`
   } else if (planType === "event_based") {
-    systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y desarrollo infantil.
+    systemPrompt = `${MARIANA_IDENTITY_CLINICAL}
 
 CRÍTICO: Tu respuesta DEBE ser únicamente un objeto JSON válido, sin texto adicional.
 
@@ -1821,6 +1829,14 @@ GENERA PLAN DE PROGRESIÓN basado en EVENTOS REALES registrados para ${childData
 
 PLAN ANTERIOR (COMO BASE):
 ${JSON.stringify(previousPlan?.schedule, null, 2)}
+${previousPlan?.reasoning ? `
+RAZONAMIENTO DEL PLAN ANTERIOR (usa esto para dar CONTINUIDAD clínica, no contradigas decisiones ya tomadas):
+- Cambios que se hicieron: ${Array.isArray(previousPlan.reasoning.changesFromPrevious) ? previousPlan.reasoning.changesFromPrevious.join("; ") : previousPlan.reasoning.changesFromPrevious || "N/A"}
+- Justificación: ${previousPlan.reasoning.justification || "N/A"}
+- Tolerancia observada al ajuste anterior: ${previousPlan.reasoning.toleranceObserved || "N/A"}
+- Siguiente paso sugerido por el plan anterior: ${previousPlan.reasoning.nextStepSuggestion || "N/A"}
+⚠️ No vuelvas a proponer un horario que el plan anterior ya descartó. Da continuidad al razonamiento.
+` : ""}
 
 ANÁLISIS DE EVENTOS RECIENTES (${eventAnalysis?.eventsAnalyzed || 0} eventos):
 - Tipos de eventos: ${eventAnalysis?.eventTypes?.join(", ") || "No especificado"}
@@ -1842,13 +1858,7 @@ ${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join
 NO saltes directamente al ideal si el plan anterior está lejos. Avanza gradualmente.
 ` : ""}
 
-VOCABULARIO DE ALIMENTACION:
-- Usa terminos variados segun el momento del dia: "Desayuno", "Almuerzo/Comida", "Merienda/Colacion/Snack", "Cena".
-- Para referirte a la ingesta en general, alterna entre "alimento", "ingesta", "comida", "alimentacion". Evita repetir la palabra "comida" mas de 2 veces en el mismo bloque de recomendaciones.
-- NO des recomendaciones nutricionales especificas ni nombres de alimentos concretos. NO somos nutriologos. En su lugar, sugiere COMBINACIONES GENERALES de grupos alimenticios adaptadas a la edad (ej: "Proteina + cereal + fruta", "Proteina + verdura + grasa saludable", "Cereal + fruta + lacteo").
-- NO usar: "Avena con platano", "Pure de pollo con arroz", "Papilla de verduras" (demasiado especifico).
-- NO usar: "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo" (demasiado generico).
-- SI usar: "Proteina + cereal + fruta", "Proteina + verdura + grasa", "Lacteo + cereal + fruta" (combinacion de grupos).
+${FOOD_VOCABULARY}
 
 ${buildScheduleConstraints(childData.ageInMonths)}
 
@@ -1874,9 +1884,19 @@ INSTRUCCIONES PARA PROGRESIÓN:
    - Da el SIGUIENTE PASO PROGRESIVO (no saltes directamente al ideal)
    - Ejemplo: Si Plan 0 propuso 21:00 y el ideal es 20:00, ahora propón 20:30 o 20:00 según tolerancia observada
    - Usa los eventos reales para validar si el niño está tolerando bien los ajustes
+   - 🛑 MODO MANTENIMIENTO (convergencia): si el plan anterior YA está a 15 minutos o menos
+     del objetivo ideal del RAG en bedtime y wakeTime, NO sigas moviendo los horarios. Estabiliza:
+     conserva los horarios actuales y solo propón UN ajuste correctivo si los eventos reales muestran
+     regresión clara (ej: bedtime >30 min más tarde del objetivo por 3+ días consecutivos).
+     No oscilar alrededor del objetivo ni proponer cambios cosméticos cuando ya se alcanzó la meta.
 7. ✨ EVOLUCIONA el plan manteniendo coherencia con el anterior
 8. 🔧 OPTIMIZA horarios según los datos reales registrados y el siguiente paso hacia el ideal
-9. Si el período contiene siestas (conteo>0), DEBES incluir al menos 1 siesta con hora cercana a ${enrichedStats?.napStats?.typicalTime || "14:00"} y duración ~${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min
+9. 😴 FASE DE SIESTA (transición Gentle Sleep): evalúa la CONSISTENCIA de siestas en el período
+   (total de siestas vs. días del período) y aplica la fase correspondiente:
+   - FASE ACTIVA (siesta casi todos los días): incluye SIEMPRE 1 siesta con hora cercana a ${enrichedStats?.napStats?.typicalTime || "14:00"} y duración ~${Math.max(60, Math.min(120, enrichedStats?.napStats?.avgDuration || 90))} min.
+   - EN TRANSICIÓN (algunos días sí, otros no): incluye la siesta pero márcala como OPCIONAL en su description ("Siesta solo si hay señales de sueño"). NO la elimines de un plan al siguiente sin justificación en los eventos.
+   - DEJANDO LA SIESTA (rara vez duerme siesta): incluye como máximo 1 siesta corta opcional; evita reintroducir siestas largas.
+   - REGLA DE COHERENCIA: no pongas y quites la siesta de forma errática entre versiones del plan; los cambios de siesta deben seguir la progresión, no oscilar.
 10. Para comidas, no inventes categorías sin eventos; puedes omitirlas o marcarlas como opcionales
 
 FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
@@ -1894,10 +1914,16 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
   "recommendations": [
     "Recomendación basada en patrones de eventos reales"
   ],
-  "progressAnalysis": "Análisis de cómo el niño ha progresado desde el plan anterior"
+  "progressAnalysis": "Análisis de cómo el niño ha progresado desde el plan anterior",
+  "reasoning": {
+    "changesFromPrevious": ["Cambio concreto vs plan anterior y por qué (ej: 'bedtime 21:00 → 20:30 porque toleró bien 6 días')"],
+    "justification": "Justificación clínica breve de los cambios de este plan",
+    "toleranceObserved": "good | partial | poor (tolerancia del niño al ajuste anterior según eventos)",
+    "nextStepSuggestion": "Qué debería evaluar el próximo plan (avanzar o mantener)"
+  }
 }`
   } else if (planType === "transcript_refinement") {
-    systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y desarrollo infantil.
+    systemPrompt = `${MARIANA_IDENTITY_CLINICAL}
 
 CRÍTICO: Tu respuesta DEBE ser únicamente un objeto JSON válido, sin texto adicional.
 
@@ -1940,13 +1966,7 @@ ${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join
 ⚠️ IMPORTANTE: Los acuerdos del transcript tienen prioridad, pero el plan DEBE respetar las restricciones clinicas por edad.
 ` : ""}
 
-VOCABULARIO DE ALIMENTACION:
-- Usa terminos variados segun el momento del dia: "Desayuno", "Almuerzo/Comida", "Merienda/Colacion/Snack", "Cena".
-- Para referirte a la ingesta en general, alterna entre "alimento", "ingesta", "comida", "alimentacion". Evita repetir la palabra "comida" mas de 2 veces en el mismo bloque de recomendaciones.
-- NO des recomendaciones nutricionales especificas ni nombres de alimentos concretos. NO somos nutriologos. En su lugar, sugiere COMBINACIONES GENERALES de grupos alimenticios adaptadas a la edad (ej: "Proteina + cereal + fruta", "Proteina + verdura + grasa saludable", "Cereal + fruta + lacteo").
-- NO usar: "Avena con platano", "Pure de pollo con arroz", "Papilla de verduras" (demasiado especifico).
-- NO usar: "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo" (demasiado generico).
-- SI usar: "Proteina + cereal + fruta", "Proteina + verdura + grasa", "Lacteo + cereal + fruta" (combinacion de grupos).
+${FOOD_VOCABULARY}
 
 ${buildScheduleConstraints(childData.ageInMonths)}
 
@@ -1997,7 +2017,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 }`
   } else {
     // Fallback para compatibilidad (no debería llegar aquí en el nuevo flujo)
-    systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y desarrollo infantil.
+    systemPrompt = `${MARIANA_IDENTITY_CLINICAL}
 
 ACTUALIZA EL PLAN EXISTENTE para ${childData.firstName} basándote en el análisis proporcionado.
 

@@ -283,6 +283,21 @@ export default function ConfiguracionPage() {
         </div>
       </Card>
 
+      {/* Seccion: API / Desarrolladores */}
+      <Card className="p-6">
+        <h2 className="text-lg font-bold mb-2">API / Desarrolladores</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Crea API keys para conectar servicios externos (por ejemplo, Yose) con Happy Dreamers.
+        </p>
+        <Button
+          variant="outline"
+          onClick={() => { window.location.href = "/dashboard/configuracion/api" }}
+          className="text-[#2553A1] border-gray-300"
+        >
+          Gestionar API keys
+        </Button>
+      </Card>
+
       {/* Seccion 3: Cerrar Sesion */}
       <Card className="p-6">
         <h2 className="text-lg font-bold mb-4">Sesion</h2>
