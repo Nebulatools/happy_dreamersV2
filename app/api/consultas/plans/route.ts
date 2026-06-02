@@ -985,6 +985,18 @@ async function generateEventBasedPlan(
     schedule: aiPlan.schedule,
     objectives: aiPlan.objectives,
     recommendations: aiPlan.recommendations,
+    // M13: razonamiento clinico que motivó los cambios; se reinyecta al
+    // siguiente Plan N para dar continuidad (chain of reasoning).
+    reasoning: aiPlan.reasoning || null,
+    // M16: snapshot de la sugerencia ORIGINAL de la IA (antes de que Mariana
+    // edite). Permite calcular despues el delta IA↔Mariana al guardar la edicion.
+    aiSuggestion: {
+      schedule: aiPlan.schedule,
+      objectives: aiPlan.objectives,
+      recommendations: aiPlan.recommendations,
+      promptVersion: "plan-maestro-fase3",
+      capturedAt: new Date(),
+    },
     basedOn: "events_stats_rag",
     basedOnPlan: {
       planId: basePlan._id,
@@ -1817,6 +1829,14 @@ GENERA PLAN DE PROGRESIÓN basado en EVENTOS REALES registrados para ${childData
 
 PLAN ANTERIOR (COMO BASE):
 ${JSON.stringify(previousPlan?.schedule, null, 2)}
+${previousPlan?.reasoning ? `
+RAZONAMIENTO DEL PLAN ANTERIOR (usa esto para dar CONTINUIDAD clínica, no contradigas decisiones ya tomadas):
+- Cambios que se hicieron: ${Array.isArray(previousPlan.reasoning.changesFromPrevious) ? previousPlan.reasoning.changesFromPrevious.join("; ") : previousPlan.reasoning.changesFromPrevious || "N/A"}
+- Justificación: ${previousPlan.reasoning.justification || "N/A"}
+- Tolerancia observada al ajuste anterior: ${previousPlan.reasoning.toleranceObserved || "N/A"}
+- Siguiente paso sugerido por el plan anterior: ${previousPlan.reasoning.nextStepSuggestion || "N/A"}
+⚠️ No vuelvas a proponer un horario que el plan anterior ya descartó. Da continuidad al razonamiento.
+` : ""}
 
 ANÁLISIS DE EVENTOS RECIENTES (${eventAnalysis?.eventsAnalyzed || 0} eventos):
 - Tipos de eventos: ${eventAnalysis?.eventTypes?.join(", ") || "No especificado"}
@@ -1894,7 +1914,13 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
   "recommendations": [
     "Recomendación basada en patrones de eventos reales"
   ],
-  "progressAnalysis": "Análisis de cómo el niño ha progresado desde el plan anterior"
+  "progressAnalysis": "Análisis de cómo el niño ha progresado desde el plan anterior",
+  "reasoning": {
+    "changesFromPrevious": ["Cambio concreto vs plan anterior y por qué (ej: 'bedtime 21:00 → 20:30 porque toleró bien 6 días')"],
+    "justification": "Justificación clínica breve de los cambios de este plan",
+    "toleranceObserved": "good | partial | poor (tolerancia del niño al ajuste anterior según eventos)",
+    "nextStepSuggestion": "Qué debería evaluar el próximo plan (avanzar o mantener)"
+  }
 }`
   } else if (planType === "transcript_refinement") {
     systemPrompt = `${MARIANA_IDENTITY_CLINICAL}

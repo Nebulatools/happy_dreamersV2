@@ -183,7 +183,18 @@ function getPromptForFileType(fileType: string): string {
   case "xlsx":
     return "Extrae TODO el texto y datos de esta hoja de cálculo Excel. Incluye nombres de hojas, encabezados, datos de celdas y cualquier texto visible. Organiza por hojas cuando sea posible. Devuelve solo el contenido sin explicaciones adicionales."
   case "image":
-    return "Extrae TODO el texto visible en esta imagen. Incluye cualquier texto, números, etiquetas, títulos o contenido legible. Si hay diagramas o gráficos, describe brevemente su contenido textual. Devuelve solo el texto extraído sin explicaciones adicionales."
+    // (M12 del Plan Maestro reconciliado) Extraccion enriquecida para imagenes clinicas.
+    // Si la imagen es un reporte/tabla de sueno o captura de una app de tracking
+    // (Baby Tracker, Huckleberry, etc.), ademas del texto plano se pide un bloque
+    // estructurado y legible con los eventos detectados, util para el analisis posterior.
+    // Sigue devolviendo TEXTO (no rompe el pipeline de RAG que hace chunking + embeddings).
+    return `Extrae TODO el texto visible en esta imagen. Incluye cualquier texto, números, etiquetas, títulos o contenido legible. Si hay diagramas o gráficos, describe brevemente su contenido textual.
+
+Si la imagen es un REPORTE DE SUEÑO, una TABLA DE HORARIOS o una captura de una APP DE TRACKING de sueño infantil, ademas agrega al final un bloque titulado "DATOS DE SUEÑO ESTRUCTURADOS:" listando cada evento detectado en lineas con el formato:
+- tipo (sueño/siesta/despertar/toma) | inicio HH:MM | fin HH:MM | duracion (min si aplica)
+Si la imagen NO contiene datos de sueño estructurados, omite ese bloque.
+
+Devuelve solo el texto extraído (mas el bloque estructurado si aplica), sin explicaciones adicionales.`
   default:
     return "Extrae TODO el texto de este archivo. Devuelve solo el contenido textual sin explicaciones adicionales."
   }
