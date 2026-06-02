@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Happy Dreamers API — Referencia para integraciones</title>
+<style>
+  :root{
+    --hd-blue:#3B82F6;--hd-blue-deep:#2553A1;--hd-grad-from:#628BE6;--hd-grad-to:#67C5FF;
+    --hd-bg-soft2:#EDE9FE;--hd-ink:#111827;--hd-muted:#6B7280;--hd-border:#E5E7EB;
+    --hd-bg-soft:#F5F9FF;--hd-link:#68A1C8;--hd-lavender:#8B5CF6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--hd-ink);background:#f3f6fb;line-height:1.6;font-size:15px}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 28px 80px}
+  .cover{background:linear-gradient(135deg,var(--hd-grad-from),var(--hd-grad-to));color:#fff;border-radius:0 0 28px 28px;padding:56px 48px 48px;margin-bottom:36px;box-shadow:0 18px 40px -18px rgba(37,83,161,.55)}
+  .cover .moon{font-weight:700;letter-spacing:.5px;opacity:.92;font-size:13px;text-transform:uppercase}
+  .cover h1{font-size:40px;line-height:1.1;margin:12px 0 8px;font-weight:800}
+  .cover .sub{font-size:18px;opacity:.95;max-width:680px}
+  #pdfbtn{position:fixed;right:24px;bottom:24px;z-index:50;background:linear-gradient(135deg,var(--hd-blue-deep),var(--hd-blue));color:#fff;border:none;border-radius:999px;padding:14px 22px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 10px 26px -8px rgba(37,83,161,.7)}
+  section{background:#fff;border:1px solid var(--hd-border);border-radius:18px;padding:28px 32px;margin-bottom:24px;box-shadow:0 6px 18px -14px rgba(37,83,161,.35)}
+  h2{font-size:25px;font-weight:800;color:var(--hd-blue-deep);margin:0 0 10px}
+  h3{font-size:18px;font-weight:700;margin:22px 0 6px}
+  .sectnum{display:inline-block;background:var(--hd-bg-soft2);color:var(--hd-blue-deep);font-size:13px;font-weight:800;border-radius:8px;padding:3px 10px;margin-bottom:10px}
+  code{background:#eef2fb;color:#1e3a8a;padding:1px 6px;border-radius:5px;font-family:Consolas,monospace;font-size:13px}
+  pre{background:#0f1b33;color:#e6edf7;border-radius:12px;padding:16px 18px;overflow-x:auto;font-family:Consolas,monospace;font-size:12.5px;line-height:1.5;margin:12px 0}
+  pre code{background:none;color:inherit;padding:0}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  th{background:var(--hd-blue-deep);color:#fff;text-align:left;padding:9px 11px}
+  td{padding:8px 11px;border-bottom:1px solid var(--hd-border);vertical-align:top}
+  tr:nth-child(even) td{background:#f7faff}
+  .note{background:var(--hd-bg-soft);border-left:5px solid var(--hd-blue);border-radius:12px;padding:14px 18px;margin:14px 0;font-size:14px}
+  .warn{background:#fef3f2;border-left:5px solid #DC2626;border-radius:12px;padding:14px 18px;margin:14px 0;font-size:14px}
+  .ep{display:flex;align-items:center;gap:10px;margin:18px 0 6px}
+  .m{font-weight:800;font-size:12px;color:#fff;border-radius:6px;padding:3px 9px}
+  .get{background:#16a34a}.post{background:#2563eb}.patch{background:#d97706}.del{background:#dc2626}
+  .path{font-family:Consolas,monospace;font-size:14px}
+  .scope{display:inline-block;background:var(--hd-bg-soft2);color:var(--hd-blue-deep);border-radius:6px;padding:1px 8px;font-size:11px;font-weight:700;font-family:Consolas,monospace}
+  a{color:var(--hd-link)}
+  footer{text-align:center;color:var(--hd-muted);font-size:13px;padding:24px 0}
+  @page{margin:16mm 14mm}
+  @media print{
+    body{background:#fff;font-size:11.5px}.wrap{max-width:none;padding:0}#pdfbtn{display:none!important}
+    .cover{border-radius:0;box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    section{break-inside:auto;box-shadow:none;border:none;border-top:3px solid var(--hd-blue);border-radius:0;padding:16px 0;page-break-before:always}
+    section:first-of-type{page-break-before:avoid}
+    table,pre,.note,.warn{break-inside:avoid}
+    th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+<button id="pdfbtn" onclick="window.print()">Descargar PDF</button>
+
+<div class="cover">
+  <div class="moon">Happy Dreamers &middot; API para integraciones</div>
+  <h1>Happy Dreamers API</h1>
+  <div class="sub">Conecta servicios externos (como Yose) para registrar y consultar eventos de sueño, estadísticas y notificaciones — autenticado con API Keys.</div>
+</div>
+
+<div class="wrap">
+
+  <section>
+    <span class="sectnum">Introducción</span>
+    <h2>Qué es esta API</h2>
+    <p>La API pública de Happy Dreamers expone una superficie REST estable bajo <code>/api/v1</code>, autenticada por <b>API Key</b>. Está pensada para que aplicaciones externas — por ejemplo <b>Yose</b> (asistente de WhatsApp/Telegram/iOS) — puedan, en nombre de un usuario, <b>registrar, editar y eliminar eventos</b>, leer <b>estadísticas</b> y gestionar <b>notificaciones</b>.</p>
+    <ul>
+      <li><b>Base URL:</b> <code>https://&lt;tu-dominio&gt;/api/v1</code></li>
+      <li><b>Formato:</b> JSON. Respuestas de éxito: <code>{ "data": ... }</code>. Errores: <code>{ "error": { "code", "message" } }</code>.</li>
+      <li><b>Contrato OpenAPI:</b> <code>GET /api/v1/openapi.json</code> (también en <code>docs/api/openapi.yaml</code>).</li>
+    </ul>
+  </section>
+
+  <section>
+    <span class="sectnum">Autenticación</span>
+    <h2>API Keys</h2>
+    <p>Cada llamada debe incluir la cabecera <code>Authorization</code> con el secreto de la API key:</p>
+    <pre><code>Authorization: Bearer hd_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxx</code></pre>
+    <h3>Cómo se crea una key</h3>
+    <p>El usuario entra a <b>Configuración → API / Desarrolladores</b> en Happy Dreamers, elige un nombre, los <b>scopes</b> y opcionalmente limita la key a ciertos niños. El secreto <b>se muestra una sola vez</b>; en el servidor solo se guarda su hash <code>sha256</code>.</p>
+    <div class="warn"><b>Seguridad:</b> trata el secreto como una contraseña. No lo incrustes en apps cliente ni en el control de versiones. Si se filtra, revócalo desde la misma pantalla (deja de funcionar al instante).</div>
+  </section>
+
+  <section>
+    <span class="sectnum">Permisos</span>
+    <h2>Scopes</h2>
+    <p>Una key solo puede hacer lo que sus scopes permiten; además, si tiene una lista de niños, solo puede operar sobre esos.</p>
+    <table>
+      <tr><th>Scope</th><th>Permite</th></tr>
+      <tr><td><span class="scope">children:read</span></td><td>Listar y leer niños</td></tr>
+      <tr><td><span class="scope">events:read</span></td><td>Leer eventos</td></tr>
+      <tr><td><span class="scope">events:write</span></td><td>Crear, editar y eliminar eventos</td></tr>
+      <tr><td><span class="scope">stats:read</span></td><td>Leer estadísticas de sueño</td></tr>
+      <tr><td><span class="scope">notifications:read</span></td><td>Leer notificaciones</td></tr>
+      <tr><td><span class="scope">notifications:write</span></td><td>Crear/programar notificaciones</td></tr>
+    </table>
+    <div class="note"><b>Rate limit:</b> 120 solicitudes/minuto por key (con control de ráfaga). Si lo superas recibes <code>429</code>.</div>
+  </section>
+
+  <section>
+    <span class="sectnum">Endpoints</span>
+    <h2>Referencia</h2>
+
+    <div class="ep"><span class="m get">GET</span><span class="path">/me</span></div>
+    <p>Identidad de la key: usuario y niños accesibles. Útil para descubrir los <code>childId</code> tras enlazar.</p>
+    <pre><code>curl -H "Authorization: Bearer $HD_KEY" \
+  https://tu-dominio/api/v1/me</code></pre>
+
+    <div class="ep"><span class="m get">GET</span><span class="path">/children</span> &nbsp;<span class="scope">children:read</span></div>
+    <p>Lista de niños accesibles por la key.</p>
+
+    <div class="ep"><span class="m get">GET</span><span class="path">/children/{id}/sleep-state</span> &nbsp;<span class="scope">children:read</span></div>
+    <p>Estado de sueño actual: <code>awake</code>, <code>sleeping</code>, <code>napping</code> o <code>night_waking</code>.</p>
+
+    <div class="ep"><span class="m get">GET</span><span class="path">/events?childId={id}</span> &nbsp;<span class="scope">events:read</span></div>
+    <p>Eventos del niño ordenados cronológicamente.</p>
+
+    <div class="ep"><span class="m post">POST</span><span class="path">/events</span> &nbsp;<span class="scope">events:write</span></div>
+    <p>Registra un evento. Campos por tipo (sleep, nap, wake, night_waking, feeding, medication, extra_activities, note).</p>
+    <pre><code>curl -X POST https://tu-dominio/api/v1/events \
+  -H "Authorization: Bearer $HD_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "childId": "665f0c2b9a...",
+    "eventType": "sleep",
+    "startTime": "2026-06-01T20:30:00-06:00",
+    "endTime": "2026-06-02T07:00:00-06:00",
+    "sleepDelay": 15,
+    "emotionalState": "tranquilo"
+  }'</code></pre>
+    <p>Ejemplo de alimentación nocturna (usa el flag, no un tipo aparte):</p>
+    <pre><code>{
+  "childId": "665f0c2b9a...",
+  "eventType": "feeding",
+  "feedingType": "bottle",
+  "babyState": "asleep",
+  "isNightFeeding": true,
+  "feedingAmount": 120,
+  "startTime": "2026-06-02T02:10:00-06:00"
+}</code></pre>
+
+    <div class="ep"><span class="m patch">PATCH</span><span class="path">/events/{id}</span> &nbsp;<span class="scope">events:write</span></div>
+    <p>Actualiza un evento. Parcial por defecto (ej. agregar <code>endTime</code>); si incluyes <code>eventType</code> es un reemplazo completo. Requiere <code>childId</code> en el cuerpo.</p>
+    <pre><code>curl -X PATCH https://tu-dominio/api/v1/events/EVENT_ID \
+  -H "Authorization: Bearer $HD_KEY" -H "Content-Type: application/json" \
+  -d '{ "childId": "665f...", "endTime": "2026-06-02T07:15:00-06:00" }'</code></pre>
+
+    <div class="ep"><span class="m del">DELETE</span><span class="path">/events/{id}?childId={id}</span> &nbsp;<span class="scope">events:write</span></div>
+    <p>Elimina un evento.</p>
+
+    <div class="ep"><span class="m get">GET</span><span class="path">/stats?childId={id}&amp;from={ISO}</span> &nbsp;<span class="scope">stats:read</span></div>
+    <p>Métricas de sueño (duración promedio, hora de dormir, despertares, etc.).</p>
+
+    <div class="ep"><span class="m get">GET</span><span class="path">/notifications?childId={id}</span> &nbsp;<span class="scope">notifications:read</span></div>
+    <div class="ep"><span class="m post">POST</span><span class="path">/notifications</span> &nbsp;<span class="scope">notifications:write</span></div>
+    <p>Lee el historial o crea/programa una notificación (<code>childId</code>, <code>title</code>, <code>message</code>, opcional <code>scheduledFor</code>).</p>
+  </section>
+
+  <section>
+    <span class="sectnum">Errores</span>
+    <h2>Códigos de error</h2>
+    <table>
+      <tr><th>HTTP</th><th>code</th><th>Significado</th></tr>
+      <tr><td>401</td><td>missing_key / invalid_key / revoked_key / expired_key</td><td>Problema con la API key</td></tr>
+      <tr><td>403</td><td>insufficient_scope / child_not_allowed</td><td>Falta scope o acceso al niño</td></tr>
+      <tr><td>400</td><td>request_error</td><td>Datos inválidos</td></tr>
+      <tr><td>404</td><td>—</td><td>Recurso no encontrado</td></tr>
+      <tr><td>429</td><td>rate_limited</td><td>Demasiadas solicitudes</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <span class="sectnum">Integración con Yose</span>
+    <h2>Cómo lo usa Yose</h2>
+    <p>Yose guarda la API key del usuario <b>cifrada</b> y la usa como Bearer en cada llamada. El flujo natural-language → acción:</p>
+    <ol>
+      <li>El usuario conecta su cuenta pegando la key (o vía link) → Yose la cifra y guarda.</li>
+      <li>Yose llama <code>GET /api/v1/me</code> para descubrir los niños y sus <code>childId</code>.</li>
+      <li>Un mensaje como "Mateo se durmió a las 8:30" se mapea a <code>POST /api/v1/events</code> con <code>eventType: "sleep"</code>.</li>
+      <li>"¿Cómo durmió anoche?" se mapea a <code>GET /api/v1/stats</code>.</li>
+    </ol>
+    <div class="note">El detalle de implementación del lado de Yose (servicio + intents) corresponde a la Fase 2 del proyecto.</div>
+  </section>
+
+  <footer>Happy Dreamers API · Referencia v1 · Documento autocontenido (botón "Descargar PDF").</footer>
+</div>
+</body>
+</html>

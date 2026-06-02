@@ -1,0 +1,197 @@
+// Especificacion OpenAPI 3.1 de la API publica de Happy Dreamers (v1).
+// Fuente unica: se sirve como JSON en /api/v1/openapi.json y se replica en docs/api/openapi.yaml.
+
+export const openApiSpec = {
+  openapi: "3.1.0",
+  info: {
+    title: "Happy Dreamers API",
+    version: "1.0.0",
+    description:
+      "API publica para integraciones (ej: Yose). Autenticacion por API Key Bearer. " +
+      "Permite registrar/editar/eliminar eventos de sueño, leer estadisticas y notificaciones.",
+  },
+  servers: [{ url: "/api/v1", description: "Base de la API v1" }],
+  security: [{ bearerAuth: [] }],
+  components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: "http",
+        scheme: "bearer",
+        description: "Usa tu API key: Authorization: Bearer hd_live_...",
+      },
+    },
+    schemas: {
+      Error: {
+        type: "object",
+        properties: {
+          error: {
+            type: "object",
+            properties: { code: { type: "string" }, message: { type: "string" } },
+          },
+        },
+      },
+      Child: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          firstName: { type: "string" },
+          lastName: { type: "string" },
+          birthDate: { type: ["string", "null"] },
+          archived: { type: "boolean" },
+        },
+      },
+      Event: {
+        type: "object",
+        properties: {
+          _id: { type: "string" },
+          childId: { type: "string" },
+          eventType: {
+            type: "string",
+            enum: [
+              "sleep",
+              "nap",
+              "wake",
+              "night_waking",
+              "feeding",
+              "medication",
+              "extra_activities",
+              "note",
+            ],
+          },
+          startTime: { type: "string", description: "ISO 8601 con offset" },
+          endTime: { type: ["string", "null"] },
+          duration: { type: ["number", "null"], description: "minutos" },
+          emotionalState: { type: "string" },
+          notes: { type: "string" },
+          sleepDelay: { type: ["number", "null"] },
+          awakeDelay: { type: ["number", "null"] },
+          feedingType: { type: "string", enum: ["breast", "bottle", "solids"] },
+          isNightFeeding: { type: "boolean" },
+          medicationName: { type: "string" },
+          activityDescription: { type: "string" },
+        },
+      },
+      EventCreate: {
+        type: "object",
+        required: ["childId", "eventType"],
+        properties: {
+          childId: { type: "string" },
+          eventType: { type: "string" },
+          startTime: { type: "string", description: "ISO 8601 con offset" },
+          endTime: { type: "string" },
+          emotionalState: { type: "string", enum: ["tranquilo", "inquieto", "alterado", "neutral"] },
+          notes: { type: "string" },
+          sleepDelay: { type: "number", minimum: 0, maximum: 180 },
+          awakeDelay: { type: "number", minimum: 0, maximum: 180 },
+          feedingType: { type: "string", enum: ["breast", "bottle", "solids"] },
+          feedingAmount: { type: "number" },
+          babyState: { type: "string", enum: ["awake", "asleep"] },
+          isNightFeeding: { type: "boolean" },
+          medicationName: { type: "string" },
+          medicationDose: { type: "string" },
+          activityDescription: { type: "string" },
+          activityDuration: { type: "number", minimum: 5, maximum: 180 },
+        },
+      },
+    },
+  },
+  paths: {
+    "/me": {
+      get: {
+        summary: "Identidad de la API key (usuario + niños accesibles)",
+        responses: { "200": { description: "OK" }, "401": { $ref: "#/components/responses/Unauthorized" } },
+      },
+    },
+    "/children": {
+      get: {
+        summary: "Lista de niños accesibles",
+        security: [{ bearerAuth: ["children:read"] }],
+        responses: { "200": { description: "OK" } },
+      },
+    },
+    "/children/{id}": {
+      get: {
+        summary: "Detalle de un niño",
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: { "200": { description: "OK" }, "403": { description: "Sin acceso" } },
+      },
+    },
+    "/children/{id}/sleep-state": {
+      get: {
+        summary: "Estado de sueño actual",
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: { "200": { description: "OK" } },
+      },
+    },
+    "/events": {
+      get: {
+        summary: "Lista de eventos de un niño",
+        parameters: [{ name: "childId", in: "query", required: true, schema: { type: "string" } }],
+        responses: { "200": { description: "OK" } },
+      },
+      post: {
+        summary: "Registrar un evento",
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/EventCreate" } } },
+        },
+        responses: { "201": { description: "Creado" }, "400": { description: "Datos inválidos" } },
+      },
+    },
+    "/events/{id}": {
+      patch: {
+        summary: "Actualizar un evento (parcial o completo si incluye eventType)",
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object" } } } },
+        responses: { "200": { description: "OK" }, "404": { description: "No encontrado" } },
+      },
+      delete: {
+        summary: "Eliminar un evento",
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+          { name: "childId", in: "query", required: true, schema: { type: "string" } },
+        ],
+        responses: { "200": { description: "OK" }, "404": { description: "No encontrado" } },
+      },
+    },
+    "/stats": {
+      get: {
+        summary: "Estadisticas de sueño",
+        parameters: [
+          { name: "childId", in: "query", required: true, schema: { type: "string" } },
+          { name: "from", in: "query", required: false, schema: { type: "string" } },
+        ],
+        responses: { "200": { description: "OK" } },
+      },
+    },
+    "/notifications": {
+      get: {
+        summary: "Historial de notificaciones",
+        parameters: [{ name: "childId", in: "query", required: false, schema: { type: "string" } }],
+        responses: { "200": { description: "OK" } },
+      },
+      post: {
+        summary: "Crear notificacion",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["childId", "title", "message"],
+                properties: {
+                  childId: { type: "string" },
+                  title: { type: "string" },
+                  message: { type: "string" },
+                  type: { type: "string" },
+                  scheduledFor: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: { "201": { description: "Creado" } },
+      },
+    },
+  },
+} as const

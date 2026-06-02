@@ -16,6 +16,41 @@ export interface User {
   updatedAt: Date
 }
 
+// Scopes disponibles para una API Key (acceso programatico)
+export type ApiScope =
+  | "children:read"
+  | "events:read"
+  | "events:write"
+  | "stats:read"
+  | "notifications:read"
+  | "notifications:write"
+
+export const API_SCOPES: ApiScope[] = [
+  "children:read",
+  "events:read",
+  "events:write",
+  "stats:read",
+  "notifications:read",
+  "notifications:write",
+]
+
+// Modelo de API Key para acceso programatico (ej: integracion con Yose)
+// El secreto NUNCA se guarda en claro: solo se almacena su hash sha256.
+export interface ApiKey {
+  _id: ObjectId | string
+  userId: ObjectId | string // Dueño de la key (actua como este usuario)
+  name: string // Etiqueta legible: "Yose", "App movil"
+  keyHash: string // sha256(secreto) - indexado y unico
+  keyPrefix: string // Primeros caracteres visibles para la UI (ej: "hd_live_3f9a")
+  scopes: ApiScope[]
+  childIds?: (ObjectId | string)[] // Allowlist opcional; si vacio => todos los ninos del usuario
+  status: "active" | "revoked"
+  lastUsedAt?: Date
+  expiresAt?: Date
+  createdAt: Date
+  updatedAt: Date
+}
+
 // Modelo de Niño
 export interface Child {
   _id: ObjectId | string
