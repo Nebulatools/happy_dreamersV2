@@ -15,6 +15,7 @@ import { createLogger } from "@/lib/logger"
 import { SystemMessage, HumanMessage } from "@langchain/core/messages"
 import { getChildPlanContext, getAllPlansContext } from "@/lib/rag/plan-context-builder"
 import { checkRateLimit } from "@/lib/rag/rate-limiter"
+import { MARIANA_IDENTITY } from "@/lib/ai-prompts/personas"
 
 const logger = createLogger("RAGChatAPI")
 
@@ -437,7 +438,7 @@ const superComprehensiveAgent = async (
     maxTokens: 1000,
   })
   
-  const synthesisPrompt = `Eres la Dra. Mariana, pediatra especialista en sueño infantil.
+  const synthesisPrompt = `${MARIANA_IDENTITY}
 
 PREGUNTA DEL USUARIO: "${question}"
 ${conversationContext}
@@ -851,7 +852,7 @@ const intelligentOrchestrator = async (
   
   const combinedInformation = agentResults.join("\n\n")
   
-  const synthesisPrompt = `Eres la Dra. Mariana, pediatra especialista en sueño infantil.
+  const synthesisPrompt = `${MARIANA_IDENTITY}
 
 PREGUNTA DEL USUARIO: "${question}"
 ${conversationContext}

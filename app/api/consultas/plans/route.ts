@@ -16,6 +16,8 @@ import { ChildPlan } from "@/types/models"
 import { derivePlanPolicy } from "@/lib/plan-policies"
 import * as Sentry from "@sentry/nextjs"
 import { getScheduleRuleForAge } from "@/lib/diagnostic/age-schedules"
+import { MARIANA_IDENTITY_CLINICAL } from "@/lib/ai-prompts/personas"
+import { FOOD_VOCABULARY } from "@/lib/ai-prompts/food-vocabulary"
 import * as fs from "fs"
 import * as path from "path"
 
@@ -1304,7 +1306,7 @@ Enfócate en los ACUERDOS REALISTAS alcanzados en la conversación completa.`,
 
 // Función para análisis ligero del transcript (solo para planes actualizados)
 async function analyzeLightTranscript(transcript: string, childName: string) {
-  const systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y desarrollo infantil.
+  const systemPrompt = `${MARIANA_IDENTITY_CLINICAL}
 
 Analiza ÚNICAMENTE este transcript de consulta para identificar:
 1. Problemas o preocupaciones mencionados
@@ -1715,7 +1717,7 @@ async function generatePlanWithAI({
   let systemPrompt = ""
 
   if (planType === "initial") {
-    systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y desarrollo infantil. 
+    systemPrompt = `${MARIANA_IDENTITY_CLINICAL} 
 
 CRÍTICO: Tu respuesta DEBE ser únicamente un objeto JSON válido, sin texto adicional.
 
@@ -1749,13 +1751,7 @@ ${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join
 y da el PRIMER PASO suave hacia estos objetivos ideales.
 ` : ""}
 
-VOCABULARIO DE ALIMENTACION:
-- Usa terminos variados segun el momento del dia: "Desayuno", "Almuerzo/Comida", "Merienda/Colacion/Snack", "Cena".
-- Para referirte a la ingesta en general, alterna entre "alimento", "ingesta", "comida", "alimentacion". Evita repetir la palabra "comida" mas de 2 veces en el mismo bloque de recomendaciones.
-- NO des recomendaciones nutricionales especificas ni nombres de alimentos concretos. NO somos nutriologos. En su lugar, sugiere COMBINACIONES GENERALES de grupos alimenticios adaptadas a la edad (ej: "Proteina + cereal + fruta", "Proteina + verdura + grasa saludable", "Cereal + fruta + lacteo").
-- NO usar: "Avena con platano", "Pure de pollo con arroz", "Papilla de verduras" (demasiado especifico).
-- NO usar: "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo" (demasiado generico).
-- SI usar: "Proteina + cereal + fruta", "Proteina + verdura + grasa", "Lacteo + cereal + fruta" (combinacion de grupos).
+${FOOD_VOCABULARY}
 
 ${buildScheduleConstraints(childData.ageInMonths)}
 
@@ -1813,7 +1809,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
   ]
 }`
   } else if (planType === "event_based") {
-    systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y desarrollo infantil.
+    systemPrompt = `${MARIANA_IDENTITY_CLINICAL}
 
 CRÍTICO: Tu respuesta DEBE ser únicamente un objeto JSON válido, sin texto adicional.
 
@@ -1842,13 +1838,7 @@ ${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join
 NO saltes directamente al ideal si el plan anterior está lejos. Avanza gradualmente.
 ` : ""}
 
-VOCABULARIO DE ALIMENTACION:
-- Usa terminos variados segun el momento del dia: "Desayuno", "Almuerzo/Comida", "Merienda/Colacion/Snack", "Cena".
-- Para referirte a la ingesta en general, alterna entre "alimento", "ingesta", "comida", "alimentacion". Evita repetir la palabra "comida" mas de 2 veces en el mismo bloque de recomendaciones.
-- NO des recomendaciones nutricionales especificas ni nombres de alimentos concretos. NO somos nutriologos. En su lugar, sugiere COMBINACIONES GENERALES de grupos alimenticios adaptadas a la edad (ej: "Proteina + cereal + fruta", "Proteina + verdura + grasa saludable", "Cereal + fruta + lacteo").
-- NO usar: "Avena con platano", "Pure de pollo con arroz", "Papilla de verduras" (demasiado especifico).
-- NO usar: "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo" (demasiado generico).
-- SI usar: "Proteina + cereal + fruta", "Proteina + verdura + grasa", "Lacteo + cereal + fruta" (combinacion de grupos).
+${FOOD_VOCABULARY}
 
 ${buildScheduleConstraints(childData.ageInMonths)}
 
@@ -1897,7 +1887,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
   "progressAnalysis": "Análisis de cómo el niño ha progresado desde el plan anterior"
 }`
   } else if (planType === "transcript_refinement") {
-    systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y desarrollo infantil.
+    systemPrompt = `${MARIANA_IDENTITY_CLINICAL}
 
 CRÍTICO: Tu respuesta DEBE ser únicamente un objeto JSON válido, sin texto adicional.
 
@@ -1940,13 +1930,7 @@ ${ragContext.map(doc => `Fuente: ${doc.source}\nContenido: ${doc.content}`).join
 ⚠️ IMPORTANTE: Los acuerdos del transcript tienen prioridad, pero el plan DEBE respetar las restricciones clinicas por edad.
 ` : ""}
 
-VOCABULARIO DE ALIMENTACION:
-- Usa terminos variados segun el momento del dia: "Desayuno", "Almuerzo/Comida", "Merienda/Colacion/Snack", "Cena".
-- Para referirte a la ingesta en general, alterna entre "alimento", "ingesta", "comida", "alimentacion". Evita repetir la palabra "comida" mas de 2 veces en el mismo bloque de recomendaciones.
-- NO des recomendaciones nutricionales especificas ni nombres de alimentos concretos. NO somos nutriologos. En su lugar, sugiere COMBINACIONES GENERALES de grupos alimenticios adaptadas a la edad (ej: "Proteina + cereal + fruta", "Proteina + verdura + grasa saludable", "Cereal + fruta + lacteo").
-- NO usar: "Avena con platano", "Pure de pollo con arroz", "Papilla de verduras" (demasiado especifico).
-- NO usar: "Comida balanceada", "Comida nutritiva", "Desayuno nutritivo" (demasiado generico).
-- SI usar: "Proteina + cereal + fruta", "Proteina + verdura + grasa", "Lacteo + cereal + fruta" (combinacion de grupos).
+${FOOD_VOCABULARY}
 
 ${buildScheduleConstraints(childData.ageInMonths)}
 
@@ -1997,7 +1981,7 @@ FORMATO DE RESPUESTA OBLIGATORIO (JSON únicamente):
 }`
   } else {
     // Fallback para compatibilidad (no debería llegar aquí en el nuevo flujo)
-    systemPrompt = `Eres la Dra. Mariana, especialista en pediatría y desarrollo infantil.
+    systemPrompt = `${MARIANA_IDENTITY_CLINICAL}
 
 ACTUALIZA EL PLAN EXISTENTE para ${childData.firstName} basándote en el análisis proporcionado.
 

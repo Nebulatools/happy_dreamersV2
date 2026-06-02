@@ -12,6 +12,7 @@ import { differenceInDays, format, parseISO, subDays } from "date-fns"
 import { processSleepStatistics } from "@/lib/sleep-calculations"
 import { createLogger } from "@/lib/logger"
 import { getScheduleRuleForAge } from "@/lib/diagnostic/age-schedules"
+import { MARIANA_IDENTITY } from "@/lib/ai-prompts/personas"
 
 const logger = createLogger("API:consultas:analyze:route")
 
@@ -340,7 +341,7 @@ async function generateTranscriptOnlyAnalysis({
     }
   }
 
-  const systemPrompt = `Eres Mariana, coach del sueño infantil y desarrollo infantil.
+  const systemPrompt = `${MARIANA_IDENTITY}
 
 INFORMACIÓN BÁSICA DEL NIÑO:
 - Nombre: ${childData.firstName} ${childData.lastName}
