@@ -1,9 +1,9 @@
 // Tools del asistente flotante de Happy Dreamers (tool-calling con el ai SDK v4).
-// Replican las capacidades de Yose pero llamando DIRECTO a los servicios internos
-// (sin API key), usando la sesión del usuario como actor.
+// IMPORTANTE: los `parameters` se definen como JSON Schema EXPLÍCITO (jsonSchema()),
+// NO con Zod, porque la conversión Zod->JSON-Schema falla en el build de producción
+// (minificación / zod duplicado) -> OpenAI rechazaba el schema ("type: None").
 
-import { tool } from "ai"
-import { z } from "zod"
+import { tool, jsonSchema } from "ai"
 import { Db, ObjectId } from "mongodb"
 import {
   createEvent,
@@ -35,6 +35,13 @@ export interface AssistantCtx {
   sideEffects: AssistantSideEffects
 }
 
+const EVENT_TYPES = ["sleep", "nap", "wake", "night_waking", "feeding", "medication", "extra_activities"]
+const str = (description?: string) => ({ type: "string", ...(description ? { description } : {}) })
+const num = (description?: string) => ({ type: "number", ...(description ? { description } : {}) })
+const enumStr = (values: string[], description?: string) => ({ type: "string", enum: values, ...(description ? { description } : {}) })
+const obj = (properties: Record<string, any>, required: string[] = []) =>
+  jsonSchema({ type: "object", properties, required } as any)
+
 function iso(dateStr: string, timeStr: string, tz: string): string {
   return isoFromWallClock(dateStr, timeStr, tz)
 }
@@ -52,27 +59,30 @@ export function createAssistantTools(ctx: AssistantCtx) {
     register_event: tool({
       description:
         "Registra un evento del niño activo: sleep, nap, wake, night_waking, feeding, medication o extra_activities. " +
-        "Resuelve fechas relativas ('anoche','hoy','ayer') usando la fecha actual del sistema que se da en el contexto.",
-      parameters: z.object({
-        eventType: z.enum(["sleep", "nap", "wake", "night_waking", "feeding", "medication", "extra_activities"]),
-        dateStr: z.string().describe("Fecha de inicio YYYY-MM-DD"),
-        timeStr: z.string().describe("Hora de inicio HH:mm en 24h"),
-        endDateStr: z.string().optional().describe("Fecha de fin YYYY-MM-DD (para sleep/nap/night_waking)"),
-        endTimeStr: z.string().optional().describe("Hora de fin HH:mm"),
-        emotionalState: z.enum(["tranquilo", "inquieto", "alterado", "neutral"]).optional(),
-        sleepDelay: z.number().optional().describe("Minutos en dormirse, 0-180"),
-        awakeDelay: z.number().optional().describe("Minutos despierto (night_waking), 0-180"),
-        feedingType: z.enum(["breast", "bottle", "solids"]).optional(),
-        babyState: z.enum(["awake", "asleep"]).optional(),
-        feedingAmount: z.number().optional().describe("ml (biberón) o gr (sólidos)"),
-        isNightFeeding: z.boolean().optional(),
-        medicationName: z.string().optional(),
-        medicationDose: z.string().optional(),
-        activityDescription: z.string().optional(),
-        activityDuration: z.number().optional().describe("minutos 5-180"),
-        notes: z.string().optional(),
-      }),
-      execute: async (a) => {
+        "Resuelve fechas relativas ('anoche','hoy','ayer') usando la fecha actual del sistema dada en el contexto.",
+      parameters: obj(
+        {
+          eventType: enumStr(EVENT_TYPES),
+          dateStr: str("Fecha de inicio YYYY-MM-DD"),
+          timeStr: str("Hora de inicio HH:mm en 24h"),
+          endDateStr: str("Fecha de fin YYYY-MM-DD (sleep/nap/night_waking)"),
+          endTimeStr: str("Hora de fin HH:mm"),
+          emotionalState: enumStr(["tranquilo", "inquieto", "alterado", "neutral"]),
+          sleepDelay: num("Minutos en dormirse, 0-180"),
+          awakeDelay: num("Minutos despierto (night_waking), 0-180"),
+          feedingType: enumStr(["breast", "bottle", "solids"]),
+          babyState: enumStr(["awake", "asleep"]),
+          feedingAmount: num("ml (biberón) o gr (sólidos)"),
+          isNightFeeding: { type: "boolean" },
+          medicationName: str(),
+          medicationDose: str(),
+          activityDescription: str(),
+          activityDuration: num("minutos 5-180"),
+          notes: str(),
+        },
+        ["eventType", "dateStr", "timeStr"]
+      ),
+      execute: async (a: any) => {
         const childId = cid()
         if (!childId) return "NO_CHILD: no hay niño seleccionado; pide al usuario elegir uno."
         try {
@@ -117,13 +127,13 @@ export function createAssistantTools(ctx: AssistantCtx) {
     // ---------- LISTAR EVENTOS ----------
     list_events: tool({
       description: "Lista los últimos eventos registrados del niño activo (para 'qué le registré', 'historial').",
-      parameters: z.object({ limit: z.number().optional().describe("cuántos, default 8") }),
-      execute: async ({ limit }) => {
+      parameters: obj({ limit: num("cuántos, default 8") }),
+      execute: async (a: any) => {
         const childId = cid()
         if (!childId) return "NO_CHILD"
         try {
           const { events } = await listEvents(db, actor, childId)
-          const recent = events.slice(-(limit && limit > 0 ? limit : 8)).reverse()
+          const recent = events.slice(-(a?.limit && a.limit > 0 ? a.limit : 8)).reverse()
           if (!recent.length) return "No hay eventos registrados todavía."
           return recent
             .map((e: any, i: number) => {
@@ -141,18 +151,18 @@ export function createAssistantTools(ctx: AssistantCtx) {
     edit_last_event: tool({
       description:
         "Corrige el último evento (o el último de un tipo) del niño activo: cambia hora de inicio/fin, estado emocional, delays o notas.",
-      parameters: z.object({
-        eventType: z.enum(["sleep", "nap", "wake", "night_waking", "feeding", "medication", "extra_activities"]).optional(),
-        startDateStr: z.string().optional(),
-        startTimeStr: z.string().optional(),
-        endDateStr: z.string().optional(),
-        endTimeStr: z.string().optional(),
-        emotionalState: z.enum(["tranquilo", "inquieto", "alterado", "neutral"]).optional(),
-        sleepDelay: z.number().optional(),
-        awakeDelay: z.number().optional(),
-        notes: z.string().optional(),
+      parameters: obj({
+        eventType: enumStr(EVENT_TYPES),
+        startDateStr: str(),
+        startTimeStr: str(),
+        endDateStr: str(),
+        endTimeStr: str(),
+        emotionalState: enumStr(["tranquilo", "inquieto", "alterado", "neutral"]),
+        sleepDelay: num(),
+        awakeDelay: num(),
+        notes: str(),
       }),
-      execute: async (a) => {
+      execute: async (a: any) => {
         const childId = cid()
         if (!childId) return "NO_CHILD"
         try {
@@ -196,12 +206,12 @@ export function createAssistantTools(ctx: AssistantCtx) {
       description:
         "Borra el último evento (o los últimos N, o el último de un tipo) del niño activo. " +
         "SIEMPRE llama primero con confirmed=false para mostrar qué se borraría; solo borra cuando el usuario confirma (confirmed=true).",
-      parameters: z.object({
-        count: z.number().optional().describe("cuántos, default 1"),
-        eventType: z.enum(["sleep", "nap", "wake", "night_waking", "feeding", "medication", "extra_activities"]).optional(),
-        confirmed: z.boolean().optional().describe("true SOLO si el usuario ya confirmó"),
+      parameters: obj({
+        count: num("cuántos, default 1"),
+        eventType: enumStr(EVENT_TYPES),
+        confirmed: { type: "boolean", description: "true SOLO si el usuario ya confirmó" },
       }),
-      execute: async (a) => {
+      execute: async (a: any) => {
         const childId = cid()
         if (!childId) return "NO_CHILD"
         try {
@@ -230,8 +240,8 @@ export function createAssistantTools(ctx: AssistantCtx) {
     // ---------- ESTADÍSTICAS ----------
     get_stats: tool({
       description: "Estadísticas de sueño del niño activo (para '¿cómo durmió?', '¿cómo durmió esta semana?').",
-      parameters: z.object({ fromDateStr: z.string().optional().describe("YYYY-MM-DD si se acota el período") }),
-      execute: async ({ fromDateStr }) => {
+      parameters: obj({ fromDateStr: str("YYYY-MM-DD si se acota el período") }),
+      execute: async (a: any) => {
         const childId = cid()
         if (!childId) return "NO_CHILD"
         try {
@@ -246,7 +256,7 @@ export function createAssistantTools(ctx: AssistantCtx) {
             sleepDelay: e.sleepDelay,
             didNotSleep: e.didNotSleep,
           }))
-          const from = fromDateStr ? getStartOfDayAsDate(fromDateStr, timezone) : undefined
+          const from = a?.fromDateStr ? getStartOfDayAsDate(a.fromDateStr, timezone) : undefined
           const s = processSleepStatistics(mapped, from)
           return JSON.stringify({
             sueno_promedio_h: s.avgSleepDuration,
@@ -266,7 +276,7 @@ export function createAssistantTools(ctx: AssistantCtx) {
     // ---------- ESTADO ACTUAL ----------
     get_sleep_state: tool({
       description: "Estado de sueño actual del niño activo ('¿está dormido?', '¿sigue despierto?').",
-      parameters: z.object({}),
+      parameters: obj({}),
       execute: async () => {
         const childId = cid()
         if (!childId) return "NO_CHILD"
@@ -282,7 +292,7 @@ export function createAssistantTools(ctx: AssistantCtx) {
     // ---------- NIÑOS ----------
     list_children: tool({
       description: "Lista los niños del usuario (para '¿qué niños tengo?').",
-      parameters: z.object({}),
+      parameters: obj({}),
       execute: async () => {
         try {
           const kids = await getAccessibleChildren(actor.id)
@@ -298,16 +308,16 @@ export function createAssistantTools(ctx: AssistantCtx) {
 
     set_active_child: tool({
       description: "Cambia el niño activo por nombre ('cambia a Sofía', 'registra para Juan').",
-      parameters: z.object({ childName: z.string().describe("nombre del niño") }),
-      execute: async ({ childName }) => {
+      parameters: obj({ childName: str("nombre del niño") }, ["childName"]),
+      execute: async (a: any) => {
         try {
           const kids = await getAccessibleChildren(actor.id)
-          const q = norm(childName)
+          const q = norm(a.childName)
           const match =
             kids.find((c: any) => norm(`${c.firstName} ${c.lastName}`).includes(q)) ||
             kids.find((c: any) => norm(c.firstName).includes(q))
           if (!match) {
-            return `No encontré a "${childName}". Niños: ${kids.map((c: any) => c.firstName).join(", ")}`
+            return `No encontré a "${a.childName}". Niños: ${kids.map((c: any) => c.firstName).join(", ")}`
           }
           const id = match._id.toString()
           const name = `${match.firstName} ${match.lastName}`.trim()
@@ -324,14 +334,17 @@ export function createAssistantTools(ctx: AssistantCtx) {
     // ---------- NOTIFICACIONES ----------
     create_notification: tool({
       description: "Crea o programa una notificación/recordatorio para el niño activo.",
-      parameters: z.object({
-        title: z.string(),
-        message: z.string(),
-        scheduledDateStr: z.string().optional().describe("YYYY-MM-DD si se programa"),
-        scheduledTimeStr: z.string().optional().describe("HH:mm si se programa"),
-        type: z.string().optional(),
-      }),
-      execute: async (a) => {
+      parameters: obj(
+        {
+          title: str(),
+          message: str(),
+          scheduledDateStr: str("YYYY-MM-DD si se programa"),
+          scheduledTimeStr: str("HH:mm si se programa"),
+          type: str(),
+        },
+        ["title", "message"]
+      ),
+      execute: async (a: any) => {
         const childId = cid()
         if (!childId) return "NO_CHILD"
         try {
@@ -342,8 +355,8 @@ export function createAssistantTools(ctx: AssistantCtx) {
             userId: new ObjectId(actor.id),
             childId: new ObjectId(childId),
             type: a.type || "custom",
-            title: a.title.slice(0, 140),
-            message: a.message.slice(0, 1000),
+            title: String(a.title).slice(0, 140),
+            message: String(a.message).slice(0, 1000),
             status: scheduledFor ? "scheduled" : "sent",
             scheduledFor,
             source: "assistant",
@@ -358,7 +371,7 @@ export function createAssistantTools(ctx: AssistantCtx) {
 
     list_notifications: tool({
       description: "Lista las notificaciones del niño activo.",
-      parameters: z.object({}),
+      parameters: obj({}),
       execute: async () => {
         const childId = cid()
         try {
@@ -377,12 +390,12 @@ export function createAssistantTools(ctx: AssistantCtx) {
     search_knowledge: tool({
       description:
         "Busca en la base de conocimiento de sueño infantil para responder DUDAS/consejos (no para registrar). Úsala cuando el usuario pregunte cómo mejorar algo, recomendaciones, etc.",
-      parameters: z.object({ query: z.string() }),
-      execute: async ({ query }) => {
+      parameters: obj({ query: str() }, ["query"]),
+      execute: async (a: any) => {
         try {
           const { getMongoDBVectorStoreManager } = await import("@/lib/rag/vector-store-mongodb")
           const vs = getMongoDBVectorStoreManager()
-          const docs = await vs.searchSimilar(query, 3)
+          const docs = await vs.searchSimilar(a.query, 3)
           if (!docs?.length) return "Sin documentos relevantes; responde con conocimiento general y tono cálido."
           return docs.map((d: any) => d.pageContent).join("\n---\n").slice(0, 2500)
         } catch (e: any) {
