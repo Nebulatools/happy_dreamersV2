@@ -15,6 +15,7 @@ import { DevTools } from "@/components/dev/DevTools"
 import { UserProvider } from "@/context/UserContext"
 import { ProfileCompletionGuard } from "@/components/profile/ProfileCompletionGuard"
 import { GlobalActivityMonitor } from "@/components/ui/GlobalActivityMonitor"
+import { AssistantWidget } from "@/components/assistant/AssistantWidget"
 
 export default async function DashboardLayout({
   children,
@@ -56,6 +57,8 @@ export default async function DashboardLayout({
               <DevTools />
               {/* Monitor de eventos pendientes (alerta despues de 20 min) */}
               <GlobalActivityMonitor />
+              {/* Asistente flotante (lenguaje natural -> acciones) */}
+              <AssistantWidget />
               {/* Bottom navigation for mobile */}
               <MobileBottomNav />
             </div>
